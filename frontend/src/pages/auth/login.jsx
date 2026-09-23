@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
 
 export default function AuthBookingPage() {
     const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
@@ -51,66 +53,9 @@ export default function AuthBookingPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
-            {/* 1. TOP ANNOUNCEMENT BAR */}
-            <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
-                <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
-                    <div className="flex items-center space-x-4">
-                        <span className="font-semibold tracking-wider text-amber-400 uppercase text-[11px]">
-                            KHÁCH SẠN TA ĐÀ NẴNG LUXURY COLLECTION
-                        </span>
-                        <span className="hidden sm:inline text-slate-600">|</span>
-                        <span className="hidden sm:inline flex items-center gap-1 text-slate-400">
-                            <span className="text-amber-400 font-bold">★</span> The Leading Hotels of the World
-                        </span>
-                    </div>
-                    <div className="flex items-center space-x-4 text-slate-300">
-                        <span className="flex items-center gap-1.5 hover:text-white cursor-pointer transition">
-                            <span className="text-orange-400">📞</span> Hotline 24/7: <strong className="text-white">1900 8899</strong>
-                        </span>
-                        <span className="text-slate-600">|</span>
-                        <div className="flex items-center space-x-2">
-                            <span className="cursor-pointer hover:text-white">🇻🇳 VND</span>
-                            <span>/</span>
-                            <span className="cursor-pointer hover:text-white">Tiếng Việt</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* Reusable Navbar */}
+            <Navbar />
 
-            {/* 2. HEADER NAVIGATION */}
-            <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                    <div className="flex items-center space-x-3 cursor-pointer">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/30">
-                            <span className="text-white font-serif font-black text-xl tracking-tighter">TA</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="font-serif font-bold text-slate-900 text-lg leading-tight tracking-wide">
-                                KHÁCH SẠN TA
-                            </span>
-                            <span className="text-[10px] font-semibold text-blue-600 tracking-[0.2em] uppercase">
-                                ĐÀ NẴNG ★★★★★
-                            </span>
-                        </div>
-                    </div>
-                    <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium text-slate-700">
-                        <a href="/" className="hover:text-blue-600 transition">Trang chủ</a>
-                        <a href="/rooms" className="hover:text-blue-600 transition">Phòng nghỉ & Suites</a>
-                        <a href="#am-thuc" className="hover:text-blue-600 transition">Ẩm thực & Bar</a>
-                        <a href="#dich-vu-spa" className="hover:text-blue-600 transition">Dịch vụ Spa</a>
-                        <a href="#uu-dai" className="hover:text-blue-600 transition">Ưu đãi đặc quyền</a>
-                        <a href="#lien-he" className="hover:text-blue-600 transition">Liên hệ</a>
-                    </nav>
-                    <div className="flex items-center space-x-4">
-                        <button className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-medium text-sm rounded-lg shadow-md shadow-orange-500/20 hover:shadow-lg transition-all duration-200">
-                            Đặt phòng ngay
-                        </button>
-                        <div className="w-10 h-10 rounded-full border-2 border-blue-600 p-0.5 cursor-pointer">
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="VIP Guest Avatar" className="w-full h-full object-cover rounded-full" />
-                        </div>
-                    </div>
-                </div>
-            </header>
 
             {/* 3. BREADCRUMB */}
             <div className="bg-white border-b border-slate-100 py-3">
@@ -566,78 +511,8 @@ export default function AuthBookingPage() {
                 </div>
             </section>
 
-            {/* 7. FOOTER */}
-            <footer className="bg-white border-t border-slate-200 pt-16 pb-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-                        <div>
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-serif font-black text-base">
-                                    TA
-                                </div>
-                                <span className="font-serif font-bold text-slate-900 text-base tracking-wide">
-                                    KHÁCH SẠN TA ĐÀ NẴNG
-                                </span>
-                            </div>
-                            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                                Kiệt tác nghỉ dưỡng 5 sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.
-                            </p>
-                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 inline-block text-xs">
-                                <span className="font-bold text-slate-800">🏆 WINNER 2024</span>
-                                <span className="block text-slate-500 text-[11px]">World Luxury Hotel Awards</span>
-                            </div>
-                        </div>
-                        <div>
-                            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">Khu nghỉ dưỡng</h5>
-                            <div className="space-y-3 text-xs text-slate-600">
-                                <div>
-                                    <strong className="block text-slate-900 font-semibold">Khách Sạn TA Đà Nẵng (Flagship)</strong>
-                                    <p className="text-slate-500">08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Ngũ Hành Sơn, Đà Nẵng</p>
-                                    <span className="text-blue-600 font-medium">+84 (0) 236 388 9900</span>
-                                </div>
-                                <div>
-                                    <strong className="block text-slate-900 font-semibold">Khách Sạn TA Phú Quốc</strong>
-                                    <p className="text-slate-500">Khu phức hợp Bãi Trường, Dương Tơ, TP. Phú Quốc</p>
-                                    <span className="text-blue-600 font-medium">+84 (0) 297 388 9911</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">Khám phá & Dịch vụ</h5>
-                            <ul className="space-y-2 text-xs text-slate-600">
-                                <li><a href="#phong" className="hover:text-blue-600 transition">Phòng Hoàng Gia & Penthouse</a></li>
-                                <li><a href="#nha-hang" className="hover:text-blue-600 transition">Nhà hàng Michelin Starred</a></li>
-                                <li><a href="#spa" className="hover:text-blue-600 transition">The Lotus Spa & Wellness</a></li>
-                                <li><a href="#hoi-vien" className="hover:text-blue-600 transition">Câu lạc bộ Đặc quyền VIP</a></li>
-                                <li><a href="#chinh-sach" className="hover:text-blue-600 transition">Chính sách đặt phòng & Hủy đổi</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">Bản tin Đặc quyền</h5>
-                            <p className="text-xs text-slate-500 mb-3">
-                                Đăng ký nhận thông tin độc quyền về các kỳ nghỉ phiên bản giới hạn và ưu đãi hội viên VIP.
-                            </p>
-                            <div className="flex items-center">
-                                <input type="email" placeholder="Địa chỉ email của quý khách..." className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs rounded-l-lg focus:outline-none focus:border-blue-600" />
-                                <button type="button" aria-label="Đăng ký nhận bản tin" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-bold rounded-r-lg transition">
-                                    →
-                                </button>
-                            </div>
-                            <span className="block text-[10px] text-slate-400 mt-2">
-                                Bảo mật thông tin tuyệt đối theo chuẩn quốc tế.
-                            </span>
-                        </div>
-                    </div>
-                    <div className="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-                        <p>© 2025 Khách Sạn TA Đà Nẵng. All rights reserved.</p>
-                        <div className="flex items-center space-x-6">
-                            <a href="#dieu-khoan" className="hover:underline">Điều khoản dịch vụ</a>
-                            <a href="#bao-mat" className="hover:underline">Chính sách bảo mật</a>
-                            <a href="#so-do" className="hover:underline">Sơ đồ địa điểm</a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+            {/* Reusable Footer */}
+            <Footer />
         </div>
     );
 }
