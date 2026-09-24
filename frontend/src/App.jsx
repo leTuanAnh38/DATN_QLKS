@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import Home from './pages/client/Home';
 import Rooms from './pages/client/Rooms';
 import DetailRoom from './pages/client/DetailRoom';
@@ -49,6 +50,7 @@ function App() {
 
         {/* Trang Đăng nhập / Hội viên VIP */}
         <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
   );

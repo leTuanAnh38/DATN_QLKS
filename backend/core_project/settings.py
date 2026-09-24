@@ -37,17 +37,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # --- Thư viện cài đặt thêm ---
+    
+    # --- Thư viện bên thứ 3 (Third-party apps) ---
     'rest_framework',
     'corsheaders',
     
-    # --- Phân hệ của đồ án ---
-    'users',
-    'bookings',
+    # --- Phân hệ của đồ án (Local apps) ---
+    # Phải thêm tiền tố 'apps.' vì chúng nằm trong thư mục 'apps'
+    'apps.users',
+    'apps.bookings',
+    'apps.rooms',       # Thêm luôn các app bạn chuẩn bị tạo
+    'apps.payments',
+    'apps.services',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -57,7 +63,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core_project.urls'
-
+# Thêm cấu hình cấp phép cho ReactJS ở dưới cùng của file settings.py:
+CORS_ALLOW_ALL_ORIGINS = True # Dành cho lúc Dev (Làm đồ án)
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

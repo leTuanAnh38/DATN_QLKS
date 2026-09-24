@@ -1,0 +1,1 @@
+  # Cấu hình thư viện ReportLab/WeasyPrint xuất hóa đơn
