@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { useAuth } from '../../store/authStore';
+import { authService } from '../../services/authService';
 
 export default function AuthBookingPage() {
+    const navigate = useNavigate();
+    const { user, isAuthenticated } = useAuth();
+
     const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
     // Login form state
     const [loginForm, setLoginForm] = useState({
@@ -40,15 +49,48 @@ export default function AuthBookingPage() {
         }
     ];
 
-    const handleLoginSubmit = (e) => {
+    const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        alert(`Đăng nhập thành công với tài khoản: ${loginForm.identifier}`);
+        setIsLoading(true);
+        setErrorMessage(null);
+        setSuccessMessage(null);
+
+        const result = await authService.login(loginForm.identifier, loginForm.password);
+        setIsLoading(false);
+
+        if (result.success) {
+            setSuccessMessage(result.data?.message || 'Đăng nhập thành công! Đang chuyển hướng về trang chủ...');
+            setTimeout(() => {
+                navigate('/');
+            }, 700);
+        } else {
+            setErrorMessage(result.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
+        }
     };
 
-    const handleRegisterSubmit = (e) => {
+    const handleRegisterSubmit = async (e) => {
         e.preventDefault();
-        alert(`Đăng ký tài khoản thành công cho Quý khách: ${registerForm.fullName}`);
-        setActiveTab('login');
+        setIsLoading(true);
+        setErrorMessage(null);
+        setSuccessMessage(null);
+
+        const result = await authService.register(registerForm);
+        setIsLoading(false);
+
+        if (result.success) {
+            setSuccessMessage(result.data?.message || 'Đăng ký tài khoản thành công! Đang chuyển hướng về trang chủ...');
+            setTimeout(() => {
+                navigate('/');
+            }, 800);
+        } else {
+            setErrorMessage(result.message || 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.');
+        }
+    };
+
+    const handleLogoutCurrent = async () => {
+        await authService.logout();
+        setSuccessMessage('Đã đăng xuất tài khoản thành công.');
+        setErrorMessage(null);
     };
 
     return (
@@ -178,11 +220,61 @@ export default function AuthBookingPage() {
                     {/* RIGHT COLUMN: AUTHENTICATION FORM CARD */}
                     <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-10 flex flex-col justify-between">
                         <div>
+                            {/* ALREADY LOGGED IN BANNER */}
+                            {isAuthenticated && (
+                                <div className="mb-6 p-4 rounded-2xl bg-blue-50 border border-blue-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                                            <span>👋</span> Đang đăng nhập: <strong>{user?.full_name || user?.username}</strong>
+                                        </div>
+                                        <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase">
+                                            {user?.role === 'admin' ? 'Admin' : 'Khách hàng'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-blue-700 mb-3">
+                                        Quý khách đã đăng nhập vào hệ thống. Bạn có thể quay về trang chủ hoặc đăng xuất để đổi tài khoản.
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/')}
+                                            className="px-3.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                                        >
+                                            Về Trang Chủ →
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleLogoutCurrent}
+                                            className="px-3.5 py-1.5 text-xs font-bold bg-white text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition"
+                                        >
+                                            Đăng xuất
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ALERT MESSAGES */}
+                            {errorMessage && (
+                                <div className="mb-6 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2.5 animate-fadeIn">
+                                    <span className="text-base flex-shrink-0">⚠️</span>
+                                    <span className="flex-1 font-medium leading-relaxed">{errorMessage}</span>
+                                </div>
+                            )}
+                            {successMessage && (
+                                <div className="mb-6 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-start gap-2.5 animate-fadeIn">
+                                    <span className="text-base flex-shrink-0">✅</span>
+                                    <span className="flex-1 font-medium leading-relaxed">{successMessage}</span>
+                                </div>
+                            )}
+
                             {/* TAB SWITCHER */}
                             <div className="flex p-1 bg-slate-100 rounded-2xl mb-8">
                                 <button
                                     type="button"
-                                    onClick={() => setActiveTab('login')}
+                                    onClick={() => {
+                                        setActiveTab('login');
+                                        setErrorMessage(null);
+                                    }}
                                     className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 ${activeTab === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                                         }`}
                                 >
@@ -190,7 +282,10 @@ export default function AuthBookingPage() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setActiveTab('register')}
+                                    onClick={() => {
+                                        setActiveTab('register');
+                                        setErrorMessage(null);
+                                    }}
                                     className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 ${activeTab === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                                         }`}
                                 >
@@ -265,9 +360,16 @@ export default function AuthBookingPage() {
                                     </div>
                                     <button
                                         type="submit"
-                                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                                        disabled={isLoading}
+                                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
                                     >
-                                        Đăng Nhập Tài Khoản Đặt Phòng
+                                        {isLoading && (
+                                            <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        )}
+                                        <span>{isLoading ? 'Đang xác thực...' : 'Đăng Nhập Tài Khoản Đặt Phòng'}</span>
                                     </button>
                                 </form>
                             )}
@@ -355,9 +457,16 @@ export default function AuthBookingPage() {
                                     </div>
                                     <button
                                         type="submit"
-                                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                                        disabled={isLoading}
+                                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
                                     >
-                                        Hoàn Tất Đăng Ký Tài Khoản
+                                        {isLoading && (
+                                            <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        )}
+                                        <span>{isLoading ? 'Đang tạo tài khoản...' : 'Hoàn Tất Đăng Ký Tài Khoản'}</span>
                                     </button>
                                 </form>
                             )}
