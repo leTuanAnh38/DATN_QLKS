@@ -8,6 +8,7 @@ import DiningAndBar from './pages/client/DiningAndBar';
 import SpaAndWellness from './pages/client/SpaAndWellness';
 import Promotions from './pages/client/Promotions';
 import Contact from './pages/client/Contact';
+import Profile from './pages/client/Profile';
 import Login from './pages/auth/login';
 
 function ScrollToTop() {
@@ -47,6 +48,9 @@ function App() {
 
         {/* Trang Liên hệ */}
         <Route path="/contact" element={<Contact />} />
+
+        {/* Trang Hồ sơ người dùng */}
+        <Route path="/profile" element={<Profile />} />
 
         {/* Trang Đăng nhập / Hội viên VIP */}
         <Route path="/login" element={<Login />} />

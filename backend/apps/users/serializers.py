@@ -15,6 +15,7 @@ class GuestProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
     guest_profile = GuestProfileSerializer(read_only=True)
 
     class Meta:
@@ -39,6 +40,17 @@ class UserSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
+
+    def get_avatar(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get('request')
+        if request:
+            try:
+                return request.build_absolute_uri(obj.avatar.url)
+            except Exception:
+                pass
+        return obj.avatar.url
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -171,3 +183,85 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(required=False, allow_blank=True)
+    id_card_number = serializers.CharField(required=False, allow_blank=True)
+    preferences = serializers.CharField(required=False, allow_blank=True)
+    remove_avatar = serializers.BooleanField(required=False, default=False)
+
+    class Meta:
+        model = User
+        fields = (
+            'full_name',
+            'email',
+            'phone_number',
+            'address',
+            'avatar',
+            'remove_avatar',
+            'id_card_number',
+            'preferences',
+        )
+
+    def validate_email(self, value):
+        user = self.instance
+        if not value:
+            return value
+        email = value.strip().lower()
+        if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Địa chỉ email này đã được sử dụng bởi tài khoản khác.")
+        return email
+
+    def validate_phone_number(self, value):
+        if not value:
+            return value
+        user = self.instance
+        phone = re.sub(r'[\s\-\.]', '', value.strip())
+        if not re.match(r'^(0|\+84)[0-9]{9,10}$', phone):
+            raise serializers.ValidationError("Số điện thoại không hợp lệ (Vui lòng nhập đúng số điện thoại Việt Nam).")
+        if User.objects.filter(phone_number=phone).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Số điện thoại này đã được liên kết với một tài khoản khác.")
+        return phone
+
+    def update(self, instance, validated_data):
+        full_name = validated_data.pop('full_name', None)
+        id_card_number = validated_data.pop('id_card_number', None)
+        preferences = validated_data.pop('preferences', None)
+        remove_avatar = validated_data.pop('remove_avatar', False)
+
+        if full_name is not None:
+            parts = full_name.strip().split()
+            if len(parts) > 1:
+                instance.first_name = " ".join(parts[:-1])
+                instance.last_name = parts[-1]
+            elif len(parts) == 1:
+                instance.first_name = parts[0]
+                instance.last_name = ""
+
+        if remove_avatar:
+            if instance.avatar:
+                instance.avatar.delete(save=False)
+            instance.avatar = None
+        elif 'avatar' in validated_data and validated_data['avatar']:
+            instance.avatar = validated_data['avatar']
+
+        if 'email' in validated_data:
+            instance.email = validated_data['email']
+        if 'phone_number' in validated_data:
+            instance.phone_number = validated_data['phone_number']
+        if 'address' in validated_data:
+            instance.address = validated_data['address']
+
+        instance.save()
+
+        # Cập nhật hoặc tạo GuestProfile
+        guest_profile, _ = GuestProfile.objects.get_or_create(user=instance)
+        if id_card_number is not None:
+            guest_profile.id_card_number = id_card_number
+        if preferences is not None:
+            guest_profile.preferences = preferences
+        guest_profile.save()
+
+        return instance
+

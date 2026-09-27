@@ -8,6 +8,8 @@ __pycache__/
 *.sqlite3
 db.sqlite3
 .env
+backend/media/
+media/
 
 # Node / Frontend
 node_modules/

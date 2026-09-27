@@ -3,7 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
-import ProfileModal from '../auth/ProfileModal';
+
+export const getAvatarUrl = (avatar) => {
+    if (!avatar) return null;
+    if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')) {
+        return avatar;
+    }
+    const backendBase = 'http://localhost:8000';
+    return `${backendBase}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
+};
 
 export default function Navbar({
     actionText = 'Đặt phòng ngay',
@@ -17,7 +25,6 @@ export default function Navbar({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const userMenuRef = useRef(null);
 
     // Tự động đóng dropdown khi click ra ngoài
@@ -195,7 +202,7 @@ export default function Navbar({
                                 >
                                     {user?.avatar ? (
                                         <img
-                                            src={user.avatar}
+                                            src={getAvatarUrl(user.avatar)}
                                             alt={user?.full_name || 'User Avatar'}
                                             className="w-full h-full object-cover rounded-full"
                                         />
@@ -227,13 +234,10 @@ export default function Navbar({
 
                                         {/* 1. Hồ sơ của tôi, 2. Mã giảm giá của tôi, 3. Lịch sử đặt phòng, 4. Đổi mật khẩu */}
                                         <div className="py-1">
-                                            {/* Nút 1: Hồ sơ của tôi */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setUserMenuOpen(false);
-                                                    setIsProfileOpen(true);
-                                                }}
+                                            {/* Nút 1: Hồ sơ của tôi (chuyển sang trang riêng) */}
+                                            <Link
+                                                to="/profile"
+                                                onClick={() => setUserMenuOpen(false)}
                                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 hover:text-blue-600 transition text-left cursor-pointer"
                                             >
                                                 <span className="w-5 h-5 flex items-center justify-center shrink-0 text-black">
@@ -242,7 +246,7 @@ export default function Navbar({
                                                     </svg>
                                                 </span>
                                                 <span className="truncate">Hồ sơ của tôi</span>
-                                            </button>
+                                            </Link>
 
                                             {/* Nút 2: Mã giảm giá của tôi */}
                                             <Link
@@ -350,27 +354,53 @@ export default function Navbar({
                     <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-fadeIn">
                         {/* Mobile User Status */}
                         {isAuthenticated && (
-                            <div className="p-3 bg-slate-50 rounded-xl mb-3 flex items-center justify-between border border-slate-200">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
-                                        {getInitials(user?.full_name || user?.username)}
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="text-xs font-bold text-slate-900 truncate">
-                                            {user?.full_name || user?.username}
+                            <div className="p-3 bg-slate-50 rounded-xl mb-3 border border-slate-200 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Link
+                                        to="/profile"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center gap-2.5 text-left"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center text-white font-bold text-xs border border-white shadow">
+                                            {user?.avatar ? (
+                                                <img
+                                                    src={getAvatarUrl(user.avatar)}
+                                                    alt={user?.full_name || 'Avatar'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                getInitials(user?.full_name || user?.username)
+                                            )}
                                         </div>
-                                        <div className="text-[10px] text-slate-500">
-                                            {user?.email || user?.phone_number}
+                                        <div>
+                                            <div className="text-xs font-bold text-slate-900 truncate">
+                                                {user?.full_name || user?.username}
+                                            </div>
+                                            <div className="text-[10px] text-slate-500">
+                                                {user?.email || user?.phone_number}
+                                            </div>
                                         </div>
-                                    </div>
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="px-2.5 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                                    >
+                                        Đăng xuất
+                                    </button>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={handleLogout}
-                                    className="px-2.5 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
-                                >
-                                    Đăng xuất
-                                </button>
+                                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                                    <Link
+                                        to="/profile"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="font-medium text-blue-600 hover:underline flex items-center gap-1"
+                                    >
+                                        <span>👤 Hồ sơ của tôi</span>
+                                    </Link>
+                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                        ★ {user?.guest_profile?.vip_tier || 'Silver'}
+                                    </span>
+                                </div>
                             </div>
                         )}
 
@@ -432,13 +462,6 @@ export default function Navbar({
             <ChangePasswordModal
                 isOpen={isChangePasswordOpen}
                 onClose={() => setIsChangePasswordOpen(false)}
-            />
-
-            {/* Modal Hồ Sơ Của Tôi */}
-            <ProfileModal
-                isOpen={isProfileOpen}
-                onClose={() => setIsProfileOpen(false)}
-                onOpenChangePassword={() => setIsChangePasswordOpen(true)}
             />
         </>
     );

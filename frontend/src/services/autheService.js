@@ -126,6 +126,46 @@ export const authService = {
             return { success: false, message, errors: error.response?.data?.errors };
         }
     },
+
+    /**
+     * Cập nhật thông tin hồ sơ và ảnh đại diện
+     */
+    async updateProfile(data) {
+        try {
+            const isFormData = data instanceof FormData;
+            const config = isFormData
+                ? { headers: { 'Content-Type': 'multipart/form-data' } }
+                : {};
+
+            const response = await api.patch('/auth/me/', data, config);
+
+            if (response.data.success && response.data.user) {
+                authStore.updateUser(response.data.user);
+                return {
+                    success: true,
+                    message: response.data.message || 'Cập nhật thông tin thành công!',
+                    user: response.data.user,
+                };
+            }
+
+            return {
+                success: false,
+                message: response.data.message || 'Cập nhật hồ sơ không thành công.',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.detail ||
+                error.response?.data?.email?.[0] ||
+                error.response?.data?.phone_number?.[0] ||
+                'Đã xảy ra lỗi khi cập nhật hồ sơ. Vui lòng kiểm tra lại.';
+            return {
+                success: false,
+                message,
+                errors: error.response?.data?.errors || error.response?.data,
+            };
+        }
+    },
 };
 
 export default authService;
