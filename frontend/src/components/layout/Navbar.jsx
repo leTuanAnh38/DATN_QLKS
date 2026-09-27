@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
+import UserAvatar from '../common/UserAvatar';
 
 export const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
@@ -197,23 +198,17 @@ export default function Navbar({
                                 <button
                                     type="button"
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className="w-10 h-10 rounded-full border-2 border-blue-600 p-0.5 cursor-pointer hover:scale-105 transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    className="cursor-pointer hover:scale-105 transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full"
                                     title={`Tài khoản: ${user?.full_name || user?.username}`}
                                 >
-                                    {user?.avatar ? (
-                                        <img
-                                            src={getAvatarUrl(user.avatar)}
-                                            alt={user?.full_name || 'User Avatar'}
-                                            className="w-full h-full object-cover rounded-full"
-                                        />
-                                    ) : (
-                                        // Avatar mặc định sang trọng
-                                        <div className="w-full h-full rounded-full bg-gradient-to-tr from-blue-700 via-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold text-xs tracking-wider shadow-inner">
-                                            {getInitials(user?.full_name || user?.username)}
-                                        </div>
-                                    )}
-                                    {/* Online indicator */}
-                                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                                    <UserAvatar
+                                        avatar={user?.avatar}
+                                        name={user?.full_name || user?.username}
+                                        role={user?.role}
+                                        size="md"
+                                        border={true}
+                                        showOnline={true}
+                                    />
                                 </button>
 
                                 {/* Dropdown Menu tài khoản */}
@@ -361,17 +356,13 @@ export default function Navbar({
                                         onClick={() => setMobileMenuOpen(false)}
                                         className="flex items-center gap-2.5 text-left"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center text-white font-bold text-xs border border-white shadow">
-                                            {user?.avatar ? (
-                                                <img
-                                                    src={getAvatarUrl(user.avatar)}
-                                                    alt={user?.full_name || 'Avatar'}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                getInitials(user?.full_name || user?.username)
-                                            )}
-                                        </div>
+                                        <UserAvatar
+                                            avatar={user?.avatar}
+                                            name={user?.full_name || user?.username}
+                                            role={user?.role}
+                                            size="md"
+                                            border={true}
+                                        />
                                         <div>
                                             <div className="text-xs font-bold text-slate-900 truncate">
                                                 {user?.full_name || user?.username}

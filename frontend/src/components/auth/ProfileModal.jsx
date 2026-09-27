@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../../store/authStore';
+import UserAvatar from '../common/UserAvatar';
 
 export default function ProfileModal({ isOpen, onClose, onOpenChangePassword }) {
     const { user } = useAuth();
@@ -43,17 +44,13 @@ export default function ProfileModal({ isOpen, onClose, onOpenChangePassword }) 
                 {/* Avatar & Header details */}
                 <div className="px-6 pb-6 pt-0 relative">
                     <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between -mt-12 mb-4 gap-3">
-                        <div className="w-20 h-20 rounded-full border-4 border-white shadow-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl">
-                            {user.avatar ? (
-                                <img
-                                    src={user.avatar}
-                                    alt={user.full_name}
-                                    className="w-full h-full object-cover rounded-full"
-                                />
-                            ) : (
-                                getInitials(user.full_name || user.username)
-                            )}
-                        </div>
+                        <UserAvatar
+                            avatar={user.avatar}
+                            name={user.full_name || user.username}
+                            role={user.role}
+                            size="2xl"
+                            border={true}
+                        />
                         <div className="flex items-center gap-2">
                             <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                 👑 {user.role === 'admin' ? 'Admin Quản Trị' : `Hội viên ${user.guest_profile?.vip_tier || 'Silver'}`}

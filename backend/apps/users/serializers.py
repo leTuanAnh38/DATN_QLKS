@@ -2,7 +2,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from .models import GuestProfile
+from .models import GuestProfile, EmployeeProfile
 
 User = get_user_model()
 
@@ -264,4 +264,213 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         guest_profile.save()
 
         return instance
+
+
+# =========================================================================
+# PHÂN HỆ QUẢN TRỊ ADMIN: QUẢN LÝ KHÁCH HÀNG & NHÂN SỰ
+# =========================================================================
+
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeProfile
+        fields = (
+            'id',
+            'employee_code',
+            'department',
+            'shift',
+            'base_salary',
+            'hire_date',
+        )
+
+
+class AdminGuestSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    guest_profile = GuestProfileSerializer(read_only=True)
+    id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    vip_tier = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    loyalty_points = serializers.IntegerField(write_only=True, required=False)
+    preferences = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'full_name',
+            'phone_number',
+            'address',
+            'avatar',
+            'role',
+            'is_active',
+            'date_joined',
+            'last_login',
+            'guest_profile',
+            'id_card_number',
+            'vip_tier',
+            'loyalty_points',
+            'preferences',
+        )
+        read_only_fields = ('id', 'role', 'date_joined', 'last_login')
+
+    def get_full_name(self, obj):
+        name = f"{obj.first_name} {obj.last_name}".strip()
+        return name if name else obj.username
+
+    def update(self, instance, validated_data):
+        id_card = validated_data.pop('id_card_number', None)
+        vip_tier = validated_data.pop('vip_tier', None)
+        points = validated_data.pop('loyalty_points', None)
+        prefs = validated_data.pop('preferences', None)
+
+        full_name = validated_data.pop('full_name', None)
+        if full_name:
+            parts = full_name.strip().split()
+            if len(parts) > 1:
+                instance.first_name = " ".join(parts[:-1])
+                instance.last_name = parts[-1]
+            else:
+                instance.first_name = parts[0]
+                instance.last_name = ""
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        profile, _ = GuestProfile.objects.get_or_create(user=instance)
+        if id_card is not None:
+            profile.id_card_number = id_card
+        if vip_tier is not None:
+            profile.vip_tier = vip_tier
+        if points is not None:
+            profile.loyalty_points = points
+        if prefs is not None:
+            profile.preferences = prefs
+        profile.save()
+
+        return instance
+
+
+class AdminEmployeeSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    employee_profile = EmployeeProfileSerializer(read_only=True)
+    password = serializers.CharField(write_only=True, required=False, min_length=6)
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+
+    employee_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    department = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    shift = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    base_salary = serializers.DecimalField(write_only=True, required=False, max_digits=12, decimal_places=0, allow_null=True)
+    hire_date = serializers.DateField(write_only=True, required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'full_name',
+            'phone_number',
+            'role',
+            'role_display',
+            'address',
+            'avatar',
+            'is_active',
+            'is_staff',
+            'date_joined',
+            'last_login',
+            'password',
+            'employee_profile',
+            'employee_code',
+            'department',
+            'shift',
+            'base_salary',
+            'hire_date',
+        )
+        read_only_fields = ('id', 'date_joined', 'last_login')
+
+    def get_full_name(self, obj):
+        name = f"{obj.first_name} {obj.last_name}".strip()
+        return name if name else obj.username
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', 'Password123')
+        code = validated_data.pop('employee_code', '')
+        dept = validated_data.pop('department', 'Tiền sảnh')
+        shift = validated_data.pop('shift', 'Ca sáng')
+        salary = validated_data.pop('base_salary', 10000000)
+        hire = validated_data.pop('hire_date', None)
+
+        user = User(**validated_data)
+        user.set_password(password)
+        if user.role in ['admin', 'manager', 'owner']:
+            user.is_staff = True
+        user.save()
+
+        if not code:
+            code = f"NV{user.id:04d}"
+
+        EmployeeProfile.objects.create(
+            user=user,
+            employee_code=code,
+            department=dept or 'Tiền sảnh',
+            shift=shift or 'Ca sáng',
+            base_salary=salary or 10000000,
+            hire_date=hire
+        )
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        code = validated_data.pop('employee_code', None)
+        dept = validated_data.pop('department', None)
+        shift = validated_data.pop('shift', None)
+        salary = validated_data.pop('base_salary', None)
+        hire = validated_data.pop('hire_date', None)
+
+        if password:
+            instance.set_password(password)
+
+        full_name = validated_data.pop('full_name', None)
+        if full_name:
+            parts = full_name.strip().split()
+            if len(parts) > 1:
+                instance.first_name = " ".join(parts[:-1])
+                instance.last_name = parts[-1]
+            else:
+                instance.first_name = parts[0]
+                instance.last_name = ""
+
+        role = validated_data.get('role')
+        if role in ['admin', 'manager', 'owner']:
+            instance.is_staff = True
+        elif role and role != 'guest':
+            instance.is_staff = False
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        profile, _ = EmployeeProfile.objects.get_or_create(
+            user=instance,
+            defaults={'employee_code': f"NV{instance.id:04d}", 'department': 'Tiền sảnh'}
+        )
+        if code is not None and code.strip():
+            profile.employee_code = code
+        if dept is not None:
+            profile.department = dept
+        if shift is not None:
+            profile.shift = shift
+        if salary is not None:
+            profile.base_salary = salary
+        if hire is not None:
+            profile.hire_date = hire
+        profile.save()
+
+        return instance
+
 
