@@ -312,7 +312,8 @@ class AdminEmployeeListCreateView(APIView):
                 Q(last_name__icontains=q) |
                 Q(username__icontains=q) |
                 Q(email__icontains=q) |
-                Q(employee_profile__employee_code__icontains=q)
+                Q(employee_profile__employee_code__icontains=q) |
+                Q(employee_profile__position__icontains=q)
             )
             if clean_q:
                 search_filter |= Q(phone_number__icontains=clean_q)
@@ -338,7 +339,8 @@ class AdminEmployeeListCreateView(APIView):
         return Response({
             'success': True,
             'count': queryset.count(),
-            'employees': serializer.data
+            'employees': serializer.data,
+            'roles': get_all_roles_matrix()
         }, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -408,150 +410,154 @@ class AdminEmployeeDetailView(APIView):
 
 
 # =========================================================================
-# DANH MỤC VAI TRÒ & CHI TIẾT PHÂN QUYỀN
+# DANH MỤC VAI TRÒ & CHI TIẾT MA TRẬN PHÂN QUYỀN RBAC CHUẨN KHÁCH SẠN
 # =========================================================================
+
+def get_all_roles_matrix():
+    return [
+        {
+            'role': 'admin',
+            'title': 'Admin Hệ Thống',
+            'level': 'Toàn quyền',
+            'badge_color': 'purple',
+            'icon': '👑',
+            'description': 'Quản trị tối cao toàn bộ hệ thống, phân quyền người dùng, cấu hình khách sạn và cơ sở dữ liệu.',
+            'scope': 'Cấp quyền, tạo nhân sự, quản lý dữ liệu, kiểm toán hệ thống',
+            'permissions': {
+                'rooms': 'Toàn quyền cấu hình',
+                'bookings': 'Toàn quyền duyệt/hủy',
+                'guests': 'Toàn quyền xem/sửa',
+                'employees': 'Toàn quyền phân quyền',
+                'finance': 'Toàn quyền doanh thu',
+                'settings': 'Cấu hình hệ thống',
+            }
+        },
+        {
+            'role': 'owner',
+            'title': 'Chủ Khách Sạn (Owner)',
+            'level': 'Cấp cao',
+            'badge_color': 'amber',
+            'icon': '💼',
+            'description': 'Giám sát hoạt động kinh doanh, xem báo cáo doanh thu tài chính, công suất phòng và chiến lược giá.',
+            'scope': 'Báo cáo doanh thu, chiến lược phòng, giám sát nhân sự',
+            'permissions': {
+                'rooms': 'Xem & Đổi giá',
+                'bookings': 'Xem chi tiết',
+                'guests': 'Xem danh sách VIP',
+                'employees': 'Xem báo cáo nhân sự',
+                'finance': 'Toàn quyền tài chính',
+                'settings': 'Xem cấu hình',
+            }
+        },
+        {
+            'role': 'manager',
+            'title': 'Quản Lý Khách Sạn (Manager)',
+            'level': 'Điều hành',
+            'badge_color': 'blue',
+            'icon': '👔',
+            'description': 'Điều hành vận hành thường nhật: duyệt đặt phòng, phân công ca làm nhân viên, quản lý chất lượng dịch vụ.',
+            'scope': 'Điều phối nhân sự, duyệt phòng, giải quyết sự vụ',
+            'permissions': {
+                'rooms': 'Toàn quyền điều phối',
+                'bookings': 'Toàn quyền duyệt/đổi',
+                'guests': 'Toàn quyền quản lý',
+                'employees': 'Phân ca & Chấm công',
+                'finance': 'Xem & Xuất hóa đơn',
+                'settings': 'Cấu hình dịch vụ',
+            }
+        },
+        {
+            'role': 'receptionist',
+            'title': 'Lễ Tân (Front Desk)',
+            'level': 'Tiếp đón',
+            'badge_color': 'emerald',
+            'icon': '🛎️',
+            'description': 'Check-in, check-out, gán phòng, tiếp nhận đặt phòng trực tiếp tại quầy, hỗ trợ yêu cầu khách lưu trú.',
+            'scope': 'Thủ tục phòng, tra cứu khách, gán chìa khóa phòng',
+            'permissions': {
+                'rooms': 'Xem & Gán phòng',
+                'bookings': 'Tạo & Check-in/out',
+                'guests': 'Xem & Cập nhật nhanh',
+                'employees': 'Chỉ xem ca trực',
+                'finance': 'Thu cọc & Tiền phòng',
+                'settings': 'Không có quyền',
+            }
+        },
+        {
+            'role': 'cashier',
+            'title': 'Thu Ngân (Cashier)',
+            'level': 'Tài chính',
+            'badge_color': 'cyan',
+            'icon': '💳',
+            'description': 'Xác nhận thanh toán, quản lý hóa đơn VAT, thu tiền cọc và đối soát giao dịch thanh toán trực tuyến.',
+            'scope': 'Thu chi, xuất hóa đơn VAT, kết ca thu ngân',
+            'permissions': {
+                'rooms': 'Xem bảng giá phòng',
+                'bookings': 'Xem trạng thái tiền',
+                'guests': 'Xem hóa đơn khách',
+                'employees': 'Không có quyền',
+                'finance': 'Toàn quyền thu chi',
+                'settings': 'Không có quyền',
+            }
+        },
+        {
+            'role': 'housekeeper',
+            'title': 'Nhân Viên Buồng Phòng',
+            'level': 'Vận hành buồng',
+            'badge_color': 'orange',
+            'icon': '🧹',
+            'description': 'Cập nhật trạng thái vệ sinh phòng (Đang dọn, Đã khử khuẩn, Sẵn sàng đón khách), kiểm kê mini bar.',
+            'scope': 'Trạng thái dọn phòng, báo vật tư, báo đồ thất lạc',
+            'permissions': {
+                'rooms': 'Cập nhật dọn phòng',
+                'bookings': 'Xem giờ trả phòng',
+                'guests': 'Không có quyền',
+                'employees': 'Xem ca làm việc',
+                'finance': 'Không có quyền',
+                'settings': 'Không có quyền',
+            }
+        },
+        {
+            'role': 'service_staff',
+            'title': 'Nhân Viên Phục Vụ (F&B / Spa)',
+            'level': 'Dịch vụ',
+            'badge_color': 'rose',
+            'icon': '🍽️',
+            'description': 'Tiếp nhận order ẩm thực tận phòng, phục vụ nhà hàng, dịch vụ spa thư giãn và đưa đón hành lý.',
+            'scope': 'Order dịch vụ, giao đồ ăn phòng, phục vụ khách',
+            'permissions': {
+                'rooms': 'Xem số phòng order',
+                'bookings': 'Không có quyền',
+                'guests': 'Xem sở thích ăn uống',
+                'employees': 'Xem ca làm việc',
+                'finance': 'Ghi chi phí dịch vụ',
+                'settings': 'Không có quyền',
+            }
+        },
+        {
+            'role': 'technician',
+            'title': 'Kỹ Thuật Viên (Technician)',
+            'level': 'Bảo trì',
+            'badge_color': 'indigo',
+            'icon': '🔧',
+            'description': 'Bảo dưỡng và sửa chữa hệ thống cơ điện, điều hòa nhiệt độ, internet wifi, thang máy và thiết bị trong phòng.',
+            'scope': 'Bảo trì trang thiết bị, sửa chữa kỹ thuật',
+            'permissions': {
+                'rooms': 'Báo trạng thái hỏng',
+                'bookings': 'Không có quyền',
+                'guests': 'Không có quyền',
+                'employees': 'Xem ca làm việc',
+                'finance': 'Không có quyền',
+                'settings': 'Không có quyền',
+            }
+        }
+    ]
+
 
 class AdminRoleListView(APIView):
     permission_classes = [IsManagerOrAdmin]
 
     def get(self, request):
-        roles_data = [
-            {
-                'role': 'admin',
-                'title': 'Admin Hệ Thống',
-                'level': 'Toàn quyền',
-                'badge_color': 'purple',
-                'icon': '👑',
-                'description': 'Quản trị tối cao toàn bộ hệ thống, phân quyền người dùng, cấu hình khách sạn và cơ sở dữ liệu.',
-                'scope': 'Cấp quyền, tạo nhân sự, quản lý dữ liệu, kiểm toán hệ thống',
-                'permissions': {
-                    'rooms': 'Toàn quyền cấu hình',
-                    'bookings': 'Toàn quyền duyệt/hủy',
-                    'guests': 'Toàn quyền xem/sửa',
-                    'employees': 'Toàn quyền phân quyền',
-                    'finance': 'Toàn quyền doanh thu',
-                    'settings': 'Cấu hình hệ thống',
-                }
-            },
-            {
-                'role': 'owner',
-                'title': 'Chủ Khách Sạn (Owner)',
-                'level': 'Cấp cao',
-                'badge_color': 'amber',
-                'icon': '💼',
-                'description': 'Giám sát hoạt động kinh doanh, xem báo cáo doanh thu tài chính, công suất phòng và chiến lược giá.',
-                'scope': 'Báo cáo doanh thu, chiến lược phòng, giám sát nhân sự',
-                'permissions': {
-                    'rooms': 'Xem & Đổi giá',
-                    'bookings': 'Xem chi tiết',
-                    'guests': 'Xem danh sách VIP',
-                    'employees': 'Xem báo cáo nhân sự',
-                    'finance': 'Toàn quyền tài chính',
-                    'settings': 'Xem cấu hình',
-                }
-            },
-            {
-                'role': 'manager',
-                'title': 'Quản Lý Khách Sạn (Manager)',
-                'level': 'Điều hành',
-                'badge_color': 'blue',
-                'icon': '👔',
-                'description': 'Điều hành vận hành thường nhật: duyệt đặt phòng, phân công ca làm nhân viên, quản lý chất lượng dịch vụ.',
-                'scope': 'Điều phối nhân sự, duyệt phòng, giải quyết sự vụ',
-                'permissions': {
-                    'rooms': 'Toàn quyền điều phối',
-                    'bookings': 'Toàn quyền duyệt/đổi',
-                    'guests': 'Toàn quyền quản lý',
-                    'employees': 'Phân ca & Chấm công',
-                    'finance': 'Xem & Xuất hóa đơn',
-                    'settings': 'Cấu hình dịch vụ',
-                }
-            },
-            {
-                'role': 'receptionist',
-                'title': 'Lễ Tân (Front Desk)',
-                'level': 'Tiếp đón',
-                'badge_color': 'emerald',
-                'icon': '🛎️',
-                'description': 'Check-in, check-out, gán phòng, tiếp nhận đặt phòng trực tiếp tại quầy, hỗ trợ yêu cầu khách lưu trú.',
-                'scope': 'Thủ tục phòng, tra cứu khách, gán chìa khóa phòng',
-                'permissions': {
-                    'rooms': 'Xem & Gán phòng',
-                    'bookings': 'Tạo & Check-in/out',
-                    'guests': 'Xem & Cập nhật nhanh',
-                    'employees': 'Chỉ xem ca trực',
-                    'finance': 'Thu cọc & Tiền phòng',
-                    'settings': 'Không có quyền',
-                }
-            },
-            {
-                'role': 'cashier',
-                'title': 'Thu Ngân (Cashier)',
-                'level': 'Tài chính',
-                'badge_color': 'cyan',
-                'icon': '💳',
-                'description': 'Xác nhận thanh toán, quản lý hóa đơn VAT, thu tiền cọc và đối soát giao dịch thanh toán trực tuyến.',
-                'scope': 'Thu chi, xuất hóa đơn VAT, kết ca thu ngân',
-                'permissions': {
-                    'rooms': 'Xem bảng giá phòng',
-                    'bookings': 'Xem trạng thái tiền',
-                    'guests': 'Xem hóa đơn khách',
-                    'employees': 'Không có quyền',
-                    'finance': 'Toàn quyền thu chi',
-                    'settings': 'Không có quyền',
-                }
-            },
-            {
-                'role': 'housekeeper',
-                'title': 'Nhân Viên Buồng Phòng',
-                'level': 'Vận hành buồng',
-                'badge_color': 'orange',
-                'icon': '🧹',
-                'description': 'Cập nhật trạng thái vệ sinh phòng (Đang dọn, Đã khử khuẩn, Sẵn sàng đón khách), kiểm kê mini bar.',
-                'scope': 'Trạng thái dọn phòng, báo vật tư, báo đồ thất lạc',
-                'permissions': {
-                    'rooms': 'Cập nhật dọn phòng',
-                    'bookings': 'Xem giờ trả phòng',
-                    'guests': 'Không có quyền',
-                    'employees': 'Xem ca làm việc',
-                    'finance': 'Không có quyền',
-                    'settings': 'Không có quyền',
-                }
-            },
-            {
-                'role': 'service_staff',
-                'title': 'Nhân Viên Phục Vụ (F&B / Spa)',
-                'level': 'Dịch vụ',
-                'badge_color': 'rose',
-                'icon': '🍽️',
-                'description': 'Tiếp nhận order ẩm thực tận phòng, phục vụ nhà hàng, dịch vụ spa thư giãn và đưa đón hành lý.',
-                'scope': 'Order dịch vụ, giao đồ ăn phòng, phục vụ khách',
-                'permissions': {
-                    'rooms': 'Xem số phòng order',
-                    'bookings': 'Không có quyền',
-                    'guests': 'Xem sở thích ăn uống',
-                    'employees': 'Xem ca làm việc',
-                    'finance': 'Ghi chi phí dịch vụ',
-                    'settings': 'Không có quyền',
-                }
-            },
-            {
-                'role': 'technician',
-                'title': 'Kỹ Thuật Viên (Technician)',
-                'level': 'Bảo trì',
-                'badge_color': 'indigo',
-                'icon': '🔧',
-                'description': 'Bảo dưỡng và sửa chữa hệ thống cơ điện, điều hòa nhiệt độ, internet wifi, thang máy và thiết bị trong phòng.',
-                'scope': 'Bảo trì trang thiết bị, sửa chữa kỹ thuật',
-                'permissions': {
-                    'rooms': 'Báo trạng thái hỏng',
-                    'bookings': 'Không có quyền',
-                    'guests': 'Không có quyền',
-                    'employees': 'Xem ca làm việc',
-                    'finance': 'Không có quyền',
-                    'settings': 'Không có quyền',
-                }
-            }
-        ]
-        return Response({'success': True, 'roles': roles_data}, status=status.HTTP_200_OK)
+        roles_data = get_all_roles_matrix()
+        return Response({'success': True, 'count': len(roles_data), 'roles': roles_data}, status=status.HTTP_200_OK)
 

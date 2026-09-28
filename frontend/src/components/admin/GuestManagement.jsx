@@ -13,6 +13,7 @@ export default function GuestManagement() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedGuest, setSelectedGuest] = useState(null);
 
     // Form data for Edit
@@ -155,19 +156,32 @@ export default function GuestManagement() {
         }
     };
 
-    // Xóa khách hàng
-    const handleDelete = async (guest) => {
-        if (!window.confirm(`Xóa vĩnh viễn tài khoản khách hàng "${guest.full_name || guest.username}"? Thao tác không thể hoàn tác.`)) {
-            return;
-        }
+    // Xóa khách hàng với modal xác nhận an toàn
+    const handleDelete = (guest) => {
+        setSelectedGuest(guest);
+        setIsDeleteModalOpen(true);
+    };
 
-        const res = await adminUserService.deleteGuest(guest.id);
+    const handleConfirmDelete = async () => {
+        if (!selectedGuest) return;
+        setIsSubmitting(true);
+
+        const res = await adminUserService.deleteGuest(selectedGuest.id);
+        setIsSubmitting(false);
+
         if (res.success) {
-            setAlertMessage({ type: 'success', text: 'Đã xóa tài khoản khách hàng thành công.' });
+            setIsDeleteModalOpen(false);
+            setAlertMessage({
+                type: 'success',
+                text: `Đã xóa vĩnh viễn tài khoản khách hàng "${selectedGuest.full_name || selectedGuest.username}" thành công!`,
+            });
             fetchGuests();
-            setTimeout(() => setAlertMessage(null), 3000);
+            setTimeout(() => setAlertMessage(null), 3500);
         } else {
-            setAlertMessage({ type: 'error', text: res.message || 'Xóa thất bại.' });
+            setAlertMessage({
+                type: 'error',
+                text: res.message || 'Xóa tài khoản thất bại.',
+            });
         }
     };
 
@@ -487,18 +501,30 @@ export default function GuestManagement() {
             {/* ========================================================================= */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col">
-                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                            <div>
-                                <h3 className="font-bold text-lg text-slate-900">
-                                    Chỉnh Sửa Thông Tin Khách Hàng
-                                </h3>
-                                <p className="text-xs text-slate-500">Mã ID #{selectedGuest?.id} - @{selectedGuest?.username}</p>
+                    <div
+                        className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header: Tone nền trắng trang nhã, hiện đại */}
+                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl shadow-xs">
+                                    ✏️
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                                        Chỉnh Sửa Thông Tin Khách Hàng
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        {selectedGuest?.full_name || selectedGuest?.username} • Mã ID #{selectedGuest?.id} (@{selectedGuest?.username})
+                                    </p>
+                                </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setIsEditModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-white hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-500 transition"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                                title="Đóng cửa sổ"
                             >
                                 ✕
                             </button>
@@ -629,63 +655,93 @@ export default function GuestManagement() {
             {/* ========================================================================= */}
             {isDetailModalOpen && selectedGuest && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-                        <div className="h-24 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 p-4 relative">
+                    <div
+                        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header: Tone nền trắng thanh lịch, loại bỏ dải banner tối */}
+                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl shadow-xs">
+                                    👤
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                                        Hồ Sơ Chi Tiết Khách Hàng
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Khách Sạn TA Đà Nẵng • Mã ID #{selectedGuest.id}
+                                    </p>
+                                </div>
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setIsDetailModalOpen(false)}
-                                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                                title="Đóng cửa sổ"
                             >
                                 ✕
                             </button>
                         </div>
-                        <div className="px-6 pb-6 pt-0 relative">
-                            <div className="flex items-end justify-between -mt-10 mb-4">
-                                <UserAvatar
-                                    avatar={selectedGuest.avatar}
-                                    name={selectedGuest.full_name || selectedGuest.username}
-                                    role="guest"
-                                    size="2xl"
-                                    border={true}
-                                />
-                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                    ★ Hạng Hội Viên: {selectedGuest.guest_profile?.vip_tier || 'Silver'}
+
+                        <div className="p-6 overflow-y-auto space-y-4 text-xs">
+                            {/* Profile Card Header */}
+                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                                <div className="flex items-center gap-3.5">
+                                    <UserAvatar
+                                        avatar={selectedGuest.avatar}
+                                        name={selectedGuest.full_name || selectedGuest.username}
+                                        role="guest"
+                                        size="lg"
+                                        border={true}
+                                    />
+                                    <div>
+                                        <h4 className="font-bold text-base text-slate-900">
+                                            {selectedGuest.full_name || selectedGuest.username}
+                                        </h4>
+                                        <p className="text-xs text-slate-500">
+                                            Username: @{selectedGuest.username} • ID #{selectedGuest.id}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1 shadow-xs">
+                                    <span>★</span> Hạng {selectedGuest.guest_profile?.vip_tier || 'Silver'}
                                 </span>
                             </div>
 
-                            <h3 className="text-xl font-bold text-slate-900">
-                                {selectedGuest.full_name || selectedGuest.username}
-                            </h3>
-                            <p className="text-xs text-slate-500 mb-4">
-                                Mã ID: #{selectedGuest.id} • Username: @{selectedGuest.username}
-                            </p>
-
-                            <div className="grid grid-cols-2 gap-3 text-xs mb-4">
+                            {/* Grid 4 thông tin cốt lõi */}
+                            <div className="grid grid-cols-2 gap-3 text-xs">
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                                     <span className="text-slate-400 block text-[10px] uppercase font-bold">Số điện thoại</span>
-                                    <strong className="text-slate-800 text-sm">{selectedGuest.phone_number || 'Chưa cập nhật'}</strong>
+                                    <strong className="text-slate-800 text-sm mt-0.5 block">{selectedGuest.phone_number || 'Chưa cập nhật'}</strong>
                                 </div>
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                                     <span className="text-slate-400 block text-[10px] uppercase font-bold">CCCD / Passport</span>
-                                    <strong className="text-slate-800 text-sm font-mono">{selectedGuest.guest_profile?.id_card_number || 'Chưa có'}</strong>
+                                    <strong className="text-slate-800 text-sm font-mono mt-0.5 block">{selectedGuest.guest_profile?.id_card_number || 'Chưa có'}</strong>
                                 </div>
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Email</span>
-                                    <strong className="text-slate-800 text-xs truncate block">{selectedGuest.email || 'Chưa có email'}</strong>
+                                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Email liên hệ</span>
+                                    <strong className="text-slate-800 text-xs truncate mt-0.5 block">{selectedGuest.email || 'Chưa có email'}</strong>
                                 </div>
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                                     <span className="text-slate-400 block text-[10px] uppercase font-bold">Điểm TA Club</span>
-                                    <strong className="text-amber-600 text-sm block">{selectedGuest.guest_profile?.loyalty_points || 0} điểm</strong>
+                                    <strong className="text-amber-600 text-sm mt-0.5 block">{selectedGuest.guest_profile?.loyalty_points || 0} điểm</strong>
                                 </div>
                             </div>
 
-                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs mb-4">
-                                <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Sở thích lưu trú</span>
-                                <p className="text-slate-700 italic">
-                                    {selectedGuest.guest_profile?.preferences || 'Chưa có ghi chú sở thích đặc biệt.'}
-                                </p>
+                            {/* Địa chỉ & Sở thích */}
+                            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+                                <div>
+                                    <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Địa chỉ thường trú</span>
+                                    <p className="text-slate-700 font-medium">{selectedGuest.address || 'Chưa có thông tin địa chỉ.'}</p>
+                                </div>
+                                <div className="pt-2 border-t border-slate-200/60">
+                                    <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Sở thích lưu trú / Ghi chú</span>
+                                    <p className="text-slate-700 italic">{selectedGuest.guest_profile?.preferences || 'Chưa có ghi chú sở thích đặc biệt.'}</p>
+                                </div>
                             </div>
 
+                            {/* Footer Modal Actions */}
                             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                                 <button
                                     type="button"
@@ -693,14 +749,14 @@ export default function GuestManagement() {
                                         setIsDetailModalOpen(false);
                                         handleOpenEdit(selectedGuest);
                                     }}
-                                    className="text-xs font-bold text-blue-600 hover:underline"
+                                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
                                 >
-                                    Chỉnh sửa hồ sơ này →
+                                    <span>✏️</span> Chỉnh sửa hồ sơ này
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setIsDetailModalOpen(false)}
-                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
                                 >
                                     Đóng
                                 </button>
@@ -715,18 +771,30 @@ export default function GuestManagement() {
             {/* ========================================================================= */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                            <div>
-                                <h3 className="font-bold text-lg text-slate-900">
-                                    Thêm Tài Khoản Khách Hàng Mới
-                                </h3>
-                                <p className="text-xs text-slate-500">Đăng ký hồ sơ hội viên mới tại quầy hoặc qua điện thoại</p>
+                    <div
+                        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header: Tone nền trắng trang nhã, hiện đại */}
+                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl font-bold shadow-xs">
+                                    ＋
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                                        Thêm Tài Khoản Khách Hàng Mới
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Đăng ký hồ sơ hội viên mới tại quầy hoặc qua điện thoại
+                                    </p>
+                                </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setIsCreateModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-white hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-500 transition"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                                title="Đóng cửa sổ"
                             >
                                 ✕
                             </button>
@@ -836,6 +904,71 @@ export default function GuestManagement() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* ========================================================================= */}
+            {/* MODAL 4: XÁC NHẬN XÓA KHÁCH HÀNG */}
+            {/* ========================================================================= */}
+            {isDeleteModalOpen && selectedGuest && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                    <div
+                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6 text-center space-y-4">
+                            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-3xl mx-auto shadow-inner border border-rose-200">
+                                🗑️
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">
+                                    Xác Nhận Xóa Khách Hàng?
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Hành động này sẽ xóa vĩnh viễn tài khoản hội viên và toàn bộ dữ liệu liên quan. Thao tác không thể hoàn tác.
+                                </p>
+                            </div>
+
+                            {/* Card tóm tắt khách hàng sắp bị xóa */}
+                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-left flex items-center gap-3">
+                                <UserAvatar
+                                    avatar={selectedGuest.avatar}
+                                    name={selectedGuest.full_name || selectedGuest.username}
+                                    role="guest"
+                                    size="md"
+                                    border={false}
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <div className="font-bold text-slate-900 text-xs truncate">
+                                        {selectedGuest.full_name || selectedGuest.username}
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 truncate">
+                                        Mã ID #{selectedGuest.id} • {selectedGuest.phone_number || selectedGuest.email || `@${selectedGuest.username}`}
+                                    </div>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    {selectedGuest.guest_profile?.vip_tier || 'Silver'}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                                >
+                                    Hủy Bỏ
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmDelete}
+                                    disabled={isSubmitting}
+                                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/30 transition disabled:opacity-50 cursor-pointer"
+                                >
+                                    {isSubmitting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

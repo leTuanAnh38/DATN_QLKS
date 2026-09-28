@@ -67,6 +67,7 @@ class EmployeeProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_profile', verbose_name='Tài khoản')
     employee_code = models.CharField(max_length=10, unique=True, verbose_name='Mã nhân viên')
     department = models.CharField(max_length=50, verbose_name='Phòng ban trực thuộc')
+    position = models.CharField(max_length=100, null=True, blank=True, verbose_name='Chức danh / Vị trí công tác')
     shift = models.CharField(max_length=50, null=True, blank=True, verbose_name='Ca làm việc (Sáng/Chiều/Đêm)')
     base_salary = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True, verbose_name='Mức lương cơ bản (VND)')
     hire_date = models.DateField(null=True, blank=True, verbose_name='Ngày vào làm')

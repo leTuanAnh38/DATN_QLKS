@@ -277,6 +277,7 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             'id',
             'employee_code',
             'department',
+            'position',
             'shift',
             'base_salary',
             'hire_date',
@@ -361,6 +362,7 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
 
     employee_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
     department = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    position = serializers.CharField(write_only=True, required=False, allow_blank=True)
     shift = serializers.CharField(write_only=True, required=False, allow_blank=True)
     base_salary = serializers.DecimalField(write_only=True, required=False, max_digits=12, decimal_places=0, allow_null=True)
     hire_date = serializers.DateField(write_only=True, required=False, allow_null=True)
@@ -387,6 +389,7 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
             'employee_profile',
             'employee_code',
             'department',
+            'position',
             'shift',
             'base_salary',
             'hire_date',
@@ -400,8 +403,9 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop('password', 'Password123')
         code = validated_data.pop('employee_code', '')
-        dept = validated_data.pop('department', 'Tiền sảnh')
-        shift = validated_data.pop('shift', 'Ca sáng')
+        dept = validated_data.pop('department', 'Lễ Tân & Tiền Sảnh')
+        pos = validated_data.pop('position', 'Nhân viên')
+        shift = validated_data.pop('shift', 'Ca Sáng (06:00 - 14:00)')
         salary = validated_data.pop('base_salary', 10000000)
         hire = validated_data.pop('hire_date', None)
 
@@ -417,8 +421,9 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
         EmployeeProfile.objects.create(
             user=user,
             employee_code=code,
-            department=dept or 'Tiền sảnh',
-            shift=shift or 'Ca sáng',
+            department=dept or 'Lễ Tân & Tiền Sảnh',
+            position=pos or 'Nhân viên',
+            shift=shift or 'Ca Sáng (06:00 - 14:00)',
             base_salary=salary or 10000000,
             hire_date=hire
         )
@@ -428,6 +433,7 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password', None)
         code = validated_data.pop('employee_code', None)
         dept = validated_data.pop('department', None)
+        pos = validated_data.pop('position', None)
         shift = validated_data.pop('shift', None)
         salary = validated_data.pop('base_salary', None)
         hire = validated_data.pop('hire_date', None)
@@ -457,12 +463,14 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
 
         profile, _ = EmployeeProfile.objects.get_or_create(
             user=instance,
-            defaults={'employee_code': f"NV{instance.id:04d}", 'department': 'Tiền sảnh'}
+            defaults={'employee_code': f"NV{instance.id:04d}", 'department': 'Lễ Tân & Tiền Sảnh'}
         )
         if code is not None and code.strip():
             profile.employee_code = code
         if dept is not None:
             profile.department = dept
+        if pos is not None:
+            profile.position = pos
         if shift is not None:
             profile.shift = shift
         if salary is not None:
