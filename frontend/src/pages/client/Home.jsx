@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import FeaturedRoomCategories from '../../components/client/FeaturedRoomCategories';
 // Dữ liệu danh sách phòng nghỉ
 const ROOMS_DATA = [
     {
@@ -285,159 +286,10 @@ export default function TADaNangHotelLanding() {
                 </div>
             </div>
 
-            {/* 5. ROOMS & SUITES SECTION */}
-            <section id="phong-nghi" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center max-w-3xl mx-auto mb-12">
-                    <div className="text-xs uppercase font-bold tracking-widest text-blue-600 mb-2">
-                        BỘ SƯU TẬP KHÔNG GIAN NGHỈ DƯỠNG
-                    </div>
-                    <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                        Hạng Phòng & Dinh Thự Hoàng Gia
-                    </h2>
-                    <p className="text-slate-600 text-sm sm:text-base">
-                        Được thiết kế tinh xảo từ gỗ teak tự nhiên, đá cẩm thạch Ý và ban công khoáng đạt hướng trọn vẹn vịnh biển trong xanh.
-                    </p>
-                </div>
-
-                {/* Filter Pill Buttons */}
-                <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-                    {categories.map((cat) => (
-                        <button
-                            key={cat}
-                            onClick={() => setActiveCategory(cat)}
-                            className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition ${activeCategory === cat
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                                }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Room Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {ROOMS_DATA.map((room) => (
-                        <div
-                            key={room.id}
-                            className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
-                        >
-                            {/* Card Image Container */}
-                            <div className="relative h-64 overflow-hidden">
-                                <Link to={`/rooms/${room.id}`} className="block w-full h-full">
-                                    <img
-                                        src={room.image}
-                                        alt={room.name}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out cursor-pointer"
-                                    />
-                                </Link>
-                                <div className="absolute top-3 left-3 flex flex-wrap gap-2 pointer-events-none">
-                                    <span className={`px-3 py-1 rounded-full text-white text-[11px] font-bold tracking-wide shadow-sm ${room.tagColor}`}>
-                                        {room.tag}
-                                    </span>
-                                    {room.badge && (
-                                        <span className="px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-medium shadow-sm">
-                                            {room.badge}
-                                        </span>
-                                    )}
-                                </div>
-                                <button
-                                    aria-label="Thêm vào yêu thích"
-                                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-700 hover:text-red-500 transition shadow-sm"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            {/* Card Body */}
-                            <div className="p-6 flex-1 flex flex-col justify-between">
-                                <div>
-                                    <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                                        <span className="font-semibold text-blue-600 uppercase tracking-wider">{room.tower}</span>
-                                        <span className="flex items-center text-amber-500 font-bold">
-                                            ★ {room.rating} <span className="text-slate-400 font-normal ml-1">({room.reviews})</span>
-                                        </span>
-                                    </div>
-
-                                    <h3 className="font-serif text-lg font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition">
-                                        <Link to={`/rooms/${room.id}`} className="hover:text-blue-600 transition">
-                                            {room.name}
-                                        </Link>
-                                    </h3>
-
-                                    {/* Specs Grid */}
-                                    <div className="grid grid-cols-2 gap-2 mb-6 text-xs text-slate-600">
-                                        {room.specs.map((spec, idx) => (
-                                            <div key={idx} className="flex items-center gap-1.5">
-                                                <svg className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                                <span className="truncate">{spec}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Pricing & CTA */}
-                                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                                    <div>
-                                        <span className="block text-xs line-through text-slate-400 font-normal">
-                                            {room.oldPrice} VND
-                                        </span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-xl font-black text-slate-900">{room.price}</span>
-                                            <span className="text-[11px] font-bold text-slate-500 uppercase">VND / đêm</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center space-x-2">
-                                        <Link to={`/rooms/${room.id}`} className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
-                                            Chi tiết
-                                        </Link>
-                                        <Link to={`/rooms/${room.id}`} className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm shadow-blue-600/30 flex items-center gap-1 transition">
-                                            Đặt ngay
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </Link>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* View All Rooms Button */}
-                <div className="text-center mt-10">
-                    <Link
-                        to="/rooms"
-                        className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-lg shadow-blue-600/25 transition hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        Xem Toàn Bộ Danh Sách Phòng & Suites
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </Link>
-                </div>
-
-                {/* Custom Booking Assistance Banner */}
-                <div className="mt-12 bg-blue-50 border border-blue-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl flex-shrink-0">
-                            💎
-                        </div>
-                        <div>
-                            <h4 className="font-serif font-bold text-slate-900 text-base">Cần phòng hội nghị lớn, tiệc cưới hoặc sự kiện đoàn cao cấp?</h4>
-                            <p className="text-xs sm:text-sm text-slate-600">Đội ngũ chuyên viên sự kiện của Khách Sạn TA Đà Nẵng sẵn sàng kiến tạo không gian theo phong cách riêng của quý vị.</p>
-                        </div>
-                    </div>
-                    <button className="whitespace-nowrap px-6 py-2.5 bg-white text-blue-600 font-semibold text-xs sm:text-sm border border-blue-200 hover:bg-blue-600 hover:text-white rounded-xl shadow-sm transition">
-                        Tư Vấn Thiết Kế Kỳ Nghỉ Đoàn
-                    </button>
-                </div>
-            </section>
+            {/* 5. LIVE ROOM CATEGORIES SECTION (Connected to Django Backend PMS) */}
+            <div id="phong-nghi">
+                <FeaturedRoomCategories />
+            </div>
 
             {/* 6. EXPERIENCES & AMENITIES */}
             <section id="dich-vu-spa" className="py-20 bg-slate-100">

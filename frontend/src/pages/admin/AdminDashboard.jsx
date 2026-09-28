@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import GuestManagement from '../../components/admin/GuestManagement';
 import EmployeeManagement from '../../components/admin/EmployeeManagement';
+import RoomManagement from '../../components/admin/RoomManagement';
+import CategoryManagement from '../../components/admin/CategoryManagement';
 import UserAvatar from '../../components/common/UserAvatar';
 
 export default function HotelAdminDashboard() {
@@ -283,17 +285,44 @@ export default function HotelAdminDashboard() {
                                 </span>
                             </button>
 
-                            {/* 4. Quản lý Phòng */}
+                            {/* 4. Sơ đồ & Quản lý Phòng (PMS Room Board) */}
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('rooms')}
-                                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${activeTab === 'rooms' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${activeTab === 'rooms'
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                </svg>
-                                <span>Quản lý Phòng</span>
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                    <span>Sơ đồ Phòng</span>
+                                </div>
+                                <span className="bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
+                                    PMS
+                                </span>
+                            </button>
+
+                            {/* 5. Quản lý Hạng phòng & Bảng giá (Room Categories & Multi-Images) */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('categories')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${activeTab === 'categories'
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    <span>Hạng phòng & Bảng giá</span>
+                                </div>
+                                <span className="bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                                    Suites
+                                </span>
                             </button>
 
                             {/* 5. Quản lý Đặt phòng */}
@@ -470,7 +499,13 @@ export default function HotelAdminDashboard() {
                     {/* TAB 2: QUẢN LÝ NHÂN SỰ & PHÂN QUYỀN (FEATURE 2) */}
                     {activeTab === 'employees' && <EmployeeManagement />}
 
-                    {/* TAB 3: TỔNG QUAN HỆ THỐNG */}
+                    {/* TAB 3: QUẢN LÝ DANH SÁCH & SƠ ĐỒ PHÒNG THỰC TẾ (PMS ROOM BOARD) */}
+                    {activeTab === 'rooms' && <RoomManagement />}
+
+                    {/* TAB 4: QUẢN LÝ HẠNG PHÒNG & BẢNG GIÁ (CRUD + MULTI-IMAGE UPLOAD) */}
+                    {activeTab === 'categories' && <CategoryManagement />}
+
+                    {/* TAB 4: TỔNG QUAN HỆ THỐNG */}
                     {activeTab === 'overview' && (
                         <>
                             {/* Welcome & Time Filters Banner */}
@@ -542,6 +577,14 @@ export default function HotelAdminDashboard() {
                                     >
                                         <span>🛡️</span>
                                         <span>Nhân Sự & Phân Quyền</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('rooms')}
+                                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5"
+                                    >
+                                        <span>🏢</span>
+                                        <span>Sơ Đồ Phòng (PMS)</span>
                                     </button>
                                 </div>
                             </div>
@@ -875,7 +918,7 @@ export default function HotelAdminDashboard() {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'employees'].includes(activeTab) && (
+                    {!['overview', 'guests', 'employees', 'rooms', 'categories'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

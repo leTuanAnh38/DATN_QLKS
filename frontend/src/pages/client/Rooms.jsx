@@ -1,210 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import roomService from '../../services/roomService';
 
-// Dữ liệu chi tiết các hạng phòng & Suites
-const ROOM_ITEMS = [
-    {
-        id: 'deluxe-ocean-king',
-        name: 'Deluxe Ocean View King',
-        category: 'Deluxe Ocean',
-        tag: 'ƯU ĐÃI ĐẶC BIỆT',
-        tagColor: 'bg-orange-500',
-        subTag: 'Tiết kiệm 25%',
-        rating: 4.92,
-        reviewCount: 340,
-        area: '65 m²',
-        bed: '1 King Bed',
-        capacity: '2 Người lớn + 1 Trẻ em',
-        highlights: [
-            'Ban công trực diện biển',
-            'Bồn tắm cẩm thạch Ý',
-            "Buffet L'Océan mỗi sáng",
-            'Nespresso & Trà TWG miễn phí'
-        ],
-        priceOld: '5.650.000',
-        priceCurrent: '4.238.000',
-        image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80',
-        ctaText: 'Đặt Phòng Ngay',
-        isVilla: false
-    },
-    {
-        id: 'executive-club-suite',
-        name: 'Executive Club Seafront Suite',
-        category: 'Executive Suite',
-        tag: 'BÁN CHẠY NHẤT',
-        tagColor: 'bg-blue-600',
-        subTag: 'Club Lounge Access',
-        rating: 4.98,
-        reviewCount: 512,
-        area: '110 m²',
-        bed: '1 Khách + 1 Ngủ',
-        capacity: '3 Người lớn',
-        highlights: [
-            'Đặc quyền TA Club Lounge tầng 25',
-            'Tiệc trà chiều & Sunset Cocktail miễn phí',
-            'Đưa đón sân bay Đà Nẵng 2 chiều',
-            'Giặt ủi 02 món cao cấp mỗi ngày'
-        ],
-        priceOld: '7.450.000',
-        priceCurrent: '7.450.000',
-        image: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=1200&q=80',
-        ctaText: 'Đặt Phòng Ngay',
-        isVilla: false
-    },
-    {
-        id: 'grand-premier-suite',
-        name: 'Grand Premier Oceanfront Suite',
-        category: 'Executive Suite',
-        tag: 'KHÔNG GIAN GIA ĐÌNH VIP',
-        tagColor: 'bg-slate-900',
-        subTag: '270° Ocean View',
-        rating: 4.95,
-        reviewCount: 210,
-        area: '145 m²',
-        bed: '2 Phòng Ngủ VIP',
-        capacity: '4 Người lớn + 2 Trẻ em',
-        highlights: [
-            'Ban công góc panorama 270°',
-            'Quản gia cá nhân riêng hỗ trợ 24/7',
-            '60 phút massage toàn thân cho 2 khách',
-            'Đưa đón xe Mercedes-Benz E-Class'
-        ],
-        priceOld: '13.800.000',
-        priceCurrent: '11.200.000',
-        image: 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1200&q=80',
-        ctaText: 'Đặt Phòng Ngay',
-        isVilla: false
-    },
-    {
-        id: 'presidential-villa',
-        name: 'Presidential Beachfront Pool Villa',
-        category: 'Presidential Beachfront Villa',
-        tag: 'BIỆT THỰ ĐỘC BẢN',
-        tagColor: 'bg-amber-600',
-        subTag: 'Hồ Bơi Tràn 45m²',
-        rating: 5.0,
-        reviewCount: 189,
-        area: '350 m²',
-        bed: 'Hồ bơi riêng biệt',
-        capacity: 'Lối ra biển riêng',
-        highlights: [
-            'Đầu bếp tư gia phục vụ tiệc BBQ hải sản',
-            'Dịch vụ Butler riêng phục vụ 24/7',
-            'Xe Maybach đưa đón tận ga/sân bay',
-            'Không gian tiệc cocktail bãi biển tư nhân'
-        ],
-        priceOld: '20.000.000',
-        priceCurrent: '16.800.000',
-        image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80',
-        ctaText: 'Đặt Biệt Thự',
-        isVilla: true
-    },
-    {
-        id: 'sky-penthouse',
-        name: 'Sky Royal Penthouse 360°',
-        category: 'Sky Royal Penthouse',
-        tag: 'ĐỈNH CAO XA HOA',
-        tagColor: 'bg-gradient-to-r from-amber-600 to-orange-500',
-        subTag: 'Tầng 28 Cao Nhất',
-        rating: 5.0,
-        reviewCount: 98,
-        area: '420 m²',
-        bed: 'Sân bay trực thăng',
-        capacity: 'Sauna & Onsen riêng',
-        highlights: [
-            'Quầy bar rượu vang và Champagne quý hiếm',
-            'Hồ Onsen nước khoáng nóng ngoài trời tầng 28',
-            'Bảo vệ chuyên trách & Lối đi thang máy độc lập',
-            'Đội ngũ 02 Quản gia và Bếp trưởng thường trực'
-        ],
-        priceOld: '34.000.000',
-        priceCurrent: '28.500.000',
-        image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80',
-        ctaText: 'Đặt Penthouse',
-        isVilla: true
-    }
-];
-
-// Bảng dữ liệu ma trận so sánh đặc quyền
-const COMPARISON_ROWS = [
-    {
-        service: 'Đưa đón sân bay quốc tế',
-        deluxe: 'Phụ thu (Xe tiêu chuẩn)',
-        suite: 'Miễn phí 2 chiều (Mercedes E-Class)',
-        villa: 'Miễn phí 2 chiều (Maybach / S-Class)'
-    },
-    {
-        service: 'Thủ tục Check-in riêng biệt',
-        deluxe: 'Quầy VIP Tiền Sảnh',
-        suite: 'Tại TA Club Lounge Tầng 25',
-        villa: 'Trực tiếp tại Villa / Sân bay'
-    },
-    {
-        service: 'Đặc quyền TA Club Lounge VIP',
-        deluxe: '—',
-        suite: '✓ (Đặc quyền toàn phần)',
-        villa: '✓ (Toàn quyền + Khách mời)'
-    },
-    {
-        service: 'Quản gia cá nhân (Butler Service)',
-        deluxe: '—',
-        suite: 'Theo yêu cầu đặc biệt',
-        villa: 'Quản gia thường trực 24/7'
-    },
-    {
-        service: 'Dịch vụ Giặt ủi cao cấp',
-        deluxe: 'Tính theo bảng giá',
-        suite: 'Miễn phí 2 món / ngày',
-        villa: 'Miễn phí không giới hạn'
-    },
-    {
-        service: 'Bữa sáng & Ẩm thực ẩm thực',
-        deluxe: "Buffet Nhà Hàng L'Océan",
-        suite: "L'Océan hoặc Club Lounge VIP",
-        villa: 'Bếp trưởng phục vụ tại Villa'
-    }
-];
-
+/**
+ * Trang Danh sách Phòng nghỉ & Suites dành cho Khách hàng (RoomsPage)
+ * Sử dụng useEffect gọi API lấy danh sách RoomCategory thực tế từ Django Backend
+ * Hiển thị dạng Grid layout: grid grid-cols-1 md:grid-cols-3 gap-6
+ * Tích hợp trạng thái Loading (Skeleton) và xử lý ảnh đại diện chuẩn PMS
+ */
 export default function RoomsAndSuitesPage() {
-    const [activeTab, setActiveTab] = useState('Tất cả (18)');
-    const [viewFilter, setViewFilter] = useState('all');
-    const [sortOption, setSortOption] = useState('featured');
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTab, setSelectedTab] = useState('all');
+    const [sortBy, setSortBy] = useState('featured');
 
-    // Form state
-    const [formData, setFormData] = useState({
-        fullName: '',
-        phone: '',
-        roomType: 'Executive Club Seafront Suite',
-        occasion: 'Kỳ nghỉ gia đình / Thư giãn',
-        notes: ''
+    // Gọi API lấy toàn bộ danh sách Hạng phòng từ Backend
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const res = await roomService.getCategories();
+                if (res.success && res.categories) {
+                    setCategories(res.categories);
+                } else if (Array.isArray(res)) {
+                    setCategories(res);
+                } else if (res.results) {
+                    setCategories(res.results);
+                }
+            } catch (err) {
+                console.error('Error fetching room categories:', err);
+                setError('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCategories();
+    }, []);
+
+    // Lọc theo từ khóa tìm kiếm và tab danh mục
+    const filteredCategories = categories.filter((room) => {
+        const matchesSearch =
+            searchQuery.trim() === '' ||
+            room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            room.bed_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            room.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        let matchesTab = true;
+        if (selectedTab === 'deluxe') {
+            matchesTab = room.name.toLowerCase().includes('deluxe');
+        } else if (selectedTab === 'suite') {
+            matchesTab = room.name.toLowerCase().includes('suite');
+        } else if (selectedTab === 'penthouse') {
+            matchesTab =
+                room.name.toLowerCase().includes('penthouse') ||
+                room.name.toLowerCase().includes('president');
+        }
+
+        return matchesSearch && matchesTab;
     });
 
-    const categories = [
-        'Tất cả (18)',
-        'Deluxe Ocean',
-        'Executive Seafront Suite',
-        'Presidential Beachfront Villa',
-        'Sky Royal Penthouse'
-    ];
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        alert(`Cảm ơn Quý khách ${formData.fullName || ''}! Yêu cầu tư vấn đã được gửi đến Quản gia trưởng Khách Sạn TA Đà Nẵng.`);
-    };
+    // Sắp xếp danh sách
+    const sortedCategories = [...filteredCategories].sort((a, b) => {
+        if (sortBy === 'price-asc') return Number(a.base_price) - Number(b.base_price);
+        if (sortBy === 'price-desc') return Number(b.base_price) - Number(a.base_price);
+        if (sortBy === 'size-desc') return Number(b.size) - Number(a.size);
+        if (sortBy === 'capacity-desc') return Number(b.capacity) - Number(a.capacity);
+        return 0;
+    });
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white flex flex-col">
             <Navbar />
 
-
-            {/* 3. HERO & BREADCRUMB */}
+            {/* 1. HERO BREADCRUMB & BANNER */}
             <section className="bg-white border-b border-slate-200 pt-8 pb-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500 mb-4">
@@ -212,389 +86,315 @@ export default function RoomsAndSuitesPage() {
                         <span>/</span>
                         <span className="text-blue-600 font-medium">Phòng nghỉ & Suites</span>
                     </nav>
+
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
                         <div className="max-w-3xl">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider mb-3">
-                                💎 Bộ Sưu Tập Phòng Thượng Lưu 2025
+                                💎 Bộ Sưu Tập Phòng Thượng Lưu 2026
                             </span>
                             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
                                 Tuyệt Tác Không Gian Nghỉ Dưỡng Biển Mỹ Khê
                             </h1>
                             <p className="text-slate-600 text-sm sm:text-base mt-3 leading-relaxed font-light">
-                                Bộ sưu tập 120 phòng nghỉ và Sky Suites thượng lưu, sở hữu tầm nhìn vô cực ôm trọn vịnh Đà Nẵng cùng dịch vụ quản gia cá nhân phục vụ 24/7.
+                                Trải nghiệm các hạng phòng và suites 5 sao chuẩn quốc tế, sở hữu tầm nhìn trực diện biển xanh bao la cùng dịch vụ phòng cao cấp 24/7.
                             </p>
                         </div>
-                        {/* Quick Guarantee Badge */}
-                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3.5 flex-shrink-0 shadow-sm">
-                            <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+
+                        {/* Guarantee Badge */}
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3.5 shrink-0 shadow-xs">
+                            <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-lg">
                                 🛡️
                             </div>
                             <div className="text-xs">
-                                <div className="font-bold text-slate-900">Đảm bảo giá tốt nhất</div>
-                                <div className="text-slate-500">Miễn phí hủy đến 24h & Tặng credit ẩm thực 1M</div>
+                                <div className="font-bold text-slate-900">Cam Kết Giá Trực Tuyến Tốt Nhất</div>
+                                <div className="text-slate-500">Miễn phí hủy phòng & Tặng voucher ẩm thực VIP</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* 4. FILTER TOOLBAR */}
-            <section className="sticky top-20 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 py-4 shadow-sm">
+            {/* 2. FILTER & SEARCH TOOLBAR */}
+            <section className="sticky top-20 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 py-4 shadow-xs">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                        {/* Category Pills */}
+                        {/* Tab Pills */}
                         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-                            {categories.map((cat) => (
+                            {[
+                                { id: 'all', label: 'Tất Cả Hạng Phòng' },
+                                { id: 'deluxe', label: 'Deluxe Hướng Biển' },
+                                { id: 'suite', label: 'Suites Cao Cấp' },
+                                { id: 'penthouse', label: 'Penthouse Hoàng Gia' },
+                            ].map((tab) => (
                                 <button
-                                    key={cat}
-                                    onClick={() => setActiveTab(cat)}
-                                    className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition ${activeTab === cat
-                                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setSelectedTab(tab.id)}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                                        selectedTab === tab.id
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                        }`}
+                                    }`}
                                 >
-                                    {cat}
+                                    {tab.label}
                                 </button>
                             ))}
                         </div>
-                        {/* Filter Dropdowns */}
-                        <div className="flex items-center gap-3 text-xs">
+
+                        {/* Search & Sort Controls */}
+                        <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
+                            <div className="relative flex-1 md:w-64">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Tìm tên phòng, loại giường..."
+                                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                />
+                                <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 pointer-events-none">
+                                    🔍
+                                </span>
+                            </div>
+
                             <select
-                                value={viewFilter}
-                                onChange={(e) => setViewFilter(e.target.value)}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-blue-600"
-                            >
-                                <option value="all">Tất cả hướng nhìn</option>
-                                <option value="sea-180">Hướng Biển 180°</option>
-                                <option value="city">Hướng Bán Đảo Sơn Trà</option>
-                                <option value="garden">Hướng Vườn Sinh Thái</option>
-                            </select>
-                            <select className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-blue-600">
-                                <option>Tiện ích nổi bật</option>
-                                <option>Hồ bơi riêng biệt</option>
-                                <option>Bồn tắm cẩm thạch Ý</option>
-                                <option>Đặc quyền Club Lounge</option>
-                            </select>
-                            <select
-                                value={sortOption}
-                                onChange={(e) => setSortOption(e.target.value)}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-blue-600 font-semibold focus:outline-none focus:border-blue-600"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500"
                             >
                                 <option value="featured">Đề xuất hàng đầu</option>
                                 <option value="price-asc">Giá: Thấp đến Cao</option>
                                 <option value="price-desc">Giá: Cao đến Thấp</option>
-                                <option value="rating">Đánh giá cao nhất</option>
+                                <option value="size-desc">Diện tích rộng nhất</option>
+                                <option value="capacity-desc">Sức chứa nhiều nhất</option>
                             </select>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* 5. ROOMS DETAILED LIST */}
-            <section id="phong-nghi" className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="space-y-10">
-                    {ROOM_ITEMS.map((room) => (
-                        <div
-                            key={room.id}
-                            className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col lg:flex-row group"
+            {/* 3. MAIN CONTENT: GRID LAYOUT CHUẨN (grid grid-cols-1 md:grid-cols-3 gap-6) */}
+            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+                {/* Trạng thái Loading (Skeleton) */}
+                {loading && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[1, 2, 3, 4, 5, 6].map((n) => (
+                            <div
+                                key={n}
+                                className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs p-0 animate-pulse space-y-4"
+                            >
+                                <div className="h-64 bg-slate-200"></div>
+                                <div className="p-6 space-y-3">
+                                    <div className="h-6 bg-slate-200 rounded w-3/4"></div>
+                                    <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                                    <div className="h-4 bg-slate-100 rounded w-full"></div>
+                                    <div className="h-10 bg-slate-200 rounded-xl mt-4"></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Trạng thái Lỗi */}
+                {!loading && error && (
+                    <div className="bg-rose-50 border border-rose-200 rounded-3xl p-10 text-center max-w-lg mx-auto">
+                        <div className="text-4xl mb-3">⚠️</div>
+                        <h3 className="text-base font-bold text-rose-800">Đã xảy ra sự cố</h3>
+                        <p className="text-xs text-rose-600 mt-1">{error}</p>
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="mt-4 px-5 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-rose-700 transition"
                         >
-                            {/* Image Preview Container */}
-                            <Link
-                                to={`/rooms/${room.id}`}
-                                className="block relative lg:w-5/12 h-72 lg:h-auto min-h-[300px] overflow-hidden cursor-pointer"
-                            >
-                                <img
-                                    src={room.image}
-                                    alt={room.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
-                                />
-                                <div className="absolute top-4 left-4 flex flex-col gap-1.5">
-                                    <span className={`px-3.5 py-1 rounded-full text-white text-[11px] font-bold tracking-wider uppercase shadow-md ${room.tagColor}`}>
-                                        {room.tag}
-                                    </span>
-                                    {room.subTag && (
-                                        <span className="px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-medium shadow-sm">
-                                            {room.subTag}
-                                        </span>
-                                    )}
-                                </div>
-                                {/* Slider Dots */}
-                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full">
-                                    <span className="w-2 h-2 rounded-full bg-white" />
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                                </div>
-                            </Link>
-                            {/* Room Details & Pricing */}
-                            <div className="p-6 lg:p-8 lg:w-7/12 flex flex-col justify-between">
-                                <div>
-                                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                                            {room.category}
-                                        </span>
-                                        <div className="flex items-center text-xs font-bold text-amber-500">
-                                            ★ {room.rating} <span className="text-slate-400 font-normal ml-1">({room.reviewCount})</span>
+                            Thử tải lại trang
+                        </button>
+                    </div>
+                )}
+
+                {/* Trạng thái Không tìm thấy kết quả */}
+                {!loading && !error && sortedCategories.length === 0 && (
+                    <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto shadow-xs">
+                        <div className="text-5xl mb-3">🏝️</div>
+                        <h3 className="text-base font-bold text-slate-900">Không tìm thấy hạng phòng phù hợp</h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Vui lòng thử tìm kiếm lại bằng từ khóa khác hoặc chọn xem tất cả hạng phòng.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearchQuery('');
+                                setSelectedTab('all');
+                            }}
+                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30"
+                        >
+                            Xem Tất Cả Hạng Phòng
+                        </button>
+                    </div>
+                )}
+
+                {/* Danh sách phòng dạng Grid Layout 3 cột (grid grid-cols-1 md:grid-cols-3 gap-6) */}
+                {!loading && !error && sortedCategories.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {sortedCategories.map((room) => {
+                            const primaryImage =
+                                room.feature_image ||
+                                room.images?.find((img) => img.is_feature)?.image_url ||
+                                room.images?.[0]?.image_url ||
+                                room.images?.[0]?.image ||
+                                'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+
+                            const hasPromo =
+                                room.promo_price &&
+                                Number(room.promo_price) > 0 &&
+                                Number(room.promo_price) < Number(room.base_price);
+
+                            const discountPercent = hasPromo
+                                ? Math.round(
+                                      ((Number(room.base_price) - Number(room.promo_price)) /
+                                          Number(room.base_price)) *
+                                          100
+                                  )
+                                : 0;
+
+                            const formattedBasePrice = Number(room.base_price).toLocaleString('vi-VN');
+                            const formattedPromoPrice = hasPromo
+                                ? Number(room.promo_price).toLocaleString('vi-VN')
+                                : null;
+
+                            return (
+                                <div
+                                    key={room.id}
+                                    className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
+                                >
+                                    {/* Ảnh đại diện chính to ở trên */}
+                                    <div className="relative h-64 w-full overflow-hidden bg-slate-900 shrink-0">
+                                        <Link to={`/rooms/${room.id}`} className="block w-full h-full">
+                                            <img
+                                                src={primaryImage}
+                                                alt={room.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out cursor-pointer"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src =
+                                                        'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+                                                }}
+                                            />
+                                        </Link>
+
+                                        {/* Overlay gradient */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/20 pointer-events-none"></div>
+
+                                        {/* Badges góc trên */}
+                                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 pointer-events-none">
+                                            {hasPromo && (
+                                                <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                                                    GIẢM {discountPercent}%
+                                                </span>
+                                            )}
+                                            <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
+                                                5-STAR RESORT
+                                            </span>
+                                        </div>
+
+                                        <div className="absolute top-3 right-3 pointer-events-none">
+                                            <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-medium flex items-center gap-1 border border-white/20">
+                                                📸 {room.images?.length || 1} ảnh
+                                            </span>
+                                        </div>
+
+                                        {/* Thông số nhanh chân ảnh */}
+                                        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white text-xs pointer-events-none">
+                                            <span>📐 {room.size} m²</span>
+                                            <span>👥 {room.capacity} người lớn</span>
+                                            <span className="truncate max-w-[130px]">🛏️ {room.bed_type}</span>
                                         </div>
                                     </div>
-                                    <h2 className="font-serif text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition">
-                                        <Link to={`/rooms/${room.id}`} className="hover:text-blue-600 transition">
-                                            {room.name}
-                                        </Link>
-                                    </h2>
-                                    {/* Specs Row */}
-                                    <div className="flex flex-wrap gap-4 py-2 border-y border-slate-100 text-xs text-slate-600 mb-4 font-medium">
-                                        <span className="flex items-center gap-1.5">📐 {room.area}</span>
-                                        <span>•</span>
-                                        <span className="flex items-center gap-1.5">🛏️ {room.bed}</span>
-                                        <span>•</span>
-                                        <span className="flex items-center gap-1.5">👥 {room.capacity}</span>
-                                    </div>
-                                    {/* Highlights Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-600 mb-6">
-                                        {room.highlights.map((item, idx) => (
-                                            <div key={idx} className="flex items-center gap-2">
-                                                <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                                <span>{item}</span>
+
+                                    {/* Thân thẻ thông tin */}
+                                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                                        <div>
+                                            {/* Tên Hạng Phòng */}
+                                            <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                                <Link to={`/rooms/${room.id}`}>{room.name}</Link>
+                                            </h3>
+
+                                            {/* Tiện nghi kèm theo */}
+                                            <div className="mt-2.5 flex flex-wrap gap-1.5">
+                                                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-semibold">
+                                                    Ban công view biển
+                                                </span>
+                                                <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                                                    Buffet sáng VIP
+                                                </span>
+                                                <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 text-[10px] font-semibold">
+                                                    Bồn tắm thư giãn
+                                                </span>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                {/* Price and CTA Buttons */}
-                                <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div>
-                                        <span className="block text-xs text-slate-400 line-through">
-                                            {room.priceOld} VND
-                                        </span>
-                                        <div className="flex items-baseline gap-1.5">
-                                            <span className="text-2xl font-black text-slate-900">{room.priceCurrent}</span>
-                                            <span className="text-xs font-bold text-slate-500 uppercase">VND / đêm</span>
+
+                                            {/* Mô tả chi tiết */}
+                                            <p className="mt-3 text-xs text-slate-600 line-clamp-2 leading-relaxed font-normal">
+                                                {room.description ||
+                                                    'Phòng nghỉ thượng lưu được trang bị đầy đủ nội thất nhập khẩu, view biển panorama và tiện ích 5 sao đồng bộ.'}
+                                            </p>
                                         </div>
-                                        <span className="text-[11px] text-emerald-600 font-medium">
-                                            Đã bao gồm thuế, phí & toàn bộ dịch vụ ăn sáng
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center space-x-3">
-                                        <Link
-                                            to={`/rooms/${room.id}`}
-                                            className="px-5 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition inline-flex items-center justify-center"
-                                        >
-                                            Xem Chi Tiết
-                                        </Link>
-                                        <Link
-                                            to={`/rooms/${room.id}`}
-                                            className="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-xl shadow-md shadow-orange-500/25 flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] transition"
-                                        >
-                                            {room.ctaText}
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </Link>
+
+                                        {/* Giá tiền & Nút Đặt phòng ngay */}
+                                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                                            <div>
+                                                {hasPromo ? (
+                                                    <>
+                                                        <span className="block text-[11px] line-through text-slate-400">
+                                                            {formattedBasePrice} VND
+                                                        </span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-xl font-black text-rose-600">
+                                                                {formattedPromoPrice}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">
+                                                                VND / đêm
+                                                            </span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div>
+                                                        <span className="block text-[10px] text-slate-400 uppercase">
+                                                            Giá phòng niêm yết
+                                                        </span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-xl font-black text-slate-900">
+                                                                {formattedBasePrice}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">
+                                                                VND / đêm
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <Link
+                                                    to={`/rooms/${room.id}`}
+                                                    className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                                                >
+                                                    Chi tiết
+                                                </Link>
+                                                <Link
+                                                    to={`/rooms/${room.id}`}
+                                                    className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-600/30 transition transform active:scale-95 whitespace-nowrap"
+                                                >
+                                                    Đặt ngay
+                                                </Link>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* 6. PRIVILEGES COMPARISON MATRIX */}
-            <section className="py-16 bg-white border-t border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center max-w-2xl mx-auto mb-12">
-                        <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Minh Bạch & Rõ Ràng</span>
-                        <h3 className="font-serif text-3xl font-bold text-slate-900 mt-2">Bảng So Sánh Đặc Quyền Nghỉ Dưỡng</h3>
-                        <p className="text-xs sm:text-sm text-slate-500 mt-2">
-                            Khám phá chi tiết các đặc quyền cao cấp được thiết kế riêng biệt cho từng hạng phòng nghỉ tại Khách Sạn TA Đà Nẵng.
-                        </p>
+                            );
+                        })}
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[720px]">
-                            <thead>
-                                <tr className="border-b-2 border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-800">
-                                    <th className="py-4 px-4 w-1/4">Đặc Quyền Dịch Vụ</th>
-                                    <th className="py-4 px-4 w-1/4 text-center">Deluxe Ocean View</th>
-                                    <th className="py-4 px-4 w-1/4 text-center text-blue-600 bg-blue-50/70 rounded-t-xl">
-                                        Executive Club Suite
-                                    </th>
-                                    <th className="py-4 px-4 w-1/4 text-center text-orange-600">Presidential Villa</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                                {COMPARISON_ROWS.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50/70 transition">
-                                        <td className="py-4 px-4 font-semibold text-slate-900">{row.service}</td>
-                                        <td className="py-4 px-4 text-center text-slate-600">{row.deluxe}</td>
-                                        <td className="py-4 px-4 text-center font-semibold text-blue-700 bg-blue-50/40">
-                                            {row.suite}
-                                        </td>
-                                        <td className="py-4 px-4 text-center font-semibold text-orange-600">{row.villa}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            {/* 7. 5-STAR AMENITIES STANDARDS */}
-            <section className="py-16 bg-slate-50 border-t border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center max-w-2xl mx-auto mb-12">
-                        <span className="text-xs font-bold uppercase tracking-widest text-orange-600">Chất Lượng Tinh Tuyển</span>
-                        <h3 className="font-serif text-3xl font-bold text-slate-900 mt-2">Tiêu Chuẩn Tiện Nghi 5 Sao Quốc Tế</h3>
-                        <p className="text-xs sm:text-sm text-slate-500 mt-2">
-                            Mọi căn phòng tại Khách Sạn TA Đà Nẵng đều được trang bị những vật phẩm và công nghệ hàng đầu thế giới nhằm nâng niu từng giác quan của quý khách.
-                        </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mx-auto mb-4">
-                                🌿
-                            </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-base mb-2">Dưỡng Thể Hữu Cơ Pháp</h4>
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                                Bộ sưu tập dầu gội, sữa tắm và dưỡng thể cao cấp từ thương hiệu Diptyque Paris hoặc L'Occitane en Provence chiết xuất 100% tự nhiên.
-                            </p>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mx-auto mb-4">
-                                🛏️
-                            </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-base mb-2">Menu Gối & Nệm Lông Vũ</h4>
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                                Đệm nệm đúc độc quyền Simmons Beautyrest kết hợp bộ sưu tập 6 tùy chọn gối tự nhiên (gối lông ngỗng, gối memory foam, gối oải hương thư giãn).
-                            </p>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mx-auto mb-4">
-                                📱
-                            </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-base mb-2">Smart Room Automation</h4>
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                                Hệ thống cảm biến thông minh tự điều chỉnh ánh sáng hoàng hôn, điều hòa ion lọc không khí và rèm tự động đón bình minh chỉ bằng một nút chạm.
-                            </p>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mx-auto mb-4">
-                                ☕
-                            </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-base mb-2">Nespresso & Bar Cao Cấp</h4>
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                                Máy pha cà phê Nespresso Gran Lattissima chính hãng, các viên nén tuyển chọn từ Nam Mỹ và quầy minibar được làm mới mỗi ngày.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* 8. VIP CONCIERGE BOOKING REQUEST FORM */}
-            <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-10">
-                    <div className="max-w-xl">
-                        <span className="px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-bold uppercase tracking-wider mb-4 inline-block">
-                            VIP Concierge 24/7
-                        </span>
-                        <h3 className="font-serif text-2xl sm:text-4xl font-bold leading-tight mb-4">
-                            Yêu Cầu Kỳ Nghỉ Riêng Tư Hoặc Sự Kiện Đặc Biệt
-                        </h3>
-                        <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6 font-light">
-                            Quý khách lên kế hoạch trăng mật lãng mạn, kỳ nghỉ kỷ niệm gia đình, hoặc phái đoàn cấp cao? Đội ngũ Quản gia Concierge chuyên biệt của Khách Sạn TA Đà Nẵng luôn sẵn sàng tư vấn chi tiết 24/7.
-                        </p>
-                        <div className="space-y-3 text-xs text-slate-200">
-                            <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-amber-400">📞</span>
-                                <span>Đường dây nóng trực tiếp: <strong className="text-white text-sm">1900 8899 / +84 236 388 9900</strong></span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-amber-400">✉️</span>
-                                <span>Email Ban Quản Lý: <strong className="text-white">vip.reservations@tahoteldanang.com</strong></span>
-                            </div>
-                        </div>
-                    </div>
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className="w-full lg:w-96 bg-white p-6 rounded-2xl text-slate-800 shadow-xl">
-                        <h4 className="font-serif font-bold text-base text-slate-900 mb-4">Gửi Yêu Cầu Tư Vấn Nhanh</h4>
-                        <div className="space-y-3 text-xs">
-                            <div>
-                                <label className="block font-semibold text-slate-600 mb-1">Họ và tên Quý khách *</label>
-                                <input
-                                    type="text"
-                                    name="fullName"
-                                    value={formData.fullName}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="Nguyễn Văn A"
-                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-600"
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-semibold text-slate-600 mb-1">Số điện thoại liên hệ *</label>
-                                <input
-                                    type="tel"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="0901 234 567"
-                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-600"
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-semibold text-slate-600 mb-1">Hạng phòng quan tâm</label>
-                                <select
-                                    name="roomType"
-                                    value={formData.roomType}
-                                    onChange={handleInputChange}
-                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-600 text-slate-700"
-                                >
-                                    <option>Executive Club Seafront Suite</option>
-                                    <option>Presidential Beachfront Pool Villa</option>
-                                    <option>Sky Royal Penthouse 360°</option>
-                                    <option>Deluxe Ocean View King</option>
-                                    <option>Grand Premier Oceanfront Suite</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block font-semibold text-slate-600 mb-1">Dịp nghỉ dưỡng</label>
-                                <select
-                                    name="occasion"
-                                    value={formData.occasion}
-                                    onChange={handleInputChange}
-                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-600 text-slate-700"
-                                >
-                                    <option>Kỳ nghỉ gia đình / Thư giãn</option>
-                                    <option>Tuần trăng mật (Honeymoon)</option>
-                                    <option>Kỷ niệm ngày cưới</option>
-                                    <option>Hội nghị / Công tác cao cấp</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block font-semibold text-slate-600 mb-1">Yêu cầu đặc biệt</label>
-                                <textarea
-                                    name="notes"
-                                    value={formData.notes}
-                                    onChange={handleInputChange}
-                                    rows="2"
-                                    placeholder="Ngày dự kiến, số khách, xe đưa đón..."
-                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-600"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                className="w-full mt-2 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-md transition"
-                            >
-                                Gửi Yêu Cầu Đến Quản Gia Trưởng
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
+                )}
+            </main>
 
             <Footer />
-
         </div>
     );
 }
