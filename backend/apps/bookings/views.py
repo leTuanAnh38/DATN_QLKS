@@ -21,7 +21,6 @@ class BookingViewSet(viewsets.ModelViewSet):
     - GET /api/bookings/: Xem danh sách đơn (Thành viên xem đơn của mình, Staff xem tất cả)
     - GET /api/bookings/<id>/: Chi tiết đơn đặt phòng
     """
-    queryset = Booking.objects.select_related('guest', 'category', 'room', 'room__category', 'applied_promotion').all().order_by('-created_at')
     serializer_class = BookingSerializer
 
     def get_permissions(self):
@@ -34,7 +33,13 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Booking.objects.none()
-        # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn
+
+        # Luôn tạo mới QuerySet từ DB (.all()) để tránh lưu cache kết quả cũ trong bộ nhớ (QuerySet._result_cache)
+        base_qs = Booking.objects.select_related(
+            'guest', 'category', 'room', 'room__category', 'applied_promotion'
+        ).all().order_by('-created_at')
+
+        # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL
         is_staff_or_admin = (
             user.is_staff or 
             user.is_superuser or 
@@ -42,12 +47,13 @@ class BookingViewSet(viewsets.ModelViewSet):
             getattr(user, 'role', '') != 'guest'
         )
         if is_staff_or_admin:
-            return self.queryset
+            return base_qs
+
         # Nếu là khách hàng -> chỉ xem đơn của chính họ
         user_email = user.email.strip() if user.email else ''
         if user_email:
-            return self.queryset.filter(Q(guest=user) | Q(guest__email=user_email))
-        return self.queryset.filter(guest=user)
+            return base_qs.filter(Q(guest=user) | Q(guest__email=user_email))
+        return base_qs.filter(guest=user)
 
     def perform_update(self, serializer):
         instance = serializer.instance
