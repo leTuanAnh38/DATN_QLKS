@@ -13,6 +13,8 @@ export const bookingService = {
             console.error('Lỗi khi tạo đơn đặt phòng:', error);
             return {
                 success: false,
+                code: error.response?.data?.code,
+                suggested_categories: error.response?.data?.suggested_categories || [],
                 message:
                     error.response?.data?.message ||
                     error.response?.data?.detail ||
@@ -191,6 +193,52 @@ export const bookingService = {
                     error.response?.data?.message ||
                     error.response?.data?.detail ||
                     'Thực hiện Check-in thất bại. Vui lòng kiểm tra lại tình trạng phòng.'
+            };
+        }
+    },
+
+    /**
+     * Tạo đơn đặt phòng và Check-in đồng thời cho Khách vãng lai (Walk-in Guest)
+     * POST /api/bookings/walk-in/
+     * @param {Object} payload - { guest_name, guest_phone, identity_card, guest_email, room_id, check_out_date, note, internal_note, total_amount }
+     */
+    async createWalkInBooking(payload) {
+        try {
+            const response = await api.post('/bookings/walk-in/', payload);
+            const data = response.data?.booking || response.data?.data || response.data;
+            return {
+                success: true,
+                message: response.data?.message || 'Tiếp đón khách Walk-in thành công!',
+                data,
+                room: response.data?.room
+            };
+        } catch (error) {
+            console.error('Lỗi khi tiếp đón khách Walk-in:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể thực hiện tiếp đón khách Walk-in. Vui lòng kiểm tra lại thông tin.'
+            };
+        }
+    },
+
+    /**
+     * Kiểm tra số phòng còn trống của hạng phòng theo khoảng ngày Check-in/Check-out
+     * GET /api/bookings/check-availability/?category_id=...&check_in_date=...&check_out_date=...
+     */
+    async checkAvailability(params) {
+        try {
+            const response = await api.get('/bookings/check-availability/', { params });
+            return response.data;
+        } catch (error) {
+            console.error('Lỗi khi kiểm tra phòng trống:', error);
+            return {
+                success: false,
+                is_sold_out: false,
+                available_rooms: null,
+                message: error.response?.data?.message || 'Không thể kiểm tra tình trạng phòng.'
             };
         }
     }

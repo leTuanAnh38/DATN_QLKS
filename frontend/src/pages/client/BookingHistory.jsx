@@ -63,33 +63,50 @@ export default function BookingHistory() {
     };
 
     // Tải danh sách đơn đặt phòng của chính người dùng
-    const fetchBookings = async () => {
+    const fetchBookings = async (isSilent = false) => {
         if (!isAuthenticated) {
-            setIsLoading(false);
+            if (!isSilent) setIsLoading(false);
             return;
         }
 
         try {
-            setIsLoading(true);
-            setErrorMessage('');
+            if (!isSilent) {
+                setIsLoading(true);
+                setErrorMessage('');
+            }
             const res = await bookingService.getMyBookings();
 
             if (res && res.success) {
                 setBookings(res.data || []);
             } else if (Array.isArray(res)) {
                 setBookings(res);
-            } else {
+            } else if (!isSilent) {
                 setErrorMessage(res?.message || 'Không thể tải danh sách đơn đặt phòng.');
             }
         } catch (err) {
-            setErrorMessage(err.message || 'Lỗi khi kết nối tới máy chủ.');
+            if (!isSilent) setErrorMessage(err.message || 'Lỗi khi kết nối tới máy chủ.');
         } finally {
-            setIsLoading(false);
+            if (!isSilent) setIsLoading(false);
         }
     };
 
     useEffect(() => {
         fetchBookings();
+
+        const handleFocus = () => fetchBookings(true);
+        const handleStorage = (e) => {
+            if (e.key === 'pms_last_booking_event') {
+                fetchBookings(true);
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('storage', handleStorage);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('storage', handleStorage);
+        };
     }, [isAuthenticated]);
 
     // Xử lý Hủy đặt phòng (PATCH status='cancelled')

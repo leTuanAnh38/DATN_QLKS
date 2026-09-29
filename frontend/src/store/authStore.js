@@ -21,6 +21,23 @@ try {
     console.error('Lỗi khi đọc auth state từ localStorage:', e);
 }
 
+// Đồng bộ trạng thái đăng nhập tức thì giữa các tab trình duyệt
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+        if (e.key === USER_KEY || e.key === ACCESS_TOKEN_KEY || e.key === REFRESH_TOKEN_KEY) {
+            try {
+                const rawUser = localStorage.getItem(USER_KEY);
+                currentUser = rawUser ? JSON.parse(rawUser) : null;
+                currentAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+                currentRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+            } catch (err) {
+                console.error('Lỗi khi đồng bộ storage auth:', err);
+            }
+            emitChange();
+        }
+    });
+}
+
 // Subscribers list for reactive updates
 const listeners = new Set();
 

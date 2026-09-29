@@ -77,6 +77,10 @@ export default function Checkout() {
     const [createdBooking, setCreatedBooking] = useState(null);
     const [copiedCode, setCopiedCode] = useState(false);
 
+    // 6. Quản lý kiểm tra tình trạng phòng trống (Chống Overbooking)
+    const [availability, setAvailability] = useState(null);
+    const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+
     // Xác định số CCCD/Hộ chiếu đã có sẵn trong hồ sơ người dùng hay chưa
     const savedProfileIdCard = (user?.guest_profile?.id_card_number || user?.id_card_number || user?.identity_card || '').trim();
     const hasProfileIdCard = Boolean(isAuthenticated && savedProfileIdCard);
@@ -112,6 +116,37 @@ export default function Checkout() {
             }).catch(() => {});
         }
     }, [isAuthenticated]);
+
+    // Kiểm tra tình trạng phòng trống thời gian thực (Availability & Chống Overbooking)
+    useEffect(() => {
+        const catId = room?.id || id;
+        if (!catId || !checkInDate || !checkOutDate) return;
+
+        let isMounted = true;
+        setIsCheckingAvailability(true);
+
+        bookingService
+            .checkAvailability({
+                category_id: catId,
+                check_in_date: checkInDate,
+                check_out_date: checkOutDate
+            })
+            .then((res) => {
+                if (isMounted && res && res.success) {
+                    setAvailability(res);
+                }
+            })
+            .catch((err) => {
+                console.error('Lỗi khi kiểm tra phòng trống:', err);
+            })
+            .finally(() => {
+                if (isMounted) setIsCheckingAvailability(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [room?.id, id, checkInDate, checkOutDate]);
 
     // Gọi API lấy thông tin chi tiết hạng phòng
     useEffect(() => {
@@ -322,11 +357,33 @@ export default function Checkout() {
                 if (isAuthenticated) {
                     authService.getProfile().catch(() => {});
                 }
+
+                // Phát tín hiệu thông báo thời gian thực tới tất cả tab (Admin Dashboard, Lịch sử đặt phòng)
+                try {
+                    localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                    window.dispatchEvent(new Event('pms_booking_created'));
+                } catch {
+                    // ignore storage errors
+                }
             } else {
                 setBookingError(res?.message || 'Có lỗi xảy ra khi tạo đơn đặt phòng. Vui lòng thử lại.');
+                if (res?.suggested_categories) {
+                    setAvailability((prev) => ({
+                        ...(prev || {}),
+                        is_sold_out: true,
+                        suggested_categories: res.suggested_categories
+                    }));
+                }
             }
         } catch (err) {
-            setBookingError(err.message || 'Lỗi khi gửi thông tin tới máy chủ.');
+            setBookingError(err.response?.data?.message || err.message || 'Lỗi khi gửi thông tin tới máy chủ.');
+            if (err.response?.data?.suggested_categories) {
+                setAvailability((prev) => ({
+                    ...(prev || {}),
+                    is_sold_out: true,
+                    suggested_categories: err.response.data.suggested_categories
+                }));
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -490,6 +547,67 @@ export default function Checkout() {
                                         </span>
                                     </div>
                                 </div>
+
+                                {/* Thông báo tình trạng phòng thời gian thực (Availability & Hết phòng) */}
+                                {isCheckingAvailability ? (
+                                    <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-2 text-xs text-slate-500">
+                                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Đang kiểm tra số lượng phòng trống thời gian thực...</span>
+                                    </div>
+                                ) : availability?.is_sold_out ? (
+                                    <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-3">
+                                        <div className="flex items-center gap-2 text-rose-800 font-bold text-xs sm:text-sm">
+                                            <span className="text-base">⚠️</span>
+                                            <span>Hạng phòng này đã KÍN CHỖ trong khoảng thời gian đã chọn!</span>
+                                        </div>
+                                        <p className="text-xs text-rose-700 leading-relaxed">
+                                            Rất tiếc, tất cả các phòng thuộc hạng <strong>{room.name}</strong> đã được đặt kín từ <strong>{formatDateDisplay(checkInDate)}</strong> đến <strong>{formatDateDisplay(checkOutDate)}</strong>. Quý khách vui lòng đổi ngày lưu trú hoặc tham khảo các hạng phòng tương đương còn trống dưới đây:
+                                        </p>
+
+                                        {/* Danh sách các hạng phòng khác còn trống gợi ý */}
+                                        {availability.suggested_categories?.length > 0 && (
+                                            <div className="pt-2 border-t border-rose-200/80 space-y-2">
+                                                <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">
+                                                    ✨ Các hạng phòng khác còn trống cho kỳ nghỉ của bạn:
+                                                </span>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    {availability.suggested_categories.map((cat) => (
+                                                        <Link
+                                                            key={cat.id}
+                                                            to={`/checkout/${cat.id}`}
+                                                            state={{ checkInDate, checkOutDate, guestCount }}
+                                                            className="p-3 bg-white hover:bg-blue-50/50 rounded-xl border border-slate-200 hover:border-blue-400 transition flex items-center justify-between group cursor-pointer shadow-xs"
+                                                        >
+                                                            <div>
+                                                                <strong className="text-xs font-bold text-slate-900 block group-hover:text-blue-600">
+                                                                    {cat.name}
+                                                                </strong>
+                                                                <span className="text-[10px] text-emerald-700 font-medium block">
+                                                                    🟢 Còn {cat.available_rooms} phòng trống • {Number(cat.promo_price || cat.base_price).toLocaleString('vi-VN')} VND
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-blue-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform shrink-0 ml-2">
+                                                                Đặt ngay →
+                                                            </span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : availability?.available_rooms > 0 ? (
+                                    <div className="mt-4 p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-2 text-emerald-800 font-semibold">
+                                            <span>✓</span>
+                                            <span>
+                                                Phòng còn trống ({availability.available_rooms} phòng sẵn sàng đón khách)
+                                            </span>
+                                        </div>
+                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/60 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                                            🟢 Khả dụng
+                                        </span>
+                                    </div>
+                                ) : null}
                             </div>
 
                             {/* THẺ 2: THÔNG TIN KHÁCH ĐẶT PHÒNG */}
@@ -1003,17 +1121,31 @@ export default function Checkout() {
                                     </div>
                                 )}
 
+                                {/* Cảnh báo hết phòng ở cột tóm tắt */}
+                                {availability?.is_sold_out && (
+                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+                                        <span>🚫</span>
+                                        <span>Hạng phòng đã hết chỗ cho ngày bạn chọn.</span>
+                                    </div>
+                                )}
+
                                 {/* NÚT BẤM XÁC NHẬN ĐẶT PHÒNG */}
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+                                    disabled={isSubmitting || availability?.is_sold_out}
+                                    className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-xl flex items-center justify-center gap-2 transition ${
+                                        availability?.is_sold_out
+                                            ? 'bg-slate-400 cursor-not-allowed shadow-none'
+                                            : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+                                    }`}
                                 >
                                     {isSubmitting ? (
                                         <>
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                             <span>Đang xử lý đơn đặt phòng...</span>
                                         </>
+                                    ) : availability?.is_sold_out ? (
+                                        <span>Hạng Phòng Đã Hết (Vui Lòng Chọn Ngày Khác)</span>
                                     ) : (
                                         <>
                                             <span>⚡</span>

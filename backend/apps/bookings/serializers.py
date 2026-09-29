@@ -21,6 +21,8 @@ class BookingSerializer(serializers.ModelSerializer):
     guest_name = serializers.SerializerMethodField()
     guest_phone = serializers.CharField(source='guest.phone_number', read_only=True)
     guest_email = serializers.CharField(source='guest.email', read_only=True)
+    promotion_code = serializers.CharField(source='applied_promotion.code', read_only=True, default=None)
+    daily_rate = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -43,6 +45,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'actual_check_in',
             'actual_check_out',
             'nights',
+            'daily_rate',
+            'promotion_code',
             'total_amount',
             'status',
             'status_display',
@@ -105,3 +109,12 @@ class BookingSerializer(serializers.ModelSerializer):
             full_name = f"{obj.guest.last_name or ''} {obj.guest.first_name or ''}".strip()
             return full_name or obj.guest.username
         return "Khách vãng lai"
+
+    def get_daily_rate(self, obj):
+        cat = obj.category or (obj.room.category if obj.room else None)
+        if cat:
+            return float(cat.promo_price or cat.base_price or 0)
+        nights = self.get_nights(obj)
+        if obj.total_amount and nights > 0:
+            return float(obj.total_amount / nights)
+        return float(obj.total_amount or 0)

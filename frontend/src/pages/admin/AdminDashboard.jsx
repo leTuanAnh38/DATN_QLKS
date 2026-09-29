@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { bookingService } from '../../services/bookingService';
@@ -9,6 +9,40 @@ import CategoryManagement from '../../components/admin/CategoryManagement';
 import BookingManagement from '../../components/admin/BookingManagement';
 import UserAvatar from '../../components/common/UserAvatar';
 
+// Tiện ích format ngày hiển thị DD/MM/YYYY
+const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+        const parts = String(dateStr).split('T')[0].split('-');
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } catch {
+        return dateStr;
+    }
+    return dateStr;
+};
+
+// Tiện ích format thời gian chi tiết HH:MM • DD/MM/YYYY
+const formatDateTimeDisplay = (isoStr) => {
+    if (!isoStr) return '—';
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return isoStr;
+        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return `${time} • ${date}`;
+    } catch {
+        return isoStr;
+    }
+};
+
+const STATUS_CONFIGS = {
+    pending: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-800 border-amber-300' },
+    confirmed: { label: 'Đã xác nhận', color: 'bg-blue-50 text-blue-800 border-blue-300' },
+    checked_in: { label: 'Đang ở', color: 'bg-emerald-50 text-emerald-800 border-emerald-300' },
+    checked_out: { label: 'Đã trả phòng', color: 'bg-purple-50 text-purple-800 border-purple-300' },
+    cancelled: { label: 'Đã Hủy', color: 'bg-rose-50 text-rose-800 border-rose-300' }
+};
+
 export default function HotelAdminDashboard() {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
@@ -18,7 +52,9 @@ export default function HotelAdminDashboard() {
     const [bookingFilter, setBookingFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Số lượng đơn đặt phòng thực tế từ cơ sở dữ liệu
+    // Dữ liệu đơn đặt phòng thực tế từ cơ sở dữ liệu
+    const [realBookings, setRealBookings] = useState([]);
+    const [isLoadingRealBookings, setIsLoadingRealBookings] = useState(false);
     const [actualBookingsCount, setActualBookingsCount] = useState(0);
     const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
 
@@ -30,24 +66,54 @@ export default function HotelAdminDashboard() {
         (['admin', 'owner', 'manager', 'receptionist', 'staff', 'cashier'].includes(user.role) || user.is_staff || user.is_superuser)
     );
 
-    // Tải số lượng đơn đặt phòng thực tế từ CSDL để hiển thị badge và thống kê
-    const loadRealBookingStats = async () => {
+    // Tải số lượng và danh sách đơn đặt phòng thực tế từ CSDL để hiển thị bảng thời gian thực
+    const loadRealBookingStats = async (isSilent = false) => {
         try {
+            if (!isSilent) setIsLoadingRealBookings(true);
             const res = await bookingService.getMyBookings();
             if (res && res.success && Array.isArray(res.data)) {
                 const list = res.data;
+                setRealBookings(list);
                 setActualBookingsCount(list.length);
                 const pending = list.filter((b) => b.status === 'pending').length;
                 setPendingBookingsCount(pending);
             }
         } catch (e) {
             console.error('Lỗi khi tải số lượng đơn thực tế:', e);
+        } finally {
+            if (!isSilent) setIsLoadingRealBookings(false);
         }
     };
 
     useEffect(() => {
         if (isAuthenticated && isManagerRole) {
             loadRealBookingStats();
+
+            // 1. Tự động đồng bộ khi chuyển về cửa sổ / tab Admin
+            const handleFocus = () => loadRealBookingStats(true);
+            // 2. Nhận tín hiệu thời gian thực khi có khách đặt phòng ở tab khác
+            const handleStorage = (e) => {
+                if (e.key === 'pms_last_booking_event') {
+                    loadRealBookingStats(true);
+                }
+            };
+            const handleCustomBooking = () => loadRealBookingStats(true);
+
+            window.addEventListener('focus', handleFocus);
+            window.addEventListener('storage', handleStorage);
+            window.addEventListener('pms_booking_created', handleCustomBooking);
+
+            // 3. Chu kỳ polling mỗi 8 giây để cập nhật đơn mới
+            const interval = setInterval(() => {
+                loadRealBookingStats(true);
+            }, 8000);
+
+            return () => {
+                window.removeEventListener('focus', handleFocus);
+                window.removeEventListener('storage', handleStorage);
+                window.removeEventListener('pms_booking_created', handleCustomBooking);
+                clearInterval(interval);
+            };
         }
     }, [isAuthenticated, isManagerRole, activeTab]);
 
@@ -170,72 +236,33 @@ export default function HotelAdminDashboard() {
     }
 
     // =========================================================================
-    // DỮ LIỆU ĐẶT PHÒNG CHO TAB TỔNG QUAN
+    // DỮ LIỆU ĐẶT PHÒNG THỜI GIAN THỰC CHO TAB TỔNG QUAN
     // =========================================================================
-    const bookings = [
-        {
-            id: '#BK-9281',
-            guest: { name: 'Trần Hoàng Cường', email: 'cuong.tran@gmail.com', avatarText: 'TC', isVip: true },
-            room: { name: 'Executive Club Seafront Suite', detail: '3 Đêm • 2 Khách lớn' },
-            schedule: { dates: '25/09 - 28/09/2026', note: 'Nhận: 14:00 (VIP check-in)' },
-            payment: { amount: '28.500.000 ₫', status: 'Đã thanh toán (Visa)' },
-            status: 'confirmed'
-        },
-        {
-            id: '#BK-9280',
-            guest: { name: 'Emma Watson', email: '+44 7911 123456', avatarText: 'EW', isVip: false },
-            room: { name: 'Deluxe Ocean King', detail: '2 Đêm • 1 Khách' },
-            schedule: { dates: '26/09 - 28/09/2026', note: 'Nhận: 15:00 dự kiến' },
-            payment: { amount: '9.600.000 ₫', status: 'Chờ thanh toán tại Cổng' },
-            status: 'pending'
-        },
-        {
-            id: '#BK-9279',
-            guest: { name: 'Nguyễn Lan Hương', email: 'lanhuong.danang@gmail.com', avatarText: 'NL', isVip: true },
-            room: { name: 'Beachfront Villa', detail: '4 Đêm • 4 Khách lớn' },
-            schedule: { dates: '27/09 - 01/10/2026', note: 'Nhận: 14:00' },
-            payment: { amount: '64.000.000 ₫', status: 'Thanh toán trực tuyến 100%' },
-            status: 'confirmed'
-        },
-        {
-            id: '#BK-9278',
-            guest: { name: 'Takashi Kato', email: 'kato.tokyo@resort.jp', avatarText: 'TK', isVip: false },
-            room: { name: 'Ocean Penthouse', detail: '2 Đêm • 2 Khách' },
-            schedule: { dates: '25/09 - 27/09/2026', note: 'Hủy ngày 23/09' },
-            payment: { amount: '32.000.000 ₫', status: 'Hoàn tiền thẻ thành công' },
-            status: 'cancelled'
-        },
-        {
-            id: '#BK-9277',
-            guest: { name: 'Lê Minh Tuấn', email: '0905 128 999', avatarText: 'LM', isVip: false },
-            room: { name: 'Deluxe Ocean King', detail: '1 Đêm • 2 Khách' },
-            schedule: { dates: '25/09 - 26/09/2026', note: 'Nhận phòng sớm 12:00' },
-            payment: { amount: '4.800.000 ₫', status: 'Đã thanh toán (Trực tuyến)' },
-            status: 'checked_in'
-        },
-        {
-            id: '#BK-9276',
-            guest: { name: 'David Smith', email: 'd.smith@auscorp.au', avatarText: 'DS', isVip: false },
-            room: { name: 'Executive Club Suite', detail: '5 Đêm • 1 Khách' },
-            schedule: { dates: '28/09 - 03/10/2026', note: 'Nhận: 14:00' },
-            payment: { amount: '47.500.000 ₫', status: 'Cọc 50% qua Booking.com' },
-            status: 'pending'
-        }
-    ];
+    const filteredBookings = useMemo(() => {
+        return realBookings.filter((item) => {
+            const matchFilter =
+                bookingFilter === 'all'
+                    ? true
+                    : bookingFilter === 'pending'
+                        ? item.status === 'pending'
+                        : bookingFilter === 'checked_in'
+                            ? item.status === 'checked_in'
+                            : item.status === bookingFilter;
 
-    const filteredBookings = bookings.filter((item) => {
-        const matchFilter =
-            bookingFilter === 'all'
-                ? true
-                : bookingFilter === 'pending'
-                    ? item.status === 'pending'
-                    : item.status === 'checked_in';
-        const matchSearch =
-            item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.room.name.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchFilter && matchSearch;
-    });
+            if (!searchTerm.trim()) return matchFilter;
+
+            const q = searchTerm.trim().toLowerCase();
+            const matchCode = item.booking_code?.toLowerCase().includes(q);
+            const matchGuest = item.guest_name?.toLowerCase().includes(q);
+            const matchEmail = item.guest_email?.toLowerCase().includes(q);
+            const matchPhone = item.guest_phone?.toLowerCase().includes(q);
+            const matchRoom = item.room_name?.toLowerCase().includes(q);
+            const matchRoomNum = String(item.room_number || '').toLowerCase().includes(q);
+            const matchCccd = String(item.identity_card || '').toLowerCase().includes(q);
+
+            return matchFilter && (matchCode || matchGuest || matchEmail || matchPhone || matchRoom || matchRoomNum || matchCccd);
+        });
+    }, [realBookings, bookingFilter, searchTerm]);
 
     return (
         <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
@@ -875,47 +902,107 @@ export default function HotelAdminDashboard() {
                                                 <tr className="bg-slate-50/70 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                                     <th className="py-3 px-5">MÃ BOOKING</th>
                                                     <th className="py-3 px-5">KHÁCH HÀNG</th>
-                                                    <th className="py-3 px-5">HẠNG PHÒNG & THỜI GIAN</th>
+                                                    <th className="py-3 px-5">HẠNG PHÒNG & SỐ PHÒNG</th>
                                                     <th className="py-3 px-5">LỊCH TRÌNH</th>
-                                                    <th className="py-3 px-5">TỔNG TIỀN & KÊNH</th>
+                                                    <th className="py-3 px-5">TỔNG TIỀN</th>
+                                                    <th className="py-3 px-5">TRẠNG THÁI</th>
+                                                    <th className="py-3 px-5 text-right">THAO TÁC</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100">
-                                                {filteredBookings.map((b) => (
-                                                    <tr key={b.id} className="hover:bg-blue-50/20 transition">
-                                                        <td className="py-3.5 px-5 font-mono font-bold text-blue-600"> {b.id} </td>
-                                                        <td className="py-3.5 px-5">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[10px] shrink-0">
-                                                                    {b.guest.avatarText}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="font-semibold text-slate-900">{b.guest.name}</span>
-                                                                        {b.guest.isVip && (
-                                                                            <span className="bg-amber-100 text-amber-800 text-[8px] font-extrabold px-1 rounded"> VIP </span>
-                                                                        )}
-                                                                    </div>
-                                                                    <span className="text-[10px] text-slate-400 block">{b.guest.email}</span>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-3.5 px-5">
-                                                            <strong className="text-slate-800 block font-medium">{b.room.name}</strong>
-                                                            <span className="text-[10px] text-slate-400">{b.room.detail}</span>
-                                                        </td>
-                                                        <td className="py-3.5 px-5">
-                                                            <span className="font-semibold text-slate-800 block">{b.schedule.dates}</span>
-                                                            <span className="text-[10px] text-slate-400">{b.schedule.note}</span>
-                                                        </td>
-                                                        <td className="py-3.5 px-5">
-                                                            <span className="font-bold text-slate-900 block">{b.payment.amount}</span>
-                                                            <span className="text-[10px] text-blue-600">{b.payment.status}</span>
+                                                {isLoadingRealBookings && realBookings.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={7} className="py-10 text-center text-slate-400">
+                                                            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                                            <span>Đang đồng bộ dữ liệu đặt phòng...</span>
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                ) : filteredBookings.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={7} className="py-10 text-center text-slate-400">
+                                                            <div className="text-2xl mb-1">📭</div>
+                                                            <p className="font-semibold text-slate-600">Chưa có đơn đặt phòng nào</p>
+                                                            <p className="text-[11px] text-slate-400 mt-0.5">Các đơn đặt phòng mới của khách hàng sẽ xuất hiện tại đây.</p>
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    filteredBookings.slice(0, 8).map((b) => {
+                                                        const guestName = b.guest_name || 'Khách lưu trú';
+                                                        const avatarInitial = guestName.charAt(0).toUpperCase();
+                                                        const statusCfg = STATUS_CONFIGS[b.status] || { label: b.status, color: 'bg-slate-100 text-slate-700 border-slate-200' };
+                                                        const totalAmountNum = Number(b.total_amount) || 0;
+
+                                                        return (
+                                                            <tr key={b.id} className="hover:bg-blue-50/20 transition cursor-pointer" onClick={() => setActiveTab('bookings')}>
+                                                                <td className="py-3.5 px-5 font-mono font-bold text-blue-600 whitespace-nowrap">
+                                                                    <div>#{b.booking_code}</div>
+                                                                    <span className="text-[10px] text-slate-400 font-normal">{formatDateTimeDisplay(b.created_at)}</span>
+                                                                </td>
+                                                                <td className="py-3.5 px-5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[10px] shrink-0">
+                                                                            {avatarInitial}
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="font-semibold text-slate-900">{guestName}</div>
+                                                                            <span className="text-[10px] text-slate-400 block">{b.guest_phone || b.guest_email || '—'}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3.5 px-5">
+                                                                    <strong className="text-slate-800 block font-medium">{b.room_name || 'Hạng phòng'}</strong>
+                                                                    <span className="text-[10px] text-slate-500">
+                                                                        {b.room_number ? (
+                                                                            <span className="text-emerald-700 font-bold">Phòng {b.room_number}</span>
+                                                                        ) : (
+                                                                            <span className="text-slate-400 italic">Chờ gán số phòng</span>
+                                                                        )}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3.5 px-5 whitespace-nowrap">
+                                                                    <span className="font-semibold text-slate-800 block">
+                                                                        {formatDateDisplay(b.check_in_date)} → {formatDateDisplay(b.check_out_date)}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-blue-600 font-bold">🌙 {b.nights || 1} đêm</span>
+                                                                </td>
+                                                                <td className="py-3.5 px-5 whitespace-nowrap">
+                                                                    <span className="font-bold text-rose-600 block">{totalAmountNum.toLocaleString('vi-VN')} VND</span>
+                                                                </td>
+                                                                <td className="py-3.5 px-5 whitespace-nowrap">
+                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusCfg.color}`}>
+                                                                        {b.status === 'pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping mr-1"></span>}
+                                                                        {statusCfg.label}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setActiveTab('bookings');
+                                                                        }}
+                                                                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
+                                                                    >
+                                                                        Xử lý →
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
+                                                )}
                                             </tbody>
                                         </table>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 px-5">
+                                        <span>Đang hiển thị <strong>{filteredBookings.length}</strong> / <strong>{actualBookingsCount}</strong> đơn thực tế từ CSDL</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('bookings')}
+                                            className="text-blue-600 hover:text-blue-700 font-bold text-xs hover:underline flex items-center gap-1"
+                                        >
+                                            <span>Quản lý toàn bộ đơn đặt phòng</span>
+                                            <span>→</span>
+                                        </button>
                                     </div>
                                 </div>
 

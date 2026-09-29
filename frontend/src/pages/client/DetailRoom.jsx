@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { roomService } from '../../services/roomService';
+import { bookingService } from '../../services/bookingService';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
@@ -117,8 +118,26 @@ export default function DetailRoom() {
     const [guestCount, setGuestCount] = useState(2);
     const [similarRooms, setSimilarRooms] = useState([]);
     const [lightboxImage, setLightboxImage] = useState(null);
+    const [availability, setAvailability] = useState(null);
 
     const nights = 2;
+
+    // Kiểm tra tình trạng phòng trống
+    useEffect(() => {
+        if (!room?.id) return;
+        let isMounted = true;
+        bookingService
+            .checkAvailability({ category_id: room.id })
+            .then((res) => {
+                if (isMounted && res && res.success) {
+                    setAvailability(res);
+                }
+            })
+            .catch(() => {});
+        return () => {
+            isMounted = false;
+        };
+    }, [room?.id]);
 
     // 2. Hook useEffect() gọi API chi tiết phòng qua roomService
     useEffect(() => {
@@ -982,6 +1001,32 @@ export default function DetailRoom() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Thông báo tình trạng phòng trống */}
+                            {availability && (
+                                <div>
+                                    {availability.is_sold_out ? (
+                                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 space-y-1">
+                                            <div className="font-bold flex items-center gap-1.5">
+                                                <span>⚠️</span>
+                                                <span>Hạng phòng này hiện đã kín chỗ cho hôm nay!</span>
+                                            </div>
+                                            <p className="text-[11px] text-rose-700">
+                                                Quý khách có thể bấm Tiến hành đặt phòng để chọn ngày lưu trú khác còn trống.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between text-xs text-emerald-800 bg-emerald-50/80 px-3 py-2 rounded-xl border border-emerald-200">
+                                            <span className="font-medium flex items-center gap-1.5">
+                                                <span>✓</span> Sẵn sàng đón khách
+                                            </span>
+                                            <span className="font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md border border-emerald-300">
+                                                🟢 Còn {availability.available_rooms} phòng trống
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Nút bấm Đặt phòng */}
                             <button
