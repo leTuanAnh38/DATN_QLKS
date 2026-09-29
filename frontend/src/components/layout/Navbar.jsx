@@ -259,7 +259,7 @@ export default function Navbar({
 
                                             {/* Nút 3: Lịch sử đặt phòng */}
                                             <Link
-                                                to="/login"
+                                                to="/booking-history"
                                                 onClick={() => setUserMenuOpen(false)}
                                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 hover:text-blue-600 transition text-left cursor-pointer"
                                             >

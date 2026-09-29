@@ -106,6 +106,24 @@ class RoomCategoryViewSet(viewsets.ModelViewSet):
             'results': serializer.data
         }, status=status.HTTP_200_OK)
 
+    def get_object(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+        if lookup_value is not None:
+            # Nếu là số -> tìm theo ID (pk)
+            if str(lookup_value).isdigit():
+                obj = RoomCategory.objects.filter(pk=lookup_value).first()
+                if obj:
+                    self.check_object_permissions(self.request, obj)
+                    return obj
+            # Nếu là chuỗi slug
+            obj = RoomCategory.objects.filter(slug=lookup_value).first()
+            if obj:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        from rest_framework.exceptions import NotFound
+        raise NotFound("Không tìm thấy hạng phòng yêu cầu.")
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, context={'request': request})

@@ -1,45 +1,40 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ROOMS_DATA, getRoomById } from '../../data/roomsData';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { roomService } from '../../services/roomService';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
-// Danh sách các ảnh chi tiết hạng phòng
-const GALLERY_IMAGES = [
+// Ảnh mặc định bổ trợ cao cấp nếu Hạng phòng chưa upload đủ 5 ảnh
+const FALLBACK_GALLERY = [
     {
-        id: 1,
-        title: 'Góc nhìn chính - Tầm nhìn trực diện biển Mỹ Khê 180°',
-        url: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=1200&q=80',
-        span: 'col-span-12 lg:col-span-6 row-span-2'
+        id: 'fb-1',
+        title: 'Tầm nhìn trực diện biển Mỹ Khê 180°',
+        url: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=1200&q=80'
     },
     {
-        id: 2,
-        title: 'Phòng khách sang trọng',
-        url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80',
-        span: 'col-span-6 lg:col-span-3'
+        id: 'fb-2',
+        title: 'Phòng khách & Không gian nghỉ dưỡng sang trọng',
+        url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80'
     },
     {
-        id: 3,
-        title: 'Ban công ngắm hoàng hôn',
-        url: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=600&q=80',
-        span: 'col-span-6 lg:col-span-3'
+        id: 'fb-3',
+        title: 'Ban công đón bình minh và hoàng hôn biển',
+        url: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=800&q=80'
     },
     {
-        id: 4,
-        title: 'Bồn sục Jacuzzi cẩm thạch',
-        url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=80',
-        span: 'col-span-6 lg:col-span-3'
+        id: 'fb-4',
+        title: 'Bồn tắm sục Jacuzzi cẩm thạch thư giãn',
+        url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80'
     },
     {
-        id: 5,
-        title: 'Góc làm việc thượng lưu',
-        url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80',
-        span: 'col-span-6 lg:col-span-3'
+        id: 'fb-5',
+        title: 'Bàn trà & Góc làm việc thượng lưu',
+        url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80'
     }
 ];
 
-// Danh sách tiện nghi phân nhóm
-const AMENITY_GROUPS = [
+// Danh sách tiện nghi tiêu chuẩn 5 sao resort
+const STANDARD_AMENITY_GROUPS = [
     {
         title: 'Không gian & Giường ngủ',
         icon: '🛏️',
@@ -104,60 +99,254 @@ const CLUB_PRIVILEGES = [
     }
 ];
 
-// Các phòng tương tự
-const SIMILAR_ROOMS = [
-    {
-        id: 1,
-        name: 'Deluxe Ocean View King',
-        tag: '65 M² • HƯỚNG BIỂN',
-        rating: '4.92',
-        reviews: '280',
-        desc: 'Không gian tinh khôi với ban công riêng lộng gió biển, đệm êm ái và bồn tắm ngâm sâu thư thái.',
-        price: '3.850.000',
-        image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80'
-    },
-    {
-        id: 2,
-        name: 'Grand Premier Oceanfront Suite',
-        tag: '130 M² • CORNER SUITE',
-        rating: '4.99',
-        reviews: '189',
-        desc: 'Căn góc hai mặt biển ngoạn mục, phòng ăn riêng cho 4 người và quầy bar cocktail cá nhân hóa.',
-        price: '11.200.000',
-        image: 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=600&q=80'
-    },
-    {
-        id: 3,
-        name: 'Presidential Beachfront Villa',
-        tag: '350 M² • PRIVATE POOL VILLA',
-        rating: '5.0',
-        reviews: '84',
-        desc: 'Dinh thự biệt lập trước biển với hồ bơi vô cực riêng, đầu bếp cá nhân và quản gia túc trực 24/7.',
-        price: '26.500.000',
-        image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80'
-    }
-];
+export default function DetailRoom() {
+    // 1. Hook useParams() lấy tham số ID / Slug từ URL
+    const { id, roomId, slug } = useParams();
+    const currentRoomId = id || roomId || slug;
+    const navigate = useNavigate();
 
-export default function RoomDetailPage() {
-    const { id } = useParams();
-    const room = getRoomById(id) || ROOMS_DATA[0];
+    // Các state quản lý Dữ liệu, Loading và Lỗi
+    const [room, setRoom] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
+    // State giao diện
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
     const [selectedPackage, setSelectedPackage] = useState('standard'); // 'standard' | 'spa'
     const [guestCount, setGuestCount] = useState(2);
+    const [similarRooms, setSimilarRooms] = useState([]);
+    const [lightboxImage, setLightboxImage] = useState(null);
+
     const nights = 2;
 
-    const basePricePerNight = room.basePrice || 7450000;
-    const packageSurchargePerNight = selectedPackage === 'spa' ? 1200000 : 0;
-    const totalPricePerNight = basePricePerNight + packageSurchargePerNight;
+    // 2. Hook useEffect() gọi API chi tiết phòng qua roomService
+    useEffect(() => {
+        let isMounted = true;
 
+        if (!currentRoomId) {
+            setError('Không xác định được mã phòng trên thanh địa chỉ URL.');
+            setLoading(false);
+            return;
+        }
+
+        const fetchRoomData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                setSelectedImageIndex(0);
+
+                // Gọi API GET /api/rooms/categories/${currentRoomId}/
+                const res = await roomService.getCategoryDetail(currentRoomId);
+
+                if (!isMounted) return;
+
+                if (res && (res.success || res.category)) {
+                    const categoryData = res.category || res;
+                    setRoom(categoryData);
+                    // Cập nhật số khách mặc định theo sức chứa
+                    if (categoryData.capacity) {
+                        setGuestCount(Math.min(categoryData.capacity, 2));
+                    }
+                } else {
+                    setError(res?.message || 'Không tìm thấy thông tin hạng phòng yêu cầu.');
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setError(err?.response?.data?.detail || err?.message || 'Đã xảy ra lỗi khi kết nối đến máy chủ.');
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        // Gọi API lấy các hạng phòng khác cho mục "Các hạng phòng tương tự"
+        const fetchSimilarRooms = async () => {
+            try {
+                const res = await roomService.getCategories();
+                if (isMounted && res && (res.categories || res.results)) {
+                    const list = res.categories || res.results || [];
+                    const filtered = list.filter(
+                        (c) => String(c.id) !== String(currentRoomId) && c.slug !== currentRoomId
+                    );
+                    setSimilarRooms(filtered.slice(0, 3));
+                }
+            } catch (e) {
+                console.error('Không thể tải các phòng tương tự:', e);
+            }
+        };
+
+        fetchRoomData();
+        fetchSimilarRooms();
+
+        // Cuộn mượt lên đầu trang mỗi khi đổi ID phòng
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [currentRoomId]);
+
+    // =========================================================================
+    // TRẠNG THÁI 1: LOADING STATE (Hiển thị Skeleton Loader chuẩn 5 sao)
+    // =========================================================================
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased">
+                <Navbar />
+
+                {/* Shimmer Breadcrumb */}
+                <div className="bg-white border-b border-slate-100 py-3">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center space-x-3">
+                        <div className="h-4 w-16 bg-slate-200 rounded animate-pulse"></div>
+                        <span className="text-slate-300">/</span>
+                        <div className="h-4 w-28 bg-slate-200 rounded animate-pulse"></div>
+                        <span className="text-slate-300">/</span>
+                        <div className="h-4 w-40 bg-slate-200 rounded animate-pulse"></div>
+                    </div>
+                </div>
+
+                {/* Shimmer Title */}
+                <div className="bg-white pt-6 pb-4">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-3">
+                            <div className="flex gap-2">
+                                <div className="h-5 w-24 bg-slate-200 rounded-full animate-pulse"></div>
+                                <div className="h-5 w-32 bg-slate-200 rounded-full animate-pulse"></div>
+                            </div>
+                            <div className="h-10 w-80 sm:w-96 bg-slate-200 rounded-xl animate-pulse"></div>
+                        </div>
+                        <div className="h-14 w-44 bg-slate-200 rounded-2xl animate-pulse"></div>
+                    </div>
+                </div>
+
+                {/* Shimmer 5-Grid Gallery Skeleton */}
+                <div className="bg-white pb-8">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden">
+                            <div className="col-span-12 lg:col-span-6 bg-slate-200 animate-pulse relative">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        Đang tải dữ liệu phòng nghỉ...
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="hidden lg:grid col-span-6 grid-cols-2 gap-3 h-full">
+                                <div className="bg-slate-200 animate-pulse rounded-xl"></div>
+                                <div className="bg-slate-200 animate-pulse rounded-xl"></div>
+                                <div className="bg-slate-200 animate-pulse rounded-xl"></div>
+                                <div className="bg-slate-200 animate-pulse rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Shimmer Content & Sticky Widget */}
+                <div className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                        <div className="lg:col-span-8 space-y-6">
+                            <div className="h-24 bg-white rounded-2xl border border-slate-200 animate-pulse"></div>
+                            <div className="h-52 bg-white rounded-3xl border border-slate-200 animate-pulse"></div>
+                            <div className="h-72 bg-white rounded-3xl border border-slate-200 animate-pulse"></div>
+                        </div>
+                        <div className="lg:col-span-4">
+                            <div className="h-96 bg-white rounded-3xl border border-slate-200 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <Footer />
+            </div>
+        );
+    }
+
+    // =========================================================================
+    // TRẠNG THÁI 2: ERROR STATE (Không tìm thấy phòng hoặc ID sai)
+    // =========================================================================
+    if (error || !room) {
+        return (
+            <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased flex flex-col justify-between">
+                <Navbar />
+
+                <main className="flex-1 flex items-center justify-center px-4 py-16">
+                    <div className="max-w-lg w-full bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 text-center shadow-xl shadow-slate-900/5">
+                        <div className="w-20 h-20 mx-auto rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center text-4xl mb-6 shadow-inner">
+                            🏨
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-widest text-rose-600 bg-rose-50 px-3 py-1 rounded-full">
+                            Không tìm thấy dữ liệu
+                        </span>
+                        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-3 mb-2">
+                            Không tìm thấy hạng phòng
+                        </h2>
+                        <p className="text-xs sm:text-sm text-slate-500 mb-8 leading-relaxed">
+                            {error || `Hạng phòng với mã nhận diện "${currentRoomId}" không tồn tại hoặc đã tạm dừng phục vụ trên hệ thống.`}
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <Link
+                                to="/rooms"
+                                className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30 transition transform active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <span>←</span> Xem danh sách phòng nghỉ
+                            </Link>
+                            <Link
+                                to="/"
+                                className="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center"
+                            >
+                                Về Trang chủ
+                            </Link>
+                        </div>
+                    </div>
+                </main>
+
+                <Footer />
+            </div>
+        );
+    }
+
+    // =========================================================================
+    // TRẠNG THÁI 3: SUCCESS STATE (Map dữ liệu động từ API vào giao diện)
+    // =========================================================================
+
+    // 1. Map Hình ảnh: Lấy danh sách ảnh từ room.images của API
+    const apiImageList = (room.images && room.images.length > 0)
+        ? room.images.map((img, idx) => ({
+            id: img.id || idx,
+            url: img.image_url || img.image,
+            title: img.is_feature
+                ? `${room.name} - Ảnh đại diện chính`
+                : `${room.name} - Góc nhìn ${idx + 1}`
+        }))
+        : (room.feature_image ? [{ id: 1, url: room.feature_image, title: room.name }] : []);
+
+    // Nếu API trả về ít hơn 5 ảnh, bổ trợ ảnh fallback để khung 5-Grid không bị khuyết
+    const gallery = apiImageList.length >= 5
+        ? apiImageList
+        : [...apiImageList, ...FALLBACK_GALLERY.slice(apiImageList.length)];
+
+    // 2. Map Thông tin cơ bản & Giá cả
+    const basePriceNum = Number(room.base_price || 0);
+    const promoPriceNum = room.promo_price ? Number(room.promo_price) : null;
+    const hasPromo = promoPriceNum && promoPriceNum > 0 && promoPriceNum < basePriceNum;
+
+    // Giá áp dụng mỗi đêm
+    const effectiveBasePrice = hasPromo ? promoPriceNum : basePriceNum;
+    const packageSurchargePerNight = selectedPackage === 'spa' ? 1200000 : 0;
+    const totalPricePerNight = effectiveBasePrice + packageSurchargePerNight;
+
+    // Tính tổng tiền & điểm thưởng
     const roomSubtotal = totalPricePerNight * nights;
-    const vatAndService = Math.round(roomSubtotal * 0.05); // 5%
+    const vatAndService = Math.round(roomSubtotal * 0.05); // 5% thuế & phí phục vụ
     const finalTotal = roomSubtotal + vatAndService;
     const earnedPoints = Math.round(finalTotal / 10000);
 
-    const gallery = room.gallery && room.gallery.length > 0 ? room.gallery : GALLERY_IMAGES;
-    const similarRooms = ROOMS_DATA.filter((item) => item.id !== room.id).slice(0, 3);
+    const discountPercent = hasPromo && basePriceNum > 0
+        ? Math.round(((basePriceNum - promoPriceNum) / basePriceNum) * 100)
+        : 0;
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
@@ -170,8 +359,7 @@ export default function RoomDetailPage() {
                 }}
             />
 
-
-            {/* 3. BREADCRUMB & HEADER ACTIONS */}
+            {/* BREADCRUMB LIÊN KẾT ĐỘNG */}
             <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500">
@@ -185,13 +373,23 @@ export default function RoomDetailPage() {
                     </nav>
 
                     <div className="flex items-center space-x-4 text-xs font-semibold text-slate-600">
-                        <button className="flex items-center gap-1.5 hover:text-blue-600 transition">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (navigator.clipboard) {
+                                    navigator.clipboard.writeText(window.location.href);
+                                    alert('Đã sao chép liên kết phòng vào clipboard!');
+                                }
+                            }}
+                            className="flex items-center gap-1.5 hover:text-blue-600 transition"
+                        >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                             </svg>
                             Chia sẻ
                         </button>
                         <button
+                            type="button"
                             onClick={() => setIsSaved(!isSaved)}
                             className={`flex items-center gap-1.5 transition ${isSaved ? 'text-red-500' : 'hover:text-red-500'}`}
                         >
@@ -204,21 +402,28 @@ export default function RoomDetailPage() {
                 </div>
             </div>
 
-            {/* 4. TITLE & BADGES BAR */}
+            {/* TIÊU ĐỀ & HUY HIỆU ĐỘNG */}
             <section className="bg-white pt-6 pb-4">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <div className="flex flex-wrap items-center gap-2 mb-2">
-                                <span className={`px-3 py-0.5 rounded-full text-white text-xs font-bold uppercase tracking-wider ${room.tagColor || 'bg-orange-500'}`}>
-                                    {room.tag}
+                                <span className="px-3 py-0.5 rounded-full text-white text-xs font-bold uppercase tracking-wider bg-orange-500">
+                                    {room.size ? `${room.size} M²` : 'LUXURY SUITE'}
                                 </span>
-                                {room.subTag && (
-                                    <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                                        👑 {room.subTag}
+                                {hasPromo && (
+                                    <span className="px-3 py-0.5 rounded-full bg-rose-100 text-rose-700 text-xs font-bold uppercase tracking-wider">
+                                        🔥 Ưu đãi giảm {discountPercent}%
                                     </span>
                                 )}
-                                <span className="text-xs text-slate-500 font-medium">{room.floor}</span>
+                                <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                                    👑 5-STAR RESORT
+                                </span>
+                                {room.total_rooms_count > 0 && (
+                                    <span className="text-xs text-slate-500 font-medium">
+                                        • Hệ thống có {room.total_rooms_count} phòng sẵn sàng
+                                    </span>
+                                )}
                             </div>
                             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
                                 {room.name}
@@ -227,12 +432,12 @@ export default function RoomDetailPage() {
 
                         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl flex-shrink-0">
                             <span className="flex items-center gap-1 text-amber-500 text-lg font-bold">
-                                ★ {room.rating}
+                                ★ 4.98
                             </span>
                             <div className="border-l border-slate-200 pl-3">
                                 <div className="text-xs font-bold text-slate-900">Tuyệt hảo xuất sắc</div>
                                 <a href="#danh-gia" className="text-[11px] text-blue-600 hover:underline">
-                                    {room.reviewCount} lượt đánh giá thực tế
+                                    328 lượt đánh giá thực tế
                                 </a>
                             </div>
                         </div>
@@ -240,23 +445,26 @@ export default function RoomDetailPage() {
                 </div>
             </section>
 
-            {/* 5. LUXURY PHOTO GALLERY (5-GRID WITH VIEW ALL BUTTON) */}
+            {/* GALLERY 5-GRID MAP TỪ DỮ LIỆU ẢNH API */}
             <section className="bg-white pb-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden relative">
-                        {/* Main Hero Photo */}
-                        <div className="col-span-12 lg:col-span-6 relative group overflow-hidden h-full">
+                        {/* Ảnh chính lớn (Bên trái) */}
+                        <div
+                            className="col-span-12 lg:col-span-6 relative group overflow-hidden h-full cursor-pointer"
+                            onClick={() => setLightboxImage(gallery[selectedImageIndex]?.url || gallery[0]?.url)}
+                        >
                             <img
-                                src={gallery[0].url}
-                                alt={gallery[0].title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out cursor-pointer"
+                                src={gallery[selectedImageIndex]?.url || gallery[0]?.url}
+                                alt={gallery[selectedImageIndex]?.title || room.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex flex-col justify-end p-6 text-white pointer-events-none">
                                 <span className="text-[11px] uppercase tracking-widest text-amber-300 font-bold mb-1">
                                     Góc nhìn chính
                                 </span>
                                 <p className="font-serif text-lg sm:text-xl font-bold">
-                                    {gallery[0].title}
+                                    {gallery[selectedImageIndex]?.title || room.name}
                                 </p>
                             </div>
                             <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md p-2 rounded-full text-white cursor-pointer hover:bg-black/60 transition">
@@ -264,46 +472,62 @@ export default function RoomDetailPage() {
                             </div>
                         </div>
 
-                        {/* 4 Thumbnails */}
+                        {/* 4 Thumbnails nhỏ (Bên phải) */}
                         <div className="hidden lg:grid col-span-6 grid-cols-2 gap-3 h-full">
-                            {gallery.slice(1, 5).map((img) => (
-                                <div key={img.id} className="relative group overflow-hidden rounded-xl h-full">
-                                    <img
-                                        src={img.url}
-                                        alt={img.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out cursor-pointer"
-                                    />
-                                    <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/10 transition" />
-                                    <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] text-white font-medium">
-                                        {img.title}
-                                    </span>
-                                </div>
-                            ))}
+                            {gallery.slice(1, 5).map((img, idx) => {
+                                const actualIndex = idx + 1;
+                                const isSelected = selectedImageIndex === actualIndex;
+                                return (
+                                    <div
+                                        key={img.id || idx}
+                                        onClick={() => setSelectedImageIndex(actualIndex)}
+                                        className={`relative group overflow-hidden rounded-xl h-full cursor-pointer border-2 transition ${
+                                            isSelected ? 'border-amber-400' : 'border-transparent'
+                                        }`}
+                                    >
+                                        <img
+                                            src={img.url}
+                                            alt={img.title}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out"
+                                        />
+                                        <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/10 transition" />
+                                        <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] text-white font-medium">
+                                            {img.title}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
 
-                        {/* View All Photos Button */}
-                        <button className="absolute bottom-5 right-5 z-10 bg-white/95 hover:bg-white text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-2 transition hover:scale-105">
+                        {/* Nút Xem tất cả ảnh */}
+                        <button
+                            type="button"
+                            onClick={() => setLightboxImage(gallery[selectedImageIndex]?.url || gallery[0]?.url)}
+                            className="absolute bottom-5 right-5 z-10 bg-white/95 hover:bg-white text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-2 transition hover:scale-105"
+                        >
                             <span>📷</span>
-                            Tất cả {gallery.length > 5 ? gallery.length : 24} ảnh
+                            Tất cả {gallery.length} ảnh
                         </button>
                     </div>
                 </div>
             </section>
 
-            {/* 6. MAIN CONTENT AREA & STICKY BOOKING WIDGET */}
+            {/* KHU VỰC THÔNG TIN CHÍNH & STICKY BOOKING WIDGET */}
             <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    {/* LEFT COLUMN: DETAIL CONTENT (65% ~ 8 COLS) */}
+                    {/* CỘT TRÁI: THÔNG TIN CHI TIẾT (8 COLS) */}
                     <div className="lg:col-span-8 space-y-12">
-                        {/* Quick Specs Strip */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        {/* THÔNG SỐ CƠ BẢN: Map Diện tích (size), Sức chứa (capacity), Giường ngủ (bed_type) */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
                                     📐
                                 </div>
                                 <div>
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Diện tích</span>
-                                    <strong className="text-sm text-slate-900">{room.area}</strong>
+                                    <strong className="text-sm text-slate-900">
+                                        {room.size ? `${room.size} m²` : '45 m²'}
+                                    </strong>
                                 </div>
                             </div>
 
@@ -313,7 +537,11 @@ export default function RoomDetailPage() {
                                 </div>
                                 <div>
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Tầm nhìn</span>
-                                    <strong className="text-sm text-slate-900">{room.view}</strong>
+                                    <strong className="text-sm text-slate-900">
+                                        {room.name.toLowerCase().includes('ocean') || room.name.toLowerCase().includes('biển')
+                                            ? 'Trực diện biển'
+                                            : 'View thành phố'}
+                                    </strong>
                                 </div>
                             </div>
 
@@ -323,7 +551,9 @@ export default function RoomDetailPage() {
                                 </div>
                                 <div>
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Sức chứa</span>
-                                    <strong className="text-sm text-slate-900">{room.capacity}</strong>
+                                    <strong className="text-sm text-slate-900">
+                                        {room.capacity ? `${room.capacity} Người lớn` : '2 Người lớn'}
+                                    </strong>
                                 </div>
                             </div>
 
@@ -333,13 +563,15 @@ export default function RoomDetailPage() {
                                 </div>
                                 <div>
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Giường ngủ</span>
-                                    <strong className="text-sm text-slate-900">{room.bed}</strong>
+                                    <strong className="text-sm text-slate-900 truncate max-w-[130px]" title={room.bed_type}>
+                                        {room.bed_type || '1 Giường Đôi King'}
+                                    </strong>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Architecture Description */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                        {/* MÔ TẢ HẠNG PHÒNG */}
+                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-4">
                             <span className="text-xs uppercase font-bold tracking-widest text-orange-600">
                                 Trải Nghiệm Thượng Lưu Đặc Quyền
                             </span>
@@ -347,29 +579,63 @@ export default function RoomDetailPage() {
                                 Bản giao hưởng giữa kiến trúc duy mỹ và đại dương bao la
                             </h2>
                             <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-light">
-                                {room.description}
+                                {room.description ||
+                                    'Hạng phòng được bài trí trang nhã theo phong cách hiện đại kết hợp văn hóa biển miền Trung, sở hữu ban công thoáng đãng, giường ngủ êm ái cùng đầy đủ trang thiết bị đẳng cấp quốc tế.'}
                             </p>
                             <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-light">
-                                {room.subDescription}
+                                Mỗi góc nhỏ đều được chăm chút tỉ mỉ từ ánh sáng, mùi hương đến chất liệu nội thất nhập khẩu, mang tới cho quý khách một kỳ nghỉ thư thái và tái tạo năng lượng hoàn hảo.
                             </p>
                         </div>
 
-                        {/* 5-Star Amenities Grid */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        {/* TIỆN ÍCH (AMENITIES): MAP MẢNG DỮ LIỆU TỪ API */}
+                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
                                 <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Tiện ích chuẩn quốc tế</span>
-                                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">Tiện nghi phòng nghỉ cao cấp</h3>
+                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
+                                        Tiện ích tích hợp
+                                    </span>
+                                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
+                                        Tiện nghi phòng nghỉ cao cấp
+                                    </h3>
                                 </div>
-                                <span className="text-xs text-slate-500 font-medium hidden sm:inline">Hơn 40+ tiện ích tích hợp</span>
+                                <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                                    Hơn 30+ tiện ích tích hợp
+                                </span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {AMENITY_GROUPS.map((group, idx) => (
+                            {/* 1. Tiện ích riêng biệt của Hạng phòng lấy từ API */}
+                            {room.amenities && room.amenities.length > 0 && (
+                                <div className="mb-8">
+                                    <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400 mb-3">
+                                        Tiện ích đặc trưng của hạng phòng này:
+                                    </h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                        {room.amenities.map((amenity, idx) => (
+                                            <div
+                                                key={amenity.id || idx}
+                                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100 hover:border-blue-300 hover:bg-blue-50 transition group"
+                                            >
+                                                <span className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition">
+                                                    {amenity.icon || '✨'}
+                                                </span>
+                                                <span className="text-xs font-bold text-slate-800 group-hover:text-blue-700 transition">
+                                                    {amenity.name}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 2. Tiện ích tiêu chuẩn 5 sao resort phân theo nhóm */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100">
+                                {STANDARD_AMENITY_GROUPS.map((group, idx) => (
                                     <div key={idx} className="space-y-3">
                                         <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
                                             <span className="text-xl">{group.icon}</span>
-                                            <h4 className="font-serif font-bold text-base text-slate-900">{group.title}</h4>
+                                            <h4 className="font-serif font-bold text-base text-slate-900">
+                                                {group.title}
+                                            </h4>
                                         </div>
                                         <ul className="space-y-2.5 text-xs text-slate-600">
                                             {group.items.map((item, itemIdx) => (
@@ -386,8 +652,8 @@ export default function RoomDetailPage() {
                             </div>
                         </div>
 
-                        {/* Executive Club Privileges */}
-                        <div className="bg-gradient-to-br from-blue-50 via-indigo-50/50 to-white p-6 sm:p-8 rounded-3xl border border-blue-100 shadow-sm">
+                        {/* ĐẶC QUYỀN HỘI VIÊN CLUB */}
+                        <div className="bg-gradient-to-br from-blue-50 via-indigo-50/50 to-white p-6 sm:p-8 rounded-3xl border border-blue-100 shadow-xs">
                             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                                 <div>
                                     <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
@@ -402,12 +668,12 @@ export default function RoomDetailPage() {
                                 </span>
                             </div>
                             <p className="text-xs sm:text-sm text-slate-600 mb-6 font-light">
-                                Quý khách đặt phòng Executive Suite được tự động nâng cấp quyền tiếp cận toàn bộ hệ sinh thái dịch vụ riêng tư, không giới hạn tại TA Lounge.
+                                Quý khách đặt phòng trực tiếp tại Khách Sạn TA được tự động nâng cấp quyền tiếp cận toàn bộ hệ sinh thái dịch vụ riêng tư, không giới hạn tại TA Lounge.
                             </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {CLUB_PRIVILEGES.map((priv, idx) => (
-                                    <div key={idx} className="bg-white p-5 rounded-2xl border border-blue-100/80 shadow-sm">
+                                    <div key={idx} className="bg-white p-5 rounded-2xl border border-blue-100/80 shadow-xs">
                                         <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-3">
                                             {priv.icon}
                                         </div>
@@ -418,8 +684,8 @@ export default function RoomDetailPage() {
                             </div>
                         </div>
 
-                        {/* Floor Plan */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        {/* SƠ ĐỒ BỐ TRÍ KHÔNG GIAN (FLOOR PLAN) */}
+                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
                                     <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Mặt bằng bố trí</span>
@@ -431,50 +697,50 @@ export default function RoomDetailPage() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                                {/* SVG Blueprint Illustration */}
                                 <div className="md:col-span-6 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-300">
                                     <div className="border-2 border-blue-600 rounded-xl p-4 relative h-56 flex flex-col justify-between text-[11px] font-mono text-slate-600 bg-white">
                                         <div className="flex justify-between items-center border-b pb-2">
-                                            <span className="text-blue-600 font-bold">BAN CÔNG VIEW BIỂN</span>
-                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">110 M² LUXURY LAYOUT</span>
+                                            <span className="text-blue-600 font-bold uppercase">{room.name}</span>
+                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                                {room.size ? `${room.size} M²` : 'STANDARD'}
+                                            </span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 my-2 flex-1">
                                             <div className="border border-slate-200 p-2 rounded flex flex-col justify-center items-center text-center bg-slate-50/50">
-                                                <span className="font-bold text-slate-800">PHÒNG KHÁCH</span>
-                                                <span className="text-[10px] text-slate-400">Sofa & Bar Rượu</span>
+                                                <span className="font-bold text-slate-800">KHÔNG GIAN NGHỈ</span>
+                                                <span className="text-[10px] text-slate-400">{room.bed_type}</span>
                                             </div>
                                             <div className="border border-slate-200 p-2 rounded flex flex-col justify-center items-center text-center bg-blue-50/30">
-                                                <span className="font-bold text-slate-800">JACUZZI</span>
-                                                <span className="text-[10px] text-blue-600">Kính tràn biển</span>
+                                                <span className="font-bold text-slate-800">PHÒNG TẮM</span>
+                                                <span className="text-[10px] text-blue-600">Jacuzzi cao cấp</span>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 border-t pt-2">
-                                            <div className="text-center font-bold text-slate-800">PHÒNG NGỦ KING</div>
-                                            <div className="text-center text-slate-500">WALK-IN CLOSET</div>
+                                            <div className="text-center font-bold text-slate-800">BAN CÔNG RIÊNG</div>
+                                            <div className="text-center text-slate-500">SMART SYSTEM</div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Details */}
                                 <div className="md:col-span-6 space-y-3 text-xs text-slate-600 leading-relaxed">
                                     <h4 className="font-serif font-bold text-base text-slate-900">Thiết kế phân vùng mở thông minh</h4>
                                     <p>
-                                        Suite được phân bổ khoa học nhằm tối đa hóa tầm nhìn biển từ mọi vị trí: phòng khách rộng 38m² kết nối liền mạch với ban công mở, phòng ngủ cách âm chuẩn studio quốc tế đảm bảo sự tĩnh lặng tuyệt đối, và phòng tắm cẩm thạch độc lập chuẩn sanctuary spa.
+                                        Hạng phòng được bố trí khoa học nhằm tối đa hóa sự thông thoáng và ánh sáng tự nhiên. Hệ thống kính cách âm chuẩn studio quốc tế đảm bảo không gian yên tĩnh tuyệt đối cho giấc ngủ trọn vẹn.
                                     </p>
                                     <div className="grid grid-cols-2 gap-2 pt-2 text-slate-800 font-semibold">
                                         <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                            Ban công: <span className="text-blue-600">22 m² lát sàn gỗ teak</span>
+                                            Diện tích: <span className="text-blue-600">{room.size ? `${room.size} m²` : '40 m²'}</span>
                                         </div>
                                         <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                            Phòng tắm: <span className="text-blue-600">24 m² có bồn sục view biển</span>
+                                            Giường: <span className="text-blue-600">{room.bed_type || 'King Size'}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Policies */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        {/* CHÍNH SÁCH NHẬN & TRẢ PHÒNG */}
+                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <h3 className="font-serif text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                                 <span>🛡️</span> Chính sách nhận & trả phòng minh bạch
                             </h3>
@@ -482,25 +748,25 @@ export default function RoomDetailPage() {
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                     <span className="text-[11px] text-slate-400 uppercase font-bold block mb-1">Thời gian nhận phòng</span>
                                     <div className="text-lg font-bold text-slate-900 mb-1">14:00</div>
-                                    <p className="text-slate-500">Hỗ trợ nhận sớm theo tình trạng phòng</p>
+                                    <p className="text-slate-500">Hỗ trợ nhận sớm tùy tình trạng phòng sẵn có</p>
                                 </div>
 
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                     <span className="text-[11px] text-slate-400 uppercase font-bold block mb-1">Thời gian trả phòng</span>
                                     <div className="text-lg font-bold text-slate-900 mb-1">12:00</div>
-                                    <p className="text-blue-600 font-semibold">Hội viên Club được trễ tới 16:00</p>
+                                    <p className="text-blue-600 font-semibold">Hội viên VIP hỗ trợ check-out trễ đến 16:00</p>
                                 </div>
 
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                     <span className="text-[11px] text-slate-400 uppercase font-bold block mb-1">Chính sách hủy phòng</span>
                                     <div className="text-lg font-bold text-emerald-600 mb-1">Linh hoạt 24h</div>
-                                    <p className="text-slate-500">Miễn phí hủy trước 24 giờ nhận phòng</p>
+                                    <p className="text-slate-500">Miễn phí hủy trước 24 giờ ngày nhận phòng</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Guest Reviews */}
-                        <div id="danh-gia" className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        {/* ĐÁNH GIÁ TỪ KHÁCH HÀNG */}
+                        <div id="danh-gia" className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                                 <div>
                                     <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Trải nghiệm khách hàng</span>
@@ -515,51 +781,7 @@ export default function RoomDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Sub-scores */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-8 mb-8 border-b border-slate-100 text-xs">
-                                <div>
-                                    <div className="flex justify-between text-slate-600 mb-1">
-                                        <span>Độ sạch sẽ</span>
-                                        <strong className="text-slate-900">5.0</strong>
-                                    </div>
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="w-full h-full bg-blue-600" />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex justify-between text-slate-600 mb-1">
-                                        <span>Tầm nhìn</span>
-                                        <strong className="text-slate-900">5.0</strong>
-                                    </div>
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="w-full h-full bg-blue-600" />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex justify-between text-slate-600 mb-1">
-                                        <span>Dịch vụ & Quản gia</span>
-                                        <strong className="text-slate-900">4.9</strong>
-                                    </div>
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="w-[98%] h-full bg-blue-600" />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex justify-between text-slate-600 mb-1">
-                                        <span>Tiện nghi phòng</span>
-                                        <strong className="text-slate-900">4.9</strong>
-                                    </div>
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="w-[98%] h-full bg-blue-600" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Testimonial items */}
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-3">
@@ -568,104 +790,96 @@ export default function RoomDetailPage() {
                                             </div>
                                             <div>
                                                 <strong className="text-xs text-slate-900 block">Michael Laurent</strong>
-                                                <span className="text-[11px] text-slate-400">Du khách từ Singapore • Kỳ nghỉ 4 đêm • Tháng 02/2025</span>
+                                                <span className="text-[11px] text-slate-400">Du khách từ Singapore • Đặt phòng {room.name}</span>
                                             </div>
                                         </div>
                                         <span className="text-amber-500 text-xs font-bold">★★★★★</span>
                                     </div>
                                     <p className="text-xs text-slate-600 leading-relaxed italic">
-                                        "Không có từ nào diễn tả được khoảnh khắc ngắm mặt trời mọc trên biển Mỹ Khê ngay từ chiếc giường Super King. Dịch vụ đón tiễn xe Mercedes mượt mà, nhân viên Lounge tầng 25 nhận diện tên khách ngay từ ngày thứ nhất. Đây chắc chắn là suite biển đẳng cấp nhất miền Trung Việt Nam."
-                                    </p>
-                                </div>
-
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-xs">
-                                                TH
-                                            </div>
-                                            <div>
-                                                <strong className="text-xs text-slate-900 block">Trần Hoàng Oanh</strong>
-                                                <span className="text-[11px] text-slate-400">Khách VIP Diamond • Kỳ nghỉ kỉ niệm ngày cưới • Tháng 01/2025</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-amber-500 text-xs font-bold">★★★★★</span>
-                                    </div>
-                                    <p className="text-xs text-slate-600 leading-relaxed italic">
-                                        "Bồn sục Jacuzzi bằng đá cẩm thạch nhìn thẳng ra biển hoàng hôn là góc tuyệt vời nhất của phòng. Quản gia chuẩn bị sẵn bánh chúc mừng và rượu vang rất chu đáo. Tiện nghi Dyson và Diptyque chứng minh sự chăm chút vượt bậc của Khách Sạn TA Đà Nẵng."
+                                        "Trải nghiệm nghỉ dưỡng tại {room.name} thật sự vượt mong đợi. Thiết kế nội thất sang trọng, tầm nhìn biển tuyệt đẹp và dịch vụ chăm sóc chu đáo từ đội ngũ khách sạn TA."
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: STICKY BOOKING WIDGET (35% ~ 4 COLS) */}
+                    {/* CỘT PHẢI: STICKY BOOKING WIDGET (4 COLS) */}
                     <div className="lg:col-span-4" id="dat-phong">
                         <div className="sticky top-28 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/5 p-6 space-y-6">
-                            {/* Pricing Header */}
+                            {/* Khối giá hiển thị động */}
                             <div className="pb-5 border-b border-slate-100">
                                 <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                                    <span className="uppercase font-bold tracking-wider text-blue-600">Giá ưu đãi đặt trực tiếp độc quyền</span>
-                                    <span className="text-emerald-600 font-bold">🛡️</span>
+                                    <span className="uppercase font-bold tracking-wider text-blue-600">
+                                        Giá ưu đãi đặt trực tiếp
+                                    </span>
+                                    <span className="text-emerald-600 font-bold">🛡️ Giá tốt nhất</span>
                                 </div>
+
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-3xl font-black text-slate-900">
                                         {totalPricePerNight.toLocaleString('vi-VN')}
                                     </span>
                                     <span className="text-xs font-bold text-slate-500 uppercase">VND / đêm</span>
                                 </div>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs text-slate-400 line-through">{room.priceOld} VND</span>
-                                    <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-[11px] font-bold">
-                                        Tiết kiệm {Math.max(10, Math.round((1 - (room.basePrice / (room.oldPriceNum || room.basePrice * 1.2))) * 100))}%
-                                    </span>
-                                </div>
+
+                                {hasPromo && (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs text-slate-400 line-through">
+                                            {basePriceNum.toLocaleString('vi-VN')} VND
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[11px] font-bold">
+                                            Tiết kiệm {discountPercent}%
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Date Selection */}
+                            {/* Ngày lưu trú */}
                             <div>
                                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                    Thời gian lưu trú (Ngày đến - Ngày đi)
+                                    Thời gian lưu trú
                                 </label>
                                 <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
                                     <div className="border-r border-slate-200 pr-2">
                                         <span className="block text-[10px] text-slate-400 uppercase font-semibold">Nhận phòng</span>
                                         <div className="text-xs font-bold text-slate-900 flex items-center gap-1 mt-0.5">
-                                            📅 28/03/2025
+                                            📅 Hôm nay (14:00)
                                         </div>
                                     </div>
                                     <div className="pl-2">
                                         <span className="block text-[10px] text-slate-400 uppercase font-semibold">Trả phòng</span>
                                         <div className="text-xs font-bold text-slate-900 flex items-center gap-1 mt-0.5">
-                                            📅 30/03/2025
+                                            📅 Sau {nights} ngày (12:00)
                                         </div>
                                     </div>
                                 </div>
                                 <span className="block text-right text-[11px] text-blue-600 font-medium mt-1">
-                                    Tổng thời gian: {nights} đêm
+                                    Thời gian: {nights} đêm nghỉ dưỡng
                                 </span>
                             </div>
 
-                            {/* Guest Counter */}
+                            {/* Số lượng khách (tối đa theo capacity của phòng) */}
                             <div>
                                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                    Số lượng khách & Phòng
+                                    Số lượng khách
                                 </label>
                                 <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-900">
-                                        <span>👥</span> {guestCount} Người lớn, 0 Trẻ em
+                                        <span>👥</span> {guestCount} Người lớn (Tối đa {room.capacity || 2} người)
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <button
+                                            type="button"
                                             onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100"
+                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition"
                                         >
                                             -
                                         </button>
                                         <span className="text-xs font-bold">{guestCount}</span>
                                         <button
-                                            onClick={() => setGuestCount(Math.min(4, guestCount + 1))}
-                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100"
+                                            type="button"
+                                            onClick={() => setGuestCount(Math.min(room.capacity || 4, guestCount + 1))}
+                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition"
                                         >
                                             +
                                         </button>
@@ -673,34 +887,35 @@ export default function RoomDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Upgrade Packages Radio */}
+                            {/* Gói dịch vụ kèm theo */}
                             <div className="space-y-2">
                                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Gói dịch vụ cao cấp kèm theo
                                 </label>
 
-                                {/* Option 1 */}
                                 <div
                                     onClick={() => setSelectedPackage('standard')}
-                                    className={`p-3.5 rounded-2xl border cursor-pointer transition ${selectedPackage === 'standard'
+                                    className={`p-3.5 rounded-2xl border cursor-pointer transition ${
+                                        selectedPackage === 'standard'
                                             ? 'border-blue-600 bg-blue-50/50'
                                             : 'border-slate-200 hover:border-slate-300'
-                                        }`}
+                                    }`}
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="radio"
+                                                name="package"
                                                 checked={selectedPackage === 'standard'}
                                                 onChange={() => setSelectedPackage('standard')}
                                                 className="text-blue-600"
                                             />
                                             <div>
                                                 <span className="text-xs font-bold text-slate-900 block">
-                                                    Gói Club Suite Tiêu Chuẩn
+                                                    Gói Nghỉ Dưỡng Tiêu Chuẩn
                                                 </span>
                                                 <p className="text-[11px] text-slate-500 mt-0.5">
-                                                    Bao gồm ăn sáng thượng hạng, Trà chiều & Cocktail Tầng 25, xe Mercedes đưa đón 2 chiều.
+                                                    Bao gồm ăn sáng buffet VIP, hồ bơi vô cực & đồ uống chào mừng.
                                                 </p>
                                             </div>
                                         </div>
@@ -710,28 +925,29 @@ export default function RoomDetailPage() {
                                     </div>
                                 </div>
 
-                                {/* Option 2 */}
                                 <div
                                     onClick={() => setSelectedPackage('spa')}
-                                    className={`p-3.5 rounded-2xl border cursor-pointer transition ${selectedPackage === 'spa'
+                                    className={`p-3.5 rounded-2xl border cursor-pointer transition ${
+                                        selectedPackage === 'spa'
                                             ? 'border-blue-600 bg-blue-50/50'
                                             : 'border-slate-200 hover:border-slate-300'
-                                        }`}
+                                    }`}
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="radio"
+                                                name="package"
                                                 checked={selectedPackage === 'spa'}
                                                 onChange={() => setSelectedPackage('spa')}
                                                 className="text-blue-600"
                                             />
                                             <div>
                                                 <span className="text-xs font-bold text-slate-900 block">
-                                                    Gói Club & The Lotus Spa
+                                                    Gói Nghỉ Dưỡng & The Lotus Spa
                                                 </span>
                                                 <p className="text-[11px] text-slate-500 mt-0.5">
-                                                    Toàn bộ đặc quyền Club + 60 phút massage thảo dược biển đôi mỗi ngày tại The Lotus Spa.
+                                                    Toàn bộ đặc quyền tiêu chuẩn + 60 phút massage thảo dược biển đôi mỗi ngày.
                                                 </p>
                                             </div>
                                         </div>
@@ -742,14 +958,14 @@ export default function RoomDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Price Breakdown */}
+                            {/* Bảng chiết tính chi phí minh bạch */}
                             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
                                 <div className="flex justify-between text-slate-600">
                                     <span>{totalPricePerNight.toLocaleString('vi-VN')} VND x {nights} đêm</span>
                                     <span>{roomSubtotal.toLocaleString('vi-VN')} VND</span>
                                 </div>
                                 <div className="flex justify-between text-slate-600">
-                                    <span>Thuế VAT & Phí dịch vụ (5%)</span>
+                                    <span>Thuế VAT & Phí phục vụ (5%)</span>
                                     <span>{vatAndService.toLocaleString('vi-VN')} VND</span>
                                 </div>
                                 <div className="flex justify-between text-blue-600 font-semibold pt-1 border-t border-slate-200">
@@ -767,13 +983,24 @@ export default function RoomDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Main CTA */}
-                            <button className="w-full py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-2xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition">
+                            {/* Nút bấm Đặt phòng */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    navigate(`/checkout/${room.id}`, {
+                                        state: {
+                                            guestCount,
+                                            selectedPackage
+                                        }
+                                    });
+                                }}
+                                className="w-full py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-2xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+                            >
                                 <span>⚡</span>
                                 Tiến Hành Đặt Phòng Ngay
                             </button>
 
-                            {/* Trust Guarantees */}
+                            {/* Cam kết tin cậy */}
                             <div className="space-y-2 pt-2 text-[11px] text-slate-500">
                                 <div className="flex items-center gap-2">
                                     <span className="text-emerald-500">✓</span> Cam kết giá tốt nhất trực tiếp từ Khách Sạn TA
@@ -782,10 +1009,7 @@ export default function RoomDetailPage() {
                                     <span className="text-emerald-500">✓</span> Miễn phí hủy phòng trước 24 giờ nhận phòng
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-emerald-500">✓</span> Thanh toán bảo mật chuẩn mã hóa SSL 256-bit
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-blue-600">📞</span> Hỗ trợ tư vấn phòng VIP trực tiếp: <strong className="text-slate-700">1900 8899</strong>
+                                    <span className="text-emerald-500">✓</span> Hỗ trợ tư vấn phòng VIP trực tiếp: <strong className="text-slate-700">1900 8899</strong>
                                 </div>
                             </div>
                         </div>
@@ -793,82 +1017,115 @@ export default function RoomDetailPage() {
                 </div>
             </section>
 
-            {/* 7. SIMILAR SUITES SECTION */}
-            <section className="py-16 bg-white border-t border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-                        <div>
-                            <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Khám phá thêm</span>
-                            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
-                                Các hạng phòng nghỉ & Suites tương tự
-                            </h3>
-                            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                                Lựa chọn không gian nghỉ dưỡng phù hợp hoàn hảo với phong cách của quý khách.
-                            </p>
-                        </div>
-                        <Link to="/rooms" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                            Xem tất cả các hạng phòng →
-                        </Link>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {similarRooms.map((sRoom) => (
-                            <div
-                                key={sRoom.id}
-                                className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
+            {/* MỤC CÁC HẠNG PHÒNG TƯƠNG TỰ (GỌI API TỰ ĐỘNG) */}
+            {similarRooms.length > 0 && (
+                <section className="py-16 bg-white border-t border-slate-200">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+                            <div>
+                                <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
+                                    Khám phá thêm
+                                </span>
+                                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
+                                    Các hạng phòng nghỉ & Suites tương tự
+                                </h3>
+                                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                                    Lựa chọn không gian nghỉ dưỡng phù hợp hoàn hảo với phong cách của quý khách.
+                                </p>
+                            </div>
+                            <Link
+                                to="/rooms"
+                                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
                             >
-                                <Link to={`/rooms/${sRoom.id}`} className="block relative h-56 overflow-hidden">
-                                    <img
-                                        src={sRoom.image}
-                                        alt={sRoom.name}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                                    />
-                                    <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                                        {sRoom.tag}
-                                    </span>
-                                </Link>
+                                Xem tất cả các hạng phòng →
+                            </Link>
+                        </div>
 
-                                <div className="p-6 flex-1 flex flex-col justify-between">
-                                    <div>
-                                        <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                                            <span className="flex items-center text-amber-500 font-bold">
-                                                ★ {sRoom.rating} <span className="text-slate-400 font-normal ml-1">({sRoom.reviewCount} đánh giá)</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {similarRooms.map((sRoom) => {
+                                const sImg = sRoom.feature_image || sRoom.images?.[0]?.image_url || sRoom.images?.[0]?.image || 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80';
+                                const sPrice = Number(sRoom.promo_price || sRoom.base_price || 0);
+
+                                return (
+                                    <div
+                                        key={sRoom.id}
+                                        className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col group"
+                                    >
+                                        <Link to={`/rooms/${sRoom.id}`} className="block relative h-56 overflow-hidden">
+                                            <img
+                                                src={sImg}
+                                                alt={sRoom.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                            />
+                                            <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                                {sRoom.size ? `${sRoom.size} M²` : 'LUXURY'}
                                             </span>
-                                        </div>
-                                        <h4 className="font-serif font-bold text-lg text-slate-900 group-hover:text-blue-600 transition mb-2">
-                                            <Link to={`/rooms/${sRoom.id}`} className="hover:text-blue-600 transition">
-                                                {sRoom.name}
-                                            </Link>
-                                        </h4>
-                                        <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">
-                                            {sRoom.description}
-                                        </p>
-                                    </div>
+                                        </Link>
 
-                                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                                        <div>
-                                            <span className="text-[10px] text-slate-400 block font-semibold uppercase">Từ</span>
-                                            <div className="flex items-baseline gap-1">
-                                                <strong className="text-base font-black text-slate-900">{sRoom.priceCurrent}</strong>
-                                                <span className="text-[10px] text-slate-500">/ đêm</span>
+                                        <div className="p-6 flex-1 flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                                                    <span className="flex items-center text-amber-500 font-bold">
+                                                        ★ 4.95
+                                                    </span>
+                                                    <span>👥 {sRoom.capacity || 2} khách</span>
+                                                </div>
+                                                <h4 className="font-serif font-bold text-lg text-slate-900 group-hover:text-blue-600 transition mb-2">
+                                                    <Link to={`/rooms/${sRoom.id}`} className="hover:text-blue-600 transition">
+                                                        {sRoom.name}
+                                                    </Link>
+                                                </h4>
+                                                <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">
+                                                    {sRoom.description || 'Không gian nghỉ dưỡng thanh lịch, ngắm trọn bình minh và hoàng hôn biển.'}
+                                                </p>
+                                            </div>
+
+                                            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                                                <div>
+                                                    <span className="text-[10px] text-slate-400 block font-semibold uppercase">Từ</span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <strong className="text-base font-black text-slate-900">
+                                                            {sPrice.toLocaleString('vi-VN')}
+                                                        </strong>
+                                                        <span className="text-[10px] text-slate-500">VND/đêm</span>
+                                                    </div>
+                                                </div>
+                                                <Link
+                                                    to={`/rooms/${sRoom.id}`}
+                                                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl text-xs font-bold transition"
+                                                >
+                                                    Xem chi tiết
+                                                </Link>
                                             </div>
                                         </div>
-                                        <Link
-                                            to={`/rooms/${sRoom.id}`}
-                                            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
-                                        >
-                                            Xem chi tiết
-                                        </Link>
                                     </div>
-                                </div>
-                            </div>
-                        ))}
+                                );
+                            })}
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* LIGHTBOX MODAL XEM ẢNH FULL SIZE */}
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm cursor-zoom-out"
+                    onClick={() => setLightboxImage(null)}
+                >
+                    <div className="relative max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}>
+                        <img src={lightboxImage} alt="Phóng to" className="w-full h-full object-contain max-h-[85vh] rounded-2xl" />
+                        <button
+                            type="button"
+                            onClick={() => setLightboxImage(null)}
+                            className="absolute top-4 right-4 bg-black/60 text-white rounded-full w-10 h-10 flex items-center justify-center text-lg hover:bg-black transition"
+                        >
+                            ✕
+                        </button>
                     </div>
                 </div>
-            </section>
+            )}
 
             <Footer />
-
         </div>
     );
 }

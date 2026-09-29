@@ -48,7 +48,7 @@ export const roomService = {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || 'Không thể tải chi tiết hạng phòng.'
+                message: error.response?.data?.detail || error.response?.data?.message || 'Không thể tải chi tiết hạng phòng.'
             };
         }
     },

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
+import { bookingService } from '../../services/bookingService';
 import GuestManagement from '../../components/admin/GuestManagement';
 import EmployeeManagement from '../../components/admin/EmployeeManagement';
 import RoomManagement from '../../components/admin/RoomManagement';
 import CategoryManagement from '../../components/admin/CategoryManagement';
+import BookingManagement from '../../components/admin/BookingManagement';
 import UserAvatar from '../../components/common/UserAvatar';
 
 export default function HotelAdminDashboard() {
@@ -16,13 +18,38 @@ export default function HotelAdminDashboard() {
     const [bookingFilter, setBookingFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Kiểm tra phân hệ: Chỉ cho phép tài khoản có phân hệ là Quản lý
-    // (admin, owner, manager hoặc is_staff, is_superuser)
+    // Số lượng đơn đặt phòng thực tế từ cơ sở dữ liệu
+    const [actualBookingsCount, setActualBookingsCount] = useState(0);
+    const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
+
+    // Kiểm tra phân hệ: Cho phép tài khoản Quản trị, Lễ tân và Nhân sự
+    // (admin, owner, manager, receptionist, staff, cashier hoặc is_staff, is_superuser)
     const isManagerRole = Boolean(
         isAuthenticated &&
         user &&
-        (['admin', 'owner', 'manager'].includes(user.role) || user.is_staff || user.is_superuser)
+        (['admin', 'owner', 'manager', 'receptionist', 'staff', 'cashier'].includes(user.role) || user.is_staff || user.is_superuser)
     );
+
+    // Tải số lượng đơn đặt phòng thực tế từ CSDL để hiển thị badge và thống kê
+    const loadRealBookingStats = async () => {
+        try {
+            const res = await bookingService.getMyBookings();
+            if (res && res.success && Array.isArray(res.data)) {
+                const list = res.data;
+                setActualBookingsCount(list.length);
+                const pending = list.filter((b) => b.status === 'pending').length;
+                setPendingBookingsCount(pending);
+            }
+        } catch (e) {
+            console.error('Lỗi khi tải số lượng đơn thực tế:', e);
+        }
+    };
+
+    useEffect(() => {
+        if (isAuthenticated && isManagerRole) {
+            loadRealBookingStats();
+        }
+    }, [isAuthenticated, isManagerRole, activeTab]);
 
     // Xử lý đăng xuất
     const handleLogout = () => {
@@ -39,8 +66,12 @@ export default function HotelAdminDashboard() {
                 return 'Chủ Sở Hữu / Cấp Cao (Owner)';
             case 'manager':
                 return 'Tổng Giám Đốc Điều Hành (General Manager)';
+            case 'receptionist':
+                return 'Nhân Viên Lễ Tân & Tiếp Đón (Receptionist)';
+            case 'staff':
+                return 'Nhân Viên Khách Sạn (Staff)';
             default:
-                return 'Cán Bộ Quản Lý Khách Sạn';
+                return 'Cán Bộ Nhân Viên Khách Sạn';
         }
     };
 
@@ -338,7 +369,9 @@ export default function HotelAdminDashboard() {
                                     </svg>
                                     <span>Quản lý Đặt phòng</span>
                                 </div>
-                                <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"> 14 </span>
+                                <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                    {actualBookingsCount}
+                                </span>
                             </button>
 
                             {/* 6. Quản lý Dịch vụ */}
@@ -505,7 +538,10 @@ export default function HotelAdminDashboard() {
                     {/* TAB 4: QUẢN LÝ HẠNG PHÒNG & BẢNG GIÁ (CRUD + MULTI-IMAGE UPLOAD) */}
                     {activeTab === 'categories' && <CategoryManagement />}
 
-                    {/* TAB 4: TỔNG QUAN HỆ THỐNG */}
+                    {/* TAB 5: QUẢN LÝ DANH SÁCH ĐẶT PHÒNG (LỄ TÂN & ADMIN) */}
+                    {activeTab === 'bookings' && <BookingManagement onBookingChanged={loadRealBookingStats} />}
+
+                    {/* TAB TỔNG QUAN HỆ THỐNG */}
                     {activeTab === 'overview' && (
                         <>
                             {/* Welcome & Time Filters Banner */}
@@ -586,6 +622,14 @@ export default function HotelAdminDashboard() {
                                         <span>🏢</span>
                                         <span>Sơ Đồ Phòng (PMS)</span>
                                     </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('bookings')}
+                                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/25 transition flex items-center gap-1.5"
+                                    >
+                                        <span>📅</span>
+                                        <span>Xử Lý Đặt Phòng</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -644,15 +688,15 @@ export default function HotelAdminDashboard() {
                                             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs"> 🕒 </div>
                                         </div>
                                         <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-                                            14 <span className="text-xs font-normal text-slate-500">Đơn đặt mới</span>
+                                            {pendingBookingsCount} <span className="text-xs font-normal text-slate-500">Đơn chờ duyệt</span>
                                         </div>
                                         <div className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                                            <span>⚠️ Cần phản hồi &lt; 15 phút</span>
+                                            <span>⚠️ {pendingBookingsCount > 0 ? 'Cần phản hồi < 15 phút' : 'Tất cả đơn đã được xử lý'}</span>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                                        <span>Kênh OTA trực tiếp</span>
-                                        <strong className="text-slate-800">9 Đơn OTA</strong>
+                                        <span>Tổng đơn trong hệ thống</span>
+                                        <strong className="text-slate-800">{actualBookingsCount} Đơn thực tế</strong>
                                     </div>
                                 </div>
 
@@ -918,7 +962,7 @@ export default function HotelAdminDashboard() {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'employees', 'rooms', 'categories'].includes(activeTab) && (
+                    {!['overview', 'guests', 'employees', 'rooms', 'categories', 'bookings'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

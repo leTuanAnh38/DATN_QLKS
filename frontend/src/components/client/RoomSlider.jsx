@@ -219,7 +219,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                     Chi tiết
                                                 </Link>
                                                 <Link
-                                                    to={`/rooms/${room.id}`}
+                                                    to={`/checkout/${room.id}`}
                                                     className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-600/30 transition transform active:scale-95 whitespace-nowrap"
                                                 >
                                                     Đặt phòng ngay

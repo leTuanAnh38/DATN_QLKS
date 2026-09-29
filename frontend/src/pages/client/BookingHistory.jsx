@@ -1,0 +1,753 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
+import { bookingService } from '../../services/bookingService';
+import { useAuth } from '../../store/authStore';
+
+// Tiện ích format ngày tiếng Việt (VD: 05/10/2026)
+const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+        const parts = String(dateStr).split('T')[0].split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    } catch {
+        return dateStr;
+    }
+    return dateStr;
+};
+
+// Tiện ích format thời gian chi tiết (VD: 14:30 29/09/2026)
+const formatDateTimeDisplay = (isoStr) => {
+    if (!isoStr) return '';
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return isoStr;
+        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return `${time} • ${date}`;
+    } catch {
+        return isoStr;
+    }
+};
+
+export default function BookingHistory() {
+    const navigate = useNavigate();
+    const { user, isAuthenticated } = useAuth();
+
+    // 1. Quản lý State danh sách đơn đặt phòng
+    const [bookings, setBookings] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [toastMessage, setToastMessage] = useState(null); // { type: 'success' | 'error', text: '' }
+
+    // 2. State Lọc & Tìm kiếm
+    const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'confirmed' | 'checked_in' | 'cancelled'
+    const [searchKeyword, setSearchKeyword] = useState('');
+
+    // 3. State Modal Hủy phòng
+    const [cancelModalBooking, setCancelModalBooking] = useState(null);
+    const [cancelReason, setCancelReason] = useState('Thay đổi lịch trình chuyến đi');
+    const [customReason, setCustomReason] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    // 4. State sao chép mã
+    const [copiedCode, setCopiedCode] = useState(null);
+
+    // Hiển thị Toast tự tắt sau 3.5 giây
+    const showToast = (type, text) => {
+        setToastMessage({ type, text });
+        setTimeout(() => setToastMessage(null), 3500);
+    };
+
+    // Tải danh sách đơn đặt phòng của chính người dùng
+    const fetchBookings = async () => {
+        if (!isAuthenticated) {
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setErrorMessage('');
+            const res = await bookingService.getMyBookings();
+
+            if (res && res.success) {
+                setBookings(res.data || []);
+            } else if (Array.isArray(res)) {
+                setBookings(res);
+            } else {
+                setErrorMessage(res?.message || 'Không thể tải danh sách đơn đặt phòng.');
+            }
+        } catch (err) {
+            setErrorMessage(err.message || 'Lỗi khi kết nối tới máy chủ.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBookings();
+    }, [isAuthenticated]);
+
+    // Xử lý Hủy đặt phòng (PATCH status='cancelled')
+    const handleConfirmCancel = async () => {
+        if (!cancelModalBooking) return;
+
+        const finalReason = cancelReason === 'Khác' ? customReason.trim() || 'Lý do cá nhân' : cancelReason;
+
+        try {
+            setIsCancelling(true);
+            const res = await bookingService.cancelBooking(cancelModalBooking.id, finalReason);
+
+            if (res && (res.success || res.status === 'cancelled')) {
+                showToast('success', `Đã hủy đơn ${cancelModalBooking.booking_code} thành công.`);
+                // Cập nhật ngay trong state danh sách mà không cần reload trang
+                setBookings((prev) =>
+                    prev.map((b) =>
+                        b.id === cancelModalBooking.id
+                            ? { ...b, status: 'cancelled', status_display: 'Đã Hủy' }
+                            : b
+                    )
+                );
+                setCancelModalBooking(null);
+                setCustomReason('');
+            } else {
+                showToast('error', res?.message || 'Không thể hủy đơn đặt phòng. Vui lòng thử lại sau.');
+            }
+        } catch (err) {
+            showToast('error', err.message || 'Lỗi xử lý khi hủy đơn.');
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    // Sao chép mã booking vào clipboard
+    const handleCopyCode = (code) => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(code);
+            setCopiedCode(code);
+            setTimeout(() => setCopiedCode(null), 2000);
+        }
+    };
+
+    // Thống kê nhanh số lượng đơn
+    const stats = useMemo(() => {
+        const total = bookings.length;
+        const pending = bookings.filter((b) => b.status === 'pending').length;
+        const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
+        const checkedIn = bookings.filter((b) => b.status === 'checked_in').length;
+        const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
+        return { total, pending, confirmed, checkedIn, cancelled };
+    }, [bookings]);
+
+    // Lọc danh sách theo Tab trạng thái và từ khóa tìm kiếm
+    const filteredBookings = useMemo(() => {
+        return bookings.filter((item) => {
+            // Lọc trạng thái
+            if (statusFilter !== 'all' && item.status !== statusFilter) {
+                return false;
+            }
+            // Lọc từ khóa tìm kiếm (mã booking, tên phòng, số cccd)
+            if (searchKeyword.trim()) {
+                const q = searchKeyword.trim().toLowerCase();
+                const matchCode = item.booking_code?.toLowerCase().includes(q);
+                const matchRoom = item.room_name?.toLowerCase().includes(q);
+                const matchCccd = item.identity_card?.toLowerCase().includes(q);
+                return matchCode || matchRoom || matchCccd;
+            }
+            return true;
+        });
+    }, [bookings, statusFilter, searchKeyword]);
+
+    // Cấu hình Badge Trạng thái theo yêu cầu chuẩn:
+    // Pending: Vàng, Confirmed: Xanh dương, Checked_in: Xanh lá, Cancelled: Đỏ
+    const renderStatusBadge = (status) => {
+        switch (status) {
+            case 'pending':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        ⏳ Chờ duyệt
+                    </span>
+                );
+            case 'confirmed':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        ✓ Đã xác nhận
+                    </span>
+                );
+            case 'checked_in':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        🏨 Đang lưu trú
+                    </span>
+                );
+            case 'checked_out':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                        🏁 Đã Check-out
+                    </span>
+                );
+            case 'cancelled':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                        ✕ Đã hủy
+                    </span>
+                );
+            default:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        {status || 'Đang xử lý'}
+                    </span>
+                );
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
+            <Navbar />
+
+            {/* BREADCRUMB */}
+            <div className="bg-white border-b border-slate-100 py-3">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
+                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                        <span>/</span>
+                        <Link to="/profile" className="hover:text-blue-600 transition">Hồ sơ cá nhân</Link>
+                        <span>/</span>
+                        <span className="text-slate-900 font-semibold">Lịch sử đặt phòng</span>
+                    </nav>
+                </div>
+            </div>
+
+            {/* HEADER TIÊU ĐỀ */}
+            <header className="bg-white border-b border-slate-100 py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
+                                    ✦ Trung tâm quản lý lưu trú
+                                </span>
+                                {user && (
+                                    <span className="text-xs text-slate-500">
+                                        Khách hàng: <strong>{user.full_name || user.username}</strong>
+                                    </span>
+                                )}
+                            </div>
+                            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                                Lịch sử & Đơn đặt phòng của tôi
+                            </h1>
+                            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+                                Theo dõi chi tiết các kỳ nghỉ, tình trạng duyệt đơn và thông tin nhận phòng tại Khách Sạn TA Đà Nẵng.
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <Link
+                                to="/rooms"
+                                className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <span>➕</span>
+                                <span>Đặt thêm phòng mới</span>
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* HÀNG THỐNG KÊ NHANH (QUICK STATS) */}
+                    {isAuthenticated && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
+                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
+                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    Tổng số đơn
+                                </span>
+                                <div className="text-2xl font-black text-slate-900 mt-1">
+                                    {stats.total}
+                                </div>
+                            </div>
+                            <div className="bg-amber-50/60 rounded-2xl p-4 border border-amber-200/70">
+                                <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">
+                                    Chờ duyệt
+                                </span>
+                                <div className="text-2xl font-black text-amber-800 mt-1">
+                                    {stats.pending}
+                                </div>
+                            </div>
+                            <div className="bg-blue-50/60 rounded-2xl p-4 border border-blue-200/70">
+                                <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block">
+                                    Đã xác nhận
+                                </span>
+                                <div className="text-2xl font-black text-blue-800 mt-1">
+                                    {stats.confirmed}
+                                </div>
+                            </div>
+                            <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-200/70">
+                                <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">
+                                    Đang lưu trú
+                                </span>
+                                <div className="text-2xl font-black text-emerald-800 mt-1">
+                                    {stats.checkedIn}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </header>
+
+            {/* MAIN CONTENT */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* TOAST THÔNG BÁO NỔI */}
+                {toastMessage && (
+                    <div
+                        className={`fixed top-20 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${
+                            toastMessage.type === 'success'
+                                ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20'
+                                : 'bg-rose-600 text-white border-rose-500 shadow-rose-500/20'
+                        }`}
+                    >
+                        <span>{toastMessage.type === 'success' ? '✓' : '⚠️'}</span>
+                        <span>{toastMessage.text}</span>
+                    </div>
+                )}
+
+                {/* TRƯỜNG HỢP CHƯA ĐĂNG NHẬP */}
+                {!isAuthenticated && (
+                    <div className="bg-white rounded-3xl border border-slate-200 p-10 sm:p-14 text-center max-w-xl mx-auto shadow-sm my-6">
+                        <div className="w-20 h-20 mx-auto rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center text-4xl mb-4">
+                            🔒
+                        </div>
+                        <h2 className="font-serif text-2xl font-bold text-slate-900 mb-2">
+                            Vui lòng đăng nhập tài khoản
+                        </h2>
+                        <p className="text-xs sm:text-sm text-slate-500 mb-6">
+                            Để bảo mật thông tin và xem lịch sử các đơn đặt phòng của chính bạn, vui lòng đăng nhập vào hệ thống TA Hotel.
+                        </p>
+                        <Link
+                            to="/login"
+                            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition inline-flex items-center gap-2 cursor-pointer"
+                        >
+                            <span>🔑</span>
+                            <span>Đăng nhập ngay</span>
+                        </Link>
+                    </div>
+                )}
+
+                {/* KHI ĐÃ ĐĂNG NHẬP */}
+                {isAuthenticated && (
+                    <div className="space-y-6">
+                        {/* THANH CÔNG CỤ: TABS LỌC THEO TRẠNG THÁI & Ô TÌM KIẾM */}
+                        <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            {/* Tabs bộ lọc */}
+                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+                                {[
+                                    { key: 'all', label: 'Tất cả đơn', count: stats.total },
+                                    { key: 'pending', label: 'Chờ duyệt', count: stats.pending, color: 'text-amber-600' },
+                                    { key: 'confirmed', label: 'Đã xác nhận', count: stats.confirmed, color: 'text-blue-600' },
+                                    { key: 'checked_in', label: 'Đang lưu trú', count: stats.checkedIn, color: 'text-emerald-600' },
+                                    { key: 'cancelled', label: 'Đã hủy', count: stats.cancelled, color: 'text-rose-600' }
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.key}
+                                        type="button"
+                                        onClick={() => setStatusFilter(tab.key)}
+                                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                                            statusFilter === tab.key
+                                                ? 'bg-slate-900 text-white shadow-sm'
+                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <span>{tab.label}</span>
+                                        <span
+                                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                                                statusFilter === tab.key
+                                                    ? 'bg-slate-700 text-white'
+                                                    : 'bg-slate-200/80 text-slate-600'
+                                            }`}
+                                        >
+                                            {tab.count}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Ô tìm kiếm nhanh */}
+                            <div className="relative min-w-[240px]">
+                                <input
+                                    type="text"
+                                    placeholder="Tìm theo Mã đơn (BK-...), tên phòng..."
+                                    value={searchKeyword}
+                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                />
+                                <span className="absolute left-3 top-2.5 text-slate-400 text-xs">
+                                    🔍
+                                </span>
+                                {searchKeyword && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchKeyword('')}
+                                        className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* HIỂN THỊ LỖI NẾU CÓ */}
+                        {errorMessage && (
+                            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-center justify-between">
+                                <span>⚠️ {errorMessage}</span>
+                                <button
+                                    onClick={fetchBookings}
+                                    className="text-xs font-bold text-rose-800 underline cursor-pointer"
+                                >
+                                    Thử lại
+                                </button>
+                            </div>
+                        )}
+
+                        {/* LOADING SKELETON */}
+                        {isLoading && (
+                            <div className="space-y-4 animate-pulse">
+                                {[1, 2, 3].map((n) => (
+                                    <div
+                                        key={n}
+                                        className="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col md:flex-row gap-6 items-center"
+                                    >
+                                        <div className="w-full md:w-44 h-32 bg-slate-200 rounded-2xl"></div>
+                                        <div className="flex-1 space-y-3 w-full">
+                                            <div className="h-5 bg-slate-200 rounded w-1/3"></div>
+                                            <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                                            <div className="h-4 bg-slate-100 rounded w-1/4"></div>
+                                        </div>
+                                        <div className="w-full md:w-40 h-10 bg-slate-200 rounded-xl"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* TRẠNG THÁI RỖNG (EMPTY STATE) */}
+                        {!isLoading && filteredBookings.length === 0 && (
+                            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-xs my-8">
+                                <div className="text-5xl mb-3">🧳</div>
+                                <h3 className="font-serif text-lg font-bold text-slate-900 mb-1">
+                                    {statusFilter === 'all'
+                                        ? 'Bạn chưa có đơn đặt phòng nào'
+                                        : `Không có đơn đặt phòng nào ở mục "${
+                                              statusFilter === 'pending'
+                                                  ? 'Chờ duyệt'
+                                                  : statusFilter === 'confirmed'
+                                                  ? 'Đã xác nhận'
+                                                  : statusFilter === 'checked_in'
+                                                  ? 'Đang lưu trú'
+                                                  : 'Đã hủy'
+                                          }"`}
+                                </h3>
+                                <p className="text-xs text-slate-500 mb-6">
+                                    {searchKeyword
+                                        ? 'Không tìm thấy kết quả phù hợp với từ khóa bạn tìm kiếm.'
+                                        : 'Hãy lên kế hoạch cho kỳ nghỉ tuyệt vời cùng gia đình và người thân tại Khách Sạn TA Đà Nẵng ngay hôm nay.'}
+                                </p>
+                                <Link
+                                    to="/rooms"
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition inline-flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    <span>🏨</span>
+                                    <span>Khám phá phòng nghỉ ngay</span>
+                                </Link>
+                            </div>
+                        )}
+
+                        {/* DANH SÁCH CÁC ĐƠN DẠNG THẺ (CARD LAYOUT) XẾP THEO CHIỀU DỌC */}
+                        {!isLoading && filteredBookings.length > 0 && (
+                            <div className="space-y-5">
+                                {filteredBookings.map((booking) => {
+                                    // Xác định ảnh thumbnail phòng
+                                    const roomThumbnail =
+                                        booking.room_image ||
+                                        'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
+
+                                    const isPending = booking.status === 'pending';
+                                    const totalAmountNum = Number(booking.total_amount) || 0;
+
+                                    return (
+                                        <div
+                                            key={booking.id}
+                                            className="bg-white rounded-3xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-300 overflow-hidden"
+                                        >
+                                            {/* 1. HEADER CỦA THẺ: MÃ ĐƠN, NGÀY ĐẶT & BADGE TRẠNG THÁI */}
+                                            <div className="bg-slate-50/70 px-5 sm:px-7 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                                            Mã đơn:
+                                                        </span>
+                                                        <span className="font-mono text-sm font-black text-slate-900 tracking-wider">
+                                                            {booking.booking_code}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCopyCode(booking.booking_code)}
+                                                            className="p-1 text-slate-400 hover:text-blue-600 transition rounded-md hover:bg-slate-200/60 text-xs cursor-pointer"
+                                                            title="Sao chép mã đơn"
+                                                        >
+                                                            {copiedCode === booking.booking_code ? '✓' : '📋'}
+                                                        </button>
+                                                    </div>
+
+                                                    <span className="hidden sm:inline text-slate-300">•</span>
+
+                                                    <span className="text-xs text-slate-400 hidden sm:inline">
+                                                        Đặt lúc: {formatDateTimeDisplay(booking.created_at)}
+                                                    </span>
+                                                </div>
+
+                                                {/* BADGE TRẠNG THÁI CHUẨN */}
+                                                <div>
+                                                    {renderStatusBadge(booking.status)}
+                                                </div>
+                                            </div>
+
+                                            {/* 2. BODY CỦA THẺ: ẢNH THUMBNAIL, TÊN PHÒNG, NGÀY THÁNG, TỔNG TIỀN */}
+                                            <div className="p-5 sm:p-7">
+                                                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                                                    {/* Phần bên trái: Ảnh thumbnail + Chi tiết phòng */}
+                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1">
+                                                        {/* Thumbnail phòng */}
+                                                        <div className="relative w-full sm:w-44 h-32 shrink-0 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-xs">
+                                                            <img
+                                                                src={roomThumbnail}
+                                                                alt={booking.room_name}
+                                                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                                                onError={(e) => {
+                                                                    e.target.src =
+                                                                        'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
+                                                                }}
+                                                            />
+                                                            {booking.room_number && (
+                                                                <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold">
+                                                                    Phòng {booking.room_number}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Thông tin phòng & thời gian lưu trú */}
+                                                        <div className="space-y-2 flex-1">
+                                                            <div>
+                                                                {booking.category_id ? (
+                                                                    <Link
+                                                                        to={`/rooms/${booking.category_id}`}
+                                                                        className="font-serif text-lg sm:text-xl font-bold text-slate-900 hover:text-blue-600 transition tracking-tight"
+                                                                    >
+                                                                        {booking.room_name}
+                                                                    </Link>
+                                                                ) : (
+                                                                    <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900">
+                                                                        {booking.room_name}
+                                                                    </h3>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Lịch Check-in -> Check-out */}
+                                                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                                                                <div className="inline-flex items-center gap-1.5 font-semibold text-slate-800 bg-slate-100/80 px-2.5 py-1 rounded-xl">
+                                                                    <span>📅</span>
+                                                                    <span>{formatDateDisplay(booking.check_in_date)}</span>
+                                                                    <span className="text-slate-400">→</span>
+                                                                    <span>{formatDateDisplay(booking.check_out_date)}</span>
+                                                                </div>
+
+                                                                <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 font-bold text-[11px] border border-blue-100">
+                                                                    🌙 {booking.nights || 1} đêm lưu trú
+                                                                </span>
+                                                            </div>
+
+                                                            {/* CCCD và Người nhận phòng */}
+                                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-1">
+                                                                <span>
+                                                                    Khách: <strong>{booking.guest_name}</strong>
+                                                                </span>
+                                                                {booking.identity_card && (
+                                                                    <span className="font-mono flex items-center gap-1 text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                                                        <span>🪪</span>
+                                                                        <span>{booking.identity_card}</span>
+                                                                    </span>
+                                                                )}
+                                                                {booking.guest_phone && (
+                                                                    <span>📞 {booking.guest_phone}</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Phần bên phải: Tổng tiền & Nút thao tác */}
+                                                    <div className="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-center gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                                                        <div className="text-left lg:text-right">
+                                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                                                                Tổng tiền thanh toán
+                                                            </span>
+                                                            <div className="text-xl sm:text-2xl font-black text-rose-600 mt-0.5">
+                                                                {totalAmountNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
+                                                            </div>
+                                                            <span className="text-[10px] text-slate-400 block">
+                                                                (Đã bao gồm thuế & phí phục vụ)
+                                                            </span>
+                                                        </div>
+
+                                                        {/* NÚT THAO TÁC: NẾU PENDING THÌ HIỆN NÚT HỦY, NẾU KHÁC THÌ ẨN */}
+                                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                            {isPending && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setCancelModalBooking(booking)}
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                >
+                                                                    <span>✕</span>
+                                                                    <span>Hủy đặt phòng</span>
+                                                                </button>
+                                                            )}
+
+                                                            {booking.category_id && (
+                                                                <Link
+                                                                    to={`/checkout/${booking.category_id}`}
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                                                >
+                                                                    <span>Đặt lại</span>
+                                                                </Link>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Ghi chú đính kèm nếu có */}
+                                            {booking.note && (
+                                                <div className="bg-slate-50/50 px-5 sm:px-7 py-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex items-start gap-2">
+                                                    <span className="font-bold text-slate-400 shrink-0">Ghi chú:</span>
+                                                    <span className="truncate">{booking.note}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </main>
+
+            {/* ========================================================================= */}
+            {/* MODAL XÁC NHẬN HỦY ĐẶT PHÒNG (DÀNH CHO ĐƠN PENDING) */}
+            {/* ========================================================================= */}
+            {cancelModalBooking && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 sm:p-8 shadow-2xl text-left animate-in zoom-in-95 duration-200">
+                        {/* Header Modal */}
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shrink-0 font-bold">
+                                ⚠️
+                            </div>
+                            <div>
+                                <h3 className="font-serif text-lg font-bold text-slate-900">
+                                    Xác nhận Hủy Đặt Phòng
+                                </h3>
+                                <p className="text-xs text-slate-500">
+                                    Mã đơn: <strong className="font-mono text-slate-800">{cancelModalBooking.booking_code}</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Tóm tắt đơn hủy */}
+                        <div className="bg-slate-50 rounded-2xl p-4 text-xs space-y-2 mb-4 border border-slate-200/80">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Hạng phòng:</span>
+                                <strong className="text-slate-900">{cancelModalBooking.room_name}</strong>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Thời gian:</span>
+                                <span className="text-slate-800 font-medium">
+                                    {formatDateDisplay(cancelModalBooking.check_in_date)} → {formatDateDisplay(cancelModalBooking.check_out_date)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Tổng tiền:</span>
+                                <strong className="text-rose-600 font-bold">
+                                    {Number(cancelModalBooking.total_amount).toLocaleString('vi-VN')} VND
+                                </strong>
+                            </div>
+                        </div>
+
+                        {/* Chọn lý do hủy */}
+                        <div className="space-y-2 mb-6">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Vui lòng chọn lý do hủy phòng:
+                            </label>
+                            <select
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                            >
+                                <option value="Thay đổi lịch trình chuyến đi">Thay đổi lịch trình chuyến đi</option>
+                                <option value="Đặt nhầm ngày hoặc thông tin phòng">Đặt nhầm ngày hoặc thông tin phòng</option>
+                                <option value="Tìm thấy mức giá hoặc nơi ở khác phù hợp hơn">Tìm thấy mức giá hoặc nơi ở khác phù hợp hơn</option>
+                                <option value="Khác">Lý do cá nhân khác...</option>
+                            </select>
+
+                            {cancelReason === 'Khác' && (
+                                <textarea
+                                    rows={2}
+                                    placeholder="Nhập lý do cụ thể của bạn..."
+                                    value={customReason}
+                                    onChange={(e) => setCustomReason(e.target.value)}
+                                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 mt-2"
+                                />
+                            )}
+
+                            <span className="text-[11px] text-slate-400 block pt-1">
+                                ℹ️ Sau khi hủy, đơn phòng sẽ chuyển sang trạng thái <strong>Đã Hủy</strong> và phòng sẽ được giải phóng cho khách hàng khác.
+                            </span>
+                        </div>
+
+                        {/* Nút hành động */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                disabled={isCancelling}
+                                onClick={handleConfirmCancel}
+                                className="w-1/2 py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                                {isCancelling ? (
+                                    <>
+                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Đang hủy đơn...</span>
+                                    </>
+                                ) : (
+                                    <span>Xác nhận Hủy Đơn</span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={isCancelling}
+                                onClick={() => setCancelModalBooking(null)}
+                                className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
+                            >
+                                Giữ lại đơn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <Footer />
+        </div>
+    );
+}

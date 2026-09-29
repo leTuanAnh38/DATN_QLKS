@@ -340,7 +340,7 @@ export default function Profile() {
                                 <span className="text-slate-400">›</span>
                             </Link>
                             <Link
-                                to="/login"
+                                to="/booking-history"
                                 className="w-full py-3 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl px-2 transition text-left cursor-pointer"
                             >
                                 <span className="flex items-center gap-2.5">
