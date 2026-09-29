@@ -13,7 +13,7 @@ class PromotionSerializer(serializers.ModelSerializer):
 
 class BookingSerializer(serializers.ModelSerializer):
     room_name = serializers.SerializerMethodField()
-    room_number = serializers.CharField(source='room.room_number', read_only=True)
+    room_number = serializers.SerializerMethodField()
     room_image = serializers.SerializerMethodField()
     category_id = serializers.SerializerMethodField()
     nights = serializers.SerializerMethodField()
@@ -27,6 +27,7 @@ class BookingSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'booking_code',
+            'category',
             'room',
             'room_name',
             'room_number',
@@ -39,6 +40,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'identity_card',
             'check_in_date',
             'check_out_date',
+            'actual_check_in',
+            'actual_check_out',
             'nights',
             'total_amount',
             'status',
@@ -48,7 +51,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
-        read_only_fields = ['id', 'booking_code', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'booking_code', 'actual_check_in', 'actual_check_out', 'created_at', 'updated_at']
 
     def validate_identity_card(self, value):
         val = str(value or '').strip()
@@ -59,13 +62,20 @@ class BookingSerializer(serializers.ModelSerializer):
         return val
 
     def get_room_name(self, obj):
+        if obj.category:
+            return obj.category.name
         if obj.room and obj.room.category:
             return obj.room.category.name
         return "Phòng tiêu chuẩn"
 
+    def get_room_number(self, obj):
+        if obj.room:
+            return obj.room.room_number
+        return None
+
     def get_room_image(self, obj):
-        if obj.room and obj.room.category:
-            cat = obj.room.category
+        cat = obj.category or (obj.room.category if obj.room else None)
+        if cat:
             feature_img = cat.images.filter(is_feature=True).first() or cat.images.first()
             if feature_img and feature_img.image:
                 request = self.context.get('request')
@@ -75,6 +85,8 @@ class BookingSerializer(serializers.ModelSerializer):
         return None
 
     def get_category_id(self, obj):
+        if obj.category:
+            return obj.category.id
         if obj.room and obj.room.category:
             return obj.room.category.id
         return None

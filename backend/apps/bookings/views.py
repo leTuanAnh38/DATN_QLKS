@@ -2,9 +2,11 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import action
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import Q
+from django.db import transaction
 from .models import Booking, Promotion
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile
@@ -18,7 +20,7 @@ class BookingViewSet(viewsets.ModelViewSet):
     - GET /api/bookings/: Xem danh sách đơn (Thành viên xem đơn của mình, Staff xem tất cả)
     - GET /api/bookings/<id>/: Chi tiết đơn đặt phòng
     """
-    queryset = Booking.objects.select_related('guest', 'room', 'room__category', 'applied_promotion').all().order_by('-created_at')
+    queryset = Booking.objects.select_related('guest', 'category', 'room', 'room__category', 'applied_promotion').all().order_by('-created_at')
     serializer_class = BookingSerializer
 
     def get_permissions(self):
@@ -45,6 +47,27 @@ class BookingViewSet(viewsets.ModelViewSet):
         if user_email:
             return self.queryset.filter(Q(guest=user) | Q(guest__email=user_email))
         return self.queryset.filter(guest=user)
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        old_status = instance.status
+        updated_booking = serializer.save()
+        new_status = updated_booking.status
+
+        # 1. Nếu chuyển sang checked_out: Tự động ghi nhận actual_check_out và chuyển phòng sang cleaning (đang dọn dẹp)
+        if old_status != 'checked_out' and new_status == 'checked_out':
+            if not updated_booking.actual_check_out:
+                updated_booking.actual_check_out = timezone.now()
+                updated_booking.save(update_fields=['actual_check_out'])
+            if updated_booking.room:
+                updated_booking.room.status = 'cleaning'
+                updated_booking.room.save(update_fields=['status'])
+
+        # 2. Nếu hủy đơn (cancelled): Nếu phòng thực tế đang bị giữ (occupied) -> giải phóng về available (sẵn sàng)
+        elif new_status == 'cancelled':
+            if updated_booking.room and updated_booking.room.status == 'occupied':
+                updated_booking.room.status = 'available'
+                updated_booking.room.save(update_fields=['status'])
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -173,10 +196,13 @@ class BookingViewSet(viewsets.ModelViewSet):
                 # Gán vào tài khoản khách mặc định
                 guest_user = User.objects.filter(role='guest').first() or User.objects.first()
 
-        # 6. Tạo Đơn đặt phòng
+        # 6. Tạo Đơn đặt phòng mới:
+        # Khách hàng đặt phòng theo Hạng phòng (RoomCategory).
+        # Số phòng thực tế (Room) để trống (None) để Lễ tân chọn và gán phòng trống khi làm thủ tục Check-in.
         booking = Booking.objects.create(
             guest=guest_user,
-            room=room_instance,
+            category=category_instance,
+            room=None,
             identity_card=identity_card,
             check_in_date=check_in,
             check_out_date=check_out,
@@ -308,6 +334,167 @@ class BookingViewSet(viewsets.ModelViewSet):
             'success': True,
             'message': f'Cập nhật đơn đặt phòng {booking.booking_code} thành công.',
             'booking': serializer.data,
+            **serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='available-rooms')
+    def available_rooms(self, request, pk=None):
+        """
+        API lấy danh sách các phòng thực tế (Room) đang 'available' (Sẵn sàng)
+        thuộc đúng Hạng phòng mà khách đã đặt để Lễ tân chọn trong Modal Check-in.
+        """
+        booking = self.get_object()
+        category = booking.category or (booking.room.category if booking.room else None)
+        category_id = category.id if category else None
+        if not category_id:
+            param_cat = request.query_params.get('category_id')
+            if param_cat and str(param_cat).isdigit():
+                category_id = int(param_cat)
+
+        available_rooms_qs = Room.objects.filter(status='available').select_related('category')
+        if category_id:
+            available_rooms_qs = available_rooms_qs.filter(category_id=category_id)
+
+        from ..rooms.serializers import RoomSerializer
+        serializer = RoomSerializer(available_rooms_qs.order_by('floor', 'room_number'), many=True)
+
+        return Response({
+            'success': True,
+            'count': available_rooms_qs.count(),
+            'category_id': category_id,
+            'category_name': category.name if category else 'Phòng tiêu chuẩn',
+            'rooms': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='check-in')
+    def check_in(self, request, pk=None):
+        """
+        API thực hiện thủ tục Check-in (Nhận phòng) cho khách hàng:
+        - POST /api/bookings/<id>/check-in/
+        - Payload: { "room_id": 101, "internal_note": "Ghi chú lễ tân..." }
+        - Transaction đồng thời:
+          1. Cập nhật bảng Booking: Gán room_id, đổi status='checked_in', actual_check_in = timezone.now()
+          2. Cập nhật bảng Room tương ứng: đổi status='occupied' (Đang có khách)
+        """
+        booking = self.get_object()
+        user = request.user
+
+        # 1. Kiểm tra phân quyền nhân sự khách sạn
+        is_staff_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+        if not is_staff_or_admin:
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện thủ tục Check-in nhận phòng.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2. Kiểm tra trạng thái hợp lệ của đơn đặt phòng
+        if booking.status == 'checked_in':
+            actual_str = booking.actual_check_in.strftime('%H:%M %d/%m/%Y') if booking.actual_check_in else ''
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} đã hoàn tất Check-in trước đó ({actual_str}). Không thể Check-in lại.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if booking.status == 'checked_out':
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} đã hoàn tất trả phòng (Checked-out), không thể Check-in.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if booking.status == 'cancelled':
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} đã bị hủy bỏ, không thể thực hiện nhận phòng.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3. Lấy và kiểm tra ID phòng thực tế cần gán
+        room_id = request.data.get('room_id') or request.data.get('room')
+        if not room_id:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn phòng thực tế cụ thể để bàn giao cho khách lưu trú.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_room = Room.objects.select_related('category').get(pk=int(room_id))
+        except (Room.DoesNotExist, ValueError):
+            return Response({
+                'success': False,
+                'message': f'Không tìm thấy thông tin phòng thực tế với mã ID {room_id}.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 4. Kiểm tra trạng thái phòng: Bắt buộc phải là available (Sẵn sàng)
+        if target_room.status != 'available':
+            status_display = target_room.get_status_display()
+            return Response({
+                'success': False,
+                'message': f'Phòng {target_room.room_number} hiện không ở trạng thái sẵn sàng đón khách (Hiện tại: "{status_display}"). Vui lòng chọn phòng đang trống khác.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 5. Kiểm tra hạng phòng tương ứng
+        booking_category_id = booking.category_id or (booking.room.category_id if booking.room else None)
+        booking_cat_name = booking.category.name if booking.category else (booking.room.category.name if booking.room and booking.room.category else 'Khác')
+
+        if booking_category_id and target_room.category_id != booking_category_id:
+            target_cat_name = target_room.category.name if target_room.category else 'Khác'
+            allow_upgrade = request.data.get('allow_upgrade', False)
+            if not allow_upgrade:
+                return Response({
+                    'success': False,
+                    'message': f'Phòng {target_room.room_number} thuộc hạng "{target_cat_name}", khác với hạng phòng khách đặt ("{booking_cat_name}"). Vui lòng chọn đúng phòng hoặc xác nhận nâng hạng phòng.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 6. THỰC HIỆN ĐỒNG THỜI 2 VIỆC DÙNG TRANSACTION.ATOMIC ĐẢM BẢO AN TOÀN DỮ LIỆU
+        now = timezone.now()
+        with transaction.atomic():
+            # Nếu đơn đặt phòng trước đó có phòng cũ đang bị occupied, giải phóng phòng cũ về available
+            old_room = booking.room
+            if old_room and old_room.id != target_room.id and old_room.status == 'occupied':
+                old_room.status = 'available'
+                old_room.save(update_fields=['status'])
+
+            # Việc 1: Cập nhật bảng Booking (gán room_id, status='checked_in', actual_check_in=now)
+            booking.room = target_room
+            booking.status = 'checked_in'
+            booking.actual_check_in = now
+
+            # Thêm ghi chú lễ tân nếu có
+            receptionist_note = request.data.get('internal_note', '').strip()
+            time_str = now.strftime('%H:%M • %d/%m/%Y')
+            receptionist_name = user.get_full_name() or user.username
+            auto_log = f"[Check-in lúc {time_str} bởi {receptionist_name}]: Nhận phòng {target_room.room_number}."
+            if receptionist_note:
+                auto_log += f" Ghi chú: {receptionist_note}"
+
+            if booking.internal_note:
+                booking.internal_note = f"{booking.internal_note}\n{auto_log}".strip()
+            else:
+                booking.internal_note = auto_log
+
+            booking.save(update_fields=['room', 'status', 'actual_check_in', 'internal_note', 'updated_at'])
+
+            # Việc 2: Cập nhật bảng Room tương ứng sang occupied (Đang có khách)
+            target_room.status = 'occupied'
+            target_room.save(update_fields=['status'])
+
+        # Lấy thông tin serialize đầy đủ
+        serializer = self.get_serializer(booking, context={'request': request})
+        from ..rooms.serializers import RoomSerializer
+        room_data = RoomSerializer(target_room).data
+
+        guest_display = booking.guest.get_full_name() or booking.guest.username if booking.guest else "Khách hàng"
+        return Response({
+            'success': True,
+            'message': f'Hoàn tất thủ tục Check-in thành công cho khách {guest_display}! Đã gán phòng {target_room.room_number} (Tầng {target_room.floor}).',
+            'booking': serializer.data,
+            'room': room_data,
             **serializer.data
         }, status=status.HTTP_200_OK)
 

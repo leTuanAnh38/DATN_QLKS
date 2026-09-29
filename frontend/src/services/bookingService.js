@@ -145,6 +145,54 @@ export const bookingService = {
             console.error('Lỗi khi tải chi tiết đơn đặt phòng:', error);
             return null;
         }
+    },
+
+    /**
+     * Lấy danh sách các phòng thực tế đang trống (status='available')
+     * thuộc đúng hạng phòng của đơn đặt phòng
+     * @param {number|string} bookingId
+     * @param {number|string} [categoryId]
+     */
+    async getAvailableRoomsForBooking(bookingId, categoryId = null) {
+        try {
+            const params = categoryId ? { category_id: categoryId } : {};
+            const response = await api.get(`/bookings/${bookingId}/available-rooms/`, { params });
+            return response.data;
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách phòng trống:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể tải danh sách phòng trống.',
+                rooms: []
+            };
+        }
+    },
+
+    /**
+     * Thực hiện thủ tục Check-in cho đơn đặt phòng (POST /api/bookings/:id/check-in/)
+     * @param {number|string} bookingId
+     * @param {Object} payload - { room_id, internal_note, allow_upgrade }
+     */
+    async checkInBooking(bookingId, payload) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/check-in/`, payload);
+            const data = response.data?.booking || response.data?.data || response.data;
+            return {
+                success: true,
+                message: response.data?.message || 'Thực hiện Check-in thành công!',
+                data,
+                room: response.data?.room
+            };
+        } catch (error) {
+            console.error('Lỗi khi thực hiện Check-in:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Thực hiện Check-in thất bại. Vui lòng kiểm tra lại tình trạng phòng.'
+            };
+        }
     }
 };
 

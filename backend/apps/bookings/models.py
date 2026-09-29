@@ -14,7 +14,8 @@ class Booking(models.Model):
 
     booking_code = models.CharField(max_length=20, unique=True, blank=True, verbose_name="Mã Đặt Phòng")
     guest = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings', verbose_name="Khách hàng")
-    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, related_name='bookings', verbose_name="Phòng")
+    category = models.ForeignKey('rooms.RoomCategory', on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings', verbose_name="Hạng phòng đã đặt")
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings', verbose_name="Phòng thực tế (Gán khi Check-in)")
     
     # Thông tin định danh pháp lý
     identity_card = models.CharField(max_length=20, default='', verbose_name="Số CCCD / Hộ chiếu")

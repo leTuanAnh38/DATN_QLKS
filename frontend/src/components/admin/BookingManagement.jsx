@@ -55,6 +55,14 @@ export default function BookingManagement({ onBookingChanged }) {
     const [internalNoteInput, setInternalNoteInput] = useState('');
     const [isSavingInternalNote, setIsSavingInternalNote] = useState(false);
 
+    // 4. State Modal Check-in (Thủ tục Nhận phòng & Gán phòng thực tế)
+    const [checkInModalBooking, setCheckInModalBooking] = useState(null);
+    const [availableRooms, setAvailableRooms] = useState([]);
+    const [selectedRoomId, setSelectedRoomId] = useState('');
+    const [checkInNote, setCheckInNote] = useState('');
+    const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+    const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
+
     // Helper hiển thị thông báo toast
     const showToast = (type, message) => {
         setToast({ type, message });
@@ -94,6 +102,15 @@ export default function BookingManagement({ onBookingChanged }) {
     // Xử lý đổi trạng thái nhanh trực tiếp ngay tại ô Trạng thái trong bảng (API PATCH)
     const handleQuickStatusChange = async (bookingId, newStatus) => {
         if (!bookingId || !newStatus) return;
+
+        // Nếu chọn chuyển sang "checked_in": Bắt buộc phải thực hiện gán phòng thực tế qua Modal Check-in
+        if (newStatus === 'checked_in') {
+            const targetBooking = bookings.find((b) => b.id === bookingId);
+            if (targetBooking) {
+                handleOpenCheckInModal(targetBooking);
+                return;
+            }
+        }
 
         // Lưu lại trạng thái cũ để rollback nếu lỗi
         const previousBookings = [...bookings];
@@ -191,6 +208,105 @@ export default function BookingManagement({ onBookingChanged }) {
             showToast('error', error.message || 'Lỗi khi lưu ghi chú.');
         } finally {
             setIsSavingInternalNote(false);
+        }
+    };
+
+    // Mở Modal Check-in (Nhận phòng & Gán phòng thực tế)
+    const handleOpenCheckInModal = async (booking) => {
+        setCheckInModalBooking(booking);
+        setSelectedRoomId('');
+        setCheckInNote('');
+        setAvailableRooms([]);
+        setIsLoadingRooms(true);
+
+        try {
+            const res = await bookingService.getAvailableRoomsForBooking(
+                booking.id,
+                booking.category_id
+            );
+            if (res && res.success) {
+                const rooms = res.rooms || [];
+                setAvailableRooms(rooms);
+                if (rooms.length > 0) {
+                    setSelectedRoomId(String(rooms[0].id));
+                }
+            } else {
+                showToast('error', res?.message || 'Không thể tải danh sách phòng trống.');
+            }
+        } catch (error) {
+            showToast('error', error.message || 'Lỗi khi tải danh sách phòng trống.');
+        } finally {
+            setIsLoadingRooms(false);
+        }
+    };
+
+    // Xác nhận hoàn tất thủ tục Check-in (Gán phòng thực tế & đổi trạng thái sang checked_in)
+    const handleConfirmCheckIn = async () => {
+        if (!checkInModalBooking) return;
+        if (!selectedRoomId) {
+            showToast('error', 'Vui lòng chọn phòng thực tế trước khi hoàn tất Check-in.');
+            return;
+        }
+
+        try {
+            setIsSubmittingCheckIn(true);
+            const res = await bookingService.checkInBooking(checkInModalBooking.id, {
+                room_id: selectedRoomId,
+                internal_note: checkInNote.trim()
+            });
+
+            if (res && res.success) {
+                const updatedBooking = res.data;
+                const assignedRoom = res.room;
+                const roomNum = assignedRoom?.room_number || checkInModalBooking.room_number;
+
+                showToast(
+                    'success',
+                    `🔑 Check-in thành công cho khách "${checkInModalBooking.guest_name}" vào phòng ${roomNum}!`
+                );
+
+                // Cập nhật state bookings trên giao diện
+                setBookings((prev) =>
+                    prev.map((b) =>
+                        b.id === checkInModalBooking.id
+                            ? {
+                                  ...b,
+                                  ...(updatedBooking || {}),
+                                  status: 'checked_in',
+                                  room_number: roomNum || b.room_number,
+                                  actual_check_in: updatedBooking?.actual_check_in || new Date().toISOString(),
+                                  internal_note: checkInNote.trim() || b.internal_note
+                              }
+                            : b
+                    )
+                );
+
+                // Nếu đang mở modal chi tiết cùng booking đó, cập nhật luôn
+                if (selectedBooking && selectedBooking.id === checkInModalBooking.id) {
+                    setSelectedBooking((prev) => ({
+                        ...prev,
+                        ...(updatedBooking || {}),
+                        status: 'checked_in',
+                        room_number: roomNum || prev.room_number,
+                        actual_check_in: updatedBooking?.actual_check_in || new Date().toISOString(),
+                        internal_note: checkInNote.trim() || prev.internal_note
+                    }));
+                }
+
+                // Đóng modal Check-in
+                setCheckInModalBooking(null);
+
+                // Thông báo ra ngoài để AdminDashboard cập nhật thống kê/badge
+                if (typeof onBookingChanged === 'function') {
+                    onBookingChanged();
+                }
+            } else {
+                showToast('error', res?.message || 'Check-in thất bại. Vui lòng kiểm tra lại tình trạng phòng.');
+            }
+        } catch (error) {
+            showToast('error', error.message || 'Lỗi kết nối máy chủ khi Check-in.');
+        } finally {
+            setIsSubmittingCheckIn(false);
         }
     };
 
@@ -605,15 +721,28 @@ export default function BookingManagement({ onBookingChanged }) {
 
                                             {/* CỘT 7: HÀNH ĐỘNG */}
                                             <td className="py-4 px-4 text-center whitespace-nowrap">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenDetailModal(booking)}
-                                                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                                                    title="Xem toàn bộ thông tin chi tiết đơn này"
-                                                >
-                                                    <span>👁️</span>
-                                                    <span>Chi tiết</span>
-                                                </button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {booking.status === 'confirmed' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenCheckInModal(booking)}
+                                                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-600/25 hover:shadow-emerald-600/40 transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 animate-pulse hover:animate-none"
+                                                            title="Thực hiện thủ tục gán phòng và Check-in cho khách"
+                                                        >
+                                                            <span className="text-sm">🔑</span>
+                                                            <span>Thực hiện Check-in</span>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenDetailModal(booking)}
+                                                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                        title="Xem toàn bộ thông tin chi tiết đơn này"
+                                                    >
+                                                        <span>👁️</span>
+                                                        <span>Chi tiết</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -747,6 +876,14 @@ export default function BookingManagement({ onBookingChanged }) {
                                             {selectedBooking.room_number ? `Phòng ${selectedBooking.room_number}` : 'Chưa xếp phòng'}
                                         </strong>
                                     </div>
+                                    {selectedBooking.actual_check_in && (
+                                        <div className="col-span-1 sm:col-span-2">
+                                            <span className="text-emerald-700 block text-[11px] font-semibold">Thời gian Check-in thực tế:</span>
+                                            <strong className="text-emerald-800 text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
+                                                🔑 {formatDateTimeDisplay(selectedBooking.actual_check_in)}
+                                            </strong>
+                                        </div>
+                                    )}
                                     <div>
                                         <span className="text-slate-400 block text-[11px]">Ngày Check-in:</span>
                                         <strong className="text-slate-900">
@@ -825,22 +962,298 @@ export default function BookingManagement({ onBookingChanged }) {
                         </div>
 
                         {/* Nút hành động Modal */}
-                        <div className="pt-5 mt-6 border-t border-slate-100 flex items-center justify-between">
-                            <button
-                                type="button"
-                                onClick={() => window.print()}
-                                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-                            >
-                                <span>🖨️</span>
-                                <span>In phiếu đặt phòng</span>
-                            </button>
+                        <div className="pt-5 mt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => window.print()}
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    <span>🖨️</span>
+                                    <span>In phiếu đặt phòng</span>
+                                </button>
+
+                                {selectedBooking.status === 'confirmed' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            handleOpenCheckInModal(selectedBooking);
+                                        }}
+                                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                    >
+                                        <span>🔑</span>
+                                        <span>Thực hiện Check-in ngay</span>
+                                    </button>
+                                )}
+                            </div>
 
                             <button
                                 type="button"
                                 onClick={() => setSelectedBooking(null)}
-                                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/30 transition cursor-pointer"
+                                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                             >
                                 Đóng cửa sổ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* MODAL CHECK-IN (THỦ TỤC NHẬN PHÒNG & GÁN PHÒNG THỰC TẾ) */}
+            {/* ========================================================================= */}
+            {checkInModalBooking && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl border border-slate-200 max-w-xl w-full p-6 sm:p-7 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+                        {/* Header Modal */}
+                        <div className="flex items-start justify-between pb-4 border-b border-slate-100 mb-5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/20">
+                                    🔑
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-sm font-black text-emerald-700">
+                                            #{checkInModalBooking.booking_code}
+                                        </span>
+                                        <span className="text-xs text-slate-300">•</span>
+                                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 uppercase">
+                                            Đã xác nhận (Confirmed)
+                                        </span>
+                                    </div>
+                                    <h3 className="font-serif text-xl font-bold text-slate-900 mt-0.5">
+                                        Thủ Tục Check-in Nhận Phòng
+                                    </h3>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                disabled={isSubmittingCheckIn}
+                                onClick={() => setCheckInModalBooking(null)}
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-sm cursor-pointer disabled:opacity-50"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-5 text-xs">
+                            {/* 1. THÔNG TIN TÓM TẮT ĐƠN ĐẶT PHÒNG */}
+                            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200/80 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <span>📋</span>
+                                        <span>Thông tin tóm tắt khách & phòng</span>
+                                    </span>
+                                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                        🌙 {checkInModalBooking.nights || 1} đêm lưu trú
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 pt-1 text-slate-700">
+                                    <div>
+                                        <span className="text-slate-400 block text-[11px]">Tên khách lưu trú:</span>
+                                        <strong className="text-slate-900 text-sm block truncate">
+                                            👤 {checkInModalBooking.guest_name}
+                                        </strong>
+                                        <span className="text-[10px] text-slate-500 mt-0.5 block">
+                                            📞 {checkInModalBooking.guest_phone || 'Chưa có SĐT'}
+                                        </span>
+                                    </div>
+
+                                    <div>
+                                        <span className="text-slate-400 block text-[11px]">Số CCCD / Hộ chiếu:</span>
+                                        <div className="mt-0.5">
+                                            {checkInModalBooking.identity_card ? (
+                                                <strong className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 inline-flex items-center gap-1">
+                                                    <span>🪪</span>
+                                                    <span>{checkInModalBooking.identity_card}</span>
+                                                </strong>
+                                            ) : (
+                                                <span className="text-amber-600 italic font-medium">Chưa có CCCD</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <span className="text-slate-400 block text-[11px]">Hạng phòng đã đặt:</span>
+                                        <strong className="text-slate-900 text-xs block text-emerald-800 font-bold mt-0.5">
+                                            🏨 {checkInModalBooking.room_name}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span className="text-slate-400 block text-[11px]">Ngày Check-out dự kiến:</span>
+                                        <strong className="text-slate-900 text-xs block mt-0.5">
+                                            🗓️ {formatDateDisplay(checkInModalBooking.check_out_date)} (trước 12:00)
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 2. FORM GÁN PHÒNG THỰC TẾ (QUAN TRỌNG NHẤT) */}
+                            <div className="p-4 rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/20 space-y-3">
+                                <div>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                                            <span>🚪</span>
+                                            <span>Gán phòng thực tế đón khách</span>
+                                            <span className="text-rose-500">*</span>
+                                        </label>
+                                        <span className="text-[11px] font-bold text-emerald-700">
+                                            {availableRooms.length} phòng khả dụng
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 mt-1">
+                                        Hệ thống tự động lọc các phòng thực tế thuộc hạng{' '}
+                                        <strong className="text-slate-800">{checkInModalBooking.room_name}</strong> và đang có trạng thái{' '}
+                                        <strong className="text-emerald-700">Sẵn sàng (Available)</strong>.
+                                    </p>
+                                </div>
+
+                                {/* Loading state khi fetch phòng */}
+                                {isLoadingRooms && (
+                                    <div className="p-5 text-center bg-white rounded-xl border border-slate-200">
+                                        <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                        <span className="text-slate-500 text-xs">
+                                            Đang tìm kiếm phòng trống thuộc hạng {checkInModalBooking.room_name}...
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Khi không còn phòng trống nào */}
+                                {!isLoadingRooms && availableRooms.length === 0 && (
+                                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 space-y-2">
+                                        <div className="flex items-center gap-2 font-bold text-xs">
+                                            <span>⚠️</span>
+                                            <span>Không có phòng trống nào thuộc hạng này đang sẵn sàng đón khách!</span>
+                                        </div>
+                                        <p className="text-[11px] text-rose-700">
+                                            Tất cả các phòng hạng <strong>{checkInModalBooking.room_name}</strong> hiện đều đang có khách lưu trú hoặc đang dọn dẹp/bảo trì.
+                                            Vui lòng kiểm tra lại sơ đồ buồng phòng hoặc giải phóng phòng trước khi Check-in.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Dropdown chọn phòng khi có phòng trống */}
+                                {!isLoadingRooms && availableRooms.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="relative">
+                                            <select
+                                                id="check-in-select-room"
+                                                value={selectedRoomId}
+                                                onChange={(e) => setSelectedRoomId(e.target.value)}
+                                                disabled={isSubmittingCheckIn}
+                                                className="w-full px-4 py-3 bg-white border-2 border-emerald-400 focus:border-emerald-600 rounded-xl text-xs font-bold text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition cursor-pointer appearance-none"
+                                            >
+                                                {availableRooms.map((room) => (
+                                                    <option key={room.id} value={room.id}>
+                                                        Phòng {room.room_number} — Tầng {room.floor} ({room.category_name || checkInModalBooking.room_name}) — Sẵn sàng đón khách
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-emerald-700 font-bold">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        {/* Card tóm tắt phòng được chọn */}
+                                        {(() => {
+                                            const selectedRoom = availableRooms.find(
+                                                (r) => String(r.id) === String(selectedRoomId)
+                                            );
+                                            if (!selectedRoom) return null;
+                                            return (
+                                                <div className="p-3 bg-white rounded-xl border border-emerald-200 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white font-black text-sm flex items-center justify-center">
+                                                            {selectedRoom.room_number}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-slate-900 text-xs">
+                                                                Phòng số {selectedRoom.room_number}
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-500">
+                                                                Tầng {selectedRoom.floor} • {selectedRoom.category_name || checkInModalBooking.room_name}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                                                        🟢 Trạng thái: Sẵn sàng
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 3. GHI CHÚ NỘI BỘ LỄ TÂN KHI CHECK-IN */}
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                                        📝 Ghi chú bàn giao / Thủ tục đón tiếp:
+                                    </label>
+                                    <span className="text-[10px] text-slate-400">Không bắt buộc</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="VD: Đã bàn giao 2 thẻ từ phòng, đã kiểm tra CCCD, nhận cọc..."
+                                    value={checkInNote}
+                                    onChange={(e) => setCheckInNote(e.target.value)}
+                                    disabled={isSubmittingCheckIn}
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition"
+                                />
+                            </div>
+
+                            {/* 4. TÓM TẮT CAM KẾT VÀ BẢO ĐẢM TỰ ĐỘNG CỦA HỆ THỐNG */}
+                            <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900 flex items-start gap-2">
+                                <span className="text-sm">ℹ️</span>
+                                <div>
+                                    Khi bấm <strong>"Hoàn tất Check-in"</strong>, hệ thống sẽ thực thi Transaction đồng thời:
+                                    <ul className="list-disc list-inside mt-1 space-y-0.5 text-[10px] text-blue-800">
+                                        <li>Cập nhật đơn thành <strong>Đã Check-in (checked_in)</strong> và ghi nhận thời gian nhận phòng thực tế.</li>
+                                        <li>Cập nhật phòng thực tế thành <strong>Đang có khách (occupied)</strong> để tránh trùng lặp.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Modal */}
+                        <div className="pt-5 mt-6 border-t border-slate-100 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                disabled={isSubmittingCheckIn}
+                                onClick={() => setCheckInModalBooking(null)}
+                                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                            >
+                                Hủy bỏ
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={
+                                    isSubmittingCheckIn ||
+                                    isLoadingRooms ||
+                                    availableRooms.length === 0 ||
+                                    !selectedRoomId
+                                }
+                                onClick={handleConfirmCheckIn}
+                                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                            >
+                                {isSubmittingCheckIn ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Đang hoàn tất Check-in...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>🔑</span>
+                                        <span>Hoàn tất Check-in</span>
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
