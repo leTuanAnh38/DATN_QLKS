@@ -9,6 +9,7 @@ class Booking(models.Model):
         ('confirmed', 'Đã xác nhận'),
         ('checked_in', 'Đã Check-in'),
         ('checked_out', 'Đã Check-out'),
+        ('completed', 'Đã hoàn tất'),
         ('cancelled', 'Đã Hủy'),
     )
 

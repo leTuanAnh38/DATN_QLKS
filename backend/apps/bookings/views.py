@@ -12,6 +12,7 @@ from .models import Booking, Promotion, BookingExtraService
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile
 from ..services.models import ServiceItem, ServiceRequest
+from ..payments.models import Invoice
 from .serializers import BookingSerializer, PromotionSerializer
 
 
@@ -64,8 +65,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         updated_booking = serializer.save()
         new_status = updated_booking.status
 
-        # 1. Nếu chuyển sang checked_out: Tự động ghi nhận actual_check_out và chuyển phòng sang cleaning (đang dọn dẹp)
-        if old_status != 'checked_out' and new_status == 'checked_out':
+        # 1. Nếu chuyển sang checked_out hoặc completed: Tự động ghi nhận actual_check_out và chuyển phòng sang cleaning (đang dọn dẹp)
+        if old_status not in ['checked_out', 'completed'] and new_status in ['checked_out', 'completed']:
             if not updated_booking.actual_check_out:
                 updated_booking.actual_check_out = timezone.now()
                 updated_booking.save(update_fields=['actual_check_out'])
@@ -1035,6 +1036,244 @@ class BookingViewSet(viewsets.ModelViewSet):
             'message': 'Đã xóa dịch vụ / phụ phí khỏi đơn đặt phòng thành công.',
             'booking': serializer.data,
             **serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='summary')
+    def summary(self, request, pk=None):
+        """
+        API GET /api/bookings/{id}/summary/
+        Lấy Bảng kê chi tiết trước khi thanh toán và Check-out:
+        - room_charge: Tiền lưu trú (Giá phòng * Số đêm thực tế)
+        - extra_services: Mảng chứa các ServiceRequest liên kết với Booking này có trạng thái completed
+        - total_service_charge: Tổng tiền dịch vụ
+        - grand_total: Tổng thanh toán cuối cùng (room_charge + total_service_charge)
+        """
+        booking = self.get_object()
+
+        # 1. Tính toán số đêm và tiền lưu trú (room_charge)
+        check_in = booking.check_in_date
+        check_out = booking.check_out_date
+        nights = max(1, (check_out - check_in).days) if (check_in and check_out) else 1
+
+        # Xác định đơn giá theo đêm (daily_rate)
+        daily_rate = 0.0
+        if booking.category and booking.category.base_price:
+            daily_rate = float(booking.category.base_price)
+        elif booking.room and booking.room.category and booking.room.category.base_price:
+            daily_rate = float(booking.room.category.base_price)
+
+        if booking.total_amount and float(booking.total_amount) > 0:
+            room_charge = float(booking.total_amount)
+            if daily_rate <= 0:
+                daily_rate = round(room_charge / nights)
+        else:
+            room_charge = float(daily_rate * nights)
+
+        # 2. Lấy extra_services (các ServiceRequest liên kết có status='completed')
+        import re
+        extra_services = []
+
+        # 2.1. Từ ServiceRequest (Yêu cầu gọi món & dịch vụ tại phòng)
+        completed_requests = booking.service_requests.filter(
+            status='completed'
+        ).select_related('service').order_by('created_at')
+
+        for req in completed_requests:
+            s_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
+            price = float(req.service.price if req.service else 0)
+            total = float(req.total_price or (price * req.quantity))
+            extra_services.append({
+                'id': f"req_{req.id}",
+                'request_id': req.id,
+                'source': 'service_request',
+                'service_name': s_name,
+                'quantity': req.quantity,
+                'price': price,
+                'total_price': total,
+                'status': req.status,
+                'status_display': req.get_status_display(),
+                'note': req.note or '',
+                'created_at': req.created_at.isoformat() if req.created_at else None
+            })
+
+        # 2.2. Từ BookingExtraService (Phụ phí lễ tân đã thêm tại quầy)
+        for bes in booking.extra_services.all().order_by('added_time'):
+            raw_name = (bes.service_name or '').strip()
+            if re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
+                continue
+            clean_name = re.sub(r'\(x\d+\)', '', raw_name)
+            clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()
+            total = float((bes.price or 0) * (bes.quantity or 1))
+
+            # Tránh trùng lặp với danh sách service_request đã có
+            if any(s['service_name'].lower() == clean_name.lower() and s['quantity'] == bes.quantity for s in extra_services):
+                continue
+
+            extra_services.append({
+                'id': f"extra_{bes.id}",
+                'extra_id': bes.id,
+                'source': 'extra_service',
+                'service_name': clean_name or raw_name,
+                'quantity': bes.quantity,
+                'price': float(bes.price or 0),
+                'total_price': total,
+                'status': 'completed',
+                'status_display': 'Đã hoàn thành',
+                'note': '',
+                'created_at': bes.added_time.isoformat() if bes.added_time else None
+            })
+
+        # 3. Tổng tiền dịch vụ (total_service_charge)
+        total_service_charge = float(sum(item['total_price'] for item in extra_services))
+
+        # 4. Tổng thanh toán cuối cùng (grand_total)
+        grand_total = float(room_charge + total_service_charge)
+
+        # 5. Thông tin hóa đơn đã có (nếu đơn đã từng lập hóa đơn)
+        invoice_info = None
+        if hasattr(booking, 'invoice') and booking.invoice:
+            inv = booking.invoice
+            invoice_info = {
+                'invoice_code': inv.invoice_code,
+                'room_charge': float(inv.room_charge),
+                'service_charge': float(inv.service_charge),
+                'total_amount': float(inv.total_amount),
+                'payment_method': inv.payment_method,
+                'payment_method_display': inv.get_payment_method_display(),
+                'status': inv.status,
+                'status_display': inv.get_status_display(),
+                'paid_at': inv.paid_at.isoformat() if inv.paid_at else None,
+                'created_at': inv.created_at.isoformat() if inv.created_at else None
+            }
+
+        return Response({
+            'success': True,
+            'booking_id': booking.id,
+            'booking_code': booking.booking_code,
+            'guest_name': booking.guest.get_full_name() or booking.guest.username,
+            'guest_phone': getattr(booking.guest, 'phone_number', '') or '',
+            'guest_email': booking.guest.email or '',
+            'identity_card': booking.identity_card or '',
+            'room_id': booking.room.id if booking.room else None,
+            'room_number': booking.room.room_number if booking.room else None,
+            'room_name': booking.category.name if booking.category else (booking.room.category.name if booking.room and booking.room.category else 'Phòng tiêu chuẩn'),
+            'check_in_date': booking.check_in_date,
+            'check_out_date': booking.check_out_date,
+            'actual_check_in': booking.actual_check_in.isoformat() if booking.actual_check_in else None,
+            'actual_check_out': booking.actual_check_out.isoformat() if booking.actual_check_out else None,
+            'nights': nights,
+            'daily_rate': daily_rate,
+            'room_charge': room_charge,
+            'extra_services': extra_services,
+            'total_service_charge': total_service_charge,
+            'grand_total': grand_total,
+            'status': booking.status,
+            'status_display': booking.get_status_display(),
+            'invoice': invoice_info
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='check-out')
+    def check_out(self, request, pk=None):
+        """
+        API POST /api/bookings/{id}/check-out/
+        Xử lý thanh toán và hoàn tất Check-out:
+        - Tạo bản ghi Invoice lưu tổng số tiền
+        - Cập nhật bảng Booking: Đổi trạng thái thành completed
+        - Cập nhật bảng Room: Đổi trạng thái phòng thành cleaning (Đang dọn dẹp)
+        """
+        booking = self.get_object()
+
+        # Kiểm tra trạng thái hợp lệ để Check-out (chỉ khi đang checked_in hoặc confirmed)
+        if booking.status not in ['checked_in', 'confirmed']:
+            return Response({
+                'success': False,
+                'message': f"Đơn đặt phòng đang ở trạng thái '{booking.get_status_display()}', không thể thực hiện Check-out."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        payment_method = request.data.get('payment_method', 'cash')
+        note = request.data.get('note', '').strip()
+
+        with transaction.atomic():
+            # 1. Tính toán room_charge, total_service_charge, grand_total
+            check_in = booking.check_in_date
+            check_out = booking.check_out_date
+            nights = max(1, (check_out - check_in).days) if (check_in and check_out) else 1
+
+            daily_rate = 0.0
+            if booking.category and booking.category.base_price:
+                daily_rate = float(booking.category.base_price)
+            elif booking.room and booking.room.category and booking.room.category.base_price:
+                daily_rate = float(booking.room.category.base_price)
+
+            if booking.total_amount and float(booking.total_amount) > 0:
+                room_charge = float(booking.total_amount)
+            else:
+                room_charge = float(daily_rate * nights)
+
+            # Tính phí dịch vụ hoàn thành
+            completed_requests = booking.service_requests.filter(status='completed').select_related('service')
+            total_service_charge = float(sum(
+                (req.total_price or ((req.service.price if req.service else 0) * req.quantity))
+                for req in completed_requests
+            ))
+
+            import re
+            for bes in booking.extra_services.all():
+                raw_name = (bes.service_name or '').strip()
+                if not re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
+                    total_service_charge += float((bes.price or 0) * (bes.quantity or 1))
+
+            grand_total = float(room_charge + total_service_charge)
+
+            # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền
+            invoice, created = Invoice.objects.update_or_create(
+                booking=booking,
+                defaults={
+                    'room_charge': room_charge,
+                    'service_charge': total_service_charge,
+                    'total_amount': grand_total,
+                    'payment_method': payment_method,
+                    'status': 'paid',
+                    'paid_at': timezone.now()
+                }
+            )
+
+            # 3. Cập nhật bảng Booking: Đổi trạng thái thành completed
+            booking.status = 'completed'
+            booking.actual_check_out = timezone.now()
+            if note:
+                checkout_note = f"[Check-out: {invoice.get_payment_method_display() or payment_method} - {timezone.now().strftime('%d/%m/%Y %H:%M')}]: {note}"
+                booking.internal_note = f"{booking.internal_note}\n{checkout_note}".strip() if booking.internal_note else checkout_note
+            booking.save(update_fields=['status', 'actual_check_out', 'internal_note', 'updated_at'])
+
+            # 4. Cập nhật bảng Room: Đổi trạng thái phòng thành cleaning (Đang dọn dẹp)
+            room_info = None
+            if booking.room:
+                booking.room.status = 'cleaning'
+                booking.room.save(update_fields=['status'])
+                room_info = {
+                    'id': booking.room.id,
+                    'room_number': booking.room.room_number,
+                    'status': booking.room.status,
+                    'status_display': booking.room.get_status_display()
+                }
+
+        serializer = self.get_serializer(booking, context={'request': request})
+        return Response({
+            'success': True,
+            'message': f"Đã hoàn tất thanh toán và Check-out thành công cho phòng {booking.room.room_number if booking.room else ''}!",
+            'invoice': {
+                'invoice_code': invoice.invoice_code,
+                'room_charge': float(invoice.room_charge),
+                'service_charge': float(invoice.service_charge),
+                'total_amount': float(invoice.total_amount),
+                'payment_method': invoice.payment_method,
+                'payment_method_display': invoice.get_payment_method_display(),
+                'status': invoice.status,
+                'paid_at': invoice.paid_at.isoformat() if invoice.paid_at else None
+            },
+            'booking': serializer.data,
+            'room': room_info
         }, status=status.HTTP_200_OK)
 
 

@@ -293,6 +293,55 @@ export const bookingService = {
                     'Không thể xóa dịch vụ. Vui lòng thử lại.'
             };
         }
+    },
+    /**
+     * Lấy Bảng kê chi tiết tiền phòng và dịch vụ trước khi thanh toán Check-out
+     * GET /api/bookings/:id/summary/
+     * @param {number|string} bookingId 
+     */
+    async getBookingSummary(bookingId) {
+        try {
+            const response = await api.get(`/bookings/${bookingId}/summary/`);
+            return {
+                success: true,
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi lấy bảng kê thanh toán:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể lấy bảng kê chi tiết thanh toán.'
+            };
+        }
+    },
+
+    /**
+     * Thực hiện Check-out và Lập hóa đơn thanh toán tổng
+     * POST /api/bookings/:id/check-out/
+     * @param {number|string} bookingId 
+     * @param {Object} payload - { payment_method: 'cash'|'credit_card'|'bank_transfer'|'momo', note: '' }
+     */
+    async checkOut(bookingId, payload = {}) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/check-out/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Check-out và lập hóa đơn thành công!',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi thực hiện Check-out:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể thực hiện Check-out. Vui lòng thử lại.'
+            };
+        }
     }
 };
 

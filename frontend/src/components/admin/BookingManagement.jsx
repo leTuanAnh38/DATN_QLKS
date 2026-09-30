@@ -3,6 +3,7 @@ import { bookingService } from '../../services/bookingService';
 import { hotelService } from '../../services/hotelService';
 import roomService from '../../services/roomService';
 import HotelInvoiceModal from './HotelInvoiceModal';
+import CheckOutModal from './CheckOutModal';
 
 // Format ngày tháng DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -38,6 +39,7 @@ const STATUS_OPTIONS = [
     { value: 'confirmed', label: 'Đã xác nhận (Confirmed)', color: 'bg-blue-50 text-blue-800 border-blue-300 focus:ring-blue-500' },
     { value: 'checked_in', label: 'Đã Check-in (Checked-in)', color: 'bg-emerald-50 text-emerald-800 border-emerald-300 focus:ring-emerald-500' },
     { value: 'checked_out', label: 'Đã Check-out (Checked-out)', color: 'bg-purple-50 text-purple-800 border-purple-300 focus:ring-purple-500' },
+    { value: 'completed', label: 'Đã Hoàn tất (Completed)', color: 'bg-indigo-50 text-indigo-800 border-indigo-300 focus:ring-indigo-500' },
     { value: 'cancelled', label: 'Đã Hủy (Cancelled)', color: 'bg-rose-50 text-rose-800 border-rose-300 focus:ring-rose-500' }
 ];
 
@@ -102,6 +104,9 @@ export default function BookingManagement({ onBookingChanged }) {
         note: '',
         service_status: 'completed'
     });
+
+    // 8. State Modal Check-out (Bảng kê thanh toán & Trả phòng)
+    const [checkOutModalBooking, setCheckOutModalBooking] = useState(null);
 
     // Helper hiển thị thông báo toast
     const showToast = (type, message) => {
@@ -696,11 +701,11 @@ export default function BookingManagement({ onBookingChanged }) {
         const pending = bookings.filter((b) => b.status === 'pending').length;
         const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
         const checkedIn = bookings.filter((b) => b.status === 'checked_in').length;
-        const checkedOut = bookings.filter((b) => b.status === 'checked_out').length;
+        const checkedOut = bookings.filter((b) => b.status === 'checked_out' || b.status === 'completed').length;
         const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
 
         const totalRevenue = bookings
-            .filter((b) => ['confirmed', 'checked_in', 'checked_out'].includes(b.status))
+            .filter((b) => ['confirmed', 'checked_in', 'checked_out', 'completed'].includes(b.status))
             .reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
 
         return { total, pending, confirmed, checkedIn, checkedOut, cancelled, totalRevenue };
@@ -710,8 +715,12 @@ export default function BookingManagement({ onBookingChanged }) {
     const filteredBookings = useMemo(() => {
         return bookings.filter((item) => {
             // Lọc trạng thái từ Dropdown
-            if (statusFilter !== 'all' && item.status !== statusFilter) {
-                return false;
+            if (statusFilter !== 'all') {
+                if (statusFilter === 'checked_out') {
+                    if (item.status !== 'checked_out' && item.status !== 'completed') return false;
+                } else if (item.status !== statusFilter) {
+                    return false;
+                }
             }
             // Lọc từ khóa tìm kiếm
             if (searchKeyword.trim()) {
@@ -890,7 +899,7 @@ export default function BookingManagement({ onBookingChanged }) {
                                 <option value="pending">⏳ Chờ duyệt (Pending - {stats.pending})</option>
                                 <option value="confirmed">✓ Đã xác nhận (Confirmed - {stats.confirmed})</option>
                                 <option value="checked_in">🏨 Đang lưu trú (Checked-in - {stats.checkedIn})</option>
-                                <option value="checked_out">🏁 Đã trả phòng (Checked-out - {stats.checkedOut})</option>
+                                <option value="checked_out">🏁 Đã trả phòng (Checked-out / Completed - {stats.checkedOut})</option>
                                 <option value="cancelled">✕ Đã hủy (Cancelled - {stats.cancelled})</option>
                             </select>
                         </div>
@@ -1118,6 +1127,17 @@ export default function BookingManagement({ onBookingChanged }) {
                                                         >
                                                             <span className="text-sm">🔑</span>
                                                             <span>Thực hiện Check-in</span>
+                                                        </button>
+                                                    )}
+                                                    {booking.status === 'checked_in' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setCheckOutModalBooking(booking)}
+                                                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 animate-pulse hover:animate-none"
+                                                            title="Thực hiện thủ tục thanh toán và Check-out trả phòng"
+                                                        >
+                                                            <span className="text-sm">🧾</span>
+                                                            <span>Thực hiện Check-out</span>
                                                         </button>
                                                     )}
                                                     <button
@@ -1546,6 +1566,21 @@ export default function BookingManagement({ onBookingChanged }) {
                                     >
                                         <span>🔑</span>
                                         <span>Thực hiện Check-in ngay</span>
+                                    </button>
+                                )}
+
+                                {selectedBooking.status === 'checked_in' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const bk = selectedBooking;
+                                            setSelectedBooking(null);
+                                            setCheckOutModalBooking(bk);
+                                        }}
+                                        className="px-4 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/25 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                    >
+                                        <span>🧾</span>
+                                        <span>Thực hiện Check-out & Lập Hóa Đơn</span>
                                     </button>
                                 )}
                             </div>
@@ -2622,6 +2657,26 @@ export default function BookingManagement({ onBookingChanged }) {
                 <HotelInvoiceModal
                     booking={invoiceModalBooking}
                     onClose={() => setInvoiceModalBooking(null)}
+                />
+            )}
+
+            {/* ========================================================================= */}
+            {/* MODAL CHECK-OUT & LẬP HÓA ĐƠN TỔNG TRẢ PHÒNG */}
+            {/* ========================================================================= */}
+            {checkOutModalBooking && (
+                <CheckOutModal
+                    booking={checkOutModalBooking}
+                    onClose={() => setCheckOutModalBooking(null)}
+                    onSuccess={(result) => {
+                        showToast('success', result?.message || 'Check-out và thanh toán thành công!');
+                        fetchBookings(true);
+                        if (typeof onBookingChanged === 'function') {
+                            onBookingChanged();
+                        }
+                    }}
+                    onOpenInvoice={(bookingData) => {
+                        setInvoiceModalBooking(bookingData);
+                    }}
                 />
             )}
         </div>
