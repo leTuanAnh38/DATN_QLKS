@@ -772,21 +772,21 @@ export default function ServicesMenu() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-scale-up">
                             {/* Modal Header */}
-                            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
+                            <div className="bg-white text-slate-900 px-6 py-4 flex items-center justify-between border-b border-slate-200">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-xl shrink-0 border border-amber-400/30">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0 border border-amber-200">
                                         📜
                                     </div>
                                     <div>
-                                        <h3 className="font-serif text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                                        <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                                             <span>Lịch Sử Đặt Món & Dịch Vụ Tại Phòng</span>
                                             {activeOrdersCount > 0 && (
-                                                <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
+                                                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase shadow-xs">
                                                     {activeOrdersCount} đang xử lý
                                                 </span>
                                             )}
                                         </h3>
-                                        <p className="text-[11px] text-slate-400 mt-0.5">
+                                        <p className="text-[11px] text-slate-500 mt-0.5">
                                             Theo dõi thời gian thực tiến độ tiếp nhận, chế biến và phục vụ tận phòng của bạn.
                                         </p>
                                     </div>
@@ -797,7 +797,7 @@ export default function ServicesMenu() {
                                         type="button"
                                         onClick={() => fetchOrderHistory()}
                                         disabled={isLoadingHistory}
-                                        className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                         title="Làm mới trạng thái"
                                     >
                                         <span className={isLoadingHistory ? 'animate-spin' : ''}>🔄</span>
@@ -806,7 +806,7 @@ export default function ServicesMenu() {
                                     <button
                                         type="button"
                                         onClick={() => setIsHistoryModalOpen(false)}
-                                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm font-bold transition cursor-pointer"
+                                        className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 border border-slate-200 flex items-center justify-center text-sm font-bold transition cursor-pointer"
                                         title="Đóng"
                                     >
                                         ✕
