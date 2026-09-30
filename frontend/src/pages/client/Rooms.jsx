@@ -78,20 +78,22 @@ export default function RoomsAndSuitesPage() {
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white flex flex-col">
             <Navbar />
 
-            {/* 1. HERO BREADCRUMB & BANNER */}
-            <section className="bg-white border-b border-slate-200 pt-8 pb-10">
+            {/* BREADCRUMB */}
+            <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <nav className="flex items-center space-x-2 text-xs text-slate-500 mb-4">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
                         <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
                         <span>/</span>
-                        <span className="text-blue-600 font-medium">Phòng nghỉ & Suites</span>
+                        <span className="text-slate-900 font-semibold">Phòng nghỉ & Suites</span>
                     </nav>
+                </div>
+            </div>
 
+            {/* 1. HERO BANNER */}
+            <section className="bg-white border-b border-slate-200 py-8 lg:py-10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
                         <div className="max-w-3xl">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider mb-3">
-                                💎 Bộ Sưu Tập Phòng Thượng Lưu 2026
-                            </span>
                             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
                                 Tuyệt Tác Không Gian Nghỉ Dưỡng Biển Mỹ Khê
                             </h1>
