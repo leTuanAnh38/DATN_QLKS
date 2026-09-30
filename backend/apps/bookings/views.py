@@ -8,9 +8,10 @@ from django.utils import timezone
 from datetime import datetime
 from django.db.models import Q
 from django.db import transaction
-from .models import Booking, Promotion
+from .models import Booking, Promotion, BookingExtraService
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile
+from ..services.models import ServiceItem, ServiceRequest
 from .serializers import BookingSerializer, PromotionSerializer
 
 
@@ -37,6 +38,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         # Luôn tạo mới QuerySet từ DB (.all()) để tránh lưu cache kết quả cũ trong bộ nhớ (QuerySet._result_cache)
         base_qs = Booking.objects.select_related(
             'guest', 'category', 'room', 'room__category', 'applied_promotion'
+        ).prefetch_related(
+            'extra_services', 'service_requests', 'service_requests__service'
         ).all().order_by('-created_at')
 
         # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL
@@ -844,6 +847,195 @@ class BookingViewSet(viewsets.ModelViewSet):
             'check_out_date': str(check_out),
             'suggested_categories': suggested
         })
+
+    @action(detail=True, methods=['post'], url_path='add-extra-service')
+    def add_extra_service(self, request, pk=None):
+        """
+        Lễ tân / Quản trị viên thêm dịch vụ phát sinh hoặc gọi món cho đơn đặt phòng:
+        - Dành cho khách yêu cầu tại quầy lễ tân hoặc gọi điện thoại.
+        - Khách đặt thêm món ăn / nước uống / dịch vụ khách sạn.
+        - Ghi nhận phụ thu tùy chỉnh (minibar, đền bù đồ vỡ, check-in sớm, v.v.).
+        POST /api/bookings/<id>/add-extra-service/
+        """
+        booking = self.get_object()
+        user = request.user
+
+        # 1. Kiểm tra phân quyền nhân viên / lễ tân / quản trị
+        is_staff_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+        if not is_staff_or_admin:
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn hoặc quản lý mới có quyền thêm dịch vụ vào đơn đặt phòng.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        if booking.status == 'cancelled':
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} đã bị hủy. Không thể thêm dịch vụ phát sinh.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        service_id = request.data.get('service_id')
+        custom_name = (request.data.get('custom_name') or request.data.get('service_name') or '').strip()
+
+        try:
+            quantity = int(request.data.get('quantity', 1))
+            if quantity < 1:
+                quantity = 1
+        except (ValueError, TypeError):
+            quantity = 1
+
+        price_input = request.data.get('price')
+        note = (request.data.get('note') or '').strip()
+        service_status = request.data.get('service_status', 'completed')
+        if service_status not in ['completed', 'pending', 'in_progress']:
+            service_status = 'completed'
+
+        if not service_id and not custom_name:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn một dịch vụ từ danh mục hoặc nhập tên phụ phí tùy chỉnh.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        staff_name = user.get_full_name() or user.username if user.is_authenticated else 'Lễ tân'
+
+        with transaction.atomic():
+            if service_id:
+                service_item = ServiceItem.objects.filter(pk=service_id).first()
+                if not service_item:
+                    return Response({
+                        'success': False,
+                        'message': 'Dịch vụ được chọn không tồn tại trong hệ thống.'
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+                unit_price = float(price_input) if price_input is not None and str(price_input).strip() != '' else float(service_item.price)
+                total_price = unit_price * quantity
+                clean_name = service_item.name.strip()
+
+                auto_note = note or f"Lễ tân {staff_name} tiếp nhận tại quầy / qua điện thoại"
+
+                req = ServiceRequest.objects.create(
+                    booking=booking,
+                    service=service_item,
+                    quantity=quantity,
+                    total_price=total_price,
+                    status=service_status,
+                    note=auto_note,
+                    request_time=now
+                )
+
+                if service_status == 'completed':
+                    # Đồng bộ vào BookingExtraService để tính vào hóa đơn
+                    service_name_bill = f"{clean_name} [Yêu cầu #{req.id}]"
+                    BookingExtraService.objects.create(
+                        booking=booking,
+                        service_name=service_name_bill,
+                        quantity=quantity,
+                        price=unit_price
+                    )
+                    msg = f'Đã thêm dịch vụ "{clean_name}" (x{quantity}) vào hóa đơn thanh toán thành công!'
+                else:
+                    msg = f'Đã tạo yêu cầu "{clean_name}" (x{quantity}) thành công! Đã gửi thông báo đến bộ phận liên quan để chuẩn bị.'
+
+            else:
+                # Custom name (phụ phí ngoài menu: minibar, đền bù, phụ thu, v.v.)
+                if price_input is None or str(price_input).strip() == '':
+                    return Response({
+                        'success': False,
+                        'message': 'Vui lòng nhập đơn giá cho khoản phụ thu này.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    unit_price = float(price_input)
+                    if unit_price < 0:
+                        raise ValueError()
+                except ValueError:
+                    return Response({
+                        'success': False,
+                        'message': 'Đơn giá không hợp lệ. Vui lòng nhập số tiền lớn hơn hoặc bằng 0.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                bes_name = custom_name
+                if note:
+                    bes_name = f"{custom_name} ({note})"
+
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name=bes_name,
+                    quantity=quantity,
+                    price=unit_price
+                )
+                msg = f'Đã ghi nhận phụ phí "{custom_name}" (x{quantity}) vào đơn đặt phòng thành công!'
+
+        # Trả về đối tượng Booking đã cập nhật mới nhất
+        booking.refresh_from_db()
+        serializer = self.get_serializer(booking, context={'request': request})
+        return Response({
+            'success': True,
+            'message': msg,
+            'booking': serializer.data,
+            **serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='remove-extra-service')
+    def remove_extra_service(self, request, pk=None):
+        """
+        Lễ tân / Quản trị viên xóa phụ phí hoặc dịch vụ khỏi đơn đặt phòng:
+        POST /api/bookings/<id>/remove-extra-service/
+        Payload: { "item_id": "req_9" | 3 }
+        """
+        booking = self.get_object()
+        user = request.user
+
+        is_staff_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+        if not is_staff_or_admin:
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn hoặc quản lý mới có quyền xóa phụ phí.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        item_id = str(request.data.get('item_id', '')).strip()
+        if not item_id:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng cung cấp mã dịch vụ / phụ phí cần xóa.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            if item_id.startswith('req_'):
+                try:
+                    req_id = int(item_id.replace('req_', ''))
+                    ServiceRequest.objects.filter(pk=req_id, booking=booking).delete()
+                    BookingExtraService.objects.filter(booking=booking, service_name__contains=f"[Yêu cầu #{req_id}]").delete()
+                except (ValueError, TypeError):
+                    pass
+            elif item_id.isdigit():
+                BookingExtraService.objects.filter(pk=int(item_id), booking=booking).delete()
+            else:
+                BookingExtraService.objects.filter(pk=item_id, booking=booking).delete()
+
+        booking.refresh_from_db()
+        serializer = self.get_serializer(booking, context={'request': request})
+        return Response({
+            'success': True,
+            'message': 'Đã xóa dịch vụ / phụ phí khỏi đơn đặt phòng thành công.',
+            'booking': serializer.data,
+            **serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class ValidatePromoCodeView(APIView):

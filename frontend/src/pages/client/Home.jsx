@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import FeaturedRoomCategories from '../../components/client/FeaturedRoomCategories';
+import FeaturedServices from '../../components/client/FeaturedServices';
 // Dữ liệu danh sách phòng nghỉ
 const ROOMS_DATA = [
     {
@@ -291,78 +292,8 @@ export default function TADaNangHotelLanding() {
                 <FeaturedRoomCategories />
             </div>
 
-            {/* 6. EXPERIENCES & AMENITIES */}
-            <section id="dich-vu-spa" className="py-20 bg-slate-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center max-w-3xl mx-auto mb-16">
-                        <div className="text-xs uppercase font-bold tracking-widest text-orange-600 mb-2">
-                            ĐẶC QUYỀN TRẢI NGHIỆM ĐẲNG CẤP
-                        </div>
-                        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                            Nghệ Thuật Tận Hưởng Không Giới Hạn
-                        </h2>
-                        <p className="text-slate-600 text-sm sm:text-base">
-                            Mỗi khoảnh khắc tại Khách Sạn TA Đà Nẵng đều được dày công biên soạn để đánh thức mọi giác quan và phục hồi năng lượng sống thuần khiết.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Feature 1 */}
-                        <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition group">
-                            <div className="relative h-64 overflow-hidden">
-                                <img
-                                    src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"
-                                    alt="Nhà Hàng Biển L'Océan"
-                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                                />
-                                <span className="absolute top-4 left-4 bg-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase">
-                                    Michelin Selected
-                                </span>
-                            </div>
-                            <div className="p-6">
-                                <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Ẩm thực đỉnh cao</span>
-                                <h3 className="font-serif text-xl font-bold text-slate-900 mt-1 mb-2">Nhà Hàng Biển L'Océan & Horizon Sky Lounge</h3>
-                                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
-                                    Hương vị tinh tuyển từ hải sản tươi sống đánh bắt trong ngày hòa tấu cùng nghệ thuật ẩm thực đương đại của các bếp trưởng hàng đầu thế giới, kết hợp bộ sưu tập hơn 400 loại vang quý hiếm.
-                                </p>
-                                <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs">
-                                    <span className="text-slate-500">Phục vụ: 06:30 - 23:30 hàng ngày</span>
-                                    <Link to="/dining" className="font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                                        Đặt Bàn Ngay →
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Feature 2 */}
-                        <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition group">
-                            <div className="relative h-64 overflow-hidden">
-                                <img
-                                    src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80"
-                                    alt="The Lotus Spa"
-                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                                />
-                                <span className="absolute top-4 left-4 bg-emerald-600 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase">
-                                    Liệu pháp thảo dược
-                                </span>
-                            </div>
-                            <div className="p-6">
-                                <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Thư giãn & Phục hồi thân - tâm</span>
-                                <h3 className="font-serif text-xl font-bold text-slate-900 mt-1 mb-2">The Lotus Spa & Onsen Khoáng Nóng Tự Nhiên</h3>
-                                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
-                                    Phương pháp bấm huyệt cổ truyền Á Đông kết hợp bồn ngâm khoáng nóng Onsen tinh khiết giúp thải độc sâu, xua tan căng thẳng và mang lại giấc ngủ trọn vẹn.
-                                </p>
-                                <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs">
-                                    <span className="text-slate-500">12 Phòng Trị Liệu VIP Riêng Biệt</span>
-                                    <Link to="/spa" className="font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                                        Xem Menu Spa →
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            {/* 6. HOTEL SERVICES & CUISINE MENU (Connected to PMS & Services API) */}
+            <FeaturedServices />
 
             {/* 7. EXCLUSIVE PACKAGES & OFFERS */}
             <section id="uu-dai" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

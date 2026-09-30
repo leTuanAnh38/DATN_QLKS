@@ -7,6 +7,8 @@ import EmployeeManagement from '../../components/admin/EmployeeManagement';
 import RoomManagement from '../../components/admin/RoomManagement';
 import CategoryManagement from '../../components/admin/CategoryManagement';
 import BookingManagement from '../../components/admin/BookingManagement';
+import ServiceRequestKanban from '../../components/admin/ServiceRequestKanban';
+import ServiceManagement from '../../components/admin/ServiceManagement';
 import UserAvatar from '../../components/common/UserAvatar';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
@@ -401,17 +403,38 @@ export default function HotelAdminDashboard() {
                                 </span>
                             </button>
 
-                            {/* 6. Quản lý Dịch vụ */}
+                            {/* 6. Quản lý Dịch vụ (Concierge & Kanban) */}
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('services')}
-                                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${activeTab === 'services' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${activeTab === 'services' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                                <span>Quản lý Dịch vụ</span>
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    <span>Yêu cầu Dịch vụ</span>
+                                </div>
+                                <span className="bg-purple-500/30 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-400/30">
+                                    Kanban
+                                </span>
+                            </button>
+
+                            {/* 7. Quản lý Danh mục Dịch vụ & Thực đơn (CRUD) */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('service-items')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${activeTab === 'service-items' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm shrink-0">🍽️</span>
+                                    <span>Danh mục Dịch vụ</span>
+                                </div>
+                                <span className="bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
+                                    Menu
+                                </span>
                             </button>
 
                             {/* 7. Thanh toán & Hóa đơn */}
@@ -568,6 +591,12 @@ export default function HotelAdminDashboard() {
                     {/* TAB 5: QUẢN LÝ DANH SÁCH ĐẶT PHÒNG (LỄ TÂN & ADMIN) */}
                     {activeTab === 'bookings' && <BookingManagement onBookingChanged={loadRealBookingStats} />}
 
+                    {/* TAB 6: QUẢN LÝ YÊU CẦU DỊCH VỤ TẠI PHÒNG (KANBAN BOARD) */}
+                    {activeTab === 'services' && <ServiceRequestKanban />}
+
+                    {/* TAB 7: QUẢN LÝ THỰC ĐƠN & DANH MỤC DỊCH VỤ (CRUD) */}
+                    {activeTab === 'service-items' && <ServiceManagement />}
+
                     {/* TAB TỔNG QUAN HỆ THỐNG */}
                     {activeTab === 'overview' && (
                         <>
@@ -657,6 +686,22 @@ export default function HotelAdminDashboard() {
                                         <span>📅</span>
                                         <span>Xử Lý Đặt Phòng</span>
                                     </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('services')}
+                                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-600/25 transition flex items-center gap-1.5"
+                                    >
+                                        <span>🛎️</span>
+                                        <span>Kanban Dịch Vụ</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('service-items')}
+                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center gap-1.5"
+                                    >
+                                        <span>🍽️</span>
+                                        <span>Quản Lý Thực Đơn</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -727,25 +772,28 @@ export default function HotelAdminDashboard() {
                                     </div>
                                 </div>
 
-                                {/* 4. Yêu cầu dịch vụ */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                                {/* 4. Yêu cầu dịch vụ (Concierge & In-Room Dining) */}
+                                <div 
+                                    onClick={() => setActiveTab('services')}
+                                    className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition cursor-pointer group"
+                                >
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400"> YÊU CẦU DỊCH VỤ </span>
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs"> 🔔 </div>
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-blue-600 transition"> YÊU CẦU DỊCH VỤ TẠI PHÒNG </span>
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition"> 🛎️ </div>
                                         </div>
                                         <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-                                            28 <span className="text-xs font-normal text-slate-500">Yêu cầu nóng</span>
+                                            Điều Phối <span className="text-xs font-normal text-slate-500">Kanban Board</span>
                                         </div>
                                         <div className="text-xs text-slate-500 flex items-center gap-3">
-                                            <span>Spa: <strong className="text-slate-800">12</strong></span>
-                                            <span>F&B: <strong className="text-slate-800">10</strong></span>
-                                            <span>Shuttle: <strong className="text-slate-800">6</strong></span>
+                                            <span>F&B: <strong className="text-slate-800">Gọi món</strong></span>
+                                            <span>Spa: <strong className="text-slate-800">Trị liệu</strong></span>
+                                            <span>Laundry: <strong className="text-slate-800">Giặt ủi</strong></span>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                                        <span>Trạng thái phân bổ</span>
-                                        <strong className="text-blue-600">8 Chưa điều phối</strong>
+                                        <span>Bảng Kanban điều phối</span>
+                                        <strong className="text-blue-600 group-hover:underline">Mở bảng điều phối →</strong>
                                     </div>
                                 </div>
                             </div>
@@ -1049,7 +1097,7 @@ export default function HotelAdminDashboard() {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'employees', 'rooms', 'categories', 'bookings'].includes(activeTab) && (
+                    {!['overview', 'guests', 'employees', 'rooms', 'categories', 'bookings', 'services', 'service-items'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

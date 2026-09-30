@@ -59,8 +59,7 @@ export default function Footer() {
                         <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">Khám phá & Dịch vụ</h5>
                         <ul className="space-y-2 text-xs text-slate-600">
                             <li><Link to="/rooms" className="hover:text-blue-600 transition">Phòng nghỉ & Suites Cao Cấp</Link></li>
-                            <li><Link to="/dining" className="hover:text-blue-600 transition">Nhà hàng & Sky Bar Michelin</Link></li>
-                            <li><Link to="/spa" className="hover:text-blue-600 transition">The Lotus Spa & Wellness</Link></li>
+                            <li><Link to="/services" className="hover:text-blue-600 transition">Menu Dịch Vụ & Ẩm Thực Tại Phòng</Link></li>
                             <li><Link to="/promotions" className="hover:text-blue-600 transition">Ưu đãi & Gói nghỉ dưỡng</Link></li>
                             <li><Link to="/contact" className="hover:text-blue-600 transition">Liên hệ & Hướng dẫn đường đi</Link></li>
                             <li><Link to="/login" className="hover:text-blue-600 transition text-amber-600 font-semibold">Hội viên TA Club: Đăng nhập / Đăng ký</Link></li>

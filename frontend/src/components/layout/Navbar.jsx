@@ -66,14 +66,9 @@ export default function Navbar({
             isActive: (path) => path === '/rooms' || path.startsWith('/rooms/') || path.startsWith('/room/')
         },
         {
-            name: 'Ẩm thực & Bar',
-            path: '/dining',
-            isActive: (path) => path.startsWith('/dining')
-        },
-        {
-            name: 'Dịch vụ Spa',
-            path: '/spa',
-            isActive: (path) => path.startsWith('/spa')
+            name: 'Menu Dịch vụ',
+            path: '/services',
+            isActive: (path) => path.startsWith('/services') || path.startsWith('/menu')
         },
         {
             name: 'Ưu đãi đặc quyền',

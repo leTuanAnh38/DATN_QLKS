@@ -66,17 +66,25 @@ export default function HotelInvoiceModal({ booking, onClose }) {
     };
 
     const nights = Math.max(1, Number(booking.nights) || 1);
-    const totalAmount = Number(booking.total_amount) || 0;
+    const roomAmount = Number(booking.room_amount || booking.total_amount) || 0;
     
     // Đơn giá phòng theo đêm:
-    // Nếu có daily_rate từ backend thì dùng, ngược lại tính tạm từ total_amount / nights
+    // Nếu có daily_rate từ backend thì dùng, ngược lại tính tạm từ roomAmount / nights
     let pricePerNight = Number(booking.daily_rate) || 0;
     if (!pricePerNight || pricePerNight <= 0) {
-        pricePerNight = Math.round(totalAmount / nights);
+        pricePerNight = Math.round(roomAmount / nights);
     }
 
     const roomSubtotal = pricePerNight * nights;
-    const discountAmount = Math.max(0, roomSubtotal - totalAmount);
+    const discountAmount = Math.max(0, roomSubtotal - roomAmount);
+
+    // Phụ phí dịch vụ phát sinh tại phòng (In-Room Dining / Services)
+    const extraServices = Array.isArray(booking.extra_services) ? booking.extra_services : [];
+    const extraServicesTotal = Number(booking.extra_services_total) || 
+        extraServices.reduce((sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)), 0);
+
+    // Tổng thanh toán thực tế (Grand Total bao gồm cả tiền phòng và toàn bộ dịch vụ phát sinh)
+    const grandTotal = Number(booking.grand_total_amount) || (roomAmount + extraServicesTotal);
     const bookingCodeDisplay = `#${String(booking.booking_code || '').replace('-', '')}`;
     const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
 
@@ -320,6 +328,35 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                             {formatCurrency(roomSubtotal)}
                                         </td>
                                     </tr>
+
+                                    {/* CÁC DÒNG DỊCH VỤ PHÁT SINH / GỌI MÓN TẠI PHÒNG */}
+                                    {extraServices.map((service, idx) => {
+                                        const cleanName = (service.service_name || '')
+                                            .replace(/\[Yêu cầu #\d+\]/gi, '')
+                                            .replace(/\(x\d+\)/gi, '')
+                                            .trim();
+                                        return (
+                                            <tr key={service.id || idx} className="border-b border-slate-200">
+                                                <td className="py-2.5 text-left">
+                                                    <div className="font-bold text-slate-900 text-xs">
+                                                        {cleanName}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500">
+                                                        Dịch vụ phát sinh / Gọi món tại phòng
+                                                    </div>
+                                                </td>
+                                                <td className="py-2.5 text-right text-slate-800 font-medium">
+                                                    {formatCurrency(service.price)}
+                                                </td>
+                                                <td className="py-2.5 text-center text-slate-800 font-medium">
+                                                    {service.quantity}
+                                                </td>
+                                                <td className="py-2.5 text-right font-bold text-slate-900">
+                                                    {formatCurrency(service.total_price || (service.price * service.quantity))}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -354,18 +391,29 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                             )}
 
                             <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
-                                <span className="text-slate-500">Tạm tính:</span>
+                                <span className="text-slate-500">Tiền phòng sau ưu đãi:</span>
                                 <span className="font-medium text-slate-900 w-28 text-right">
-                                    {formatCurrency(totalAmount)}
+                                    {formatCurrency(roomAmount)}
                                 </span>
                             </div>
+
+                            {extraServicesTotal > 0 && (
+                                <div className="flex justify-between sm:justify-end gap-6 text-slate-700 font-semibold">
+                                    <span>
+                                        Dịch vụ phát sinh ({extraServices.length} món):
+                                    </span>
+                                    <span className="w-28 text-right text-slate-900">
+                                        +{formatCurrency(extraServicesTotal)}
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="pt-3 border-t border-slate-300 flex justify-between sm:justify-end items-baseline gap-6">
                                 <span className="font-bold text-xs sm:text-sm text-slate-900 uppercase">
                                     Tổng thanh toán (Grand Total):
                                 </span>
-                                <span className="font-bold text-base sm:text-lg text-slate-900 w-32 text-right">
-                                    {formatCurrency(totalAmount)}
+                                <span className="font-bold text-base sm:text-lg text-slate-900 w-36 text-right">
+                                    {formatCurrency(grandTotal)}
                                 </span>
                             </div>
                         </div>

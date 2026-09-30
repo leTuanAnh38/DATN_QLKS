@@ -241,6 +241,58 @@ export const bookingService = {
                 message: error.response?.data?.message || 'Không thể kiểm tra tình trạng phòng.'
             };
         }
+    },
+
+    /**
+     * Nhân viên thêm dịch vụ phát sinh hoặc gọi món cho khách (tại quầy / gọi điện thoại)
+     * POST /api/bookings/:id/add-extra-service/
+     * @param {number|string} bookingId 
+     * @param {Object} payload - { service_id, custom_name, quantity, price, note, service_status }
+     */
+    async addExtraService(bookingId, payload) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/add-extra-service/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Đã thêm dịch vụ thành công!',
+                booking: response.data?.booking || response.data?.data || response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi thêm dịch vụ cho khách:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể thêm dịch vụ. Vui lòng kiểm tra lại thông tin.'
+            };
+        }
+    },
+
+    /**
+     * Nhân viên xóa dịch vụ / phụ phí khỏi đơn đặt phòng
+     * POST /api/bookings/:id/remove-extra-service/
+     * @param {number|string} bookingId 
+     * @param {string|number} itemId 
+     */
+    async removeExtraService(bookingId, itemId) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/remove-extra-service/`, { item_id: itemId });
+            return {
+                success: true,
+                message: response.data?.message || 'Đã xóa dịch vụ thành công!',
+                booking: response.data?.booking || response.data?.data || response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi xóa dịch vụ:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể xóa dịch vụ. Vui lòng thử lại.'
+            };
+        }
     }
 };
 

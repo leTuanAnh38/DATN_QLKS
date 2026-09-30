@@ -1,16 +1,15 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Home from './pages/client/Home';
 import Rooms from './pages/client/Rooms';
 import DetailRoom from './pages/client/DetailRoom';
 import Checkout from './pages/client/Checkout';
-import DiningAndBar from './pages/client/DiningAndBar';
-import SpaAndWellness from './pages/client/SpaAndWellness';
 import Promotions from './pages/client/Promotions';
 import Contact from './pages/client/Contact';
 import Profile from './pages/client/Profile';
 import BookingHistory from './pages/client/BookingHistory';
+import ServicesMenu from './pages/client/ServicesMenu';
 import Login from './pages/auth/login';
 
 function ScrollToTop() {
@@ -49,11 +48,13 @@ function App() {
         <Route path="/bookings" element={<BookingHistory />} />
         <Route path="/my-bookings" element={<BookingHistory />} />
 
-        {/* Trang Ẩm thực & Bar */}
-        <Route path="/dining" element={<DiningAndBar />} />
+        {/* Chuyển hướng các trang cũ về Menu Dịch vụ */}
+        <Route path="/dining" element={<Navigate to="/services" replace />} />
+        <Route path="/spa" element={<Navigate to="/services" replace />} />
 
-        {/* Trang Dịch vụ Spa */}
-        <Route path="/spa" element={<SpaAndWellness />} />
+        {/* Trang Menu Dịch vụ Tại Phòng */}
+        <Route path="/services" element={<ServicesMenu />} />
+        <Route path="/menu" element={<ServicesMenu />} />
 
         {/* Trang Ưu đãi đặc quyền */}
         <Route path="/promotions" element={<Promotions />} />

@@ -11,6 +11,17 @@ class PromotionSerializer(serializers.ModelSerializer):
         fields = ['id', 'code', 'discount_type', 'discount_value', 'is_active', 'min_order_value']
 
 
+class BookingExtraServiceSerializer(serializers.ModelSerializer):
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BookingExtraService
+        fields = ['id', 'service_name', 'quantity', 'price', 'total_price', 'added_time']
+
+    def get_total_price(self, obj):
+        return float((obj.price or 0) * (obj.quantity or 1))
+
+
 class BookingSerializer(serializers.ModelSerializer):
     room_name = serializers.SerializerMethodField()
     room_number = serializers.SerializerMethodField()
@@ -23,6 +34,13 @@ class BookingSerializer(serializers.ModelSerializer):
     guest_email = serializers.CharField(source='guest.email', read_only=True)
     promotion_code = serializers.CharField(source='applied_promotion.code', read_only=True, default=None)
     daily_rate = serializers.SerializerMethodField()
+    
+    # Phụ phí & Dịch vụ phát sinh tại phòng (In-Room Services)
+    extra_services = serializers.SerializerMethodField()
+    extra_services_total = serializers.SerializerMethodField()
+    pending_services = serializers.SerializerMethodField()
+    room_amount = serializers.SerializerMethodField()
+    grand_total_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -48,6 +66,11 @@ class BookingSerializer(serializers.ModelSerializer):
             'daily_rate',
             'promotion_code',
             'total_amount',
+            'room_amount',
+            'extra_services',
+            'extra_services_total',
+            'pending_services',
+            'grand_total_amount',
             'status',
             'status_display',
             'note',
@@ -56,6 +79,98 @@ class BookingSerializer(serializers.ModelSerializer):
             'updated_at'
         ]
         read_only_fields = ['id', 'booking_code', 'actual_check_in', 'actual_check_out', 'created_at', 'updated_at']
+
+    def get_extra_services(self, obj):
+        import re
+        services_list = []
+        synced_service_signatures = set()
+
+        # 1. Nguồn chuẩn xác nhất cho các món gọi tại phòng: các ServiceRequest đã hoàn thành (completed)
+        for req in obj.service_requests.filter(status='completed').select_related('service').order_by('created_at'):
+            clean_item_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
+            total = float(req.total_price or ((req.service.price if req.service else 0) * req.quantity))
+            
+            # Ghi nhớ signature để chống trùng lặp với BookingExtraService
+            sig = (clean_item_name.lower(), req.quantity, total)
+            synced_service_signatures.add(sig)
+
+            services_list.append({
+                'id': f"req_{req.id}",
+                'source': 'service_request',
+                'service_name': clean_item_name,
+                'quantity': req.quantity,
+                'price': float(req.service.price if req.service else 0),
+                'total_price': total,
+                'added_time': req.updated_at.isoformat() if req.updated_at else (req.created_at.isoformat() if req.created_at else None)
+            })
+
+        # 2. Lấy thêm các phụ phí phát sinh thủ công từ BookingExtraService (VD: Giặt ủi, đền bù, minibar)
+        # Bỏ qua hoàn toàn các dòng trùng lặp đã được tính từ ServiceRequest
+        for bes in obj.extra_services.all().order_by('added_time'):
+            raw_name = (bes.service_name or '').strip()
+
+            # Nếu dòng này được sinh tự động từ ServiceRequest (chứa [Yêu cầu #ID]) -> bỏ qua vì đã nạp ở bước 1
+            if re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
+                continue
+
+            # Chuẩn hóa tên: bỏ các đuôi phụ trợ như '(x2)' hoặc '[...]'
+            clean_name = re.sub(r'\(x\d+\)', '', raw_name)
+            clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()
+            total = float((bes.price or 0) * (bes.quantity or 1))
+
+            # Kiểm tra nếu tên món, số lượng hoặc tổng tiền khớp với món đã có trong danh sách
+            is_duplicate = False
+            for existing in services_list:
+                if existing['service_name'].lower() == clean_name.lower():
+                    if existing['quantity'] == bes.quantity or abs(existing['total_price'] - total) < 1.0:
+                        is_duplicate = True
+                        break
+
+            if is_duplicate:
+                continue
+
+            services_list.append({
+                'id': bes.id,
+                'source': 'extra_service',
+                'service_name': clean_name or raw_name,
+                'quantity': bes.quantity,
+                'price': float(bes.price or 0),
+                'total_price': total,
+                'added_time': bes.added_time.isoformat() if bes.added_time else None
+            })
+
+        return services_list
+
+    def get_extra_services_total(self, obj):
+        extra_list = self.get_extra_services(obj)
+        return float(sum(item.get('total_price', 0) for item in extra_list))
+
+    def get_pending_services(self, obj):
+        # Lấy các yêu cầu dịch vụ đang chuẩn bị hoặc chờ phục vụ để Lễ tân theo dõi tiến độ
+        pending_list = []
+        for req in obj.service_requests.filter(status__in=['pending', 'in_progress']).select_related('service').order_by('created_at'):
+            clean_item_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
+            pending_list.append({
+                'id': f"req_{req.id}",
+                'raw_id': req.id,
+                'service_name': clean_item_name,
+                'quantity': req.quantity,
+                'price': float(req.service.price if req.service else 0),
+                'total_price': float(req.total_price or ((req.service.price if req.service else 0) * req.quantity)),
+                'status': req.status,
+                'status_display': req.get_status_display(),
+                'note': req.note,
+                'request_time': req.request_time.isoformat() if req.request_time else (req.created_at.isoformat() if req.created_at else None)
+            })
+        return pending_list
+
+    def get_room_amount(self, obj):
+        return float(obj.total_amount or 0)
+
+    def get_grand_total_amount(self, obj):
+        room_tot = self.get_room_amount(obj)
+        extra_tot = self.get_extra_services_total(obj)
+        return float(room_tot + extra_tot)
 
     def validate_identity_card(self, value):
         val = str(value or '').strip()

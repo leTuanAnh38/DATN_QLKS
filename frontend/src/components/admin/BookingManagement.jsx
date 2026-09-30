@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { bookingService } from '../../services/bookingService';
+import { hotelService } from '../../services/hotelService';
 import roomService from '../../services/roomService';
 import HotelInvoiceModal from './HotelInvoiceModal';
 
@@ -84,6 +85,23 @@ export default function BookingManagement({ onBookingChanged }) {
 
     // 6. State Modal In Hóa Đơn Đặt Phòng (Check-in Invoice Voucher)
     const [invoiceModalBooking, setInvoiceModalBooking] = useState(null);
+
+    // 7. State Modal Thêm Dịch Vụ / Gọi Món Cho Khách (Tại quầy / Qua điện thoại)
+    const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
+    const [serviceCatalog, setServiceCatalog] = useState([]);
+    const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+    const [isSubmittingService, setIsSubmittingService] = useState(false);
+    const [serviceMode, setServiceMode] = useState('menu'); // 'menu' | 'custom'
+    const [serviceSearchKeyword, setServiceSearchKeyword] = useState('');
+    const [serviceCategoryFilter, setServiceCategoryFilter] = useState('all');
+    const [serviceForm, setServiceForm] = useState({
+        service_id: '',
+        custom_name: '',
+        quantity: 1,
+        price: '',
+        note: '',
+        service_status: 'completed'
+    });
 
     // Helper hiển thị thông báo toast
     const showToast = (type, message) => {
@@ -485,6 +503,184 @@ export default function BookingManagement({ onBookingChanged }) {
         }
     };
 
+    // Danh sách gợi ý nhanh các khoản phụ thu thường gặp
+    const QUICK_SURCHARGES = [
+        "Nước ngọt / Bia Mini Bar",
+        "Đền bù ly / đồ thủy tinh vỡ",
+        "Phụ thu trả phòng muộn (Late Check-out)",
+        "Phụ thu nhận phòng sớm (Early Check-in)",
+        "Giặt ủi nhanh lấy ngay",
+        "Phụ thu khách ở thêm (Extra Person)"
+    ];
+
+    // Mở modal Thêm Dịch Vụ Cho Đơn Đặt Phòng (tại quầy / qua điện thoại)
+    const openAddServiceModal = async () => {
+        setIsAddServiceModalOpen(true);
+        setServiceMode('menu');
+        setServiceSearchKeyword('');
+        setServiceCategoryFilter('all');
+        setServiceForm({
+            service_id: '',
+            custom_name: '',
+            quantity: 1,
+            price: '',
+            note: '',
+            service_status: 'completed'
+        });
+
+        if (serviceCatalog.length === 0) {
+            setIsLoadingCatalog(true);
+            try {
+                const res = await hotelService.getServiceItems({ status: 'active' });
+                if (res && res.success && res.items) {
+                    setServiceCatalog(res.items);
+                }
+            } catch (err) {
+                console.error('Lỗi khi tải thực đơn dịch vụ:', err);
+            } finally {
+                setIsLoadingCatalog(false);
+            }
+        }
+    };
+
+    // Khi nhân viên chọn món từ danh mục
+    const handleServiceSelect = (id) => {
+        const item = serviceCatalog.find((s) => String(s.id) === String(id));
+        setServiceForm((prev) => ({
+            ...prev,
+            service_id: id,
+            price: item ? item.price : ''
+        }));
+    };
+
+    // Xử lý gửi Form Thêm Dịch Vụ Cho Khách
+    const handleAddExtraServiceSubmit = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!selectedBooking) return;
+
+        if (serviceMode === 'menu' && !serviceForm.service_id) {
+            showToast('error', 'Vui lòng chọn một món hoặc dịch vụ từ thực đơn.');
+            return;
+        }
+
+        if (serviceMode === 'custom' && !serviceForm.custom_name.trim()) {
+            showToast('error', 'Vui lòng nhập tên dịch vụ hoặc phụ phí.');
+            return;
+        }
+
+        if (serviceMode === 'custom' && (serviceForm.price === '' || Number(serviceForm.price) < 0)) {
+            showToast('error', 'Vui lòng nhập đơn giá hợp lệ.');
+            return;
+        }
+
+        try {
+            setIsSubmittingService(true);
+            const payload = {
+                quantity: Number(serviceForm.quantity) || 1,
+                note: serviceForm.note.trim(),
+                service_status: serviceForm.service_status
+            };
+
+            if (serviceMode === 'menu') {
+                payload.service_id = serviceForm.service_id;
+                if (serviceForm.price !== '') payload.price = Number(serviceForm.price);
+            } else {
+                payload.custom_name = serviceForm.custom_name.trim();
+                payload.price = Number(serviceForm.price);
+            }
+
+            const res = await bookingService.addExtraService(selectedBooking.id, payload);
+            if (res && res.success && res.booking) {
+                showToast('success', res.message || 'Thêm dịch vụ cho khách thành công!');
+                setSelectedBooking(res.booking);
+                setBookings((prev) => prev.map((b) => (b.id === res.booking.id ? res.booking : b)));
+                if (typeof onBookingChanged === 'function') {
+                    onBookingChanged();
+                }
+                setIsAddServiceModalOpen(false);
+            } else {
+                showToast('error', res?.message || 'Không thể thêm dịch vụ. Vui lòng thử lại.');
+            }
+        } catch (error) {
+            showToast('error', error.message || 'Lỗi kết nối khi thêm dịch vụ.');
+        } finally {
+            setIsSubmittingService(false);
+        }
+    };
+
+    // Xóa dịch vụ / phụ phí khỏi đơn đặt phòng
+    const handleRemoveExtraService = async (itemId, itemName) => {
+        if (!selectedBooking) return;
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa "${itemName}" khỏi đơn đặt phòng này?`)) return;
+
+        try {
+            const res = await bookingService.removeExtraService(selectedBooking.id, itemId);
+            if (res && res.success && res.booking) {
+                showToast('success', res.message || 'Đã xóa dịch vụ thành công!');
+                setSelectedBooking(res.booking);
+                setBookings((prev) => prev.map((b) => (b.id === res.booking.id ? res.booking : b)));
+                if (typeof onBookingChanged === 'function') {
+                    onBookingChanged();
+                }
+            } else {
+                showToast('error', res?.message || 'Không thể xóa dịch vụ.');
+            }
+        } catch (error) {
+            showToast('error', error.message || 'Lỗi khi xóa dịch vụ.');
+        }
+    };
+
+    // Đánh dấu nhanh yêu cầu dịch vụ đã giao xong (tính vào hóa đơn)
+    const handleQuickCompleteService = async (rawId, itemName) => {
+        if (!selectedBooking) return;
+        try {
+            const res = await hotelService.updateServiceRequestStatus(rawId, 'completed');
+            if (res && res.success) {
+                showToast('success', `Đã phục vụ xong món "${itemName}" và tính vào hóa đơn!`);
+                const updatedRes = await bookingService.getBookingById(selectedBooking.id);
+                const updated = updatedRes.data || updatedRes.booking || updatedRes;
+                if (updated && updated.id) {
+                    setSelectedBooking(updated);
+                    setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+                    if (typeof onBookingChanged === 'function') {
+                        onBookingChanged();
+                    }
+                }
+            } else {
+                showToast('error', res?.message || 'Không thể cập nhật trạng thái dịch vụ.');
+            }
+        } catch (error) {
+            showToast('error', error.message || 'Lỗi khi cập nhật trạng thái dịch vụ.');
+        }
+    };
+
+    // Trích xuất các nhóm dịch vụ từ thực đơn để lọc
+    const serviceCategories = useMemo(() => {
+        const cats = new Map();
+        serviceCatalog.forEach((item) => {
+            if (item.category && item.category.name) {
+                cats.set(item.category.id, item.category.name);
+            } else if (item.category_name) {
+                cats.set(item.category_id || item.category_name, item.category_name);
+            }
+        });
+        return Array.from(cats.entries()).map(([id, name]) => ({ id, name }));
+    }, [serviceCatalog]);
+
+    // Danh sách thực đơn đã qua lọc tìm kiếm / danh mục
+    const filteredCatalog = useMemo(() => {
+        return serviceCatalog.filter((item) => {
+            const catId = item.category?.id || item.category_id;
+            const matchesCategory =
+                serviceCategoryFilter === 'all' || String(catId) === String(serviceCategoryFilter);
+            const matchesSearch =
+                !serviceSearchKeyword.trim() ||
+                item.name.toLowerCase().includes(serviceSearchKeyword.toLowerCase()) ||
+                (item.category?.name && item.category.name.toLowerCase().includes(serviceSearchKeyword.toLowerCase()));
+            return matchesCategory && matchesSearch;
+        });
+    }, [serviceCatalog, serviceCategoryFilter, serviceSearchKeyword]);
+
     // Sao chép mã booking
     const handleCopyCode = (code) => {
         if (navigator.clipboard) {
@@ -863,10 +1059,16 @@ export default function BookingManagement({ onBookingChanged }) {
                                             {/* CỘT 5: TỔNG TIỀN */}
                                             <td className="py-4 px-4 whitespace-nowrap">
                                                 <div className="font-black text-sm text-rose-600">
-                                                    {totalAmountNum.toLocaleString('vi-VN')}
+                                                    {Number(booking.grand_total_amount || totalAmountNum).toLocaleString('vi-VN')}
                                                     <span className="text-[10px] font-medium text-slate-400 ml-1">VND</span>
                                                 </div>
-                                                <span className="text-[10px] text-slate-400 block">
+                                                {booking.extra_services && booking.extra_services.length > 0 && (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 mt-0.5 font-bold">
+                                                        <span>🛎️ +{Number(booking.extra_services_total || 0).toLocaleString('vi-VN')}đ</span>
+                                                        <span className="font-normal">({booking.extra_services.length} DV)</span>
+                                                    </span>
+                                                )}
+                                                <span className="text-[10px] text-slate-400 block mt-0.5">
                                                     {booking.note && booking.note.includes('Thanh toán:')
                                                         ? booking.note.split('Thanh toán:')[1].trim().split('|')[0]
                                                         : 'Thanh toán tại Lễ tân'}
@@ -1095,21 +1297,184 @@ export default function BookingManagement({ onBookingChanged }) {
                                 </div>
                             </div>
 
-                            {/* KHỐI 4: TÀI CHÍNH & THANH TOÁN */}
-                            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                                <div>
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                                        Tổng tiền thanh toán
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 block">
-                                        (Đã bao gồm thuế GTGT & phí dịch vụ 5%)
+                            {/* KHỐI 3.5: DỊCH VỤ PHÁT SINH TẠI PHÒNG (IN-ROOM SERVICES) */}
+                            <div className="p-4 rounded-2xl border border-slate-200 space-y-3">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
+                                            <span>🛎️</span>
+                                            <span>Dịch Vụ Phát Sinh & Gọi Món Tại Phòng</span>
+                                        </h4>
+                                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                                            {selectedBooking.extra_services?.length || 0} dịch vụ
+                                        </span>
+                                    </div>
+
+                                    {/* Nút Thêm Dịch Vụ Cho Khách (Yêu cầu tại quầy / qua điện thoại) */}
+                                    {selectedBooking.status !== 'cancelled' && (
+                                        <button
+                                            type="button"
+                                            onClick={openAddServiceModal}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm hover:shadow-md transition cursor-pointer active:scale-95"
+                                            title="Thêm dịch vụ khách sạn hoặc phụ thu cho khách tại quầy / qua điện thoại"
+                                        >
+                                            <span className="text-sm leading-none font-black">+</span>
+                                            <span>Thêm dịch vụ</span>
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Yêu cầu dịch vụ đang chuẩn bị / chờ phục vụ (nếu có) */}
+                                {selectedBooking.pending_services && selectedBooking.pending_services.length > 0 && (
+                                    <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="font-bold text-amber-900 flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span>Đang chuẩn bị / Chờ phục vụ ({selectedBooking.pending_services.length} yêu cầu):</span>
+                                            </span>
+                                            <span className="text-[10px] text-amber-700 font-medium">Chưa tính vào hóa đơn</span>
+                                        </div>
+                                        <div className="divide-y divide-amber-200/60">
+                                            {selectedBooking.pending_services.map((req, idx) => (
+                                                <div key={req.id || idx} className="py-2 flex items-center justify-between gap-3 text-xs">
+                                                    <div>
+                                                        <div className="font-semibold text-slate-800">
+                                                            {req.service_name} <span className="text-amber-700 font-bold">(x{req.quantity})</span>
+                                                        </div>
+                                                        {req.note && (
+                                                            <div className="text-[11px] text-slate-500 italic mt-0.5">
+                                                                Ghi chú: {req.note}
+                                                            </div>
+                                                        )}
+                                                        <div className="text-[10px] text-slate-400 mt-0.5">
+                                                            Trạng thái: <span className="font-semibold text-amber-700">{req.status_display || 'Chờ xử lý'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <span className="font-bold text-slate-700">
+                                                            {Number(req.total_price || (req.price * req.quantity)).toLocaleString('vi-VN')} VND
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleQuickCompleteService(req.raw_id, req.service_name)}
+                                                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs transition cursor-pointer active:scale-95"
+                                                            title="Xác nhận đã phục vụ xong và chuyển vào hóa đơn thanh toán"
+                                                        >
+                                                            <span>✓</span>
+                                                            <span>Đã giao</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveExtraService(req.id, req.service_name)}
+                                                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                                            title="Hủy yêu cầu này"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Danh sách dịch vụ đã hoàn thành & tính vào hóa đơn */}
+                                {selectedBooking.extra_services && selectedBooking.extra_services.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+                                            {selectedBooking.extra_services.map((item, idx) => {
+                                                const cleanName = (item.service_name || '')
+                                                    .replace(/\[Yêu cầu #\d+\]/gi, '')
+                                                    .replace(/\(x\d+\)/gi, '')
+                                                    .trim();
+                                                return (
+                                                    <div key={item.id || idx} className="p-2.5 bg-slate-50/60 flex items-center justify-between text-xs hover:bg-slate-100/60 transition group">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[10px]">
+                                                                {idx + 1}
+                                                            </span>
+                                                            <div>
+                                                                <strong className="text-slate-900 font-semibold block text-xs">
+                                                                    {cleanName}
+                                                                </strong>
+                                                                <span className="text-[10px] text-slate-400">
+                                                                    {item.quantity} x {Number(item.price || 0).toLocaleString('vi-VN')} VND
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-slate-900">
+                                                                {Number(item.total_price || (item.price * item.quantity)).toLocaleString('vi-VN')} VND
+                                                            </span>
+                                                            {selectedBooking.status !== 'cancelled' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveExtraService(item.id, cleanName)}
+                                                                    className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                                                    title="Xóa phụ phí này khỏi đơn đặt phòng"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="flex items-center justify-between pt-1 text-xs">
+                                            <span className="text-slate-500 font-medium">Tổng tiền dịch vụ phát sinh:</span>
+                                            <strong className="text-purple-700 font-bold">
+                                                +{Number(selectedBooking.extra_services_total || 0).toLocaleString('vi-VN')} VND
+                                            </strong>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-4 bg-slate-50 rounded-xl text-center text-slate-400 text-xs">
+                                        <p>Chưa có phụ phí phát sinh nào được ghi nhận cho phòng này.</p>
+                                        {selectedBooking.status !== 'cancelled' && (
+                                            <button
+                                                type="button"
+                                                onClick={openAddServiceModal}
+                                                className="inline-block mt-1.5 text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline text-[11px]"
+                                            >
+                                                + Bấm vào đây để thêm dịch vụ hoặc món ăn
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* KHỐI 4: TÀI CHÍNH & THANH TOÁN (CHI TIẾT ĐỦ TIỀN PHÒNG + DỊCH VỤ) */}
+                            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2.5">
+                                <div className="flex items-center justify-between text-xs text-slate-600">
+                                    <span>Tiền phòng nghỉ ({selectedBooking.nights || 1} đêm):</span>
+                                    <span className="font-semibold text-slate-800">
+                                        {Number(selectedBooking.room_amount || selectedBooking.total_amount).toLocaleString('vi-VN')} VND
                                     </span>
                                 </div>
-                                <div className="text-right">
-                                    <span className="font-black text-2xl text-rose-600">
-                                        {Number(selectedBooking.total_amount).toLocaleString('vi-VN')}
-                                    </span>
-                                    <span className="text-xs font-bold text-slate-500 ml-1">VND</span>
+                                {Number(selectedBooking.extra_services_total || 0) > 0 && (
+                                    <div className="flex items-center justify-between text-xs text-purple-700 font-medium">
+                                        <span>Phụ phí dịch vụ tại phòng ({selectedBooking.extra_services?.length || 0} món):</span>
+                                        <span className="font-bold">
+                                            +{Number(selectedBooking.extra_services_total).toLocaleString('vi-VN')} VND
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                                    <div>
+                                        <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                                            Tổng thanh toán thực tế (Grand Total)
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 block">
+                                            (Bao gồm tiền phòng + toàn bộ dịch vụ phát sinh & thuế phí)
+                                        </span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="font-black text-2xl text-rose-600">
+                                            {Number(selectedBooking.grand_total_amount || selectedBooking.total_amount).toLocaleString('vi-VN')}
+                                        </span>
+                                        <span className="text-xs font-bold text-slate-500 ml-1">VND</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1846,6 +2211,401 @@ export default function BookingManagement({ onBookingChanged }) {
                                         <>
                                             <span>🔑</span>
                                             <span>Hoàn tất Check-in Walk-in</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* MODAL THÊM DỊCH VỤ / GỌI MÓN CHO ĐƠN ĐẶT PHÒNG (TẠI QUẦY / QUA ĐIỆN THOẠI) */}
+            {/* ========================================================================= */}
+            {isAddServiceModalOpen && selectedBooking && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
+                    <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8">
+                        {/* Header Modal - Nền trắng trang nhã */}
+                        <div className="p-5 bg-white border-b border-slate-100 text-slate-900 flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center text-xl shrink-0 shadow-xs">
+                                    🛎️
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                                            #{selectedBooking.booking_code}
+                                        </span>
+                                        <span className="text-slate-300">•</span>
+                                        <span className="text-xs text-slate-600 font-semibold">
+                                            {selectedBooking.room_number ? `Phòng ${selectedBooking.room_number}` : selectedBooking.room_name}
+                                        </span>
+                                    </div>
+                                    <h3 className="font-serif text-lg font-bold text-slate-900 mt-1">
+                                        Thêm Dịch Vụ / Gọi Món Cho Khách
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">
+                                        Khách hàng: <strong className="text-slate-800 font-semibold">{selectedBooking.guest_name}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsAddServiceModalOpen(false)}
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-sm cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Thanh chuyển chế độ: Từ Menu vs Tùy Chỉnh */}
+                        <div className="p-3 bg-slate-50 border-b border-slate-200 flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setServiceMode('menu')}
+                                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
+                                    serviceMode === 'menu'
+                                        ? 'bg-purple-600 text-white shadow-sm'
+                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                }`}
+                            >
+                                <span>🍽️</span>
+                                <span>Từ Menu Khách Sạn ({serviceCatalog.length})</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setServiceMode('custom')}
+                                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
+                                    serviceMode === 'custom'
+                                        ? 'bg-purple-600 text-white shadow-sm'
+                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                }`}
+                            >
+                                <span>✏️</span>
+                                <span>Phụ Phí / Dịch Vụ Tùy Chỉnh</span>
+                            </button>
+                        </div>
+
+                        {/* Form Body */}
+                        <form onSubmit={handleAddExtraServiceSubmit} className="p-6 space-y-4 text-xs">
+                            {serviceMode === 'menu' ? (
+                                <div className="space-y-4">
+                                    {/* Tìm kiếm và Lọc theo Danh mục */}
+                                    <div className="space-y-2">
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="text"
+                                                    value={serviceSearchKeyword}
+                                                    onChange={(e) => setServiceSearchKeyword(e.target.value)}
+                                                    placeholder="Tìm kiếm món ăn, thức uống, spa..."
+                                                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                                />
+                                                <span className="absolute left-2.5 top-2.5 text-slate-400">🔍</span>
+                                            </div>
+                                            {serviceCategories.length > 0 && (
+                                                <select
+                                                    value={serviceCategoryFilter}
+                                                    onChange={(e) => setServiceCategoryFilter(e.target.value)}
+                                                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                                >
+                                                    <option value="all">Tất cả nhóm</option>
+                                                    {serviceCategories.map((c) => (
+                                                        <option key={c.id} value={c.id}>
+                                                            {c.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Dropdown / Danh sách chọn Dịch vụ */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                                            Chọn món hoặc dịch vụ <span className="text-rose-500">*</span>
+                                        </label>
+                                        {isLoadingCatalog ? (
+                                            <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                                                <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
+                                                Đang tải danh mục thực đơn...
+                                            </div>
+                                        ) : filteredCatalog.length === 0 ? (
+                                            <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                                                Không tìm thấy dịch vụ nào phù hợp với từ khóa.
+                                            </div>
+                                        ) : (
+                                            <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl bg-white shadow-inner">
+                                                {filteredCatalog.map((item) => {
+                                                    const isSelected = String(serviceForm.service_id) === String(item.id);
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            onClick={() => handleServiceSelect(item.id)}
+                                                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition ${
+                                                                isSelected
+                                                                    ? 'bg-purple-50 text-purple-950 font-semibold'
+                                                                    : 'hover:bg-slate-50 text-slate-700'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="service_selection"
+                                                                    checked={isSelected}
+                                                                    onChange={() => handleServiceSelect(item.id)}
+                                                                    className="w-4 h-4 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                                                />
+                                                                <div className="truncate">
+                                                                    <span className="block truncate font-bold text-slate-900 text-xs">
+                                                                        {item.name}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-slate-400 block truncate">
+                                                                        {item.category?.name || item.category_name || 'Dịch vụ'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <span className="font-bold text-purple-700 shrink-0 text-xs">
+                                                                {Number(item.price).toLocaleString('vi-VN')} VND
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Gợi ý nhanh các khoản phụ thu */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                                            Gợi ý nhanh phụ phí:
+                                        </label>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {QUICK_SURCHARGES.map((sug, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setServiceForm((prev) => ({ ...prev, custom_name: sug }))}
+                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-slate-200 text-slate-600 text-[11px] font-medium transition cursor-pointer"
+                                                >
+                                                    {sug}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Tên dịch vụ tùy chỉnh */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                                            Tên dịch vụ / Phụ phí tùy chỉnh <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={serviceForm.custom_name}
+                                            onChange={(e) => setServiceForm((prev) => ({ ...prev, custom_name: e.target.value }))}
+                                            placeholder="VD: 2 Lon nước ngọt Coca, Phụ thu check-in sớm..."
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                        />
+                                    </div>
+
+                                    {/* Đơn giá tùy chỉnh */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                                            Đơn giá (VND) <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            required
+                                            min="0"
+                                            step="1000"
+                                            value={serviceForm.price}
+                                            onChange={(e) => setServiceForm((prev) => ({ ...prev, price: e.target.value }))}
+                                            placeholder="VD: 40000"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Cụm Số lượng & Đơn giá xem trước */}
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                                        Số lượng
+                                    </label>
+                                    <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setServiceForm((prev) => ({
+                                                    ...prev,
+                                                    quantity: Math.max(1, (Number(prev.quantity) || 1) - 1)
+                                                }))
+                                            }
+                                            className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
+                                        >
+                                            -
+                                        </button>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="99"
+                                            value={serviceForm.quantity}
+                                            onChange={(e) =>
+                                                setServiceForm((prev) => ({
+                                                    ...prev,
+                                                    quantity: Math.max(1, parseInt(e.target.value) || 1)
+                                                }))
+                                            }
+                                            className="flex-1 text-center font-bold text-slate-900 text-xs focus:outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setServiceForm((prev) => ({
+                                                    ...prev,
+                                                    quantity: (Number(prev.quantity) || 1) + 1
+                                                }))
+                                            }
+                                            className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                                        Đơn giá áp dụng (VND)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="1000"
+                                        value={serviceForm.price}
+                                        onChange={(e) => setServiceForm((prev) => ({ ...prev, price: e.target.value }))}
+                                        placeholder="0"
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Tùy chọn trạng thái dịch vụ */}
+                            {serviceMode === 'menu' && (
+                                <div className="space-y-1.5 pt-1">
+                                    <label className="block text-xs font-bold text-slate-800">
+                                        Trạng thái phục vụ:
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${
+                                            serviceForm.service_status === 'completed'
+                                                ? 'bg-purple-50/80 border-purple-400 text-purple-950 font-semibold shadow-xs'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="service_status"
+                                                value="completed"
+                                                checked={serviceForm.service_status === 'completed'}
+                                                onChange={() => setServiceForm((prev) => ({ ...prev, service_status: 'completed' }))}
+                                                className="mt-0.5 text-purple-600 focus:ring-purple-500"
+                                            />
+                                            <div>
+                                                <span className="block text-xs font-bold text-slate-900">
+                                                    ✓ Đã phục vụ xong
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 leading-tight block">
+                                                    Tính ngay vào hóa đơn thanh toán
+                                                </span>
+                                            </div>
+                                        </label>
+
+                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${
+                                            serviceForm.service_status === 'pending'
+                                                ? 'bg-amber-50/80 border-amber-400 text-amber-950 font-semibold shadow-xs'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="service_status"
+                                                value="pending"
+                                                checked={serviceForm.service_status === 'pending'}
+                                                onChange={() => setServiceForm((prev) => ({ ...prev, service_status: 'pending' }))}
+                                                className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                                            />
+                                            <div>
+                                                <span className="block text-xs font-bold text-slate-900">
+                                                    ⏳ Chờ chuẩn bị
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 leading-tight block">
+                                                    Chuyển bếp / buồng phòng làm
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Ghi chú phục vụ */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-800 mb-1">
+                                    Ghi chú tiếp nhận (tùy chọn)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={serviceForm.note}
+                                    onChange={(e) => setServiceForm((prev) => ({ ...prev, note: e.target.value }))}
+                                    placeholder="VD: Khách gọi hotline lúc 11:20, giao tận phòng 304, ít cay..."
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                />
+                            </div>
+
+                            {/* Banner Xem Trước Tổng Tiền */}
+                            <div className="p-3.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-slate-50 border border-purple-200 rounded-2xl flex items-center justify-between">
+                                <div>
+                                    <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">
+                                        Thành tiền phụ phí dự kiến
+                                    </span>
+                                    <span className="text-[11px] text-slate-500">
+                                        {serviceForm.quantity || 1} x {Number(serviceForm.price || 0).toLocaleString('vi-VN')} VND
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <strong className="text-lg font-black text-purple-900">
+                                        {Number((serviceForm.quantity || 1) * (serviceForm.price || 0)).toLocaleString('vi-VN')}
+                                    </strong>
+                                    <span className="text-xs font-bold text-purple-700 ml-1">VND</span>
+                                </div>
+                            </div>
+
+                            {/* Nút hành động */}
+                            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                                <button
+                                    type="button"
+                                    disabled={isSubmittingService}
+                                    onClick={() => setIsAddServiceModalOpen(false)}
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                                >
+                                    Đóng
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmittingService}
+                                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md shadow-purple-600/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                >
+                                    {isSubmittingService ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Đang lưu...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="font-bold">+</span>
+                                            <span>Xác nhận thêm dịch vụ</span>
                                         </>
                                     )}
                                 </button>

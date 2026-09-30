@@ -493,7 +493,11 @@ export default function BookingHistory() {
                                         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
 
                                     const isPending = booking.status === 'pending';
-                                    const totalAmountNum = Number(booking.total_amount) || 0;
+                                    const grandTotalNum = Number(booking.grand_total_amount ?? booking.total_amount) || 0;
+                                    const roomAmountNum = Number(booking.room_amount ?? booking.total_amount) || 0;
+                                    const extraServicesTotal = Number(booking.extra_services_total) || 0;
+                                    const extraServices = Array.isArray(booking.extra_services) ? booking.extra_services : [];
+                                    const hasExtraServices = extraServicesTotal > 0 && extraServices.length > 0;
 
                                     return (
                                         <div
@@ -609,14 +613,26 @@ export default function BookingHistory() {
                                                     <div className="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-center gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                                                         <div className="text-left lg:text-right">
                                                             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                                                                Tổng tiền thanh toán
+                                                                Tổng tiền cần thanh toán
                                                             </span>
                                                             <div className="text-xl sm:text-2xl font-black text-rose-600 mt-0.5">
-                                                                {totalAmountNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
+                                                                {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
                                                             </div>
-                                                            <span className="text-[10px] text-slate-400 block">
-                                                                (Đã bao gồm thuế & phí phục vụ)
-                                                            </span>
+                                                            {hasExtraServices ? (
+                                                                <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
+                                                                    <span className="text-slate-500">
+                                                                        Tiền phòng: <strong className="text-slate-700">{roomAmountNum.toLocaleString('vi-VN')} đ</strong>
+                                                                    </span>
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/80 font-bold shadow-2xs">
+                                                                        <span>Phụ thu dịch vụ ({extraServices.length}):</span>
+                                                                        <strong>+{extraServicesTotal.toLocaleString('vi-VN')} đ</strong>
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-[10px] text-slate-400 block">
+                                                                    (Đã bao gồm thuế & phí phục vụ)
+                                                                </span>
+                                                            )}
                                                         </div>
 
                                                         {/* NÚT THAO TÁC: NẾU PENDING THÌ HIỆN NÚT HỦY, NẾU KHÁC THÌ ẨN */}
@@ -644,6 +660,45 @@ export default function BookingHistory() {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* CHI TIẾT CÁC DỊCH VỤ PHÁT SINH TẠI PHÒNG (NẾU CÓ) */}
+                                            {hasExtraServices && (
+                                                <div className="bg-amber-50/40 px-5 sm:px-7 py-3.5 border-t border-amber-100">
+                                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider">
+                                                                Dịch vụ tại phòng
+                                                            </span>
+                                                            <span className="text-xs font-bold text-slate-800">
+                                                                Đã hoàn thành ({extraServices.length} món)
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-xs font-black text-amber-900">
+                                                            Tổng phụ thu: +{extraServicesTotal.toLocaleString('vi-VN')} VND
+                                                        </span>
+                                                    </div>
+                                                    <div className="divide-y divide-amber-200/50 text-xs">
+                                                        {extraServices.map((srv, idx) => {
+                                                            const cleanName = (srv.service_name || '')
+                                                                .replace(/\[Yêu cầu #\d+\]/gi, '')
+                                                                .replace(/\(x\d+\)/gi, '')
+                                                                .trim();
+                                                            return (
+                                                                <div key={srv.id || idx} className="py-1.5 flex items-center justify-between text-slate-700">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                        <span className="font-semibold text-slate-900">{cleanName}</span>
+                                                                        <span className="text-slate-400 text-[11px]">(x{srv.quantity || 1})</span>
+                                                                    </div>
+                                                                    <span className="font-bold text-slate-800">
+                                                                        {Number(srv.total_price || (srv.price * (srv.quantity || 1))).toLocaleString('vi-VN')} VND
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Ghi chú đính kèm nếu có */}
                                             {booking.note && (
@@ -695,9 +750,9 @@ export default function BookingHistory() {
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-500">Tổng tiền:</span>
+                                <span className="text-slate-500">Tổng tiền cần thanh toán:</span>
                                 <strong className="text-rose-600 font-bold">
-                                    {Number(cancelModalBooking.total_amount).toLocaleString('vi-VN')} VND
+                                    {Number(cancelModalBooking.grand_total_amount ?? cancelModalBooking.total_amount).toLocaleString('vi-VN')} VND
                                 </strong>
                             </div>
                         </div>
