@@ -38,6 +38,27 @@ export const roomService = {
     },
 
     /**
+     * Lấy toàn bộ danh sách tiện nghi phòng (Amenities)
+     */
+    async getAmenities() {
+        try {
+            const response = await api.get('/rooms/amenities/');
+            const list = Array.isArray(response.data) ? response.data : (response.data?.results || []);
+            return {
+                success: true,
+                data: list
+            };
+        } catch (error) {
+            console.error('Error fetching amenities:', error);
+            return {
+                success: false,
+                data: [],
+                message: error.response?.data?.message || 'Không thể tải danh sách tiện nghi.'
+            };
+        }
+    },
+
+    /**
      * Lấy chi tiết một hạng phòng kèm danh sách ảnh
      * @param {number|string} id
      */

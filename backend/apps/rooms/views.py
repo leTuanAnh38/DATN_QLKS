@@ -9,6 +9,7 @@ from django.db.models import Q, Count
 from django.utils.text import slugify
 from .models import Room, RoomCategory, Amenity, RoomImage
 from .serializers import (
+    AmenitySerializer,
     RoomSerializer,
     RoomCategorySerializer,
     RoomImageSerializer,
@@ -557,3 +558,15 @@ class AdminRoomStatusUpdateView(APIView):
             'message': error_msg,
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AmenityViewSet(viewsets.ModelViewSet):
+    """
+    API Quản lý Tiện nghi phòng (Amenities):
+    - GET /api/rooms/amenities/: Lấy toàn bộ danh sách tiện nghi
+    - POST /api/rooms/amenities/: Tạo tiện nghi mới
+    """
+    queryset = Amenity.objects.all().order_by('id')
+    serializer_class = AmenitySerializer
+    permission_classes = [AllowAny]
+

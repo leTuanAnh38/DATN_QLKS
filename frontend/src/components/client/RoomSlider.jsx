@@ -172,7 +172,8 @@ export default function RoomSlider({ rooms = [] }) {
                                             </h3>
 
                                             <p className="mt-2 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
-                                                {room.description ||
+                                                {room.short_description ||
+                                                    room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
                                                     'Không gian nghỉ dưỡng sang trọng view biển trọn vẹn, trang bị đầy đủ tiện nghi cao cấp 5 sao.'}
                                             </p>
                                         </div>

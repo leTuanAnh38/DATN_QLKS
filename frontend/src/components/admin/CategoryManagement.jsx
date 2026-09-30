@@ -1,5 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import roomService from '../../services/roomService';
+
+// Cấu hình thanh công cụ (Toolbar) cho Rich Text Editor
+const quillModules = {
+    toolbar: [
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ align: [] }],
+        ['link', 'clean'],
+    ],
+};
+
+const quillFormats = [
+    'bold', 'italic', 'underline', 'strike',
+    'list',
+    'align',
+    'link',
+];
 
 export default function CategoryManagement() {
     const [categories, setCategories] = useState([]);
@@ -23,8 +42,14 @@ export default function CategoryManagement() {
         capacity: 2,
         size: 35,
         bed_type: '1 Giường Đôi King Size',
+        short_description: '',
         description: '',
+        cancellation_policy: '',
     });
+
+    // State cho Quản lý Tiện nghi (Amenities)
+    const [amenitiesList, setAmenitiesList] = useState([]);
+    const [selectedAmenities, setSelectedAmenities] = useState([]);
 
     // State cho quản lý Upload ảnh
     // selectedFiles: mảng các File object mới được chọn từ máy
@@ -66,9 +91,25 @@ export default function CategoryManagement() {
         }
     };
 
+    // Tải toàn bộ danh sách Tiện nghi từ Backend
+    const fetchAmenities = async () => {
+        try {
+            const res = await roomService.getAmenities();
+            if (res.success && res.data) {
+                setAmenitiesList(res.data);
+            }
+        } catch (error) {
+            console.error('Error fetching amenities:', error);
+        }
+    };
+
     useEffect(() => {
         fetchCategories();
     }, [searchQuery]);
+
+    useEffect(() => {
+        fetchAmenities();
+    }, []);
 
     // Xử lý khi chọn file ảnh từ máy tính (hỗ trợ chọn nhiều file)
     const handleFileChange = (e) => {
@@ -151,8 +192,11 @@ export default function CategoryManagement() {
             capacity: 2,
             size: 35,
             bed_type: '1 Giường Đôi King Size',
+            short_description: '',
             description: '',
+            cancellation_policy: '',
         });
+        setSelectedAmenities([]);
         setSelectedFiles([]);
         setFilePreviews([]);
         setFeatureImageIndex(0);
@@ -175,8 +219,17 @@ export default function CategoryManagement() {
             capacity: cat.capacity || 2,
             size: cat.size || 35,
             bed_type: cat.bed_type || '1 Giường Đôi King Size',
+            short_description: cat.short_description || '',
             description: cat.description || '',
+            cancellation_policy: cat.cancellation_policy || '',
         });
+
+        // Lấy danh sách ID các tiện nghi của hạng phòng
+        const initialAmenities = (cat.amenities || []).map((item) =>
+            typeof item === 'object' ? item.id : item
+        );
+        setSelectedAmenities(initialAmenities);
+
         setSelectedFiles([]);
         setFilePreviews([]);
         setFeatureImageIndex(-1);
@@ -190,6 +243,24 @@ export default function CategoryManagement() {
         setFormError('');
         setFormSuccess('');
         setIsModalOpen(true);
+    };
+
+    // Xử lý chọn/bỏ chọn tiện nghi (Amenities)
+    const handleToggleAmenity = (amenityId) => {
+        setSelectedAmenities((prev) =>
+            prev.includes(amenityId)
+                ? prev.filter((id) => id !== amenityId)
+                : [...prev, amenityId]
+        );
+    };
+
+    // Chọn tất cả hoặc bỏ chọn tất cả tiện nghi
+    const handleSelectAllAmenities = () => {
+        if (selectedAmenities.length === amenitiesList.length) {
+            setSelectedAmenities([]);
+        } else {
+            setSelectedAmenities(amenitiesList.map((a) => a.id));
+        }
     };
 
     // Đóng Modal và dọn dẹp URL tạm
@@ -232,7 +303,18 @@ export default function CategoryManagement() {
             form.append('capacity', formData.capacity);
             form.append('size', formData.size);
             form.append('bed_type', formData.bed_type);
+            form.append('short_description', formData.short_description || '');
             form.append('description', formData.description || '');
+            form.append('cancellation_policy', formData.cancellation_policy || '');
+
+            // Đính kèm các ID tiện nghi đã chọn
+            if (selectedAmenities.length === 0) {
+                form.append('amenities', '');
+            } else {
+                selectedAmenities.forEach((amenityId) => {
+                    form.append('amenities', amenityId);
+                });
+            }
 
             // Đính kèm các file ảnh mới chọn
             selectedFiles.forEach((file) => {
@@ -597,8 +679,30 @@ export default function CategoryManagement() {
 
                                     {/* Mô tả ngắn */}
                                     <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                                        {cat.description || 'Chưa có mô tả chi tiết cho hạng phòng này.'}
+                                        {cat.short_description ||
+                                            cat.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
+                                            'Chưa có mô tả ngắn cho hạng phòng này.'}
                                     </p>
+
+                                    {/* Tiện nghi phòng nổi bật */}
+                                    {cat.amenities && cat.amenities.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                            {cat.amenities.slice(0, 4).map((a, idx) => (
+                                                <span
+                                                    key={a.id || idx}
+                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50/70 border border-blue-100 text-blue-800 text-[10px] font-medium"
+                                                >
+                                                    <span>{a.icon || '✨'}</span>
+                                                    <span>{a.name}</span>
+                                                </span>
+                                            ))}
+                                            {cat.amenities.length > 4 && (
+                                                <span className="px-1.5 py-0.5 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-bold">
+                                                    +{cat.amenities.length - 4} tiện ích khác
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Dải ảnh nhỏ preview bộ sưu tập */}
                                     {cat.images && cat.images.length > 0 && (
@@ -657,7 +761,7 @@ export default function CategoryManagement() {
             {/* ========================================================================= */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fadeIn">
-                    <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 flex flex-col max-h-[90vh]">
+                    <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 flex flex-col max-h-[90vh]">
                         {/* Tiêu đề nền trắng thanh lịch theo chuẩn hệ thống */}
                         <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
@@ -670,8 +774,8 @@ export default function CategoryManagement() {
                                     </h3>
                                     <p className="text-xs text-slate-500">
                                         {isEditMode
-                                            ? 'Cập nhật giá, sức chứa, quản lý ảnh đại diện & bổ sung ảnh mới'
-                                            : 'Điền thông tin hạng phòng và tải lên nhiều hình ảnh chất lượng cao'}
+                                            ? 'Cập nhật giá, sức chứa, tiện nghi, chính sách, mô tả chi tiết & quản lý ảnh'
+                                            : 'Điền thông tin hạng phòng, tiện nghi, mô tả chuẩn SEO & tải lên bộ sưu tập hình ảnh'}
                                     </p>
                                 </div>
                             </div>
@@ -704,7 +808,7 @@ export default function CategoryManagement() {
                             <div className="space-y-4">
                                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                                    1. Thông tin cơ bản
+                                    1. Thông tin cơ bản & Giá niêm yết
                                 </h4>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -799,27 +903,146 @@ export default function CategoryManagement() {
                                         />
                                     </div>
 
+                                    {/* Mô tả ngắn */}
                                     <div className="sm:col-span-2">
-                                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                                            Mô Tả Chi Tiết Hạng Phòng
-                                        </label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-bold text-slate-700">
+                                                Mô Tả Ngắn (Short Description)
+                                            </label>
+                                            <span className="text-[11px] text-slate-400">
+                                                Tối đa 255 ký tự (hiển thị trên thẻ card và danh sách tìm kiếm)
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={formData.short_description}
+                                            onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+                                            maxLength={255}
+                                            placeholder="VD: Phòng nghỉ cao cấp với ban công riêng ngắm biển, bồn tắm nằm Jacuzzi và đồ uống chào mừng..."
+                                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Khối 2: Tiện nghi phòng (Amenities) - Checkbox grid 3 cột */}
+                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                                            2. Tiện Nghi Phòng Nghỉ (Amenities)
+                                        </h4>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">
+                                            Tích chọn các tiện nghi, trang thiết bị sẵn có trong hạng phòng này
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                            Đã chọn {selectedAmenities.length}/{amenitiesList.length}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={handleSelectAllAmenities}
+                                            className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline"
+                                        >
+                                            {selectedAmenities.length === amenitiesList.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {amenitiesList.length === 0 ? (
+                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 text-center">
+                                        Đang tải danh sách tiện nghi...
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                        {amenitiesList.map((amenity) => {
+                                            const isChecked = selectedAmenities.includes(amenity.id);
+                                            return (
+                                                <label
+                                                    key={amenity.id}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition select-none ${
+                                                        isChecked
+                                                            ? 'bg-blue-50/80 border-blue-500 shadow-xs ring-1 ring-blue-500/20'
+                                                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => handleToggleAmenity(amenity.id)}
+                                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                                                    />
+                                                    <span className="text-base">{amenity.icon || '✨'}</span>
+                                                    <span className="text-xs font-semibold text-slate-800 flex-1 truncate">
+                                                        {amenity.name}
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Khối 3: Mô tả chi tiết (Rich Text Editor) & Chính sách hủy phòng */}
+                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                                    3. Mô Tả Chi Tiết & Chính Sách Hủy Phòng
+                                </h4>
+
+                                <div className="space-y-4">
+                                    {/* Rich Text Editor */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <label className="block text-xs font-bold text-slate-700">
+                                                Mô Tả Chi Tiết Hạng Phòng (Rich Text Editor)
+                                            </label>
+                                            <span className="text-[11px] text-slate-400">
+                                                Lưu trữ định dạng HTML từ Editor
+                                            </span>
+                                        </div>
+                                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+                                            <ReactQuill
+                                                theme="snow"
+                                                value={formData.description}
+                                                onChange={(content) => setFormData({ ...formData, description: content })}
+                                                modules={quillModules}
+                                                formats={quillFormats}
+                                                placeholder="Mô tả không gian, tầm nhìn, trang thiết bị nổi bật, phong cách bài trí của phòng nghỉ..."
+                                                className="custom-quill-editor"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Chính sách hủy phòng */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-bold text-slate-700">
+                                                Chính Sách Hủy Phòng & Đặt Cọc
+                                            </label>
+                                            <span className="text-[11px] text-slate-400">
+                                                Sử dụng thẻ textarea theo chuẩn giao diện
+                                            </span>
+                                        </div>
                                         <textarea
                                             rows={3}
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            placeholder="Mô tả không gian, tầm nhìn, trang thiết bị nổi bật của phòng..."
-                                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                                            value={formData.cancellation_policy}
+                                            onChange={(e) => setFormData({ ...formData, cancellation_policy: e.target.value })}
+                                            placeholder="VD: Miễn phí hủy phòng trước 48 giờ trước ngày nhận phòng. Hủy sau 48 giờ tính phí 100% đêm đầu tiên..."
+                                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none font-medium leading-relaxed"
                                         ></textarea>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Khối 2: Quản lý Hình Ảnh (Tải lên nhiều ảnh) */}
+                            {/* Khối 4: Quản lý Hình Ảnh (Tải lên nhiều ảnh) */}
                             <div className="space-y-4 pt-4 border-t border-slate-100">
                                 <div className="flex items-center justify-between">
                                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
-                                        2. Bộ sưu tập Hình ảnh (Upload File)
+                                        4. Bộ sưu tập Hình ảnh (Upload File)
                                     </h4>
                                     <span className="text-[11px] text-slate-500">
                                         Hỗ trợ định dạng JPG, PNG, WEBP (Tối đa 10 ảnh)

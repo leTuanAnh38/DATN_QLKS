@@ -624,20 +624,47 @@ export default function DetailRoom() {
                         </div>
 
                         {/* MÔ TẢ HẠNG PHÒNG */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-                            <span className="text-xs uppercase font-bold tracking-widest text-orange-600">
-                                Trải Nghiệm Thượng Lưu Đặc Quyền
-                            </span>
-                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
+                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+                            <div className="flex items-center gap-2">
+                                <span className="px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs uppercase font-bold tracking-widest">
+                                    Trải Nghiệm Thượng Lưu Đặc Quyền
+                                </span>
+                            </div>
+                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">
                                 Bản giao hưởng giữa kiến trúc duy mỹ và đại dương bao la
                             </h2>
-                            <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-light">
-                                {room.description ||
-                                    'Hạng phòng được bài trí trang nhã theo phong cách hiện đại kết hợp văn hóa biển miền Trung, sở hữu ban công thoáng đãng, giường ngủ êm ái cùng đầy đủ trang thiết bị đẳng cấp quốc tế.'}
-                            </p>
-                            <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-light">
-                                Mỗi góc nhỏ đều được chăm chút tỉ mỉ từ ánh sáng, mùi hương đến chất liệu nội thất nhập khẩu, mang tới cho quý khách một kỳ nghỉ thư thái và tái tạo năng lượng hoàn hảo.
-                            </p>
+
+                            {/* Mô tả ngắn (Short Description) được đóng khung nổi bật */}
+                            {room.short_description && (
+                                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs">
+                                    <span className="text-lg select-none">✨</span>
+                                    <div>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block mb-0.5">
+                                            Tổng quan nổi bật
+                                        </span>
+                                        <p className="text-slate-800 leading-relaxed font-normal">
+                                            {room.short_description}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Mô tả chi tiết (Rich Text Editor HTML) */}
+                            {room.description ? (
+                                <div
+                                    className="text-slate-600 text-xs sm:text-sm leading-relaxed font-light space-y-3 pt-2 border-t border-slate-100 [&>p]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:space-y-2 [&>ul>li]:text-slate-600 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:space-y-2 [&>strong]:font-semibold [&>strong]:text-slate-900"
+                                    dangerouslySetInnerHTML={{ __html: room.description }}
+                                />
+                            ) : (
+                                <div className="text-slate-600 text-xs sm:text-sm leading-relaxed font-light space-y-3 pt-2 border-t border-slate-100">
+                                    <p>
+                                        Hạng phòng được bài trí trang nhã theo phong cách hiện đại kết hợp văn hóa biển miền Trung, sở hữu ban công thoáng đãng, giường ngủ êm ái cùng đầy đủ trang thiết bị đẳng cấp quốc tế.
+                                    </p>
+                                    <p>
+                                        Mỗi góc nhỏ đều được chăm chút tỉ mỉ từ ánh sáng, mùi hương đến chất liệu nội thất nhập khẩu, mang tới cho quý khách một kỳ nghỉ thư thái và tái tạo năng lượng hoàn hảo.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* TIỆN ÍCH (AMENITIES): MAP MẢNG DỮ LIỆU TỪ API */}
@@ -792,28 +819,64 @@ export default function DetailRoom() {
                             </div>
                         </div>
 
-                        {/* CHÍNH SÁCH NHẬN & TRẢ PHÒNG */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
-                            <h3 className="font-serif text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                                <span>🛡️</span> Chính sách nhận & trả phòng minh bạch
-                            </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs">
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <span className="text-[11px] text-slate-400 uppercase font-bold block mb-1">Thời gian nhận phòng</span>
-                                    <div className="text-lg font-bold text-slate-900 mb-1">14:00</div>
-                                    <p className="text-slate-500">Hỗ trợ nhận sớm tùy tình trạng phòng sẵn có</p>
+                        {/* CHÍNH SÁCH NHẬN & TRẢ PHÒNG & HỦY PHÒNG */}
+                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                                <div>
+                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
+                                        Quy định & Quyền lợi lưu trú
+                                    </span>
+                                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1 flex items-center gap-2">
+                                        <span>🛡️</span> Chính sách nhận, trả phòng & bảo đảm quyền lợi
+                                    </h3>
+                                </div>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 self-start sm:self-auto">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Tiêu chuẩn 5 sao quốc tế
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3.5">
+                                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                                        🕒
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
+                                            Thời gian nhận phòng (Check-in)
+                                        </span>
+                                        <div className="text-base font-bold text-slate-900">Từ 14:00</div>
+                                        <p className="text-slate-500 mt-0.5 leading-relaxed">
+                                            Hỗ trợ nhận phòng sớm miễn phí tùy theo tình trạng phòng sẵn có lúc đến.
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <span className="text-[11px] text-slate-400 uppercase font-bold block mb-1">Thời gian trả phòng</span>
-                                    <div className="text-lg font-bold text-slate-900 mb-1">12:00</div>
-                                    <p className="text-blue-600 font-semibold">Hội viên VIP hỗ trợ check-out trễ đến 16:00</p>
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3.5">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                                        🕛
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
+                                            Thời gian trả phòng (Check-out)
+                                        </span>
+                                        <div className="text-base font-bold text-slate-900">Trước 12:00</div>
+                                        <p className="text-blue-600 font-semibold mt-0.5 leading-relaxed">
+                                            Hội viên VIP được ưu tiên hỗ trợ check-out trễ linh hoạt đến 16:00.
+                                        </p>
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <span className="text-[11px] text-slate-400 uppercase font-bold block mb-1">Chính sách hủy phòng</span>
-                                    <div className="text-lg font-bold text-emerald-600 mb-1">Linh hoạt 24h</div>
-                                    <p className="text-slate-500">Miễn phí hủy trước 24 giờ ngày nhận phòng</p>
+                            {/* Chi tiết chính sách hủy & đổi lịch riêng biệt của hạng phòng */}
+                            <div className="p-5 sm:p-6 bg-gradient-to-br from-blue-50/70 via-slate-50 to-emerald-50/30 rounded-2xl border border-blue-100/80 space-y-3">
+                                <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                                    <span className="text-base">📋</span>
+                                    <span>Chính sách hủy phòng & hoàn tiền áp dụng cho hạng phòng này:</span>
+                                </div>
+                                <div className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line pl-6 font-normal">
+                                    {room.cancellation_policy ||
+                                        '• Miễn phí hủy phòng trước 48 giờ trước ngày nhận phòng tiêu chuẩn.\n• Hủy phòng trong vòng 24 - 48 giờ trước ngày nhận phòng tính phí 50% đêm đầu tiên.\n• Hủy phòng dưới 24 giờ tính phí 100% đêm đầu tiên.'}
                                 </div>
                             </div>
                         </div>
@@ -1173,7 +1236,9 @@ export default function DetailRoom() {
                                                     </Link>
                                                 </h4>
                                                 <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">
-                                                    {sRoom.description || 'Không gian nghỉ dưỡng thanh lịch, ngắm trọn bình minh và hoàng hôn biển.'}
+                                                    {sRoom.short_description ||
+                                                        sRoom.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
+                                                        'Không gian nghỉ dưỡng thanh lịch, ngắm trọn bình minh và hoàng hôn biển.'}
                                                 </p>
                                             </div>
 

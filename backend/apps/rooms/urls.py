@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     RoomCategoryViewSet,
+    AmenityViewSet,
     AdminRoomListCreateView,
     AdminRoomDetailView,
     AdminRoomStatusUpdateView
@@ -9,6 +10,7 @@ from .views import (
 
 router = DefaultRouter()
 router.register(r'categories', RoomCategoryViewSet, basename='room-category')
+router.register(r'amenities', AmenityViewSet, basename='amenity')
 
 urlpatterns = [
     # Router cho Hạng phòng: CRUD, upload-images, delete-image, set-feature-image

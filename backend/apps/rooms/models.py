@@ -17,7 +17,9 @@ class Amenity(models.Model):
 class RoomCategory(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên loại phòng")
     slug = models.SlugField(unique=True, help_text="Tạo URL tự động")
-    description = models.TextField(verbose_name="Mô tả chi tiết", blank=True)
+    short_description = models.CharField(max_length=255, blank=True, default='', verbose_name="Mô tả ngắn")
+    description = models.TextField(verbose_name="Mô tả chi tiết (HTML)", blank=True, default='')
+    cancellation_policy = models.TextField(verbose_name="Chính sách hủy phòng", blank=True, default='')
     
     # Thiết lập cơ bản
     size = models.FloatField(verbose_name="Diện tích (m2)", help_text="VD: 45.5")
@@ -29,7 +31,7 @@ class RoomCategory(models.Model):
     promo_price = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True, verbose_name="Giá khuyến mãi (VND)")
     
     # Tiện nghi đi kèm (Quan hệ Nhiều - Nhiều)
-    amenities = models.ManyToManyField(Amenity, blank=True, verbose_name="Tiện nghi đi kèm")
+    amenities = models.ManyToManyField(Amenity, blank=True, related_name='room_categories', verbose_name="Tiện nghi đi kèm")
 
     def __str__(self):
         return self.name

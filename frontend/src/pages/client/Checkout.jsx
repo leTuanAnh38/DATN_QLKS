@@ -113,7 +113,7 @@ export default function Checkout() {
                         setIdentityCard((prev) => prev || freshIdCard);
                     }
                 }
-            }).catch(() => {});
+            }).catch(() => { });
         }
     }, [isAuthenticated]);
 
@@ -355,7 +355,7 @@ export default function Checkout() {
 
                 // Đồng bộ lại hồ sơ người dùng để cập nhật số CCCD mới lưu vào state
                 if (isAuthenticated) {
-                    authService.getProfile().catch(() => {});
+                    authService.getProfile().catch(() => { });
                 }
 
                 // Phát tín hiệu thông báo thời gian thực tới tất cả tab (Admin Dashboard, Lịch sử đặt phòng)
@@ -663,7 +663,7 @@ export default function Checkout() {
                                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                                                 Số CCCD / Hộ chiếu (Passport) <span className="text-rose-500">*</span>
                                             </label>
-                                            
+
                                             {/* Trạng thái dữ liệu từ hồ sơ */}
                                             {hasProfileIdCard && isUsingProfileIdCard ? (
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -688,8 +688,8 @@ export default function Checkout() {
                                                 type="text"
                                                 maxLength={15}
                                                 placeholder={
-                                                    hasProfileIdCard 
-                                                        ? "Số CCCD/Hộ chiếu từ hồ sơ" 
+                                                    hasProfileIdCard
+                                                        ? "Số CCCD/Hộ chiếu từ hồ sơ"
                                                         : "Chưa có trong hồ sơ - Nhập 12 số CCCD hoặc số Hộ chiếu (VD: 048099012345)"
                                                 }
                                                 value={identityCard}
@@ -698,9 +698,8 @@ export default function Checkout() {
                                                     if (bookingError) setBookingError('');
                                                 }}
                                                 required
-                                                className={`w-full pl-11 ${hasProfileIdCard && isUsingProfileIdCard ? 'pr-24' : 'pr-4'} py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border rounded-2xl text-xs sm:text-sm font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition ${
-                                                    hasProfileIdCard && isUsingProfileIdCard ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-200'
-                                                }`}
+                                                className={`w-full pl-11 ${hasProfileIdCard && isUsingProfileIdCard ? 'pr-24' : 'pr-4'} py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border rounded-2xl text-xs sm:text-sm font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition ${hasProfileIdCard && isUsingProfileIdCard ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-200'
+                                                    }`}
                                             />
                                             <span className="absolute left-3.5 top-3 text-slate-400 text-base">
                                                 🪪
@@ -956,11 +955,10 @@ export default function Checkout() {
                                     {/* Cách 1: Thanh toán tại khách sạn */}
                                     <label
                                         onClick={() => setPaymentMethod('reception')}
-                                        className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
-                                            paymentMethod === 'reception'
+                                        className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'reception'
                                                 ? 'border-blue-600 bg-blue-50/40'
                                                 : 'border-slate-200 hover:border-slate-300'
-                                        }`}
+                                            }`}
                                     >
                                         <input
                                             type="radio"
@@ -987,11 +985,10 @@ export default function Checkout() {
                                     {/* Cách 2: Chuyển khoản QR */}
                                     <label
                                         onClick={() => setPaymentMethod('vietqr')}
-                                        className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
-                                            paymentMethod === 'vietqr'
+                                        className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'vietqr'
                                                 ? 'border-blue-600 bg-blue-50/40'
                                                 : 'border-slate-200 hover:border-slate-300'
-                                        }`}
+                                            }`}
                                     >
                                         <input
                                             type="radio"
@@ -1133,11 +1130,10 @@ export default function Checkout() {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting || availability?.is_sold_out}
-                                    className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-xl flex items-center justify-center gap-2 transition ${
-                                        availability?.is_sold_out
+                                    className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-xl flex items-center justify-center gap-2 transition ${availability?.is_sold_out
                                             ? 'bg-slate-400 cursor-not-allowed shadow-none'
                                             : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
-                                    }`}
+                                        }`}
                                 >
                                     {isSubmitting ? (
                                         <>
@@ -1155,9 +1151,10 @@ export default function Checkout() {
                                 </button>
 
                                 {/* Cam kết tin cậy */}
-                                <div className="space-y-1.5 pt-2 text-[11px] text-slate-400">
-                                    <div className="flex items-center gap-1.5 text-emerald-600 font-medium">
-                                        ✓ Miễn phí hủy phòng trước 24 giờ nhận phòng
+                                <div className="space-y-1.5 pt-2 text-[11px] text-slate-500">
+                                    <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                                        <span>🛡️</span>
+                                        <span>Chính sách hủy: {room?.cancellation_policy ? 'Áp dụng theo quy định riêng của hạng phòng' : 'Miễn phí hủy trước 24 giờ'}</span>
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         ✓ Nhận phòng nhanh chóng tại quầy Lễ tân

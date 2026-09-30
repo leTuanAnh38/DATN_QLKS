@@ -49,6 +49,7 @@ export default function RoomsAndSuitesPage() {
             searchQuery.trim() === '' ||
             room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             room.bed_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            room.short_description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             room.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
         let matchesTab = true;
@@ -332,9 +333,10 @@ export default function RoomsAndSuitesPage() {
                                                 </span>
                                             </div>
 
-                                            {/* Mô tả chi tiết */}
+                                            {/* Mô tả ngắn */}
                                             <p className="mt-3 text-xs text-slate-600 line-clamp-2 leading-relaxed font-normal">
-                                                {room.description ||
+                                                {room.short_description ||
+                                                    room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
                                                     'Phòng nghỉ thượng lưu được trang bị đầy đủ nội thất nhập khẩu, view biển panorama và tiện ích 5 sao đồng bộ.'}
                                             </p>
                                         </div>

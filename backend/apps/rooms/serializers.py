@@ -25,7 +25,11 @@ class RoomImageSerializer(serializers.ModelSerializer):
 
 
 class RoomCategorySerializer(serializers.ModelSerializer):
-    amenities = AmenitySerializer(many=True, read_only=True)
+    amenities = serializers.PrimaryKeyRelatedField(
+        queryset=Amenity.objects.all(),
+        many=True,
+        required=False
+    )
     images = RoomImageSerializer(many=True, read_only=True)
     feature_image = serializers.SerializerMethodField()
     total_rooms_count = serializers.SerializerMethodField()
@@ -33,11 +37,68 @@ class RoomCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomCategory
         fields = [
-            'id', 'name', 'slug', 'description', 'size',
-            'bed_type', 'capacity', 'base_price', 'promo_price',
-            'amenities', 'images', 'feature_image', 'total_rooms_count'
+            'id', 'name', 'slug', 'short_description', 'description',
+            'cancellation_policy', 'size', 'bed_type', 'capacity',
+            'base_price', 'promo_price', 'amenities', 'images',
+            'feature_image', 'total_rooms_count'
         ]
         read_only_fields = ['id', 'slug', 'total_rooms_count']
+
+    def to_internal_value(self, data):
+        # Hỗ trợ parse amenities linh hoạt khi gửi qua FormData hoặc JSON
+        mutable_data = data.copy() if hasattr(data, 'copy') else dict(data)
+        
+        raw_amenities = None
+        if hasattr(data, 'getlist') and len(data.getlist('amenities')) > 0:
+            raw_amenities = data.getlist('amenities')
+        elif hasattr(data, 'getlist') and len(data.getlist('amenity_ids')) > 0:
+            raw_amenities = data.getlist('amenity_ids')
+        elif 'amenities' in mutable_data:
+            raw_amenities = mutable_data['amenities']
+        elif 'amenity_ids' in mutable_data:
+            raw_amenities = mutable_data['amenity_ids']
+
+        if raw_amenities is not None:
+            parsed_ids = []
+            if isinstance(raw_amenities, str):
+                import json
+                try:
+                    loaded = json.loads(raw_amenities)
+                    if isinstance(loaded, list):
+                        parsed_ids = [int(x) for x in loaded if str(x).isdigit()]
+                    elif str(loaded).isdigit():
+                        parsed_ids = [int(loaded)]
+                except Exception:
+                    parsed_ids = [int(x.strip()) for x in raw_amenities.split(',') if x.strip().isdigit()]
+            elif isinstance(raw_amenities, (list, tuple)):
+                for item in raw_amenities:
+                    if isinstance(item, str) and (',' in item or item.startswith('[')):
+                        import json
+                        try:
+                            loaded = json.loads(item)
+                            if isinstance(loaded, list):
+                                parsed_ids.extend([int(x) for x in loaded if str(x).isdigit()])
+                            else:
+                                parsed_ids.append(int(loaded))
+                        except Exception:
+                            parsed_ids.extend([int(x.strip()) for x in item.split(',') if x.strip().isdigit()])
+                    elif str(item).isdigit():
+                        parsed_ids.append(int(item))
+                    elif isinstance(item, (int, float)):
+                        parsed_ids.append(int(item))
+
+            if hasattr(mutable_data, 'setlist'):
+                mutable_data.setlist('amenities', parsed_ids)
+            else:
+                mutable_data['amenities'] = parsed_ids
+
+        return super().to_internal_value(mutable_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Trả về danh sách chi tiết các tiện nghi kèm id, name, icon
+        data['amenities'] = AmenitySerializer(instance.amenities.all(), many=True).data
+        return data
 
     def get_feature_image(self, obj):
         # Lấy ảnh có is_feature=True trước, nếu không có thì lấy ảnh đầu tiên
