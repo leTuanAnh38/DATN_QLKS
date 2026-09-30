@@ -342,6 +342,32 @@ export const bookingService = {
                     'Không thể thực hiện Check-out. Vui lòng thử lại.'
             };
         }
+    },
+
+    /**
+     * Đánh dấu khách không đến nhận phòng (No-show) để giải phóng phòng
+     * POST /api/bookings/:id/no-show/
+     * @param {number|string} bookingId 
+     * @param {Object} payload - { reason: string }
+     */
+    async markNoShow(bookingId, payload = {}) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/no-show/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Đã đánh dấu No-show và giải phóng phòng thành công!',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi đánh dấu No-show:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể đánh dấu No-show. Vui lòng thử lại sau.'
+            };
+        }
     }
 };
 

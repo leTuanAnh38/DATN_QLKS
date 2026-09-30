@@ -43,7 +43,11 @@ class BookingViewSet(viewsets.ModelViewSet):
             'extra_services', 'service_requests', 'service_requests__service'
         ).all().order_by('-created_at')
 
-        # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL
+        # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL, ưu tiên:
+        # 1. Chờ duyệt (pending) lên đầu tiên
+        # 2. Đã xác nhận (confirmed) kế tiếp
+        # 3. Đang lưu trú / đang ở (checked_in) kế tiếp
+        # 4. Các đơn khác (đã hoàn tất / trả phòng / no-show / đã hủy)
         is_staff_or_admin = (
             user.is_staff or 
             user.is_superuser or 
@@ -51,7 +55,18 @@ class BookingViewSet(viewsets.ModelViewSet):
             getattr(user, 'role', '') != 'guest'
         )
         if is_staff_or_admin:
-            return base_qs
+            from django.db.models import Case, When, Value, IntegerField
+            status_priority = Case(
+                When(status='pending', then=Value(1)),
+                When(status='confirmed', then=Value(2)),
+                When(status='checked_in', then=Value(3)),
+                When(status__in=['checked_out', 'completed'], then=Value(4)),
+                When(status='no_show', then=Value(5)),
+                When(status='cancelled', then=Value(6)),
+                default=Value(99),
+                output_field=IntegerField()
+            )
+            return base_qs.order_by(status_priority, '-created_at')
 
         # Nếu là khách hàng -> chỉ xem đơn của chính họ
         user_email = user.email.strip() if user.email else ''
@@ -74,9 +89,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                 updated_booking.room.status = 'cleaning'
                 updated_booking.room.save(update_fields=['status'])
 
-        # 2. Nếu hủy đơn (cancelled): Nếu phòng thực tế đang bị giữ (occupied) -> giải phóng về available (sẵn sàng)
-        elif new_status == 'cancelled':
-            if updated_booking.room and updated_booking.room.status == 'occupied':
+        # 2. Nếu hủy đơn (cancelled) hoặc No-show: Nếu phòng thực tế đang bị giữ -> giải phóng về available (sẵn sàng)
+        elif new_status in ['cancelled', 'no_show']:
+            if updated_booking.room and updated_booking.room.status != 'available':
                 updated_booking.room.status = 'available'
                 updated_booking.room.save(update_fields=['status'])
 
@@ -798,29 +813,41 @@ class BookingViewSet(viewsets.ModelViewSet):
         if check_out <= check_in:
             check_out = check_in + timezone.timedelta(days=1)
 
-        total_rooms = category.rooms.exclude(status='maintenance').count()
-        booked_rooms = Booking.objects.filter(
-            category=category,
-            status__in=['pending', 'confirmed', 'checked_in'],
-            check_in_date__lt=check_out,
-            check_out_date__gt=check_in
-        ).count()
+        def get_category_availability(cat, c_in, c_out):
+            # Nếu khoảng ngày bao gồm ngày hôm nay: tính cả các phòng vật lý đang bận (occupied, maintenance)
+            if c_in <= now < c_out:
+                busy_physical_ids = set(cat.rooms.filter(status__in=['occupied', 'maintenance']).values_list('id', flat=True))
+                active_bookings = Booking.objects.filter(
+                    category=cat,
+                    status__in=['pending', 'confirmed', 'checked_in'],
+                    check_in_date__lt=c_out,
+                    check_out_date__gt=c_in
+                )
+                unassigned_or_clean_bookings = active_bookings.filter(
+                    Q(room__isnull=True) | ~Q(room_id__in=busy_physical_ids)
+                ).count()
+                total_busy = len(busy_physical_ids) + unassigned_or_clean_bookings
+                avail = max(0, cat.rooms.count() - total_busy)
+                return cat.rooms.count(), total_busy, avail
+            else:
+                total = cat.rooms.exclude(status='maintenance').count()
+                booked = Booking.objects.filter(
+                    category=cat,
+                    status__in=['pending', 'confirmed', 'checked_in'],
+                    check_in_date__lt=c_out,
+                    check_out_date__gt=c_in
+                ).count()
+                avail = max(0, total - booked)
+                return total, booked, avail
 
-        available_rooms = max(0, total_rooms - booked_rooms)
+        total_rooms, booked_rooms, available_rooms = get_category_availability(category, check_in, check_out)
         is_sold_out = (available_rooms <= 0)
 
         # Gợi ý các hạng phòng khác còn trống
         suggested = []
         if is_sold_out:
             for other_cat in RoomCategory.objects.exclude(id=category.id):
-                other_total = other_cat.rooms.exclude(status='maintenance').count()
-                other_booked = Booking.objects.filter(
-                    category=other_cat,
-                    status__in=['pending', 'confirmed', 'checked_in'],
-                    check_in_date__lt=check_out,
-                    check_out_date__gt=check_in
-                ).count()
-                other_avail = max(0, other_total - other_booked)
+                other_total, other_booked, other_avail = get_category_availability(other_cat, check_in, check_out)
                 if other_avail > 0:
                     feat_img = other_cat.images.filter(is_feature=True).first() or other_cat.images.first()
                     feat_url = request.build_absolute_uri(feat_img.image.url) if (feat_img and feat_img.image) else ''
@@ -1274,6 +1301,95 @@ class BookingViewSet(viewsets.ModelViewSet):
             },
             'booking': serializer.data,
             'room': room_info
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='no-show')
+    def mark_no_show(self, request, pk=None):
+        """
+        API POST /api/bookings/{id}/no-show/
+        Xử lý trường hợp khách hàng không đến nhận phòng quá giờ quy định (No-show):
+        - Đổi trạng thái đơn Booking thành 'no_show'
+        - (Quan trọng) Đảm bảo phòng (room_id) dự kiến gán cho khách này được giải phóng,
+          trạng thái bảng Room phải chắc chắn là 'available' (Sẵn sàng) để lễ tân có thể gán cho khách Walk-in khác.
+        - Ghi chú tự động vào đơn: "Hệ thống/Lễ tân đánh dấu No-show do quá giờ check-in"
+        """
+        booking = self.get_object()
+        user = request.user
+
+        # 1. Kiểm tra phân quyền Lễ tân / Quản trị viên
+        is_staff_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+        if not is_staff_or_admin:
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền đánh dấu đơn đặt phòng No-show.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2. Kiểm tra trạng thái đơn: Không cho phép no-show nếu đã checked_in, checked_out, completed
+        if booking.status in ['checked_in', 'checked_out', 'completed']:
+            return Response({
+                'success': False,
+                'message': f"Đơn đặt phòng đang ở trạng thái '{booking.get_status_display()}', không thể đánh dấu No-show."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if booking.status == 'no_show':
+            return Response({
+                'success': False,
+                'message': f"Đơn đặt phòng {booking.booking_code} đã được đánh dấu No-show trước đó."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if booking.status == 'cancelled':
+            return Response({
+                'success': False,
+                'message': f"Đơn đặt phòng {booking.booking_code} đã bị hủy bỏ trước đó."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = request.data.get('reason', '').strip()
+        now = timezone.now()
+        staff_name = user.get_full_name() or user.username
+        time_str = now.strftime('%H:%M • %d/%m/%Y')
+
+        with transaction.atomic():
+            # 1. Đổi trạng thái (status) của đơn Booking thành no_show
+            booking.status = 'no_show'
+
+            # 2. Ghi chú tự động vào đơn
+            auto_log = f"[No-show lúc {time_str} bởi {staff_name}]: Hệ thống/Lễ tân đánh dấu No-show do quá giờ check-in."
+            if reason:
+                auto_log += f" Lý do: {reason}"
+
+            if booking.internal_note:
+                booking.internal_note = f"{booking.internal_note}\n{auto_log}".strip()
+            else:
+                booking.internal_note = auto_log
+
+            # 3. (Quan trọng) Đảm bảo phòng (room_id) dự kiến gán cho khách này được giải phóng,
+            # trạng thái bảng Room chắc chắn là available (Sẵn sàng) để bán cho khách Walk-in khác.
+            released_room = None
+            if booking.room:
+                released_room = booking.room
+                if released_room.status != 'available':
+                    released_room.status = 'available'
+                    released_room.save(update_fields=['status'])
+
+            booking.save(update_fields=['status', 'internal_note', 'updated_at'])
+
+        serializer = self.get_serializer(booking, context={'request': request})
+        from ..rooms.serializers import RoomSerializer
+        room_data = RoomSerializer(released_room).data if released_room else None
+
+        room_msg = f" Đã giải phóng phòng {released_room.room_number} về trạng thái Sẵn sàng (Available)." if released_room else ""
+        return Response({
+            'success': True,
+            'message': f'Đã đánh dấu đơn đặt phòng {booking.booking_code} là Khách không đến (No-show) thành công!{room_msg}',
+            'booking': serializer.data,
+            'room': room_data
         }, status=status.HTTP_200_OK)
 
 

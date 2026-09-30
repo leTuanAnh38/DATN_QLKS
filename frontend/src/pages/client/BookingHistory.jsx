@@ -156,16 +156,21 @@ export default function BookingHistory() {
         const pending = bookings.filter((b) => b.status === 'pending').length;
         const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
         const checkedIn = bookings.filter((b) => b.status === 'checked_in').length;
+        const completed = bookings.filter((b) => b.status === 'completed' || b.status === 'checked_out').length;
         const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
-        return { total, pending, confirmed, checkedIn, cancelled };
+        return { total, pending, confirmed, checkedIn, completed, cancelled };
     }, [bookings]);
 
     // Lọc danh sách theo Tab trạng thái và từ khóa tìm kiếm
     const filteredBookings = useMemo(() => {
         return bookings.filter((item) => {
             // Lọc trạng thái
-            if (statusFilter !== 'all' && item.status !== statusFilter) {
-                return false;
+            if (statusFilter !== 'all') {
+                if (statusFilter === 'completed') {
+                    if (item.status !== 'completed' && item.status !== 'checked_out') return false;
+                } else if (item.status !== statusFilter) {
+                    return false;
+                }
             }
             // Lọc từ khóa tìm kiếm (mã booking, tên phòng, số cccd)
             if (searchKeyword.trim()) {
@@ -204,11 +209,19 @@ export default function BookingHistory() {
                         🏨 Đang lưu trú
                     </span>
                 );
+            case 'completed':
             case 'checked_out':
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-xs">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                        Hoàn thành
+                    </span>
+                );
+            case 'no_show':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300 shadow-xs">
                         <span className="w-2 h-2 rounded-full bg-slate-500"></span>
-                        🏁 Đã Check-out
+                        🚫 Khách không đến (No-show)
                     </span>
                 );
             case 'cancelled':
@@ -280,7 +293,7 @@ export default function BookingHistory() {
 
                     {/* HÀNG THỐNG KÊ NHANH (QUICK STATS) */}
                     {isAuthenticated && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
                             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
                                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                                     Tổng số đơn
@@ -311,6 +324,14 @@ export default function BookingHistory() {
                                 </span>
                                 <div className="text-2xl font-black text-emerald-800 mt-1">
                                     {stats.checkedIn}
+                                </div>
+                            </div>
+                            <div className="bg-blue-50/60 rounded-2xl p-4 border border-blue-200/70">
+                                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
+                                    Hoàn thành
+                                </span>
+                                <div className="text-2xl font-black text-blue-700 mt-1">
+                                    {stats.completed}
                                 </div>
                             </div>
                         </div>
@@ -368,6 +389,7 @@ export default function BookingHistory() {
                                     { key: 'pending', label: 'Chờ duyệt', count: stats.pending, color: 'text-amber-600' },
                                     { key: 'confirmed', label: 'Đã xác nhận', count: stats.confirmed, color: 'text-blue-600' },
                                     { key: 'checked_in', label: 'Đang lưu trú', count: stats.checkedIn, color: 'text-emerald-600' },
+                                    { key: 'completed', label: 'Hoàn thành', count: stats.completed, color: 'text-blue-600' },
                                     { key: 'cancelled', label: 'Đã hủy', count: stats.cancelled, color: 'text-rose-600' }
                                 ].map((tab) => (
                                     <button
@@ -465,6 +487,8 @@ export default function BookingHistory() {
                                                   ? 'Đã xác nhận'
                                                   : statusFilter === 'checked_in'
                                                   ? 'Đang lưu trú'
+                                                  : statusFilter === 'completed'
+                                                  ? 'Hoàn thành'
                                                   : 'Đã hủy'
                                           }"`}
                                 </h3>

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.rooms',       # Thêm luôn các app bạn chuẩn bị tạo
     'apps.payments',
     'apps.services',
+    'apps.notifications',
 ]
 
 MIDDLEWARE = [

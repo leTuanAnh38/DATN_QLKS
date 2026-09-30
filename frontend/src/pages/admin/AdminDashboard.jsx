@@ -10,6 +10,7 @@ import BookingManagement from '../../components/admin/BookingManagement';
 import ServiceRequestKanban from '../../components/admin/ServiceRequestKanban';
 import ServiceManagement from '../../components/admin/ServiceManagement';
 import UserAvatar from '../../components/common/UserAvatar';
+import NotificationBell from '../../components/common/NotificationBell';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -540,17 +541,8 @@ export default function HotelAdminDashboard() {
                             </span>
                         </div>
 
-                        {/* Chuông thông báo */}
-                        <div className="relative cursor-pointer">
-                            <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                            </div>
-                            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                                5
-                            </span>
-                        </div>
+                        {/* Chuông thông báo thời gian thực */}
+                        <NotificationBell theme="light" />
 
                         {/* Profile Avatar Quản lý */}
                         <div className="flex items-center gap-3 pl-4 border-l border-slate-200">

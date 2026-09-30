@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/rooms/', include('apps.rooms.urls')),
     path('api/bookings/', include('apps.bookings.urls')),
     path('api/services/', include('apps.services.urls')),
+    path('api/notifications/', include('apps.notifications.urls')),
 ]
 
 if settings.DEBUG:

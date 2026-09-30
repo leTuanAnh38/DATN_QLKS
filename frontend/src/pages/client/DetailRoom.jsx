@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+
+// Hàm tiện ích format ngày thành chuỗi YYYY-MM-DD
+const formatDateToInput = (date) => {
+    const d = new Date(date);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${year}-${month}-${day}`;
+};
 
 // Ảnh mặc định bổ trợ cao cấp nếu Hạng phòng chưa upload đủ 5 ảnh
 const FALLBACK_GALLERY = [
@@ -120,14 +129,39 @@ export default function DetailRoom() {
     const [lightboxImage, setLightboxImage] = useState(null);
     const [availability, setAvailability] = useState(null);
 
-    const nights = 2;
+    // Quản lý ngày Check-in & Check-out (Mặc định hôm nay -> 2 đêm sau)
+    const today = new Date();
+    const defaultCheckInDate = formatDateToInput(today);
+    const defaultCheckOut = new Date(today);
+    defaultCheckOut.setDate(defaultCheckOut.getDate() + 2);
+    const defaultCheckOutDate = formatDateToInput(defaultCheckOut);
 
-    // Kiểm tra tình trạng phòng trống
+    const [checkInDate, setCheckInDate] = useState(defaultCheckInDate);
+    const [checkOutDate, setCheckOutDate] = useState(defaultCheckOutDate);
+
+    // Tính số đêm lưu trú động theo ngày nhận & trả phòng
+    const nights = useMemo(() => {
+        try {
+            const d1 = new Date(checkInDate);
+            const d2 = new Date(checkOutDate);
+            const diffTime = d2.getTime() - d1.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays > 0 ? diffDays : 1;
+        } catch {
+            return 2;
+        }
+    }, [checkInDate, checkOutDate]);
+
+    // Kiểm tra tình trạng phòng trống thời gian thực theo khoảng ngày
     useEffect(() => {
-        if (!room?.id) return;
+        if (!room?.id || !checkInDate || !checkOutDate) return;
         let isMounted = true;
         bookingService
-            .checkAvailability({ category_id: room.id })
+            .checkAvailability({
+                category_id: room.id,
+                check_in_date: checkInDate,
+                check_out_date: checkOutDate
+            })
             .then((res) => {
                 if (isMounted && res && res.success) {
                     setAvailability(res);
@@ -137,7 +171,7 @@ export default function DetailRoom() {
         return () => {
             isMounted = false;
         };
-    }, [room?.id]);
+    }, [room?.id, checkInDate, checkOutDate]);
 
     // 2. Hook useEffect() gọi API chi tiết phòng qua roomService
     useEffect(() => {
@@ -861,19 +895,35 @@ export default function DetailRoom() {
                                 <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
                                     <div className="border-r border-slate-200 pr-2">
                                         <span className="block text-[10px] text-slate-400 uppercase font-semibold">Nhận phòng</span>
-                                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1 mt-0.5">
-                                            📅 Hôm nay (14:00)
-                                        </div>
+                                        <input
+                                            type="date"
+                                            min={formatDateToInput(new Date())}
+                                            value={checkInDate}
+                                            onChange={(e) => {
+                                                const newIn = e.target.value;
+                                                setCheckInDate(newIn);
+                                                if (newIn >= checkOutDate) {
+                                                    const nextDay = new Date(newIn);
+                                                    nextDay.setDate(nextDay.getDate() + 1);
+                                                    setCheckOutDate(formatDateToInput(nextDay));
+                                                }
+                                            }}
+                                            className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
+                                        />
                                     </div>
                                     <div className="pl-2">
                                         <span className="block text-[10px] text-slate-400 uppercase font-semibold">Trả phòng</span>
-                                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1 mt-0.5">
-                                            📅 Sau {nights} ngày (12:00)
-                                        </div>
+                                        <input
+                                            type="date"
+                                            min={checkInDate}
+                                            value={checkOutDate}
+                                            onChange={(e) => setCheckOutDate(e.target.value)}
+                                            className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
+                                        />
                                     </div>
                                 </div>
                                 <span className="block text-right text-[11px] text-blue-600 font-medium mt-1">
-                                    Thời gian: {nights} đêm nghỉ dưỡng
+                                    Thời gian: {nights} đêm lưu trú
                                 </span>
                             </div>
 
@@ -1034,6 +1084,8 @@ export default function DetailRoom() {
                                 onClick={() => {
                                     navigate(`/checkout/${room.id}`, {
                                         state: {
+                                            checkInDate,
+                                            checkOutDate,
                                             guestCount,
                                             selectedPackage
                                         }

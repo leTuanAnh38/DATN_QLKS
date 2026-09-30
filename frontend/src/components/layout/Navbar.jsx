@@ -4,6 +4,7 @@ import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
 import UserAvatar from '../common/UserAvatar';
+import NotificationBell from '../common/NotificationBell';
 
 export const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
@@ -188,11 +189,13 @@ export default function Navbar({
                                 <span>Đăng nhập</span>
                             </Link>
                         ) : (
-                            // Khi ĐÃ đăng nhập thành công: Hiển thị AVATAR MẶC ĐỊNH kèm Menu Tài khoản
-                            <div className="relative" ref={userMenuRef}>
-                                <button
-                                    type="button"
-                                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                            // Khi ĐÃ đăng nhập thành công: Hiển thị CHUÔNG THÔNG BÁO và AVATAR MẶC ĐỊNH
+                            <div className="flex items-center gap-3">
+                                <NotificationBell />
+                                <div className="relative" ref={userMenuRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUserMenuOpen(!userMenuOpen)}
                                     className="cursor-pointer hover:scale-105 transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full"
                                     title={`Tài khoản: ${user?.full_name || user?.username}`}
                                 >
@@ -319,7 +322,8 @@ export default function Navbar({
                                     </div>
                                 )}
                             </div>
-                        )}
+                        </div>
+                    )}
 
                         {/* Mobile Menu Button */}
                         <button
