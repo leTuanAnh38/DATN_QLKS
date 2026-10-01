@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
+import { reviewService } from '../../services/reviewService';
+import { useAuth } from '../../store/authStore';
+import UserAvatar from '../../components/common/UserAvatar';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
@@ -129,6 +132,170 @@ export default function DetailRoom() {
     const [lightboxImage, setLightboxImage] = useState(null);
     const [availability, setAvailability] = useState(null);
 
+    const location = useLocation();
+    const { user, isAuthenticated } = useAuth();
+
+    // State quản lý đánh giá thực tế từ CSDL
+    const [reviews, setReviews] = useState([]);
+    const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+    const [bookingToReview, setBookingToReview] = useState(null);
+    const [cleanlinessScore, setCleanlinessScore] = useState(5);
+    const [serviceScore, setServiceScore] = useState(5);
+    const [locationScore, setLocationScore] = useState(5);
+    const [valueScore, setValueScore] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const [reviewToast, setReviewToast] = useState(null);
+
+    const showReviewToast = (type, text) => {
+        setReviewToast({ type, text });
+        setTimeout(() => setReviewToast(null), 4000);
+    };
+
+    const fetchRoomReviews = async (categoryId) => {
+        if (!categoryId) return;
+        try {
+            setIsLoadingReviews(true);
+            const res = await reviewService.getReviews({ room_category: categoryId });
+            if (res && res.success) {
+                setReviews(res.data || []);
+            }
+        } catch (e) {
+            console.error('Không thể tải danh sách đánh giá:', e);
+        } finally {
+            setIsLoadingReviews(false);
+        }
+    };
+
+    // Kiểm tra booking cần đánh giá (từ Lịch sử đặt phòng hoặc URL ?review_booking_id=...)
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const reviewBookingId = searchParams.get('review_booking_id');
+
+        if (location.state?.bookingToReview) {
+            setBookingToReview(location.state.bookingToReview);
+            setTimeout(() => {
+                const el = document.getElementById('danh-gia');
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 600);
+        } else if (reviewBookingId && isAuthenticated) {
+            // Lấy thông tin đơn đặt phòng nếu chưa có trong state
+            bookingService.getMyBookings().then((res) => {
+                const bookingsList = res?.bookings || res?.results || (Array.isArray(res) ? res : []);
+                const found = bookingsList.find((b) => String(b.id) === String(reviewBookingId));
+                if (found) {
+                    setBookingToReview(found);
+                }
+                setTimeout(() => {
+                    const el = document.getElementById('danh-gia');
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 600);
+            }).catch((err) => {
+                console.error('Lỗi khi lấy thông tin đơn cần đánh giá:', err);
+            });
+        } else if (location.hash === '#danh-gia') {
+            setTimeout(() => {
+                const el = document.getElementById('danh-gia');
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 600);
+        }
+    }, [location.search, location.state, location.hash, isAuthenticated]);
+
+    // Tìm đơn hoàn tất của khách cho hạng phòng này để gợi ý đánh giá nếu chưa đánh giá
+    const [eligibleBooking, setEligibleBooking] = useState(null);
+    useEffect(() => {
+        if (!isAuthenticated || !room?.id) return;
+        bookingService.getMyBookings().then((res) => {
+            const bookingsList = res?.bookings || res?.results || (Array.isArray(res) ? res : []);
+            const match = bookingsList.find((b) => 
+                b.status === 'completed' && 
+                !b.review && 
+                (String(b.category_id) === String(room.id) || String(b.room_category?.id) === String(room.id))
+            );
+            if (match) {
+                setEligibleBooking(match);
+            }
+        }).catch(() => {});
+    }, [isAuthenticated, room?.id]);
+
+    // Tính toán thống kê đánh giá thời gian thực
+    const reviewStats = useMemo(() => {
+        const total = reviews.length;
+        if (total === 0) {
+            return {
+                total: 0,
+                average: (room?.rating || 5.0).toFixed(1),
+                cleanliness: '5.0',
+                service: '5.0',
+                location: '5.0',
+                value: '5.0',
+            };
+        }
+        const sumOverall = reviews.reduce((acc, r) => acc + (parseFloat(r.overall_rating) || 0), 0);
+        const sumClean = reviews.reduce((acc, r) => acc + (parseFloat(r.cleanliness_score) || 0), 0);
+        const sumService = reviews.reduce((acc, r) => acc + (parseFloat(r.service_score) || 0), 0);
+        const sumLocation = reviews.reduce((acc, r) => acc + (parseFloat(r.location_score) || 0), 0);
+        const sumValue = reviews.reduce((acc, r) => acc + (parseFloat(r.value_score) || 0), 0);
+
+        return {
+            total,
+            average: (sumOverall / total).toFixed(1),
+            cleanliness: (sumClean / total).toFixed(1),
+            service: (sumService / total).toFixed(1),
+            location: (sumLocation / total).toFixed(1),
+            value: (sumValue / total).toFixed(1),
+        };
+    }, [reviews, room?.rating]);
+
+    // Xử lý gửi đánh giá mới
+    const handleSubmitReview = async (e) => {
+        if (e) e.preventDefault();
+        if (!bookingToReview?.id) {
+            showReviewToast('error', 'Không tìm thấy thông tin đơn đặt phòng để đánh giá.');
+            return;
+        }
+        if (!reviewComment.trim()) {
+            showReviewToast('error', 'Vui lòng nhập nội dung nhận xét hoặc chia sẻ trải nghiệm của bạn.');
+            return;
+        }
+
+        try {
+            setIsSubmittingReview(true);
+            const payload = {
+                booking_id: bookingToReview.id,
+                cleanliness_score: cleanlinessScore,
+                service_score: serviceScore,
+                location_score: locationScore,
+                value_score: valueScore,
+                comment: reviewComment.trim()
+            };
+
+            const res = await reviewService.createReview(payload);
+            if (res && res.success) {
+                showReviewToast('success', 'Cảm ơn quý khách đã gửi đánh giá trải nghiệm nghỉ dưỡng!');
+                setReviewComment('');
+                setBookingToReview(null);
+                setEligibleBooking(null);
+                if (room?.id) {
+                    await fetchRoomReviews(room.id);
+                }
+            } else {
+                showReviewToast('error', res?.message || 'Không thể gửi đánh giá. Vui lòng thử lại sau.');
+            }
+        } catch (err) {
+            console.error('Lỗi khi gửi đánh giá:', err);
+            showReviewToast('error', err?.response?.data?.message || err?.message || 'Đã xảy ra lỗi khi gửi đánh giá.');
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
+
     // Quản lý ngày Check-in & Check-out (Mặc định hôm nay -> 2 đêm sau)
     const today = new Date();
     const defaultCheckInDate = formatDateToInput(today);
@@ -201,6 +368,8 @@ export default function DetailRoom() {
                     if (categoryData.capacity) {
                         setGuestCount(Math.min(categoryData.capacity, 2));
                     }
+                    // Tải danh sách đánh giá thực tế của hạng phòng
+                    fetchRoomReviews(categoryData.id);
                 } else {
                     setError(res?.message || 'Không tìm thấy thông tin hạng phòng yêu cầu.');
                 }
@@ -485,12 +654,14 @@ export default function DetailRoom() {
 
                         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl flex-shrink-0">
                             <span className="flex items-center gap-1 text-amber-500 text-lg font-bold">
-                                ★ 4.98
+                                ★ {reviewStats.average}
                             </span>
                             <div className="border-l border-slate-200 pl-3">
-                                <div className="text-xs font-bold text-slate-900">Tuyệt hảo xuất sắc</div>
+                                <div className="text-xs font-bold text-slate-900">
+                                    {parseFloat(reviewStats.average) >= 4.8 ? 'Tuyệt hảo xuất sắc' : (parseFloat(reviewStats.average) >= 4.0 ? 'Rất tốt' : 'Tốt')}
+                                </div>
                                 <a href="#danh-gia" className="text-[11px] text-blue-600 hover:underline">
-                                    328 lượt đánh giá thực tế
+                                    {reviewStats.total > 0 ? `${reviewStats.total} lượt đánh giá thực tế` : 'Đang cập nhật đánh giá'}
                                 </a>
                             </div>
                         </div>
@@ -881,40 +1052,471 @@ export default function DetailRoom() {
                             </div>
                         </div>
 
-                        {/* ĐÁNH GIÁ TỪ KHÁCH HÀNG */}
-                        <div id="danh-gia" className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                        {/* ĐÁNH GIÁ TỪ KHÁCH HÀNG THỰC TẾ & FORM ĐÁNH GIÁ KỲ NGHỈ */}
+                        <div id="danh-gia" className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-8 scroll-mt-24">
+                            {/* 1. TIÊU ĐỀ & ĐIỂM TỔNG QUAN */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                                 <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Trải nghiệm khách hàng</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Trải nghiệm khách hàng</span>
+                                        <span className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black uppercase">
+                                            Đã xác thực
+                                        </span>
+                                    </div>
                                     <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
-                                        Đánh giá từ những du khách tinh hoa
+                                        Đánh giá & Trải nghiệm thực tế
                                     </h3>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Được đóng góp bởi những du khách đã hoàn tất kỳ nghỉ tại {room.name}
+                                    </p>
                                 </div>
 
-                                <div className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-xl">
-                                    <span className="font-black text-2xl">4.98</span>
-                                    <span className="text-xs text-amber-100 font-medium leading-tight">trên thang 5.0</span>
+                                <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white px-5 py-3 rounded-2xl shadow-md shadow-amber-500/20 shrink-0">
+                                    <div className="text-right">
+                                        <div className="text-[11px] text-amber-100 font-semibold uppercase tracking-wider">
+                                            {parseFloat(reviewStats.average) >= 4.8 ? 'Tuyệt hảo' : (parseFloat(reviewStats.average) >= 4.0 ? 'Rất tốt' : 'Hài lòng')}
+                                        </div>
+                                        <div className="text-[10px] text-amber-200">
+                                            {reviewStats.total} lượt đánh giá
+                                        </div>
+                                    </div>
+                                    <div className="border-l border-amber-400/40 pl-3">
+                                        <span className="font-black text-3xl">{reviewStats.average}</span>
+                                        <span className="text-xs text-amber-200"> /5.0</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <div className="flex items-center justify-between mb-2">
+                            {/* 2. THỐNG KÊ 4 TIÊU CHÍ ĐÁNH GIÁ (SẠCH SẼ, DỊCH VỤ, VỊ TRÍ, GIÁ TRỊ) */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="font-semibold text-slate-700">Sạch sẽ</span>
+                                        <span className="font-bold text-slate-900">{reviewStats.cleanliness}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                                            style={{ width: `${(parseFloat(reviewStats.cleanliness) / 5) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="font-semibold text-slate-700">Dịch vụ</span>
+                                        <span className="font-bold text-slate-900">{reviewStats.service}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                                            style={{ width: `${(parseFloat(reviewStats.service) / 5) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="font-semibold text-slate-700">Vị trí</span>
+                                        <span className="font-bold text-slate-900">{reviewStats.location}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-purple-500 h-full rounded-full transition-all duration-500"
+                                            style={{ width: `${(parseFloat(reviewStats.location) / 5) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="font-semibold text-slate-700">Giá trị</span>
+                                        <span className="font-bold text-slate-900">{reviewStats.value}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                                            style={{ width: `${(parseFloat(reviewStats.value) / 5) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. TOAST THÔNG BÁO GỬI ĐÁNH GIÁ */}
+                            {reviewToast && (
+                                <div
+                                    className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-300 ${
+                                        reviewToast.type === 'success'
+                                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                                            : 'bg-rose-50 text-rose-800 border border-rose-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span>{reviewToast.type === 'success' ? '✓' : '⚠️'}</span>
+                                        <span>{reviewToast.text}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setReviewToast(null)}
+                                        className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 4. FORM VIẾT ĐÁNH GIÁ (KHI CÓ BOOKING CẦN ĐÁNH GIÁ) */}
+                            {bookingToReview && (
+                                <div className="p-6 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 rounded-3xl border-2 border-amber-400/60 shadow-lg shadow-amber-500/10 space-y-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-200/60">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs">
-                                                ML
+                                            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm shadow-amber-500/20">
+                                                ★
                                             </div>
                                             <div>
-                                                <strong className="text-xs text-slate-900 block">Michael Laurent</strong>
-                                                <span className="text-[11px] text-slate-400">Du khách từ Singapore • Đặt phòng {room.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-900 text-sm sm:text-base">
+                                                        Đánh giá kỳ nghỉ của quý khách
+                                                    </span>
+                                                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-mono text-[11px] font-bold">
+                                                        #{bookingToReview.booking_code}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    {bookingToReview.room_name || room.name}
+                                                    {bookingToReview.room_number ? ` • Phòng ${bookingToReview.room_number}` : ''}
+                                                </p>
                                             </div>
                                         </div>
-                                        <span className="text-amber-500 text-xs font-bold">★★★★★</span>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setBookingToReview(null)}
+                                            className="self-end sm:self-auto text-xs text-slate-400 hover:text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer transition"
+                                        >
+                                            ✕ Thu gọn
+                                        </button>
                                     </div>
-                                    <p className="text-xs text-slate-600 leading-relaxed italic">
-                                        "Trải nghiệm nghỉ dưỡng tại {room.name} thật sự vượt mong đợi. Thiết kế nội thất sang trọng, tầm nhìn biển tuyệt đẹp và dịch vụ chăm sóc chu đáo từ đội ngũ khách sạn TA."
-                                    </p>
+
+                                    {/* Điểm tổng quan dự kiến */}
+                                    <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
+                                        <div>
+                                            <span className="text-xs font-semibold text-slate-500 block">
+                                                Điểm đánh giá trung bình:
+                                            </span>
+                                            <span className="font-serif text-xl font-bold text-slate-900">
+                                                {(((cleanlinessScore + serviceScore + locationScore + valueScore) / 4)).toFixed(1)} / 5.0
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            {[1, 2, 3, 4, 5].map((s) => (
+                                                <svg
+                                                    key={s}
+                                                    className={`w-5 h-5 ${
+                                                        s <= Math.round((cleanlinessScore + serviceScore + locationScore + valueScore) / 4)
+                                                            ? 'text-amber-400 fill-amber-400'
+                                                            : 'text-slate-200 fill-slate-200'
+                                                    }`}
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                </svg>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 4 Tiêu chí đánh giá sao */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {/* Tiêu chí 1: Sạch sẽ */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-xl border border-slate-200">
+                                            <div>
+                                                <span className="text-xs font-semibold text-slate-700">Mức độ sạch sẽ</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        onClick={() => setCleanlinessScore(star)}
+                                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                                        title={`${star} sao`}
+                                                    >
+                                                        <svg
+                                                            className={`w-6 h-6 ${star <= cleanlinessScore ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                ))}
+                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{cleanlinessScore}.0</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Tiêu chí 2: Dịch vụ */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-xl border border-slate-200">
+                                            <div>
+                                                <span className="text-xs font-semibold text-slate-700">Chất lượng phục vụ</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        onClick={() => setServiceScore(star)}
+                                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                                        title={`${star} sao`}
+                                                    >
+                                                        <svg
+                                                            className={`w-6 h-6 ${star <= serviceScore ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                ))}
+                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{serviceScore}.0</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Tiêu chí 3: Vị trí */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-xl border border-slate-200">
+                                            <div>
+                                                <span className="text-xs font-semibold text-slate-700">Vị trí & Cảnh quan</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        onClick={() => setLocationScore(star)}
+                                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                                        title={`${star} sao`}
+                                                    >
+                                                        <svg
+                                                            className={`w-6 h-6 ${star <= locationScore ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                ))}
+                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{locationScore}.0</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Tiêu chí 4: Giá trị */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-xl border border-slate-200">
+                                            <div>
+                                                <span className="text-xs font-semibold text-slate-700">Giá trị tương xứng chi phí</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        onClick={() => setValueScore(star)}
+                                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                                        title={`${star} sao`}
+                                                    >
+                                                        <svg
+                                                            className={`w-6 h-6 ${star <= valueScore ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                ))}
+                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{valueScore}.0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Nhận xét cảm nhận */}
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-bold text-slate-700">
+                                            Chia sẻ chi tiết cảm nhận của quý khách:
+                                        </label>
+                                        <textarea
+                                            rows={4}
+                                            value={reviewComment}
+                                            onChange={(e) => setReviewComment(e.target.value)}
+                                            placeholder="Phòng nghỉ, dịch vụ phòng, tầm nhìn và sự chu đáo của nhân viên đáp ứng kỳ vọng của bạn như thế nào?..."
+                                            className="w-full p-4 rounded-2xl border border-amber-200/90 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 text-xs sm:text-sm text-slate-800 outline-none transition bg-white"
+                                        />
+                                    </div>
+
+                                    {/* Nút gửi */}
+                                    <div className="flex items-center justify-end gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setBookingToReview(null)}
+                                            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs transition cursor-pointer"
+                                        >
+                                            Hủy bỏ
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleSubmitReview}
+                                            disabled={isSubmittingReview}
+                                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs transition shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {isSubmittingReview ? (
+                                                <>
+                                                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                                    <span>Đang gửi đánh giá...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>★</span>
+                                                    <span>Gửi Đánh Giá Của Bạn</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* 5. GỢI Ý ĐÁNH GIÁ NẾU KHÁCH CÓ ĐƠN COMPLETED CHƯA REVIEW */}
+                            {!bookingToReview && eligibleBooking && (
+                                <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 rounded-2xl border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0">
+                                            ✨
+                                        </div>
+                                        <div>
+                                            <strong className="text-xs sm:text-sm text-amber-950 block">
+                                                Quý khách vừa hoàn tất kỳ nghỉ tại phòng này (Mã đơn: #{eligibleBooking.booking_code})!
+                                            </strong>
+                                            <p className="text-[11px] text-amber-800 mt-0.5">
+                                                Hãy chia sẻ cảm nhận trải nghiệm của bạn để giúp cộng đồng du khách và hỗ trợ khách sạn hoàn thiện hơn.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBookingToReview(eligibleBooking)}
+                                        className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                                    >
+                                        <span>★</span>
+                                        <span>Viết Đánh Giá Ngay</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 6. DANH SÁCH ĐÁNH GIÁ THỰC TẾ TỪ CƠ SỞ DỮ LIỆU */}
+                            <div className="space-y-4">
+                                {isLoadingReviews ? (
+                                    <div className="py-12 text-center space-y-3">
+                                        <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                        <p className="text-xs text-slate-500">Đang tải danh sách đánh giá thực tế...</p>
+                                    </div>
+                                ) : reviews.length === 0 ? (
+                                    <div className="py-12 px-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-center space-y-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mx-auto">
+                                            ⭐
+                                        </div>
+                                        <h4 className="font-serif text-base font-bold text-slate-800">
+                                            Chưa có đánh giá nào cho hạng phòng này
+                                        </h4>
+                                        <p className="text-xs text-slate-500 max-w-md mx-auto">
+                                            Hãy là một trong những vị khách đầu tiên trải nghiệm không gian nghỉ dưỡng tuyệt hảo này và để lại cảm nhận của bạn!
+                                        </p>
+                                    </div>
+                                ) : (
+                                    reviews.map((rev) => {
+                                        const guestFullName = rev.guest_name || rev.guest_full_name || rev.guest?.username || 'Du khách lưu trú';
+                                        const reviewDateStr = rev.created_at ? new Date(rev.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                                        return (
+                                            <div
+                                                key={rev.id}
+                                                className="p-5 sm:p-6 bg-slate-50/80 hover:bg-slate-50 rounded-2xl border border-slate-200/80 transition space-y-3"
+                                            >
+                                                {/* Header đánh giá */}
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <UserAvatar
+                                                            avatar={rev.guest_avatar}
+                                                            name={guestFullName}
+                                                            size="md"
+                                                            role="guest"
+                                                        />
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <strong className="text-xs sm:text-sm text-slate-900 block font-bold">
+                                                                    {guestFullName}
+                                                                </strong>
+                                                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                                                    ✓ Đã lưu trú
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-[11px] text-slate-400">
+                                                                {reviewDateStr ? `Đánh giá ngày ${reviewDateStr}` : 'Đánh giá đã xác thực'} • {room.name}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 self-start sm:self-auto bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                                                        <div className="flex items-center gap-0.5">
+                                                            {[1, 2, 3, 4, 5].map((s) => (
+                                                                <svg
+                                                                    key={s}
+                                                                    className={`w-3.5 h-3.5 ${
+                                                                        s <= Math.round(parseFloat(rev.overall_rating) || 5)
+                                                                            ? 'text-amber-400 fill-amber-400'
+                                                                            : 'text-slate-200 fill-slate-200'
+                                                                    }`}
+                                                                    viewBox="0 0 20 20"
+                                                                >
+                                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                </svg>
+                                                            ))}
+                                                        </div>
+                                                        <span className="font-bold text-xs text-amber-600">
+                                                            {parseFloat(rev.overall_rating || 5).toFixed(1)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Điểm 4 tiêu chí mini tags */}
+                                                <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 pt-1">
+                                                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200">
+                                                        Sạch sẽ: <strong className="text-slate-800">{rev.cleanliness_score || 5}/5</strong>
+                                                    </span>
+                                                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200">
+                                                        Dịch vụ: <strong className="text-slate-800">{rev.service_score || 5}/5</strong>
+                                                    </span>
+                                                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200">
+                                                        Vị trí: <strong className="text-slate-800">{rev.location_score || 5}/5</strong>
+                                                    </span>
+                                                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200">
+                                                        Giá trị: <strong className="text-slate-800">{rev.value_score || 5}/5</strong>
+                                                    </span>
+                                                </div>
+
+                                                {/* Nội dung đánh giá */}
+                                                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal pt-1">
+                                                    "{rev.comment}"
+                                                </p>
+
+                                                {/* Phản hồi từ Ban quản lý khách sạn nếu có */}
+                                                {rev.admin_reply && (
+                                                    <div className="mt-3 p-4 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-1.5 ml-4 sm:ml-6">
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-blue-900">
+                                                            <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">
+                                                                👑
+                                                            </div>
+                                                            <span>Phản hồi từ Ban Quản Lý Khách Sạn TA Resort</span>
+                                                        </div>
+                                                        <p className="text-xs text-blue-950/90 leading-relaxed italic pl-7">
+                                                            "{rev.admin_reply}"
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
                     </div>

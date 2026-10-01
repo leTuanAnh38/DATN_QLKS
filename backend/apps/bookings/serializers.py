@@ -41,12 +41,14 @@ class BookingSerializer(serializers.ModelSerializer):
     pending_services = serializers.SerializerMethodField()
     room_amount = serializers.SerializerMethodField()
     grand_total_amount = serializers.SerializerMethodField()
+    review = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = [
             'id',
             'booking_code',
+            'review',
             'category',
             'room',
             'room_name',
@@ -233,3 +235,23 @@ class BookingSerializer(serializers.ModelSerializer):
         if obj.total_amount and nights > 0:
             return float(obj.total_amount / nights)
         return float(obj.total_amount or 0)
+
+    def get_review(self, obj):
+        try:
+            if hasattr(obj, 'review') and obj.review:
+                rev = obj.review
+                return {
+                    'id': rev.id,
+                    'cleanliness_score': rev.cleanliness_score,
+                    'service_score': rev.service_score,
+                    'location_score': rev.location_score,
+                    'value_score': rev.value_score,
+                    'overall_rating': rev.overall_rating,
+                    'comment': rev.comment,
+                    'admin_reply': rev.admin_reply,
+                    'is_visible': rev.is_visible,
+                    'created_at': rev.created_at,
+                }
+        except Exception:
+            pass
+        return None

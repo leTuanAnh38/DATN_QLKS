@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { bookingService } from '../../services/bookingService';
+import { reviewService } from '../../services/reviewService';
 import { useAuth } from '../../store/authStore';
 
 // Tiện ích format ngày tiếng Việt (VD: 05/10/2026)
@@ -55,6 +56,74 @@ export default function BookingHistory() {
 
     // 4. State sao chép mã
     const [copiedCode, setCopiedCode] = useState(null);
+
+    // 5. State Modal Đánh giá (Review)
+    const [reviewModalBooking, setReviewModalBooking] = useState(null);
+    const [cleanlinessScore, setCleanlinessScore] = useState(5);
+    const [serviceScore, setServiceScore] = useState(5);
+    const [locationScore, setLocationScore] = useState(5);
+    const [valueScore, setValueScore] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+    // 6. State Modal Xem Đánh Giá Của Tôi
+    const [viewReviewModalBooking, setViewReviewModalBooking] = useState(null);
+
+    // Mở modal Đánh giá
+    const handleOpenReviewModal = (booking) => {
+        setReviewModalBooking(booking);
+        setCleanlinessScore(5);
+        setServiceScore(5);
+        setLocationScore(5);
+        setValueScore(5);
+        setReviewComment('');
+    };
+
+    // Mở modal Xem đánh giá
+    const handleOpenViewReviewModal = (booking) => {
+        setViewReviewModalBooking(booking);
+    };
+
+    // Gửi đánh giá
+    const handleSubmitReview = async () => {
+        if (!reviewModalBooking) return;
+        if (!reviewComment.trim()) {
+            showToast('error', 'Vui lòng nhập nội dung cảm nhận của bạn.');
+            return;
+        }
+
+        try {
+            setIsSubmittingReview(true);
+            const res = await reviewService.createReview({
+                booking_id: reviewModalBooking.id,
+                cleanliness_score: cleanlinessScore,
+                service_score: serviceScore,
+                location_score: locationScore,
+                value_score: valueScore,
+                comment: reviewComment.trim(),
+            });
+
+            if (res && (res.success || res.id || res.data?.id)) {
+                const createdReview = res.data || res;
+                showToast('success', 'Cảm ơn quý khách đã gửi đánh giá trải nghiệm kỳ nghỉ!');
+                // Đồng bộ state để đổi nút Đánh giá -> Xem đánh giá của tôi ngay lập tức
+                setBookings((prev) =>
+                    prev.map((b) =>
+                        b.id === reviewModalBooking.id
+                            ? { ...b, review: createdReview }
+                            : b
+                    )
+                );
+                setReviewModalBooking(null);
+            } else {
+                showToast('error', res?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
+            }
+        } catch (err) {
+            showToast('error', err.message || 'Lỗi khi gửi đánh giá.');
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
 
     // Hiển thị Toast tự tắt sau 3.5 giây
     const showToast = (type, text) => {
@@ -672,6 +741,40 @@ export default function BookingHistory() {
                                                                 </button>
                                                             )}
 
+                                                            {/* ĐƠN HOÀN TẤT (COMPLETED): ĐÁNH GIÁ HOẶC XEM ĐÁNH GIÁ CỦA TÔI */}
+                                                            {booking.status === 'completed' && (
+                                                                <>
+                                                                    {!booking.review ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const catId = booking.category_id || booking.room_category?.id || booking.category;
+                                                                                if (catId) {
+                                                                                    navigate(`/rooms/${catId}?review_booking_id=${booking.id}#danh-gia`, {
+                                                                                        state: { bookingToReview: booking }
+                                                                                    });
+                                                                                } else {
+                                                                                    handleOpenReviewModal(booking);
+                                                                                }
+                                                                            }}
+                                                                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-amber-500/20 active:scale-95"
+                                                                        >
+                                                                            <span className="text-amber-200 text-sm">★</span>
+                                                                            <span>Đánh giá</span>
+                                                                        </button>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleOpenViewReviewModal(booking)}
+                                                                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                        >
+                                                                            <span className="text-amber-500 text-sm">★</span>
+                                                                            <span>Xem đánh giá của tôi</span>
+                                                                        </button>
+                                                                    )}
+                                                                </>
+                                                            )}
+
                                                             {booking.category_id && (
                                                                 <Link
                                                                     to={`/checkout/${booking.category_id}`}
@@ -839,6 +942,291 @@ export default function BookingHistory() {
                                 Giữ lại đơn
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* MODAL 2: KHÁCH HÀNG GỬI ĐÁNH GIÁ (REVIEW & RATING) */}
+            {/* ========================================================================= */}
+            {reviewModalBooking && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+                        {/* Header Modal */}
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl font-bold">
+                                    ★
+                                </div>
+                                <div>
+                                    <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                                        Đánh giá kỳ nghỉ của bạn
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        {reviewModalBooking.room_name} • Mã đơn:{' '}
+                                        <strong className="font-mono text-slate-700">
+                                            {reviewModalBooking.booking_code}
+                                        </strong>
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setReviewModalBooking(null)}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Điểm trung bình tự động tính */}
+                        <div className="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                                <span className="text-2xl">🌟</span>
+                                <div>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
+                                        Điểm đánh giá tổng quan
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xl font-black text-amber-600">
+                                            {((cleanlinessScore + serviceScore + locationScore + valueScore) / 4).toFixed(1)}
+                                        </span>
+                                        <span className="text-xs text-slate-400 font-medium">/ 5.0</span>
+                                        <span className="text-xs text-amber-700 font-bold ml-1">
+                                            {((cleanlinessScore + serviceScore + locationScore + valueScore) / 4) >= 4.5
+                                                ? '• Tuyệt vời'
+                                                : ((cleanlinessScore + serviceScore + locationScore + valueScore) / 4) >= 4.0
+                                                ? '• Rất tốt'
+                                                : '• Hài lòng'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-amber-400 text-lg select-none">
+                                {'★'.repeat(Math.round((cleanlinessScore + serviceScore + locationScore + valueScore) / 4))}
+                                <span className="text-slate-200">
+                                    {'★'.repeat(5 - Math.round((cleanlinessScore + serviceScore + locationScore + valueScore) / 4))}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* 4 Tiêu chí đánh giá sao */}
+                        <div className="space-y-3">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Chấm điểm các tiêu chí dịch vụ:
+                            </label>
+
+                            {[
+                                { key: 'cleanliness', label: 'Mức độ Sạch sẽ (Cleanliness)', val: cleanlinessScore, set: setCleanlinessScore },
+                                { key: 'service', label: 'Chất lượng Dịch vụ (Service)', val: serviceScore, set: setServiceScore },
+                                { key: 'location', label: 'Vị trí & Cảnh quan (Location)', val: locationScore, set: setLocationScore },
+                                { key: 'value', label: 'Giá trị tương xứng (Value)', val: valueScore, set: setValueScore },
+                            ].map((criterion) => (
+                                <div
+                                    key={criterion.key}
+                                    className="p-3 bg-slate-50 hover:bg-slate-100/70 transition rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                                >
+                                    <div>
+                                        <span className="text-xs font-bold text-slate-800">
+                                            {criterion.label}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                                        <div className="flex items-center gap-1">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <button
+                                                    key={star}
+                                                    type="button"
+                                                    onClick={() => criterion.set(star)}
+                                                    className="p-1 hover:scale-125 transition-transform text-lg select-none cursor-pointer"
+                                                    title={`${star}/5 sao`}
+                                                >
+                                                    <span className={star <= criterion.val ? 'text-amber-400' : 'text-slate-200'}>
+                                                        ★
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <span className="font-mono font-bold text-xs text-amber-700 w-8 text-right">
+                                            {criterion.val}/5
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Ô nhập nội dung cảm nhận */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Cảm nhận chi tiết của bạn <span className="text-rose-500">*</span>
+                            </label>
+                            <textarea
+                                rows={3}
+                                value={reviewComment}
+                                onChange={(e) => setReviewComment(e.target.value)}
+                                placeholder="Hãy chia sẻ trải nghiệm thực tế về phòng nghỉ, nhân viên phục vụ, đồ ăn sáng và tiện nghi tại khách sạn..."
+                                className="w-full p-3 bg-slate-50 focus:bg-white border border-slate-200 focus:border-amber-500 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition leading-relaxed"
+                            />
+                            <span className="text-[11px] text-slate-400 block">
+                                Đánh giá của bạn giúp khách sạn nâng cao chất lượng dịch vụ và hỗ trợ du khách khác tham khảo.
+                            </span>
+                        </div>
+
+                        {/* Nút thao tác */}
+                        <div className="flex items-center gap-3 pt-2">
+                            <button
+                                type="button"
+                                disabled={isSubmittingReview}
+                                onClick={handleSubmitReview}
+                                className="w-1/2 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-amber-500/30 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                            >
+                                {isSubmittingReview ? (
+                                    <>
+                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Đang gửi đánh giá...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>★</span>
+                                        <span>Gửi Đánh Giá</span>
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={isSubmittingReview}
+                                onClick={() => setReviewModalBooking(null)}
+                                className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
+                            >
+                                Để sau
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* MODAL 3: XEM ĐÁNH GIÁ CỦA TÔI */}
+            {/* ========================================================================= */}
+            {viewReviewModalBooking && viewReviewModalBooking.review && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+                        {/* Header Modal */}
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl font-bold">
+                                    ★
+                                </div>
+                                <div>
+                                    <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                                        Đánh giá của bạn
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        {viewReviewModalBooking.room_name} • Mã đơn:{' '}
+                                        <strong className="font-mono text-slate-700">
+                                            {viewReviewModalBooking.booking_code}
+                                        </strong>
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setViewReviewModalBooking(null)}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Điểm tổng quan */}
+                        <div className="p-4 bg-gradient-to-r from-amber-50 via-orange-50/40 to-slate-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                            <div>
+                                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
+                                    Điểm đánh giá trung bình
+                                </span>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-2xl font-black text-amber-600">
+                                        {Number(viewReviewModalBooking.review.overall_rating || 5).toFixed(1)}
+                                    </span>
+                                    <span className="text-xs text-slate-400">/ 5.0</span>
+                                </div>
+                            </div>
+                            <div className="text-amber-400 text-xl">
+                                {'★'.repeat(Math.round(Number(viewReviewModalBooking.review.overall_rating || 5)))}
+                                <span className="text-slate-200">
+                                    {'★'.repeat(5 - Math.round(Number(viewReviewModalBooking.review.overall_rating || 5)))}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* 4 Tiêu chí chi tiết */}
+                        <div className="grid grid-cols-2 gap-2.5 text-xs">
+                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <span className="text-slate-600">Sạch sẽ:</span>
+                                <strong className="text-slate-900 font-mono">
+                                    {viewReviewModalBooking.review.cleanliness_score}/5 ★
+                                </strong>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <span className="text-slate-600">Dịch vụ:</span>
+                                <strong className="text-slate-900 font-mono">
+                                    {viewReviewModalBooking.review.service_score}/5 ★
+                                </strong>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <span className="text-slate-600">Vị trí:</span>
+                                <strong className="text-slate-900 font-mono">
+                                    {viewReviewModalBooking.review.location_score}/5 ★
+                                </strong>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <span className="text-slate-600">Giá trị:</span>
+                                <strong className="text-slate-900 font-mono">
+                                    {viewReviewModalBooking.review.value_score}/5 ★
+                                </strong>
+                            </div>
+                        </div>
+
+                        {/* Nội dung đánh giá của khách */}
+                        <div className="space-y-1">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Nội dung nhận xét:
+                            </span>
+                            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs sm:text-sm text-slate-800 leading-relaxed font-normal">
+                                "{viewReviewModalBooking.review.comment}"
+                            </div>
+                            <span className="text-[10px] text-slate-400 block pt-0.5">
+                                Gửi lúc: {formatDateTimeDisplay(viewReviewModalBooking.review.created_at)}
+                            </span>
+                        </div>
+
+                        {/* Phản hồi từ khách sạn (theo thiết kế viền trái vàng) */}
+                        {viewReviewModalBooking.review.admin_reply ? (
+                            <div className="p-4 bg-gray-50 border-l-4 border-yellow-500 rounded-r-2xl space-y-1.5 shadow-2xs">
+                                <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                                    <span>🏨</span>
+                                    <span>Khách sạn phản hồi:</span>
+                                </span>
+                                <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                                    {viewReviewModalBooking.review.admin_reply}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-[11px] text-slate-500 italic flex items-center gap-2">
+                                <span>⏳</span>
+                                <span>Khách sạn đã ghi nhận đánh giá của bạn và sẽ sớm phản hồi.</span>
+                            </div>
+                        )}
+
+                        {/* Nút đóng */}
+                        <button
+                            type="button"
+                            onClick={() => setViewReviewModalBooking(null)}
+                            className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                        >
+                            Đóng
+                        </button>
                     </div>
                 </div>
             )}

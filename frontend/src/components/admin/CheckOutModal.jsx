@@ -174,11 +174,15 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 ✓
                             </div>
                             <h3 className="font-serif text-2xl font-bold text-slate-900">
-                                Thanh Toán & Check-out Thành Công!
+                                Khách Hàng Trả Phòng Thành Công!
                             </h3>
                             <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
-                                Phòng <strong>{summary?.room_number || booking.room_number}</strong> đã được chuyển sang trạng thái <strong>Đang dọn dẹp (Cleaning)</strong>. Hóa đơn tổng đã được lập và ghi nhận doanh thu.
+                                Phòng <strong>{summary?.room_number || booking.room_number}</strong> đã hoàn tất thủ tục trả phòng và chuyển sang trạng thái <strong>Đang dọn dẹp (Cleaning)</strong>.
                             </p>
+                            <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-semibold flex items-center justify-center gap-2 max-w-lg mx-auto">
+                                <span>⭐</span>
+                                <span>Khách hàng trả phòng thành công và có thể đánh giá phòng, dịch vụ khách sạn.</span>
+                            </div>
                             <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-emerald-300 font-mono text-sm font-bold text-emerald-800 shadow-xs">
                                 <span>Mã hóa đơn:</span>
                                 <span>{completedInvoice.invoice_code}</span>

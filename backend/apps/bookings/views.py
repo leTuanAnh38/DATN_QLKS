@@ -1288,7 +1288,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(booking, context={'request': request})
         return Response({
             'success': True,
-            'message': f"Đã hoàn tất thanh toán và Check-out thành công cho phòng {booking.room.room_number if booking.room else ''}!",
+            'message': f"Khách hàng trả phòng thành công và có thể đánh giá phòng dịch vụ khách sạn. Đã hoàn tất thanh toán cho phòng {booking.room.room_number if booking.room else ''}!",
             'invoice': {
                 'invoice_code': invoice.invoice_code,
                 'room_charge': float(invoice.room_charge),

@@ -136,10 +136,10 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
             if instance.guest:
                 Notification.objects.create(
                     recipient=instance.guest,
-                    title="Check-out thành công! Hẹn gặp lại",
+                    title="Khách hàng trả phòng thành công!",
                     message=(
-                        f"Quý khách đã hoàn tất thủ tục trả phòng {room_label}. "
-                        f"Khách sạn TA Đà Nẵng chân thành cảm ơn quý khách đã tin tưởng lựa chọn chúng tôi và rất mong được đón tiếp quý khách lần sau!"
+                        f"Quý khách đã trả phòng thành công cho {room_label} (Mã đơn: #{instance.booking_code}). "
+                        f"Quý khách có thể đánh giá phòng và dịch vụ khách sạn để chia sẻ trải nghiệm kỳ nghỉ của mình nhé!"
                     )
                 )
 

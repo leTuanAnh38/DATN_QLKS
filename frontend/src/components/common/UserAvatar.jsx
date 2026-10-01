@@ -129,6 +129,7 @@ const ROLE_THEMES = {
  * - Tương thích chuẩn Tailwind v4 kết hợp inline fallback chắc chắn không bao giờ bị màu trắng tinh
  */
 export default function UserAvatar({
+    user = null,
     avatar = null,
     name = '',
     role = 'guest',
@@ -137,16 +138,20 @@ export default function UserAvatar({
     border = true,
     showOnline = false,
 }) {
+    const rawAvatar = avatar || user?.avatar;
+    const rawName = name || user?.full_name || user?.name || user?.username || '';
+    const rawRole = role || user?.role || 'guest';
+
     const [imageError, setImageError] = useState(false);
 
     // Reset trạng thái lỗi khi avatar thay đổi
     useEffect(() => {
         setImageError(false);
-    }, [avatar]);
+    }, [rawAvatar]);
 
-    const fullUrl = getFullAvatarUrl(avatar);
+    const fullUrl = getFullAvatarUrl(rawAvatar);
     const hasImage = Boolean(fullUrl && !imageError);
-    const initials = getInitials(name);
+    const initials = getInitials(rawName);
 
     // Kích thước chuẩn
     const sizeClasses = {
@@ -159,7 +164,7 @@ export default function UserAvatar({
     };
 
     const currentSize = sizeClasses[size] || sizeClasses.md;
-    const theme = ROLE_THEMES[role] || ROLE_THEMES.guest;
+    const theme = ROLE_THEMES[rawRole] || ROLE_THEMES.guest;
 
     return (
         <div className={`relative shrink-0 inline-flex items-center justify-center select-none ${className}`}>
