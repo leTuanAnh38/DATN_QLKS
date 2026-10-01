@@ -5,6 +5,7 @@ import roomService from '../../services/roomService';
 import { notificationService } from '../../services/notificationService';
 import HotelInvoiceModal from './HotelInvoiceModal';
 import CheckOutModal from './CheckOutModal';
+import Pagination from '../common/Pagination';
 
 // Format ngày tháng DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -59,6 +60,15 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
     const [copiedCode, setCopiedCode] = useState(null);
+
+    // Phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
+
+    // Reset về trang 1 khi thay đổi điều kiện lọc
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [quickFilterMode, statusFilter, searchKeyword]);
 
     // Ref luôn lưu mode mới nhất để polling/focus không bị stale closure
     const quickFilterModeRef = useRef(quickFilterMode);
@@ -872,6 +882,13 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         });
     }, [bookings, statusFilter, searchKeyword]);
 
+    // Phân trang danh sách đơn đặt phòng đã lọc & sắp xếp
+    const totalPages = Math.ceil(filteredBookings.length / pageSize) || 1;
+    const paginatedBookings = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredBookings.slice(start, start + pageSize);
+    }, [filteredBookings, currentPage, pageSize]);
+
     return (
         <div className="space-y-6 min-w-0 max-w-full">
             {/* TOAST THÔNG BÁO NỔI */}
@@ -1175,7 +1192,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
                             {/* Data Rows */}
                             {!isLoading &&
-                                filteredBookings.map((booking) => {
+                                paginatedBookings.map((booking) => {
                                     const isRowUpdating = updatingId === booking.id;
                                     const totalAmountNum = Number(booking.total_amount) || 0;
                                     const statusConfig =
@@ -1388,15 +1405,14 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     </table>
                 </div>
 
-                {/* FOOTER BẢNG: ĐẾM SỐ LƯỢNG */}
-                <div className="p-4 bg-slate-50/70 border-t border-slate-100 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <div>
-                        Hiển thị <strong>{filteredBookings.length}</strong> / <strong>{bookings.length}</strong> đơn đặt phòng
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                        <span>💡 Lễ tân có thể chọn trực tiếp ô Trạng thái để cập nhật nhanh tức thì xuống CSDL.</span>
-                    </div>
-                </div>
+                {/* FOOTER BẢNG: PHÂN TRANG */}
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalCount={filteredBookings.length}
+                    pageSize={pageSize}
+                    onPageChange={(page) => setCurrentPage(page)}
+                />
             </div>
 
             {/* ========================================================================= */}

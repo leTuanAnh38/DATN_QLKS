@@ -2,6 +2,7 @@ from django.db import models
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from core_project.pagination import StandardResultsSetPagination
 from .models import Review
 from .serializers import ReviewSerializer, ReviewCreateSerializer
 
@@ -31,6 +32,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     - DELETE /api/reviews/{id}/: Admin xóa đánh giá
     """
     queryset = Review.objects.select_related('booking', 'guest', 'room_category').all().order_by('-created_at')
+    pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
         if self.action == 'create':

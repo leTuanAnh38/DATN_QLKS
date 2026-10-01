@@ -14,6 +14,7 @@ from ..users.models import User, GuestProfile
 from ..services.models import ServiceItem, ServiceRequest
 from ..payments.models import Invoice
 from .serializers import BookingSerializer, PromotionSerializer
+from core_project.pagination import StandardResultsSetPagination
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -24,6 +25,7 @@ class BookingViewSet(viewsets.ModelViewSet):
     - GET /api/bookings/<id>/: Chi tiết đơn đặt phòng
     """
     serializer_class = BookingSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         # Cho phép mọi khách hàng (kể cả chưa đăng nhập) có thể kiểm tra phòng và tạo đơn đặt phòng

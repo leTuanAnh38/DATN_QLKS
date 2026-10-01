@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import adminUserService from '../../services/adminUserService';
 import RoleMatrixModal, { DEFAULT_ROLE_MATRIX } from './RoleMatrixModal';
 import UserAvatar from '../common/UserAvatar';
+import Pagination from '../common/Pagination';
 
 // =========================================================================
 // DANH MỤC PHÒNG BAN, CHỨC DANH & CA LÀM VIỆC CHUẨN KHÁCH SẠN 5 SAO
@@ -118,6 +119,15 @@ export default function EmployeeManagement() {
     const [roles, setRoles] = useState(DEFAULT_ROLE_MATRIX);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Phân trang (Pagination)
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const currentPageRef = useRef(currentPage);
+    useEffect(() => {
+        currentPageRef.current = currentPage;
+    }, [currentPage]);
+
     // Bộ lọc
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
@@ -194,9 +204,10 @@ export default function EmployeeManagement() {
     };
 
     // Lấy dữ liệu nhân sự từ backend
-    const fetchEmployees = async () => {
+    const fetchEmployees = async (page = null) => {
         setIsLoading(true);
-        const params = {};
+        const targetPage = page !== null ? page : currentPageRef.current;
+        const params = { page: targetPage };
         if (searchTerm) params.q = searchTerm;
         if (roleFilter !== 'all') params.role = roleFilter;
         if (departmentFilter !== 'all') params.department = departmentFilter;
@@ -204,21 +215,30 @@ export default function EmployeeManagement() {
 
         const res = await adminUserService.getEmployees(params);
         if (res.success) {
-            let list = res.employees || [];
+            let list = res.results || res.employees || [];
             // Lọc theo ca làm việc ở frontend nếu có chọn
             if (shiftFilter !== 'all') {
                 list = list.filter((e) => e.employee_profile?.shift === shiftFilter);
             }
             setEmployees(list);
+            setTotalCount(res.count !== undefined ? res.count : list.length);
+            setTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
             if (res.roles) setRoles(res.roles);
         }
         setIsLoading(false);
     };
 
-    // Load khi bộ lọc thay đổi
+    // Load khi bộ lọc thay đổi -> reset về trang 1
     useEffect(() => {
-        fetchEmployees();
+        setCurrentPage(1);
+        fetchEmployees(1);
     }, [roleFilter, departmentFilter, shiftFilter, statusFilter]);
+
+    // Xử lý chuyển trang
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+        fetchEmployees(newPage);
+    };
 
     // Nạp thêm chi tiết bảng ma trận phân quyền vai trò từ API
     useEffect(() => {
@@ -234,7 +254,8 @@ export default function EmployeeManagement() {
     // Tìm kiếm
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        fetchEmployees();
+        setCurrentPage(1);
+        fetchEmployees(1);
     };
 
     // =========================================================================
@@ -638,7 +659,6 @@ export default function EmployeeManagement() {
     };
 
     // Thống kê nhanh
-    const totalCount = employees.length;
     const activeCount = employees.filter((e) => e.is_active).length;
     const managementCount = employees.filter((e) => ['admin', 'owner', 'manager'].includes(e.role)).length;
     const operationsCount = employees.filter((e) => !['admin', 'owner', 'manager'].includes(e.role)).length;
@@ -853,6 +873,7 @@ export default function EmployeeManagement() {
                                 setDepartmentFilter('all');
                                 setShiftFilter('all');
                                 setStatusFilter('all');
+                                setCurrentPage(1);
                             }}
                             className="w-full lg:w-auto px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition shrink-0 cursor-pointer"
                             title="Đặt lại bộ lọc"
@@ -871,7 +892,7 @@ export default function EmployeeManagement() {
                             Danh Sách Nhân Viên Khách Sạn
                         </h3>
                         <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-200">
-                            {employees.length} Nhân sự
+                            {totalCount} Nhân sự
                         </span>
                     </div>
                     <span className="text-xs text-slate-400">
@@ -1035,6 +1056,15 @@ export default function EmployeeManagement() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Phân trang (Pagination) */}
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalCount={totalCount}
+                    pageSize={10}
+                    onPageChange={handlePageChange}
+                />
             </div>
 
             {/* ========================================================================= */}

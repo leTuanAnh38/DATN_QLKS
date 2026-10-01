@@ -44,26 +44,46 @@ export const bookingService = {
     },
 
     /**
-     * Lấy danh sách lịch sử đặt phòng của tài khoản đang đăng nhập
+     * Lấy danh sách lịch sử đặt phòng của tài khoản đang đăng nhập (có hỗ trợ phân trang params: { page, page_size })
      */
-    async getMyBookings() {
+    async getMyBookings(params = {}) {
         try {
-            const response = await api.get('/bookings/');
+            const response = await api.get('/bookings/', { params });
             let list = [];
+            let count = 0;
+            let totalPages = 1;
+
             if (Array.isArray(response.data)) {
                 list = response.data;
+                count = list.length;
+                totalPages = Math.ceil(count / 10) || 1;
             } else if (response.data && Array.isArray(response.data.results)) {
                 list = response.data.results;
+                count = response.data.count || list.length;
+                totalPages = response.data.total_pages || Math.ceil(count / 10) || 1;
             } else if (response.data && Array.isArray(response.data.data)) {
                 list = response.data.data;
+                count = list.length;
+                totalPages = Math.ceil(count / 10) || 1;
             }
-            return { success: true, data: list };
+
+            return {
+                success: true,
+                data: list,
+                results: list,
+                count: count,
+                totalPages: totalPages,
+                currentPage: response.data?.current_page || params.page || 1
+            };
         } catch (error) {
             console.error('Lỗi khi tải lịch sử đặt phòng:', error);
             return {
                 success: false,
                 message: error.response?.data?.message || 'Không thể tải danh sách đơn đặt phòng.',
-                data: []
+                data: [],
+                results: [],
+                count: 0,
+                totalPages: 1
             };
         }
     },

@@ -41,17 +41,35 @@ export const reviewService = {
             const response = await api.get('/reviews/', { params });
             // DRF ModelViewSet trả về array hoặc { results: [...] } nếu có pagination
             if (Array.isArray(response.data)) {
-                return { success: true, data: response.data };
+                return {
+                    success: true,
+                    data: response.data,
+                    results: response.data,
+                    count: response.data.length,
+                    total_pages: 1,
+                    current_page: 1
+                };
             }
             if (response.data?.results) {
-                return { success: true, data: response.data.results, count: response.data.count };
+                return {
+                    success: true,
+                    data: response.data.results,
+                    results: response.data.results,
+                    count: response.data.count,
+                    total_pages: response.data.total_pages || Math.ceil((response.data.count || 0) / 10) || 1,
+                    current_page: response.data.current_page || 1
+                };
             }
-            return { success: true, data: response.data || [] };
+            return { success: true, data: response.data || [], results: response.data || [] };
         } catch (error) {
             console.error('Lỗi khi tải danh sách đánh giá:', error);
             return {
                 success: false,
                 data: [],
+                results: [],
+                count: 0,
+                total_pages: 1,
+                current_page: 1,
                 message: error.response?.data?.detail || error.response?.data?.message || 'Không thể tải danh sách đánh giá.'
             };
         }

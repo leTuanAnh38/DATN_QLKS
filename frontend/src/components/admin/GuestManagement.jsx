@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import adminUserService from '../../services/adminUserService';
 import UserAvatar from '../common/UserAvatar';
+import Pagination from '../common/Pagination';
 
 export default function GuestManagement() {
     const [guests, setGuests] = useState([]);
@@ -8,6 +9,15 @@ export default function GuestManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [vipFilter, setVipFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+
+    // Phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const currentPageRef = useRef(currentPage);
+    useEffect(() => {
+        currentPageRef.current = currentPage;
+    }, [currentPage]);
 
     // Modals
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -43,29 +53,42 @@ export default function GuestManagement() {
     const [alertMessage, setAlertMessage] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Tải danh sách khách hàng từ API
-    const fetchGuests = async () => {
+    // Tải danh sách khách hàng từ API (có phân trang)
+    const fetchGuests = async (page = null) => {
         setIsLoading(true);
-        const params = {};
+        const targetPage = page !== null ? page : currentPageRef.current;
+        const params = { page: targetPage };
         if (searchTerm) params.q = searchTerm;
         if (vipFilter !== 'all') params.vip_tier = vipFilter;
         if (statusFilter !== 'all') params.is_active = statusFilter;
 
         const res = await adminUserService.getGuests(params);
         if (res.success) {
-            setGuests(res.guests || []);
+            const list = res.results || res.guests || [];
+            setGuests(list);
+            setTotalCount(res.count !== undefined ? res.count : list.length);
+            setTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
         }
         setIsLoading(false);
     };
 
+    // Khi đổi bộ lọc -> reset về trang 1
     useEffect(() => {
-        fetchGuests();
+        setCurrentPage(1);
+        fetchGuests(1);
     }, [vipFilter, statusFilter]);
+
+    // Chuyển trang
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+        fetchGuests(newPage);
+    };
 
     // Handle search with debounce/Enter
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        fetchGuests();
+        setCurrentPage(1);
+        fetchGuests(1);
     };
 
     // Mở modal sửa
@@ -494,6 +517,15 @@ export default function GuestManagement() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Phân trang (Table Footer) */}
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalCount={totalCount}
+                    pageSize={10}
+                    onPageChange={handlePageChange}
+                />
             </div>
 
             {/* ========================================================================= */}

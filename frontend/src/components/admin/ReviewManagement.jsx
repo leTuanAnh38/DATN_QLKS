@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { reviewService } from '../../services/reviewService';
 import UserAvatar from '../common/UserAvatar';
+import Pagination from '../common/Pagination';
 
 // Tiện ích format ngày giờ chi tiết
 const formatDateTimeDisplay = (isoStr) => {
@@ -23,6 +24,15 @@ export default function ReviewManagement() {
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'visible' | 'hidden'
     const [ratingFilter, setRatingFilter] = useState('all'); // 'all' | '5' | '4' | '3' | 'under3'
     const [roomCategoryFilter, setRoomCategoryFilter] = useState('all');
+
+    // Phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
+
+    // Reset về trang 1 khi thay đổi điều kiện lọc hoặc tìm kiếm
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, ratingFilter, roomCategoryFilter, searchTerm]);
 
     // State Toast Alert
     const [alertMessage, setAlertMessage] = useState(null);
@@ -123,6 +133,13 @@ export default function ReviewManagement() {
             return true;
         });
     }, [reviews, statusFilter, ratingFilter, roomCategoryFilter, searchTerm]);
+
+    // Phân trang danh sách đánh giá sau khi đã lọc & tìm kiếm
+    const totalPages = Math.ceil(filteredReviews.length / pageSize) || 1;
+    const paginatedReviews = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredReviews.slice(start, start + pageSize);
+    }, [filteredReviews, currentPage, pageSize]);
 
     // Bắt đầu viết phản hồi
     const handleStartReply = (review) => {
@@ -462,7 +479,7 @@ export default function ReviewManagement() {
                             )}
 
                             {!isLoading &&
-                                filteredReviews.map((review) => {
+                                paginatedReviews.map((review) => {
                                     const isReplying = replyingReviewId === review.id;
 
                                     return (
@@ -691,6 +708,15 @@ export default function ReviewManagement() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Phân trang (Table Footer) */}
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalCount={filteredReviews.length}
+                    pageSize={pageSize}
+                    onPageChange={(page) => setCurrentPage(page)}
+                />
             </div>
 
             {/* CONFIRM DIALOG XÓA ĐÁNH GIÁ (Cột 7) */}

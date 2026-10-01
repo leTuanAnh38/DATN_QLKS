@@ -1,9 +1,10 @@
 import re
 
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
+from core_project.pagination import StandardResultsSetPagination
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
@@ -189,6 +190,7 @@ class ChangePasswordView(APIView):
 
 class AdminGuestListCreateView(APIView):
     permission_classes = [IsManagerOrAdmin]
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         queryset = User.objects.filter(role='guest').select_related('guest_profile').order_by('-date_joined')
@@ -219,10 +221,27 @@ class AdminGuestListCreateView(APIView):
             is_active_bool = is_active.lower() in ['true', '1']
             queryset = queryset.filter(is_active=is_active_bool)
 
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request)
+        if page is not None:
+            serializer = AdminGuestSerializer(page, many=True, context={'request': request})
+            return Response({
+                'success': True,
+                'count': paginator.page.paginator.count,
+                'total_pages': paginator.page.paginator.num_pages,
+                'current_page': paginator.page.number,
+                'page_size': paginator.get_page_size(request),
+                'next': paginator.get_next_link(),
+                'previous': paginator.get_previous_link(),
+                'results': serializer.data,
+                'guests': serializer.data
+            }, status=status.HTTP_200_OK)
+
         serializer = AdminGuestSerializer(queryset, many=True, context={'request': request})
         return Response({
             'success': True,
             'count': queryset.count(),
+            'results': serializer.data,
             'guests': serializer.data
         }, status=status.HTTP_200_OK)
 
@@ -306,6 +325,7 @@ class AdminGuestDetailView(APIView):
 
 class AdminEmployeeListCreateView(APIView):
     permission_classes = [IsManagerOrAdmin]
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         queryset = User.objects.exclude(role='guest').select_related('employee_profile').order_by('-id')
@@ -342,10 +362,28 @@ class AdminEmployeeListCreateView(APIView):
             is_active_bool = is_active.lower() in ['true', '1']
             queryset = queryset.filter(is_active=is_active_bool)
 
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request)
+        if page is not None:
+            serializer = AdminEmployeeSerializer(page, many=True, context={'request': request})
+            return Response({
+                'success': True,
+                'count': paginator.page.paginator.count,
+                'total_pages': paginator.page.paginator.num_pages,
+                'current_page': paginator.page.number,
+                'page_size': paginator.get_page_size(request),
+                'next': paginator.get_next_link(),
+                'previous': paginator.get_previous_link(),
+                'results': serializer.data,
+                'employees': serializer.data,
+                'roles': get_all_roles_matrix()
+            }, status=status.HTTP_200_OK)
+
         serializer = AdminEmployeeSerializer(queryset, many=True, context={'request': request})
         return Response({
             'success': True,
             'count': queryset.count(),
+            'results': serializer.data,
             'employees': serializer.data,
             'roles': get_all_roles_matrix()
         }, status=status.HTTP_200_OK)
@@ -567,4 +605,14 @@ class AdminRoleListView(APIView):
     def get(self, request):
         roles_data = get_all_roles_matrix()
         return Response({'success': True, 'count': len(roles_data), 'roles': roles_data}, status=status.HTTP_200_OK)
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet quản lý User có tích hợp StandardResultsSetPagination
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    permission_classes = [IsManagerOrAdmin]
+    pagination_class = StandardResultsSetPagination
 
