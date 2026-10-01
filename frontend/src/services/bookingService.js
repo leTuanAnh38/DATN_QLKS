@@ -69,6 +69,23 @@ export const bookingService = {
     },
 
     /**
+     * Lấy toàn bộ số liệu thống kê thực tế, đồng bộ cho Dashboard
+     * @param {Object} params - { time_filter: 'today' | '7days' | 'month' | 'year' }
+     */
+    async getDashboardStats(params = {}) {
+        try {
+            const response = await api.get('/bookings/dashboard-stats/', { params });
+            return response.data;
+        } catch (error) {
+            console.error('Lỗi khi tải số liệu thống kê Dashboard:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể tải số liệu thống kê Dashboard.'
+            };
+        }
+    },
+
+    /**
      * Hủy đơn đặt phòng khi đang chờ duyệt (PATCH /api/bookings/:id/)
      * @param {number|string} id 
      * @param {string} cancelReason
@@ -366,6 +383,96 @@ export const bookingService = {
                     error.response?.data?.message ||
                     error.response?.data?.detail ||
                     'Không thể đánh dấu No-show. Vui lòng thử lại sau.'
+            };
+        }
+    },
+
+    /**
+     * Lấy danh sách các đơn đặt phòng Check-in hôm nay (GET /api/bookings/check-in-today/)
+     */
+    async getCheckInToday() {
+        try {
+            const response = await api.get('/bookings/check-in-today/');
+            let list = [];
+            if (Array.isArray(response.data)) {
+                list = response.data;
+            } else if (response.data && Array.isArray(response.data.results)) {
+                list = response.data.results;
+            } else if (response.data && Array.isArray(response.data.data)) {
+                list = response.data.data;
+            }
+            return {
+                success: true,
+                count: response.data?.count || list.length,
+                date: response.data?.date,
+                data: list
+            };
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách check-in hôm nay:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể tải danh sách check-in hôm nay.',
+                data: []
+            };
+        }
+    },
+
+    /**
+     * Lấy danh sách các đơn đặt phòng Check-out hôm nay (GET /api/bookings/check-out-today/)
+     */
+    async getCheckOutToday() {
+        try {
+            const response = await api.get('/bookings/check-out-today/');
+            let list = [];
+            if (Array.isArray(response.data)) {
+                list = response.data;
+            } else if (response.data && Array.isArray(response.data.results)) {
+                list = response.data.results;
+            } else if (response.data && Array.isArray(response.data.data)) {
+                list = response.data.data;
+            }
+            return {
+                success: true,
+                count: response.data?.count || list.length,
+                date: response.data?.date,
+                data: list
+            };
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách check-out hôm nay:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể tải danh sách check-out hôm nay.',
+                data: []
+            };
+        }
+    },
+
+    /**
+     * Lấy dữ liệu Sơ đồ trực quan Gantt / Timeline đặt phòng theo tháng & năm
+     * GET /api/bookings/timeline/?month=6&year=2026
+     * @param {Object} params - { month, year }
+     */
+    async getTimeline(params = {}) {
+        try {
+            const response = await api.get('/bookings/timeline/', { params });
+            return {
+                success: true,
+                month: response.data?.month,
+                year: response.data?.year,
+                days_in_month: response.data?.days_in_month,
+                month_start: response.data?.month_start,
+                month_end: response.data?.month_end,
+                rooms: response.data?.rooms || [],
+                unassigned_bookings: response.data?.unassigned_bookings || [],
+                total_rooms: response.data?.total_rooms || 0,
+                total_bookings: response.data?.total_bookings || 0
+            };
+        } catch (error) {
+            console.error('Lỗi khi tải sơ đồ đặt phòng timeline:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể tải dữ liệu sơ đồ đặt phòng.',
+                rooms: []
             };
         }
     }

@@ -168,13 +168,22 @@ export default function BookingHistory() {
                 fetchBookings(true);
             }
         };
+        const handleCustomBooking = () => fetchBookings(true);
 
         window.addEventListener('focus', handleFocus);
         window.addEventListener('storage', handleStorage);
+        window.addEventListener('pms_booking_created', handleCustomBooking);
+
+        // Chu kỳ polling kiểm tra cập nhật trạng thái đơn (10 giây)
+        const interval = setInterval(() => {
+            fetchBookings(true);
+        }, 10000);
 
         return () => {
             window.removeEventListener('focus', handleFocus);
             window.removeEventListener('storage', handleStorage);
+            window.removeEventListener('pms_booking_created', handleCustomBooking);
+            clearInterval(interval);
         };
     }, [isAuthenticated]);
 

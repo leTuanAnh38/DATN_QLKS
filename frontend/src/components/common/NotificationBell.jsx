@@ -217,10 +217,23 @@ export default function NotificationBell({ theme = 'light' }) {
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
                                                     {isUnread && (
                                                         <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
                                                     )}
+                                                    {notif.title?.includes('Check-in') ? (
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
+                                                            Check-in
+                                                        </span>
+                                                    ) : notif.title?.includes('Check-out') ? (
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 border border-purple-200 shrink-0">
+                                                            Check-out
+                                                        </span>
+                                                    ) : notif.title?.includes('Dịch vụ') ? (
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+                                                            Dịch vụ
+                                                        </span>
+                                                    ) : null}
                                                     <h4
                                                         className={`text-xs truncate ${
                                                             isUnread

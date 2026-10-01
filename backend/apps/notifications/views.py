@@ -4,6 +4,11 @@ from rest_framework.response import Response
 
 from .models import Notification
 from .serializers import NotificationSerializer
+from .services import (
+    run_daily_reminders_if_needed,
+    send_checkin_checkout_reminders,
+    send_single_booking_reminder,
+)
 
 
 class NotificationViewSet(viewsets.ModelViewSet):
@@ -39,6 +44,9 @@ class NotificationViewSet(viewsets.ModelViewSet):
         return qs
 
     def list(self, request, *args, **kwargs):
+        # Tự động quét và kích hoạt nhắc nhở Check-in & Check-out hôm nay nếu cần (tối đa 1 lần/15 phút)
+        run_daily_reminders_if_needed()
+
         queryset = self.filter_queryset(self.get_queryset())
         unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
 
@@ -108,3 +116,41 @@ class NotificationViewSet(viewsets.ModelViewSet):
             'success': True,
             'unread_count': count
         })
+
+    @action(detail=False, methods=['post'], url_path='trigger-reminders')
+    def trigger_reminders(self, request):
+        """
+        POST /api/notifications/trigger-reminders/
+        Cho phép Admin / Lễ tân chủ động kích hoạt quét và gửi nhắc nhở Check-in/Check-out hôm nay
+        Body: { "force": false }
+        """
+        force = bool(request.data.get('force', False))
+        result = send_checkin_checkout_reminders(force=force)
+        return Response({
+            'success': True,
+            'message': f"Đã quét và tạo {result['total_notifications_created']} thông báo nhắc nhở ngày {result['date']}",
+            'data': result
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='remind-booking')
+    def remind_booking(self, request):
+        """
+        POST /api/notifications/remind-booking/
+        Gửi thông báo nhắc nhở tức thì cho một đơn đặt phòng cụ thể
+        Body: { "booking_id": 123, "reminder_type": "check_in" | "check_out" | "auto" }
+        """
+        booking_id = request.data.get('booking_id')
+        if not booking_id:
+            return Response({'success': False, 'message': 'Thiếu tham số booking_id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        reminder_type = request.data.get('reminder_type', 'auto')
+        notify_guest = request.data.get('notify_guest', True)
+        notify_staff = request.data.get('notify_staff', False)
+
+        result = send_single_booking_reminder(
+            booking_id=booking_id,
+            reminder_type=reminder_type,
+            notify_guest=notify_guest,
+            notify_staff=notify_staff
+        )
+        return Response(result, status=status.HTTP_200_OK if result.get('success') else status.HTTP_400_BAD_REQUEST)

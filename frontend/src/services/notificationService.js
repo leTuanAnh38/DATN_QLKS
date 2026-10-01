@@ -102,6 +102,54 @@ export const notificationService = {
                 unread_count: 0
             };
         }
+    },
+
+    /**
+     * Kích hoạt quét và gửi nhắc nhở Check-in & Check-out hôm nay
+     * @param {boolean} force - true nếu muốn gửi lại kể cả khi đã gửi hôm nay
+     */
+    triggerReminders: async (force = false) => {
+        try {
+            const response = await api.post('/notifications/trigger-reminders/', { force });
+            return {
+                success: true,
+                message: response.data?.message || 'Đã kích hoạt quét thông báo thành công',
+                data: response.data?.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi kích hoạt thông báo checkin/checkout:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || error.message
+            };
+        }
+    },
+
+    /**
+     * Gửi thông báo nhắc nhở riêng cho 1 đơn đặt phòng cụ thể
+     * @param {number|string} bookingId 
+     * @param {string} reminderType - 'check_in' | 'check_out' | 'auto'
+     */
+    remindBooking: async (bookingId, reminderType = 'auto', notifyGuest = true, notifyStaff = false) => {
+        try {
+            const response = await api.post('/notifications/remind-booking/', {
+                booking_id: bookingId,
+                reminder_type: reminderType,
+                notify_guest: notifyGuest,
+                notify_staff: notifyStaff
+            });
+            return {
+                success: true,
+                message: response.data?.message || 'Đã gửi thông báo nhắc nhở thành công',
+                created_count: response.data?.created_count
+            };
+        } catch (error) {
+            console.error(`Lỗi khi gửi nhắc nhở cho đơn #${bookingId}:`, error);
+            return {
+                success: false,
+                message: error.response?.data?.message || error.message
+            };
+        }
     }
 };
 

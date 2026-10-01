@@ -94,6 +94,13 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
             if (res.success && res.data) {
                 setCompletedInvoice(res.data.invoice || res.data);
+                // Bắn tín hiệu đồng bộ realtime sang tất cả tab/cửa sổ khác (kể cả tab Lịch sử đặt phòng của khách)
+                try {
+                    localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                    window.dispatchEvent(new CustomEvent('pms_booking_created'));
+                } catch (e) {
+                    console.error('Lỗi khi phát tín hiệu pms event:', e);
+                }
                 // Thông báo ra component cha để reload dữ liệu
                 if (typeof onSuccess === 'function') {
                     onSuccess(res.data);

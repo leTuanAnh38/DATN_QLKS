@@ -1392,6 +1392,496 @@ class BookingViewSet(viewsets.ModelViewSet):
             'room': room_data
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path='check-in-today')
+    def check_in_today(self, request):
+        """
+        API GET /api/bookings/check-in-today/
+        Lấy các đơn có check_in_date là hôm nay và chưa check-in:
+        - check_in_date == timezone.localdate()
+        - status chưa check-in (pending, confirmed)
+        """
+        today = timezone.localdate()
+        qs = Booking.objects.select_related(
+            'guest', 'category', 'room', 'room__category', 'applied_promotion'
+        ).prefetch_related(
+            'extra_services', 'service_requests'
+        ).filter(
+            check_in_date=today,
+            status__in=['pending', 'confirmed']
+        ).order_by('status', '-created_at')
+
+        serializer = BookingSerializer(qs, many=True, context={'request': request})
+        return Response({
+            'success': True,
+            'count': qs.count(),
+            'date': today.isoformat(),
+            'data': serializer.data,
+            'results': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='check-out-today')
+    def check_out_today(self, request):
+        """
+        API GET /api/bookings/check-out-today/
+        Lấy các đơn có check_out_date là hôm nay và đang ở trạng thái checked_in:
+        - check_out_date == timezone.localdate()
+        - status == 'checked_in'
+        """
+        today = timezone.localdate()
+        qs = Booking.objects.select_related(
+            'guest', 'category', 'room', 'room__category', 'applied_promotion'
+        ).prefetch_related(
+            'extra_services', 'service_requests'
+        ).filter(
+            check_out_date=today,
+            status='checked_in'
+        ).order_by('-created_at')
+
+        serializer = BookingSerializer(qs, many=True, context={'request': request})
+        return Response({
+            'success': True,
+            'count': qs.count(),
+            'date': today.isoformat(),
+            'data': serializer.data,
+            'results': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='timeline')
+    def timeline(self, request):
+        """
+        API GET /api/bookings/timeline/?month=6&year=2026
+        Trả về danh sách tất cả các Phòng (Rooms), và bên trong mỗi Phòng lồng ghép
+        danh sách các Đơn đặt phòng (Bookings) diễn ra trong tháng đó để Frontend dễ dàng vẽ biểu đồ.
+        """
+        import calendar
+        import datetime
+        from collections import defaultdict
+
+        today = timezone.localdate()
+        month_param = request.query_params.get('month')
+        year_param = request.query_params.get('year')
+
+        try:
+            month = int(month_param) if month_param else today.month
+            year = int(year_param) if year_param else today.year
+            if not (1 <= month <= 12):
+                month = today.month
+            if not (2000 <= year <= 2100):
+                year = today.year
+        except (ValueError, TypeError):
+            month = today.month
+            year = today.year
+
+        _, num_days = calendar.monthrange(year, month)
+        month_start = datetime.date(year, month, 1)
+        month_end = datetime.date(year, month, num_days)
+
+        # 1. Lấy tất cả các phòng thực tế (Room)
+        rooms = Room.objects.select_related('category').all().order_by('floor', 'room_number')
+
+        # 2. Lấy tất cả các đơn đặt phòng diễn ra trong tháng đó (check_in_date <= month_end AND check_out_date >= month_start)
+        # Loại bỏ các đơn đã hủy (cancelled) hoặc vắng mặt (no_show) vì không chiếm dụng phòng trên sơ đồ
+        month_bookings = Booking.objects.select_related(
+            'guest', 'category', 'room', 'room__category'
+        ).filter(
+            check_in_date__lte=month_end,
+            check_out_date__gte=month_start
+        ).exclude(
+            status__in=['cancelled', 'no_show']
+        ).order_by('check_in_date')
+
+        # Gom nhóm booking theo room_id
+        bookings_by_room = defaultdict(list)
+        unassigned_bookings = []
+
+        for b in month_bookings:
+            guest_name = ''
+            if b.guest:
+                guest_name = b.guest.get_full_name() or b.guest.username
+            if not guest_name:
+                guest_name = 'Khách vãng lai'
+
+            booking_item = {
+                'id': b.id,
+                'booking_code': b.booking_code,
+                'guest_name': guest_name,
+                'guest_phone': getattr(b.guest, 'phone_number', '') if b.guest else '',
+                'guest_email': getattr(b.guest, 'email', '') if b.guest else '',
+                'identity_card': b.identity_card,
+                'category_id': b.category_id,
+                'category_name': b.category.name if b.category else (b.room.category.name if b.room and b.room.category else ''),
+                'room_id': b.room_id,
+                'room_number': b.room.room_number if b.room else None,
+                'check_in_date': b.check_in_date.isoformat(),
+                'check_out_date': b.check_out_date.isoformat(),
+                'actual_check_in': b.actual_check_in.isoformat() if b.actual_check_in else None,
+                'actual_check_out': b.actual_check_out.isoformat() if b.actual_check_out else None,
+                'status': b.status,
+                'status_display': b.get_status_display(),
+                'total_amount': float(b.total_amount or 0),
+                'nights': (b.check_out_date - b.check_in_date).days,
+                'note': b.note or '',
+                'internal_note': b.internal_note or ''
+            }
+
+            if b.room_id:
+                bookings_by_room[b.room_id].append(booking_item)
+            else:
+                unassigned_bookings.append(booking_item)
+
+        # 3. Lồng ghép danh sách booking vào từng phòng
+        rooms_data = []
+        for r in rooms:
+            rooms_data.append({
+                'id': r.id,
+                'room_number': r.room_number,
+                'floor': r.floor,
+                'status': r.status,
+                'status_display': r.get_status_display(),
+                'category': {
+                    'id': r.category.id if r.category else None,
+                    'name': r.category.name if r.category else 'Tiêu chuẩn',
+                    'base_price': float(r.category.base_price) if r.category and r.category.base_price else 0,
+                    'bed_type': r.category.bed_type if r.category else ''
+                } if r.category else None,
+                'category_name': r.category.name if r.category else 'Tiêu chuẩn',
+                'bookings': bookings_by_room.get(r.id, [])
+            })
+
+        return Response({
+            'success': True,
+            'month': month,
+            'year': year,
+            'days_in_month': num_days,
+            'month_start': month_start.isoformat(),
+            'month_end': month_end.isoformat(),
+            'rooms': rooms_data,
+            'unassigned_bookings': unassigned_bookings,
+            'total_rooms': len(rooms_data),
+            'total_bookings': month_bookings.count()
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='dashboard-stats')
+    def dashboard_stats(self, request):
+        """
+        API GET /api/bookings/dashboard-stats/?time_filter=month
+        Cung cấp toàn bộ dữ liệu thống kê thực tế, đồng bộ thời gian thực cho trang Tổng quan Admin Dashboard:
+        - Doanh thu thực tế (theo thời gian: hôm nay, 7 ngày, tháng này, năm nay) & tăng trưởng so với kỳ trước
+        - Thống kê công suất phòng thực tế & cơ cấu phòng (occupied, available, cleaning, maintenance)
+        - Tỷ lệ lấp đầy theo từng hạng phòng thực tế
+        - Thống kê đơn đặt phòng & cơ cấu đặt phòng / nguồn đặt phòng
+        - Thống kê yêu cầu dịch vụ phòng & danh sách dịch vụ nóng (Concierge)
+        """
+        import calendar
+        from datetime import datetime, timedelta
+        from django.db.models import Sum, Count, Q, Case, When, Value, IntegerField
+
+        today = timezone.localdate()
+        now = timezone.now()
+        time_filter = request.query_params.get('time_filter', 'month').strip().lower()
+        if time_filter not in ['today', '7days', 'month', 'year']:
+            time_filter = 'month'
+
+        # 1. Xác định khoảng thời gian hiện tại và kỳ trước (để so sánh tăng trưởng)
+        if time_filter == 'today':
+            start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+            end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+            period_label = f"Hôm nay ({today.strftime('%d/%m/%Y')})"
+            target_label = "Mục tiêu ngày"
+            target_revenue = 10000000.0  # 10 triệu
+
+            prev_start = start_date - timedelta(days=1)
+            prev_end = start_date - timedelta(microseconds=1)
+            prev_label = "so với hôm qua"
+
+        elif time_filter == '7days':
+            start_date = timezone.make_aware(datetime.combine(today - timedelta(days=6), datetime.min.time()))
+            end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+            period_label = "7 ngày qua"
+            target_label = "Mục tiêu tuần"
+            target_revenue = 50000000.0  # 50 triệu
+
+            prev_start = start_date - timedelta(days=7)
+            prev_end = start_date - timedelta(microseconds=1)
+            prev_label = "so với 7 ngày trước"
+
+        elif time_filter == 'year':
+            start_date = timezone.make_aware(datetime.combine(datetime(today.year, 1, 1).date(), datetime.min.time()))
+            end_date = timezone.make_aware(datetime.combine(datetime(today.year, 12, 31).date(), datetime.max.time()))
+            period_label = f"Năm {today.year}"
+            target_label = f"Mục tiêu năm {today.year}"
+            target_revenue = 500000000.0  # 500 triệu
+
+            prev_start = timezone.make_aware(datetime.combine(datetime(today.year - 1, 1, 1).date(), datetime.min.time()))
+            prev_end = timezone.make_aware(datetime.combine(datetime(today.year - 1, 12, 31).date(), datetime.max.time()))
+            prev_label = "so với năm trước"
+
+        else:  # 'month'
+            _, days_in_month = calendar.monthrange(today.year, today.month)
+            start_date = timezone.make_aware(datetime.combine(today.replace(day=1), datetime.min.time()))
+            end_date = timezone.make_aware(datetime.combine(today.replace(day=days_in_month), datetime.max.time()))
+            period_label = f"Tháng {today.month:02d}/{today.year}"
+            target_label = f"Mục tiêu Tháng {today.month:02d}"
+            target_revenue = 50000000.0  # 50 triệu
+
+            if today.month == 1:
+                prev_m, prev_y = 12, today.year - 1
+            else:
+                prev_m, prev_y = today.month - 1, today.year
+            _, prev_days = calendar.monthrange(prev_y, prev_m)
+            prev_start = timezone.make_aware(datetime.combine(datetime(prev_y, prev_m, 1).date(), datetime.min.time()))
+            prev_end = timezone.make_aware(datetime.combine(datetime(prev_y, prev_m, prev_days).date(), datetime.max.time()))
+            prev_label = "so với tháng trước"
+
+        # 2. TÍNH TOÁN DOANH THU THỰC TẾ
+        # Hóa đơn thanh toán trong kỳ (Invoice status='paid')
+        invoices_period = Invoice.objects.filter(
+            status='paid',
+            paid_at__gte=start_date,
+            paid_at__lte=end_date
+        )
+        inv_agg = invoices_period.aggregate(
+            total=Sum('total_amount'),
+            room=Sum('room_charge'),
+            service=Sum('service_charge'),
+            discount=Sum('discount')
+        )
+        current_inv_revenue = float(inv_agg['total'] or 0)
+        current_room_revenue = float(inv_agg['room'] or 0)
+        current_service_revenue = float(inv_agg['service'] or 0)
+        paid_invoices_count = invoices_period.count()
+
+        # Kiểm tra thêm nếu có đơn đặt phòng completed trong kỳ nhưng chưa có invoice
+        completed_bookings_period = Booking.objects.filter(
+            status='completed',
+            invoice__isnull=True
+        ).filter(
+            Q(actual_check_out__gte=start_date, actual_check_out__lte=end_date) |
+            Q(actual_check_out__isnull=True, updated_at__gte=start_date, updated_at__lte=end_date)
+        )
+        comp_agg = completed_bookings_period.aggregate(total=Sum('total_amount'))
+        extra_room_rev = float(comp_agg['total'] or 0)
+        current_room_revenue += extra_room_rev
+        current_revenue = current_inv_revenue + extra_room_rev
+
+        # Doanh thu kỳ trước
+        prev_invoices = Invoice.objects.filter(
+            status='paid',
+            paid_at__gte=prev_start,
+            paid_at__lte=prev_end
+        )
+        prev_inv_agg = prev_invoices.aggregate(total=Sum('total_amount'))
+        prev_extra = float(Booking.objects.filter(
+            status='completed',
+            invoice__isnull=True
+        ).filter(
+            Q(actual_check_out__gte=prev_start, actual_check_out__lte=prev_end) |
+            Q(actual_check_out__isnull=True, updated_at__gte=prev_start, updated_at__lte=prev_end)
+        ).aggregate(total=Sum('total_amount'))['total'] or 0)
+        prev_revenue = float(prev_inv_agg['total'] or 0) + prev_extra
+
+        # Tính tỷ lệ tăng trưởng
+        if prev_revenue > 0:
+            growth_rate = round(((current_revenue - prev_revenue) / prev_revenue) * 100, 1)
+        elif current_revenue > 0:
+            growth_rate = 100.0
+        else:
+            growth_rate = 0.0
+
+        achievement_rate = min(100.0, round((current_revenue / target_revenue) * 100, 1)) if target_revenue > 0 else 0.0
+
+        # 3. CÔNG SUẤT PHÒNG THỰC TẾ (PMS Rooms)
+        all_rooms = Room.objects.select_related('category').all()
+        total_rooms = all_rooms.count()
+        occupied_rooms = all_rooms.filter(status='occupied').count()
+        available_rooms = all_rooms.filter(status='available').count()
+        cleaning_rooms = all_rooms.filter(status='cleaning').count()
+        maintenance_rooms = all_rooms.filter(status='maintenance').count()
+
+        occupancy_rate = round((occupied_rooms / total_rooms) * 100, 1) if total_rooms > 0 else 0.0
+
+        # 4. TỶ LỆ LẤP ĐẦY THEO HẠNG PHÒNG THỰC TẾ (Category Occupancy Breakdown)
+        categories = RoomCategory.objects.prefetch_related('rooms').all().order_by('base_price')
+        category_breakdown = []
+        palette = ['#2563eb', '#3b82f6', '#f97316', '#0ea5e9', '#8b5cf6', '#10b981']
+
+        for idx, cat in enumerate(categories):
+            cat_rooms = cat.rooms.all()
+            cat_total = cat_rooms.count()
+            cat_occupied = cat_rooms.filter(status='occupied').count()
+            cat_available = cat_rooms.filter(status='available').count()
+            cat_cleaning = cat_rooms.filter(status='cleaning').count()
+            cat_maintenance = cat_rooms.filter(status='maintenance').count()
+            cat_rate = round((cat_occupied / cat_total) * 100, 1) if cat_total > 0 else 0.0
+
+            category_breakdown.append({
+                'id': cat.id,
+                'name': cat.name,
+                'total_rooms': cat_total,
+                'occupied_rooms': cat_occupied,
+                'available_rooms': cat_available,
+                'cleaning_rooms': cat_cleaning,
+                'maintenance_rooms': cat_maintenance,
+                'occupancy_rate': cat_rate,
+                'base_price': float(cat.base_price or 0),
+                'color': palette[idx % len(palette)]
+            })
+
+        # 5. THỐNG KÊ ĐƠN ĐẶT PHÒNG THỰC TẾ
+        all_bookings = Booking.objects.all()
+        total_bookings = all_bookings.count()
+        pending_count = all_bookings.filter(status='pending').count()
+        confirmed_count = all_bookings.filter(status='confirmed').count()
+        checked_in_count = all_bookings.filter(status='checked_in').count()
+        completed_count = all_bookings.filter(status='completed').count()
+        cancelled_count = all_bookings.filter(status='cancelled').count()
+        no_show_count = all_bookings.filter(status='no_show').count()
+
+        today_check_in = all_bookings.filter(
+            check_in_date=today,
+            status__in=['pending', 'confirmed']
+        ).count()
+        today_check_out = all_bookings.filter(
+            check_out_date=today,
+            status='checked_in'
+        ).count()
+
+        # Cơ cấu đặt phòng (Booking breakdown / source)
+        promo_count = all_bookings.filter(applied_promotion__isnull=False).count()
+        vip_count = all_bookings.filter(
+            Q(guest__role__in=['vip', 'admin', 'manager', 'owner', 'staff']) |
+            Q(guest__guest_profile__vip_tier__in=['Gold', 'Platinum', 'Diamond']) |
+            Q(guest__guest_profile__loyalty_points__gt=0)
+        ).distinct().count()
+        direct_count = max(0, total_bookings - promo_count - vip_count)
+        if direct_count == 0 and total_bookings > 0 and promo_count == 0:
+            direct_count = total_bookings
+
+        def calc_pct(count, total):
+            return round((count / total) * 100, 1) if total > 0 else 0.0
+
+        booking_sources = [
+            {
+                'source': 'TA Direct Website',
+                'count': direct_count,
+                'percentage': calc_pct(direct_count, total_bookings),
+                'color': '#2563eb'
+            },
+            {
+                'source': 'Ưu đãi & Voucher',
+                'count': promo_count,
+                'percentage': calc_pct(promo_count, total_bookings),
+                'color': '#f97316'
+            },
+            {
+                'source': 'Hội viên VIP Club',
+                'count': vip_count,
+                'percentage': calc_pct(vip_count, total_bookings),
+                'color': '#0f172a'
+            }
+        ]
+
+        status_distribution = [
+            {'status': 'completed', 'label': 'Đã hoàn tất', 'count': completed_count, 'percentage': calc_pct(completed_count, total_bookings), 'color': '#8b5cf6'},
+            {'status': 'checked_in', 'label': 'Đang lưu trú', 'count': checked_in_count, 'percentage': calc_pct(checked_in_count, total_bookings), 'color': '#10b981'},
+            {'status': 'confirmed', 'label': 'Đã xác nhận', 'count': confirmed_count, 'percentage': calc_pct(confirmed_count, total_bookings), 'color': '#3b82f6'},
+            {'status': 'pending', 'label': 'Chờ duyệt', 'count': pending_count, 'percentage': calc_pct(pending_count, total_bookings), 'color': '#f59e0b'},
+        ]
+
+        # 6. YÊU CẦU DỊCH VỤ PHÒNG & CONCIERGE DỊCH VỤ NÓNG
+        all_service_requests = ServiceRequest.objects.select_related(
+            'booking', 'booking__room', 'booking__guest', 'service', 'service__category'
+        ).all()
+        total_requests = all_service_requests.count()
+        pending_requests_count = all_service_requests.filter(status='pending').count()
+        in_progress_requests_count = all_service_requests.filter(status='in_progress').count()
+        completed_requests_count = all_service_requests.filter(status='completed').count()
+        cancelled_requests_count = all_service_requests.filter(status='cancelled').count()
+        total_service_sales = float(sum(float(sr.total_price or 0) for sr in all_service_requests.filter(status='completed')))
+
+        # Danh sách dịch vụ nóng (ưu tiên pending & in_progress)
+        status_order = Case(
+            When(status='pending', then=Value(1)),
+            When(status='in_progress', then=Value(2)),
+            When(status='completed', then=Value(3)),
+            default=Value(4),
+            output_field=IntegerField()
+        )
+        recent_requests_qs = all_service_requests.order_by(status_order, '-created_at')[:6]
+        recent_service_requests = []
+        for sr in recent_requests_qs:
+            r_num = sr.booking.room.room_number if sr.booking and sr.booking.room else None
+            g_name = sr.booking.guest.get_full_name() or sr.booking.guest.username if sr.booking and sr.booking.guest else (sr.booking.guest_name if hasattr(sr.booking, 'guest_name') else 'Khách')
+            cat_name = sr.service.category.name if sr.service and sr.service.category else 'Dịch vụ'
+
+            time_str = sr.created_at.strftime('%H:%M') if sr.created_at else ''
+            datetime_str = sr.created_at.strftime('%H:%M • %d/%m') if sr.created_at else ''
+
+            recent_service_requests.append({
+                'id': sr.id,
+                'service_name': sr.service.name if sr.service else 'Dịch vụ phòng',
+                'category_name': cat_name,
+                'room_number': r_num or 'Chờ gán',
+                'guest_name': g_name,
+                'quantity': sr.quantity,
+                'total_price': float(sr.total_price or 0),
+                'status': sr.status,
+                'status_display': sr.get_status_display(),
+                'note': sr.note or '',
+                'time_str': time_str,
+                'datetime_str': datetime_str,
+                'created_at': sr.created_at.isoformat() if sr.created_at else None
+            })
+
+        return Response({
+            'success': True,
+            'time_filter': time_filter,
+            'period_label': period_label,
+            'revenue': {
+                'total_revenue': current_revenue,
+                'room_revenue': current_room_revenue,
+                'service_revenue': current_service_revenue,
+                'paid_invoices_count': paid_invoices_count,
+                'previous_revenue': prev_revenue,
+                'growth_rate': growth_rate,
+                'growth_label': prev_label,
+                'target_label': target_label,
+                'target_revenue': target_revenue,
+                'achievement_rate': achievement_rate
+            },
+            'occupancy': {
+                'total_rooms': total_rooms,
+                'occupied_rooms': occupied_rooms,
+                'available_rooms': available_rooms,
+                'cleaning_rooms': cleaning_rooms,
+                'maintenance_rooms': maintenance_rooms,
+                'occupancy_rate': occupancy_rate,
+                'category_breakdown': category_breakdown
+            },
+            'bookings': {
+                'total_bookings': total_bookings,
+                'pending_count': pending_count,
+                'confirmed_count': confirmed_count,
+                'checked_in_count': checked_in_count,
+                'completed_count': completed_count,
+                'cancelled_count': cancelled_count,
+                'no_show_count': no_show_count,
+                'today_check_in': today_check_in,
+                'today_check_out': today_check_out,
+                'booking_sources': booking_sources,
+                'status_distribution': status_distribution
+            },
+            'services': {
+                'total_requests': total_requests,
+                'pending_count': pending_requests_count,
+                'in_progress_count': in_progress_requests_count,
+                'completed_count': completed_requests_count,
+                'cancelled_count': cancelled_requests_count,
+                'total_sales': total_service_sales,
+                'recent_requests': recent_service_requests
+            }
+        }, status=status.HTTP_200_OK)
+
 
 class ValidatePromoCodeView(APIView):
     """

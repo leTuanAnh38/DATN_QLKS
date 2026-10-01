@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { bookingService } from '../../services/bookingService';
 import { hotelService } from '../../services/hotelService';
 import roomService from '../../services/roomService';
+import { notificationService } from '../../services/notificationService';
 import HotelInvoiceModal from './HotelInvoiceModal';
 import CheckOutModal from './CheckOutModal';
 
@@ -44,17 +45,33 @@ const STATUS_OPTIONS = [
     { value: 'cancelled', label: 'Đã Hủy (Cancelled)', color: 'bg-rose-50 text-rose-800 border-rose-300 focus:ring-rose-500' }
 ];
 
-export default function BookingManagement({ onBookingChanged }) {
+export default function BookingManagement({ onBookingChanged, initialFilter = 'all' }) {
     // 1. Quản lý State Dữ liệu
     const [bookings, setBookings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState(null); // ID của đơn đang được gọi API PATCH đổi trạng thái
     const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: '' }
+    const [isSendingReminders, setIsSendingReminders] = useState(false);
+    const [remindingBookingId, setRemindingBookingId] = useState(null);
 
     // 2. State Lọc & Tìm kiếm
+    const [quickFilterMode, setQuickFilterMode] = useState(initialFilter);
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
     const [copiedCode, setCopiedCode] = useState(null);
+
+    // Ref luôn lưu mode mới nhất để polling/focus không bị stale closure
+    const quickFilterModeRef = useRef(quickFilterMode);
+    useEffect(() => {
+        quickFilterModeRef.current = quickFilterMode;
+    }, [quickFilterMode]);
+
+    // Đồng bộ khi prop initialFilter thay đổi từ Sidebar
+    useEffect(() => {
+        if (initialFilter) {
+            setQuickFilterMode(initialFilter);
+        }
+    }, [initialFilter]);
 
     // 3. State Modal Xem Chi tiết Đơn đặt phòng
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -121,11 +138,59 @@ export default function BookingManagement({ onBookingChanged }) {
         setTimeout(() => setToast(null), 3500);
     };
 
-    // Tải toàn bộ danh sách đơn đặt phòng từ API (có hỗ trợ làm mới ngầm isSilent)
-    const fetchBookings = async (isSilent = false) => {
+    // Kích hoạt quét và gửi thông báo nhắc nhở Check-in & Check-out hôm nay
+    const handleTriggerDailyReminders = async () => {
+        try {
+            setIsSendingReminders(true);
+            const res = await notificationService.triggerReminders(false);
+            if (res.success && res.data) {
+                const { guest_checkin_sent, staff_checkin_sent, guest_checkout_sent, staff_checkout_sent, total_notifications_created } = res.data;
+                if (total_notifications_created > 0) {
+                    showToast('success', `Đã gửi ${total_notifications_created} thông báo (${guest_checkin_sent + guest_checkout_sent} gửi khách, ${staff_checkin_sent + staff_checkout_sent} gửi nhân viên/quản lý)!`);
+                } else {
+                    showToast('info', 'Tất cả khách và nhân viên có lịch check-in/out hôm nay đều đã nhận được thông báo trước đó!');
+                }
+            } else {
+                showToast('error', res.message || 'Lỗi khi kích hoạt thông báo');
+            }
+        } catch (e) {
+            showToast('error', 'Không thể kết nối đến máy chủ thông báo');
+        } finally {
+            setIsSendingReminders(false);
+        }
+    };
+
+    // Gửi thông báo nhắc nhở riêng cho 1 đơn cụ thể
+    const handleSendReminderForBooking = async (bookingId) => {
+        try {
+            setRemindingBookingId(bookingId);
+            const res = await notificationService.remindBooking(bookingId, 'auto', true, false);
+            if (res.success) {
+                showToast('success', res.message || 'Đã gửi thông báo nhắc nhở đến khách hàng thành công!');
+            } else {
+                showToast('error', res.message || 'Lỗi khi gửi thông báo nhắc nhở');
+            }
+        } catch (e) {
+            showToast('error', 'Lỗi khi gửi thông báo nhắc nhở');
+        } finally {
+            setRemindingBookingId(null);
+        }
+    };
+
+    // Tải danh sách đơn đặt phòng từ API (hỗ trợ lọc nhanh check-in-today / check-out-today)
+    const fetchBookings = async (isSilent = false, overrideMode = null) => {
         try {
             if (!isSilent) setIsLoading(true);
-            const res = await bookingService.getMyBookings();
+            const activeMode = overrideMode || quickFilterModeRef.current;
+            let res;
+            if (activeMode === 'check-in-today') {
+                res = await bookingService.getCheckInToday();
+            } else if (activeMode === 'check-out-today') {
+                res = await bookingService.getCheckOutToday();
+            } else {
+                res = await bookingService.getMyBookings();
+            }
+
             if (res && res.success) {
                 const list = res.data || [];
                 setBookings(list);
@@ -147,9 +212,15 @@ export default function BookingManagement({ onBookingChanged }) {
         }
     };
 
+    // Khi chuyển đổi chế độ lọc nhanh (Tất cả / Check-in hôm nay / Check-out hôm nay)
     useEffect(() => {
-        fetchBookings();
+        // Reset bộ lọc dropdown trạng thái về 'all' để không làm ẩn các đơn hợp lệ của chế độ mới
+        setStatusFilter('all');
+        fetchBookings(false, quickFilterMode);
+    }, [quickFilterMode]);
 
+    // Lắng nghe sự kiện đồng bộ cửa sổ & chu kỳ polling thời gian thực (8 giây)
+    useEffect(() => {
         // 1. Tự động đồng bộ khi chuyển về tab này
         const handleFocus = () => fetchBookings(true);
         // 2. Nhận tín hiệu khi có khách vừa đặt phòng ở tab/cửa sổ khác
@@ -164,7 +235,7 @@ export default function BookingManagement({ onBookingChanged }) {
         window.addEventListener('storage', handleStorage);
         window.addEventListener('pms_booking_created', handleCustomBooking);
 
-        // 3. Chu kỳ polling kiểm tra đơn mới mỗi 8 giây
+        // 3. Chu kỳ polling kiểm tra đơn mới mỗi 8 giây (đọc mode từ ref, không lo stale closure)
         const interval = setInterval(() => {
             fetchBookings(true);
         }, 8000);
@@ -211,7 +282,7 @@ export default function BookingManagement({ onBookingChanged }) {
                 const statusName =
                     STATUS_OPTIONS.find((s) => s.value === newStatus)?.label || newStatus;
                 showToast('success', `Đã đổi trạng thái đơn #${updatedData?.booking_code || bookingId} sang "${statusName}".`);
-                
+
                 // Đồng bộ lại dữ liệu đầy đủ từ server nếu có
                 if (updatedData) {
                     setBookings((prev) =>
@@ -355,13 +426,13 @@ export default function BookingManagement({ onBookingChanged }) {
                     prev.map((b) =>
                         b.id === checkInModalBooking.id
                             ? {
-                                  ...b,
-                                  ...(updatedBooking || {}),
-                                  status: 'checked_in',
-                                  room_number: roomNum || b.room_number,
-                                  actual_check_in: updatedBooking?.actual_check_in || new Date().toISOString(),
-                                  internal_note: checkInNote.trim() || b.internal_note
-                              }
+                                ...b,
+                                ...(updatedBooking || {}),
+                                status: 'checked_in',
+                                room_number: roomNum || b.room_number,
+                                actual_check_in: updatedBooking?.actual_check_in || new Date().toISOString(),
+                                internal_note: checkInNote.trim() || b.internal_note
+                            }
                             : b
                     )
                 );
@@ -748,7 +819,7 @@ export default function BookingManagement({ onBookingChanged }) {
 
     // Dữ liệu đã lọc theo dropdown và tìm kiếm
     const filteredBookings = useMemo(() => {
-        return bookings.filter((item) => {
+        const result = bookings.filter((item) => {
             // Lọc trạng thái từ Dropdown
             if (statusFilter !== 'all') {
                 if (statusFilter === 'checked_out') {
@@ -806,11 +877,10 @@ export default function BookingManagement({ onBookingChanged }) {
             {/* TOAST THÔNG BÁO NỔI */}
             {toast && (
                 <div
-                    className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${
-                        toast.type === 'success'
+                    className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toast.type === 'success'
                             ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
                             : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
-                    }`}
+                        }`}
                 >
                     <span>{toast.type === 'success' ? '✓' : '⚠️'}</span>
                     <span>{toast.message}</span>
@@ -866,11 +936,10 @@ export default function BookingManagement({ onBookingChanged }) {
                 {/* 1. Tổng đơn */}
                 <div
                     onClick={() => setStatusFilter('all')}
-                    className={`p-4 rounded-2xl border transition cursor-pointer ${
-                        statusFilter === 'all'
+                    className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'all'
                             ? 'bg-slate-900 text-white border-slate-900 shadow-md'
                             : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-xs'
-                    }`}
+                        }`}
                 >
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 block">
                         TỔNG ĐƠN
@@ -882,11 +951,10 @@ export default function BookingManagement({ onBookingChanged }) {
                 {/* 2. Chờ duyệt */}
                 <div
                     onClick={() => setStatusFilter('pending')}
-                    className={`p-4 rounded-2xl border transition cursor-pointer ${
-                        statusFilter === 'pending'
+                    className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'pending'
                             ? 'bg-amber-500 text-white border-amber-600 shadow-md'
                             : 'bg-amber-50/70 text-amber-900 border-amber-200 hover:border-amber-300 shadow-xs'
-                    }`}
+                        }`}
                 >
                     <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
@@ -903,11 +971,10 @@ export default function BookingManagement({ onBookingChanged }) {
                 {/* 3. Đã xác nhận */}
                 <div
                     onClick={() => setStatusFilter('confirmed')}
-                    className={`p-4 rounded-2xl border transition cursor-pointer ${
-                        statusFilter === 'confirmed'
+                    className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'confirmed'
                             ? 'bg-blue-600 text-white border-blue-700 shadow-md'
                             : 'bg-blue-50/70 text-blue-900 border-blue-200 hover:border-blue-300 shadow-xs'
-                    }`}
+                        }`}
                 >
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block">
                         ĐÃ XÁC NHẬN
@@ -919,11 +986,10 @@ export default function BookingManagement({ onBookingChanged }) {
                 {/* 4. Đang lưu trú */}
                 <div
                     onClick={() => setStatusFilter('checked_in')}
-                    className={`p-4 rounded-2xl border transition cursor-pointer ${
-                        statusFilter === 'checked_in'
+                    className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'checked_in'
                             ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
                             : 'bg-emerald-50/70 text-emerald-900 border-emerald-200 hover:border-emerald-300 shadow-xs'
-                    }`}
+                        }`}
                 >
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block">
                         ĐANG Ở (IN-HOUSE)
@@ -949,10 +1015,74 @@ export default function BookingManagement({ onBookingChanged }) {
                 {/* THANH FILTER DROPDOWN & TÌM KIẾM NHANH */}
                 <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
                     <div className="flex flex-wrap items-center gap-3 flex-1">
+                        {/* Thanh Lọc Nhanh Phân Hệ: Tất cả / Check-in hôm nay / Check-out hôm nay */}
+                        <div className="flex items-center p-1 bg-slate-200/70 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => setQuickFilterMode('all')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'all'
+                                        ? 'bg-white text-slate-900 shadow-xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                            >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                </svg>
+                                <span>Tất cả</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setQuickFilterMode('check-in-today')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-in-today'
+                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                        : 'text-emerald-700 hover:text-emerald-800'
+                                    }`}
+                            >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                </svg>
+                                <span>Check-in hôm nay</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setQuickFilterMode('check-out-today')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-out-today'
+                                        ? 'bg-purple-600 text-white shadow-xs'
+                                        : 'text-purple-700 hover:text-purple-800'
+                                    }`}
+                            >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                <span>Check-out hôm nay</span>
+                            </button>
+                        </div>
+
+                        {/* Nút gửi thông báo Check-in / Check-out hôm nay */}
+                        <button
+                            type="button"
+                            onClick={handleTriggerDailyReminders}
+                            disabled={isSendingReminders}
+                            title="Quét và gửi thông báo nhắc nhở đến Khách hàng và Nhân viên/Quản lý về lịch Check-in và Check-out hôm nay"
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xs cursor-pointer ${isSendingReminders
+                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 hover:border-amber-400'
+                                }`}
+                        >
+                            <svg className={`w-3.5 h-3.5 shrink-0 ${isSendingReminders ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {isSendingReminders ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                ) : (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                )}
+                            </svg>
+                            <span>{isSendingReminders ? 'Đang gửi nhắc nhở...' : 'Gửi thông báo Check-in/out'}</span>
+                        </button>
+
                         {/* 1. Thanh Filter (Dropdown) theo Trạng thái theo yêu cầu */}
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-bold text-slate-600 uppercase tracking-wider shrink-0">
-                                🎯 Lọc trạng thái:
+                                Lọc trạng thái:
                             </label>
                             <select
                                 value={statusFilter}
@@ -1056,9 +1186,8 @@ export default function BookingManagement({ onBookingChanged }) {
                                     return (
                                         <tr
                                             key={booking.id}
-                                            className={`hover:bg-blue-50/30 transition duration-150 ${
-                                                isRowUpdating ? 'opacity-60 bg-slate-50' : ''
-                                            }`}
+                                            className={`hover:bg-blue-50/30 transition duration-150 ${isRowUpdating ? 'opacity-60 bg-slate-50' : ''
+                                                }`}
                                         >
                                             {/* CỘT 1: MÃ BOOKING */}
                                             <td className="py-3 px-3 whitespace-nowrap">
@@ -1236,6 +1365,18 @@ export default function BookingManagement({ onBookingChanged }) {
                                                         <span>👁️</span>
                                                         <span>Chi tiết</span>
                                                     </button>
+                                                    {['pending', 'confirmed', 'checked_in'].includes(booking.status) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSendReminderForBooking(booking.id)}
+                                                            disabled={remindingBookingId === booking.id}
+                                                            className="px-2 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 font-bold text-[11px] border border-amber-200 transition inline-flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
+                                                            title="Gửi thông báo nhắc nhở đến khách hàng này"
+                                                        >
+                                                            <span>{remindingBookingId === booking.id ? '⏳' : '🔔'}</span>
+                                                            <span className="hidden xl:inline">Nhắc khách</span>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -1669,6 +1810,19 @@ export default function BookingManagement({ onBookingChanged }) {
                                     >
                                         <span>🧾</span>
                                         <span>Thực hiện Check-out & Lập Hóa Đơn</span>
+                                    </button>
+                                )}
+
+                                {['pending', 'confirmed', 'checked_in'].includes(selectedBooking.status) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSendReminderForBooking(selectedBooking.id)}
+                                        disabled={remindingBookingId === selectedBooking.id}
+                                        className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                        title="Gửi thông báo nhắc nhở đến khách hàng này"
+                                    >
+                                        <span>{remindingBookingId === selectedBooking.id ? '⏳' : '🔔'}</span>
+                                        <span>{remindingBookingId === selectedBooking.id ? 'Đang gửi...' : 'Gửi thông báo nhắc khách'}</span>
                                     </button>
                                 )}
                             </div>
@@ -2204,14 +2358,14 @@ export default function BookingManagement({ onBookingChanged }) {
                                             1,
                                             Math.round(
                                                 (new Date(walkInForm.check_out_date) - new Date(walkInForm.check_in_date)) /
-                                                    (1000 * 60 * 60 * 24)
+                                                (1000 * 60 * 60 * 24)
                                             ) || 1
                                         );
                                         const pricePerNight = selectedRoom
                                             ? Number(selectedRoom.category?.promo_price) ||
-                                              Number(selectedRoom.category_base_price) ||
-                                              Number(selectedRoom.category?.base_price) ||
-                                              0
+                                            Number(selectedRoom.category_base_price) ||
+                                            Number(selectedRoom.category?.base_price) ||
+                                            0
                                             : 0;
                                         const totalAmount = pricePerNight * nights;
 
@@ -2387,11 +2541,10 @@ export default function BookingManagement({ onBookingChanged }) {
                             <button
                                 type="button"
                                 onClick={() => setServiceMode('menu')}
-                                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
-                                    serviceMode === 'menu'
+                                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${serviceMode === 'menu'
                                         ? 'bg-purple-600 text-white shadow-sm'
                                         : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                                }`}
+                                    }`}
                             >
                                 <span>🍽️</span>
                                 <span>Từ Menu Khách Sạn ({serviceCatalog.length})</span>
@@ -2399,11 +2552,10 @@ export default function BookingManagement({ onBookingChanged }) {
                             <button
                                 type="button"
                                 onClick={() => setServiceMode('custom')}
-                                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
-                                    serviceMode === 'custom'
+                                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${serviceMode === 'custom'
                                         ? 'bg-purple-600 text-white shadow-sm'
                                         : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                                }`}
+                                    }`}
                             >
                                 <span>✏️</span>
                                 <span>Phụ Phí / Dịch Vụ Tùy Chỉnh</span>
@@ -2466,11 +2618,10 @@ export default function BookingManagement({ onBookingChanged }) {
                                                         <div
                                                             key={item.id}
                                                             onClick={() => handleServiceSelect(item.id)}
-                                                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition ${
-                                                                isSelected
+                                                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition ${isSelected
                                                                     ? 'bg-purple-50 text-purple-950 font-semibold'
                                                                     : 'hover:bg-slate-50 text-slate-700'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             <div className="flex items-center gap-2.5 min-w-0">
                                                                 <input
@@ -2624,11 +2775,10 @@ export default function BookingManagement({ onBookingChanged }) {
                                         Trạng thái phục vụ:
                                     </label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${
-                                            serviceForm.service_status === 'completed'
+                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'completed'
                                                 ? 'bg-purple-50/80 border-purple-400 text-purple-950 font-semibold shadow-xs'
                                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                        }`}>
+                                            }`}>
                                             <input
                                                 type="radio"
                                                 name="service_status"
@@ -2647,11 +2797,10 @@ export default function BookingManagement({ onBookingChanged }) {
                                             </div>
                                         </label>
 
-                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${
-                                            serviceForm.service_status === 'pending'
+                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'pending'
                                                 ? 'bg-amber-50/80 border-amber-400 text-amber-950 font-semibold shadow-xs'
                                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                        }`}>
+                                            }`}>
                                             <input
                                                 type="radio"
                                                 name="service_status"
@@ -2757,7 +2906,19 @@ export default function BookingManagement({ onBookingChanged }) {
                     onClose={() => setCheckOutModalBooking(null)}
                     onSuccess={(result) => {
                         showToast('success', result?.message || 'Check-out và thanh toán thành công!');
+                        const checkedOutId = checkOutModalBooking.id;
+                        setBookings((prev) =>
+                            prev.map((b) =>
+                                b.id === checkedOutId
+                                    ? { ...b, status: 'completed', status_display: 'Đã Hoàn tất (Completed)' }
+                                    : b
+                            )
+                        );
                         fetchBookings(true);
+                        try {
+                            localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                            window.dispatchEvent(new CustomEvent('pms_booking_created'));
+                        } catch (e) { }
                         if (typeof onBookingChanged === 'function') {
                             onBookingChanged();
                         }
