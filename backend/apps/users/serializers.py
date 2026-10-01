@@ -13,10 +13,26 @@ class GuestProfileSerializer(serializers.ModelSerializer):
         fields = ('id_card_number', 'loyalty_points', 'vip_tier', 'preferences')
 
 
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeProfile
+        fields = (
+            'id',
+            'employee_code',
+            'department',
+            'position',
+            'shift',
+            'base_salary',
+            'hire_date',
+        )
+
+
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
     guest_profile = GuestProfileSerializer(read_only=True)
+    employee_profile = EmployeeProfileSerializer(read_only=True)
 
     class Meta:
         model = User
@@ -29,9 +45,11 @@ class UserSerializer(serializers.ModelSerializer):
             'full_name',
             'phone_number',
             'role',
+            'role_display',
             'address',
             'avatar',
             'guest_profile',
+            'employee_profile',
             'is_staff',
             'is_superuser',
         )
@@ -51,6 +69,144 @@ class UserSerializer(serializers.ModelSerializer):
             except Exception:
                 pass
         return obj.avatar.url
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer chuyên biệt cho trang Hồ sơ cá nhân (Staff / Manager Profile)
+    - Editable: first_name, last_name, phone_number, avatar, address
+    - Read-only: email, role, role_display, department, employee_code, position, shift, hire_date
+    """
+    full_name = serializers.SerializerMethodField()
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    department = serializers.SerializerMethodField()
+    employee_code = serializers.SerializerMethodField()
+    position = serializers.SerializerMethodField()
+    shift = serializers.SerializerMethodField()
+    hire_date = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(required=False, allow_null=True)
+    guest_profile = GuestProfileSerializer(read_only=True)
+    employee_profile = EmployeeProfileSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'full_name',
+            'phone_number',
+            'role',
+            'role_display',
+            'department',
+            'employee_code',
+            'position',
+            'shift',
+            'hire_date',
+            'address',
+            'avatar',
+            'guest_profile',
+            'employee_profile',
+            'is_staff',
+            'is_superuser',
+        )
+        read_only_fields = (
+            'id',
+            'username',
+            'email',
+            'role',
+            'role_display',
+            'department',
+            'employee_code',
+            'position',
+            'shift',
+            'hire_date',
+            'guest_profile',
+            'employee_profile',
+            'is_staff',
+            'is_superuser',
+        )
+
+    def get_full_name(self, obj):
+        name = f"{obj.first_name} {obj.last_name}".strip()
+        return name if name else obj.username
+
+    def get_department(self, obj):
+        if hasattr(obj, 'employee_profile') and obj.employee_profile:
+            return obj.employee_profile.department
+        return None
+
+    def get_employee_code(self, obj):
+        if hasattr(obj, 'employee_profile') and obj.employee_profile:
+            return obj.employee_profile.employee_code
+        return None
+
+    def get_position(self, obj):
+        if hasattr(obj, 'employee_profile') and obj.employee_profile:
+            return obj.employee_profile.position
+        return None
+
+    def get_shift(self, obj):
+        if hasattr(obj, 'employee_profile') and obj.employee_profile:
+            return obj.employee_profile.shift
+        return None
+
+    def get_hire_date(self, obj):
+        if hasattr(obj, 'employee_profile') and obj.employee_profile:
+            return obj.employee_profile.hire_date
+        return None
+
+    def validate_phone_number(self, value):
+        if not value:
+            return value
+        phone = re.sub(r'[\s\-\.]', '', str(value).strip())
+        if not re.match(r'^(0|\+84)[0-9]{9,10}$', phone):
+            raise serializers.ValidationError("Số điện thoại không hợp lệ (Vui lòng nhập đúng định dạng Việt Nam).")
+        user = self.instance
+        if user and User.objects.filter(phone_number=phone).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Số điện thoại này đã được liên kết với một tài khoản khác.")
+        return phone
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+
+        # Hỗ trợ tách Họ & Tên nếu client gửi full_name
+        if request and 'full_name' in request.data:
+            full_name = str(request.data.get('full_name', '')).strip()
+            if full_name and not ('first_name' in validated_data or 'last_name' in validated_data):
+                parts = full_name.split()
+                if len(parts) > 1:
+                    instance.first_name = " ".join(parts[:-1])
+                    instance.last_name = parts[-1]
+                else:
+                    instance.first_name = full_name
+                    instance.last_name = ""
+
+        if 'first_name' in validated_data:
+            instance.first_name = validated_data['first_name']
+        if 'last_name' in validated_data:
+            instance.last_name = validated_data['last_name']
+        if 'phone_number' in validated_data:
+            instance.phone_number = validated_data['phone_number']
+        if 'address' in validated_data:
+            instance.address = validated_data['address']
+
+        # Xử lý cập nhật Avatar ảnh đại diện
+        if 'avatar' in validated_data:
+            new_avatar = validated_data['avatar']
+            if new_avatar:
+                instance.avatar = new_avatar
+
+        # Xóa avatar nếu có cờ remove_avatar
+        if request and str(request.data.get('remove_avatar', '')).lower() in ['true', '1']:
+            if instance.avatar:
+                instance.avatar.delete(save=False)
+            instance.avatar = None
+
+        instance.save()
+        return instance
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -269,20 +425,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 # =========================================================================
 # PHÂN HỆ QUẢN TRỊ ADMIN: QUẢN LÝ KHÁCH HÀNG & NHÂN SỰ
 # =========================================================================
-
-class EmployeeProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmployeeProfile
-        fields = (
-            'id',
-            'employee_code',
-            'department',
-            'position',
-            'shift',
-            'base_salary',
-            'hire_date',
-        )
-
 
 class AdminGuestSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()

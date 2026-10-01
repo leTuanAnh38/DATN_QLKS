@@ -68,6 +68,7 @@ function App() {
         {/* Trang Đăng nhập / Hội viên VIP */}
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/profile" element={<AdminDashboard initialTab="profile" />} />
       </Routes>
     </BrowserRouter>
   );

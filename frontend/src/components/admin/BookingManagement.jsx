@@ -873,13 +873,13 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     }, [bookings, statusFilter, searchKeyword]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0 max-w-full">
             {/* TOAST THÔNG BÁO NỔI */}
             {toast && (
                 <div
                     className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toast.type === 'success'
-                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
-                            : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
+                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
+                        : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
                         }`}
                 >
                     <span>{toast.type === 'success' ? '✓' : '⚠️'}</span>
@@ -914,7 +914,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 hover:shadow-blue-600/40 transition flex items-center gap-2 cursor-pointer active:scale-95"
                         title="Tiếp đón khách vãng lai và nhận phòng trực tiếp tại quầy Lễ tân"
                     >
-                        <span className="text-sm">✨</span>
+                        <span className="text-sm"></span>
                         <span>+ Khách Walk-in / Đặt trực tiếp</span>
                     </button>
 
@@ -937,8 +937,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 <div
                     onClick={() => setStatusFilter('all')}
                     className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'all'
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                            : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-xs'
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                        : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-xs'
                         }`}
                 >
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 block">
@@ -952,8 +952,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 <div
                     onClick={() => setStatusFilter('pending')}
                     className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'pending'
-                            ? 'bg-amber-500 text-white border-amber-600 shadow-md'
-                            : 'bg-amber-50/70 text-amber-900 border-amber-200 hover:border-amber-300 shadow-xs'
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-md'
+                        : 'bg-amber-50/70 text-amber-900 border-amber-200 hover:border-amber-300 shadow-xs'
                         }`}
                 >
                     <div className="flex items-center justify-between">
@@ -972,8 +972,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 <div
                     onClick={() => setStatusFilter('confirmed')}
                     className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'confirmed'
-                            ? 'bg-blue-600 text-white border-blue-700 shadow-md'
-                            : 'bg-blue-50/70 text-blue-900 border-blue-200 hover:border-blue-300 shadow-xs'
+                        ? 'bg-blue-600 text-white border-blue-700 shadow-md'
+                        : 'bg-blue-50/70 text-blue-900 border-blue-200 hover:border-blue-300 shadow-xs'
                         }`}
                 >
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block">
@@ -987,8 +987,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 <div
                     onClick={() => setStatusFilter('checked_in')}
                     className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'checked_in'
-                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
-                            : 'bg-emerald-50/70 text-emerald-900 border-emerald-200 hover:border-emerald-300 shadow-xs'
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
+                        : 'bg-emerald-50/70 text-emerald-900 border-emerald-200 hover:border-emerald-300 shadow-xs'
                         }`}
                 >
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block">
@@ -1011,18 +1011,18 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             </div>
 
             {/* BẢNG DỮ LIỆU CHÍNH & THANH CÔNG CỤ (FILTER & SEARCH) */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden min-w-0 max-w-full">
                 {/* THANH FILTER DROPDOWN & TÌM KIẾM NHANH */}
-                <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
-                    <div className="flex flex-wrap items-center gap-3 flex-1">
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 bg-slate-50/50">
+                    <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                         {/* Thanh Lọc Nhanh Phân Hệ: Tất cả / Check-in hôm nay / Check-out hôm nay */}
                         <div className="flex items-center p-1 bg-slate-200/70 rounded-xl">
                             <button
                                 type="button"
                                 onClick={() => setQuickFilterMode('all')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'all'
-                                        ? 'bg-white text-slate-900 shadow-xs'
-                                        : 'text-slate-600 hover:text-slate-900'
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'all'
+                                    ? 'bg-white text-slate-900 shadow-xs'
+                                    : 'text-slate-600 hover:text-slate-900'
                                     }`}
                             >
                                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1033,9 +1033,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             <button
                                 type="button"
                                 onClick={() => setQuickFilterMode('check-in-today')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-in-today'
-                                        ? 'bg-emerald-600 text-white shadow-xs'
-                                        : 'text-emerald-700 hover:text-emerald-800'
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-in-today'
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'text-emerald-700 hover:text-emerald-800'
                                     }`}
                             >
                                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1046,9 +1046,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             <button
                                 type="button"
                                 onClick={() => setQuickFilterMode('check-out-today')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-out-today'
-                                        ? 'bg-purple-600 text-white shadow-xs'
-                                        : 'text-purple-700 hover:text-purple-800'
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-out-today'
+                                    ? 'bg-purple-600 text-white shadow-xs'
+                                    : 'text-purple-700 hover:text-purple-800'
                                     }`}
                             >
                                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1064,9 +1064,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             onClick={handleTriggerDailyReminders}
                             disabled={isSendingReminders}
                             title="Quét và gửi thông báo nhắc nhở đến Khách hàng và Nhân viên/Quản lý về lịch Check-in và Check-out hôm nay"
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xs cursor-pointer ${isSendingReminders
-                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 hover:border-amber-400'
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xs cursor-pointer ${isSendingReminders
+                                ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 hover:border-amber-400'
                                 }`}
                         >
                             <svg className={`w-3.5 h-3.5 shrink-0 ${isSendingReminders ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1076,26 +1076,26 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                 )}
                             </svg>
-                            <span>{isSendingReminders ? 'Đang gửi nhắc nhở...' : 'Gửi thông báo Check-in/out'}</span>
+                            <span>{isSendingReminders ? 'Đang gửi...' : 'Gửi thông báo Check-in/out'}</span>
                         </button>
 
-                        {/* 1. Thanh Filter (Dropdown) theo Trạng thái theo yêu cầu */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider shrink-0">
-                                Lọc trạng thái:
+                        {/* 1. Thanh Filter (Dropdown) theo Trạng thái */}
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider shrink-0 hidden sm:inline">
+                                Lọc:
                             </label>
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 cursor-pointer"
+                                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 cursor-pointer"
                             >
                                 <option value="all">Tất cả trạng thái ({stats.total})</option>
-                                <option value="pending">⏳ Chờ duyệt (Pending - {stats.pending})</option>
-                                <option value="confirmed">✓ Đã xác nhận (Confirmed - {stats.confirmed})</option>
-                                <option value="checked_in">🏨 Đang lưu trú (Checked-in - {stats.checkedIn})</option>
-                                <option value="checked_out">🏁 Đã trả phòng (Checked-out / Completed - {stats.checkedOut})</option>
-                                <option value="no_show">🚫 Khách không đến (No-show - {stats.noShow})</option>
-                                <option value="cancelled">✕ Đã hủy (Cancelled - {stats.cancelled})</option>
+                                <option value="pending">⏳ Chờ duyệt ({stats.pending})</option>
+                                <option value="confirmed">✓ Đã xác nhận ({stats.confirmed})</option>
+                                <option value="checked_in">🏨 Đang lưu trú ({stats.checkedIn})</option>
+                                <option value="checked_out">🏁 Đã trả phòng ({stats.checkedOut})</option>
+                                <option value="no_show">🚫 Khách không đến ({stats.noShow})</option>
+                                <option value="cancelled">✕ Đã hủy ({stats.cancelled})</option>
                             </select>
                         </div>
 
@@ -1103,28 +1103,28 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('all')}
-                                className="text-xs text-blue-600 hover:underline font-semibold cursor-pointer"
+                                className="text-xs text-blue-600 hover:underline font-semibold cursor-pointer shrink-0"
                             >
-                                Đặt lại bộ lọc
+                                Đặt lại
                             </button>
                         )}
                     </div>
 
                     {/* 2. Ô tìm kiếm nhanh */}
-                    <div className="relative min-w-[280px]">
+                    <div className="relative w-full xl:w-72 shrink-0">
                         <input
                             type="text"
-                            placeholder="Tìm Mã đơn, tên khách, CCCD, SĐT, số phòng..."
+                            placeholder="Tìm mã, khách, CCCD, SĐT, phòng..."
                             value={searchKeyword}
                             onChange={(e) => setSearchKeyword(e.target.value)}
-                            className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition shadow-xs"
+                            className="w-full pl-8 pr-7 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition shadow-xs"
                         />
-                        <span className="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
+                        <span className="absolute left-2.5 top-2.5 text-slate-400 text-xs">🔍</span>
                         {searchKeyword && (
                             <button
                                 type="button"
                                 onClick={() => setSearchKeyword('')}
-                                className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
                             >
                                 ✕
                             </button>
@@ -1132,18 +1132,18 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     </div>
                 </div>
 
-                {/* BẢNG DỮ LIỆU ĐẶT PHÒNG (DATA TABLE) */}
-                <div className="overflow-x-auto">
+                {/* BẢNG DỮ LIỆU ĐẶT PHÒNG (DATA TABLE TỰ CO GIÃN VỪA KHÍT) */}
+                <div className="overflow-x-auto w-full">
                     <table className="w-full text-left border-collapse text-xs">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
-                                <th className="py-3 px-3">Mã Booking</th>
-                                <th className="py-3 px-3">Tên khách & CCCD</th>
-                                <th className="py-3 px-3">Phòng</th>
-                                <th className="py-3 px-3">Check-in / Out</th>
-                                <th className="py-3 px-3">Tổng tiền</th>
-                                <th className="py-3 px-3">Trạng thái (Đổi nhanh)</th>
-                                <th className="py-3 px-3 text-center">Hành động</th>
+                                <th className="py-3 px-2.5 whitespace-nowrap">Mã Booking</th>
+                                <th className="py-3 px-2.5">Khách hàng & CCCD</th>
+                                <th className="py-3 px-2.5">Phòng</th>
+                                <th className="py-3 px-2.5 whitespace-nowrap">Check-in / Out</th>
+                                <th className="py-3 px-2.5 whitespace-nowrap">Tổng tiền</th>
+                                <th className="py-3 px-2.5 whitespace-nowrap">Trạng thái (Đổi nhanh)</th>
+                                <th className="py-3 px-2 text-center whitespace-nowrap">Hành động</th>
                             </tr>
                         </thead>
 
@@ -1190,7 +1190,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 }`}
                                         >
                                             {/* CỘT 1: MÃ BOOKING */}
-                                            <td className="py-3 px-3 whitespace-nowrap">
+                                            <td className="py-2.5 px-2.5 whitespace-nowrap">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-mono text-xs font-black text-slate-900 tracking-wider">
                                                         {booking.booking_code}
@@ -1210,37 +1210,37 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             </td>
 
                                             {/* CỘT 2: TÊN KHÁCH & CCCD */}
-                                            <td className="py-3 px-3">
-                                                <div className="font-bold text-slate-900 text-xs">
+                                            <td className="py-2.5 px-2.5 min-w-[120px] max-w-[155px]">
+                                                <div className="font-bold text-slate-900 text-xs truncate" title={booking.guest_name}>
                                                     {booking.guest_name}
                                                 </div>
-                                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                                <div className="text-[11px] text-slate-500 mt-0.5 truncate">
                                                     📞 {booking.guest_phone || 'Chưa có SĐT'}
                                                 </div>
                                                 {booking.identity_card ? (
-                                                    <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[10px] font-semibold text-slate-700 mt-1 border border-slate-200">
+                                                    <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[10px] font-semibold text-slate-700 mt-0.5 border border-slate-200 max-w-full">
                                                         <span>🪪</span>
-                                                        <span>{booking.identity_card}</span>
+                                                        <span className="truncate">{booking.identity_card}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-[10px] text-amber-600 italic mt-0.5 block">
+                                                    <span className="text-[10px] text-amber-600 italic mt-0.5 block truncate">
                                                         Chưa có CCCD
                                                     </span>
                                                 )}
                                             </td>
 
                                             {/* CỘT 3: PHÒNG */}
-                                            <td className="py-3 px-3">
-                                                <strong className="text-slate-800 block text-xs font-semibold">
+                                            <td className="py-2.5 px-2.5 min-w-[120px] max-w-[160px]">
+                                                <strong className="text-slate-800 block text-xs font-semibold truncate" title={booking.room_name}>
                                                     {booking.room_name}
                                                 </strong>
                                                 <div className="mt-0.5">
                                                     {booking.room_number ? (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
                                                             Phòng {booking.room_number}
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-medium border border-slate-200">
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-medium border border-slate-200">
                                                             Chờ gán số phòng
                                                         </span>
                                                     )}
@@ -1248,7 +1248,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             </td>
 
                                             {/* CỘT 4: CHECK-IN / CHECK-OUT */}
-                                            <td className="py-3 px-3 whitespace-nowrap">
+                                            <td className="py-2.5 px-2.5 whitespace-nowrap">
                                                 <div className="font-semibold text-slate-800 text-xs">
                                                     {formatDateDisplay(booking.check_in_date)}
                                                     <span className="text-slate-400 mx-1">→</span>
@@ -1260,34 +1260,33 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             </td>
 
                                             {/* CỘT 5: TỔNG TIỀN */}
-                                            <td className="py-3 px-3 whitespace-nowrap">
-                                                <div className="font-black text-sm text-rose-600">
+                                            <td className="py-2.5 px-2.5 whitespace-nowrap">
+                                                <div className="font-black text-xs sm:text-sm text-rose-600">
                                                     {Number(booking.grand_total_amount || totalAmountNum).toLocaleString('vi-VN')}
                                                     <span className="text-[10px] font-medium text-slate-400 ml-1">VND</span>
                                                 </div>
                                                 {booking.extra_services && booking.extra_services.length > 0 && (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 mt-0.5 font-bold">
+                                                    <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200 mt-0.5 font-bold">
                                                         <span>🛎️ +{Number(booking.extra_services_total || 0).toLocaleString('vi-VN')}đ</span>
-                                                        <span className="font-normal">({booking.extra_services.length} DV)</span>
                                                     </span>
                                                 )}
-                                                <span className="text-[10px] text-slate-400 block mt-0.5">
+                                                <span className="text-[10px] text-slate-400 block mt-0.5 truncate max-w-[125px]">
                                                     {booking.note && booking.note.includes('Thanh toán:')
                                                         ? booking.note.split('Thanh toán:')[1].trim().split('|')[0]
-                                                        : 'Thanh toán tại Lễ tân'}
+                                                        : 'Tại Lễ tân'}
                                                 </span>
                                             </td>
 
                                             {/* CỘT 6: TRẠNG THÁI (SELECT DROPDOWN ĐỔI NHANH NGAY TẠI BẢNG) */}
-                                            <td className="py-3 px-3 whitespace-nowrap">
-                                                <div className="relative inline-block">
+                                            <td className="py-2.5 px-2.5 whitespace-nowrap">
+                                                <div className="relative inline-block w-full max-w-[125px]">
                                                     <select
                                                         value={booking.status}
                                                         disabled={isRowUpdating}
                                                         onChange={(e) =>
                                                             handleQuickStatusChange(booking.id, e.target.value)
                                                         }
-                                                        className={`text-[11px] font-bold py-1 pl-2.5 pr-6 rounded-lg border shadow-xs transition cursor-pointer appearance-none focus:outline-none focus:ring-2 ${statusConfig.color}`}
+                                                        className={`w-full text-[10.5px] font-bold py-1 pl-2 pr-5 rounded-lg border shadow-2xs transition cursor-pointer appearance-none focus:outline-none focus:ring-2 truncate ${statusConfig.color}`}
                                                     >
                                                         {STATUS_OPTIONS.map((opt) => (
                                                             <option key={opt.value} value={opt.value}>
@@ -1296,28 +1295,29 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         ))}
                                                     </select>
                                                     {/* Caret icon */}
-                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-slate-500">
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-slate-500">
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                                                         </svg>
                                                     </div>
                                                 </div>
                                                 {isRowUpdating && (
-                                                    <span className="text-[10px] text-blue-600 font-semibold block mt-0.5 animate-pulse">
+                                                    <span className="text-[9px] text-blue-600 font-semibold block mt-0.5 animate-pulse">
                                                         Đang lưu...
                                                     </span>
                                                 )}
                                             </td>
 
-                                            {/* CỘT 7: HÀNH ĐỘNG (RÚT GỌN TỐI ƯU CÂN ĐỐI) */}
-                                            <td className="py-3 px-2.5 text-center whitespace-nowrap">
-                                                <div className="flex items-center justify-center gap-1.5">
+                                            {/* CỘT 7: HÀNH ĐỘNG (THIẾT KẾ GỌN GÀNG, KHÔNG PHÌNH CỘT) */}
+                                            <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    {/* Nút hành động chính theo trạng thái */}
                                                     {booking.status === 'confirmed' && (
                                                         <>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenCheckInModal(booking)}
-                                                                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
+                                                                className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
                                                                 title="Thực hiện gán phòng và Check-in cho khách"
                                                             >
                                                                 <span>🔑</span>
@@ -1326,11 +1326,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setNoShowModalBooking(booking)}
-                                                                className="px-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white font-bold text-[11px] shadow-xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
+                                                                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95"
                                                                 title="Đánh dấu Khách không đến (No-show)"
                                                             >
-                                                                <span>🚫</span>
-                                                                <span>No-show</span>
+                                                                🚫
                                                             </button>
                                                         </>
                                                     )}
@@ -1338,43 +1337,46 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         <button
                                                             type="button"
                                                             onClick={() => setCheckOutModalBooking(booking)}
-                                                            className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-[11px] shadow-xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
+                                                            className="px-2 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
                                                             title="Thực hiện thanh toán và Check-out trả phòng"
                                                         >
                                                             <span>🧾</span>
                                                             <span>Check-out</span>
                                                         </button>
                                                     )}
+
+                                                    {/* Nút Xem chi tiết đơn */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenDetailModal(booking)}
+                                                        className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 transition inline-flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                                                        title="Xem toàn bộ thông tin chi tiết đơn này"
+                                                    >
+                                                        👁️
+                                                    </button>
+
+                                                    {/* Nút In hóa đơn */}
                                                     <button
                                                         type="button"
                                                         onClick={() => setInvoiceModalBooking(booking)}
-                                                        className="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-800 hover:text-white text-slate-700 font-bold text-[11px] border border-slate-200 transition inline-flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
+                                                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-800 hover:text-white text-slate-700 border border-slate-200 transition inline-flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
                                                         title="In hóa đơn đặt phòng (Chuẩn A4)"
                                                     >
                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                                         </svg>
-                                                        <span>In HĐ</span>
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenDetailModal(booking)}
-                                                        className="px-2 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-[11px] border border-blue-200 transition inline-flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
-                                                        title="Xem toàn bộ thông tin chi tiết đơn này"
-                                                    >
-                                                        <span>👁️</span>
-                                                        <span>Chi tiết</span>
-                                                    </button>
+
+                                                    {/* Nút Nhắc khách */}
                                                     {['pending', 'confirmed', 'checked_in'].includes(booking.status) && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleSendReminderForBooking(booking.id)}
                                                             disabled={remindingBookingId === booking.id}
-                                                            className="px-2 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 font-bold text-[11px] border border-amber-200 transition inline-flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
+                                                            className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 border border-amber-200 transition inline-flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
                                                             title="Gửi thông báo nhắc nhở đến khách hàng này"
                                                         >
-                                                            <span>{remindingBookingId === booking.id ? '⏳' : '🔔'}</span>
-                                                            <span className="hidden xl:inline">Nhắc khách</span>
+                                                            {remindingBookingId === booking.id ? '⏳' : '🔔'}
                                                         </button>
                                                     )}
                                                 </div>
@@ -2110,7 +2112,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         <div className="flex items-start justify-between pb-4 border-b border-slate-100 mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-600/25">
-                                    ✨
+
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
@@ -2542,8 +2544,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 type="button"
                                 onClick={() => setServiceMode('menu')}
                                 className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${serviceMode === 'menu'
-                                        ? 'bg-purple-600 text-white shadow-sm'
-                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                    ? 'bg-purple-600 text-white shadow-sm'
+                                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                     }`}
                             >
                                 <span>🍽️</span>
@@ -2553,8 +2555,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 type="button"
                                 onClick={() => setServiceMode('custom')}
                                 className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${serviceMode === 'custom'
-                                        ? 'bg-purple-600 text-white shadow-sm'
-                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                    ? 'bg-purple-600 text-white shadow-sm'
+                                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                     }`}
                             >
                                 <span>✏️</span>
@@ -2619,8 +2621,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                             key={item.id}
                                                             onClick={() => handleServiceSelect(item.id)}
                                                             className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition ${isSelected
-                                                                    ? 'bg-purple-50 text-purple-950 font-semibold'
-                                                                    : 'hover:bg-slate-50 text-slate-700'
+                                                                ? 'bg-purple-50 text-purple-950 font-semibold'
+                                                                : 'hover:bg-slate-50 text-slate-700'
                                                                 }`}
                                                         >
                                                             <div className="flex items-center gap-2.5 min-w-0">
@@ -2776,8 +2778,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     </label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'completed'
-                                                ? 'bg-purple-50/80 border-purple-400 text-purple-950 font-semibold shadow-xs'
-                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                            ? 'bg-purple-50/80 border-purple-400 text-purple-950 font-semibold shadow-xs'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                             }`}>
                                             <input
                                                 type="radio"
@@ -2798,8 +2800,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                         </label>
 
                                         <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'pending'
-                                                ? 'bg-amber-50/80 border-amber-400 text-amber-950 font-semibold shadow-xs'
-                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                            ? 'bg-amber-50/80 border-amber-400 text-amber-950 font-semibold shadow-xs'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                             }`}>
                                             <input
                                                 type="radio"

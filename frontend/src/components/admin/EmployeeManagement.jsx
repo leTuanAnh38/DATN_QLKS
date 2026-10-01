@@ -888,7 +888,7 @@ export default function EmployeeManagement() {
                                 <th className="py-3.5 px-4">VAI TRÒ (RBAC)</th>
                                 <th className="py-3.5 px-4">PHÒNG BAN & CHỨC DANH</th>
                                 <th className="py-3.5 px-4">CA LÀM VIỆC & LƯƠNG</th>
-                                <th className="py-3.5 px-4">TRẠNG THÁI</th>
+                                <th className="py-3.5 px-4 min-w-[110px] whitespace-nowrap">TRẠNG THÁI</th>
                                 <th className="py-3.5 px-4 text-right">THAO TÁC</th>
                             </tr>
                         </thead>
@@ -965,13 +965,15 @@ export default function EmployeeManagement() {
                                         </td>
 
                                         {/* Status */}
-                                        <td className="py-3.5 px-4">
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
                                             {emp.is_active ? (
-                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                                                     Hoạt động
                                                 </span>
                                             ) : (
-                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
                                                     Đã khóa
                                                 </span>
                                             )}
@@ -1812,11 +1814,13 @@ export default function EmployeeManagement() {
                                             {selectedEmployee.full_name || selectedEmployee.username}
                                         </h3>
                                         {selectedEmployee.is_active ? (
-                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                                                 Hoạt động
                                             </span>
                                         ) : (
-                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
                                                 Đã khóa
                                             </span>
                                         )}

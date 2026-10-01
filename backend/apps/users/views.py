@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from .models import GuestProfile, EmployeeProfile
 from .serializers import (
     UserSerializer,
+    UserProfileSerializer,
     RegisterSerializer,
     LoginSerializer,
     ChangePasswordSerializer,
@@ -92,18 +93,24 @@ class LoginView(APIView):
 
 
 class CurrentUserView(APIView):
+    """
+    API endpoint dành riêng cho user đang đăng nhập: GET & PATCH /api/users/me/
+    - GET: Trả về thông tin hồ sơ chi tiết (first_name, last_name, email, role, department, employee_code, avatar...)
+    - PATCH / PUT: Cập nhật thông tin cá nhân (first_name, last_name, phone_number, avatar, address)
+    - MultiPartParser và FormParser: Xử lý upload file ảnh avatar
+    """
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
-        serializer = UserSerializer(request.user, context={'request': request})
+        serializer = UserProfileSerializer(request.user, context={'request': request})
         return Response({
             'success': True,
             'user': serializer.data
         }, status=status.HTTP_200_OK)
 
     def patch(self, request):
-        serializer = UpdateProfileSerializer(
+        serializer = UserProfileSerializer(
             request.user,
             data=request.data,
             partial=True,
@@ -114,7 +121,7 @@ class CurrentUserView(APIView):
             return Response({
                 'success': True,
                 'message': 'Cập nhật thông tin hồ sơ thành công!',
-                'user': UserSerializer(user, context={'request': request}).data
+                'user': UserProfileSerializer(user, context={'request': request}).data
             }, status=status.HTTP_200_OK)
 
         first_error = next(iter(serializer.errors.values()))
