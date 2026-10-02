@@ -272,34 +272,35 @@ export default function FeaturedServices() {
                     </div>
                 )}
 
-                {/* 3. LUXURY SERVICES PROMOTION BANNER */}
-                <div className="mt-16 bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 rounded-3xl p-8 sm:p-12 text-white shadow-2xl border border-slate-800 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
-                    {/* Background Glow */}
-                    <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                {/* 3. LUXURY SERVICES PROMOTION BANNER (Nền trắng nhẹ nhàng, thanh lịch) */}
+                <div className="mt-16 bg-white rounded-3xl p-8 sm:p-12 text-slate-800 shadow-xl shadow-slate-200/60 border border-slate-200/90 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
+                    {/* Background Glow nhẹ nhàng */}
+                    <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -left-20 -top-20 w-80 h-80 bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="space-y-3 text-center lg:text-left max-w-2xl">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold border border-amber-400/30">
+                    <div className="space-y-3 text-center lg:text-left max-w-2xl relative z-10">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200/80 shadow-xs">
                             🛎️ IN-ROOM DINING & CONCIERGE SERVICE
                         </div>
-                        <h3 className="text-2xl sm:text-3xl font-serif font-bold leading-snug">
+                        <h3 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 leading-snug">
                             Trải Nghiệm Đầy Đủ Thực Đơn Ẩm Thực & Tiện Ích Phòng 5 Sao
                         </h3>
-                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                             Khách sạn hỗ trợ khách lưu trú gọi món ăn, đồ uống và đặt lịch The Lotus Spa trực tuyến qua điện thoại hoặc máy tính bảng trong phòng. Bộ phận Concierge giao tận cửa phòng chỉ trong 20 - 30 phút.
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 w-full lg:w-auto">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 w-full lg:w-auto relative z-10">
                         <Link
                             to="/services"
-                            className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition shadow-lg shadow-amber-500/25 text-center flex items-center justify-center gap-2"
+                            className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition shadow-lg shadow-orange-500/25 text-center flex items-center justify-center gap-2"
                         >
                             <span>Khám Phá Menu Dịch Vụ</span>
                             <span>→</span>
                         </Link>
                         <a
                             href="tel:19008899"
-                            className="w-full sm:w-auto px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs sm:text-sm rounded-xl transition text-center flex items-center justify-center gap-2"
+                            className="w-full sm:w-auto px-6 py-3.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300 font-bold text-xs sm:text-sm rounded-xl transition shadow-xs text-center flex items-center justify-center gap-2"
                         >
                             <span>📞 Hotline Phục Vụ: 1900 8899</span>
                         </a>

@@ -39,13 +39,11 @@ export default function NewsList() {
     }, []);
 
     useEffect(() => {
-        fetchPosts();
-    }, [selectedCategory]);
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        fetchPosts();
-    };
+        const timer = setTimeout(() => {
+            fetchPosts();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [selectedCategory, searchTerm]);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
@@ -68,56 +66,54 @@ export default function NewsList() {
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
             <Navbar />
 
-            {/* HERO BANNER SÁNG SỦA & SANG TRỌNG */}
-            <section className="relative py-16 md:py-24 overflow-hidden border-b border-slate-200">
-                {/* Ảnh nền Resort Nắng Sáng Rực Rỡ */}
-                <div className="absolute inset-0 z-0">
-                    <img
-                        src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85"
-                        alt="Khách Sạn TA Đà Nẵng Resort"
-                        className="w-full h-full object-cover object-center"
-                    />
-                    {/* Lớp phủ sáng mượt mà giúp chữ rõ nét, giữ trọn ánh sáng tự nhiên của biển và hồ bơi */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-slate-50 backdrop-blur-[1px]" />
+            {/* BREADCRUMB ĐỒNG BỘ VỊ TRÍ 100% VỚI TRANG MENU DỊCH VỤ */}
+            <div className="bg-white border-b border-slate-100 py-3">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
+                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                        <span>/</span>
+                        <span className="text-slate-900 font-semibold">Tin tức & Cẩm nang</span>
+                    </nav>
                 </div>
+            </div>
 
-                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-bold uppercase tracking-widest mb-4 shadow-xs backdrop-blur-md">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        TIN TỨC & CẨM NANG NGHỈ DƯỠNG
-                    </span>
-                    <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
-                        Khám Phá Trải Nghiệm & <span className="text-amber-600">Cẩm Nang Tinh Hoa</span>
-                    </h1>
-                    <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
-                        Cập nhật những thông tin mới nhất về văn hóa du lịch, nghệ thuật ẩm thực tinh tế và các sự kiện, ưu đãi đặc quyền tại khách sạn.
-                    </p>
+            {/* HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
+            <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+                {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
+                <img
+                    src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85"
+                    alt="Khách Sạn TA Đà Nẵng Resort"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                />
 
-                    {/* SEARCH FORM TRÊN HERO SÁNG SỦA */}
-                    <form onSubmit={handleSearch} className="mt-8 max-w-xl mx-auto flex items-center bg-white/95 backdrop-blur-md rounded-2xl p-1.5 border border-slate-200 shadow-xl shadow-slate-900/5">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Tìm kiếm bài viết, cẩm nang, ẩm thực..."
-                            className="flex-1 bg-transparent px-4 py-2.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
-                        />
-                        <button
-                            type="submit"
-                            className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs sm:text-sm rounded-xl transition shadow-md shadow-amber-500/20 cursor-pointer flex items-center gap-1.5"
-                        >
-                            <span>🔍</span>
-                            <span>Tìm kiếm</span>
-                        </button>
-                    </form>
+                {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/20" />
+
+                {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-3xl flex flex-col items-start text-left">
+                        {/* Tiêu đề trắng nổi bật với từ khóa vàng Gold */}
+                        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                            Khám Phá Trải Nghiệm & <br className="hidden sm:inline" />
+                            <span className="text-amber-400">
+                                Cẩm Nang Nghỉ Dưỡng Tinh Hoa
+                            </span>
+                        </h1>
+
+                        {/* Mô tả chữ xám trắng sắc nét */}
+                        <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                            Cập nhật những thông tin mới nhất về văn hóa du lịch, nghệ thuật ẩm thực tinh tế và các sự kiện, ưu đãi đặc quyền tại Khách Sạn TA Đà Nẵng.
+                        </p>
+                    </div>
                 </div>
-            </section>
+            </header>
 
             {/* MAIN CONTENT AREA */}
             <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 space-y-12">
-                {/* CATEGORY TABS BAR */}
-                <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4 overflow-x-auto">
-                    <div className="flex items-center gap-2">
+                {/* BỘ LỌC DANH MỤC & TÌM KIẾM (ĐỒNG BỘ 100% VỚI MENU DỊCH VỤ) */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+                    {/* Tabs danh mục */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
                         {categories.map((cat) => {
                             const isActive = selectedCategory === cat.value;
                             return (
@@ -125,21 +121,39 @@ export default function NewsList() {
                                     key={cat.value}
                                     type="button"
                                     onClick={() => setSelectedCategory(cat.value)}
-                                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap cursor-pointer ${
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
                                         isActive
-                                            ? 'bg-slate-900 text-white shadow-md'
-                                            : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                     }`}
                                 >
-                                    {cat.label}
+                                    <span>{cat.value === 'all' ? '✨' : '🏷️'}</span>
+                                    <span>{cat.label}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <span className="text-xs text-slate-500 font-medium hidden sm:inline whitespace-nowrap">
-                        Hiển thị <strong>{posts.length}</strong> bài viết
-                    </span>
+                    {/* Ô tìm kiếm nhỏ gọn y hệt trang Menu Dịch Vụ */}
+                    <div className="relative w-full md:w-72 shrink-0">
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Tìm bài viết, cẩm nang, ẩm thực..."
+                            className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+                        />
+                        <span className="absolute left-3 top-3 text-slate-400 text-xs">🔍</span>
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs p-0.5 cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* FEATURED POST (NẾU CÓ) */}

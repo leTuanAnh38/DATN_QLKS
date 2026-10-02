@@ -111,36 +111,6 @@ export default function FeaturedRoomCategories() {
                 ) : (
                     <RoomSlider rooms={filteredCategories} />
                 )}
-
-                {/* Banner Hỗ Trợ Đặt Phòng & CSKH */}
-                <div className="mt-16 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-8 sm:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-800">
-                    <div className="space-y-2 text-center md:text-left">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
-                            👑 ĐẶC QUYỀN HỘI VIÊN TA VIP CLUB
-                        </div>
-                        <h3 className="text-xl sm:text-2xl font-serif font-bold">
-                            Cần tư vấn chọn Hạng phòng phù hợp cho gia đình hoặc đoàn hội nghị?
-                        </h3>
-                        <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-                            Đội ngũ Concierge và Chuyên viên Đặt phòng 5 sao sẵn sàng hỗ trợ bạn 24/7 với giá ưu đãi tốt nhất thị trường.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                        <Link
-                            to="/contact"
-                            className="px-6 py-3 bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-lg"
-                        >
-                            Liên Hệ Chuyên Viên
-                        </Link>
-                        <a
-                            href="tel:02363888999"
-                            className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center gap-2"
-                        >
-                            <span>📞 0236 3888 999</span>
-                        </a>
-                    </div>
-                </div>
             </div>
         </section>
     );

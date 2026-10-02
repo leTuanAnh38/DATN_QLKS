@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import roomService from '../../services/roomService';
+
+// Định dạng ngày hiển thị DD/MM/YYYY
+const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+        return new Date(dateStr).toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch {
+        return dateStr;
+    }
+};
 
 /**
  * Trang Danh sách Phòng nghỉ & Suites dành cho Khách hàng (RoomsPage)
@@ -11,12 +25,33 @@ import roomService from '../../services/roomService';
  * Tích hợp trạng thái Loading (Skeleton) và xử lý ảnh đại diện chuẩn PMS
  */
 export default function RoomsAndSuitesPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+
+    // Nhận các tham số tìm kiếm từ thanh tìm phòng trang chủ
+    const checkInParam = searchParams.get('checkIn') || location.state?.checkInDate || '';
+    const checkOutParam = searchParams.get('checkOut') || location.state?.checkOutDate || '';
+    const guestsParam = searchParams.get('guests') || (location.state?.guestCount ? String(location.state.guestCount) : '');
+    const categoryParam = searchParams.get('category') || location.state?.roomType || 'all';
+
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedTab, setSelectedTab] = useState('all');
+    const [selectedTab, setSelectedTab] = useState(categoryParam || 'all');
     const [sortBy, setSortBy] = useState('featured');
+
+    const searchNights = (checkInParam && checkOutParam)
+        ? Math.max(1, Math.round((new Date(checkOutParam) - new Date(checkInParam)) / (1000 * 60 * 60 * 24)))
+        : 0;
+
+    const hasActiveSearch = Boolean(checkInParam || checkOutParam || (guestsParam && guestsParam !== '0'));
+
+    const handleClearSearch = () => {
+        setSearchParams({});
+        setSelectedTab('all');
+        setSearchQuery('');
+    };
 
     // Gọi API lấy toàn bộ danh sách Hạng phòng từ Backend
     useEffect(() => {
@@ -43,7 +78,14 @@ export default function RoomsAndSuitesPage() {
         fetchCategories();
     }, []);
 
-    // Lọc theo từ khóa tìm kiếm và tab danh mục
+    // Đồng bộ categoryParam khi URL thay đổi
+    useEffect(() => {
+        if (categoryParam && categoryParam !== 'all') {
+            setSelectedTab(categoryParam);
+        }
+    }, [categoryParam]);
+
+    // Lọc theo từ khóa tìm kiếm, tab danh mục và sức chứa khách
     const filteredCategories = categories.filter((room) => {
         const matchesSearch =
             searchQuery.trim() === '' ||
@@ -63,7 +105,12 @@ export default function RoomsAndSuitesPage() {
                 room.name.toLowerCase().includes('president');
         }
 
-        return matchesSearch && matchesTab;
+        let matchesCapacity = true;
+        if (guestsParam && Number(guestsParam) > 0) {
+            matchesCapacity = Number(room.capacity || 2) >= Number(guestsParam);
+        }
+
+        return matchesSearch && matchesTab && matchesCapacity;
     });
 
     // Sắp xếp danh sách
@@ -177,6 +224,42 @@ export default function RoomsAndSuitesPage() {
 
             {/* 3. MAIN CONTENT: GRID LAYOUT CHUẨN (grid grid-cols-1 md:grid-cols-3 gap-6) */}
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+                {/* Active Search Banner nếu có tham số tìm kiếm từ trang chủ */}
+                {hasActiveSearch && (
+                    <div className="mb-8 p-4 sm:p-5 bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 border border-blue-200/90 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                        <div className="flex items-center gap-3.5">
+                            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl font-bold shadow-md shadow-blue-600/20 shrink-0">
+                                🔍
+                            </div>
+                            <div>
+                                <div className="text-[11px] text-blue-700 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                                    <span>Yêu cầu tìm kiếm của Quý khách</span>
+                                    {searchNights > 0 && (
+                                        <span className="px-2.5 py-0.5 rounded-full bg-blue-200/70 text-blue-950 font-bold text-[10px]">
+                                            {searchNights} đêm lưu trú
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">
+                                    {guestsParam ? `${guestsParam} khách` : 'Tất cả khách'}
+                                    {checkInParam && ` • Nhận: ${formatDateDisplay(checkInParam)}`}
+                                    {checkOutParam && ` • Trả: ${formatDateDisplay(checkOutParam)}`}
+                                    {categoryParam && categoryParam !== 'all' && ` • Hạng: ${selectedTab}`}
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleClearSearch}
+                            className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+                        >
+                            <span>✕</span>
+                            <span>Đặt lại bộ lọc</span>
+                        </button>
+                    </div>
+                )}
+
                 {/* Trạng thái Loading (Skeleton) */}
                 {loading && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -378,12 +461,14 @@ export default function RoomsAndSuitesPage() {
                                             <div className="flex items-center gap-2">
                                                 <Link
                                                     to={`/rooms/${room.id}`}
+                                                    state={{ checkInDate: checkInParam, checkOutDate: checkOutParam, guestCount: guestsParam }}
                                                     className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
                                                 >
                                                     Xem chi tiết
                                                 </Link>
                                                 <Link
                                                     to={`/checkout/${room.id}`}
+                                                    state={{ checkInDate: checkInParam, checkOutDate: checkOutParam, guestCount: guestsParam }}
                                                     className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-600/30 transition transform active:scale-95 whitespace-nowrap"
                                                 >
                                                     Đặt ngay

@@ -285,32 +285,28 @@ export default function ServicesMenu() {
                     </div>
                 </div>
 
-                {/* HERO BANNER SANG TRỌNG & TƯƠI SÁNG */}
-                <header className="relative bg-gradient-to-r from-amber-50/90 via-sky-50/60 to-white text-slate-900 overflow-hidden py-14 lg:py-20 border-b border-amber-100/60 shadow-xs">
-                    <div className="absolute inset-0 z-0">
-                        <img
-                            src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2070&q=85"
-                            alt="Luxury 5-Star Resort & Dining"
-                            className="w-full h-full object-cover opacity-35 scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/85 to-white/40"></div>
-                        <div className="absolute top-0 right-10 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl pointer-events-none"></div>
-                        <div className="absolute -bottom-10 left-1/3 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl pointer-events-none"></div>
-                    </div>
+                {/* HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
+                <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+                    {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
+                    <img
+                        src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2070&q=85"
+                        alt="Luxury 5-Star Resort & Dining"
+                        className="absolute inset-0 w-full h-full object-cover object-center"
+                    />
 
+                    {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/20" />
+
+                    {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
                     <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="max-w-3xl">
-                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-900 border border-amber-500/25 text-[11px] font-bold uppercase tracking-wider mb-4 backdrop-blur-xs">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                🛎️ 24/7 IN-ROOM DINING & CONCIERGE SERVICE
-                            </div>
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-slate-900 tracking-tight leading-tight">
+                        <div className="max-w-3xl flex flex-col items-start text-left">
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-white tracking-tight leading-tight drop-shadow-sm">
                                 Thực Đơn Dịch Vụ Tại Phòng <br className="hidden sm:inline" />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-700 to-amber-900">
+                                <span className="text-amber-400">
                                     & Đặc Quyền Lưu Trú
                                 </span>
                             </h1>
-                            <p className="text-sm sm:text-base text-slate-600 mt-4 leading-relaxed font-normal">
+                            <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
                                 Thưởng thức ẩm thực mỹ vị, set trà chiều hoàng gia, liệu trình spa thảo dược và các tiện ích buồng phòng đẳng cấp 5 sao phục vụ tận phòng nghỉ của bạn tại Khách Sạn TA Đà Nẵng.
                             </p>
 

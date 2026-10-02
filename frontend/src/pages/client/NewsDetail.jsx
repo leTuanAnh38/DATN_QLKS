@@ -65,18 +65,7 @@ export default function NewsDetail() {
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
             <Navbar />
 
-            {/* BREADCRUMB & HEADER TOP SPACER */}
-            <div className="pt-28 md:pt-32 pb-4 bg-slate-900 border-b border-slate-800 text-slate-400 text-xs">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 overflow-x-auto">
-                    <Link to="/" className="hover:text-white transition">Trang chủ</Link>
-                    <span>/</span>
-                    <Link to="/news" className="hover:text-white transition">Tin tức</Link>
-                    <span>/</span>
-                    <span className="text-slate-200 truncate">{post?.title || 'Chi tiết bài viết'}</span>
-                </div>
-            </div>
-
-            <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
                 {isLoading ? (
                     <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto">
                         <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
@@ -102,6 +91,17 @@ export default function NewsDetail() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
                         {/* CỘT CHÍNH: NỘI DUNG BÀI VIẾT */}
                         <article className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs space-y-6">
+                            {/* BREADCRUMB MINIMALIST (TỐI GIẢN) */}
+                            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-gray-500 mb-6 flex-wrap">
+                                <Link to="/" className="hover:text-blue-600 transition-colors">Trang chủ</Link>
+                                <span className="text-gray-400">/</span>
+                                <Link to="/news" className="hover:text-blue-600 transition-colors">Tin tức</Link>
+                                <span className="text-gray-400">/</span>
+                                <span className="text-gray-700 font-medium truncate max-w-xs sm:max-w-md" title={post.title}>
+                                    {post.title}
+                                </span>
+                            </nav>
+
                             {/* Meta Head */}
                             <div className="space-y-3 pb-6 border-b border-slate-100">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -161,14 +161,14 @@ export default function NewsDetail() {
                                     <img
                                         src={post.thumbnail_url}
                                         alt={post.title}
-                                        className="w-full max-h-[460px] object-cover"
+                                        className="w-full max-h-[520px] object-cover"
                                     />
                                 </div>
                             )}
 
                             {/* NỘI DUNG CHI TIẾT (RENDER AN TOÀN BẰNG DANGEROUSLYSETINNERHTML) */}
                             <div
-                                className="post-html-content prose prose-slate max-w-none text-slate-700 text-sm sm:text-base leading-relaxed space-y-4"
+                                className="post-html-content prose prose-slate max-w-4xl text-slate-700 text-sm sm:text-base leading-relaxed space-y-4"
                                 dangerouslySetInnerHTML={{ __html: post.content }}
                             />
 
