@@ -59,6 +59,25 @@ class BookingViewSet(viewsets.ModelViewSet):
             getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
             getattr(user, 'role', '') != 'guest'
         )
+
+        # Lọc theo guest_id nếu có trong query params (phục vụ CRM / Trang Chi tiết Khách hàng)
+        guest_id = self.request.query_params.get('guest_id') or self.request.query_params.get('guest')
+        if guest_id:
+            if str(guest_id).isdigit():
+                guest_filter = Q(guest_id=int(guest_id)) | Q(guest__id=int(guest_id))
+            else:
+                guest_filter = Q(guest__username=guest_id) | Q(guest__email=guest_id)
+            if not is_staff_or_admin:
+                base_qs = base_qs.filter(Q(guest=user) & guest_filter)
+            else:
+                base_qs = base_qs.filter(guest_filter)
+            return base_qs.order_by('-created_at')
+
+        # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL, ưu tiên:
+        # 1. Chờ duyệt (pending) lên đầu tiên
+        # 2. Đã xác nhận (confirmed) kế tiếp
+        # 3. Đang lưu trú / đang ở (checked_in) kế tiếp
+        # 4. Các đơn khác (đã hoàn tất / trả phòng / no-show / đã hủy)
         if is_staff_or_admin:
             from django.db.models import Case, When, Value, IntegerField
             status_priority = Case(

@@ -20,6 +20,85 @@ export const adminUserService = {
     },
 
     /**
+     * Lấy chi tiết hồ sơ 1 khách hàng (CRM Profile)
+     * GET /api/users/{id}/ hoặc /api/auth/admin/guests/{id}/
+     */
+    async getGuestDetail(id) {
+        try {
+            const response = await api.get(`/users/${id}/`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching guest detail:', error);
+            // Fallback sang endpoint admin guests nếu cần
+            try {
+                const fallbackRes = await api.get(`/auth/admin/guests/${id}/`);
+                return fallbackRes.data;
+            } catch (err2) {
+                return {
+                    success: false,
+                    message: error.response?.data?.message || 'Không thể tải thông tin chi tiết khách hàng.'
+                };
+            }
+        }
+    },
+
+    /**
+     * Lấy Lịch sử Đặt phòng của khách hàng (có phân trang)
+     * GET /api/bookings/?guest_id={id}&page={page}
+     */
+    async getGuestBookings(guestId, page = 1) {
+        try {
+            const response = await api.get('/bookings/', {
+                params: {
+                    guest_id: guestId,
+                    page: page
+                }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching guest bookings:', error);
+            return {
+                success: false,
+                count: 0,
+                results: [],
+                message: error.response?.data?.message || 'Không thể tải lịch sử đặt phòng.'
+            };
+        }
+    },
+
+    /**
+     * Lấy Lịch sử Sử dụng Dịch vụ của khách hàng (có phân trang)
+     * GET /api/service-requests/?guest_id={id}&page={page}
+     */
+    async getGuestServiceRequests(guestId, page = 1) {
+        try {
+            const response = await api.get('/service-requests/', {
+                params: {
+                    guest_id: guestId,
+                    page: page
+                }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching guest service requests:', error);
+            // Fallback sang /services/requests/ nếu cần
+            try {
+                const fb = await api.get('/services/requests/', {
+                    params: { guest_id: guestId, page }
+                });
+                return fb.data;
+            } catch (err2) {
+                return {
+                    success: false,
+                    count: 0,
+                    results: [],
+                    message: error.response?.data?.message || 'Không thể tải lịch sử dịch vụ.'
+                };
+            }
+        }
+    },
+
+    /**
      * Tạo mới tài khoản khách hàng từ trang admin
      */
     async createGuest(data) {

@@ -152,14 +152,51 @@ class RoomSerializer(serializers.ModelSerializer):
     )
     category_bed_type = serializers.CharField(source='category.bed_type', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    current_booking = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
         fields = [
             'id', 'room_number', 'floor', 'status', 'status_display',
             'category', 'category_id', 'category_name',
-            'category_base_price', 'category_bed_type'
+            'category_base_price', 'category_bed_type',
+            'current_booking'
         ]
+
+    def get_current_booking(self, obj):
+        try:
+            # Lấy đơn đặt phòng đang lưu trú (status='checked_in')
+            bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
+            if not bk:
+                return None
+            guest = bk.guest
+            guest_name = f"{guest.first_name or ''} {guest.last_name or ''}".strip() if guest else "Khách lưu trú"
+            if not guest_name and guest:
+                guest_name = guest.username
+
+            id_card = bk.identity_card or ''
+            if not id_card and guest and hasattr(guest, 'guest_profile') and guest.guest_profile:
+                id_card = guest.guest_profile.id_card_number or ''
+
+            return {
+                'id': bk.id,
+                'booking_code': bk.booking_code,
+                'guest_id': bk.guest_id,
+                'guest_name': guest_name or 'Khách lưu trú',
+                'guest_phone': guest.phone_number if guest else '',
+                'guest_email': guest.email if guest else '',
+                'identity_card': id_card,
+                'check_in_date': bk.check_in_date,
+                'check_out_date': bk.check_out_date,
+                'actual_check_in': bk.actual_check_in,
+                'total_amount': float(bk.total_amount) if bk.total_amount else 0,
+                'status': bk.status,
+                'status_display': bk.get_status_display(),
+                'room_number': obj.room_number,
+                'room_name': obj.category.name if obj.category else 'Phòng tiêu chuẩn'
+            }
+        except Exception:
+            return None
 
     def validate_room_number(self, value):
         room_number = str(value).strip()

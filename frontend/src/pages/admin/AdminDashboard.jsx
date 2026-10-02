@@ -15,6 +15,7 @@ import ReviewManagement from '../../components/admin/ReviewManagement';
 import UserAvatar from '../../components/common/UserAvatar';
 import NotificationBell from '../../components/common/NotificationBell';
 import StaffProfile from '../../components/admin/StaffProfile';
+import CustomerDetail from '../../components/admin/CustomerDetail';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -86,6 +87,7 @@ export default function HotelAdminDashboard({ initialTab }) {
     // Xác định tab ban đầu dựa trên route URL hoặc prop
     const getInitialTab = () => {
         if (location.pathname === '/admin/profile') return 'profile';
+        if (location.pathname.startsWith('/admin/customers/')) return 'customer-detail';
         const params = new URLSearchParams(location.search);
         return params.get('tab') || initialTab || 'overview';
     };
@@ -115,10 +117,12 @@ export default function HotelAdminDashboard({ initialTab }) {
         };
     }, [isProfileMenuOpen]);
 
-    // Đồng bộ activeTab khi người dùng chuyển route (VD: /admin/profile hoặc /admin)
+    // Đồng bộ activeTab khi người dùng chuyển route (VD: /admin/profile, /admin/customers/:id hoặc /admin)
     useEffect(() => {
         if (location.pathname === '/admin/profile') {
             setActiveTab('profile');
+        } else if (location.pathname.startsWith('/admin/customers/')) {
+            setActiveTab('customer-detail');
         } else {
             const params = new URLSearchParams(location.search);
             const tabParam = params.get('tab');
@@ -133,8 +137,8 @@ export default function HotelAdminDashboard({ initialTab }) {
         setActiveTab(tab);
         if (tab === 'profile') {
             navigate('/admin/profile');
-        } else if (location.pathname === '/admin/profile') {
-            navigate('/admin');
+        } else if (location.pathname === '/admin/profile' || location.pathname.startsWith('/admin/customers/')) {
+            navigate('/admin?tab=' + (tab === 'overview' ? '' : tab));
         }
     };
 
@@ -479,8 +483,14 @@ export default function HotelAdminDashboard({ initialTab }) {
                             {/* 2. Quản lý Khách hàng (Feature 1) */}
                             <button
                                 type="button"
-                                onClick={() => setActiveTab('guests')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'guests'
+                                onClick={() => {
+                                    if (location.pathname.startsWith('/admin/customers/')) {
+                                        navigate('/admin?tab=guests');
+                                    } else {
+                                        setActiveTab('guests');
+                                    }
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${['guests', 'customer-detail'].includes(activeTab)
                                         ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                     }`}
@@ -917,11 +927,25 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 1: QUẢN LÝ KHÁCH HÀNG (FEATURE 1) */}
                     {activeTab === 'guests' && <GuestManagement />}
 
+                    {/* TAB 1.1: CHI TIẾT KHÁCH HÀNG / CRM PROFILE */}
+                    {activeTab === 'customer-detail' && <CustomerDetail />}
+
                     {/* TAB 2: QUẢN LÝ NHÂN SỰ & PHÂN QUYỀN (FEATURE 2) */}
                     {activeTab === 'employees' && <EmployeeManagement />}
 
                     {/* TAB 3: QUẢN LÝ DANH SÁCH & SƠ ĐỒ PHÒNG THỰC TẾ (PMS ROOM BOARD) */}
-                    {activeTab === 'rooms' && <RoomManagement />}
+                    {activeTab === 'rooms' && (
+                        <RoomManagement
+                            onNavigateToBookings={(filter) => {
+                                setActiveTab('bookings');
+                                setBookingSubFilter(filter || 'all');
+                                setIsBookingMenuOpen(true);
+                            }}
+                            onNavigateToCustomer={(guestId) => {
+                                navigate(`/admin/customers/${guestId}`);
+                            }}
+                        />
+                    )}
 
                     {/* TAB 4: QUẢN LÝ HẠNG PHÒNG & BẢNG GIÁ (CRUD + MULTI-IMAGE UPLOAD) */}
                     {activeTab === 'categories' && <CategoryManagement />}
@@ -1591,7 +1615,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

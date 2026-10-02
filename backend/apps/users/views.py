@@ -280,12 +280,34 @@ class AdminGuestDetailView(APIView):
 
     def get(self, request, pk):
         try:
-            guest = User.objects.select_related('guest_profile').get(pk=pk, role='guest')
+            guest = User.objects.select_related('guest_profile').get(pk=pk)
         except User.DoesNotExist:
             return Response({'success': False, 'message': 'Không tìm thấy thông tin khách hàng.'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = AdminGuestSerializer(guest, context={'request': request})
-        return Response({'success': True, 'guest': serializer.data}, status=status.HTTP_200_OK)
+        data = dict(serializer.data)
+
+        # Trích xuất CCCD nếu có từ guest_profile hoặc đơn đặt phòng
+        id_card = ''
+        if hasattr(guest, 'guest_profile') and guest.guest_profile and guest.guest_profile.id_card_number:
+            id_card = guest.guest_profile.id_card_number
+        else:
+            try:
+                from ..bookings.models import Booking
+                latest_bk = Booking.objects.filter(guest=guest).exclude(identity_card='').order_by('-created_at').first()
+                if latest_bk:
+                    id_card = latest_bk.identity_card
+            except Exception:
+                pass
+        data['id_card_number'] = id_card
+
+        return Response({
+            'success': True,
+            'guest': data,
+            'user': data,
+            'customer': data,
+            **data
+        }, status=status.HTTP_200_OK)
 
     def patch(self, request, pk):
         try:

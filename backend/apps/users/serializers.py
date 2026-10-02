@@ -429,6 +429,8 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 class AdminGuestSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     guest_profile = GuestProfileSerializer(read_only=True)
+    total_bookings = serializers.SerializerMethodField()
+    total_spent = serializers.SerializerMethodField()
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
     vip_tier = serializers.CharField(write_only=True, required=False, allow_blank=True)
     loyalty_points = serializers.IntegerField(write_only=True, required=False)
@@ -451,6 +453,8 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             'date_joined',
             'last_login',
             'guest_profile',
+            'total_bookings',
+            'total_spent',
             'id_card_number',
             'vip_tier',
             'loyalty_points',
@@ -461,6 +465,29 @@ class AdminGuestSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
+
+    def get_total_bookings(self, obj):
+        if hasattr(obj, 'annotated_total_bookings') and obj.annotated_total_bookings is not None:
+            return obj.annotated_total_bookings
+        try:
+            from ..bookings.models import Booking
+            return Booking.objects.filter(guest=obj).count()
+        except Exception:
+            return 0
+
+    def get_total_spent(self, obj):
+        if hasattr(obj, 'annotated_total_spent') and obj.annotated_total_spent is not None:
+            return float(obj.annotated_total_spent)
+        try:
+            from ..bookings.models import Booking
+            from django.db.models import Sum
+            val = Booking.objects.filter(
+                guest=obj,
+                status__in=['confirmed', 'checked_in', 'checked_out', 'completed']
+            ).aggregate(total=Sum('total_amount'))['total']
+            return float(val) if val else 0.0
+        except Exception:
+            return 0.0
 
     def update(self, instance, validated_data):
         id_card = validated_data.pop('id_card_number', None)

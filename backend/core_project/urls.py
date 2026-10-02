@@ -19,6 +19,8 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from apps.services.views import ServiceRequestViewSet
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('apps.users.urls')),
@@ -26,6 +28,8 @@ urlpatterns = [
     path('api/rooms/', include('apps.rooms.urls')),
     path('api/bookings/', include('apps.bookings.urls')),
     path('api/services/', include('apps.services.urls')),
+    path('api/service-requests/', ServiceRequestViewSet.as_view({'get': 'list', 'post': 'create'}), name='service-requests-direct'),
+    path('api/service-requests/<int:pk>/', ServiceRequestViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}), name='service-request-detail-direct'),
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/reviews/', include('apps.reviews.urls')),
 ]

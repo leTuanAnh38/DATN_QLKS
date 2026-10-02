@@ -14,6 +14,7 @@ from .serializers import (
     ServiceRequestSerializer,
 )
 from ..bookings.models import Booking, BookingExtraService
+from core_project.pagination import StandardResultsSetPagination
 
 
 class ServiceCategoryListView(APIView):
@@ -242,11 +243,13 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     """
     API Xử lý Phiếu Yêu Cầu Dịch Vụ:
     - GET /api/services/requests/: Danh sách phiếu (Nhân viên xem tất cả, Khách xem phiếu của mình)
+    - GET /api/service-requests/?guest_id={id}: Lịch sử sử dụng dịch vụ của khách (kèm phân trang)
     - POST /api/services/requests/: Khách đặt món / dịch vụ tại phòng
     - PATCH /api/services/requests/<id>/: Nhân viên chuyển trạng thái Kanban (Pending -> In Progress -> Completed)
     - GET /api/services/requests/kanban/: Dữ liệu phân nhóm theo 3 cột Kanban
     """
     serializer_class = ServiceRequestSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         # Cho phép gửi yêu cầu, xem menu và cập nhật kanban linh hoạt
@@ -259,6 +262,14 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'booking', 'booking__room', 'booking__category', 'booking__guest',
             'service', 'service__category'
         ).all().order_by('-created_at')
+
+        # Lọc theo guest_id nếu có trong query params (phục vụ CRM / Chi tiết khách hàng)
+        guest_id = self.request.query_params.get('guest_id') or self.request.query_params.get('guest')
+        if guest_id:
+            if str(guest_id).isdigit():
+                base_qs = base_qs.filter(booking__guest_id=int(guest_id))
+            else:
+                base_qs = base_qs.filter(Q(booking__guest__username=guest_id) | Q(booking__guest__email=guest_id))
 
         booking_id = self.request.query_params.get('booking_id') or self.request.query_params.get('booking')
         if booking_id:
@@ -293,6 +304,24 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            paginator = self.paginator
+            return Response({
+                'success': True,
+                'count': paginator.page.paginator.count,
+                'total_pages': paginator.page.paginator.num_pages,
+                'current_page': paginator.page.number,
+                'page_size': paginator.get_page_size(request),
+                'next': paginator.get_next_link(),
+                'previous': paginator.get_previous_link(),
+                'results': serializer.data,
+                'requests': serializer.data,
+                'items': serializer.data,
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response({
             'success': True,

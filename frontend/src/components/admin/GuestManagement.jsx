@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import adminUserService from '../../services/adminUserService';
 import UserAvatar from '../common/UserAvatar';
 import Pagination from '../common/Pagination';
@@ -410,7 +411,11 @@ export default function GuestManagement() {
                                         <tr key={g.id} className="hover:bg-slate-50/70 transition">
                                             {/* Khách hàng */}
                                             <td className="p-4">
-                                                <div className="flex items-center gap-3">
+                                                <Link
+                                                    to={`/admin/customers/${g.id}`}
+                                                    className="flex items-center gap-3 group"
+                                                    title={`Bấm để xem hồ sơ chi tiết và lịch sử của ${g.full_name || g.username}`}
+                                                >
                                                     <UserAvatar
                                                         avatar={g.avatar}
                                                         name={g.full_name || g.username}
@@ -419,12 +424,12 @@ export default function GuestManagement() {
                                                         border={false}
                                                     />
                                                     <div>
-                                                        <strong className="block font-bold text-slate-900 text-sm">
+                                                        <strong className="block font-bold text-blue-600 hover:underline cursor-pointer text-sm">
                                                             {g.full_name || g.username}
                                                         </strong>
-                                                        <span className="text-[11px] text-slate-400">@{g.username}</span>
+                                                        <span className="text-[11px] text-slate-400 group-hover:text-slate-600">@{g.username}</span>
                                                     </div>
-                                                </div>
+                                                </Link>
                                             </td>
 
                                             {/* Liên hệ */}
