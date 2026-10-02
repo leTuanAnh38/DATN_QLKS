@@ -262,6 +262,29 @@ export const bookingService = {
     },
 
     /**
+     * Gia hạn thời gian lưu trú (POST /api/bookings/:id/extend-stay/)
+     * @param {number|string} bookingId
+     * @param {string} newCheckOutDate - Định dạng YYYY-MM-DD
+     */
+    async extendStay(bookingId, newCheckOutDate) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/extend-stay/`, {
+                new_check_out_date: newCheckOutDate
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Lỗi khi gia hạn thời gian lưu trú:', error);
+            const errData = error.response?.data;
+            return {
+                success: false,
+                conflict: errData?.conflict || false,
+                conflicting_booking_code: errData?.conflicting_booking_code || null,
+                message: errData?.message || errData?.detail || 'Không thể gia hạn phòng. Vui lòng liên hệ lễ tân để được hỗ trợ.'
+            };
+        }
+    },
+
+    /**
      * Kiểm tra số phòng còn trống của hạng phòng theo khoảng ngày Check-in/Check-out
      * GET /api/bookings/check-availability/?category_id=...&check_in_date=...&check_out_date=...
      */

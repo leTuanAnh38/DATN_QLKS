@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,6 +14,8 @@ from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile
 from ..services.models import ServiceItem, ServiceRequest
 from ..payments.models import Invoice
+from ..notifications.models import Notification
+from ..notifications.signals import get_staff_and_admin_users
 from .serializers import BookingSerializer, PromotionSerializer
 from core_project.pagination import StandardResultsSetPagination
 
@@ -1392,6 +1395,193 @@ class BookingViewSet(viewsets.ModelViewSet):
             'message': f'Đã đánh dấu đơn đặt phòng {booking.booking_code} là Khách không đến (No-show) thành công!{room_msg}',
             'booking': serializer.data,
             'room': room_data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='extend-stay')
+    def extend_stay(self, request, pk=None):
+        """
+        API POST /api/bookings/{id}/extend-stay/
+        Tính năng Gia hạn thời gian lưu trú (Extend Stay) cho khách đang ở (checked_in):
+        1. Quyền: Lễ tân / Quản lý HOẶC chính khách hàng sở hữu đơn.
+        2. Trạng thái: Bắt buộc booking.status == 'checked_in'.
+        3. Ngày gia hạn: new_check_out_date phải hợp lệ và lớn hơn check_out_date hiện tại.
+        4. Kiểm tra phòng: Bắt buộc booking.room_id.
+        5. Kiểm tra xung đột (Conflict Check):
+           Từ check_out_date (cũ) đến new_check_out_date, phòng này có đơn nào khác (confirmed hoặc checked_in) đang giữ không.
+           Nếu CÓ xung đột -> HTTP 400: "Gia hạn thất bại. Phòng này đã có khách khác đặt trước trong khoảng thời gian trên."
+        6. Tính tiền & Cập nhật:
+           extra_nights = (new_check_out_date - old_check_out_date).days
+           extra_amount = extra_nights * nightly_rate
+           check_out_date = new_check_out_date
+           total_amount = total_amount + extra_amount
+        7. Gửi thông báo Notification cho khách (nếu Lễ tân làm) hoặc cho Lễ tân (nếu Khách tự làm).
+        """
+        booking = self.get_object()
+        user = request.user
+
+        # 1. Kiểm tra phân quyền truy cập
+        is_staff_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+        is_owner_guest = user.is_authenticated and (booking.guest_id == user.id)
+
+        if not (is_staff_or_admin or is_owner_guest):
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền thực hiện gia hạn cho đơn đặt phòng này.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2. Kiểm tra trạng thái: Bắt buộc phải là 'checked_in'
+        if booking.status != 'checked_in':
+            return Response({
+                'success': False,
+                'message': f"Chỉ có thể gia hạn cho đơn đặt phòng đang có khách ở (Checked-in). Trạng thái hiện tại: {booking.get_status_display()}."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3. Lấy và kiểm tra payload new_check_out_date
+        new_date_str = request.data.get('new_check_out_date')
+        if not new_date_str:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn ngày trả phòng mới (new_check_out_date).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            new_check_out_date = datetime.strptime(str(new_date_str).strip(), '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'success': False,
+                'message': 'Định dạng ngày trả phòng không hợp lệ (Chuẩn YYYY-MM-DD).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        old_check_out_date = booking.check_out_date
+        if new_check_out_date <= old_check_out_date:
+            return Response({
+                'success': False,
+                'message': f"Ngày gia hạn mới ({new_check_out_date.strftime('%d/%m/%Y')}) phải sau ngày trả phòng hiện tại ({old_check_out_date.strftime('%d/%m/%Y')})."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 4. Kiểm tra phòng thực tế
+        if not booking.room:
+            return Response({
+                'success': False,
+                'message': 'Đơn đặt phòng chưa được gán phòng thực tế trong hệ thống.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        room = booking.room
+
+        # 5. Logic kiểm tra xung đột (Conflict Check):
+        # Truy vấn xem từ check_out_date (cũ) đến new_check_out_date có bất kỳ đơn Đặt phòng nào khác (trạng thái confirmed hoặc checked_in) đang giữ room_id này không
+        conflict_query = Booking.objects.filter(
+            room=room,
+            status__in=['confirmed', 'checked_in']
+        ).exclude(id=booking.id).filter(
+            check_in_date__lt=new_check_out_date,
+            check_out_date__gt=old_check_out_date
+        )
+
+        if conflict_query.exists():
+            conflicting_booking = conflict_query.first()
+            conflict_info = f" (Đơn #{conflicting_booking.booking_code}: {conflicting_booking.check_in_date.strftime('%d/%m/%Y')} - {conflicting_booking.check_out_date.strftime('%d/%m/%Y')})"
+            return Response({
+                'success': False,
+                'conflict': True,
+                'conflicting_booking_code': conflicting_booking.booking_code,
+                'message': f"Gia hạn thất bại. Phòng này đã có khách khác đặt trước trong khoảng thời gian trên.{conflict_info if is_staff_or_admin else ''}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 6. Tính số đêm phát sinh & số tiền phát sinh
+        extra_nights = (new_check_out_date - old_check_out_date).days
+        cat = booking.category or room.category
+        if cat:
+            nightly_rate = cat.promo_price or cat.base_price or Decimal(0)
+        else:
+            old_nights = max((old_check_out_date - booking.check_in_date).days, 1)
+            nightly_rate = Decimal(booking.total_amount) / Decimal(old_nights) if booking.total_amount else Decimal(0)
+
+        extra_amount = Decimal(extra_nights) * Decimal(nightly_rate)
+
+        with transaction.atomic():
+            # Cập nhật booking
+            booking.check_out_date = new_check_out_date
+            booking.total_amount = Decimal(booking.total_amount) + extra_amount
+            
+            actor_name = user.get_full_name() or user.username
+            actor_role_label = "Lễ tân/Quản lý" if is_staff_or_admin else "Khách hàng"
+            log_note = (
+                f"\n[{timezone.now().strftime('%d/%m/%Y %H:%M')}] Gia hạn lưu trú thêm {extra_nights} đêm "
+                f"đến {new_check_out_date.strftime('%d/%m/%Y')} (+{extra_amount:,.0f} VND) bởi {actor_role_label}: {actor_name}."
+            )
+            booking.internal_note = (booking.internal_note or '') + log_note
+            booking.save()
+
+            # Đồng bộ hóa đơn (Invoice) nếu đã có
+            if hasattr(booking, 'invoice') and booking.invoice:
+                inv = booking.invoice
+                inv.room_charge = Decimal(inv.room_charge or 0) + extra_amount
+                inv.total_amount = Decimal(inv.total_amount or 0) + extra_amount
+                inv.save()
+
+            # 7. Sinh thông báo Notification
+            date_display_str = new_check_out_date.strftime('%d/%m/%Y')
+            guest_name_str = booking.guest.get_full_name() or booking.guest.username if booking.guest else "Khách hàng"
+            room_label_str = f"Phòng {room.room_number}" if room else "Phòng đã đặt"
+
+            if is_staff_or_admin:
+                # Lễ tân làm -> Thông báo cho Khách hàng
+                if booking.guest:
+                    Notification.objects.create(
+                        recipient=booking.guest,
+                        title=f"Gia hạn lưu trú thành công #{booking.booking_code}",
+                        message=(
+                            f"Đơn đặt phòng #{booking.booking_code} ({room_label_str}) của quý khách đã được gia hạn "
+                            f"đến ngày {date_display_str} (thêm {extra_nights} đêm, chi phí phát sinh: {extra_amount:,.0f} VND). "
+                            f"Khách sạn TA chúc quý khách tiếp tục có kỳ nghỉ tuyệt vời!"
+                        )
+                    )
+            else:
+                # Khách tự làm trên web -> Thông báo cho Lễ tân / Nhân sự
+                staff_users = get_staff_and_admin_users(exclude_user_id=booking.guest_id)
+                staff_notifs = [
+                    Notification(
+                        recipient=staff,
+                        title=f"Khách gia hạn phòng: #{booking.booking_code}",
+                        message=(
+                            f"Khách hàng {guest_name_str} ({room_label_str}) vừa gia hạn lưu trú trên website "
+                            f"đến ngày {date_display_str} (thêm {extra_nights} đêm, phát sinh: {extra_amount:,.0f} VND). "
+                            f"Vui lòng kiểm tra trên PMS."
+                        )
+                    )
+                    for staff in staff_users
+                ]
+                if staff_notifs:
+                    Notification.objects.bulk_create(staff_notifs)
+
+                # Đồng thời gửi thông báo xác nhận cho chính khách hàng
+                if booking.guest:
+                    Notification.objects.create(
+                        recipient=booking.guest,
+                        title=f"Gia hạn phòng thành công #{booking.booking_code}",
+                        message=(
+                            f"Yêu cầu gia hạn lưu trú #{booking.booking_code} ({room_label_str}) đến ngày {date_display_str} "
+                            f"đã được hệ thống xác nhận thành công. Số tiền phát sinh: {extra_amount:,.0f} VND."
+                        )
+                    )
+
+        serializer = BookingSerializer(booking, context={'request': request})
+        return Response({
+            'success': True,
+            'message': f"Gia hạn lưu trú thành công đến ngày {new_check_out_date.strftime('%d/%m/%Y')} (Thêm {extra_nights} đêm).",
+            'extra_nights': extra_nights,
+            'extra_amount': float(extra_amount),
+            'new_check_out_date': str(new_check_out_date),
+            'new_total_amount': float(booking.total_amount),
+            'booking': serializer.data
         }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='check-in-today')

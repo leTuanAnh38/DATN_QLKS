@@ -142,6 +142,93 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [customNoShowReason, setCustomNoShowReason] = useState('');
     const [isSubmittingNoShow, setIsSubmittingNoShow] = useState(false);
 
+    // 10. State Gia Hạn Lưu Trú (Extend Stay) trong Admin Detail Modal
+    const [adminExtendNewDate, setAdminExtendNewDate] = useState('');
+    const [isSubmittingAdminExtend, setIsSubmittingAdminExtend] = useState(false);
+    const [adminExtendConflictError, setAdminExtendConflictError] = useState(null);
+
+    // Tự động khởi tạo ngày check-out mới khi mở modal đơn checked_in
+    useEffect(() => {
+        if (selectedBooking && selectedBooking.status === 'checked_in' && selectedBooking.check_out_date) {
+            setAdminExtendConflictError(null);
+            try {
+                const cur = new Date(selectedBooking.check_out_date);
+                cur.setDate(cur.getDate() + 1);
+                setAdminExtendNewDate(cur.toISOString().split('T')[0]);
+            } catch {
+                setAdminExtendNewDate('');
+            }
+        }
+    }, [selectedBooking]);
+
+    const adminExtendMinDate = useMemo(() => {
+        if (!selectedBooking?.check_out_date) return '';
+        try {
+            const cur = new Date(selectedBooking.check_out_date);
+            cur.setDate(cur.getDate() + 1);
+            return cur.toISOString().split('T')[0];
+        } catch {
+            return '';
+        }
+    }, [selectedBooking]);
+
+    const adminExtendCalc = useMemo(() => {
+        if (!selectedBooking || !adminExtendNewDate) {
+            return { extraNights: 0, nightlyRate: 0, extraAmount: 0, isValid: false };
+        }
+        try {
+            const oldDate = new Date(selectedBooking.check_out_date);
+            const newDate = new Date(adminExtendNewDate);
+            const diffTime = newDate.getTime() - oldDate.getTime();
+            const extraNights = Math.round(diffTime / (1000 * 3600 * 24));
+            if (extraNights <= 0) {
+                return { extraNights: 0, nightlyRate: 0, extraAmount: 0, isValid: false };
+            }
+            const dailyRate = Number(selectedBooking.daily_rate) ||
+                (selectedBooking.nights > 0 ? Number(selectedBooking.total_amount) / selectedBooking.nights : 0);
+            const extraAmount = extraNights * dailyRate;
+            return { extraNights, nightlyRate: dailyRate, extraAmount, isValid: true };
+        } catch {
+            return { extraNights: 0, nightlyRate: 0, extraAmount: 0, isValid: false };
+        }
+    }, [selectedBooking, adminExtendNewDate]);
+
+    const handleAdminExtendStay = async () => {
+        if (!selectedBooking || !adminExtendNewDate) return;
+        if (!adminExtendCalc.isValid) {
+            showToast('error', 'Ngày trả phòng mới phải sau ngày trả phòng hiện tại.');
+            return;
+        }
+
+        try {
+            setIsSubmittingAdminExtend(true);
+            setAdminExtendConflictError(null);
+            const res = await bookingService.extendStay(selectedBooking.id, adminExtendNewDate);
+            if (res.success) {
+                showToast('success', res.message || 'Gia hạn lưu trú thành công!');
+                if (res.booking) {
+                    setSelectedBooking(res.booking);
+                } else {
+                    setSelectedBooking((prev) => ({
+                        ...prev,
+                        check_out_date: res.new_check_out_date || adminExtendNewDate,
+                        total_amount: res.new_total_amount || prev.total_amount
+                    }));
+                }
+                fetchBookings(true);
+            } else {
+                setAdminExtendConflictError(res.message || 'Không thể gia hạn phòng.');
+                showToast('error', res.message || 'Không thể gia hạn phòng.');
+            }
+        } catch (err) {
+            const msg = err.message || 'Lỗi khi gửi yêu cầu gia hạn.';
+            setAdminExtendConflictError(msg);
+            showToast('error', msg);
+        } finally {
+            setIsSubmittingAdminExtend(false);
+        }
+    };
+
     // Helper hiển thị thông báo toast
     const showToast = (type, message) => {
         setToast({ type, message });
@@ -1552,6 +1639,106 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 </div>
                             </div>
 
+                            {/* KHỐI 3.1: GIA HẠN LƯU TRÚ (EXTEND STAY) CHO ĐƠN ĐANG Ở (checked_in) */}
+                            {selectedBooking.status === 'checked_in' && (
+                                <div className="p-4 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50/70 via-indigo-50/30 to-white space-y-3.5 shadow-2xs">
+                                    <div className="flex items-center justify-between flex-wrap gap-2">
+                                        <h4 className="font-bold text-blue-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                            <span>🗓️</span>
+                                            <span>Gia Hạn Lưu Trú (Extend Stay)</span>
+                                        </h4>
+                                        <span className="text-[11px] font-semibold text-blue-700 bg-blue-100/70 px-2.5 py-0.5 rounded-full border border-blue-200">
+                                            {selectedBooking.room_number ? `Đang ở Phòng ${selectedBooking.room_number}` : 'Đang lưu trú'}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                                        <div>
+                                            <label className="text-slate-500 block text-[11px] font-semibold mb-1">
+                                                Ngày Check-out hiện tại:
+                                            </label>
+                                            <div className="px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                                                {formatDateDisplay(selectedBooking.check_out_date)}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-blue-950 block text-[11px] font-bold mb-1">
+                                                Chọn ngày Check-out mới: <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="date"
+                                                min={adminExtendMinDate}
+                                                value={adminExtendNewDate}
+                                                onChange={(e) => {
+                                                    setAdminExtendNewDate(e.target.value);
+                                                    setAdminExtendConflictError(null);
+                                                }}
+                                                className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-bold text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-600/30 shadow-2xs cursor-pointer"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <button
+                                                type="button"
+                                                onClick={handleAdminExtendStay}
+                                                disabled={isSubmittingAdminExtend || !adminExtendCalc.isValid}
+                                                className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                            >
+                                                {isSubmittingAdminExtend ? (
+                                                    <>
+                                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                                        <span>Đang kiểm tra...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span>✨</span>
+                                                        <span>Xác nhận Gia hạn</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Xem trước chi phí phát sinh */}
+                                    {adminExtendCalc.isValid && (
+                                        <div className="p-3 bg-white/90 border border-blue-200/80 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700 shadow-2xs">
+                                            <div className="flex items-center gap-4 flex-wrap">
+                                                <div>
+                                                    <span className="text-slate-400 block text-[10px]">Số đêm thêm:</span>
+                                                    <strong className="text-blue-700 font-bold">+{adminExtendCalc.extraNights} đêm</strong>
+                                                </div>
+                                                <div>
+                                                    <span className="text-slate-400 block text-[10px]">Đơn giá phòng:</span>
+                                                    <strong className="text-slate-800 font-mono">{adminExtendCalc.nightlyRate.toLocaleString('vi-VN')} đ/đêm</strong>
+                                                </div>
+                                                <div>
+                                                    <span className="text-slate-400 block text-[10px]">Phát sinh thêm:</span>
+                                                    <strong className="text-amber-600 font-black font-mono">+{adminExtendCalc.extraAmount.toLocaleString('vi-VN')} đ</strong>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-400 block text-[10px]">Tổng tiền phòng mới:</span>
+                                                <strong className="text-emerald-700 font-black font-mono text-sm">
+                                                    {(Number(selectedBooking.total_amount) + adminExtendCalc.extraAmount).toLocaleString('vi-VN')} đ
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Cảnh báo xung đột nếu phòng bị kẹt lịch */}
+                                    {adminExtendConflictError && (
+                                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2 animate-in fade-in">
+                                            <span className="text-base">⚠️</span>
+                                            <div>
+                                                <strong className="font-bold block">Không thể gia hạn (Phòng bị kẹt lịch):</strong>
+                                                <span className="text-[11px] leading-relaxed mt-0.5 block">{adminExtendConflictError}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* KHỐI 3.5: DỊCH VỤ PHÁT SINH TẠI PHÒNG (IN-ROOM SERVICES) */}
                             <div className="p-4 rounded-2xl border border-slate-200 space-y-3">
                                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1780,17 +1967,6 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         {/* Nút hành động Modal */}
                         <div className="pt-5 mt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setInvoiceModalBooking(selectedBooking)}
-                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
-                                    <span>In hóa đơn đặt phòng</span>
-                                </button>
-
                                 {selectedBooking.status === 'confirmed' && (
                                     <>
                                         <button
@@ -1815,40 +1991,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                         </button>
                                     </>
                                 )}
-
-                                {selectedBooking.status === 'checked_in' && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const bk = selectedBooking;
-                                            setSelectedBooking(null);
-                                            setCheckOutModalBooking(bk);
-                                        }}
-                                        className="px-4 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/25 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-                                    >
-                                        <span>🧾</span>
-                                        <span>Thực hiện Check-out & Lập Hóa Đơn</span>
-                                    </button>
-                                )}
-
-                                {['pending', 'confirmed', 'checked_in'].includes(selectedBooking.status) && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSendReminderForBooking(selectedBooking.id)}
-                                        disabled={remindingBookingId === selectedBooking.id}
-                                        className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-                                        title="Gửi thông báo nhắc nhở đến khách hàng này"
-                                    >
-                                        <span>{remindingBookingId === selectedBooking.id ? '⏳' : '🔔'}</span>
-                                        <span>{remindingBookingId === selectedBooking.id ? 'Đang gửi...' : 'Gửi thông báo nhắc khách'}</span>
-                                    </button>
-                                )}
                             </div>
 
                             <button
                                 type="button"
                                 onClick={() => setSelectedBooking(null)}
-                                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer ml-auto"
                             >
                                 Đóng cửa sổ
                             </button>
