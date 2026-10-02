@@ -10,6 +10,8 @@ import Contact from './pages/client/Contact';
 import Profile from './pages/client/Profile';
 import BookingHistory from './pages/client/BookingHistory';
 import ServicesMenu from './pages/client/ServicesMenu';
+import NewsList from './pages/client/NewsList';
+import NewsDetail from './pages/client/NewsDetail';
 import Login from './pages/auth/login';
 
 function ScrollToTop() {
@@ -58,6 +60,12 @@ function App() {
 
         {/* Trang Ưu đãi đặc quyền */}
         <Route path="/promotions" element={<Promotions />} />
+
+        {/* Trang Tin tức & Cẩm nang */}
+        <Route path="/news" element={<NewsList />} />
+        <Route path="/news/:slug" element={<NewsDetail />} />
+        <Route path="/blog" element={<Navigate to="/news" replace />} />
+        <Route path="/blog/:slug" element={<Navigate to="/news" replace />} />
 
         {/* Trang Liên hệ */}
         <Route path="/contact" element={<Contact />} />

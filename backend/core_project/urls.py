@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from apps.services.views import ServiceRequestViewSet
+from apps.posts.views import ImageUploadView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,6 +33,8 @@ urlpatterns = [
     path('api/service-requests/<int:pk>/', ServiceRequestViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}), name='service-request-detail-direct'),
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/reviews/', include('apps.reviews.urls')),
+    path('api/posts/', include('apps.posts.urls')),
+    path('api/upload-image/', ImageUploadView.as_view(), name='upload-image'),
 ]
 
 if settings.DEBUG:

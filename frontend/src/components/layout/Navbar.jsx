@@ -77,6 +77,11 @@ export default function Navbar({
             isActive: (path) => path.startsWith('/promotions')
         },
         {
+            name: 'Tin tức',
+            path: '/news',
+            isActive: (path) => path.startsWith('/news')
+        },
+        {
             name: 'Liên hệ',
             path: '/contact',
             isActive: (path) => path.startsWith('/contact')

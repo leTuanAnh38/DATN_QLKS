@@ -16,6 +16,7 @@ import UserAvatar from '../../components/common/UserAvatar';
 import NotificationBell from '../../components/common/NotificationBell';
 import StaffProfile from '../../components/admin/StaffProfile';
 import CustomerDetail from '../../components/admin/CustomerDetail';
+import PostManagement from '../../components/admin/PostManagement';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -723,6 +724,24 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </span>
                             </button>
 
+                            {/* 10.1 Quản lý Tin tức & Bài viết (Blog / News) */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('posts')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'posts' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                    </svg>
+                                    <span className="truncate text-left">Quản lý Tin tức</span>
+                                </div>
+                                <span className="shrink-0 bg-blue-500/30 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30 ml-2">
+                                    Blog
+                                </span>
+                            </button>
+
                             {/* 11. Cài đặt hệ thống */}
                             <button
                                 type="button"
@@ -977,6 +996,9 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                     {/* TAB 8: QUẢN LÝ ĐÁNH GIÁ & PHẢN HỒI (REVIEW & RATING) */}
                     {activeTab === 'reviews' && <ReviewManagement />}
+
+                    {/* TAB 8.1: QUẢN LÝ TIN TỨC & BÀI VIẾT (BLOG / NEWS) */}
+                    {activeTab === 'posts' && <PostManagement />}
 
                     {/* TAB 9: HỒ SƠ NHÂN SỰ & QUẢN TRỊ VIÊN (STAFF PROFILE) */}
                     {activeTab === 'profile' && <StaffProfile />}
@@ -1615,7 +1637,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

@@ -58,3 +58,90 @@ body {
   font-style: normal;
   left: 16px;
 }
+
+/* =========================================================================
+   STYLING CHO NỘI DUNG BÀI VIẾT (POST HTML CONTENT)
+   Đảm bảo hình ảnh, tiêu đề, danh sách render chuẩn đẹp và không bị vỡ layout
+   ========================================================================= */
+.post-html-content {
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.85;
+}
+
+.post-html-content p {
+  margin-bottom: 1.25rem;
+  line-height: 1.85;
+}
+
+.post-html-content h1,
+.post-html-content h2,
+.post-html-content h3,
+.post-html-content h4 {
+  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.35;
+  margin-top: 2rem;
+  margin-bottom: 0.85rem;
+}
+
+.post-html-content h1 { font-size: 1.85rem; }
+.post-html-content h2 { font-size: 1.5rem; }
+.post-html-content h3 { font-size: 1.25rem; }
+.post-html-content h4 { font-size: 1.1rem; }
+
+.post-html-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  margin: 1.75rem auto;
+  display: block;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+}
+
+.post-html-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.post-html-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.post-html-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+.post-html-content blockquote {
+  border-left: 4px solid #f59e0b;
+  background-color: #f8fafc;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-radius: 0 0.75rem 0.75rem 0;
+  font-style: italic;
+  color: #475569;
+}
+
+.post-html-content strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.post-html-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.post-html-content a:hover {
+  color: #1d4ed8;
+}
