@@ -421,7 +421,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             elif booking.status == 'checked_out' and booking.room.status == 'occupied':
                 booking.room.status = 'cleaning'
                 booking.room.save(update_fields=['status'])
-            elif booking.status == 'cancelled' and booking.room.status == 'occupied':
+            elif booking.status in ['cancelled', 'no_show'] and booking.room.status == 'occupied':
                 booking.room.status = 'available'
                 booking.room.save(update_fields=['status'])
 
@@ -510,6 +510,24 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'message': f'Đơn đặt phòng {booking.booking_code} đã bị hủy bỏ, không thể thực hiện nhận phòng.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        if booking.status == 'no_show':
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} đã được đánh dấu là Khách không đến (No-Show). Vui lòng chuyển trạng thái đơn sang "Đã xác nhận" nếu khách muốn nhận phòng.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2.2 Kiểm tra ngày lưu trú: Đã quá ngày Check-out (Hết hạn lưu trú)
+        today = timezone.localdate()
+        now = timezone.now()
+
+        if today >= booking.check_out_date:
+            return Response({
+                'success': False,
+                'code': 'BOOKING_EXPIRED_NO_SHOW',
+                'check_out_date': booking.check_out_date.strftime('%d/%m/%Y'),
+                'message': f'Đơn đặt phòng {booking.booking_code} đã quá hạn lưu trú (ngày trả phòng dự kiến là {booking.check_out_date.strftime("%d/%m/%Y")}). Không thể thực hiện Check-in. Vui lòng chuyển trạng thái đơn sang Khách không đến (No-Show) hoặc tạo đơn mới cho khách.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # 3. Lấy và kiểm tra ID phòng thực tế cần gán
         room_id = request.data.get('room_id') or request.data.get('room')
         if not room_id:
@@ -547,8 +565,87 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'message': f'Phòng {target_room.room_number} thuộc hạng "{target_cat_name}", khác với hạng phòng khách đặt ("{booking_cat_name}"). Vui lòng chọn đúng phòng hoặc xác nhận nâng hạng phòng.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 6. THỰC HIỆN ĐỒNG THỜI 2 VIỆC DÙNG TRANSACTION.ATOMIC ĐẢM BẢO AN TOÀN DỮ LIỆU
-        now = timezone.now()
+        # 5.1 Kiểm tra Nhận phòng sớm (Early Check-in) & Nhận phòng trễ (Late Check-in)
+        old_check_in_date = booking.check_in_date
+        early_days = 0
+        late_days = 0
+        additional_amount = 0.0
+        is_early_check_in = False
+        is_late_check_in = False
+        daily_rate = 0.0
+
+        if old_check_in_date > today:
+            # Sớm hơn ngày đặt ban đầu
+            early_days = (old_check_in_date - today).days
+            is_early_check_in = True
+
+            # Tính đơn giá 1 ngày cho hạng phòng
+            if target_room.category and target_room.category.promo_price:
+                daily_rate = float(target_room.category.promo_price)
+            elif target_room.category and target_room.category.base_price:
+                daily_rate = float(target_room.category.base_price)
+            elif booking.category and booking.category.base_price:
+                daily_rate = float(booking.category.base_price)
+            elif booking.total_amount:
+                nights = max(1, (booking.check_out_date - booking.check_in_date).days)
+                daily_rate = float(booking.total_amount) / nights
+
+            # Kiểm tra xem lễ tân đã xác nhận Early Check-in chưa
+            confirm_early = request.data.get('confirm_early_check_in', False) or request.data.get('is_early_check_in', False)
+            if not confirm_early:
+                est_charge = daily_rate * early_days
+                return Response({
+                    'success': False,
+                    'require_confirmation': True,
+                    'code': 'EARLY_CHECKIN_CONFIRMATION_REQUIRED',
+                    'early_days': early_days,
+                    'scheduled_check_in': old_check_in_date.strftime('%d/%m/%Y'),
+                    'actual_check_in_date': today.strftime('%d/%m/%Y'),
+                    'daily_rate': daily_rate,
+                    'estimated_additional_charge': est_charge,
+                    'message': f'Khách đến sớm {early_days} ngày so với ngày nhận phòng dự kiến ({old_check_in_date.strftime("%d/%m/%Y")}). Vui lòng xác nhận cho phép Nhận phòng sớm (Early Check-in).'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Kiểm tra xung đột lịch: Từ today đến old_check_in_date, phòng này có ai đặt trước không
+            conflict_booking = Booking.objects.filter(
+                room=target_room,
+                status__in=['confirmed', 'checked_in']
+            ).exclude(id=booking.id).filter(
+                check_in_date__lt=old_check_in_date,
+                check_out_date__gt=today
+            ).first()
+
+            if conflict_booking:
+                return Response({
+                    'success': False,
+                    'message': f'Không thể Check-in sớm vào phòng {target_room.room_number}. Phòng này đã có khách ({conflict_booking.booking_code}) đặt trước trong khoảng thời gian {conflict_booking.check_in_date.strftime("%d/%m/%Y")} - {conflict_booking.check_out_date.strftime("%d/%m/%Y")}. Vui lòng chọn phòng trống khác.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Tính phụ thu tiền phòng nếu apply_early_charge=True (mặc định True)
+            apply_charge = request.data.get('apply_early_charge', True)
+            if str(apply_charge).lower() in ['true', '1', 'yes']:
+                additional_amount = float(daily_rate * early_days)
+
+        elif old_check_in_date < today:
+            # Khách đến trễ hơn ngày đặt ban đầu (nhưng trước check_out_date)
+            is_late_check_in = True
+            late_days = (today - old_check_in_date).days
+            confirm_late = request.data.get('confirm_late_check_in', False)
+            if not confirm_late:
+                remaining_nights = max(1, (booking.check_out_date - today).days)
+                return Response({
+                    'success': False,
+                    'require_confirmation': True,
+                    'code': 'LATE_CHECKIN_CONFIRMATION_REQUIRED',
+                    'late_days': late_days,
+                    'scheduled_check_in': old_check_in_date.strftime('%d/%m/%Y'),
+                    'check_out_date': booking.check_out_date.strftime('%d/%m/%Y'),
+                    'actual_check_in_date': today.strftime('%d/%m/%Y'),
+                    'remaining_nights': remaining_nights,
+                    'message': f'Khách đến trễ {late_days} ngày so với ngày nhận phòng ban đầu ({old_check_in_date.strftime("%d/%m/%Y")}). Vui lòng xác nhận thực hiện Check-in trễ cho khách lưu trú {remaining_nights} đêm còn lại đến {booking.check_out_date.strftime("%d/%m/%Y")}.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 6. THỰC HIỆN ĐỒNG THỜI DÙNG TRANSACTION.ATOMIC ĐẢM BẢO AN TOÀN DỮ LIỆU
         with transaction.atomic():
             # Nếu đơn đặt phòng trước đó có phòng cũ đang bị occupied, giải phóng phòng cũ về available
             old_room = booking.room
@@ -561,11 +658,32 @@ class BookingViewSet(viewsets.ModelViewSet):
             booking.status = 'checked_in'
             booking.actual_check_in = now
 
-            # Thêm ghi chú lễ tân nếu có
+            update_fields = ['room', 'status', 'actual_check_in', 'internal_note', 'updated_at']
+
             receptionist_note = request.data.get('internal_note', '').strip()
             time_str = now.strftime('%H:%M • %d/%m/%Y')
             receptionist_name = user.get_full_name() or user.username
+
+            early_log = ""
+            late_log = ""
+            if is_early_check_in:
+                booking.check_in_date = today
+                update_fields.append('check_in_date')
+                if additional_amount > 0:
+                    booking.total_amount = float(booking.total_amount or 0) + additional_amount
+                    update_fields.append('total_amount')
+                    early_log = f"[Early Check-in sớm {early_days} ngày lúc {time_str} bởi {receptionist_name}]: Nhận phòng sớm từ ngày {today.strftime('%d/%m/%Y')} (lịch cũ {old_check_in_date.strftime('%d/%m/%Y')}). Phụ thu tiền phòng: +{additional_amount:,.0f} VND ({early_days} đêm x {daily_rate:,.0f}đ)."
+                else:
+                    early_log = f"[Early Check-in sớm {early_days} ngày lúc {time_str} bởi {receptionist_name}]: Nhận phòng sớm từ ngày {today.strftime('%d/%m/%Y')} (lịch cũ {old_check_in_date.strftime('%d/%m/%Y')}) - Miễn phí phụ thu."
+            elif is_late_check_in:
+                remaining_nights = max(1, (booking.check_out_date - today).days)
+                late_log = f"[Late Check-in trễ {late_days} ngày lúc {time_str} bởi {receptionist_name}]: Khách đến nhận phòng trễ {late_days} ngày (lịch ban đầu: {old_check_in_date.strftime('%d/%m/%Y')}). Nhận phòng ở {remaining_nights} đêm còn lại đến {booking.check_out_date.strftime('%d/%m/%Y')}."
+
             auto_log = f"[Check-in lúc {time_str} bởi {receptionist_name}]: Nhận phòng {target_room.room_number}."
+            if early_log:
+                auto_log = f"{early_log}\n{auto_log}"
+            if late_log:
+                auto_log = f"{late_log}\n{auto_log}"
             if receptionist_note:
                 auto_log += f" Ghi chú: {receptionist_note}"
 
@@ -574,7 +692,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             else:
                 booking.internal_note = auto_log
 
-            booking.save(update_fields=['room', 'status', 'actual_check_in', 'internal_note', 'updated_at'])
+            booking.save(update_fields=update_fields)
 
             # Việc 2: Cập nhật bảng Room tương ứng sang occupied (Đang có khách)
             target_room.status = 'occupied'
@@ -586,11 +704,84 @@ class BookingViewSet(viewsets.ModelViewSet):
         room_data = RoomSerializer(target_room).data
 
         guest_display = booking.guest.get_full_name() or booking.guest.username if booking.guest else "Khách hàng"
+        success_message = f'Hoàn tất thủ tục Check-in thành công cho khách {guest_display}! Đã gán phòng {target_room.room_number} (Tầng {target_room.floor}).'
+        if is_early_check_in:
+            if additional_amount > 0:
+                success_message = f'⚡ Hoàn tất Nhận Phòng Sớm ({early_days} ngày) cho khách {guest_display}! Đã cập nhật ngày nhận sang {today.strftime("%d/%m/%Y")}, cộng thêm {additional_amount:,.0f}đ tiền phòng và gán phòng {target_room.room_number}.'
+            else:
+                success_message = f'⚡ Hoàn tất Nhận Phòng Sớm ({early_days} ngày) cho khách {guest_display}! Đã cập nhật ngày nhận sang {today.strftime("%d/%m/%Y")} (Miễn phụ thu) và gán phòng {target_room.room_number}.'
+        elif is_late_check_in:
+            remaining_nights = max(1, (booking.check_out_date - today).days)
+            success_message = f'⏰ Hoàn tất Check-in muộn (trễ {late_days} ngày) cho khách {guest_display}! Khách nhận phòng {target_room.room_number} ở {remaining_nights} đêm còn lại đến {booking.check_out_date.strftime("%d/%m/%Y")}.'
+
         return Response({
             'success': True,
-            'message': f'Hoàn tất thủ tục Check-in thành công cho khách {guest_display}! Đã gán phòng {target_room.room_number} (Tầng {target_room.floor}).',
+            'message': success_message,
+            'is_early_check_in': is_early_check_in,
+            'early_days': early_days,
+            'is_late_check_in': is_late_check_in,
+            'late_days': late_days,
+            'additional_amount': additional_amount,
             'booking': serializer.data,
             'room': room_data,
+            **serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='no-show')
+    def mark_no_show(self, request, pk=None):
+        """
+        API đánh dấu Khách không đến (No-Show):
+        - POST /api/bookings/:id/no-show/
+        - Đổi status = 'no_show'
+        - Nếu đơn đã được gán phòng vật lý đang occupied, giải phóng phòng về 'available'
+        - Ghi nhật ký vào internal_note
+        """
+        booking = self.get_object()
+        user = request.user
+
+        is_staff_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+        if not is_staff_or_admin:
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền đánh dấu No-Show.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        if booking.status in ['checked_in', 'checked_out', 'completed']:
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể đánh dấu No-Show.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        time_str = now.strftime('%H:%M • %d/%m/%Y')
+        receptionist_name = user.get_full_name() or user.username
+        reason = request.data.get('reason', 'Khách không đến nhận phòng theo lịch').strip()
+
+        with transaction.atomic():
+            booking.status = 'no_show'
+            no_show_log = f"[No-Show lúc {time_str} bởi {receptionist_name}]: Đã đánh dấu Khách không đến (No-Show). Lý do: {reason}."
+            if booking.internal_note:
+                booking.internal_note = f"{booking.internal_note}\n{no_show_log}".strip()
+            else:
+                booking.internal_note = no_show_log
+            booking.save(update_fields=['status', 'internal_note', 'updated_at'])
+
+            if booking.room and booking.room.status == 'occupied':
+                booking.room.status = 'available'
+                booking.room.save(update_fields=['status'])
+
+        serializer = self.get_serializer(booking, context={'request': request})
+        return Response({
+            'success': True,
+            'message': f'Đã đánh dấu đơn đặt phòng #{booking.booking_code} là Khách không đến (No-Show) và giải phóng phòng thành công.',
+            'booking': serializer.data,
             **serializer.data
         }, status=status.HTTP_200_OK)
 

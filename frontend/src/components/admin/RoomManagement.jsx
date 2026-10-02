@@ -143,7 +143,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     // Lắng nghe sự kiện realtime từ hệ thống PMS (đồng bộ khi check-in, check-out từ tab Quản lý Đặt phòng)
     useEffect(() => {
         const handleSyncEvent = () => {
-            fetchRooms();
+            fetchRooms(true);
         };
         window.addEventListener('pms_booking_created', handleSyncEvent);
         window.addEventListener('pms_room_updated', handleSyncEvent);
@@ -153,23 +153,28 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         };
     }, []);
 
-    // 1. Tải danh sách phòng từ API
-    const fetchRooms = async () => {
-        setIsLoading(true);
+    // 1. Tải danh sách phòng từ API (hỗ trợ silent mode để không unmount UI khi cập nhật ngầm)
+    const fetchRooms = async (silent = false) => {
+        if (!silent) setIsLoading(true);
         const params = {};
         if (searchTerm) params.q = searchTerm;
         if (floorFilter !== 'all') params.floor = floorFilter;
         if (statusFilter !== 'all') params.status = statusFilter;
         if (categoryFilter !== 'all') params.category = categoryFilter;
 
-        const res = await roomService.getAdminRooms(params);
-        if (res.success) {
-            setRooms(res.rooms || []);
-            if (res.categories) setCategories(res.categories);
-            if (res.floors) setFloors(res.floors);
-            if (res.stats) setStats(res.stats);
+        try {
+            const res = await roomService.getAdminRooms(params);
+            if (res.success) {
+                setRooms(res.rooms || []);
+                if (res.categories) setCategories(res.categories);
+                if (res.floors) setFloors(res.floors);
+                if (res.stats) setStats(res.stats);
+            }
+        } catch (err) {
+            console.error('Lỗi khi tải danh sách phòng:', err);
+        } finally {
+            if (!silent) setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     // Tải danh mục loại phòng khi mở form nếu cần
@@ -226,7 +231,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             type: 'success',
             text: `🧾 Đã hoàn tất Check-out & quyết toán hóa đơn! Phòng đã chuyển sang trạng thái "🟡 Đang dọn dẹp (Housekeeping)".`
         });
-        fetchRooms();
+        fetchRooms(true);
         setTimeout(() => setAlertMessage(null), 4500);
     };
 
@@ -261,20 +266,69 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     // Xác nhận Gán phòng & Check-in ngay
     const handleConfirmAssignCheckIn = async (booking) => {
         if (!assignModalRoom || isSubmittingAssignCheckIn) return;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const isExpired = booking.check_out_date && String(booking.check_out_date).split('T')[0] <= todayStr;
+        if (isExpired) {
+            alert(`⛔ Đơn đặt phòng #${booking.booking_code} đã quá hạn lưu trú (Ngày trả phòng dự kiến là ${formatDate(booking.check_out_date)}). Không thể Check-in.`);
+            return;
+        }
+
+        const isEarly = booking.check_in_date && String(booking.check_in_date).split('T')[0] > todayStr;
+        const isLate = booking.check_in_date && String(booking.check_in_date).split('T')[0] < todayStr;
+        let earlyDays = 0;
+        let lateDays = 0;
+        let confirmEarly = false;
+        let confirmLate = false;
+        let applyCharge = true;
+
+        if (isEarly) {
+            const d1 = new Date(String(booking.check_in_date).split('T')[0]);
+            const d2 = new Date(todayStr);
+            d1.setHours(0, 0, 0, 0);
+            d2.setHours(0, 0, 0, 0);
+            earlyDays = Math.max(1, Math.round((d1 - d2) / (1000 * 60 * 60 * 24)));
+
+            const confirmMsg = `⚡ CẢNH BÁO NHẬN PHÒNG SỚM (Early Check-in):\n\nKhách hàng "${booking.guest_name}" có ngày đặt ban đầu là ${formatDate(booking.check_in_date)} (đến sớm ${earlyDays} ngày).\n\nHệ thống sẽ chuyển ngày bắt đầu lưu trú sang hôm nay (${formatDate(todayStr)}) và tự động cộng thêm tiền phòng cho ${earlyDays} đêm ở sớm.\n\nBạn có đồng ý thực hiện Check-in sớm không?`;
+            const ok = window.confirm(confirmMsg);
+            if (!ok) return;
+
+            confirmEarly = true;
+            applyCharge = true;
+        } else if (isLate) {
+            const dToday = new Date(todayStr);
+            const dOriginal = new Date(String(booking.check_in_date).split('T')[0]);
+            const dOut = new Date(String(booking.check_out_date).split('T')[0]);
+            dToday.setHours(0, 0, 0, 0);
+            dOriginal.setHours(0, 0, 0, 0);
+            dOut.setHours(0, 0, 0, 0);
+            lateDays = Math.max(1, Math.round((dToday - dOriginal) / (1000 * 60 * 60 * 24)));
+            const remainingNights = Math.max(1, Math.round((dOut - dToday) / (1000 * 60 * 60 * 24)));
+
+            const confirmMsg = `⏰ CẢNH BÁO NHẬN PHÒNG TRỄ (Late Check-in):\n\nKhách hàng "${booking.guest_name}" đến trễ ${lateDays} ngày so với lịch ban đầu (${formatDate(booking.check_in_date)}).\n\nKhách sẽ nhận phòng ở ${remainingNights} đêm còn lại đến ngày ${formatDate(booking.check_out_date)}.\n\nBạn có đồng ý thực hiện Check-in trễ cho khách không?`;
+            const ok = window.confirm(confirmMsg);
+            if (!ok) return;
+
+            confirmLate = true;
+        }
+
         setIsSubmittingAssignCheckIn(true);
         try {
             const res = await bookingService.checkInBooking(booking.id, {
                 room_id: assignModalRoom.id,
-                internal_note: `Gán và Check-in trực tiếp từ Sơ đồ phòng PMS vào phòng ${assignModalRoom.room_number}`
+                internal_note: `Gán và Check-in trực tiếp từ Sơ đồ phòng PMS vào phòng ${assignModalRoom.room_number}${isEarly ? ` (Nhận phòng sớm ${earlyDays} ngày)` : isLate ? ` (Nhận phòng trễ ${lateDays} ngày)` : ''}`,
+                confirm_early_check_in: confirmEarly,
+                apply_early_charge: applyCharge,
+                confirm_late_check_in: confirmLate
             });
             if (res && res.success) {
                 setAlertMessage({
                     type: 'success',
-                    text: `🔑 Check-in thành công cho khách "${booking.guest_name}" vào phòng ${assignModalRoom.room_number}!`
+                    text: res.message || `🔑 Check-in thành công cho khách "${booking.guest_name}" vào phòng ${assignModalRoom.room_number}!`
                 });
                 setAssignModalRoom(null);
-                fetchRooms();
-                setTimeout(() => setAlertMessage(null), 4000);
+                fetchRooms(true);
+                setTimeout(() => setAlertMessage(null), 4500);
             } else {
                 alert(res?.message || 'Check-in thất bại. Vui lòng kiểm tra lại tình trạng phòng.');
             }
@@ -334,34 +388,100 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     // 2. THAO TÁC ĐỔI NHANH TRẠNG THÁI PHÒNG (Cho Lễ tân / Buồng phòng)
     // =========================================================================
     const handleQuickStatusChange = async (roomId, newStatus, roomNumber) => {
+        const currentRoom = rooms.find((r) => r.id === roomId);
+        const oldStatus = currentRoom ? currentRoom.status : null;
+        if (oldStatus === newStatus) return;
+
         setQuickStatusLoadingId(roomId);
-        const res = await roomService.updateRoomStatus(roomId, newStatus);
-        setQuickStatusLoadingId(null);
 
-        if (res.success) {
-            // Cập nhật trạng thái trực tiếp trên state để UI phản hồi ngay lập tức
-            setRooms((prev) =>
-                prev.map((r) =>
-                    r.id === roomId
-                        ? { ...r, status: newStatus, status_display: res.room.status_display }
-                        : r
-                )
-            );
-            // Cập nhật lại stats
-            fetchRooms();
+        // 1. Optimistic UI: Cập nhật ngay lập tức trạng thái phòng để không giật lag
+        setRooms((prev) =>
+            prev.map((r) =>
+                r.id === roomId
+                    ? {
+                          ...r,
+                          status: newStatus,
+                          status_display: ROOM_STATUSES[newStatus]?.label || newStatus,
+                      }
+                    : r
+            )
+        );
 
-            const statusObj = ROOM_STATUSES[newStatus] || {};
-            setAlertMessage({
-                type: 'success',
-                text: `Phòng ${roomNumber} đã được chuyển sang trạng thái "${statusObj.label || newStatus}" thành công!`,
+        // 2. Optimistic UI: Cập nhật ngay bộ đếm thống kê tổng quan
+        if (oldStatus) {
+            setStats((prev) => {
+                const updated = {
+                    ...prev,
+                    [oldStatus]: Math.max(0, (prev[oldStatus] || 0) - 1),
+                    [newStatus]: (prev[newStatus] || 0) + 1,
+                };
+                if (updated.total > 0) {
+                    updated.occupancy_rate = Math.round((updated.occupied / updated.total) * 1000) / 10;
+                }
+                return updated;
             });
-            setTimeout(() => setAlertMessage(null), 3500);
-        } else {
+        }
+
+        try {
+            const res = await roomService.updateRoomStatus(roomId, newStatus);
+            if (res.success) {
+                // Cập nhật dữ liệu từ phản hồi server nếu có
+                if (res.room) {
+                    setRooms((prev) =>
+                        prev.map((r) => (r.id === roomId ? { ...r, ...res.room } : r))
+                    );
+                }
+                if (res.stats) {
+                    setStats(res.stats);
+                } else {
+                    // Đồng bộ ngầm trong nền, không unmount giao diện, không cuộn nhảy
+                    await fetchRooms(true);
+                }
+
+                const statusObj = ROOM_STATUSES[newStatus] || {};
+                setAlertMessage({
+                    type: 'success',
+                    text: `Phòng ${roomNumber} đã được chuyển sang trạng thái "${statusObj.label || newStatus}" thành công!`,
+                });
+                setTimeout(() => setAlertMessage(null), 3000);
+            } else {
+                // Rollback nếu thất bại
+                if (oldStatus && currentRoom) {
+                    setRooms((prev) =>
+                        prev.map((r) => (r.id === roomId ? currentRoom : r))
+                    );
+                    setStats((prev) => {
+                        const updated = {
+                            ...prev,
+                            [newStatus]: Math.max(0, (prev[newStatus] || 0) - 1),
+                            [oldStatus]: (prev[oldStatus] || 0) + 1,
+                        };
+                        if (updated.total > 0) {
+                            updated.occupancy_rate = Math.round((updated.occupied / updated.total) * 1000) / 10;
+                        }
+                        return updated;
+                    });
+                }
+                setAlertMessage({
+                    type: 'error',
+                    text: res.message || 'Không thể đổi trạng thái phòng.',
+                });
+                setTimeout(() => setAlertMessage(null), 3500);
+            }
+        } catch (err) {
+            console.error('Lỗi khi đổi trạng thái phòng:', err);
+            if (oldStatus && currentRoom) {
+                setRooms((prev) =>
+                    prev.map((r) => (r.id === roomId ? currentRoom : r))
+                );
+            }
             setAlertMessage({
                 type: 'error',
-                text: res.message || 'Không thể đổi trạng thái phòng.',
+                text: 'Có lỗi xảy ra khi đổi trạng thái phòng.',
             });
             setTimeout(() => setAlertMessage(null), 3500);
+        } finally {
+            setQuickStatusLoadingId(null);
         }
     };
 
@@ -399,7 +519,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 type: 'success',
                 text: res.message || `Đã thêm phòng ${payload.room_number} vào sơ đồ phòng thành công!`,
             });
-            fetchRooms();
+            fetchRooms(true);
             setTimeout(() => setAlertMessage(null), 3500);
         } else {
             setAlertMessage({
@@ -443,7 +563,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 type: 'success',
                 text: res.message || `Cập nhật phòng ${payload.room_number} thành công!`,
             });
-            fetchRooms();
+            fetchRooms(true);
             setTimeout(() => setAlertMessage(null), 3500);
         } else {
             setAlertMessage({
@@ -474,7 +594,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 type: 'success',
                 text: res.message || `Đã xóa phòng ${selectedRoom.room_number} khỏi hệ thống!`,
             });
-            fetchRooms();
+            fetchRooms(true);
             setTimeout(() => setAlertMessage(null), 3500);
         } else {
             setAlertMessage({
@@ -513,11 +633,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 <div className="flex items-center gap-3">
                     <button
                         type="button"
-                        onClick={fetchRooms}
+                        onClick={() => fetchRooms(true)}
                         className="px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                         title="Tải lại sơ đồ phòng"
                     >
-                        <span>🔄</span>
+                        <span className={isLoading ? "animate-spin inline-block" : "inline-block"}>🔄</span>
                         <span className="hidden sm:inline">Làm Mới</span>
                     </button>
                     <button
@@ -814,16 +934,24 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             <span>Bảo trì (Gray)</span>
                         </div>
                     </div>
-                    <span className="text-slate-400 italic">
-                        Hiển thị <strong>{rooms.length}</strong> / {stats.total} phòng
-                    </span>
+                    <div className="flex items-center gap-2">
+                        {isLoading && rooms.length > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-bold animate-pulse border border-blue-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
+                                Đang đồng bộ...
+                            </span>
+                        )}
+                        <span className="text-slate-400 italic text-xs">
+                            Hiển thị <strong>{rooms.length}</strong> / {stats.total} phòng
+                        </span>
+                    </div>
                 </div>
             </div>
 
             {/* ========================================================================= */}
             {/* GRID LAYOUT: SƠ ĐỒ PHÒNG THỰC TẾ (ROOM BOARD) */}
             {/* ========================================================================= */}
-            {isLoading ? (
+            {isLoading && rooms.length === 0 ? (
                 <div className="bg-white rounded-3xl p-16 border border-slate-200 text-center shadow-xs">
                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                     <span className="text-xs text-slate-500 font-bold">Đang tải sơ đồ phòng thời gian thực...</span>
@@ -1581,29 +1709,72 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             String(assignModalRoom.category?.id || assignModalRoom.category_id) ||
                                         (b.category_name || b.room_type || '').toLowerCase() === (assignModalRoom.category_name || '').toLowerCase();
 
+                                    const todayStr = new Date().toISOString().split('T')[0];
+                                    const bookingCheckInStr = b.check_in_date ? String(b.check_in_date).split('T')[0] : '';
+                                    const bookingCheckOutStr = b.check_out_date ? String(b.check_out_date).split('T')[0] : '';
+                                    const isExpired = Boolean(bookingCheckOutStr && bookingCheckOutStr <= todayStr);
+                                    const isEarly = Boolean(!isExpired && bookingCheckInStr && bookingCheckInStr > todayStr);
+                                    const isLate = Boolean(!isExpired && bookingCheckInStr && bookingCheckInStr < todayStr);
+                                    let earlyDays = 0;
+                                    let lateDays = 0;
+                                    if (isEarly) {
+                                        const d1 = new Date(bookingCheckInStr);
+                                        const d2 = new Date(todayStr);
+                                        d1.setHours(0, 0, 0, 0);
+                                        d2.setHours(0, 0, 0, 0);
+                                        earlyDays = Math.max(1, Math.round((d1 - d2) / (1000 * 60 * 60 * 24)));
+                                    } else if (isLate) {
+                                        const d1 = new Date(todayStr);
+                                        const d2 = new Date(bookingCheckInStr);
+                                        d1.setHours(0, 0, 0, 0);
+                                        d2.setHours(0, 0, 0, 0);
+                                        lateDays = Math.max(1, Math.round((d1 - d2) / (1000 * 60 * 60 * 24)));
+                                    }
+
                                     return (
                                         <div
                                             key={b.id}
                                             className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                                                isCatMatch
+                                                isExpired
+                                                    ? 'bg-rose-50/40 border-rose-200'
+                                                    : isEarly
+                                                    ? 'bg-amber-50/40 hover:bg-amber-50 border-amber-200'
+                                                    : isLate
+                                                    ? 'bg-orange-50/40 hover:bg-orange-50 border-orange-200'
+                                                    : isCatMatch
                                                     ? 'bg-emerald-50/50 hover:bg-emerald-50 border-emerald-200'
                                                     : 'bg-white hover:bg-slate-50 border-slate-200'
                                             }`}
                                         >
                                             <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex flex-wrap items-center gap-2">
                                                     <span className="font-black text-sm text-slate-900">
                                                         {b.guest_name}
                                                     </span>
                                                     <span className="font-mono text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                                                         #{b.booking_code}
                                                     </span>
+                                                    {isExpired && (
+                                                        <span className="text-[10px] font-bold text-rose-800 bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-300 flex items-center gap-1">
+                                                            ⛔ Quá hạn trả
+                                                        </span>
+                                                    )}
+                                                    {isEarly && (
+                                                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                                                            ⚡ Sớm {earlyDays} ngày
+                                                        </span>
+                                                    )}
+                                                    {isLate && (
+                                                        <span className="text-[10px] font-bold text-orange-800 bg-orange-100 px-2.5 py-0.5 rounded-full border border-orange-300 flex items-center gap-1">
+                                                            ⏰ Trễ {lateDays} ngày
+                                                        </span>
+                                                    )}
                                                     {isCatMatch ? (
                                                         <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
                                                             ✓ Đúng hạng phòng
                                                         </span>
                                                     ) : (
-                                                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                                        <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
                                                             Hạng đặt: {b.category_name || b.room_type || 'Khác'}
                                                         </span>
                                                     )}
@@ -1623,12 +1794,28 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
 
                                             <button
                                                 type="button"
-                                                disabled={isSubmittingAssignCheckIn}
+                                                disabled={isSubmittingAssignCheckIn || isExpired}
                                                 onClick={() => handleConfirmAssignCheckIn(b)}
-                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                                                className={`px-4 py-2 font-bold rounded-xl text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 text-white ${
+                                                    isExpired
+                                                        ? 'bg-slate-400 cursor-not-allowed'
+                                                        : isEarly
+                                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                                                        : isLate
+                                                        ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20'
+                                                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                                                }`}
                                             >
-                                                <span>🔑</span>
-                                                <span>Gán phòng & Check-in ngay</span>
+                                                <span>{isExpired ? '⛔' : isEarly ? '⚡' : isLate ? '⏰' : '🔑'}</span>
+                                                <span>
+                                                    {isExpired
+                                                        ? 'Quá hạn lưu trú'
+                                                        : isEarly
+                                                        ? `Check-in sớm (${earlyDays}N)`
+                                                        : isLate
+                                                        ? `Check-in trễ (${lateDays}N)`
+                                                        : 'Gán phòng & Check-in ngay'}
+                                                </span>
                                             </button>
                                         </div>
                                     );

@@ -545,10 +545,26 @@ class AdminRoomStatusUpdateView(APIView):
         serializer = RoomStatusUpdateSerializer(room, data=request.data, partial=True)
         if serializer.is_valid():
             updated_room = serializer.save()
+            all_rooms = Room.objects.all()
+            available_count = all_rooms.filter(status='available').count()
+            occupied_count = all_rooms.filter(status='occupied').count()
+            cleaning_count = all_rooms.filter(status='cleaning').count()
+            maintenance_count = all_rooms.filter(status='maintenance').count()
+            total_rooms = all_rooms.count()
+            occupancy_rate = round((occupied_count / total_rooms * 100), 1) if total_rooms > 0 else 0
+            stats_data = {
+                'total': total_rooms,
+                'available': available_count,
+                'occupied': occupied_count,
+                'cleaning': cleaning_count,
+                'maintenance': maintenance_count,
+                'occupancy_rate': occupancy_rate,
+            }
             return Response({
                 'success': True,
                 'message': f'Đã đổi trạng thái phòng {updated_room.room_number} thành "{updated_room.get_status_display()}".',
-                'room': RoomSerializer(updated_room).data
+                'room': RoomSerializer(updated_room).data,
+                'stats': stats_data,
             }, status=status.HTTP_200_OK)
 
         first_error = next(iter(serializer.errors.values()))

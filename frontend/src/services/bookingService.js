@@ -235,6 +235,32 @@ export const bookingService = {
     },
 
     /**
+     * Đánh dấu khách không đến (No-Show) và giải phóng phòng
+     * POST /api/bookings/:id/no-show/
+     * @param {number|string} bookingId
+     * @param {Object} [payload] - { reason }
+     */
+    async markNoShow(bookingId, payload = {}) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/no-show/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Đã đánh dấu Khách không đến (No-Show) thành công.',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi đánh dấu No-Show:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể thực hiện đánh dấu No-Show.'
+            };
+        }
+    },
+
+    /**
      * Tạo đơn đặt phòng và Check-in đồng thời cho Khách vãng lai (Walk-in Guest)
      * POST /api/bookings/walk-in/
      * @param {Object} payload - { guest_name, guest_phone, identity_card, guest_email, room_id, check_out_date, note, internal_note, total_amount }

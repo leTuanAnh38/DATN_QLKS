@@ -95,6 +95,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [checkInNote, setCheckInNote] = useState('');
     const [isLoadingRooms, setIsLoadingRooms] = useState(false);
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
+    const [confirmEarlyCheckIn, setConfirmEarlyCheckIn] = useState(false);
+    const [applyEarlyCharge, setApplyEarlyCharge] = useState(true);
+    const [confirmLateCheckIn, setConfirmLateCheckIn] = useState(false);
 
     // 5. State Modal Khách Walk-in (Tiếp đón & Nhận phòng trực tiếp tại quầy)
     const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
@@ -470,6 +473,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         setSelectedRoomId('');
         setCheckInNote('');
         setAvailableRooms([]);
+        setConfirmEarlyCheckIn(false);
+        setApplyEarlyCharge(true);
+        setConfirmLateCheckIn(false);
         setIsLoadingRooms(true);
 
         try {
@@ -493,11 +499,88 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         }
     };
 
+    // Tính toán số ngày nhận phòng sớm (Early Check-in) & Trễ (Late Check-in)
+    const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+    // Kiểm tra đơn đặt phòng đã quá hạn lưu trú (Ngày trả phòng <= hôm nay)
+    const isExpiredCheckInBooking = useMemo(() => {
+        if (!checkInModalBooking?.check_out_date) return false;
+        return String(checkInModalBooking.check_out_date).split('T')[0] <= todayDateStr;
+    }, [checkInModalBooking?.check_out_date, todayDateStr]);
+
+    const isEarlyCheckInBooking = useMemo(() => {
+        if (!checkInModalBooking?.check_in_date || isExpiredCheckInBooking) return false;
+        return String(checkInModalBooking.check_in_date).split('T')[0] > todayDateStr;
+    }, [checkInModalBooking?.check_in_date, isExpiredCheckInBooking, todayDateStr]);
+
+    const earlyDaysCount = useMemo(() => {
+        if (!checkInModalBooking?.check_in_date || !isEarlyCheckInBooking) return 0;
+        const d1 = new Date(String(checkInModalBooking.check_in_date).split('T')[0]);
+        const d2 = new Date(todayDateStr);
+        d1.setHours(0, 0, 0, 0);
+        d2.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.round((d1 - d2) / (1000 * 60 * 60 * 24)));
+    }, [checkInModalBooking?.check_in_date, isEarlyCheckInBooking, todayDateStr]);
+
+    // Kiểm tra khách đến nhận phòng trễ ngày (Ngày nhận ban đầu < hôm nay và chưa quá hạn trả phòng)
+    const isLateCheckInBooking = useMemo(() => {
+        if (!checkInModalBooking?.check_in_date || isExpiredCheckInBooking) return false;
+        return String(checkInModalBooking.check_in_date).split('T')[0] < todayDateStr;
+    }, [checkInModalBooking?.check_in_date, isExpiredCheckInBooking, todayDateStr]);
+
+    const lateDaysCount = useMemo(() => {
+        if (!checkInModalBooking?.check_in_date || !isLateCheckInBooking) return 0;
+        const dToday = new Date(todayDateStr);
+        const dOriginal = new Date(String(checkInModalBooking.check_in_date).split('T')[0]);
+        dToday.setHours(0, 0, 0, 0);
+        dOriginal.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.round((dToday - dOriginal) / (1000 * 60 * 60 * 24)));
+    }, [checkInModalBooking?.check_in_date, isLateCheckInBooking, todayDateStr]);
+
+    const remainingNightsCount = useMemo(() => {
+        if (!checkInModalBooking?.check_out_date) return 0;
+        const dOut = new Date(String(checkInModalBooking.check_out_date).split('T')[0]);
+        const dToday = new Date(todayDateStr);
+        dOut.setHours(0, 0, 0, 0);
+        dToday.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.round((dOut - dToday) / (1000 * 60 * 60 * 24)));
+    }, [checkInModalBooking?.check_out_date, todayDateStr]);
+
+    const estimatedEarlyCharge = useMemo(() => {
+        if (!earlyDaysCount || !checkInModalBooking) return 0;
+        let dailyRate = 0;
+        if (checkInModalBooking.category?.promo_price) {
+            dailyRate = Number(checkInModalBooking.category.promo_price);
+        } else if (checkInModalBooking.category?.base_price) {
+            dailyRate = Number(checkInModalBooking.category.base_price);
+        } else if (checkInModalBooking.total_amount && checkInModalBooking.check_out_date && checkInModalBooking.check_in_date) {
+            const originalNights = Math.max(1, Math.round((new Date(checkInModalBooking.check_out_date) - new Date(checkInModalBooking.check_in_date)) / (1000 * 60 * 60 * 24)));
+            dailyRate = Number(checkInModalBooking.total_amount) / originalNights;
+        }
+        return dailyRate * earlyDaysCount;
+    }, [earlyDaysCount, checkInModalBooking]);
+
     // Xác nhận hoàn tất thủ tục Check-in (Gán phòng thực tế & đổi trạng thái sang checked_in)
     const handleConfirmCheckIn = async () => {
         if (!checkInModalBooking) return;
+
+        if (isExpiredCheckInBooking) {
+            showToast('error', 'Đơn đặt phòng này đã quá hạn lưu trú, không thể thực hiện Check-in.');
+            return;
+        }
+
         if (!selectedRoomId) {
             showToast('error', 'Vui lòng chọn phòng thực tế trước khi hoàn tất Check-in.');
+            return;
+        }
+
+        if (isEarlyCheckInBooking && !confirmEarlyCheckIn) {
+            showToast('error', `Vui lòng tích xác nhận đồng ý cho khách nhận phòng sớm ${earlyDaysCount} ngày.`);
+            return;
+        }
+
+        if (isLateCheckInBooking && !confirmLateCheckIn) {
+            showToast('error', `Vui lòng tích xác nhận đồng ý cho khách nhận phòng trễ ${lateDaysCount} ngày.`);
             return;
         }
 
@@ -505,7 +588,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             setIsSubmittingCheckIn(true);
             const res = await bookingService.checkInBooking(checkInModalBooking.id, {
                 room_id: selectedRoomId,
-                internal_note: checkInNote.trim()
+                internal_note: checkInNote.trim(),
+                confirm_early_check_in: confirmEarlyCheckIn,
+                apply_early_charge: applyEarlyCharge,
+                confirm_late_check_in: confirmLateCheckIn
             });
 
             if (res && res.success) {
@@ -1358,9 +1444,47 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                     <span className="text-slate-400 mx-1">→</span>
                                                     {formatDateDisplay(booking.check_out_date)}
                                                 </div>
-                                                <span className="inline-block mt-0.5 px-2 py-0.2 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
-                                                    🌙 {booking.nights || 1} đêm lưu trú
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                    <span className="inline-block px-2 py-0.2 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
+                                                        🌙 {booking.nights || 1} đêm lưu trú
+                                                    </span>
+                                                    {/* Badge Khách đến muộn / Quá hạn nhận phòng */}
+                                                    {(() => {
+                                                        if (booking.status !== 'confirmed') return null;
+                                                        const bCheckIn = booking.check_in_date ? String(booking.check_in_date).split('T')[0] : '';
+                                                        const bCheckOut = booking.check_out_date ? String(booking.check_out_date).split('T')[0] : '';
+                                                        const todayStr = new Date().toISOString().split('T')[0];
+                                                        const currentHour = new Date().getHours();
+
+                                                        if (bCheckOut && bCheckOut <= todayStr) {
+                                                            return (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 text-[9.5px] font-bold border border-rose-200" title="Đã qua ngày trả phòng mà khách chưa check-in">
+                                                                    ⛔ Quá hạn trả
+                                                                </span>
+                                                            );
+                                                        }
+                                                        if (bCheckIn && bCheckIn < todayStr) {
+                                                            const d1 = new Date(todayStr);
+                                                            const d2 = new Date(bCheckIn);
+                                                            d1.setHours(0, 0, 0, 0);
+                                                            d2.setHours(0, 0, 0, 0);
+                                                            const daysLate = Math.max(1, Math.round((d1 - d2) / (1000 * 60 * 60 * 24)));
+                                                            return (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-amber-50 text-amber-800 text-[9.5px] font-bold border border-amber-200" title={`Khách chưa check-in, trễ ${daysLate} ngày`}>
+                                                                    ⏰ Trễ {daysLate}N
+                                                                </span>
+                                                            );
+                                                        }
+                                                        if (bCheckIn === todayStr && currentHour >= 18) {
+                                                            return (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-amber-50 text-amber-800 text-[9.5px] font-bold border border-amber-200" title="Sau 18:00 khách chưa check-in">
+                                                                    ⏰ Đến muộn (&gt;18h)
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
                                             </td>
 
                                             {/* CỘT 5: TỔNG TIỀN */}
@@ -2214,7 +2338,136 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 />
                             </div>
 
-                            {/* 4. TÓM TẮT CAM KẾT VÀ BẢO ĐẢM TỰ ĐỘNG CỦA HỆ THỐNG */}
+                            {/* 4. CẢNH BÁO QUÁ HẠN LƯU TRÚ / NHẬN PHÒNG SỚM / NHẬN PHÒNG TRỄ */}
+                            {isExpiredCheckInBooking && (
+                                <div className="p-4 rounded-2xl border-2 border-rose-500/30 bg-rose-50/25 space-y-3 animate-in fade-in duration-200">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white font-black text-base flex items-center justify-center shrink-0 shadow-sm shadow-rose-500/20">
+                                            ⛔
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <h4 className="font-bold text-rose-950 text-xs sm:text-sm tracking-tight uppercase">
+                                                    Đơn Đặt Phòng Đã Quá Hạn Lưu Trú
+                                                </h4>
+                                                <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px] border border-rose-300">
+                                                    Hết hạn: {formatDateDisplay(checkInModalBooking.check_out_date)}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                                                Ngày trả phòng ban đầu của đơn này ({formatDateDisplay(checkInModalBooking.check_out_date)}) đã kết thúc hoặc rơi vào hôm nay. Không thể thực hiện Check-in.
+                                                Lễ tân nên chuyển trạng thái đơn sang <strong>Khách không đến (No-Show)</strong> để giải phóng phòng hoặc tạo đơn đặt phòng mới nếu khách muốn ở kỳ mới.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-rose-200/60 flex items-center justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const targetBooking = checkInModalBooking;
+                                                setCheckInModalBooking(null);
+                                                setNoShowModalBooking(targetBooking);
+                                            }}
+                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                                        >
+                                            <span>🚫</span>
+                                            <span>Chuyển sang Khách không đến (No-Show)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isEarlyCheckInBooking && (
+                                <div className="p-4 rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/20 space-y-3 animate-in fade-in duration-200">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-black text-base flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/20">
+                                            ⚡
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <h4 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight uppercase flex items-center gap-1.5">
+                                                    <span>Nhận Phòng Sớm (Early Check-in)</span>
+                                                </h4>
+                                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-300">
+                                                    ⚡ Đến sớm {earlyDaysCount} ngày
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                                                Khách đến nhận phòng sớm hơn <strong className="text-slate-900">{earlyDaysCount} ngày</strong> so với ngày đặt ban đầu ({formatDateDisplay(checkInModalBooking.check_in_date)}).
+                                                Hệ thống sẽ cập nhật ngày bắt đầu lưu trú từ hôm nay (<strong className="text-emerald-700">{formatDateDisplay(todayDateStr)}</strong>).
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2.5 border-t border-emerald-200/60 space-y-2 text-xs">
+                                        <label className="flex items-center gap-2.5 cursor-pointer font-medium select-none p-2 rounded-xl hover:bg-white/70 transition text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={applyEarlyCharge}
+                                                onChange={(e) => setApplyEarlyCharge(e.target.checked)}
+                                                className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                            />
+                                            <span className="text-[11px]">
+                                                Tự động tính thêm tiền phòng cho {earlyDaysCount} đêm ở sớm (
+                                                <strong className="text-emerald-700">+{Number(estimatedEarlyCharge).toLocaleString('vi-VN')} VND</strong>)
+                                            </span>
+                                        </label>
+
+                                        <label className="flex items-center gap-2.5 cursor-pointer select-none p-2.5 rounded-xl bg-white border border-emerald-300/80 shadow-xs transition">
+                                            <input
+                                                type="checkbox"
+                                                checked={confirmEarlyCheckIn}
+                                                onChange={(e) => setConfirmEarlyCheckIn(e.target.checked)}
+                                                className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                            />
+                                            <span className="text-xs font-bold text-slate-900">
+                                                Tôi xác nhận đồng ý cho khách nhận phòng sớm từ hôm nay <span className="text-rose-600">*</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isLateCheckInBooking && (
+                                <div className="p-4 rounded-2xl border-2 border-amber-500/30 bg-amber-50/20 space-y-3 animate-in fade-in duration-200">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-black text-base flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/20">
+                                            ⏰
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <h4 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight uppercase flex items-center gap-1.5">
+                                                    <span>Khách Đến Trễ (Late Check-in)</span>
+                                                </h4>
+                                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-[10px] border border-amber-300">
+                                                    ⏰ Trễ {lateDaysCount} ngày
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                                                Khách đến trễ hơn <strong className="text-slate-900">{lateDaysCount} ngày</strong> so với ngày đặt ban đầu ({formatDateDisplay(checkInModalBooking.check_in_date)}).
+                                                Khách sẽ nhận phòng ở <strong className="text-slate-900">{remainingNightsCount} đêm còn lại</strong> đến ngày {formatDateDisplay(checkInModalBooking.check_out_date)}.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2.5 border-t border-amber-200/60 text-xs">
+                                        <label className="flex items-center gap-2.5 cursor-pointer select-none p-2.5 rounded-xl bg-white border border-amber-300/80 shadow-xs transition">
+                                            <input
+                                                type="checkbox"
+                                                checked={confirmLateCheckIn}
+                                                onChange={(e) => setConfirmLateCheckIn(e.target.checked)}
+                                                className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                            />
+                                            <span className="text-xs font-bold text-slate-900">
+                                                Tôi xác nhận cho khách nhận phòng ở {remainingNightsCount} đêm còn lại <span className="text-rose-600">*</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 5. TÓM TẮT CAM KẾT VÀ BẢO ĐẢM TỰ ĐỘNG CỦA HỆ THỐNG */}
                             <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900 flex items-start gap-2">
                                 <span className="text-sm">ℹ️</span>
                                 <div>
@@ -2222,6 +2475,16 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     <ul className="list-disc list-inside mt-1 space-y-0.5 text-[10px] text-blue-800">
                                         <li>Cập nhật đơn thành <strong>Đã Check-in (checked_in)</strong> và ghi nhận thời gian nhận phòng thực tế.</li>
                                         <li>Cập nhật phòng thực tế thành <strong>Đang có khách (occupied)</strong> để tránh trùng lặp.</li>
+                                        {isEarlyCheckInBooking && (
+                                            <li className="font-bold text-emerald-800">
+                                                Cập nhật ngày check-in sang hôm nay {applyEarlyCharge ? `và cộng thêm +${Number(estimatedEarlyCharge).toLocaleString('vi-VN')} VND tiền phòng.` : '(Miễn phụ thu).'}
+                                            </li>
+                                        )}
+                                        {isLateCheckInBooking && (
+                                            <li className="font-bold text-amber-800">
+                                                Ghi nhận nhận phòng trễ {lateDaysCount} ngày. Khách lưu trú {remainingNightsCount} đêm còn lại đến {formatDateDisplay(checkInModalBooking.check_out_date)}.
+                                            </li>
+                                        )}
                                     </ul>
                                 </div>
                             </div>
@@ -2244,10 +2507,28 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     isSubmittingCheckIn ||
                                     isLoadingRooms ||
                                     availableRooms.length === 0 ||
-                                    !selectedRoomId
+                                    !selectedRoomId ||
+                                    isExpiredCheckInBooking ||
+                                    (isEarlyCheckInBooking && !confirmEarlyCheckIn) ||
+                                    (isLateCheckInBooking && !confirmLateCheckIn)
                                 }
                                 onClick={handleConfirmCheckIn}
-                                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                                className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white ${
+                                    isExpiredCheckInBooking
+                                        ? 'bg-slate-400'
+                                        : isLateCheckInBooking
+                                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-600/30'
+                                        : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-600/30'
+                                }`}
+                                title={
+                                    isExpiredCheckInBooking
+                                        ? 'Đơn đặt phòng đã quá hạn lưu trú, không thể Check-in'
+                                        : isEarlyCheckInBooking && !confirmEarlyCheckIn
+                                        ? 'Vui lòng tích xác nhận đồng ý nhận phòng sớm'
+                                        : isLateCheckInBooking && !confirmLateCheckIn
+                                        ? 'Vui lòng tích xác nhận đồng ý nhận phòng trễ'
+                                        : ''
+                                }
                             >
                                 {isSubmittingCheckIn ? (
                                     <>
@@ -2256,8 +2537,16 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     </>
                                 ) : (
                                     <>
-                                        <span>🔑</span>
-                                        <span>Hoàn tất Check-in</span>
+                                        <span>{isExpiredCheckInBooking ? '⛔' : isLateCheckInBooking ? '⏰' : isEarlyCheckInBooking ? '⚡' : '🔑'}</span>
+                                        <span>
+                                            {isExpiredCheckInBooking
+                                                ? 'Đã Quá Hạn Lưu Trú'
+                                                : isLateCheckInBooking
+                                                ? `Xác nhận Check-in Trễ (${remainingNightsCount} đêm)`
+                                                : isEarlyCheckInBooking
+                                                ? 'Xác nhận Nhận Phòng Sớm'
+                                                : 'Hoàn tất Check-in'}
+                                        </span>
                                     </>
                                 )}
                             </button>
