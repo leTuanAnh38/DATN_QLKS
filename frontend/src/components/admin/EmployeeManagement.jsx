@@ -668,14 +668,7 @@ export default function EmployeeManagement() {
             {/* Header Banner */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold uppercase tracking-wider">
-                            HUMAN RESOURCES & RBAC
-                        </span>
-                        <span className="text-xs text-slate-400">•</span>
-                        <span className="text-xs text-slate-500">Phân quyền chi tiết theo vai trò nội bộ</span>
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
                         Quản Lý Nhân Sự & Phân Quyền Vai Trò
                     </h1>
                     <p className="text-xs text-slate-500 mt-0.5">

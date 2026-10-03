@@ -111,7 +111,7 @@ const ROLE_THEMES = {
         shadow: 'shadow-indigo-700/20',
     },
     guest: {
-        gradient: 'bg-linear-to-tr from-slate-800 via-slate-700 to-blue-950 text-amber-300',
+        gradient: 'bg-linear-to-tr from-blue-600 via-blue-500 to-sky-500 text-white',
         style: {
             background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #172554 100%)',
             color: '#fcd34d',

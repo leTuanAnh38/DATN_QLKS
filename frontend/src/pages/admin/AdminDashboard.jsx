@@ -1009,14 +1009,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                             {/* Welcome & Time Filters Banner */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
-                                            LIVE PMS 5-STAR PORTAL
-                                        </span>
-                                        <span className="text-xs text-slate-400">•</span>
-                                        <span className="text-xs text-slate-500">Đồng bộ PMS thời gian thực</span>
-                                    </div>
-                                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
                                         Xin chào, {user?.full_name || user?.username} 👋
                                     </h1>
                                     <p className="text-xs text-slate-500 mt-0.5">

@@ -124,7 +124,7 @@ export default function NewsDetail() {
 
                                 <div className="flex items-center justify-between pt-2">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                                        <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-xs">
                                             ✍️
                                         </div>
                                         <div>
@@ -240,19 +240,19 @@ export default function NewsDetail() {
                             </div>
 
                             {/* Widget 2: Đặt phòng & Hotline hỗ trợ */}
-                            <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-6 shadow-md space-y-4">
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-bold uppercase tracking-wider">
+                            <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 text-slate-900 border border-amber-200/70 rounded-3xl p-6 shadow-sm space-y-4">
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase tracking-wider">
                                     ƯU ĐÃI ĐẶC QUYỀN
                                 </span>
-                                <h3 className="text-base font-bold text-white leading-snug">
+                                <h3 className="text-base font-bold text-slate-900 leading-snug">
                                     Sẵn Sàng Cho Kỳ Nghỉ Đẳng Cấp?
                                 </h3>
-                                <p className="text-xs text-slate-300 font-light leading-relaxed">
+                                <p className="text-xs text-slate-600 font-light leading-relaxed">
                                     Đặt phòng trực tiếp trên website để nhận ngay ưu đãi giảm 20% và miễn phí bữa sáng buffet.
                                 </p>
                                 <Link
                                     to="/rooms"
-                                    className="block w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs text-center rounded-xl shadow-md transition"
+                                    className="block w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs text-center rounded-xl shadow-md transition"
                                 >
                                     Khám Phá Phòng Nghỉ →
                                 </Link>

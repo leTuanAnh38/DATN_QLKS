@@ -317,18 +317,6 @@ export default function BookingTimeline({ onNavigateToBookings }) {
             {/* 1. HEADER & THANH ĐIỀU HƯỚNG THÁNG */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-6">
                 <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
-                            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span>PMS Gantt Chart</span>
-                        </span>
-                        <span className="text-xs text-slate-400">•</span>
-                        <span className="text-xs text-slate-500 font-medium">
-                            Sơ đồ trực quan kế hoạch phòng thời gian thực
-                        </span>
-                    </div>
                     <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <span>Lịch Đặt Phòng Theo Sơ Đồ Trực Quan</span>
                     </h2>
@@ -339,12 +327,12 @@ export default function BookingTimeline({ onNavigateToBookings }) {
 
                 {/* KHỐI ĐIỀU HƯỚNG THÁNG "Tháng trước" < "Tháng 6 / 2026" > "Tháng sau" */}
                 <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center bg-slate-900 text-white rounded-2xl p-1.5 shadow-md shadow-slate-900/10">
+                    <div className="inline-flex items-center bg-white text-slate-800 border border-slate-200 rounded-2xl p-1.5 shadow-xs">
                         {/* Nút Tháng trước */}
                         <button
                             type="button"
                             onClick={handlePrevMonth}
-                            className="px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 text-slate-200 hover:text-white transition flex items-center gap-1.5 active:scale-95"
+                            className="px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition flex items-center gap-1.5 active:scale-95"
                             title="Chuyển về tháng trước"
                         >
                             <span>‹</span>
@@ -352,11 +340,11 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                         </button>
 
                         {/* Nhãn Tháng / Năm hiện tại */}
-                        <div className="px-4 py-1.5 text-center min-w-[150px] border-x border-slate-800">
-                            <span className="block text-[11px] text-blue-400 uppercase tracking-widest font-bold font-mono">
+                        <div className="px-4 py-1.5 text-center min-w-[150px] border-x border-slate-200 bg-blue-50/60">
+                            <span className="block text-[11px] text-blue-600 uppercase tracking-widest font-bold font-mono">
                                 PMS TIMELINE
                             </span>
-                            <span className="text-sm font-bold text-white tracking-wide">
+                            <span className="text-sm font-bold text-slate-900 tracking-wide">
                                 Tháng {currentMonth} / {currentYear}
                             </span>
                         </div>
@@ -365,7 +353,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                         <button
                             type="button"
                             onClick={handleNextMonth}
-                            className="px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 text-slate-200 hover:text-white transition flex items-center gap-1.5 active:scale-95"
+                            className="px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition flex items-center gap-1.5 active:scale-95"
                             title="Chuyển sang tháng tiếp theo"
                         >
                             <span>Tháng sau</span>

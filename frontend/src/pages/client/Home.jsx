@@ -337,7 +337,7 @@ export default function TADaNangHotelLanding() {
                                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-slate-800 to-slate-900 text-slate-400 text-4xl">
+                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-400 text-4xl">
                                                 🏨
                                             </div>
                                         )}

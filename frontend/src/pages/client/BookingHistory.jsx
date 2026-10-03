@@ -557,7 +557,7 @@ export default function BookingHistory() {
                                         onClick={() => setStatusFilter(tab.key)}
                                         className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                                             statusFilter === tab.key
-                                                ? 'bg-slate-900 text-white shadow-sm'
+                                                ? 'bg-blue-600 text-white shadow-sm'
                                                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                         }`}
                                     >
@@ -880,7 +880,7 @@ export default function BookingHistory() {
                                                             {booking.category_id && (
                                                                 <Link
                                                                     to={`/checkout/${booking.category_id}`}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                                                                 >
                                                                     <span>Đặt lại</span>
                                                                 </Link>
@@ -1325,7 +1325,7 @@ export default function BookingHistory() {
                         <button
                             type="button"
                             onClick={() => setViewReviewModalBooking(null)}
-                            className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                         >
                             Đóng
                         </button>

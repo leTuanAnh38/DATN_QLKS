@@ -32,6 +32,10 @@ export default function ServicesMenu() {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
 
+    // 2b. Pagination States (phân trang danh sách dịch vụ)
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 8;
+
     // 3. Order Modal States
     const [selectedItem, setSelectedItem] = useState(null);
     const [quantity, setQuantity] = useState(1);
@@ -152,6 +156,41 @@ export default function ServicesMenu() {
             return matchCategory && matchSearch;
         });
     }, [serviceItems, selectedCategory, searchQuery]);
+
+    // Phân trang danh sách dịch vụ
+    const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(currentPage, totalPages);
+    const pageStartIndex = (safePage - 1) * ITEMS_PER_PAGE;
+    const paginatedItems = useMemo(
+        () => filteredItems.slice(pageStartIndex, pageStartIndex + ITEMS_PER_PAGE),
+        [filteredItems, pageStartIndex]
+    );
+
+    // Về trang 1 mỗi khi đổi nhóm dịch vụ hoặc từ khóa tìm kiếm
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, searchQuery]);
+
+    // Chuyển trang và cuộn mượt về đầu lưới dịch vụ
+    const handlePageChange = (page) => {
+        if (page < 1 || page > totalPages || page === safePage) return;
+        setCurrentPage(page);
+        const grid = document.getElementById('services-menu-grid');
+        if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // Danh sách số trang hiển thị (có dấu ... khi quá nhiều trang)
+    const pageNumbers = useMemo(() => {
+        if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+        const pages = [1];
+        const start = Math.max(2, safePage - 1);
+        const end = Math.min(totalPages - 1, safePage + 1);
+        if (start > 2) pages.push('ellipsis-left');
+        for (let p = start; p <= end; p++) pages.push(p);
+        if (end < totalPages - 1) pages.push('ellipsis-right');
+        pages.push(totalPages);
+        return pages;
+    }, [totalPages, safePage]);
 
     // Mở modal đặt dịch vụ
     const handleOpenOrderModal = (item) => {
@@ -494,8 +533,8 @@ export default function ServicesMenu() {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {filteredItems.map((item) => {
+                        <div id="services-menu-grid" className="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {paginatedItems.map((item) => {
                                 const itemImg =
                                     item.display_image ||
                                     item.image_url ||
@@ -566,6 +605,67 @@ export default function ServicesMenu() {
                             })}
                         </div>
                     )}
+
+                    {/* PHÂN TRANG */}
+                    {!isLoading && filteredItems.length > ITEMS_PER_PAGE && (
+                        <nav
+                            aria-label="Phân trang dịch vụ"
+                            className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200"
+                        >
+                            <p className="text-xs text-slate-500">
+                                Hiển thị{' '}
+                                <strong className="text-slate-800">
+                                    {pageStartIndex + 1}–{Math.min(pageStartIndex + ITEMS_PER_PAGE, filteredItems.length)}
+                                </strong>{' '}
+                                trong tổng số{' '}
+                                <strong className="text-slate-800">{filteredItems.length}</strong> dịch vụ
+                            </p>
+
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => handlePageChange(safePage - 1)}
+                                    disabled={safePage === 1}
+                                    aria-label="Trang trước"
+                                    className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                >
+                                    ‹
+                                </button>
+
+                                {pageNumbers.map((p) =>
+                                    typeof p === 'string' ? (
+                                        <span key={p} className="w-9 h-9 flex items-center justify-center text-slate-400 text-xs select-none">
+                                            …
+                                        </span>
+                                    ) : (
+                                        <button
+                                            key={p}
+                                            type="button"
+                                            onClick={() => handlePageChange(p)}
+                                            aria-current={p === safePage ? 'page' : undefined}
+                                            className={`w-9 h-9 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                                                p === safePage
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {p}
+                                        </button>
+                                    )
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => handlePageChange(safePage + 1)}
+                                    disabled={safePage === totalPages}
+                                    aria-label="Trang sau"
+                                    className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        </nav>
+                    )}
                 </main>
 
                 {/* MODAL FORM ĐẶT DỊCH VỤ TẠI PHÒNG */}
@@ -573,7 +673,7 @@ export default function ServicesMenu() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up">
                             {/* Modal Header */}
-                            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between">
+                            <div className="px-6 py-4 bg-gradient-to-r from-blue-600 via-blue-500 to-sky-500 text-white flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
                                     <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm border border-blue-500/30">
                                         🛎️
@@ -825,7 +925,7 @@ export default function ServicesMenu() {
                                         onClick={() => setHistoryFilter(tab.key)}
                                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                                             historyFilter === tab.key
-                                                ? 'bg-slate-900 text-white shadow-xs'
+                                                ? 'bg-blue-600 text-white shadow-xs'
                                                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                         }`}
                                     >
@@ -1073,7 +1173,7 @@ export default function ServicesMenu() {
                                 <button
                                     type="button"
                                     onClick={() => setIsHistoryModalOpen(false)}
-                                    className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition cursor-pointer"
+                                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition cursor-pointer"
                                 >
                                     Đóng
                                 </button>

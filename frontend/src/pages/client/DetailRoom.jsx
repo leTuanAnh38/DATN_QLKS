@@ -88,30 +88,6 @@ const STANDARD_AMENITY_GROUPS = [
     }
 ];
 
-// Đặc quyền Club Lounge
-const CLUB_PRIVILEGES = [
-    {
-        icon: '🍸',
-        title: 'Trà chiều & Sunset Canapés',
-        desc: 'Thưởng thức tiệc trà chiều hoàng gia (14:30 - 16:30) và tiệc cocktail rượu vang ngắm hoàng hôn (17:30 - 19:30) miễn phí mỗi ngày.'
-    },
-    {
-        icon: '🚘',
-        title: 'Đưa đón sân bay Đà Nẵng 2 chiều',
-        desc: 'Xe Mercedes-Benz E-Class riêng đón và tiễn tận cửa ga quốc tế/nội địa, hỗ trợ hành lý VIP chuyên biệt.'
-    },
-    {
-        icon: '🤵',
-        title: 'Quản gia riêng (Butler Service 24/7)',
-        desc: 'Dịch vụ đóng gói/mở hành lý, đặt bàn ưu tiên tại các nhà hàng Michelin và chăm sóc tỉ mỉ từng chi tiết.'
-    },
-    {
-        icon: '👔',
-        title: 'Là ủi miễn phí & Check-out trễ',
-        desc: 'Miễn phí 03 món giặt là/ngày và quyền check-out muộn tới 16:00 (tùy thuộc tình trạng phòng sẵn có).'
-    }
-];
-
 export default function DetailRoom() {
     // 1. Hook useParams() lấy tham số ID / Slug từ URL
     const { id, roomId, slug } = useParams();
@@ -126,7 +102,7 @@ export default function DetailRoom() {
     // State giao diện
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
-    const [selectedPackage, setSelectedPackage] = useState('standard'); // 'standard' | 'spa'
+    const [selectedPackage] = useState('standard'); // Gói cố định: 'standard' (đã bỏ lựa chọn gói kèm theo)
     const [guestCount, setGuestCount] = useState(2);
     const [similarRooms, setSimilarRooms] = useState([]);
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -903,38 +879,6 @@ export default function DetailRoom() {
                             </div>
                         </div>
 
-                        {/* ĐẶC QUYỀN HỘI VIÊN CLUB */}
-                        <div className="bg-gradient-to-br from-blue-50 via-indigo-50/50 to-white p-6 sm:p-8 rounded-3xl border border-blue-100 shadow-xs">
-                            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                                <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
-                                        Đặc Quyền Hội Viên Club Suite
-                                    </span>
-                                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
-                                        Đặc quyền Executive Club Tầng 25
-                                    </h3>
-                                </div>
-                                <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs font-bold">
-                                    Tận hưởng trọn vẹn
-                                </span>
-                            </div>
-                            <p className="text-xs sm:text-sm text-slate-600 mb-6 font-light">
-                                Quý khách đặt phòng trực tiếp tại Khách Sạn TA được tự động nâng cấp quyền tiếp cận toàn bộ hệ sinh thái dịch vụ riêng tư, không giới hạn tại TA Lounge.
-                            </p>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {CLUB_PRIVILEGES.map((priv, idx) => (
-                                    <div key={idx} className="bg-white p-5 rounded-2xl border border-blue-100/80 shadow-xs">
-                                        <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-3">
-                                            {priv.icon}
-                                        </div>
-                                        <h4 className="font-serif font-bold text-sm text-slate-900 mb-1">{priv.title}</h4>
-                                        <p className="text-xs text-slate-500 leading-relaxed">{priv.desc}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
                         {/* SƠ ĐỒ BỐ TRÍ KHÔNG GIAN (FLOOR PLAN) */}
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex items-center justify-between mb-6">
@@ -1617,77 +1561,6 @@ export default function DetailRoom() {
                                         >
                                             +
                                         </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Gói dịch vụ kèm theo */}
-                            <div className="space-y-2">
-                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                    Gói dịch vụ cao cấp kèm theo
-                                </label>
-
-                                <div
-                                    onClick={() => setSelectedPackage('standard')}
-                                    className={`p-3.5 rounded-2xl border cursor-pointer transition ${
-                                        selectedPackage === 'standard'
-                                            ? 'border-blue-600 bg-blue-50/50'
-                                            : 'border-slate-200 hover:border-slate-300'
-                                    }`}
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="radio"
-                                                name="package"
-                                                checked={selectedPackage === 'standard'}
-                                                onChange={() => setSelectedPackage('standard')}
-                                                className="text-blue-600"
-                                            />
-                                            <div>
-                                                <span className="text-xs font-bold text-slate-900 block">
-                                                    Gói Nghỉ Dưỡng Tiêu Chuẩn
-                                                </span>
-                                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                                    Bao gồm ăn sáng buffet VIP, hồ bơi vô cực & đồ uống chào mừng.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded uppercase flex-shrink-0">
-                                            ĐÃ BAO GỒM
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div
-                                    onClick={() => setSelectedPackage('spa')}
-                                    className={`p-3.5 rounded-2xl border cursor-pointer transition ${
-                                        selectedPackage === 'spa'
-                                            ? 'border-blue-600 bg-blue-50/50'
-                                            : 'border-slate-200 hover:border-slate-300'
-                                    }`}
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="radio"
-                                                name="package"
-                                                checked={selectedPackage === 'spa'}
-                                                onChange={() => setSelectedPackage('spa')}
-                                                className="text-blue-600"
-                                            />
-                                            <div>
-                                                <span className="text-xs font-bold text-slate-900 block">
-                                                    Gói Nghỉ Dưỡng & The Lotus Spa
-                                                </span>
-                                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                                    Toàn bộ đặc quyền tiêu chuẩn + 60 phút massage thảo dược biển đôi mỗi ngày.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <span className="text-[11px] font-bold text-orange-600 flex-shrink-0">
-                                            +1.200.000đ<span className="text-[9px] text-slate-400 block font-normal">/đêm</span>
-                                        </span>
                                     </div>
                                 </div>
                             </div>

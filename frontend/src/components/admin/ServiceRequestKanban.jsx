@@ -21,6 +21,16 @@ const formatTimeAgo = (dateStr) => {
     }
 };
 
+// Cấu hình hiển thị trạng thái dùng cho chế độ xem Danh sách
+const STATUS_META = {
+    pending: { label: 'Chờ xử lý', icon: '⏳', pill: 'bg-amber-50 text-amber-700 border-amber-200', tab: 'bg-amber-500 text-white' },
+    in_progress: { label: 'Đang làm', icon: '👨‍🍳', pill: 'bg-blue-50 text-blue-700 border-blue-200', tab: 'bg-blue-600 text-white' },
+    completed: { label: 'Hoàn thành', icon: '✓', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', tab: 'bg-emerald-600 text-white' },
+    cancelled: { label: 'Đã hủy', icon: '✕', pill: 'bg-rose-50 text-rose-700 border-rose-200', tab: 'bg-rose-600 text-white' }
+};
+const STATUS_ORDER = ['pending', 'in_progress', 'completed', 'cancelled'];
+const LIST_PAGE_SIZE = 10;
+
 export default function ServiceRequestKanban() {
     // 1. Data States
     const [kanbanData, setKanbanData] = useState({
@@ -37,6 +47,11 @@ export default function ServiceRequestKanban() {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
     const [showCancelled, setShowCancelled] = useState(false);
+
+    // Chế độ xem: 'list' (mỗi yêu cầu 1 hàng) | 'board' (Kanban kéo thả)
+    const [viewMode, setViewMode] = useState('list');
+    const [statusTab, setStatusTab] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
 
     // 3. Drag and Drop States
     const [draggedItemId, setDraggedItemId] = useState(null);
@@ -262,6 +277,62 @@ export default function ServiceRequestKanban() {
 
     const stats = kanbanData.stats || {};
 
+    // =========================================================================
+    // CHẾ ĐỘ XEM DANH SÁCH (1 HÀNG / YÊU CẦU) + PHÂN TRANG
+    // =========================================================================
+    const allListItems = STATUS_ORDER.flatMap((key) =>
+        filterColumnItems(kanbanData[key] || []).map((item) => ({ ...item, status: key }))
+    );
+
+    const statusTabs = [
+        { key: 'all', label: 'Tất cả', icon: '📋', count: allListItems.length },
+        ...STATUS_ORDER.map((key) => ({
+            key,
+            label: STATUS_META[key].label,
+            icon: STATUS_META[key].icon,
+            count: allListItems.filter((i) => i.status === key).length
+        }))
+    ];
+
+    // Đơn chờ xử lý lên đầu, trong cùng trạng thái thì mới nhất trước
+    const listItems = (statusTab === 'all' ? allListItems : allListItems.filter((i) => i.status === statusTab))
+        .slice()
+        .sort((a, b) => {
+            if (statusTab === 'all' && a.status !== b.status) {
+                return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+            }
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
+
+    const listTotalPages = Math.max(1, Math.ceil(listItems.length / LIST_PAGE_SIZE));
+    const safePage = Math.min(currentPage, listTotalPages);
+    const pageStartIndex = (safePage - 1) * LIST_PAGE_SIZE;
+    const paginatedListItems = listItems.slice(pageStartIndex, pageStartIndex + LIST_PAGE_SIZE);
+
+    // Về trang 1 khi đổi từ khóa, tab trạng thái hoặc chế độ xem
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchKeyword, selectedCategoryFilter, statusTab, viewMode]);
+
+    const handleListPageChange = (page) => {
+        if (page < 1 || page > listTotalPages || page === safePage) return;
+        setCurrentPage(page);
+        const el = document.getElementById('service-request-list');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const listPageNumbers = (() => {
+        if (listTotalPages <= 7) return Array.from({ length: listTotalPages }, (_, i) => i + 1);
+        const pages = [1];
+        const start = Math.max(2, safePage - 1);
+        const end = Math.min(listTotalPages - 1, safePage + 1);
+        if (start > 2) pages.push('ellipsis-left');
+        for (let p = start; p <= end; p++) pages.push(p);
+        if (end < listTotalPages - 1) pages.push('ellipsis-right');
+        pages.push(listTotalPages);
+        return pages;
+    })();
+
     return (
         <div className="space-y-6">
             {/* TOAST THÔNG BÁO */}
@@ -283,20 +354,11 @@ export default function ServiceRequestKanban() {
             {/* HEADER & THỐNG KÊ NHANH 4 CHỈ SỐ */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
-                            PMS CONCIERGE & IN-ROOM DINING
-                        </span>
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Live Sync thời gian thực
-                        </span>
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
                         Quản Lý Yêu Cầu Dịch Vụ Tại Phòng
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                        Điều phối gọi món, đồ uống, trị liệu spa và tiện ích buồng phòng theo mô hình Kanban kéo thả.
+                        Điều phối gọi món, đồ uống, trị liệu spa và tiện ích buồng phòng — xem dạng danh sách 1 hàng hoặc bảng Kanban kéo thả.
                     </p>
                 </div>
 
@@ -348,6 +410,32 @@ export default function ServiceRequestKanban() {
 
                 {/* Filter & Action Buttons */}
                 <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    {/* Chuyển chế độ xem */}
+                    <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold text-slate-600">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('list')}
+                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer ${
+                                viewMode === 'list' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                            title="Mỗi yêu cầu 1 hàng, dễ thao tác"
+                        >
+                            <span>📋</span>
+                            <span>Danh sách</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('board')}
+                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer ${
+                                viewMode === 'board' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                            title="Bảng Kanban kéo thả theo cột"
+                        >
+                            <span>🗂️</span>
+                            <span>Kanban</span>
+                        </button>
+                    </div>
+
                     <button
                         type="button"
                         onClick={() => fetchKanbanData(false)}
@@ -358,21 +446,294 @@ export default function ServiceRequestKanban() {
                         <span>Làm mới</span>
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setShowCancelled(!showCancelled)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                            showCancelled
-                                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                        <span>✕ Đơn đã hủy ({kanbanData.cancelled?.length || 0})</span>
-                    </button>
+                    {viewMode === 'board' && (
+                        <button
+                            type="button"
+                            onClick={() => setShowCancelled(!showCancelled)}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                                showCancelled
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            <span>✕ Đơn đã hủy ({kanbanData.cancelled?.length || 0})</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
+            {/* CHẾ ĐỘ DANH SÁCH: MỖI YÊU CẦU 1 HÀNG (giống Quản lý đơn đặt phòng) */}
+            {viewMode === 'list' && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                    {/* Tab lọc theo trạng thái */}
+                    <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 border-b border-slate-100">
+                        {statusTabs.map((tab) => {
+                            const isActive = statusTab === tab.key;
+                            const activeCls = tab.key === 'all' ? 'bg-blue-50 text-blue-700 border-blue-200' : STATUS_META[tab.key].tab;
+                            return (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    onClick={() => setStatusTab(tab.key)}
+                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 border ${
+                                        isActive
+                                            ? `${activeCls} border-transparent shadow-md`
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <span>{tab.icon}</span>
+                                    <span>{tab.label}</span>
+                                    <span className={`px-1.5 rounded-full text-[10px] ${isActive ? 'bg-white/25' : 'bg-slate-100 text-slate-600'}`}>
+                                        {tab.count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div id="service-request-list" className="overflow-x-auto scroll-mt-4">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
+                                    <th className="py-3 px-3 whitespace-nowrap">Phòng / Mã đơn</th>
+                                    <th className="py-3 px-3">Khách hàng</th>
+                                    <th className="py-3 px-3">Dịch vụ yêu cầu</th>
+                                    <th className="py-3 px-3 whitespace-nowrap text-center">SL</th>
+                                    <th className="py-3 px-3 whitespace-nowrap">Thành tiền</th>
+                                    <th className="py-3 px-3 whitespace-nowrap">Thời gian</th>
+                                    <th className="py-3 px-3 whitespace-nowrap">Trạng thái (Đổi nhanh)</th>
+                                    <th className="py-3 px-3 text-center whitespace-nowrap">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-700">
+                                {isLoading && allListItems.length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                                            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                            <span>Đang tải danh sách yêu cầu dịch vụ...</span>
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {!isLoading && listItems.length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                                            <div className="text-3xl mb-2">📭</div>
+                                            <p className="font-semibold text-slate-700">Không có yêu cầu dịch vụ nào</p>
+                                            <p className="text-[11px] text-slate-400 mt-1">
+                                                {searchKeyword ? 'Hãy thử tìm kiếm với từ khóa khác.' : 'Chưa có yêu cầu nào trong mục này.'}
+                                            </p>
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {paginatedListItems.map((item) => {
+                                    const meta = STATUS_META[item.status];
+                                    const isUpdatingThis = isUpdatingId === item.id;
+                                    const totalAmt = Number(item.total_price) || 0;
+
+                                    return (
+                                        <tr
+                                            key={item.id}
+                                            className={`hover:bg-blue-50/30 transition duration-150 ${isUpdatingThis ? 'opacity-60 bg-slate-50' : ''}`}
+                                        >
+                                            {/* Phòng / Mã đơn */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono font-bold text-[11px] tracking-wider">
+                                                    🚪 {item.room_number || 'Chờ xếp'}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 block mt-1 font-mono">#{item.booking_code}</span>
+                                            </td>
+
+                                            {/* Khách hàng */}
+                                            <td className="py-2.5 px-3 min-w-[110px] max-w-[160px]">
+                                                <div className="font-bold text-slate-900 truncate" title={item.guest_name}>
+                                                    {item.guest_name || '—'}
+                                                </div>
+                                            </td>
+
+                                            {/* Dịch vụ yêu cầu */}
+                                            <td className="py-2.5 px-3 min-w-[220px] max-w-[320px]">
+                                                <div className="flex items-center gap-2.5">
+                                                    {item.service_image ? (
+                                                        <img
+                                                            src={item.service_image}
+                                                            alt={item.service_name}
+                                                            className="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center text-base shrink-0">
+                                                            🍽️
+                                                        </div>
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <div className="font-bold text-slate-900 truncate" title={item.service_name}>
+                                                            {item.service_name}
+                                                        </div>
+                                                        <span className="inline-block px-1.5 rounded bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold mt-0.5">
+                                                            {item.category_name || 'Dịch vụ'}
+                                                        </span>
+                                                        {item.note && (
+                                                            <div className="text-[11px] text-amber-700 italic truncate mt-0.5" title={item.note}>
+                                                                💬 {item.note}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* Số lượng */}
+                                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                                <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold font-mono">
+                                                    x{item.quantity}
+                                                </span>
+                                            </td>
+
+                                            {/* Thành tiền */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap font-black text-rose-600">
+                                                {totalAmt.toLocaleString('vi-VN')} đ
+                                            </td>
+
+                                            {/* Thời gian */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap text-[11px] text-slate-500">
+                                                ⏱️ {formatTimeAgo(item.created_at)}
+                                            </td>
+
+                                            {/* Trạng thái - đổi nhanh */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                <select
+                                                    value={item.status}
+                                                    disabled={isUpdatingThis}
+                                                    onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                                                    className={`px-2 py-1 rounded-lg border text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${meta.pill}`}
+                                                >
+                                                    {STATUS_ORDER.map((key) => (
+                                                        <option key={key} value={key}>
+                                                            {STATUS_META[key].icon} {STATUS_META[key].label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </td>
+
+                                            {/* Thao tác nhanh theo trạng thái */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    {item.status === 'pending' && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'cancelled')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                                            >
+                                                                ✕ Hủy
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'in_progress')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer"
+                                                            >
+                                                                Bắt đầu ➔
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {item.status === 'in_progress' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUpdateStatus(item.id, 'completed')}
+                                                            disabled={isUpdatingThis}
+                                                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer"
+                                                        >
+                                                            ✓ Đã giao
+                                                        </button>
+                                                    )}
+                                                    {item.status === 'completed' && (
+                                                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
+                                                            ✓ Đã tính hóa đơn
+                                                        </span>
+                                                    )}
+                                                    {item.status === 'cancelled' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUpdateStatus(item.id, 'pending')}
+                                                            disabled={isUpdatingThis}
+                                                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                                        >
+                                                            ↩ Khôi phục
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* PHÂN TRANG */}
+                    {listItems.length > LIST_PAGE_SIZE && (
+                        <nav
+                            aria-label="Phân trang yêu cầu dịch vụ"
+                            className="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3"
+                        >
+                            <p className="text-xs text-slate-500">
+                                Hiển thị{' '}
+                                <strong className="text-slate-800">
+                                    {pageStartIndex + 1}–{Math.min(pageStartIndex + LIST_PAGE_SIZE, listItems.length)}
+                                </strong>{' '}
+                                trong tổng số <strong className="text-slate-800">{listItems.length}</strong> yêu cầu
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => handleListPageChange(safePage - 1)}
+                                    disabled={safePage === 1}
+                                    aria-label="Trang trước"
+                                    className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                >
+                                    ‹
+                                </button>
+                                {listPageNumbers.map((p) =>
+                                    typeof p === 'string' ? (
+                                        <span key={p} className="w-8 h-8 flex items-center justify-center text-slate-400 text-xs select-none">
+                                            …
+                                        </span>
+                                    ) : (
+                                        <button
+                                            key={p}
+                                            type="button"
+                                            onClick={() => handleListPageChange(p)}
+                                            aria-current={p === safePage ? 'page' : undefined}
+                                            className={`w-8 h-8 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                                                p === safePage
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {p}
+                                        </button>
+                                    )
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => handleListPageChange(safePage + 1)}
+                                    disabled={safePage === listTotalPages}
+                                    aria-label="Trang sau"
+                                    className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        </nav>
+                    )}
+                </div>
+            )}
+
             {/* BẢNG KANBAN BOARD 3 CỘT (DRAG AND DROP) */}
+            {viewMode === 'board' && (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 {columns.map((col) => {
                     const columnItems = filterColumnItems(kanbanData[col.key] || []);
@@ -445,7 +806,7 @@ export default function ServiceRequestKanban() {
                                                     {/* Card Header: Số phòng & Hạng phòng */}
                                                     <div className="flex items-start justify-between gap-2 pb-2 mb-2.5 border-b border-slate-100">
                                                         <div>
-                                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-slate-900 text-white font-mono font-bold text-xs tracking-wider shadow-xs">
+                                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono font-bold text-xs tracking-wider">
                                                                 <span>🚪</span>
                                                                 <span>Phòng {item.room_number || 'Chờ xếp'}</span>
                                                             </div>
@@ -633,6 +994,8 @@ export default function ServiceRequestKanban() {
                         </div>
                     )}
                 </div>
+            )}
+            </>
             )}
         </div>
     );

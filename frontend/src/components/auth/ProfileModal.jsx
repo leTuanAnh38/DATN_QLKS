@@ -31,7 +31,7 @@ export default function ProfileModal({ isOpen, onClose, onOpenChangePassword }) 
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Profile Cover */}
-                <div className="h-28 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 relative p-6">
+                <div className="h-28 bg-gradient-to-r from-blue-600 via-blue-500 to-sky-500 relative p-6">
                     <button
                         type="button"
                         onClick={onClose}

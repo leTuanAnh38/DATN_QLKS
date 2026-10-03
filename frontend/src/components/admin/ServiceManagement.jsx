@@ -10,6 +10,9 @@ export default function ServiceManagement() {
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
+    // Phân trang danh sách dịch vụ
+    const [currentPage, setCurrentPage] = useState(1);
+
     // State cho Modal Thêm / Sửa
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -113,6 +116,41 @@ export default function ServiceManagement() {
             return matchCategory && matchStatus && matchSearch;
         });
     }, [services, selectedCategory, statusFilter, searchQuery]);
+
+    // Phân trang: Grid 8 thẻ/trang, Table 10 dòng/trang
+    const itemsPerPage = viewMode === 'grid' ? 8 : 10;
+    const totalPages = Math.max(1, Math.ceil(filteredServices.length / itemsPerPage));
+    const safePage = Math.min(currentPage, totalPages);
+    const pageStartIndex = (safePage - 1) * itemsPerPage;
+    const paginatedServices = useMemo(
+        () => filteredServices.slice(pageStartIndex, pageStartIndex + itemsPerPage),
+        [filteredServices, pageStartIndex, itemsPerPage]
+    );
+
+    // Về trang 1 khi đổi bộ lọc, từ khóa hoặc chế độ xem
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, statusFilter, searchQuery, viewMode]);
+
+    const handlePageChange = (page) => {
+        if (page < 1 || page > totalPages || page === safePage) return;
+        setCurrentPage(page);
+        const list = document.getElementById('admin-services-list');
+        if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // Số trang hiển thị (có dấu … khi quá nhiều trang)
+    const pageNumbers = useMemo(() => {
+        if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+        const pages = [1];
+        const start = Math.max(2, safePage - 1);
+        const end = Math.min(totalPages - 1, safePage + 1);
+        if (start > 2) pages.push('ellipsis-left');
+        for (let p = start; p <= end; p++) pages.push(p);
+        if (end < totalPages - 1) pages.push('ellipsis-right');
+        pages.push(totalPages);
+        return pages;
+    }, [totalPages, safePage]);
 
     // Xử lý mở Modal Thêm mới
     const handleOpenCreateModal = () => {
@@ -343,14 +381,7 @@ export default function ServiceManagement() {
             {/* BANNER HEADER & QUICK ACTIONS */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold uppercase tracking-wider">
-                            SERVICE CATALOG PMS
-                        </span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-xs text-slate-500">Quản lý Thực Đơn & Dịch Vụ Phát Sinh 5 Sao</span>
-                    </div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2">
                         <span>🛎️</span>
                         <span>Quản Lý Danh Mục Dịch Vụ</span>
                     </h1>
@@ -575,8 +606,8 @@ export default function ServiceManagement() {
                 </div>
             ) : viewMode === 'grid' ? (
                 /* CHẾ ĐỘ XEM GRID CARDS */
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-                    {filteredServices.map((service) => (
+                <div id="admin-services-list" className="scroll-mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+                    {paginatedServices.map((service) => (
                         <div
                             key={service.id}
                             className={`group bg-white rounded-2xl border transition duration-200 flex flex-col overflow-hidden ${
@@ -682,7 +713,7 @@ export default function ServiceManagement() {
                 </div>
             ) : (
                 /* CHẾ ĐỘ XEM TABLE VIEW */
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                <div id="admin-services-list" className="scroll-mt-4 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs border-collapse">
                             <thead>
@@ -696,7 +727,7 @@ export default function ServiceManagement() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredServices.map((service) => (
+                                {paginatedServices.map((service) => (
                                     <tr key={service.id} className="hover:bg-slate-50/70 transition">
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-3">
@@ -774,6 +805,67 @@ export default function ServiceManagement() {
                         </table>
                     </div>
                 </div>
+            )}
+
+            {/* PHÂN TRANG */}
+            {!isLoading && filteredServices.length > itemsPerPage && (
+                <nav
+                    aria-label="Phân trang dịch vụ"
+                    className="bg-white rounded-2xl border border-slate-200 px-4 py-3 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3"
+                >
+                    <p className="text-xs text-slate-500">
+                        Hiển thị{' '}
+                        <strong className="text-slate-800">
+                            {pageStartIndex + 1}–{Math.min(pageStartIndex + itemsPerPage, filteredServices.length)}
+                        </strong>{' '}
+                        trong tổng số{' '}
+                        <strong className="text-slate-800">{filteredServices.length}</strong> dịch vụ
+                    </p>
+
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={() => handlePageChange(safePage - 1)}
+                            disabled={safePage === 1}
+                            aria-label="Trang trước"
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                        >
+                            ‹
+                        </button>
+
+                        {pageNumbers.map((p) =>
+                            typeof p === 'string' ? (
+                                <span key={p} className="w-8 h-8 flex items-center justify-center text-slate-400 text-xs select-none">
+                                    …
+                                </span>
+                            ) : (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => handlePageChange(p)}
+                                    aria-current={p === safePage ? 'page' : undefined}
+                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                                        p === safePage
+                                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    {p}
+                                </button>
+                            )
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => handlePageChange(safePage + 1)}
+                            disabled={safePage === totalPages}
+                            aria-label="Trang sau"
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                        >
+                            ›
+                        </button>
+                    </div>
+                </nav>
             )}
 
             {/* MODAL THÊM / SỬA DỊCH VỤ */}

@@ -1080,15 +1080,6 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             {/* HEADER PHÂN HỆ QUẢN LÝ ĐẶT PHÒNG */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
                 <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
-                            🏨 Quản trị Lễ tân & Đón tiếp
-                        </span>
-                        <span className="text-xs text-slate-400">•</span>
-                        <span className="text-xs text-slate-500 font-medium">
-                            Xử lý đặt phòng thời gian thực
-                        </span>
-                    </div>
                     <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
                         Quản Lý Danh Sách Đặt Phòng
                     </h2>
@@ -1127,7 +1118,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 <div
                     onClick={() => setStatusFilter('all')}
                     className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'all'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                        ? 'bg-blue-50 text-blue-800 border-blue-300 shadow-md ring-1 ring-blue-200'
                         : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-xs'
                         }`}
                 >

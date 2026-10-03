@@ -169,7 +169,7 @@ export default function NewsList() {
                                         className="w-full h-full object-cover hover:scale-105 transition duration-500"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-slate-800 to-slate-900 text-slate-400 text-4xl">
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-400 text-4xl">
                                         📰
                                     </div>
                                 )}
@@ -263,7 +263,7 @@ export default function NewsList() {
                                         setSearchTerm('');
                                         setSelectedCategory('all');
                                     }}
-                                    className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer"
+                                    className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer"
                                 >
                                     Xem tất cả bài viết
                                 </button>

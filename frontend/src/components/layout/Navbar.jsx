@@ -98,36 +98,36 @@ export default function Navbar({
     return (
         <>
             {/* 1. TOP ANNOUNCEMENT BAR */}
-            <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
+            <div className="bg-slate-50 text-slate-600 text-xs py-2 px-4 border-b border-slate-200">
                 <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
                     <div className="flex items-center space-x-4">
-                        <span className="font-semibold tracking-wider text-amber-400 uppercase text-[11px]">
+                        <span className="font-semibold tracking-wider text-amber-600 uppercase text-[11px]">
                             KHÁCH SẠN TA ĐÀ NẴNG LUXURY COLLECTION
                         </span>
-                        <span className="hidden sm:inline text-slate-600">|</span>
-                        <span className="hidden sm:inline flex items-center gap-1 text-slate-400">
-                            <span className="text-amber-400 font-bold">★</span>
+                        <span className="hidden sm:inline text-slate-300">|</span>
+                        <span className="hidden sm:inline flex items-center gap-1 text-slate-500">
+                            <span className="text-amber-500 font-bold">★</span>
                             The Leading Hotels of the World
                         </span>
                         {isAuthenticated && (
                             <>
-                                <span className="hidden md:inline text-slate-600">|</span>
-                                <span className="hidden md:inline text-amber-300 font-medium">
+                                <span className="hidden md:inline text-slate-300">|</span>
+                                <span className="hidden md:inline text-amber-700 font-medium">
                                     👋 Kính chào Quý khách: <strong>{user?.full_name || user?.username}</strong>
                                 </span>
                             </>
                         )}
                     </div>
-                    <div className="flex items-center space-x-4 text-slate-300">
-                        <a href="tel:19008899" className="flex items-center gap-1.5 hover:text-white cursor-pointer transition">
-                            <span className="text-orange-400">📞</span>
-                            Hotline 24/7: <strong className="text-white">1900 8899</strong>
+                    <div className="flex items-center space-x-4 text-slate-600">
+                        <a href="tel:19008899" className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer transition">
+                            <span className="text-orange-500">📞</span>
+                            Hotline 24/7: <strong className="text-slate-900">1900 8899</strong>
                         </a>
-                        <span className="text-slate-600">|</span>
+                        <span className="text-slate-300">|</span>
                         <div className="flex items-center space-x-2">
-                            <span className="cursor-pointer hover:text-white">🇻🇳 VND</span>
+                            <span className="cursor-pointer hover:text-blue-600">🇻🇳 VND</span>
                             <span>/</span>
-                            <span className="cursor-pointer hover:text-white">Tiếng Việt</span>
+                            <span className="cursor-pointer hover:text-blue-600">Tiếng Việt</span>
                         </div>
                     </div>
                 </div>

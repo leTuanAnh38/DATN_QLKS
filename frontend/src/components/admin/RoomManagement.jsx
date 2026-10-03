@@ -615,14 +615,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* Header Banner & Quick Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
-                            HOTEL PMS • ROOM BOARD
-                        </span>
-                        <span className="text-xs text-slate-400">•</span>
-                        <span className="text-xs text-slate-500">Sơ đồ phòng khách sạn trực quan</span>
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
                         Quản Lý Danh Sách & Sơ Đồ Phòng Thực Tế
                     </h1>
                     <p className="text-xs text-slate-500 mt-0.5">

@@ -419,14 +419,7 @@ export default function CategoryManagement() {
             {/* 1. HEADER & KPI CARDS */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
-                            PMS ROOM CATEGORIES & SUITES
-                        </span>
-                        <span className="text-xs text-slate-400">•</span>
-                        <span className="text-xs text-slate-500">Quản lý tiêu chuẩn phòng 5 sao</span>
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
                         Quản Lý Hạng Phòng & Bảng Giá
                     </h1>
                     <p className="text-xs text-slate-500 mt-1 max-w-2xl">

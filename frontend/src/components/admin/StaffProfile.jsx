@@ -248,7 +248,7 @@ export default function StaffProfile() {
             {/* Header Tiêu đề Trang */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <User className="w-6 h-6 text-blue-600" />
                         Hồ sơ Nhân viên & Ban Quản trị
                     </h1>

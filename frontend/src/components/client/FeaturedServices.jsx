@@ -157,7 +157,7 @@ export default function FeaturedServices() {
                                 onClick={() => setActiveFilter(tab.id)}
                                 className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-xs ${
                                     activeFilter === tab.id
-                                        ? 'bg-slate-900 text-amber-400 shadow-md scale-105 border border-slate-800'
+                                        ? 'bg-amber-500 text-white shadow-md scale-105 border border-amber-500'
                                         : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
                                 }`}
                             >
@@ -259,7 +259,7 @@ export default function FeaturedServices() {
                                             </span>
                                             <Link
                                                 to="/services"
-                                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-amber-600 text-white hover:text-slate-950 font-bold text-xs transition duration-200 shadow-sm group-hover:shadow"
+                                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition duration-200 shadow-sm group-hover:shadow"
                                             >
                                                 <span>Xem & Đặt Món</span>
                                                 <span>→</span>

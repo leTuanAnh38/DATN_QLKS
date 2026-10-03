@@ -188,20 +188,8 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                         title="Quay lại danh sách khách hàng"
                     >
                         <span>←</span>
-                        <span className="hidden sm:inline">Quay lại danh sách</span>
+                        <span className="hidden sm:inline">Quay lại</span>
                     </button>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
-                                HỒ SƠ KHÁCH HÀNG CRM
-                            </span>
-                            <span className="text-xs text-slate-400">•</span>
-                            <span className="text-xs text-slate-500 font-mono">ID #{customerId}</span>
-                        </div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5">
-                            {customer?.full_name || customer?.username || 'Chi tiết khách hàng'}
-                        </h1>
-                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -389,7 +377,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                             }`}
                         >
                             <span>🛏️</span>
-                            <span>Tab 1: Lịch sử Đặt phòng</span>
+                            <span>Lịch sử Đặt phòng</span>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                 activeTab === 'bookings' ? 'bg-blue-50 text-blue-700' : 'bg-slate-200 text-slate-600'
                             }`}>
@@ -407,7 +395,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                             }`}
                         >
                             <span>🛎️</span>
-                            <span>Tab 2: Lịch sử Dịch vụ</span>
+                            <span>Lịch sử Dịch vụ</span>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                 activeTab === 'services' ? 'bg-blue-50 text-blue-700' : 'bg-slate-200 text-slate-600'
                             }`}>

@@ -127,7 +127,7 @@ export default function NotificationBell({ theme = 'light' }) {
                     style={{ transformOrigin: 'top right' }}
                 >
                     {/* Header Popover */}
-                    <div className="p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
+                    <div className="p-3.5 bg-gradient-to-r from-blue-50 to-sky-50 text-slate-900 border-b border-slate-200 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="font-bold text-sm tracking-wide">Thông Báo</span>
                             {unreadCount > 0 && (
@@ -141,7 +141,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                 <button
                                     type="button"
                                     onClick={handleMarkAllAsRead}
-                                    className="inline-flex items-center gap-1 text-[11px] text-blue-300 hover:text-white hover:underline transition cursor-pointer"
+                                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline transition cursor-pointer"
                                     title="Đánh dấu tất cả đã đọc"
                                 >
                                     <CheckCheck className="w-3.5 h-3.5" />
@@ -151,7 +151,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={() => fetchNotifications(false)}
-                                className="p-1 hover:bg-slate-700/80 rounded-lg text-slate-400 hover:text-white transition"
+                                className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition"
                                 title="Tải lại thông báo"
                             >
                                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />

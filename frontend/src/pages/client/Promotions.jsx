@@ -161,7 +161,7 @@ export default function PromotionsPage() {
 
             {/* 3. SPOTLIGHT HERO PROMOTION BANNER */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
-                <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 rounded-3xl overflow-hidden shadow-2xl relative text-white border border-blue-800/40">
+                <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-3xl overflow-hidden shadow-2xl relative text-white border border-blue-400/40">
                     <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
                         {/* Left Content */}
                         <div className="lg:col-span-7 p-8 sm:p-12 lg:p-14 flex flex-col justify-between relative z-10">
@@ -177,7 +177,7 @@ export default function PromotionsPage() {
                                 <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-4">
                                     Tuyệt Tác Mùa Hè 2025: Kỳ Nghỉ Biển Thượng Lưu Tiết Kiệm Tới <span className="text-amber-400">35%</span>
                                 </h1>
-                                <p className="text-slate-300 text-sm sm:text-base font-light leading-relaxed mb-8 max-w-xl">
+                                <p className="text-blue-100 text-sm sm:text-base font-light leading-relaxed mb-8 max-w-xl">
                                     Trải nghiệm kỳ nghỉ bên bờ biển Mỹ Khê danh tiếng với đặc quyền đưa đón sân bay xe limousine Mercedes-Benz riêng, buffet sáng phong vị Michelin Selected, tiệc trà chiều hoàng hôn tầng 25 và 60 phút thanh tẩy năng lượng tại The Lotus Spa.
                                 </p>
                                 {/* 4 Feature Highlights */}
@@ -185,34 +185,34 @@ export default function PromotionsPage() {
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 text-center">
                                         <span className="text-xl block mb-1">🚘</span>
                                         <strong className="text-[11px] block text-white font-semibold leading-tight">Đưa đón VIP</strong>
-                                        <span className="text-[10px] text-slate-300">Mercedes S-Class</span>
+                                        <span className="text-[10px] text-blue-100">Mercedes S-Class</span>
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 text-center">
                                         <span className="text-xl block mb-1">🍽️</span>
                                         <strong className="text-[11px] block text-white font-semibold leading-tight">Buffet Sáng</strong>
-                                        <span className="text-[10px] text-slate-300">Michelin Selected</span>
+                                        <span className="text-[10px] text-blue-100">Michelin Selected</span>
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 text-center">
                                         <span className="text-xl block mb-1">☕</span>
                                         <strong className="text-[11px] block text-white font-semibold leading-tight">Sunset Tea</strong>
-                                        <span className="text-[10px] text-slate-300">TA Lounge Tầng 25</span>
+                                        <span className="text-[10px] text-blue-100">TA Lounge Tầng 25</span>
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 text-center">
                                         <span className="text-xl block mb-1">🪷</span>
                                         <strong className="text-[11px] block text-white font-semibold leading-tight">Trị liệu 60 phút</strong>
-                                        <span className="text-[10px] text-slate-300">The Lotus Spa</span>
+                                        <span className="text-[10px] text-blue-100">The Lotus Spa</span>
                                     </div>
                                 </div>
                             </div>
                             {/* Coupon Bar & CTA */}
                             <div className="flex flex-wrap items-center gap-4 pt-6 border-t border-white/10">
                                 <div className="flex items-center bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 gap-3">
-                                    <span className="text-xs text-slate-300">Mã độc quyền:</span>
+                                    <span className="text-xs text-blue-100">Mã độc quyền:</span>
                                     <span className="font-mono text-base font-bold text-amber-300 tracking-wider">TASUMMER35</span>
                                     <button
                                         type="button"
                                         onClick={() => handleCopyCode('TASUMMER35')}
-                                        className="text-xs text-blue-300 hover:text-white font-semibold underline transition ml-2"
+                                        className="text-xs text-sky-100 hover:text-white font-semibold underline transition ml-2"
                                     >
                                         {copiedCode === 'TASUMMER35' ? '✓ Đã chép' : 'Sao chép mã'}
                                     </button>
@@ -423,15 +423,15 @@ export default function PromotionsPage() {
 
             {/* 7. SECRET SALE VOUCHER BOX */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
+                <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
                     <div className="max-w-xl">
-                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider mb-3 inline-block">
+                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-sky-100 text-xs font-bold uppercase tracking-wider mb-3 inline-block">
                             🔒 Secret Private Sale • Độc Quyền Hội Viên
                         </span>
                         <h2 className="font-serif text-3xl sm:text-4xl font-bold leading-tight mb-3">
                             Đăng Ký Nhận Voucher Bí Mật Giảm Thêm 500.000 VNĐ
                         </h2>
-                        <p className="text-slate-300 text-xs sm:text-sm font-light leading-relaxed">
+                        <p className="text-blue-100 text-xs sm:text-sm font-light leading-relaxed">
                             Nhận thông báo ưu tiên trước 48 giờ về các chương trình giảm giá chớp nhoáng (Flash Sale) mùa lễ hội và mã voucher giảm trực tiếp 500.000 VND cho kỳ nghỉ đầu tiên của quý khách.
                         </p>
                     </div>
@@ -450,7 +450,7 @@ export default function PromotionsPage() {
                                 value={emailSubscription}
                                 onChange={(e) => setEmailSubscription(e.target.value)}
                                 placeholder="Nhập địa chỉ email của bạn..."
-                                className="w-full px-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white/15 transition"
+                                className="w-full px-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-xs sm:text-sm text-white placeholder-blue-200 focus:outline-none focus:border-amber-400 focus:bg-white/15 transition"
                             />
                             <button
                                 type="submit"
@@ -459,7 +459,7 @@ export default function PromotionsPage() {
                                 Nhận Voucher →
                             </button>
                         </div>
-                        <span className="block text-[11px] text-slate-400 mt-2 text-center sm:text-left">
+                        <span className="block text-[11px] text-blue-200 mt-2 text-center sm:text-left">
                             🔒 Cam kết bảo mật thông tin cá nhân. Hủy đăng ký bất kỳ lúc nào.
                         </span>
                     </form>
