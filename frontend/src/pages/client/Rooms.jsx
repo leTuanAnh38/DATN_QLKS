@@ -137,32 +137,37 @@ export default function RoomsAndSuitesPage() {
                 </div>
             </div>
 
-            {/* 1. HERO BANNER */}
-            <section className="bg-white border-b border-slate-200 py-8 lg:py-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* 1. HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
+            <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+                {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
+                <img
+                    src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=2074&q=85"
+                    alt="Phòng nghỉ & Suites Khách Sạn TA Đà Nẵng"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+
+                {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25" />
+
+                {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                        <div className="max-w-3xl">
-                            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
-                                Tuyệt Tác Không Gian Nghỉ Dưỡng Biển Mỹ Khê
+                        <div className="max-w-3xl flex flex-col items-start text-left">
+                            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                                Tuyệt Tác Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
+                                <span className="text-amber-400">
+                                    Bên Bờ Biển Mỹ Khê
+                                </span>
                             </h1>
-                            <p className="text-slate-600 text-sm sm:text-base mt-3 leading-relaxed font-light">
-                                Trải nghiệm các hạng phòng và suites 5 sao chuẩn quốc tế, sở hữu tầm nhìn trực diện biển xanh bao la cùng dịch vụ phòng cao cấp 24/7.
+                            <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                                Trải nghiệm các hạng phòng và suites 5 sao chuẩn quốc tế, sở hữu tầm nhìn trực diện biển xanh bao la cùng dịch vụ phòng cao cấp 24/7 tại Khách Sạn TA Đà Nẵng.
                             </p>
                         </div>
 
-                        {/* Guarantee Badge */}
-                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3.5 shrink-0 shadow-xs">
-                            <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-lg">
-                                🛡️
-                            </div>
-                            <div className="text-xs">
-                                <div className="font-bold text-slate-900">Cam Kết Giá Trực Tuyến Tốt Nhất</div>
-                                <div className="text-slate-500">Miễn phí hủy phòng & Tặng voucher ẩm thực VIP</div>
-                            </div>
-                        </div>
+                    
                     </div>
                 </div>
-            </section>
+            </header>
 
             {/* 2. FILTER & SEARCH TOOLBAR */}
             <section className="sticky top-20 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 py-4 shadow-xs">

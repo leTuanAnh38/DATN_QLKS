@@ -382,7 +382,7 @@ export default function ServiceManagement() {
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                 <div>
                     <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>🛎️</span>
+                        
                         <span>Quản Lý Danh Mục Dịch Vụ</span>
                     </h1>
                     <p className="text-xs text-slate-500 mt-1 max-w-xl">

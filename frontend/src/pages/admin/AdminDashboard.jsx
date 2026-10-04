@@ -17,6 +17,7 @@ import NotificationBell from '../../components/common/NotificationBell';
 import StaffProfile from '../../components/admin/StaffProfile';
 import CustomerDetail from '../../components/admin/CustomerDetail';
 import PostManagement from '../../components/admin/PostManagement';
+import ContactManagement from '../../components/admin/ContactManagement';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -742,6 +743,21 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </span>
                             </button>
 
+                            {/* 10.2 Quản lý Liên hệ (Contact) */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('contacts')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'contacts' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="truncate text-left">Quản lý Liên hệ</span>
+                                </div>
+                            </button>
+
                             {/* 11. Cài đặt hệ thống */}
                             <button
                                 type="button"
@@ -999,6 +1015,7 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                     {/* TAB 8.1: QUẢN LÝ TIN TỨC & BÀI VIẾT (BLOG / NEWS) */}
                     {activeTab === 'posts' && <PostManagement />}
+                    {activeTab === 'contacts' && <ContactManagement />}
 
                     {/* TAB 9: HỒ SƠ NHÂN SỰ & QUẢN TRỊ VIÊN (STAFF PROFILE) */}
                     {activeTab === 'profile' && <StaffProfile />}
@@ -1630,7 +1647,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

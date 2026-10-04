@@ -110,11 +110,23 @@ export default function AuthBookingPage() {
                 </div>
             </div>
 
-            {/* 4. MAIN AUTH SECTION (SPLIT LAYOUT) */}
-            <main className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                    {/* LEFT COLUMN: BOOKING MANAGEMENT BENEFITS & MOCKUP TICKET */}
-                    <div className="lg:col-span-6 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-8 sm:p-10 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
+            {/* 4. MAIN AUTH SECTION (SPLIT LAYOUT VỚI ẢNH NỀN RESORT LUXURY SẮC NÉT) */}
+            <main className="relative min-h-[640px] lg:min-h-[720px] py-12 lg:py-16 overflow-hidden flex items-center bg-slate-950 border-b border-slate-800 shadow-md">
+                {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
+                <img
+                    src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85"
+                    alt="Khách sạn TA Đà Nẵng Luxury Collection"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+
+                {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản */}
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-slate-950/85" />
+
+                {/* 3. Nội dung form & thông tin relative z-10 */}
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                        {/* LEFT COLUMN: BOOKING MANAGEMENT BENEFITS & MOCKUP TICKET */}
+                        <div className="lg:col-span-6 bg-slate-900/85 backdrop-blur-xl border border-white/15 rounded-3xl p-8 sm:p-10 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
                         {/* Background ambient lighting */}
                         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
                         <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -218,7 +230,7 @@ export default function AuthBookingPage() {
                     </div>
 
                     {/* RIGHT COLUMN: AUTHENTICATION FORM CARD */}
-                    <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-10 flex flex-col justify-between">
+                    <div className="lg:col-span-6 bg-white/95 backdrop-blur-xl rounded-3xl border border-white/40 shadow-2xl p-6 sm:p-10 flex flex-col justify-between">
                         <div>
                             {/* ALREADY LOGGED IN BANNER */}
                             {isAuthenticated && (
@@ -518,7 +530,8 @@ export default function AuthBookingPage() {
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
+        </main>
 
             {/* 5. THREE PRACTICAL STEPS WITH BOOKING ACCOUNT */}
             <section className="py-16 bg-white border-t border-slate-200">

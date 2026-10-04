@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { contactService } from '../../services/contactService';
+
+const DEPARTMENT_LABELS = {
+    reservations: 'Đặt phòng lưu trú & Suite',
+    dining: 'Dịch vụ Ẩm thực & Bar (F&B)',
+    spa: 'The Lotus Spa & Wellness',
+    mice: 'Ban Sự Kiện Đoàn & M.I.C.E',
+    transport: 'Đưa đón xe Mercedes Sân Bay',
+    feedback: 'Góp ý & Chăm sóc Khách hàng',
+};
 
 export default function ContactPage() {
     // Form state
@@ -17,6 +27,7 @@ export default function ContactPage() {
     const [copiedAddress, setCopiedAddress] = useState(false);
     const [activeFaq, setActiveFaq] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [toast, setToast] = useState(null); // { type: 'success' | 'error', text }
 
     // FAQ list
     const faqs = [
@@ -41,12 +52,35 @@ export default function ContactPage() {
         setTimeout(() => setCopiedAddress(false), 2500);
     };
 
-    const handleSubmit = (e) => {
+    const showToast = (type, text) => {
+        setToast({ type, text });
+        setTimeout(() => setToast(null), 4500);
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setIsSubmitting(true);
-        setTimeout(() => {
-            setIsSubmitting(false);
-            alert(`Cảm ơn Quý khách ${formData.fullName}! Yêu cầu đã được chuyển tới Ban Quản gia & Bộ phận liên quan. Chúng tôi sẽ phản hồi trong vòng 15 phút.`);
+
+        // Backend chỉ lưu name/email/subject/message nên các thông tin bổ sung được đính kèm vào cuối nội dung
+        const extraLines = [
+            formData.phone && `Số điện thoại: ${formData.phone}`,
+            `Bộ phận tiếp nhận: ${DEPARTMENT_LABELS[formData.department] || formData.department}`,
+            formData.receiveViaZalo && 'Khách muốn nhận tư vấn qua Zalo / WhatsApp',
+        ].filter(Boolean);
+        const messageWithExtras = `${formData.message.trim()}\n\n---\n${extraLines.join('\n')}`;
+
+        const res = await contactService.sendContact({
+            name: formData.fullName.trim(),
+            email: formData.email.trim(),
+            subject: formData.subject.trim(),
+            message: messageWithExtras,
+        });
+
+        setIsSubmitting(false);
+
+        if (res.success) {
+            showToast('success', 'Gửi liên hệ thành công! Chúng tôi sẽ phản hồi Quý khách trong thời gian sớm nhất.');
             setFormData({
                 fullName: '',
                 phone: '',
@@ -56,13 +90,33 @@ export default function ContactPage() {
                 message: '',
                 receiveViaZalo: false
             });
-        }, 800);
+        } else {
+            showToast('error', res.message || 'Không thể gửi liên hệ. Vui lòng thử lại sau.');
+        }
     };
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
             {/* Reusable Navbar */}
             <Navbar />
+
+            {/* Toast thông báo kết quả gửi liên hệ */}
+            {toast && (
+                <div
+                    role="status"
+                    className={`fixed top-24 right-5 z-[60] max-w-sm flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-xl border text-xs sm:text-sm font-medium ${
+                        toast.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-rose-50 text-rose-800 border-rose-200'
+                    }`}
+                >
+                    <span className="text-base leading-none mt-0.5">{toast.type === 'success' ? '✅' : '⚠️'}</span>
+                    <span className="flex-1">{toast.text}</span>
+                    <button type="button" onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-700 leading-none cursor-pointer" aria-label="Đóng">
+                        ✕
+                    </button>
+                </div>
+            )}
 
 
             {/* 3. BREADCRUMB */}
@@ -76,22 +130,37 @@ export default function ContactPage() {
                 </div>
             </div>
 
-            {/* 4. HERO HEADER & 3 PILLARS */}
-            <section className="pt-10 pb-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center max-w-3xl mx-auto mb-10">
-                    <span className="inline-block px-3.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-wider mb-3">
-                        🛡️ Dịch vụ Concierge & Chăm sóc Khách hàng 24/7
-                    </span>
-                    <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
-                        Kết Nối Với Khách Sạn TA Đà Nẵng
-                    </h1>
-                    <p className="text-slate-600 text-sm sm:text-base mt-3 leading-relaxed">
-                        Đội ngũ Quản gia & Chuyên viên Chăm sóc Khách hàng luôn sẵn sàng lắng nghe, tư vấn kỳ nghỉ thượng lưu, tiếp nhận đặt dịch vụ ẩm thực, spa hoặc giải đáp mọi yêu cầu riêng biệt của Quý khách với sự chu đáo tuyệt đối.
-                    </p>
-                </div>
+            {/* 4. HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
+            <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+                {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
+                <img
+                    src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=2080&q=85"
+                    alt="Khách Sạn TA Đà Nẵng Luxury Resort & Concierge"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                />
 
-                {/* 3 Guarantees Badges */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-12">
+                {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25" />
+
+                {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-3xl flex flex-col items-start text-left">
+                        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                            Kết Nối & Chỉ Dẫn Đường Đi <br className="hidden sm:inline" />
+                            <span className="text-amber-400">
+                                Khách Sạn TA Đà Nẵng
+                            </span>
+                        </h1>
+                        <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                            Đội ngũ Quản gia & Chuyên viên Chăm sóc Khách hàng luôn sẵn sàng lắng nghe, tư vấn kỳ nghỉ thượng lưu và tiếp nhận mọi yêu cầu riêng biệt của Quý khách với sự chu đáo tuyệt đối 24/7.
+                        </p>
+                    </div>
+                </div>
+            </header>
+
+            {/* 3 Guarantees Badges */}
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                     <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition">
                         <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
                             ⏱️
@@ -130,9 +199,9 @@ export default function ContactPage() {
                     <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 shadow-lg p-6 sm:p-10">
                         <div className="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
                             <div>
-                                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">Thư ký riêng ban quản gia</span>
+                                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block"></span>
                                 <h2 className="font-serif text-2xl font-bold text-slate-900 mt-1">
-                                    Gửi Tin Nhắn & Yêu Cầu Đặt Chỗ Trực Tiếp
+                                    Gửi yêu cầu liên hệ
                                 </h2>
                             </div>
                             <span className="text-2xl text-slate-400">✉️</span>
@@ -203,10 +272,12 @@ export default function ContactPage() {
 
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                    Tiêu đề yêu cầu
+                                    Tiêu đề yêu cầu <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
+                                    required
+                                    maxLength={255}
                                     value={formData.subject}
                                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                     placeholder="Ví dụ: Đặt phòng Ocean Penthouse dịp kỷ niệm ngày cưới"
@@ -224,6 +295,7 @@ export default function ContactPage() {
                                 <textarea
                                     rows={4}
                                     required
+                                    maxLength={4500}
                                     value={formData.message}
                                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                     placeholder="Quý khách có thể cung cấp thêm thông tin về số lượng khách, chế độ ăn uống đặc biệt (thuần chay, gluten-free), sở thích gối lông vũ / thảo mộc, hoặc mong muốn đón sân bay chuyên biệt..."
@@ -250,7 +322,7 @@ export default function ContactPage() {
                                 disabled={isSubmitting}
                                 className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
                             >
-                                <span>{isSubmitting ? 'Đang gửi...' : 'Gửi Yêu Cầu Đến Ban Quản Gia'}</span>
+                                <span>{isSubmitting ? 'Đang gửi...' : 'Gửi Yêu Cầu'}</span>
                                 <span>→</span>
                             </button>
 
