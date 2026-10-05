@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Mail, MailOpen, Trash2, Eye, Check, X, Inbox, AlertTriangle } from 'lucide-react';
+import { Search, Mail, MailOpen, Trash2, Eye, Check, X, Inbox, AlertTriangle, RefreshCw, Filter } from 'lucide-react';
 import { contactService } from '../../services/contactService';
 import Pagination from '../common/Pagination';
 
@@ -19,13 +19,13 @@ const formatDate = (iso) => {
 
 function StatusBadge({ isRead }) {
     return isRead ? (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold whitespace-nowrap">
-            <MailOpen className="w-3.5 h-3.5" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
             Đã đọc
         </span>
     ) : (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-100 text-orange-600 text-[11px] font-semibold whitespace-nowrap">
-            <Mail className="w-3.5 h-3.5" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
             Chưa đọc
         </span>
     );
@@ -86,9 +86,21 @@ export default function ContactManagement() {
     }, [fetchContacts]);
 
     const handleFilterSubmit = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setCurrentPage(1);
         setAppliedFilters({ search: searchInput.trim(), is_read: statusInput });
+    };
+
+    const handleStatusTabChange = (val) => {
+        setStatusInput(val);
+        setCurrentPage(1);
+        setAppliedFilters({ search: searchInput.trim(), is_read: val });
+    };
+
+    const handleResetSearch = () => {
+        setSearchInput('');
+        setCurrentPage(1);
+        setAppliedFilters({ search: '', is_read: statusInput });
     };
 
     // Cập nhật 1 bản ghi ngay trên bảng sau khi đánh dấu đã đọc
@@ -153,43 +165,82 @@ export default function ContactManagement() {
                 </div>
             )}
 
-            {/* Tiêu đề trang */}
-            <div>
-                <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">Quản Lý Liên Hệ</h2>
-                <p className="text-xs text-slate-500 mt-1">Tiếp nhận và xử lý các yêu cầu liên hệ từ khách hàng.</p>
+            {/* Header & Nút Tải Lại */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                        Quản Lý Liên Hệ
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">Tiếp nhận và xử lý các yêu cầu liên hệ từ khách hàng.</p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={fetchContacts}
+                    disabled={isLoading}
+                    className="self-start sm:self-auto px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                    <span>Tải lại</span>
+                </button>
             </div>
 
-            {/* Khối bộ lọc */}
-            <form
-                onSubmit={handleFilterSubmit}
-                className="flex flex-col md:flex-row md:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm"
-            >
-                <div className="relative md:w-[40%]">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                        type="text"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                        placeholder="Tên, email, chủ đề, nội dung..."
-                        className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
-                    />
+            {/* BỘ LỌC & TÌM KIẾM */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Tabs Lọc Trạng thái (Tất cả, Chưa đọc, Đã đọc) */}
+                    <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
+                        {[
+                            { key: '', label: 'Tất cả' },
+                            { key: 'false', label: 'Chưa đọc' },
+                            { key: 'true', label: 'Đã đọc' },
+                        ].map((tab) => (
+                            <button
+                                key={tab.key}
+                                type="button"
+                                onClick={() => handleStatusTabChange(tab.key)}
+                                className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer ${
+                                    statusInput === tab.key
+                                        ? 'bg-white text-blue-600 shadow-xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <select
-                    value={statusInput}
-                    onChange={(e) => setStatusInput(e.target.value)}
-                    className="md:w-52 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
-                >
-                    <option value="">-- Tất cả --</option>
-                    <option value="false">Chưa đọc</option>
-                    <option value="true">Đã đọc</option>
-                </select>
-                <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition cursor-pointer shadow-sm"
-                >
-                    Lọc
-                </button>
-            </form>
+
+                {/* Form tìm kiếm & Nút Lọc */}
+                <form onSubmit={handleFilterSubmit} className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative min-w-[260px] md:w-80 flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            placeholder="Tìm tên, email, chủ đề, nội dung..."
+                            className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                        />
+                        {searchInput && (
+                            <button
+                                type="button"
+                                onClick={handleResetSearch}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                    <button
+                        type="submit"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95"
+                    >
+                        <Filter className="w-3.5 h-3.5" />
+                        <span>Lọc</span>
+                    </button>
+                </form>
+            </div>
 
             {/* Bảng dữ liệu */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -208,7 +259,7 @@ export default function ContactManagement() {
                                 <th className="px-4 py-3.5">Nội dung tóm tắt</th>
                                 <th className="px-4 py-3.5">Ngày gửi</th>
                                 <th className="px-4 py-3.5">Trạng thái</th>
-                                <th className="px-6 py-3.5">Hành động</th>
+                                <th className="px-6 py-3.5 text-right">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -250,34 +301,42 @@ export default function ContactManagement() {
                                         <td className="px-4 py-4">
                                             <StatusBadge isRead={c.is_read} />
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleView(c)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition cursor-pointer"
-                                                >
-                                                    <Eye className="w-3.5 h-3.5" />
-                                                    Xem
-                                                </button>
-                                                {!c.is_read && (
+                                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                {!c.is_read ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleMarkRead(c)}
                                                         disabled={markingId === c.id}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white text-xs font-semibold transition cursor-pointer"
+                                                        className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 font-bold text-[11px] transition shadow-2xs inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                                        title="Đánh dấu đã đọc"
                                                     >
                                                         <Check className="w-3.5 h-3.5" />
-                                                        Đã đọc
+                                                        <span>{markingId === c.id ? 'Đang lưu...' : 'Đã đọc'}</span>
                                                     </button>
+                                                ) : (
+                                                    <span className="px-2 py-1 text-[11px] text-slate-400 font-medium italic inline-flex items-center gap-1">
+                                                        <Check className="w-3 h-3 text-slate-300" />
+                                                        <span>Đã đọc</span>
+                                                    </span>
                                                 )}
                                                 <button
                                                     type="button"
+                                                    onClick={() => handleView(c)}
+                                                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                                                    title="Xem chi tiết nội dung liên hệ"
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    <span>Xem</span>
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     onClick={() => setDeleteTarget(c)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition cursor-pointer"
+                                                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                                                    title="Xóa yêu cầu liên hệ"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
-                                                    Xóa
+                                                    <span>Xóa</span>
                                                 </button>
                                             </div>
                                         </td>
@@ -368,9 +427,10 @@ export default function ContactManagement() {
                             </button>
                             <a
                                 href={`mailto:${selectedContact.email}?subject=${encodeURIComponent('Re: ' + selectedContact.subject)}`}
-                                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition"
+                                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5"
                             >
-                                Phản hồi qua email
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>Phản hồi qua email</span>
                             </a>
                         </div>
                     </div>
@@ -387,7 +447,7 @@ export default function ContactManagement() {
                         className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto mb-3">
+                        <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
                             <Trash2 className="w-6 h-6" />
                         </div>
                         <h3 className="text-base font-bold text-slate-900">Xóa liên hệ này?</h3>
@@ -407,7 +467,7 @@ export default function ContactManagement() {
                                 type="button"
                                 onClick={handleConfirmDelete}
                                 disabled={isDeleting}
-                                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition cursor-pointer disabled:opacity-60"
+                                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer shadow-xs disabled:opacity-60"
                             >
                                 {isDeleting ? 'Đang xóa...' : 'Xóa'}
                             </button>

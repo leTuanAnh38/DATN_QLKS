@@ -130,69 +130,36 @@ export default function ContactPage() {
                 </div>
             </div>
 
-            {/* 4. HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
+            {/* 4. HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT RÕ RÀNG + GRADIENT OVERLAY) */}
             <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
                 {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
                 <img
-                    src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=2080&q=85"
+                    src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90"
                     alt="Khách Sạn TA Đà Nẵng Luxury Resort & Concierge"
                     className="absolute inset-0 w-full h-full object-cover object-center"
                 />
 
-                {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25" />
+                {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ nhưng vẫn rõ ảnh */}
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/50 to-transparent" />
 
                 {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-3xl flex flex-col items-start text-left">
-                        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
                             Kết Nối & Chỉ Dẫn Đường Đi <br className="hidden sm:inline" />
                             <span className="text-amber-400">
                                 Khách Sạn TA Đà Nẵng
                             </span>
                         </h1>
-                        <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                        <p className="text-sm sm:text-base text-gray-100 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md">
                             Đội ngũ Quản gia & Chuyên viên Chăm sóc Khách hàng luôn sẵn sàng lắng nghe, tư vấn kỳ nghỉ thượng lưu và tiếp nhận mọi yêu cầu riêng biệt của Quý khách với sự chu đáo tuyệt đối 24/7.
                         </p>
                     </div>
                 </div>
             </header>
 
-            {/* 3 Guarantees Badges */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition">
-                        <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
-                            ⏱️
-                        </div>
-                        <div>
-                            <span className="text-[11px] text-slate-400 uppercase font-semibold block">Tốc độ phản hồi</span>
-                            <strong className="text-sm font-bold text-slate-900">Phản hồi trong 15 phút</strong>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition">
-                        <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl shrink-0">
-                            📞
-                        </div>
-                        <div>
-                            <span className="text-[11px] text-slate-400 uppercase font-semibold block">Tổng đài viên trực tiếp</span>
-                            <strong className="text-sm font-bold text-slate-900">Hotline 24/7: 1900 8899</strong>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition">
-                        <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
-                            💎
-                        </div>
-                        <div>
-                            <span className="text-[11px] text-slate-400 uppercase font-semibold block">Tọa độ biển Đà Nẵng</span>
-                            <strong className="text-sm font-bold text-slate-900">Kim Cương Bãi Biển Mỹ Khê</strong>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             {/* 5. MAIN SECTION: FORM (LEFT) + DIRECT CONTACT CARD (RIGHT) */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
                     {/* LEFT: INTERACTIVE CONTACT FORM */}
@@ -468,18 +435,23 @@ export default function ContactPage() {
                         </div>
                     </div>
 
-                    {/* MAP MOCKUP CONTAINER */}
-                    <div className="w-full h-96 rounded-3xl overflow-hidden shadow-md border border-slate-200 relative bg-slate-100">
-                        {/* Stylized simulated map view */}
-                        <img
-                            src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1400&q=80"
-                            alt="Bản đồ vị trí Khách Sạn TA Đà Nẵng"
-                            className="w-full h-full object-cover filter contrast-[0.95]"
+                    {/* BẢN ĐỒ THỰC TẾ GOOGLE MAPS */}
+                    <div className="w-full h-[460px] rounded-3xl overflow-hidden shadow-lg border border-slate-200 relative bg-slate-100">
+                        {/* Interactive Real Google Maps Iframe */}
+                        <iframe
+                            src="https://maps.google.com/maps?q=08%20V%C3%B5%20Nguy%C3%AAn%20Gi%C3%A1p,%20Ph%C6%B0%E1%BB%9Dng%20M%E1%BB%B9%20An,%20Qu%E1%BA%ADn%20Ng%C5%A9%20H%C3%A0nh%20S%C6%A1n,%20%C4%90%C3%A0%20N%E1%BA%B5ng&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen=""
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            title="Bản đồ vị trí thực tế Khách Sạn TA Đà Nẵng"
+                            className="w-full h-full"
                         />
-                        <div className="absolute inset-0 bg-blue-900/10 pointer-events-none" />
 
                         {/* Overlaid Hotel Pin Card */}
-                        <div className="absolute top-6 left-6 max-w-xs bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/60">
+                        <div className="absolute top-4 left-4 max-w-xs bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/60 pointer-events-auto">
                             <div className="flex items-center gap-1 text-amber-500 text-xs mb-1">
                                 <span>★</span>
                                 <span className="font-bold text-[11px] uppercase tracking-wider text-slate-800">5-Star Luxury Resort</span>
@@ -498,15 +470,15 @@ export default function ContactPage() {
                             </div>
                         </div>
 
-                        {/* Bottom Right CTA */}
+                        {/* Bottom Right CTA Link to Google Maps */}
                         <a
-                            href="https://maps.google.com"
+                            href="https://www.google.com/maps/dir/?api=1&destination=08+V%C3%B5+Nguy%C3%AAn+Gi%C3%A1p,+Ph%C6%B0%E1%BB%9Dng+M%E1%BB%B9+An,+Qu%E1%BA%ADn+Ng%C5%A9+H%C3%A0nh+S%C6%A1n,+%C4%90%C3%A0+N%E1%BA%B5ng"
                             target="_blank"
                             rel="noreferrer"
-                            className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 flex items-center gap-2 transition"
+                            className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 flex items-center gap-2 transition hover:scale-105 active:scale-95 pointer-events-auto"
                         >
                             <span>🧭</span>
-                            <span>Tìm đường đi tối ưu</span>
+                            <span>Mở chỉ đường Google Maps</span>
                         </a>
                     </div>
 

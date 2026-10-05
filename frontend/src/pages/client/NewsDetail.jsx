@@ -65,6 +65,21 @@ export default function NewsDetail() {
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
             <Navbar />
 
+            {/* BREADCRUMB THANH ĐIỀU HƯỚNG */}
+            <div className="bg-slate-100/80 border-b border-slate-200/60 py-3">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
+                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                        <span>/</span>
+                        <Link to="/news" className="hover:text-blue-600 transition">Tin tức & Cẩm nang</Link>
+                        <span>/</span>
+                        <span className="text-slate-900 font-semibold truncate max-w-xs sm:max-w-md">
+                            {post?.title || 'Chi tiết bài viết'}
+                        </span>
+                    </nav>
+                </div>
+            </div>
+
             <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
                 {isLoading ? (
                     <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto">
@@ -91,16 +106,6 @@ export default function NewsDetail() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
                         {/* CỘT CHÍNH: NỘI DUNG BÀI VIẾT */}
                         <article className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs space-y-6">
-                            {/* BREADCRUMB MINIMALIST (TỐI GIẢN) */}
-                            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-gray-500 mb-6 flex-wrap">
-                                <Link to="/" className="hover:text-blue-600 transition-colors">Trang chủ</Link>
-                                <span className="text-gray-400">/</span>
-                                <Link to="/news" className="hover:text-blue-600 transition-colors">Tin tức</Link>
-                                <span className="text-gray-400">/</span>
-                                <span className="text-gray-700 font-medium truncate max-w-xs sm:max-w-md" title={post.title}>
-                                    {post.title}
-                                </span>
-                            </nav>
 
                             {/* Meta Head */}
                             <div className="space-y-3 pb-6 border-b border-slate-100">

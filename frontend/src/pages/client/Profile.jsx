@@ -179,32 +179,47 @@ export default function Profile() {
         <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-amber-100 selection:text-amber-900">
             <Navbar />
 
-            {/* 1. HERO BREADCRUMB HEADER */}
-            <div className="bg-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden border-b border-slate-800">
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d97706_1px,transparent_1px)] [background-size:16px_16px]" />
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <nav className="flex items-center gap-2 text-xs text-amber-300/80 mb-3 uppercase tracking-wider font-semibold">
-                        <Link to="/" className="hover:text-white transition">Trang chủ</Link>
+            {/* 1. BREADCRUMB THANH ĐIỀU HƯỚNG */}
+            <div className="bg-slate-100/80 border-b border-slate-200/60 py-3">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
+                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
                         <span>/</span>
-                        <span className="text-white">Hồ sơ cá nhân & Tài khoản</span>
+                        <span className="text-slate-900 font-semibold">Hồ sơ cá nhân & Tài khoản</span>
                     </nav>
+                </div>
+            </div>
+
+            {/* 2. HEADER TIÊU ĐỀ */}
+            <header className="bg-white border-b border-slate-100 py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-wide">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
+                                    ✦ Trung tâm quản lý tài khoản
+                                </span>
+                                {user && (
+                                    <span className="text-xs text-slate-500">
+                                        Khách hàng: <strong>{user.full_name || user.username}</strong>
+                                    </span>
+                                )}
+                            </div>
+                            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                                 Hồ Sơ Của Tôi
                             </h1>
-                            <p className="text-slate-300 text-xs sm:text-sm mt-1">
-                                Quản lý thông tin định danh, tùy chọn kỳ nghỉ và cập nhật ảnh đại diện tài khoản
+                            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+                                Quản lý thông tin định danh, tùy chọn kỳ nghỉ và cập nhật ảnh đại diện tài khoản.
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 backdrop-blur-sm">
+                            <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
                                 ★ Hạng Hội Viên: {user?.guest_profile?.vip_tier || 'Silver Member'}
                             </span>
                         </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
             {/* 2. MAIN PROFILE CONTAINER */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1">
@@ -214,7 +229,7 @@ export default function Profile() {
                     <div className="lg:col-span-4 space-y-6">
                         {/* Card Avatar & Tải ảnh đại diện */}
                         <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100 text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900" />
+                            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700" />
 
                             {/* Avatar Display */}
                             <div className="relative z-10 -mt-2 flex flex-col items-center">
@@ -235,7 +250,7 @@ export default function Profile() {
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-slate-900 hover:bg-blue-600 text-white border-2 border-white shadow-lg flex items-center justify-center cursor-pointer transition transform hover:scale-110"
+                                        className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white border-2 border-white shadow-lg flex items-center justify-center cursor-pointer transition transform hover:scale-110"
                                         title="Thay đổi ảnh đại diện"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,8 +331,8 @@ export default function Profile() {
                                 className="w-full py-3 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl px-2 transition text-left cursor-pointer"
                             >
                                 <span className="flex items-center gap-2.5">
-                                    <span className="w-4 h-4 flex items-center justify-center text-black">
-                                        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span className="w-4 h-4 flex items-center justify-center text-blue-600">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                         </svg>
                                     </span>
@@ -330,8 +345,8 @@ export default function Profile() {
                                 className="w-full py-3 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl px-2 transition text-left cursor-pointer"
                             >
                                 <span className="flex items-center gap-2.5">
-                                    <span className="w-4 h-4 flex items-center justify-center text-black">
-                                        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span className="w-4 h-4 flex items-center justify-center text-blue-600">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                                         </svg>
                                     </span>
@@ -344,8 +359,8 @@ export default function Profile() {
                                 className="w-full py-3 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl px-2 transition text-left cursor-pointer"
                             >
                                 <span className="flex items-center gap-2.5">
-                                    <span className="w-4 h-4 flex items-center justify-center text-black">
-                                        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span className="w-4 h-4 flex items-center justify-center text-blue-600">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </span>

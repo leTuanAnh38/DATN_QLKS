@@ -67,7 +67,7 @@ export default function NewsList() {
             <Navbar />
 
             {/* BREADCRUMB ĐỒNG BỘ VỊ TRÍ 100% VỚI TRANG MENU DỊCH VỤ */}
-            <div className="bg-white border-b border-slate-100 py-3">
+            <div className="bg-slate-100/80 border-b border-slate-200/60 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500">
                         <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
