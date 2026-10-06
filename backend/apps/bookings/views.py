@@ -81,7 +81,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         if is_staff_or_admin:
             from django.db.models import Case, When, Value, IntegerField
             status_priority = Case(
-                When(status='pending', then=Value(1)),
+                When(status__in=['pending', 'paid', 'PAID'], then=Value(1)),
                 When(status='confirmed', then=Value(2)),
                 When(status='checked_in', then=Value(3)),
                 When(status__in=['checked_out', 'completed'], then=Value(4)),
@@ -372,7 +372,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         except Booking.DoesNotExist:
             return Response({'success': False, 'message': f'Không tìm thấy đơn đặt phòng "{booking_identifier}".'}, status=status.HTTP_404_NOT_FOUND)
 
-        if booking.status not in ['pending', 'confirmed']:
+        if booking.status not in ['pending', 'confirmed', 'paid', 'PAID']:
             return Response({'success': False, 'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể hủy.'}, status=status.HTTP_400_BAD_REQUEST)
 
         booking.status = 'cancelled'
@@ -413,7 +413,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         # Xử lý trường hợp tài khoản là khách hàng
         if not is_staff_or_admin:
             if new_status == 'cancelled':
-                if booking.status != 'pending':
+                if booking.status not in ['pending', 'paid', 'PAID']:
                     return Response({
                         'success': False,
                         'message': 'Đơn đặt phòng chỉ có thể hủy khi đang ở trạng thái Chờ duyệt (Pending).'
@@ -1430,6 +1430,22 @@ class BookingViewSet(viewsets.ModelViewSet):
         # 4. Tổng thanh toán cuối cùng (grand_total)
         grand_total = float(room_charge + total_service_charge)
 
+        # 4.1. Xác định số tiền khách đã thanh toán trước (paid_amount)
+        paid_amount = 0.0
+        if hasattr(booking, 'payments'):
+            completed_payments = booking.payments.filter(payment_status='COMPLETED')
+            if completed_payments.exists():
+                paid_amount = float(sum(p.amount for p in completed_payments))
+
+        if paid_amount <= 0:
+            if booking.status in ['paid', 'PAID'] or (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid'):
+                paid_amount = float(room_charge)
+            elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
+                paid_amount = float(room_charge)
+
+        # Số tiền còn lại cần thanh toán khi check-out (remaining_amount)
+        remaining_amount = max(0.0, float(grand_total - paid_amount))
+
         # 5. Thông tin hóa đơn đã có (nếu đơn đã từng lập hóa đơn)
         invoice_info = None
         if hasattr(booking, 'invoice') and booking.invoice:
@@ -1468,6 +1484,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             'extra_services': extra_services,
             'total_service_charge': total_service_charge,
             'grand_total': grand_total,
+            'paid_amount': paid_amount,
+            'remaining_amount': remaining_amount,
             'status': booking.status,
             'status_display': booking.get_status_display(),
             'invoice': invoice_info
@@ -1526,6 +1544,20 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             grand_total = float(room_charge + total_service_charge)
 
+            # Xác định số tiền đã thanh toán trước và số tiền còn lại phải thu
+            paid_amount = 0.0
+            if hasattr(booking, 'payments'):
+                completed_payments = booking.payments.filter(payment_status='COMPLETED')
+                if completed_payments.exists():
+                    paid_amount = float(sum(p.amount for p in completed_payments))
+            if paid_amount <= 0:
+                if booking.status in ['paid', 'PAID'] or (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid'):
+                    paid_amount = float(room_charge)
+                elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
+                    paid_amount = float(room_charge)
+
+            remaining_amount = max(0.0, float(grand_total - paid_amount))
+
             # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền
             invoice, created = Invoice.objects.update_or_create(
                 booking=booking,
@@ -1539,17 +1571,24 @@ class BookingViewSet(viewsets.ModelViewSet):
                 }
             )
 
-            # 2.1 Đồng bộ bản ghi Payment để quản lý tập trung ở trang Thanh toán & Hóa đơn
+            # 2.1 Đồng bộ bản ghi Payment
             method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
-            Payment.objects.update_or_create(
-                booking=booking,
-                defaults={
-                    'amount': grand_total,
-                    'payment_method': method_code,
-                    'payment_status': 'COMPLETED',
-                    'transaction_id': f"TXN-{invoice.invoice_code.replace('INV-', '')}"
-                }
-            )
+            if remaining_amount > 0:
+                Payment.objects.create(
+                    booking=booking,
+                    amount=remaining_amount,
+                    payment_method=method_code,
+                    payment_status='COMPLETED',
+                    transaction_id=f"TXN-CHECKOUT-{invoice.invoice_code.replace('INV-', '')}"
+                )
+            elif not hasattr(booking, 'payments') or not booking.payments.filter(payment_status='COMPLETED').exists():
+                Payment.objects.create(
+                    booking=booking,
+                    amount=grand_total,
+                    payment_method=method_code,
+                    payment_status='COMPLETED',
+                    transaction_id=f"TXN-{invoice.invoice_code.replace('INV-', '')}"
+                )
 
             # 3. Cập nhật bảng Booking: Đổi trạng thái thành completed
             booking.status = 'completed'
@@ -1880,7 +1919,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             'extra_services', 'service_requests'
         ).filter(
             check_in_date=today,
-            status__in=['pending', 'confirmed']
+            status__in=['pending', 'paid', 'PAID', 'confirmed']
         ).order_by('status', '-created_at')
 
         serializer = BookingSerializer(qs, many=True, context={'request': request})
@@ -2203,7 +2242,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         # 5. THỐNG KÊ ĐƠN ĐẶT PHÒNG THỰC TẾ
         all_bookings = Booking.objects.all()
         total_bookings = all_bookings.count()
-        pending_count = all_bookings.filter(status='pending').count()
+        pending_count = all_bookings.filter(status__in=['pending', 'paid', 'PAID']).count()
         confirmed_count = all_bookings.filter(status='confirmed').count()
         checked_in_count = all_bookings.filter(status='checked_in').count()
         completed_count = all_bookings.filter(status='completed').count()
@@ -2212,7 +2251,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         today_check_in = all_bookings.filter(
             check_in_date=today,
-            status__in=['pending', 'confirmed']
+            status__in=['pending', 'paid', 'PAID', 'confirmed']
         ).count()
         today_check_out = all_bookings.filter(
             check_out_date=today,

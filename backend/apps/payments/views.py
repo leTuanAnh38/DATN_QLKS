@@ -84,7 +84,10 @@ class ConfirmPaymentView(APIView):
 
         # 4. Hợp lệ: Đổi trạng thái Booking thành "Đã thanh toán" (PAID)
         booking.status = 'paid'
-        booking.save(update_fields=['status'])
+        note_str = (booking.note or '').strip()
+        if 'VietQR: Đã thanh toán' not in note_str:
+            booking.note = f"{note_str} | VietQR: Đã thanh toán ({amount_dec:,.0f} VND)" if note_str else f"VietQR: Đã thanh toán ({amount_dec:,.0f} VND)"
+        booking.save(update_fields=['status', 'note'])
 
         # Cập nhật hóa đơn nếu có
         try:

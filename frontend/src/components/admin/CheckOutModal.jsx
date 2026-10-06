@@ -207,12 +207,26 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 <span>Tổng phí dịch vụ phát sinh:</span>
                                 <span className="font-semibold text-slate-900">{formatCurrency(completedInvoice.service_charge || summary?.total_service_charge)}</span>
                             </div>
+                            <div className="flex justify-between text-slate-600">
+                                <span>Tổng giá trị hóa đơn lưu trú:</span>
+                                <span className="font-semibold text-slate-900">{formatCurrency(completedInvoice.total_amount || summary?.grand_total)}</span>
+                            </div>
+                            {Number(summary?.paid_amount) > 0 && (
+                                <div className="flex justify-between text-emerald-700 font-semibold">
+                                    <span>✓ Đã thanh toán trước (Tiền phòng VietQR):</span>
+                                    <span>-{formatCurrency(summary.paid_amount)}</span>
+                                </div>
+                            )}
                             <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline font-bold">
-                                <span className="text-sm text-slate-800">Tổng tiền đã thu:</span>
-                                <span className="text-xl text-emerald-700 font-black">{formatCurrency(completedInvoice.total_amount || summary?.grand_total)}</span>
+                                <span className="text-sm text-slate-800">
+                                    {Number(summary?.paid_amount) > 0 ? 'Thực thu khi trả phòng:' : 'Tổng tiền đã thu:'}
+                                </span>
+                                <span className="text-xl text-emerald-700 font-black">
+                                    {formatCurrency(Number(summary?.paid_amount) > 0 ? (summary?.remaining_amount ?? 0) : (completedInvoice.total_amount || summary?.grand_total))}
+                                </span>
                             </div>
                             <div className="flex justify-between text-[11px] text-slate-500 pt-1">
-                                <span>Phương thức:</span>
+                                <span>Phương thức thanh toán:</span>
                                 <span className="font-semibold text-slate-700 uppercase">{completedInvoice.payment_method_display || completedInvoice.payment_method || paymentMethod}</span>
                             </div>
                         </div>
@@ -230,6 +244,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             room_amount: completedInvoice.room_charge || summary?.room_charge,
                                             extra_services_total: completedInvoice.service_charge || summary?.total_service_charge,
                                             grand_total_amount: completedInvoice.total_amount || summary?.grand_total,
+                                            paid_amount: summary?.paid_amount,
+                                            remaining_amount: summary?.remaining_amount,
                                             invoice: completedInvoice
                                         });
                                     }}
@@ -381,12 +397,30 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 {formatCurrency(summary.total_service_charge)}
                                             </td>
                                         </tr>
-                                        <tr className="bg-amber-100/60 border-t-2 border-amber-300">
-                                            <td colSpan={3} className="py-3.5 px-4 text-right font-extrabold text-slate-900 text-sm uppercase tracking-wide">
-                                                Tổng thanh toán cuối cùng (Grand Total):
+                                        <tr>
+                                            <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-700">
+                                                Tổng chi phí lưu trú (Grand Total):
                                             </td>
-                                            <td className="py-3.5 px-4 text-right font-black text-amber-700 text-xl">
+                                            <td className="py-2 px-4 text-right font-bold text-slate-900">
                                                 {formatCurrency(summary.grand_total)}
+                                            </td>
+                                        </tr>
+                                        {Number(summary.paid_amount) > 0 && (
+                                            <tr className="bg-emerald-50/70 border-t border-emerald-200 text-emerald-800">
+                                                <td colSpan={3} className="py-2 px-4 text-right font-bold">
+                                                    ✓ Đã thanh toán trước (Tiền phòng VietQR):
+                                                </td>
+                                                <td className="py-2 px-4 text-right font-extrabold text-emerald-700">
+                                                    -{formatCurrency(summary.paid_amount)}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        <tr className="bg-amber-100/70 border-t-2 border-amber-300">
+                                            <td colSpan={3} className="py-3 px-4 text-right font-extrabold text-slate-900 text-sm uppercase tracking-wide">
+                                                {Number(summary.paid_amount) > 0 ? 'Còn lại cần thu khi trả phòng (Balance Due):' : 'Tổng thanh toán cuối cùng (Grand Total):'}
+                                            </td>
+                                            <td className="py-3 px-4 text-right font-black text-amber-800 text-xl">
+                                                {formatCurrency(summary.remaining_amount != null ? summary.remaining_amount : (summary.grand_total - (summary.paid_amount || 0)))}
                                             </td>
                                         </tr>
                                     </tfoot>
@@ -398,7 +432,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                                 <span>💳</span>
-                                <span>Chọn phương thức thanh toán:</span>
+                                <span>Chọn phương thức thanh toán phát sinh:</span>
                                 <span className="text-rose-500">*</span>
                             </label>
 
@@ -433,11 +467,21 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 ))}
                             </div>
 
+                            {/* Thông báo nếu đã thanh toán đủ 100% không phát sinh dịch vụ */}
+                            {Number(summary?.paid_amount) > 0 && (summary?.remaining_amount === 0 || (summary?.remaining_amount == null && summary?.grand_total <= summary?.paid_amount)) && (
+                                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
+                                    <span className="text-base">✅</span>
+                                    <div>
+                                        <strong>Đã thanh toán đủ:</strong> Tiền phòng đã được thanh toán trước qua VietQR và khách không phát sinh thêm dịch vụ. Số tiền cần thu tại quầy là <strong>0đ</strong>.
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Hiển thị mã VietQR động khi chọn phương thức Chuyển khoản */}
-                            {paymentMethod === 'bank_transfer' && summary?.grand_total > 0 && (
+                            {paymentMethod === 'bank_transfer' && (summary?.remaining_amount != null ? summary.remaining_amount : summary.grand_total) > 0 && (
                                 <div className="mt-3 rounded-2xl border border-blue-200 bg-white overflow-hidden shadow-sm animate-fadeIn">
                                     <PaymentSection
-                                        amount={summary.grand_total}
+                                        amount={summary.remaining_amount != null ? summary.remaining_amount : summary.grand_total}
                                         bookingCode={booking.booking_code || `BK-${booking.id}`}
                                         customerName={booking.guest_name}
                                         isModalView={false}

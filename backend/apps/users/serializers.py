@@ -70,12 +70,22 @@ class UserSerializer(serializers.ModelSerializer):
                 pass
         return obj.avatar.url
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        profile = getattr(instance, 'guest_profile', None)
+        id_card = profile.id_card_number if profile and profile.id_card_number else ''
+        prefs = profile.preferences if profile and profile.preferences else ''
+        data['id_card_number'] = id_card
+        data['identity_card'] = id_card
+        data['preferences'] = prefs
+        return data
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
-    Serializer chuyên biệt cho trang Hồ sơ cá nhân (Staff / Manager Profile)
-    - Editable: first_name, last_name, phone_number, avatar, address
-    - Read-only: email, role, role_display, department, employee_code, position, shift, hire_date
+    Serializer chuyên biệt cho trang Hồ sơ cá nhân (Khách hàng & Nhân sự)
+    - Editable: first_name, last_name, phone_number, email, avatar, address, id_card_number, preferences
+    - Read-only: role, role_display, department, employee_code, position, shift, hire_date
     """
     full_name = serializers.SerializerMethodField()
     role_display = serializers.CharField(source='get_role_display', read_only=True)
@@ -87,6 +97,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
     guest_profile = GuestProfileSerializer(read_only=True)
     employee_profile = EmployeeProfileSerializer(read_only=True)
+    id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+    identity_card = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+    preferences = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = User
@@ -111,11 +124,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'employee_profile',
             'is_staff',
             'is_superuser',
+            'id_card_number',
+            'identity_card',
+            'preferences',
         )
         read_only_fields = (
             'id',
             'username',
-            'email',
             'role',
             'role_display',
             'department',
@@ -158,6 +173,25 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return obj.employee_profile.hire_date
         return None
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        profile = getattr(instance, 'guest_profile', None)
+        id_card = profile.id_card_number if profile and profile.id_card_number else ''
+        prefs = profile.preferences if profile and profile.preferences else ''
+        data['id_card_number'] = id_card
+        data['identity_card'] = id_card
+        data['preferences'] = prefs
+        return data
+
+    def validate_email(self, value):
+        if not value:
+            return value
+        email = value.strip().lower()
+        user = self.instance
+        if user and User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Địa chỉ email này đã được liên kết với một tài khoản khác.")
+        return email
+
     def validate_phone_number(self, value):
         if not value:
             return value
@@ -190,6 +224,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             instance.last_name = validated_data['last_name']
         if 'phone_number' in validated_data:
             instance.phone_number = validated_data['phone_number']
+        if 'email' in validated_data and validated_data['email']:
+            instance.email = validated_data['email']
         if 'address' in validated_data:
             instance.address = validated_data['address']
 
@@ -206,6 +242,30 @@ class UserProfileSerializer(serializers.ModelSerializer):
             instance.avatar = None
 
         instance.save()
+
+        # Cập nhật thông tin GuestProfile (CCCD / Passport, sở thích)
+        id_card = validated_data.pop('id_card_number', None)
+        if id_card is None:
+            id_card = validated_data.pop('identity_card', None)
+        if id_card is None and request:
+            if 'id_card_number' in request.data:
+                id_card = request.data.get('id_card_number')
+            elif 'identity_card' in request.data:
+                id_card = request.data.get('identity_card')
+
+        prefs = validated_data.pop('preferences', None)
+        if prefs is None and request and 'preferences' in request.data:
+            prefs = request.data.get('preferences')
+
+        if id_card is not None or prefs is not None:
+            guest_profile, _ = GuestProfile.objects.get_or_create(user=instance)
+            if id_card is not None:
+                guest_profile.id_card_number = str(id_card).strip()
+            if prefs is not None:
+                guest_profile.preferences = str(prefs).strip()
+            guest_profile.save()
+            instance.guest_profile = guest_profile
+
         return instance
 
 

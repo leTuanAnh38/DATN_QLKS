@@ -96,7 +96,15 @@ export const authStore = {
 
     updateUser(userData) {
         if (!currentUser) return;
-        currentUser = { ...currentUser, ...userData };
+        const mergedGuestProfile = (currentUser.guest_profile || userData?.guest_profile)
+            ? { ...(currentUser.guest_profile || {}), ...(userData?.guest_profile || {}) }
+            : null;
+
+        currentUser = {
+            ...currentUser,
+            ...userData,
+            ...(mergedGuestProfile ? { guest_profile: mergedGuestProfile } : {}),
+        };
         try {
             localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
         } catch (e) {

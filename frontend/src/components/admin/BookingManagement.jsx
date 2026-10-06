@@ -38,6 +38,7 @@ const formatDateTimeDisplay = (isoStr) => {
 // Danh sách các trạng thái đặt phòng
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Chờ duyệt (Pending)', color: 'bg-amber-50 text-amber-800 border-amber-300 focus:ring-amber-500' },
+    { value: 'paid', label: 'Chờ duyệt (Đã TT QR)', color: 'bg-amber-50 text-amber-800 border-amber-300 focus:ring-amber-500' },
     { value: 'confirmed', label: 'Đã xác nhận (Confirmed)', color: 'bg-blue-50 text-blue-800 border-blue-300 focus:ring-blue-500' },
     { value: 'checked_in', label: 'Đã Check-in (Checked-in)', color: 'bg-emerald-50 text-emerald-800 border-emerald-300 focus:ring-emerald-500' },
     { value: 'checked_out', label: 'Đã Check-out (Checked-out)', color: 'bg-purple-50 text-purple-800 border-purple-300 focus:ring-purple-500' },
@@ -986,7 +987,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     // Thống kê nhanh số lượng đơn
     const stats = useMemo(() => {
         const total = bookings.length;
-        const pending = bookings.filter((b) => b.status === 'pending').length;
+        const pending = bookings.filter((b) => ['pending', 'paid', 'PAID'].includes(b.status)).length;
         const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
         const checkedIn = bookings.filter((b) => b.status === 'checked_in').length;
         const checkedOut = bookings.filter((b) => b.status === 'checked_out' || b.status === 'completed').length;
@@ -1007,6 +1008,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             if (statusFilter !== 'all') {
                 if (statusFilter === 'checked_out') {
                     if (item.status !== 'checked_out' && item.status !== 'completed') return false;
+                } else if (statusFilter === 'pending') {
+                    if (!['pending', 'paid', 'PAID'].includes(item.status)) return false;
                 } else if (item.status !== statusFilter) {
                     return false;
                 }
@@ -1033,6 +1036,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         // Trong cùng nhóm trạng thái: Đơn mới tạo nhất xếp lên đầu (-created_at)
         const STATUS_PRIORITY = {
             pending: 1,
+            paid: 1,
+            PAID: 1,
             confirmed: 2,
             checked_in: 3,
             checked_out: 4,
@@ -1504,11 +1509,26 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         <span>🛎️ +{Number(booking.extra_services_total || 0).toLocaleString('vi-VN')}đ</span>
                                                     </span>
                                                 )}
-                                                <span className="text-[10px] text-slate-400 block mt-0.5 truncate max-w-[125px]">
-                                                    {booking.note && booking.note.includes('Thanh toán:')
+                                                {/* Phương thức & trạng thái thanh toán */}
+                                                {(() => {
+                                                    const isQrPaid = ['paid', 'PAID'].includes(booking.status) ||
+                                                        (booking.note && (booking.note.toLowerCase().includes('vietqr') || booking.note.toLowerCase().includes('chuyển khoản')));
+                                                    if (isQrPaid) {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-1" title="Đã thanh toán qua mã VietQR">
+                                                                <span>✓</span> VietQR (Đã TT)
+                                                            </span>
+                                                        );
+                                                    }
+                                                    const rawPayment = booking.note && booking.note.includes('Thanh toán:')
                                                         ? booking.note.split('Thanh toán:')[1].trim().split('|')[0]
-                                                        : 'Tại Lễ tân'}
-                                                </span>
+                                                        : 'Tại Lễ tân';
+                                                    return (
+                                                        <span className="text-[10px] text-slate-500 block mt-0.5 truncate max-w-[125px]">
+                                                            💵 {rawPayment}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
 
                                             {/* CỘT 6: TRẠNG THÁI (SELECT DROPDOWN ĐỔI NHANH NGAY TẠI BẢNG) */}
@@ -1602,7 +1622,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                     </button>
 
                                                     {/* Nút Nhắc khách */}
-                                                    {['pending', 'confirmed', 'checked_in'].includes(booking.status) && (
+                                                    {['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(booking.status) && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleSendReminderForBooking(booking.id)}

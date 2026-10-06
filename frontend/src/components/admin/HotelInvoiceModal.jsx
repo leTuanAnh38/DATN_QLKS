@@ -85,6 +85,13 @@ export default function HotelInvoiceModal({ booking, onClose }) {
 
     // Tổng thanh toán thực tế (Grand Total bao gồm cả tiền phòng và toàn bộ dịch vụ phát sinh)
     const grandTotal = Number(booking.grand_total_amount) || (roomAmount + extraServicesTotal);
+    const paidAmount = Number(
+        booking.paid_amount ?? 
+        (booking.is_paid || booking.status === 'paid' || (booking.status === 'completed' && booking.note?.includes('VietQR'))
+            ? roomAmount
+            : 0)
+    );
+    const balanceDue = Number(booking.remaining_amount != null ? booking.remaining_amount : Math.max(0, grandTotal - paidAmount));
     const bookingCodeDisplay = `#${String(booking.booking_code || '').replace('-', '')}`;
     const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
 
@@ -408,12 +415,30 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                 </div>
                             )}
 
-                            <div className="pt-3 border-t border-slate-300 flex justify-between sm:justify-end items-baseline gap-6">
-                                <span className="font-bold text-xs sm:text-sm text-slate-900 uppercase">
-                                    Tổng thanh toán (Grand Total):
+                            <div className="pt-2 border-t border-slate-300 flex justify-between sm:justify-end items-baseline gap-6">
+                                <span className="font-bold text-xs text-slate-800 uppercase">
+                                    Tổng giá trị hóa đơn:
                                 </span>
-                                <span className="font-bold text-base sm:text-lg text-slate-900 w-36 text-right">
+                                <span className="font-bold text-sm text-slate-900 w-36 text-right">
                                     {formatCurrency(grandTotal)}
+                                </span>
+                            </div>
+
+                            {paidAmount > 0 && (
+                                <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                    <span>✓ Đã thanh toán trước (VietQR):</span>
+                                    <span className="w-36 text-right font-bold">
+                                        -{formatCurrency(paidAmount)}
+                                    </span>
+                                </div>
+                            )}
+
+                            <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
+                                <span className="font-black text-xs sm:text-sm text-slate-900 uppercase">
+                                    {paidAmount > 0 ? 'Thực thu khi trả phòng:' : 'Tổng thanh toán:'}
+                                </span>
+                                <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">
+                                    {formatCurrency(paidAmount > 0 ? balanceDue : grandTotal)}
                                 </span>
                             </div>
                         </div>

@@ -42,6 +42,7 @@ class BookingSerializer(serializers.ModelSerializer):
     room_amount = serializers.SerializerMethodField()
     grand_total_amount = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
+    is_paid = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -75,6 +76,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'grand_total_amount',
             'status',
             'status_display',
+            'is_paid',
             'note',
             'internal_note',
             'created_at',
@@ -255,3 +257,21 @@ class BookingSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
+
+    def get_is_paid(self, obj):
+        if obj.status in ['paid', 'PAID']:
+            return True
+        try:
+            if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.status == 'paid':
+                return True
+        except Exception:
+            pass
+        try:
+            if obj.payments.filter(payment_status='COMPLETED').exists():
+                return True
+        except Exception:
+            pass
+        note_lower = (obj.note or '').lower()
+        if 'vietqr: đã thanh toán' in note_lower or 'đã thanh toán thành công' in note_lower:
+            return True
+        return False

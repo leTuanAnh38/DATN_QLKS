@@ -26,6 +26,22 @@ const STATUS_CONFIG = {
         text: 'text-white',
         badgeClass: 'bg-amber-50 text-amber-800 border-amber-300'
     },
+    paid: {
+        label: 'Chờ duyệt (Đã TT QR)',
+        bg: 'bg-amber-500',
+        hoverBg: 'hover:bg-amber-600',
+        border: 'border-amber-600',
+        text: 'text-white',
+        badgeClass: 'bg-amber-50 text-amber-800 border-amber-300'
+    },
+    PAID: {
+        label: 'Chờ duyệt (Đã TT QR)',
+        bg: 'bg-amber-500',
+        hoverBg: 'hover:bg-amber-600',
+        border: 'border-amber-600',
+        text: 'text-white',
+        badgeClass: 'bg-amber-50 text-amber-800 border-amber-300'
+    },
     confirmed: {
         label: 'Đã xác nhận',
         bg: 'bg-blue-600',
@@ -244,7 +260,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
         rooms.forEach((r) => {
             (r.bookings || []).forEach((b) => {
                 totalMonthBookings++;
-                if (b.status === 'pending') pendingCount++;
+                if (['pending', 'paid', 'PAID'].includes(b.status)) pendingCount++;
                 else if (b.status === 'confirmed') confirmedCount++;
                 else if (b.status === 'checked_in') checkedInCount++;
                 else if (['checked_out', 'completed'].includes(b.status)) completedCount++;

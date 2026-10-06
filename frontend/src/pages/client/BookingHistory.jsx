@@ -329,7 +329,7 @@ export default function BookingHistory() {
     // Thống kê nhanh số lượng đơn
     const stats = useMemo(() => {
         const total = bookings.length;
-        const pending = bookings.filter((b) => b.status === 'pending').length;
+        const pending = bookings.filter((b) => ['pending', 'paid', 'PAID'].includes(b.status)).length;
         const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
         const checkedIn = bookings.filter((b) => b.status === 'checked_in').length;
         const completed = bookings.filter((b) => b.status === 'completed' || b.status === 'checked_out').length;
@@ -344,6 +344,8 @@ export default function BookingHistory() {
             if (statusFilter !== 'all') {
                 if (statusFilter === 'completed') {
                     if (item.status !== 'completed' && item.status !== 'checked_out') return false;
+                } else if (statusFilter === 'pending') {
+                    if (!['pending', 'paid', 'PAID'].includes(item.status)) return false;
                 } else if (item.status !== statusFilter) {
                     return false;
                 }
@@ -382,6 +384,8 @@ export default function BookingHistory() {
     const renderStatusBadge = (status) => {
         switch (status) {
             case 'pending':
+            case 'paid':
+            case 'PAID':
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
                         <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
@@ -709,7 +713,15 @@ export default function BookingHistory() {
                                         booking.room_image ||
                                         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
 
-                                    const isPending = booking.status === 'pending';
+                                    const isPending = ['pending', 'paid', 'PAID'].includes(booking.status);
+                                    const isPaid = Boolean(
+                                        booking.is_paid ||
+                                        ['paid', 'PAID'].includes(booking.status) ||
+                                        (booking.note && (
+                                            booking.note.toLowerCase().includes('vietqr: đã thanh toán') ||
+                                            booking.note.toLowerCase().includes('đã thanh toán thành công')
+                                        ))
+                                    );
                                     const grandTotalNum = Number(booking.grand_total_amount ?? booking.total_amount) || 0;
                                     const roomAmountNum = Number(booking.room_amount ?? booking.total_amount) || 0;
                                     const extraServicesTotal = Number(booking.extra_services_total) || 0;
@@ -829,10 +841,10 @@ export default function BookingHistory() {
                                                     {/* Phần bên phải: Tổng tiền & Nút thao tác */}
                                                     <div className="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-center gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                                                         <div className="text-left lg:text-right">
-                                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                                                                Tổng tiền cần thanh toán
+                                                            <span className={`text-[11px] font-bold uppercase tracking-wider block ${isPaid ? 'text-emerald-700' : 'text-slate-400'}`}>
+                                                                {isPaid ? '✓ Đã thanh toán (VietQR)' : 'Tổng tiền cần thanh toán'}
                                                             </span>
-                                                            <div className="text-xl sm:text-2xl font-black text-rose-600 mt-0.5">
+                                                            <div className={`text-xl sm:text-2xl font-black mt-0.5 ${isPaid ? 'text-emerald-600' : 'text-rose-600'}`}>
                                                                 {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
                                                             </div>
                                                             {hasExtraServices ? (
@@ -852,28 +864,31 @@ export default function BookingHistory() {
                                                             )}
                                                         </div>
 
-                                                        {/* NÚT THAO TÁC: NẾU PENDING THÌ HIỆN NÚT HỦY, NẾU KHÁC THÌ ẨN */}
+                                                        {/* NÚT THAO TÁC */}
                                                         <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+                                                            {/* Nút Thanh toán ngay (VietQR): Chỉ hiện khi đơn CHƯA thanh toán */}
+                                                            {booking.status === 'pending' && !isPaid && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSelectedPaymentBooking(booking)}
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 active:scale-95"
+                                                                    title="Mở mã QR quét thanh toán chuyển khoản"
+                                                                >
+                                                                    <span>📱</span>
+                                                                    <span>Thanh toán ngay (VietQR)</span>
+                                                                </button>
+                                                            )}
+
+                                                            {/* Nút Hủy đặt phòng */}
                                                             {isPending && (
-                                                                <>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setSelectedPaymentBooking(booking)}
-                                                                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 active:scale-95"
-                                                                        title="Mở mã QR quét thanh toán chuyển khoản"
-                                                                    >
-                                                                        <span>📱</span>
-                                                                        <span>Thanh toán ngay (VietQR)</span>
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setCancelModalBooking(booking)}
-                                                                        className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                                                                    >
-                                                                        <span>✕</span>
-                                                                        <span>Hủy đặt phòng</span>
-                                                                    </button>
-                                                                </>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setCancelModalBooking(booking)}
+                                                                    className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                >
+                                                                    <span>✕</span>
+                                                                    <span>Hủy đặt phòng</span>
+                                                                </button>
                                                             )}
 
                                                             {/* NÚT GIA HẠN PHÒNG CHO KHÁCH ĐANG Ở (checked_in) */}

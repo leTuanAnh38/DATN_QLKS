@@ -24,6 +24,9 @@ export default function Profile() {
     // Modal state
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
+    // Chế độ chỉnh sửa: false = Chế độ xem, true = Đang chỉnh sửa
+    const [isEditing, setIsEditing] = useState(false);
+
     // Form fields state
     const [formData, setFormData] = useState({
         fullName: '',
@@ -44,6 +47,13 @@ export default function Profile() {
     const [successMessage, setSuccessMessage] = useState(null);
     const [errorMessage, setErrorMessage] = useState(null);
 
+    // Tải dữ liệu hồ sơ mới nhất từ máy chủ khi vào trang
+    useEffect(() => {
+        if (isAuthenticated) {
+            authService.getProfile();
+        }
+    }, [isAuthenticated]);
+
     // Điền dữ liệu user vào form khi load
     useEffect(() => {
         if (user) {
@@ -52,14 +62,36 @@ export default function Profile() {
                 phoneNumber: user.phone_number || '',
                 email: user.email || '',
                 address: user.address || '',
-                idCardNumber: user.guest_profile?.id_card_number || '',
-                preferences: user.guest_profile?.preferences || '',
+                idCardNumber: user.guest_profile?.id_card_number || user.id_card_number || user.identity_card || '',
+                preferences: user.guest_profile?.preferences || user.preferences || '',
             });
             setAvatarPreview(getAvatarUrl(user.avatar));
             setAvatarFile(null);
             setRemoveAvatar(false);
         }
     }, [user]);
+
+    // Hủy bỏ chỉnh sửa và khôi phục dữ liệu ban đầu
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setErrorMessage(null);
+        if (user) {
+            setFormData({
+                fullName: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || '',
+                phoneNumber: user.phone_number || '',
+                email: user.email || '',
+                address: user.address || '',
+                idCardNumber: user.guest_profile?.id_card_number || user.id_card_number || user.identity_card || '',
+                preferences: user.guest_profile?.preferences || user.preferences || '',
+            });
+            setAvatarPreview(getAvatarUrl(user.avatar));
+            setAvatarFile(null);
+            setRemoveAvatar(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
 
     // Tạo chữ viết tắt Avatar nếu không có ảnh
     const getInitials = (name) => {
@@ -73,6 +105,9 @@ export default function Profile() {
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        // Tự động mở chế độ chỉnh sửa nếu đang ở chế độ xem
+        if (!isEditing) setIsEditing(true);
 
         // Kiểm tra dung lượng (tối đa 5MB)
         if (file.size > 5 * 1024 * 1024) {
@@ -100,6 +135,7 @@ export default function Profile() {
 
     // Đặt lại avatar về mặc định
     const handleResetToDefaultAvatar = () => {
+        if (!isEditing) setIsEditing(true);
         setAvatarFile(null);
         setAvatarPreview(null);
         setRemoveAvatar(true);
@@ -121,8 +157,9 @@ export default function Profile() {
             payload.append('phone_number', formData.phoneNumber);
             payload.append('email', formData.email);
             payload.append('address', formData.address);
-            payload.append('id_card_number', formData.idCardNumber);
-            payload.append('preferences', formData.preferences);
+            payload.append('id_card_number', formData.idCardNumber || '');
+            payload.append('identity_card', formData.idCardNumber || '');
+            payload.append('preferences', formData.preferences || '');
 
             if (avatarFile) {
                 payload.append('avatar', avatarFile);
@@ -137,6 +174,17 @@ export default function Profile() {
                 setSuccessMessage('Hồ sơ cá nhân và ảnh đại diện đã được cập nhật thành công!');
                 setAvatarFile(null);
                 setRemoveAvatar(false);
+                setIsEditing(false); // Trở về chế độ xem sau khi lưu thành công
+                if (result.user) {
+                    setFormData({
+                        fullName: result.user.full_name || `${result.user.first_name || ''} ${result.user.last_name || ''}`.trim() || result.user.username || '',
+                        phoneNumber: result.user.phone_number || '',
+                        email: result.user.email || '',
+                        address: result.user.address || '',
+                        idCardNumber: result.user.guest_profile?.id_card_number || result.user.id_card_number || result.user.identity_card || '',
+                        preferences: result.user.guest_profile?.preferences || result.user.preferences || '',
+                    });
+                }
                 // Tự ẩn thông báo sau 4 giây
                 setTimeout(() => setSuccessMessage(null), 4000);
             } else {
@@ -249,7 +297,10 @@ export default function Profile() {
                                     {/* Camera badge trigger file upload */}
                                     <button
                                         type="button"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() => {
+                                            if (!isEditing) setIsEditing(true);
+                                            fileInputRef.current?.click();
+                                        }}
                                         className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white border-2 border-white shadow-lg flex items-center justify-center cursor-pointer transition transform hover:scale-110"
                                         title="Thay đổi ảnh đại diện"
                                     >
@@ -279,7 +330,10 @@ export default function Profile() {
                                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() => {
+                                            if (!isEditing) setIsEditing(true);
+                                            fileInputRef.current?.click();
+                                        }}
                                         className="px-3.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer flex items-center gap-1.5"
                                     >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,7 +342,7 @@ export default function Profile() {
                                         <span>Tải ảnh lên</span>
                                     </button>
 
-                                    {(avatarPreview || user?.avatar) && (
+                                    {isEditing && (avatarPreview || user?.avatar) && (
                                         <button
                                             type="button"
                                             onClick={handleResetToDefaultAvatar}
@@ -373,14 +427,51 @@ export default function Profile() {
 
                     {/* CỘT BÊN PHẢI: FORM CHỈNH SỬA THÔNG TIN CÁ NHÂN (8 CỘT) */}
                     <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100">
-                        <div className="border-b border-slate-100 pb-5 mb-6 flex items-center justify-between">
+                        <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
-                                <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
-                                    Thông Tin Cá Nhân
-                                </h2>
-                                <p className="text-xs text-slate-500 mt-1">
+                                <div className="flex items-center gap-2.5 mb-1">
+                                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
+                                        Thông Tin Cá Nhân
+                                    </h2>
+                                    {isEditing ? (
+                                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                                            <span>✏️</span>
+                                            <span>Đang chỉnh sửa</span>
+                                        </span>
+                                    ) : (
+                                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                                            <span>👁️</span>
+                                            <span>Chế độ xem</span>
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-500">
                                     Cập nhật thông tin chính xác giúp quá trình nhận phòng và nhận đặc quyền diễn ra nhanh chóng
                                 </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-start sm:self-auto">
+                                {!isEditing ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditing(true)}
+                                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        <span>Cập nhật</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelEdit}
+                                        disabled={isLoading}
+                                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
+                                    >
+                                        ✕ Hủy bỏ
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -410,10 +501,15 @@ export default function Profile() {
                                     <input
                                         type="text"
                                         required
+                                        disabled={!isEditing}
                                         value={formData.fullName}
                                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                         placeholder="Ví dụ: Nguyễn Văn An"
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                            !isEditing
+                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                        }`}
                                     />
                                 </div>
 
@@ -425,10 +521,15 @@ export default function Profile() {
                                     <input
                                         type="tel"
                                         required
+                                        disabled={!isEditing}
                                         value={formData.phoneNumber}
                                         onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                                         placeholder="Ví dụ: 0912345678"
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                            !isEditing
+                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                        }`}
                                     />
                                 </div>
 
@@ -440,10 +541,15 @@ export default function Profile() {
                                     <input
                                         type="email"
                                         required
+                                        disabled={!isEditing}
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         placeholder="email@example.com"
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                            !isEditing
+                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                        }`}
                                     />
                                 </div>
 
@@ -454,10 +560,15 @@ export default function Profile() {
                                     </label>
                                     <input
                                         type="text"
+                                        disabled={!isEditing}
                                         value={formData.idCardNumber}
                                         onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
-                                        placeholder="Nhập số CCCD/Passport để check-in nhanh"
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                        placeholder={isEditing ? "Nhập số CCCD/Passport để check-in nhanh" : "Chưa cập nhật số CCCD/Passport"}
+                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                            !isEditing
+                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                        }`}
                                     />
                                 </div>
                             </div>
@@ -469,10 +580,15 @@ export default function Profile() {
                                 </label>
                                 <input
                                     type="text"
+                                    disabled={!isEditing}
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                    placeholder={isEditing ? "Ví dụ: Quận 1, TP. Hồ Chí Minh" : "Chưa cập nhật địa chỉ"}
+                                    className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                        !isEditing
+                                            ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                            : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                    }`}
                                 />
                             </div>
 
@@ -483,10 +599,15 @@ export default function Profile() {
                                 </label>
                                 <textarea
                                     rows={3}
+                                    disabled={!isEditing}
                                     value={formData.preferences}
                                     onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
-                                    placeholder="Ví dụ: Thích phòng tầng cao, gối lông vũ mềm, không hút thuốc, đồ ăn ít đường..."
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                    placeholder={isEditing ? "Ví dụ: Thích phòng tầng cao, gối lông vũ mềm, không hút thuốc, đồ ăn ít đường..." : "Chưa có ghi chú sở thích đặc biệt"}
+                                    className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                        !isEditing
+                                            ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                            : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                    }`}
                                 />
                                 <span className="text-[11px] text-slate-400 mt-1 block">
                                     Đội ngũ quản gia khách sạn TA sẽ chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.
@@ -496,22 +617,52 @@ export default function Profile() {
                             {/* Actions Button */}
                             <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
                                 <div className="text-xs text-slate-400">
-                                    Các trường có dấu <span className="text-red-500">*</span> là bắt buộc.
+                                    {isEditing ? (
+                                        <>Các trường có dấu <span className="text-red-500">*</span> là bắt buộc.</>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5 text-slate-500">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                                            Hồ sơ đang ở chế độ xem. Nhấn nút <strong>Cập nhật</strong> để chỉnh sửa.
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading}
-                                        className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition duration-200 flex items-center gap-2 cursor-pointer"
-                                    >
-                                        {isLoading && (
-                                            <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    {!isEditing ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEditing(true)}
+                                            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition duration-200 flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
-                                        )}
-                                        <span>{isLoading ? 'Đang Lưu Thay Đổi...' : 'Lưu Thay Đổi Hồ Sơ'}</span>
-                                    </button>
+                                            <span>Cập nhật</span>
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={handleCancelEdit}
+                                                disabled={isLoading}
+                                                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl transition duration-200 cursor-pointer disabled:opacity-60"
+                                            >
+                                                Hủy bỏ
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={isLoading}
+                                                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition duration-200 flex items-center gap-2 cursor-pointer"
+                                            >
+                                                {isLoading && (
+                                                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                )}
+                                                <span>{isLoading ? 'Đang Lưu Thay Đổi...' : 'Lưu Thay Đổi Hồ Sơ'}</span>
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </form>

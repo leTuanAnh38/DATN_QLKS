@@ -119,6 +119,21 @@ class CurrentUserView(APIView):
         )
         if serializer.is_valid():
             user = serializer.save()
+
+            # Đảm bảo guest_profile được đồng bộ nếu có trong request.data
+            id_card = request.data.get('id_card_number')
+            if id_card is None:
+                id_card = request.data.get('identity_card')
+            prefs = request.data.get('preferences')
+            if id_card is not None or prefs is not None:
+                profile, _ = GuestProfile.objects.get_or_create(user=user)
+                if id_card is not None:
+                    profile.id_card_number = str(id_card).strip()
+                if prefs is not None:
+                    profile.preferences = str(prefs).strip()
+                profile.save()
+                user.guest_profile = profile
+
             return Response({
                 'success': True,
                 'message': 'Cập nhật thông tin hồ sơ thành công!',

@@ -49,6 +49,8 @@ const formatDateTimeDisplay = (isoStr) => {
 
 const STATUS_CONFIGS = {
     pending: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-800 border-amber-300' },
+    paid: { label: 'Chờ duyệt (Đã TT QR)', color: 'bg-amber-50 text-amber-800 border-amber-300' },
+    PAID: { label: 'Chờ duyệt (Đã TT QR)', color: 'bg-amber-50 text-amber-800 border-amber-300' },
     confirmed: { label: 'Đã xác nhận', color: 'bg-blue-50 text-blue-800 border-blue-300' },
     checked_in: { label: 'Đang ở', color: 'bg-emerald-50 text-emerald-800 border-emerald-300' },
     checked_out: { label: 'Đã trả phòng', color: 'bg-purple-50 text-purple-800 border-purple-300' },
@@ -181,7 +183,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                 const list = res.data;
                 setRealBookings(list);
                 setActualBookingsCount(list.length);
-                const pending = list.filter((b) => b.status === 'pending').length;
+                const pending = list.filter((b) => ['pending', 'paid', 'PAID'].includes(b.status)).length;
                 setPendingBookingsCount(pending);
             }
         } catch (e) {
@@ -235,7 +237,7 @@ export default function HotelAdminDashboard({ initialTab }) {
     useEffect(() => {
         const todayStr = new Date().toISOString().split('T')[0];
         const ci = realBookings.filter(
-            (b) => b.check_in_date === todayStr && ['pending', 'confirmed'].includes(b.status)
+            (b) => b.check_in_date === todayStr && ['pending', 'paid', 'PAID', 'confirmed'].includes(b.status)
         ).length;
         const co = realBookings.filter(
             (b) => b.check_out_date === todayStr && b.status === 'checked_in'
@@ -426,7 +428,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                 bookingFilter === 'all'
                     ? true
                     : bookingFilter === 'pending'
-                        ? item.status === 'pending'
+                        ? ['pending', 'paid', 'PAID'].includes(item.status)
                         : bookingFilter === 'checked_in'
                             ? item.status === 'checked_in'
                             : item.status === bookingFilter;
@@ -691,21 +693,6 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
                                     Menu
                                 </span>
-                            </button>
-
-                            {/* 9. Thanh toán & Hóa đơn */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('finance')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'finance' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
-                                    </svg>
-                                    <span className="truncate text-left">Thanh toán & Hóa đơn</span>
-                                </div>
                             </button>
 
                             {/* 10. Quản lý Đánh giá & Phản hồi (Review & Rating) */}
@@ -1558,7 +1545,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                                 </td>
                                                                 <td className="py-3.5 px-5 whitespace-nowrap">
                                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusCfg.color}`}>
-                                                                        {b.status === 'pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping mr-1"></span>}
+                                                                        {['pending', 'paid', 'PAID'].includes(b.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping mr-1"></span>}
                                                                         {statusCfg.label}
                                                                     </span>
                                                                 </td>
