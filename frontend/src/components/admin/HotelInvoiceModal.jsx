@@ -69,14 +69,15 @@ export default function HotelInvoiceModal({ booking, onClose }) {
     const roomAmount = Number(booking.room_amount || booking.total_amount) || 0;
     
     // Đơn giá phòng theo đêm:
-    // Nếu có daily_rate từ backend thì dùng, ngược lại tính tạm từ roomAmount / nights
+    // Chỉ tính khấu trừ khi thực tế có mã ưu đãi / khuyến mãi hợp lệ
+    const hasPromotion = Boolean(booking.promotion_code || booking.applied_promotion || (booking.discount_amount && Number(booking.discount_amount) > 0));
     let pricePerNight = Number(booking.daily_rate) || 0;
-    if (!pricePerNight || pricePerNight <= 0) {
+    if (!pricePerNight || pricePerNight <= 0 || !hasPromotion) {
         pricePerNight = Math.round(roomAmount / nights);
     }
 
     const roomSubtotal = pricePerNight * nights;
-    const discountAmount = Math.max(0, roomSubtotal - roomAmount);
+    const discountAmount = hasPromotion ? Math.max(0, roomSubtotal - roomAmount) : 0;
 
     // Phụ phí dịch vụ phát sinh tại phòng (In-Room Dining / Services)
     const extraServices = Array.isArray(booking.extra_services) ? booking.extra_services : [];
@@ -244,19 +245,19 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                             <div className="space-y-2 text-slate-700">
                                 <div className="flex">
                                     <span className="w-28 shrink-0 text-slate-500">Họ tên khách:</span>
-                                    <strong className="text-slate-900 font-bold">{booking.guest_name || 'Khách vãng lai'}</strong>
+                                    <strong className="text-slate-900 font-bold">{booking.guest_name || booking.customer_name || (typeof booking.guest === 'string' ? booking.guest : booking.guest?.name) || 'Khách vãng lai'}</strong>
                                 </div>
                                 <div className="flex">
                                     <span className="w-28 shrink-0 text-slate-500">Số điện thoại:</span>
-                                    <span className="text-slate-900 font-medium">{booking.guest_phone || '—'}</span>
+                                    <span className="text-slate-900 font-medium">{booking.guest_phone || booking.guest?.phone_number || '—'}</span>
                                 </div>
                                 <div className="flex">
                                     <span className="w-28 shrink-0 text-slate-500">Email:</span>
-                                    <span className="text-slate-900 font-medium">{booking.guest_email || '—'}</span>
+                                    <span className="text-slate-900 font-medium">{booking.guest_email || booking.guest?.email || '—'}</span>
                                 </div>
                                 <div className="flex">
                                     <span className="w-28 shrink-0 text-slate-500">CCCD / Hộ chiếu:</span>
-                                    <span className="text-slate-900 font-medium">{booking.identity_card || '—'}</span>
+                                    <span className="text-slate-900 font-medium">{booking.identity_card || booking.guest?.identity_card || '—'}</span>
                                 </div>
                             </div>
                         </div>
@@ -274,7 +275,7 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                 <div className="flex">
                                     <span className="w-28 shrink-0 text-slate-500">Phòng lưu trú:</span>
                                     <strong className="text-slate-900 font-bold">
-                                        {booking.room_number ? `Phòng ${booking.room_number}` : 'Chưa xếp số'} ({booking.room_name || 'Tiêu chuẩn'})
+                                        {(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : 'Chưa xếp số'} ({booking.room_name || booking.category?.name || booking.room?.room_type_name || 'Tiêu chuẩn'})
                                     </strong>
                                 </div>
                                 <div className="flex">
@@ -322,7 +323,7 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                                 Tiền phòng nghỉ - Room Charge
                                             </div>
                                             <div className="text-[11px] text-slate-500 mt-0.5">
-                                                {booking.room_number ? `Phòng ${booking.room_number}` : booking.room_name} ({nights} đêm x {formatCurrency(pricePerNight)})
+                                                {(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : (booking.room_name || booking.category?.name || 'Phòng tiêu chuẩn')} ({nights} đêm x {formatCurrency(pricePerNight)})
                                             </div>
                                         </td>
                                         <td className="py-3 text-right text-slate-800 font-medium">
@@ -337,6 +338,28 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                     </tr>
 
                                     {/* CÁC DÒNG DỊCH VỤ PHÁT SINH / GỌI MÓN TẠI PHÒNG */}
+                                    {extraServices.length === 0 && extraServicesTotal > 0 && (
+                                        <tr className="border-b border-slate-200">
+                                            <td className="py-2.5 text-left">
+                                                <div className="font-bold text-slate-900 text-xs">
+                                                    Dịch vụ phát sinh & Tiện ích tại phòng
+                                                </div>
+                                                <div className="text-[10px] text-slate-500">
+                                                    Phí dịch vụ ghi nhận theo hóa đơn
+                                                </div>
+                                            </td>
+                                            <td className="py-2.5 text-right text-slate-800 font-medium">
+                                                {formatCurrency(extraServicesTotal)}
+                                            </td>
+                                            <td className="py-2.5 text-center text-slate-800 font-medium">
+                                                1
+                                            </td>
+                                            <td className="py-2.5 text-right font-bold text-slate-900">
+                                                {formatCurrency(extraServicesTotal)}
+                                            </td>
+                                        </tr>
+                                    )}
+
                                     {extraServices.map((service, idx) => {
                                         const cleanName = (service.service_name || '')
                                             .replace(/\[Yêu cầu #\d+\]/gi, '')
@@ -407,7 +430,7 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                             {extraServicesTotal > 0 && (
                                 <div className="flex justify-between sm:justify-end gap-6 text-slate-700 font-semibold">
                                     <span>
-                                        Dịch vụ phát sinh ({extraServices.length} món):
+                                        Dịch vụ phát sinh{extraServices.length > 0 ? ` (${extraServices.length} món)` : ''}:
                                     </span>
                                     <span className="w-28 text-right text-slate-900">
                                         +{formatCurrency(extraServicesTotal)}

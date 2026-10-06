@@ -2,7 +2,7 @@ import calendar
 from datetime import datetime, timedelta
 from decimal import Decimal
 from django.db.models import Sum, Count, Q, F, Value
-from django.db.models.functions import TruncDay, TruncMonth, TruncDate, TruncHour, Coalesce
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -177,9 +177,15 @@ class ReportsAnalyticsView(APIView):
             average_order_value = round(all_time_revenue / all_time_bookings_count, 0)
 
         # =====================================================================
-        # PHẦN 2: BIỂU ĐỒ DOANH THU THEO THỜI GIAN (TruncDay, TruncMonth, TruncHour)
+        # =====================================================================
+        # PHẦN 2: BIỂU ĐỒ DOANH THU THEO THỜI GIAN (Xử lý Python an toàn với múi giờ DB)
         # =====================================================================
         revenue_chart_data = []
+
+        # Lấy dữ liệu các hóa đơn đã thanh toán trong kỳ
+        chart_invoices_data = list(
+            period_invoices.values('paid_at', 'created_at', 'total_amount')
+        )
 
         if filter_type == 'day':
             # Biểu đồ theo các khung giờ trong ngày (00h, 04h, 08h, 12h, 16h, 20h)
@@ -191,22 +197,23 @@ class ReportsAnalyticsView(APIView):
                 ('16:00 - 20:00', 16, 20),
                 ('20:00 - 24:00', 20, 24),
             ]
-            hour_agg = (
-                period_invoices.annotate(hour=TruncHour('paid_at'))
-                .values('hour')
-                .annotate(
-                    slot_revenue=Coalesce(Sum('total_amount'), Decimal(0)),
-                    slot_count=Count('id')
-                )
-            )
-            hour_dict = {item['hour'].hour if item['hour'] else 0: item for item in hour_agg}
+            hour_dict = {}
+            for inv in chart_invoices_data:
+                ts = inv['paid_at'] or inv['created_at']
+                if not ts:
+                    continue
+                loc_dt = timezone.localtime(ts)
+                h = loc_dt.hour
+                slot = hour_dict.setdefault(h, {'slot_revenue': 0.0, 'slot_count': 0})
+                slot['slot_revenue'] += float(inv['total_amount'] or 0)
+                slot['slot_count'] += 1
 
             for label, start_h, end_h in time_slots:
-                slot_rev = 0
+                slot_rev = 0.0
                 slot_cnt = 0
                 for h in range(start_h, end_h):
                     if h in hour_dict:
-                        slot_rev += float(hour_dict[h]['slot_revenue'])
+                        slot_rev += hour_dict[h]['slot_revenue']
                         slot_cnt += hour_dict[h]['slot_count']
                 revenue_chart_data.append({
                     'date': label,
@@ -216,22 +223,23 @@ class ReportsAnalyticsView(APIView):
                 })
 
         elif filter_type == 'week':
-            # Biểu đồ theo 7 ngày liên tiếp TruncDate('paid_at')
-            daily_agg = (
-                period_invoices.annotate(day_date=TruncDate('paid_at'))
-                .values('day_date')
-                .annotate(
-                    day_revenue=Coalesce(Sum('total_amount'), Decimal(0)),
-                    day_count=Count('id')
-                )
-            )
-            daily_dict = {item['day_date']: item for item in daily_agg if item['day_date']}
+            # Biểu đồ theo 7 ngày liên tiếp tính đến hôm nay
+            daily_dict = {}
+            for inv in chart_invoices_data:
+                ts = inv['paid_at'] or inv['created_at']
+                if not ts:
+                    continue
+                loc_dt = timezone.localtime(ts)
+                d = loc_dt.date()
+                day_info = daily_dict.setdefault(d, {'day_revenue': 0.0, 'day_count': 0})
+                day_info['day_revenue'] += float(inv['total_amount'] or 0)
+                day_info['day_count'] += 1
 
             weekday_names = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
             for i in range(7):
                 curr_date = (today - timedelta(days=6 - i))
                 match = daily_dict.get(curr_date)
-                rev = float(match['day_revenue']) if match else 0
+                rev = match['day_revenue'] if match else 0.0
                 cnt = match['day_count'] if match else 0
                 revenue_chart_data.append({
                     'date': f"{weekday_names[curr_date.weekday()]} ({curr_date.strftime('%d/%m')})",
@@ -241,25 +249,21 @@ class ReportsAnalyticsView(APIView):
                 })
 
         elif filter_type == 'year':
-            # Biểu đồ theo 12 tháng TruncMonth('paid_at')
-            monthly_agg = (
-                Invoice.objects.filter(
-                    status='paid',
-                    paid_at__gte=start_date,
-                    paid_at__lte=end_date
-                )
-                .annotate(month_date=TruncMonth('paid_at'))
-                .values('month_date')
-                .annotate(
-                    month_revenue=Coalesce(Sum('total_amount'), Decimal(0)),
-                    month_count=Count('id')
-                )
-            )
-            monthly_dict = {item['month_date'].month: item for item in monthly_agg if item['month_date']}
+            # Biểu đồ theo 12 tháng của năm hiện tại
+            monthly_dict = {}
+            for inv in chart_invoices_data:
+                ts = inv['paid_at'] or inv['created_at']
+                if not ts:
+                    continue
+                loc_dt = timezone.localtime(ts)
+                m = loc_dt.month
+                m_info = monthly_dict.setdefault(m, {'month_revenue': 0.0, 'month_count': 0})
+                m_info['month_revenue'] += float(inv['total_amount'] or 0)
+                m_info['month_count'] += 1
 
             for m in range(1, 13):
                 match = monthly_dict.get(m)
-                rev = float(match['month_revenue']) if match else 0
+                rev = match['month_revenue'] if match else 0.0
                 cnt = match['month_count'] if match else 0
                 revenue_chart_data.append({
                     'date': f"Tháng {m}",
@@ -269,22 +273,23 @@ class ReportsAnalyticsView(APIView):
                 })
 
         else:  # 'month'
-            # Biểu đồ theo từng ngày trong tháng TruncDate('paid_at')
-            daily_agg = (
-                period_invoices.annotate(day_date=TruncDate('paid_at'))
-                .values('day_date')
-                .annotate(
-                    day_revenue=Coalesce(Sum('total_amount'), Decimal(0)),
-                    day_count=Count('id')
-                )
-            )
-            daily_dict = {item['day_date']: item for item in daily_agg if item['day_date']}
+            # Biểu đồ theo từng ngày trong tháng hiện tại
+            daily_dict = {}
+            for inv in chart_invoices_data:
+                ts = inv['paid_at'] or inv['created_at']
+                if not ts:
+                    continue
+                loc_dt = timezone.localtime(ts)
+                d = loc_dt.date()
+                day_info = daily_dict.setdefault(d, {'day_revenue': 0.0, 'day_count': 0})
+                day_info['day_revenue'] += float(inv['total_amount'] or 0)
+                day_info['day_count'] += 1
 
             _, days_in_month = calendar.monthrange(today.year, today.month)
             for d in range(1, days_in_month + 1):
                 curr_date = today.replace(day=d)
                 match = daily_dict.get(curr_date)
-                rev = float(match['day_revenue']) if match else 0
+                rev = match['day_revenue'] if match else 0.0
                 cnt = match['day_count'] if match else 0
                 revenue_chart_data.append({
                     'date': f"{d:02d}/{today.month:02d}",

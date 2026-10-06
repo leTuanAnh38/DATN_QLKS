@@ -101,25 +101,56 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
         if prev_status == instance.status:
             return
 
-        # 2.1. Khách CHECK-IN thành công (status đổi sang 'checked_in')
-        if instance.status == 'checked_in':
-            # Thông báo cho Khách hàng
+        # 2.0. ĐƠN ĐẶT PHÒNG ĐƯỢC DUYỆT / XÁC NHẬN (status đổi sang 'confirmed')
+        if instance.status == 'confirmed' and prev_status != 'confirmed':
+            # 1. Thông báo cho Khách hàng
             if instance.guest:
                 Notification.objects.create(
                     recipient=instance.guest,
-                    title="Check-in thành công! Chào mừng quý khách",
+                    title="🎉 Đơn đặt phòng đã được xác nhận!",
                     message=(
-                        f"Quý khách đã làm thủ tục nhận phòng {room_label} thành công (Mã đơn: #{instance.booking_code}). "
-                        f"Khách sạn TA Đà Nẵng chúc quý khách có kỳ nghỉ dưỡng tuyệt vời và trọn vẹn!"
+                        f"Khách sạn TA Đà Nẵng xin thông báo: Đơn đặt phòng #{instance.booking_code}{room_desc}{time_desc} "
+                        f"của quý khách đã được phê duyệt và xác nhận thành công. "
+                        f"Khách sạn đã sẵn sàng đón tiếp quý khách vào ngày nhận phòng!"
                     )
                 )
 
-            # Thông báo cho Quản lý & Lễ tân
+            # 2. Thông báo cho Quản lý & Lễ tân
             staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
             staff_notifications = [
                 Notification(
                     recipient=staff,
-                    title=f"Khách đã Check-in: Phòng {room_label}",
+                    title=f"✅ Đơn đặt phòng đã duyệt: #{instance.booking_code}",
+                    message=(
+                        f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name}{room_desc}{time_desc} "
+                        f"đã được duyệt sang trạng thái Đã xác nhận."
+                    )
+                )
+                for staff in staff_users
+            ]
+            if staff_notifications:
+                Notification.objects.bulk_create(staff_notifications)
+
+        # 2.1. Khách CHECK-IN thành công (status đổi sang 'checked_in')
+        elif instance.status == 'checked_in' and prev_status != 'checked_in':
+            # 1. Thông báo cho Khách hàng
+            if instance.guest:
+                room_display = f"Phòng {instance.room.room_number}" if instance.room else room_label
+                Notification.objects.create(
+                    recipient=instance.guest,
+                    title="🔑 Check-in thành công! Chào mừng quý khách",
+                    message=(
+                        f"Quý khách đã hoàn tất thủ tục nhận {room_display} thành công (Mã đơn: #{instance.booking_code}). "
+                        f"Khách sạn TA Đà Nẵng chúc quý khách có một kỳ nghỉ dưỡng tuyệt vời và trọn vẹn!"
+                    )
+                )
+
+            # 2. Thông báo cho Quản lý & Lễ tân
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_notifications = [
+                Notification(
+                    recipient=staff,
+                    title=f"📥 Khách đã Check-in: {room_label}",
                     message=(
                         f"Khách hàng {guest_name} đã hoàn tất thủ tục Check-in nhận phòng {room_label} "
                         f"(Mã đơn đặt phòng: #{instance.booking_code})."

@@ -398,6 +398,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 if (typeof onBookingChanged === 'function') {
                     onBookingChanged();
                 }
+
+                // Phát tín hiệu đồng bộ realtime sang chuông thông báo và các tab khác
+                try {
+                    localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                    window.dispatchEvent(new CustomEvent('pms_booking_created'));
+                } catch (e) { }
             } else {
                 // Rollback nếu thất bại
                 setBookings(previousBookings);
@@ -650,6 +656,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 if (typeof onBookingChanged === 'function') {
                     onBookingChanged();
                 }
+
+                // Phát tín hiệu đồng bộ realtime sang chuông thông báo và các tab khác
+                try {
+                    localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                    window.dispatchEvent(new CustomEvent('pms_booking_created'));
+                } catch (e) { }
             } else {
                 showToast('error', res?.message || 'Check-in thất bại. Vui lòng kiểm tra lại tình trạng phòng.');
             }
@@ -1343,7 +1355,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 <th className="py-3 px-2.5">Phòng</th>
                                 <th className="py-3 px-2.5 whitespace-nowrap">Check-in / Out</th>
                                 <th className="py-3 px-2.5 whitespace-nowrap">Tổng tiền</th>
-                                <th className="py-3 px-2.5 whitespace-nowrap">Trạng thái (Đổi nhanh)</th>
+                                <th className="py-3 px-2.5 whitespace-nowrap">Trạng thái</th>
                                 <th className="py-3 px-2 text-center whitespace-nowrap">Hành động</th>
                             </tr>
                         </thead>
@@ -1531,30 +1543,13 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 })()}
                                             </td>
 
-                                            {/* CỘT 6: TRẠNG THÁI (SELECT DROPDOWN ĐỔI NHANH NGAY TẠI BẢNG) */}
+                                            {/* CỘT 6: TRẠNG THÁI (HIỂN THỊ CỐ ĐỊNH, KHÔNG CHO CHỈNH SỬA) */}
                                             <td className="py-2.5 px-2.5 whitespace-nowrap">
-                                                <div className="relative inline-block w-full max-w-[125px]">
-                                                    <select
-                                                        value={booking.status}
-                                                        disabled={isRowUpdating}
-                                                        onChange={(e) =>
-                                                            handleQuickStatusChange(booking.id, e.target.value)
-                                                        }
-                                                        className={`w-full text-[10.5px] font-bold py-1 pl-2 pr-5 rounded-lg border shadow-2xs transition cursor-pointer appearance-none focus:outline-none focus:ring-2 truncate ${statusConfig.color}`}
-                                                    >
-                                                        {STATUS_OPTIONS.map((opt) => (
-                                                            <option key={opt.value} value={opt.value}>
-                                                                {opt.label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    {/* Caret icon */}
-                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-slate-500">
-                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                    </div>
-                                                </div>
+                                                <span
+                                                    className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10.5px] font-bold border shadow-2xs select-none ${statusConfig.color}`}
+                                                >
+                                                    {statusConfig.label}
+                                                </span>
                                                 {isRowUpdating && (
                                                     <span className="text-[9px] text-blue-600 font-semibold block mt-0.5 animate-pulse">
                                                         Đang lưu...
@@ -1565,6 +1560,35 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             {/* CỘT 7: HÀNH ĐỘNG (THIẾT KẾ GỌN GÀNG, KHÔNG PHÌNH CỘT) */}
                                             <td className="py-2.5 px-2 text-center whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1">
+                                                    {/* Nút Duyệt cho các đơn Chờ duyệt (Pending hoặc Đã TT QR) */}
+                                                    {['pending', 'paid', 'PAID'].includes(booking.status) && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                disabled={isRowUpdating}
+                                                                onClick={() => handleQuickStatusChange(booking.id, 'confirmed')}
+                                                                className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95 disabled:opacity-50"
+                                                                title="Duyệt đơn đặt phòng (Chuyển sang Đã xác nhận)"
+                                                            >
+                                                                <span>✓</span>
+                                                                <span>Duyệt</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={isRowUpdating}
+                                                                onClick={() => {
+                                                                    if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt phòng #${booking.booking_code}?`)) {
+                                                                        handleQuickStatusChange(booking.id, 'cancelled');
+                                                                    }
+                                                                }}
+                                                                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-50"
+                                                                title="Từ chối / Hủy đơn đặt phòng này"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </>
+                                                    )}
+
                                                     {/* Nút hành động chính theo trạng thái */}
                                                     {booking.status === 'confirmed' && (
                                                         <>

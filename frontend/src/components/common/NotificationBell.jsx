@@ -29,7 +29,25 @@ export default function NotificationBell({ theme = 'light' }) {
         }
     };
 
-    // Logic Cập nhật (Polling): Tự động gọi API mỗi 30 giây / 1 lần
+    // Hàm định dạng ngày giờ hiển thị theo đúng múi giờ địa phương của trình duyệt (Việt Nam UTC+7)
+    const formatNotifTime = (notif) => {
+        if (notif?.created_at) {
+            try {
+                const date = new Date(notif.created_at);
+                if (!isNaN(date.getTime())) {
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${hours}:${minutes} • ${day}/${month}/${year}`;
+                }
+            } catch (e) { }
+        }
+        return notif?.created_at_display || 'Vừa xong';
+    };
+
+    // Logic Cập nhật (Polling): Tự động gọi API mỗi 30 giây / 1 lần & Lắng nghe sự kiện đồng bộ
     useEffect(() => {
         if (!isAuthenticated) return;
 
@@ -41,7 +59,23 @@ export default function NotificationBell({ theme = 'light' }) {
             fetchNotifications(true);
         }, 30000);
 
-        return () => clearInterval(intervalId);
+        // Lắng nghe sự kiện realtime khi có đơn duyệt hoặc Check-in thành công
+        const handleSyncEvent = () => {
+            fetchNotifications(true);
+        };
+        window.addEventListener('pms_booking_created', handleSyncEvent);
+        const handleStorage = (e) => {
+            if (e.key === 'pms_last_booking_event') {
+                fetchNotifications(true);
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('pms_booking_created', handleSyncEvent);
+            window.removeEventListener('storage', handleStorage);
+        };
     }, [isAuthenticated]);
 
     // Xử lý đóng popover khi click ra ngoài màn hình
@@ -252,7 +286,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                                     {notif.message}
                                                 </p>
                                                 <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
-                                                    <span>{notif.created_at_display || 'Vừa xong'}</span>
+                                                    <span>{formatNotifTime(notif)}</span>
                                                     {isUnread ? (
                                                         <span className="text-blue-600 font-semibold text-[10px]">
                                                             Nhấn để đọc

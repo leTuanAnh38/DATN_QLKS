@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Notification
 
 
@@ -20,4 +21,5 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_created_at_display(self, obj):
         if not obj.created_at:
             return ''
-        return obj.created_at.strftime('%H:%M • %d/%m/%Y')
+        local_time = timezone.localtime(obj.created_at)
+        return local_time.strftime('%H:%M • %d/%m/%Y')
