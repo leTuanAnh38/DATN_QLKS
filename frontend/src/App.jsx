@@ -78,6 +78,8 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/profile" element={<AdminDashboard initialTab="profile" />} />
         <Route path="/admin/customers/:id" element={<AdminDashboard initialTab="customer-detail" />} />
+        <Route path="/admin/analytics" element={<AdminDashboard initialTab="analytics" />} />
+        <Route path="/admin/reports" element={<AdminDashboard initialTab="analytics" />} />
       </Routes>
     </BrowserRouter>
   );

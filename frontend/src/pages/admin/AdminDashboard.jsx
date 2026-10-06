@@ -18,6 +18,7 @@ import StaffProfile from '../../components/admin/StaffProfile';
 import CustomerDetail from '../../components/admin/CustomerDetail';
 import PostManagement from '../../components/admin/PostManagement';
 import ContactManagement from '../../components/admin/ContactManagement';
+import Analytics from '../../components/admin/Analytics';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -90,6 +91,7 @@ export default function HotelAdminDashboard({ initialTab }) {
     const getInitialTab = () => {
         if (location.pathname === '/admin/profile') return 'profile';
         if (location.pathname.startsWith('/admin/customers/')) return 'customer-detail';
+        if (location.pathname === '/admin/analytics' || location.pathname === '/admin/reports') return 'analytics';
         const params = new URLSearchParams(location.search);
         return params.get('tab') || initialTab || 'overview';
     };
@@ -125,6 +127,8 @@ export default function HotelAdminDashboard({ initialTab }) {
             setActiveTab('profile');
         } else if (location.pathname.startsWith('/admin/customers/')) {
             setActiveTab('customer-detail');
+        } else if (location.pathname === '/admin/analytics' || location.pathname === '/admin/reports') {
+            setActiveTab('analytics');
         } else {
             const params = new URLSearchParams(location.search);
             const tabParam = params.get('tab');
@@ -480,6 +484,32 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     </svg>
                                     <span className="truncate text-left">Tổng quan</span>
                                 </div>
+                            </button>
+
+                            {/* Báo cáo & Thống kê Doanh thu */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (location.pathname.startsWith('/admin/customers/') || location.pathname === '/admin/profile') {
+                                        navigate('/admin?tab=analytics');
+                                    } else {
+                                        setActiveTab('analytics');
+                                    }
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${['analytics', 'reports'].includes(activeTab)
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span className="truncate text-left">Báo cáo & Thống kê</span>
+                                </div>
+                                <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
+                                    KPI
+                                </span>
                             </button>
 
                             {/* 2. Quản lý Khách hàng (Feature 1) */}
@@ -1016,6 +1046,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 8.1: QUẢN LÝ TIN TỨC & BÀI VIẾT (BLOG / NEWS) */}
                     {activeTab === 'posts' && <PostManagement />}
                     {activeTab === 'contacts' && <ContactManagement />}
+
+                    {/* BÁO CÁO & THỐNG KÊ DOANH THU CHUYÊN SÂU */}
+                    {['analytics', 'reports'].includes(activeTab) && (
+                        <Analytics onNavigateToCustomer={(id) => navigate(`/admin/customers/${id}`)} />
+                    )}
 
                     {/* TAB 9: HỒ SƠ NHÂN SỰ & QUẢN TRỊ VIÊN (STAFF PROFILE) */}
                     {activeTab === 'profile' && <StaffProfile />}

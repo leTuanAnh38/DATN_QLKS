@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/reviews/', include('apps.reviews.urls')),
     path('api/posts/', include('apps.posts.urls')),
     path('api/contacts/', include('apps.contacts.urls')),
+    path('api/reports/', include('apps.reports.urls')),
     path('api/upload-image/', ImageUploadView.as_view(), name='upload-image'),
 ]
 
