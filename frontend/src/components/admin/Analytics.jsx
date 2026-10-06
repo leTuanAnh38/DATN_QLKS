@@ -257,7 +257,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             {/* ========================================================================= */}
             {/* PHẦN 1: HEADER & BỘ LỌC THỜI GIAN                                          */}
             {/* ========================================================================= */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 print:border-none print:p-0 print:shadow-none print:mb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 print:mb-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
                         Báo Cáo & Phân Tích Chuyên Sâu
@@ -269,6 +269,9 @@ export default function Analytics({ onNavigateToCustomer }) {
                                 • Cập nhật: {lastUpdated.toLocaleTimeString('vi-VN')}
                             </span>
                         )}
+                        <span className="hidden print:inline text-slate-600 font-semibold font-mono">
+                            • Kỳ báo cáo: {reportData?.filter_label || timeFilter}
+                        </span>
                     </p>
                 </div>
 
@@ -296,7 +299,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         type="button"
                         onClick={() => loadReportData(true)}
                         disabled={isLoading || isRefreshing}
-                        className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl border border-slate-200 transition cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm rounded-xl border border-slate-200 shadow-xs transition cursor-pointer disabled:opacity-50"
                         title="Tải lại dữ liệu mới nhất"
                     >
                         <RefreshCw className={`w-4 h-4 text-slate-600 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
@@ -529,7 +532,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                     </div>
 
                     {/* Toggle giữa AreaChart và BarChart */}
-                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200/60">
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200/60 print:hidden">
                         <button
                             type="button"
                             onClick={() => setChartType('area')}
@@ -661,7 +664,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                             </div>
 
                             {/* Toggle tab giữa Loại phòng và Trạng thái */}
-                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200/60">
+                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200/60 print:hidden">
                                 <button
                                     type="button"
                                     onClick={() => setPieTab('category')}

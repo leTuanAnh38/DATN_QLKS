@@ -446,28 +446,27 @@ export default function HotelAdminDashboard({ initialTab }) {
     }, [realBookings, bookingFilter, searchTerm]);
 
     return (
-        <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
+        <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white print:bg-white print:block">
             {/* ========================================================================= */}
             {/* 1. SIDEBAR CỐ ĐỊNH BÊN TRÁI (w-72 sang trọng, không xô lệch chữ dài) */}
             {/* ========================================================================= */}
-            <aside className="w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0 fixed inset-y-0 left-0 z-40 border-r border-slate-800">
-                <div>
-                    {/* Logo Brand Header */}
-                    <Link to="/" className="h-20 flex items-center px-6 border-b border-slate-800/80 gap-3 hover:bg-slate-800/40 transition">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg shadow-blue-600/40 shrink-0">
-                            TA
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-white font-bold text-base tracking-wide font-serif truncate"> TA ĐÀ NẴNG </span>
-                            <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate"> Luxury Hotel Admin </span>
-                        </div>
-                    </Link>
+            <aside className="w-72 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-40 border-r border-slate-800 print:hidden">
+                {/* Logo Brand Header (Cố định phía trên) */}
+                <Link to="/" className="h-20 shrink-0 flex items-center px-6 border-b border-slate-800/80 gap-3 hover:bg-slate-800/40 transition">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg shadow-blue-600/40 shrink-0">
+                        TA
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-white font-bold text-base tracking-wide font-serif truncate"> TA ĐÀ NẴNG </span>
+                        <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate"> Luxury Hotel Admin </span>
+                    </div>
+                </Link>
 
-                    {/* Nav Links */}
-                    <div className="px-4 py-6">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-3 block">
-                            Quản trị & Phân quyền
-                        </span>
+                {/* Nav Links (Cuộn độc lập khi menu dài ra) */}
+                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent px-4 py-6">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-3 block">
+                        Quản trị & Phân quyền
+                    </span>
                         <nav className="space-y-1">
                             {/* 1. Tổng quan */}
                             <button
@@ -484,32 +483,6 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     </svg>
                                     <span className="truncate text-left">Tổng quan</span>
                                 </div>
-                            </button>
-
-                            {/* Báo cáo & Thống kê Doanh thu */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (location.pathname.startsWith('/admin/customers/') || location.pathname === '/admin/profile') {
-                                        navigate('/admin?tab=analytics');
-                                    } else {
-                                        setActiveTab('analytics');
-                                    }
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${['analytics', 'reports'].includes(activeTab)
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                    </svg>
-                                    <span className="truncate text-left">Báo cáo & Thống kê</span>
-                                </div>
-                                <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
-                                    KPI
-                                </span>
                             </button>
 
                             {/* 2. Quản lý Khách hàng (Feature 1) */}
@@ -788,6 +761,32 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </div>
                             </button>
 
+                            {/* 10.3 Báo cáo & Thống kê Doanh thu */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (location.pathname.startsWith('/admin/customers/') || location.pathname === '/admin/profile') {
+                                        navigate('/admin?tab=analytics');
+                                    } else {
+                                        setActiveTab('analytics');
+                                    }
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${['analytics', 'reports'].includes(activeTab)
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span className="truncate text-left">Báo cáo & Thống kê</span>
+                                </div>
+                                <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
+                                    KPI
+                                </span>
+                            </button>
+
                             {/* 11. Cài đặt hệ thống */}
                             <button
                                 type="button"
@@ -804,11 +803,10 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </div>
                             </button>
                         </nav>
-                    </div>
                 </div>
 
-                {/* Sidebar Footer Widget: Khối tĩnh hiển thị thông tin tài khoản quản lý & Đăng xuất (Không bao giờ active màu xanh) */}
-                <div className="p-4 border-t border-slate-800/80 space-y-2">
+                {/* Sidebar Footer Widget: Khối tĩnh hiển thị thông tin tài khoản quản lý & Đăng xuất (Cố định phía dưới) */}
+                <div className="shrink-0 p-4 border-t border-slate-800/80 space-y-2">
                     <div className="bg-slate-800/60 rounded-2xl p-3 flex items-center justify-between text-xs select-none">
                         <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden mr-2">
                             <UserAvatar
@@ -844,9 +842,9 @@ export default function HotelAdminDashboard({ initialTab }) {
             {/* ========================================================================= */}
             {/* 2. KHU VỰC NỘI DUNG CHÍNH (BÊN PHẢI ml-72, min-w-0 max-w-full) */}
             {/* ========================================================================= */}
-            <div className="flex-1 ml-72 flex flex-col min-h-screen min-w-0 max-w-full">
+            <div className="flex-1 ml-72 flex flex-col min-h-screen min-w-0 max-w-full print:ml-0 print:w-full">
                 {/* Top Navbar: Ghim cố định trên cùng với sticky top-0 z-50, nền đặc bg-white, viền và bóng phân cách */}
-                <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+                <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-50 shadow-sm print:hidden">
                     {/* Search bar */}
                     <div className="relative w-96">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -988,7 +986,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                 </header>
 
                 {/* Nội dung bảng điều khiển thay đổi theo Tab */}
-                <main className="p-6 lg:p-8 space-y-6 flex-1 min-w-0 max-w-full">
+                <main className="p-6 lg:p-8 space-y-6 flex-1 min-w-0 max-w-full print:p-0 print:m-0 print:w-full">
                     {/* TAB 1: QUẢN LÝ KHÁCH HÀNG (FEATURE 1) */}
                     {activeTab === 'guests' && <GuestManagement />}
 
@@ -1682,7 +1680,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts', 'analytics', 'reports'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️
