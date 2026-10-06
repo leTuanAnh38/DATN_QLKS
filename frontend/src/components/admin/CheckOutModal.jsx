@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { bookingService } from '../../services/bookingService';
+import { PaymentSection } from '../common/PaymentModal';
 
 // Helper format tiền tệ VNĐ
 const formatCurrency = (amount) => {
@@ -431,6 +432,18 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                     </button>
                                 ))}
                             </div>
+
+                            {/* Hiển thị mã VietQR động khi chọn phương thức Chuyển khoản */}
+                            {paymentMethod === 'bank_transfer' && summary?.grand_total > 0 && (
+                                <div className="mt-3 rounded-2xl border border-blue-200 bg-white overflow-hidden shadow-sm animate-fadeIn">
+                                    <PaymentSection
+                                        amount={summary.grand_total}
+                                        bookingCode={booking.booking_code || `BK-${booking.id}`}
+                                        customerName={booking.guest_name}
+                                        isModalView={false}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* 4. GHI CHÚ NỘI BỘ KHI CHECK-OUT (OPTIONAL) */}

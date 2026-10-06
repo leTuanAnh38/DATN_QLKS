@@ -7,6 +7,8 @@ class Booking(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Đang chờ duyệt'),
         ('confirmed', 'Đã xác nhận'),
+        ('paid', 'Đã thanh toán'),
+        ('PAID', 'Đã thanh toán'),
         ('checked_in', 'Đã Check-in'),
         ('checked_out', 'Đã Check-out'),
         ('completed', 'Đã hoàn tất'),

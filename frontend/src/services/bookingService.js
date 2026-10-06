@@ -112,20 +112,38 @@ export const bookingService = {
      */
     async cancelBooking(id, cancelReason = '') {
         try {
-            const response = await api.patch(`/bookings/${id}/`, {
-                status: 'cancelled',
-                cancel_reason: cancelReason || 'Khách hàng yêu cầu hủy đơn'
+            // Thử gọi endpoint cancel-booking (hỗ trợ cả id lẫn booking_code)
+            const response = await api.post('/bookings/cancel-booking/', {
+                booking_id: id,
+                reason: cancelReason || 'Khách hàng yêu cầu hủy đơn'
             });
+            try {
+                localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                window.dispatchEvent(new Event('pms_booking_created'));
+            } catch {}
             return response.data;
         } catch (error) {
-            console.error('Lỗi khi hủy đơn đặt phòng:', error);
-            return {
-                success: false,
-                message:
-                    error.response?.data?.message ||
-                    error.response?.data?.detail ||
-                    'Không thể hủy đơn đặt phòng. Vui lòng thử lại sau.'
-            };
+            // Fallback sang PATCH /bookings/:id/ nếu cần
+            try {
+                const response = await api.patch(`/bookings/${id}/`, {
+                    status: 'cancelled',
+                    cancel_reason: cancelReason || 'Khách hàng yêu cầu hủy đơn'
+                });
+                try {
+                    localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                    window.dispatchEvent(new Event('pms_booking_created'));
+                } catch {}
+                return response.data;
+            } catch (err2) {
+                console.error('Lỗi khi hủy đơn đặt phòng:', err2);
+                return {
+                    success: false,
+                    message:
+                        err2.response?.data?.message ||
+                        error.response?.data?.message ||
+                        'Không thể hủy đơn đặt phòng. Vui lòng thử lại.'
+                };
+            }
         }
     },
 

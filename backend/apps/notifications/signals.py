@@ -176,6 +176,35 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
             if staff_notifications:
                 Notification.objects.bulk_create(staff_notifications)
 
+        # 2.4. HỦY ĐƠN ĐẶT PHÒNG (status đổi sang 'cancelled')
+        elif instance.status == 'cancelled' and prev_status != 'cancelled':
+            # Thông báo cho Khách hàng
+            if instance.guest:
+                Notification.objects.create(
+                    recipient=instance.guest,
+                    title="Hủy đơn đặt phòng thành công!",
+                    message=(
+                        f"Đơn đặt phòng #{instance.booking_code}{room_desc} đã được hủy thành công. "
+                        f"Khách sạn TA Đà Nẵng hy vọng sẽ có cơ hội được đón tiếp quý khách vào dịp lưu trú khác."
+                    )
+                )
+
+            # Thông báo cho Quản lý & Lễ tân
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_notifications = [
+                Notification(
+                    recipient=staff,
+                    title=f"Đơn đặt phòng đã bị hủy: #{instance.booking_code}",
+                    message=(
+                        f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name}{room_desc} đã được hủy. "
+                        f"Phòng và lịch lưu trú đã được giải phóng trên hệ thống."
+                    )
+                )
+                for staff in staff_users
+            ]
+            if staff_notifications:
+                Notification.objects.bulk_create(staff_notifications)
+
     except Exception as e:
         logger.error(f"Lỗi khi xử lý thông báo cho Booking #{getattr(instance, 'booking_code', 'N/A')}: {e}")
 

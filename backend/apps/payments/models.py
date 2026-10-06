@@ -46,3 +46,57 @@ class Invoice(models.Model):
     class Meta:
         verbose_name = "Hóa Đơn Thanh Toán"
         verbose_name_plural = "Quản lý Hóa Đơn"
+
+
+class Payment(models.Model):
+    STATUS_CHOICES = (
+        ('PENDING', 'Chờ xử lý'),
+        ('COMPLETED', 'Đã hoàn tất'),
+        ('FAILED', 'Thất bại'),
+    )
+
+    booking = models.ForeignKey(
+        Booking,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        verbose_name="Đơn đặt phòng"
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Số tiền thanh toán"
+    )
+    payment_method = models.CharField(
+        max_length=50,
+        default='TRANSFER',
+        verbose_name="Phương thức thanh toán"
+    )
+    payment_status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING',
+        verbose_name="Trạng thái thanh toán"
+    )
+    transaction_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Mã giao dịch"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Thời gian thanh toán"
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.transaction_id:
+            self.transaction_id = f"TXN-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Payment #{self.id} - {self.booking.booking_code} - {self.amount} ({self.payment_status})"
+
+    class Meta:
+        verbose_name = "Thanh Toán"
+        verbose_name_plural = "Danh sách Thanh Toán"
+        ordering = ['-created_at']

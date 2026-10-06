@@ -19,6 +19,7 @@ import CustomerDetail from '../../components/admin/CustomerDetail';
 import PostManagement from '../../components/admin/PostManagement';
 import ContactManagement from '../../components/admin/ContactManagement';
 import Analytics from '../../components/admin/Analytics';
+import InvoiceManagement from '../../components/admin/InvoiceManagement';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -600,9 +601,6 @@ export default function HotelAdminDashboard({ initialTab }) {
                                         <span className="truncate text-left">Quản lý Đặt phòng</span>
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                        <span className="shrink-0 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                            {actualBookingsCount}
-                                        </span>
                                         {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
                                         <span
                                             onClick={(e) => {
@@ -759,6 +757,24 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     </svg>
                                     <span className="truncate text-left">Quản lý Liên hệ</span>
                                 </div>
+                            </button>
+
+                            {/* 10.2.1 Quản lý Thanh toán & Hóa đơn */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('invoices')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'invoices' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                                    </svg>
+                                    <span className="truncate text-left">Thanh toán & Hóa đơn</span>
+                                </div>
+                                <span className="shrink-0 bg-blue-500/30 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30 ml-2">
+                                    VietQR
+                                </span>
                             </button>
 
                             {/* 10.3 Báo cáo & Thống kê Doanh thu */}
@@ -1044,6 +1060,9 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 8.1: QUẢN LÝ TIN TỨC & BÀI VIẾT (BLOG / NEWS) */}
                     {activeTab === 'posts' && <PostManagement />}
                     {activeTab === 'contacts' && <ContactManagement />}
+
+                    {/* TAB 8.2: QUẢN LÝ THANH TOÁN & HÓA ĐƠN (VIETQR / CASH) */}
+                    {activeTab === 'invoices' && <InvoiceManagement />}
 
                     {/* BÁO CÁO & THỐNG KÊ DOANH THU CHUYÊN SÂU */}
                     {['analytics', 'reports'].includes(activeTab) && (
@@ -1680,7 +1699,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts', 'analytics', 'reports'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts', 'invoices', 'analytics', 'reports'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

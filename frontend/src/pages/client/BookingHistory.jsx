@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { bookingService } from '../../services/bookingService';
 import { reviewService } from '../../services/reviewService';
 import { useAuth } from '../../store/authStore';
+import PaymentModal from '../../components/common/PaymentModal';
+import Pagination from '../../components/common/Pagination';
 
 // Tiện ích format ngày tiếng Việt (VD: 05/10/2026)
 const formatDateDisplay = (dateStr) => {
@@ -36,6 +38,7 @@ const formatDateTimeDisplay = (isoStr) => {
 
 export default function BookingHistory() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, isAuthenticated } = useAuth();
 
     // 1. Quản lý State danh sách đơn đặt phòng
@@ -47,6 +50,10 @@ export default function BookingHistory() {
     // 2. State Lọc & Tìm kiếm
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'confirmed' | 'checked_in' | 'cancelled'
     const [searchKeyword, setSearchKeyword] = useState('');
+
+    // Phân trang danh sách đơn đặt phòng
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(5);
 
     // 3. State Modal Hủy phòng
     const [cancelModalBooking, setCancelModalBooking] = useState(null);
@@ -74,6 +81,7 @@ export default function BookingHistory() {
     const [newCheckOutDate, setNewCheckOutDate] = useState('');
     const [isSubmittingExtend, setIsSubmittingExtend] = useState(false);
     const [extendConflictError, setExtendConflictError] = useState(null);
+    const [selectedPaymentBooking, setSelectedPaymentBooking] = useState(null);
 
     const handleOpenExtendModal = (booking) => {
         setExtendModalBooking(booking);
@@ -212,6 +220,15 @@ export default function BookingHistory() {
         setTimeout(() => setToastMessage(null), 3500);
     };
 
+    // Lắng nghe toast được truyền từ điều hướng (ví dụ hủy hoặc thanh toán từ Checkout)
+    useEffect(() => {
+        if (location.state?.toast) {
+            const { type, text } = location.state.toast;
+            showToast(type || 'info', text);
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
     // Tải danh sách đơn đặt phòng của chính người dùng
     const fetchBookings = async (isSilent = false) => {
         if (!isAuthenticated) {
@@ -342,6 +359,23 @@ export default function BookingHistory() {
             return true;
         });
     }, [bookings, statusFilter, searchKeyword]);
+
+    // Reset về trang 1 khi đổi bộ lọc hoặc số đơn trên mỗi trang
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, searchKeyword, pageSize]);
+
+    // Tính toán phân trang
+    const totalPages = Math.ceil(filteredBookings.length / pageSize) || 1;
+    const paginatedBookings = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredBookings.slice(start, start + pageSize);
+    }, [filteredBookings, currentPage, pageSize]);
+
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+    };
 
     // Cấu hình Badge Trạng thái theo yêu cầu chuẩn:
     // Pending: Vàng, Confirmed: Xanh dương, Checked_in: Xanh lá, Cancelled: Đỏ
@@ -669,7 +703,7 @@ export default function BookingHistory() {
                         {/* DANH SÁCH CÁC ĐƠN DẠNG THẺ (CARD LAYOUT) XẾP THEO CHIỀU DỌC */}
                         {!isLoading && filteredBookings.length > 0 && (
                             <div className="space-y-5">
-                                {filteredBookings.map((booking) => {
+                                {paginatedBookings.map((booking) => {
                                     // Xác định ảnh thumbnail phòng
                                     const roomThumbnail =
                                         booking.room_image ||
@@ -819,16 +853,27 @@ export default function BookingHistory() {
                                                         </div>
 
                                                         {/* NÚT THAO TÁC: NẾU PENDING THÌ HIỆN NÚT HỦY, NẾU KHÁC THÌ ẨN */}
-                                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
                                                             {isPending && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setCancelModalBooking(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                                                                >
-                                                                    <span>✕</span>
-                                                                    <span>Hủy đặt phòng</span>
-                                                                </button>
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setSelectedPaymentBooking(booking)}
+                                                                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 active:scale-95"
+                                                                        title="Mở mã QR quét thanh toán chuyển khoản"
+                                                                    >
+                                                                        <span>📱</span>
+                                                                        <span>Thanh toán ngay (VietQR)</span>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setCancelModalBooking(booking)}
+                                                                        className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    >
+                                                                        <span>✕</span>
+                                                                        <span>Hủy đặt phòng</span>
+                                                                    </button>
+                                                                </>
                                                             )}
 
                                                             {/* NÚT GIA HẠN PHÒNG CHO KHÁCH ĐANG Ở (checked_in) */}
@@ -939,6 +984,40 @@ export default function BookingHistory() {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        )}
+
+                        {/* PHÂN TRANG DANH SÁCH ĐƠN ĐẶT PHÒNG */}
+                        {!isLoading && filteredBookings.length > 0 && (
+                            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs mt-6">
+                                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-slate-50/70 border-b border-slate-100 gap-3 text-xs text-slate-500">
+                                    <div className="flex items-center gap-2">
+                                        <span>Số đơn mỗi trang:</span>
+                                        <select
+                                            value={pageSize}
+                                            onChange={(e) => {
+                                                setPageSize(Number(e.target.value));
+                                                setCurrentPage(1);
+                                            }}
+                                            className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                        >
+                                            <option value={5}>5 đơn / trang</option>
+                                            <option value={10}>10 đơn / trang</option>
+                                            <option value={20}>20 đơn / trang</option>
+                                        </select>
+                                    </div>
+                                    <span className="text-[11px] text-slate-400">
+                                        Hiển thị <strong>{paginatedBookings.length}</strong> / <strong>{filteredBookings.length}</strong> đơn đặt phòng (Tổng {bookings.length})
+                                    </span>
+                                </div>
+
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={handlePageChange}
+                                    totalCount={filteredBookings.length}
+                                    pageSize={pageSize}
+                                />
                             </div>
                         )}
                     </div>
@@ -1466,6 +1545,30 @@ export default function BookingHistory() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal Thanh toán VietQR động khi khách bấm "Thanh toán ngay" */}
+            {selectedPaymentBooking && (
+                <PaymentModal
+                    isOpen={true}
+                    booking={{
+                        id: selectedPaymentBooking.id,
+                        total_amount: Number(selectedPaymentBooking.grand_total_amount ?? selectedPaymentBooking.total_amount) || 0,
+                        booking_code: selectedPaymentBooking.booking_code,
+                        customer_name: user?.full_name || selectedPaymentBooking.guest_name || 'Quý khách'
+                    }}
+                    onSuccess={() => {
+                        showToast('success', `Đã xác nhận thanh toán cho đơn ${selectedPaymentBooking.booking_code} thành công!`);
+                        setSelectedPaymentBooking(null);
+                        fetchBookings(true);
+                    }}
+                    onCancelBooking={(code) => {
+                        showToast('info', `Đã hủy đơn đặt phòng ${code || selectedPaymentBooking.booking_code} thành công.`);
+                        setSelectedPaymentBooking(null);
+                        fetchBookings(true);
+                    }}
+                    onClose={() => setSelectedPaymentBooking(null)}
+                />
             )}
 
             <Footer />

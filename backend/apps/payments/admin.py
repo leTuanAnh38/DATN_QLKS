@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Invoice
+from .models import Invoice, Payment
 
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('invoice_code', 'booking', 'total_amount', 'payment_method', 'status', 'created_at')
@@ -22,3 +22,10 @@ class InvoiceAdmin(admin.ModelAdmin):
     )
 
 admin.site.register(Invoice, InvoiceAdmin)
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'booking', 'amount', 'payment_method', 'payment_status', 'transaction_id', 'created_at')
+    list_filter = ('payment_status', 'payment_method', 'created_at')
+    search_fields = ('transaction_id', 'booking__booking_code', 'booking__guest__username')
+    readonly_fields = ('created_at',)

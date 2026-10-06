@@ -6,6 +6,7 @@ import { authService } from '../../services/autheService';
 import { useAuth } from '../../store/authStore';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import PaymentModal, { PaymentSection } from '../../components/common/PaymentModal';
 
 // Hàm tiện ích format ngày thành chuỗi YYYY-MM-DD
 const formatDateToInput = (date) => {
@@ -331,6 +332,7 @@ export default function Checkout() {
             guest_email: guestEmail.trim(),
             identity_card: cleanIdCard,
             promo_code: appliedPromo ? appliedPromo.code : '',
+            discount_amount: appliedPromo ? discountAmount : 0,
             note: `${note ? note + ' | ' : ''}Khách: ${guestCount} người. CCCD: ${cleanIdCard}. Thanh toán: ${paymentMethod}`
         };
 
@@ -338,8 +340,9 @@ export default function Checkout() {
             const res = await bookingService.createBooking(payload);
 
             if (res && (res.success || res.booking_code || res.booking)) {
-                const bookingData = res.booking || res;
+                const bookingData = res.booking || res.data || res;
                 setCreatedBooking({
+                    id: bookingData.id || res.id,
                     booking_code: res.booking_code || bookingData.booking_code || `BK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
                     room_name: room?.name,
                     check_in_date: checkInDate,
@@ -349,7 +352,7 @@ export default function Checkout() {
                     guest_phone: guestPhone,
                     guest_email: guestEmail,
                     identity_card: cleanIdCard,
-                    total_amount: finalTotal,
+                    total_amount: bookingData.total_amount ? Number(bookingData.total_amount) : finalTotal,
                     payment_method: paymentMethod
                 });
 
@@ -986,7 +989,7 @@ export default function Checkout() {
                                     <label
                                         onClick={() => setPaymentMethod('vietqr')}
                                         className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'vietqr'
-                                                ? 'border-blue-600 bg-blue-50/40'
+                                                ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-600/20'
                                                 : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
@@ -998,11 +1001,16 @@ export default function Checkout() {
                                             className="mt-1 text-blue-600"
                                         />
                                         <div className="flex-1">
-                                            <strong className="text-xs sm:text-sm font-bold text-slate-900 block">
-                                                Chuyển khoản VietQR tức thì (Tự động xác nhận)
-                                            </strong>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <strong className="text-xs sm:text-sm font-bold text-slate-900 block">
+                                                    Chuyển khoản VietQR tức thì (Tự động xác nhận)
+                                                </strong>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                                    Miễn phí 24/7
+                                                </span>
+                                            </div>
                                             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                                Mã QR thanh toán chính thức của Khách Sạn TA Đà Nẵng sẽ được cung cấp ngay sau khi xác nhận đơn.
+                                                Mã QR thanh toán VietQR chính thức sẽ hiển thị ngay sau khi quý khách bấm nút <strong>"Xác nhận đặt phòng"</strong> bên dưới.
                                             </p>
                                         </div>
                                     </label>
@@ -1172,8 +1180,75 @@ export default function Checkout() {
             {/* ========================================================================= */}
             {/* MODAL / MÀN HÌNH CHÚC MỪNG ĐẶT PHÒNG THÀNH CÔNG */}
             {/* ========================================================================= */}
+            {/* Modal sau khi tạo đơn thành công */}
             {createdBooking && (
-                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-md">
+                createdBooking.payment_method === 'vietqr' ? (
+                    <PaymentModal
+                        isOpen={true}
+                        booking={createdBooking}
+                        amount={createdBooking.total_amount}
+                        bookingCode={createdBooking.booking_code}
+                        customerName={createdBooking.guest_name}
+                        onClose={(meta) => {
+                            const code = meta?.bookingCode || createdBooking.booking_code;
+                            setCreatedBooking(null);
+                            if (meta?.cancelled) {
+                                navigate('/booking-history', {
+                                    state: {
+                                        toast: {
+                                            type: 'info',
+                                            text: `Đã hủy đơn đặt phòng ${code} thành công.`
+                                        }
+                                    }
+                                });
+                            } else {
+                                navigate('/booking-history', {
+                                    state: {
+                                        toast: {
+                                            type: 'info',
+                                            text: `Đơn đặt phòng ${code} đã được lưu tạm. Quý khách có thể thanh toán sau.`
+                                        }
+                                    }
+                                });
+                            }
+                        }}
+                        onCancelBooking={(cancelCode) => {
+                            const code = cancelCode || createdBooking.booking_code;
+                            setCreatedBooking(null);
+                            navigate('/booking-history', {
+                                state: {
+                                    toast: {
+                                        type: 'info',
+                                        text: `Đã hủy đơn đặt phòng ${code} thành công.`
+                                    }
+                                }
+                            });
+                        }}
+                        onSuccess={() => {
+                            setCreatedBooking(null);
+                            navigate('/booking-history', {
+                                state: {
+                                    toast: {
+                                        type: 'success',
+                                        text: `Thanh toán VietQR cho đơn ${createdBooking.booking_code} thành công!`
+                                    }
+                                }
+                            });
+                        }}
+                        onConfirm={() => {
+                            setCreatedBooking(null);
+                            navigate('/booking-history', {
+                                state: {
+                                    toast: {
+                                        type: 'success',
+                                        text: `Đã xác nhận thanh toán đơn ${createdBooking.booking_code} thành công!`
+                                    }
+                                }
+                            });
+                        }}
+                    />
+                ) : (
+                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-md">
                     <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-8 sm:p-10 text-center shadow-2xl animate-in fade-in zoom-in duration-300">
                         {/* Icon thành công */}
                         <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-4xl mb-6 shadow-inner">
@@ -1263,7 +1338,7 @@ export default function Checkout() {
                         </div>
                     </div>
                 </div>
-            )}
+            ))}
 
             <Footer />
         </div>

@@ -288,7 +288,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             } else if (activeMode === 'check-out-today') {
                 res = await bookingService.getCheckOutToday();
             } else {
-                res = await bookingService.getMyBookings();
+                res = await bookingService.getMyBookings({ no_page: 'true' });
             }
 
             if (res && res.success) {
@@ -1113,7 +1113,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             </div>
 
             {/* HÀNG THỐNG KÊ NHANH (QUICK STATS CARDS) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                 {/* 1. Tổng đơn */}
                 <div
                     onClick={() => setStatusFilter('all')}
@@ -1179,7 +1179,22 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     <span className="text-[11px] opacity-80 mt-0.5 block">Khách đang lưu trú</span>
                 </div>
 
-                {/* 5. Doanh thu dự kiến */}
+                {/* 5. Đã hủy */}
+                <div
+                    onClick={() => setStatusFilter('cancelled')}
+                    className={`p-4 rounded-2xl border transition cursor-pointer ${statusFilter === 'cancelled'
+                        ? 'bg-rose-600 text-white border-rose-700 shadow-md ring-1 ring-rose-300'
+                        : 'bg-rose-50/70 text-rose-900 border-rose-200 hover:border-rose-300 shadow-xs'
+                        }`}
+                >
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block">
+                        ĐÃ HỦY
+                    </span>
+                    <div className="text-2xl font-black mt-1">{stats.cancelled}</div>
+                    <span className="text-[11px] opacity-80 mt-0.5 block">Đơn khách/lễ tân hủy</span>
+                </div>
+
+                {/* 6. Doanh thu dự kiến */}
                 <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs col-span-2 sm:col-span-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                         DOANH THU ĐƠN

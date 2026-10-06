@@ -6,14 +6,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db.models import Q
 from django.db import transaction
 from .models import Booking, Promotion, BookingExtraService
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile
 from ..services.models import ServiceItem, ServiceRequest
-from ..payments.models import Invoice
+from ..payments.models import Invoice, Payment
 from ..notifications.models import Notification
 from ..notifications.signals import get_staff_and_admin_users
 from .serializers import BookingSerializer, PromotionSerializer
@@ -31,8 +31,8 @@ class BookingViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
-        # Cho phép mọi khách hàng (kể cả chưa đăng nhập) có thể kiểm tra phòng và tạo đơn đặt phòng
-        if self.action in ['create', 'check_availability']:
+        # Cho phép mọi khách hàng (kể cả chưa đăng nhập) có thể kiểm tra phòng, tạo đơn đặt phòng và hủy đơn tại bước thanh toán
+        if self.action in ['create', 'check_availability', 'cancel_booking']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -264,21 +264,40 @@ class BookingViewSet(viewsets.ModelViewSet):
                 valid_to__gte=now
             ).first()
 
-            if promo and promo.used_count < promo.usage_limit and subtotal >= promo.min_order_value:
+            # Tự động tạo bản ghi Promotion nếu là mã hệ thống mặc định (đồng bộ ValidatePromoCodeView)
+            if not promo and promo_code in ['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG']:
+                promo, _ = Promotion.objects.get_or_create(
+                    code=promo_code,
+                    defaults={
+                        'discount_type': 'percentage',
+                        'discount_value': 10,
+                        'valid_from': now - timedelta(days=30),
+                        'valid_to': now + timedelta(days=365),
+                        'usage_limit': 1000,
+                        'is_active': True
+                    }
+                )
+
+            if promo and promo.used_count < promo.usage_limit and Decimal(str(subtotal)) >= Decimal(str(promo.min_order_value or 0)):
                 promotion_obj = promo
                 if promo.discount_type == 'percentage':
-                    calc_discount = (subtotal * promo.discount_value) / 100
+                    calc_discount = (Decimal(str(subtotal)) * Decimal(str(promo.discount_value))) / Decimal('100')
                     if promo.max_discount_amount:
-                        calc_discount = min(calc_discount, promo.max_discount_amount)
+                        calc_discount = min(calc_discount, Decimal(str(promo.max_discount_amount)))
                     discount_amount = calc_discount
                 else:
-                    discount_amount = min(subtotal, promo.discount_value)
+                    discount_amount = min(Decimal(str(subtotal)), Decimal(str(promo.discount_value)))
 
                 # Tăng lượt dùng khuyến mãi
                 promo.used_count += 1
                 promo.save(update_fields=['used_count'])
+            elif data.get('discount_amount'):
+                try:
+                    discount_amount = Decimal(str(data.get('discount_amount')))
+                except (ValueError, TypeError):
+                    pass
 
-        total_amount = max(0, subtotal - discount_amount)
+        total_amount = max(Decimal('0'), Decimal(str(subtotal)) - Decimal(str(discount_amount)))
 
         # 5. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách)
         if request.user and request.user.is_authenticated:
@@ -331,6 +350,46 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'total_amount': float(total_amount),
             }
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], url_path='cancel-booking', permission_classes=[AllowAny])
+    def cancel_booking(self, request):
+        """
+        API POST /api/bookings/cancel-booking/
+        Hủy đơn đặt phòng linh hoạt theo booking_id hoặc booking_code
+        Payload: { "booking_id": 123 | "BK-XXXXXX", "reason": "Lý do hủy" }
+        """
+        booking_identifier = request.data.get('booking_id') or request.data.get('id') or request.data.get('booking_code')
+        reason = request.data.get('reason', 'Khách hàng hủy tại bước quét mã VietQR').strip()
+
+        if not booking_identifier:
+            return Response({'success': False, 'message': 'Vui lòng cung cấp mã đơn đặt phòng.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if str(booking_identifier).isdigit():
+                booking = Booking.objects.get(id=int(booking_identifier))
+            else:
+                booking = Booking.objects.get(booking_code=str(booking_identifier))
+        except Booking.DoesNotExist:
+            return Response({'success': False, 'message': f'Không tìm thấy đơn đặt phòng "{booking_identifier}".'}, status=status.HTTP_404_NOT_FOUND)
+
+        if booking.status not in ['pending', 'confirmed']:
+            return Response({'success': False, 'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể hủy.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        booking.status = 'cancelled'
+        now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
+        booking.note = f"{booking.note or ''}\n[Khách hủy {now_str}]: {reason}".strip()
+        booking.save(update_fields=['status', 'note', 'updated_at'])
+
+        if booking.room and booking.room.status == 'occupied':
+            booking.room.status = 'available'
+            booking.room.save(update_fields=['status'])
+
+        return Response({
+            'success': True,
+            'message': f'Đơn đặt phòng {booking.booking_code} đã được hủy thành công.',
+            'booking_code': booking.booking_code,
+            'status': 'cancelled'
+        }, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         """
@@ -1477,6 +1536,18 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'payment_method': payment_method,
                     'status': 'paid',
                     'paid_at': timezone.now()
+                }
+            )
+
+            # 2.1 Đồng bộ bản ghi Payment để quản lý tập trung ở trang Thanh toán & Hóa đơn
+            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+            Payment.objects.update_or_create(
+                booking=booking,
+                defaults={
+                    'amount': grand_total,
+                    'payment_method': method_code,
+                    'payment_status': 'COMPLETED',
+                    'transaction_id': f"TXN-{invoice.invoice_code.replace('INV-', '')}"
                 }
             )
 
