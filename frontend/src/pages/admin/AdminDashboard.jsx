@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, User as UserIcon, LogOut, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
+import { useHasPermission } from '../../utils/permission';
 import { bookingService } from '../../services/bookingService';
 import GuestManagement from './GuestManagement';
 import EmployeeManagement from './EmployeeManagement';
@@ -93,6 +94,21 @@ export default function HotelAdminDashboard({ initialTab }) {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // 🛡️ Kiểm tra phân quyền RBAC cho từng phân hệ menu
+    const canViewOverview = useHasPermission('overview', 'read');
+    const canViewGuests = useHasPermission('guests', 'read');
+    const canViewEmployees = useHasPermission('employees', 'read');
+    const canViewRooms = useHasPermission('rooms', 'read');
+    const canViewCategories = useHasPermission('categories', 'read');
+    const canViewBookings = useHasPermission('bookings', 'read');
+    const canViewServices = useHasPermission('services', 'read');
+    const canViewReviews = useHasPermission('reviews', 'read');
+    const canViewMarketing = useHasPermission('marketing', 'read');
+    const canViewContacts = useHasPermission('contacts', 'read');
+    const canViewInvoices = useHasPermission('finance', 'read');
+    const canViewAnalytics = useHasPermission('reports', 'read');
+    const canViewSettings = useHasPermission('settings', 'read');
+
     // Xác định tab ban đầu dựa trên route URL hoặc prop
     const getInitialTab = () => {
         if (location.pathname === '/admin/profile') return 'profile';
@@ -159,6 +175,16 @@ export default function HotelAdminDashboard({ initialTab }) {
         }
     }, [location.pathname, location.search]);
 
+    // Tự động chuyển tab phù hợp nếu vai trò hiện tại không có quyền xem Tổng quan (Overview)
+    useEffect(() => {
+        if (!canViewOverview && activeTab === 'overview') {
+            if (canViewRooms) setActiveTab('rooms');
+            else if (canViewServices) setActiveTab('services');
+            else if (canViewBookings) setActiveTab('bookings');
+            else if (canViewInvoices) setActiveTab('invoices');
+        }
+    }, [canViewOverview, activeTab, canViewRooms, canViewServices, canViewBookings, canViewInvoices]);
+
     // Chuyển tab và đồng bộ đường dẫn URL
     const handleSwitchTab = (tab) => {
         setActiveTab(tab);
@@ -187,11 +213,16 @@ export default function HotelAdminDashboard({ initialTab }) {
     const [isMarketingMenuOpen, setIsMarketingMenuOpen] = useState(true);
 
     // Kiểm tra phân hệ: Cho phép tài khoản Quản trị, Lễ tân và Nhân sự
-    // (admin, owner, manager, receptionist, staff, cashier hoặc is_staff, is_superuser)
+    // (admin, owner, manager, receptionist, staff, cashier, housekeeper, service_staff, technician hoặc is_staff, is_superuser)
     const isManagerRole = Boolean(
         isAuthenticated &&
         user &&
-        (['admin', 'owner', 'manager', 'receptionist', 'staff', 'cashier'].includes(user.role) || user.is_staff || user.is_superuser)
+        (['admin', 'owner', 'manager', 'receptionist', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'].includes(user.role) || user.is_staff || user.is_superuser)
+    );
+
+    const isHighLevelManager = Boolean(
+        user &&
+        (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser)
     );
 
     // Tải số lượng và danh sách đơn đặt phòng thực tế từ CSDL để hiển thị bảng thời gian thực
@@ -333,11 +364,19 @@ export default function HotelAdminDashboard({ initialTab }) {
             case 'admin':
                 return 'Quản Trị Viên Hệ Thống (Admin)';
             case 'owner':
-                return 'Chủ Sở Hữu / Cấp Cao (Owner)';
+                return 'Chủ Khách Sạn & Chủ Tịch HĐQT (Owner)';
             case 'manager':
                 return 'Tổng Giám Đốc Điều Hành (General Manager)';
             case 'receptionist':
                 return 'Nhân Viên Lễ Tân & Tiếp Đón (Receptionist)';
+            case 'cashier':
+                return 'Nhân Viên Kế Toán & Thu Ngân (Cashier)';
+            case 'housekeeper':
+                return 'Nhân Viên Buồng Phòng & Vệ Sinh (Housekeeper)';
+            case 'service_staff':
+                return 'Nhân Viên Dịch Vụ & Ẩm Thực (F&B / Spa)';
+            case 'technician':
+                return 'Kỹ Thuật Viên Cơ Điện & Bảo Trì (Technician)';
             case 'staff':
                 return 'Nhân Viên Khách Sạn (Staff)';
             default:
@@ -492,495 +531,523 @@ export default function HotelAdminDashboard({ initialTab }) {
                     </span>
                         <nav className="space-y-1">
                             {/* 1. Tổng quan */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('overview')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-semibold transition ${activeTab === 'overview'
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                    </svg>
-                                    <span className="truncate text-left">Tổng quan</span>
-                                </div>
-                            </button>
-
-                            {/* 2. Quản lý Khách hàng (Feature 1) */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (location.pathname.startsWith('/admin/customers/')) {
-                                        navigate('/admin?tab=guests');
-                                    } else {
-                                        setActiveTab('guests');
-                                    }
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${['guests', 'customer-detail'].includes(activeTab)
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                    </svg>
-                                    <span className="truncate text-left">Quản lý Khách hàng</span>
-                                </div>
-                                <span className="shrink-0 bg-blue-500/30 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30 ml-2">
-                                    VIP
-                                </span>
-                            </button>
-
-                            {/* 3. Quản lý Nhân sự & Phân quyền (Feature 2) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('employees')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'employees'
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                    <span className="truncate text-left">Quản lý Nhân sự</span>
-                                </div>
-                                <span className="shrink-0 bg-indigo-500/30 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-400/30 ml-2">
-                                    RBAC
-                                </span>
-                            </button>
-
-                            {/* 4. Sơ đồ & Quản lý Phòng (PMS Room Board) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('rooms')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'rooms'
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                    </svg>
-                                    <span className="truncate text-left">Sơ đồ Phòng</span>
-                                </div>
-                                <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
-                                    PMS
-                                </span>
-                            </button>
-
-                            {/* 5. Quản lý Hạng phòng & Bảng giá (Accordion / Collapsible Menu) */}
-                            <div className="space-y-1">
+                            {canViewOverview && (
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (activeTab !== 'categories' && activeTab !== 'amenities') {
-                                            setActiveTab('categories');
-                                            setIsCategoryMenuOpen(true);
-                                        } else if (activeTab === 'amenities') {
-                                            setActiveTab('categories');
-                                            setIsCategoryMenuOpen(true);
-                                        } else {
-                                            setIsCategoryMenuOpen((prev) => !prev);
-                                        }
-                                    }}
-                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${activeTab === 'categories'
+                                    onClick={() => setActiveTab('overview')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-semibold transition ${activeTab === 'overview'
                                             ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                            : activeTab === 'amenities'
-                                                ? 'bg-slate-800 text-white'
-                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                        }`}
-                                    title="Hạng phòng & Bảng giá"
-                                >
-                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
-                                        <span className="truncate text-left">Hạng phòng & Bảng giá</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                        <span className="shrink-0 bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                                            Suites
-                                        </span>
-                                        {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
-                                        <span
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setIsCategoryMenuOpen((prev) => !prev);
-                                            }}
-                                            className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
-                                            title={isCategoryMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
-                                        >
-                                            <svg
-                                                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isCategoryMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
-                                                    }`}
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </span>
-                                    </div>
-                                </button>
-
-                                {/* Danh sách Menu Con: Tiện nghi (link tới /admin/amenities) */}
-                                <div
-                                    className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isCategoryMenuOpen
-                                            ? 'grid-rows-[1fr] opacity-100'
-                                            : 'grid-rows-[0fr] opacity-0'
-                                        }`}
-                                >
-                                    <div className="min-h-0">
-                                        <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setActiveTab('amenities');
-                                                    setIsCategoryMenuOpen(true);
-                                                    navigate('/admin/amenities');
-                                                }}
-                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'amenities'
-                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                                    </svg>
-                                                    <span className="truncate text-left">Tiện nghi</span>
-                                                </div>
-                                                <span className="shrink-0 text-[10px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 ml-2">
-                                                    Tiện ích
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 6. Quản lý Đặt phòng (Accordion / Collapsible Menu) */}
-                            <div className="space-y-1">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (activeTab !== 'bookings' || bookingSubFilter !== 'all') {
-                                            setActiveTab('bookings');
-                                            setBookingSubFilter('all');
-                                            setIsBookingMenuOpen(true);
-                                        } else {
-                                            setIsBookingMenuOpen((prev) => !prev);
-                                        }
-                                    }}
-                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${activeTab === 'bookings' && bookingSubFilter === 'all'
-                                            ? 'bg-blue-600 text-white shadow-md'
-                                            : ['bookings', 'booking-timeline'].includes(activeTab)
-                                                ? 'bg-slate-800 text-white'
-                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                        }`}
-                                    title="Quản lý Đặt phòng"
-                                >
-                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span className="truncate text-left">Quản lý Đặt phòng</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                        {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
-                                        <span
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setIsBookingMenuOpen((prev) => !prev);
-                                            }}
-                                            className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
-                                            title={isBookingMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
-                                        >
-                                            <svg
-                                                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isBookingMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
-                                                    }`}
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </span>
-                                    </div>
-                                </button>
-
-                                {/* Danh sách Menu Con: Dùng CSS Grid grid-rows-[0fr] -> grid-rows-[1fr] transition mượt mà */}
-                                <div
-                                    className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isBookingMenuOpen
-                                            ? 'grid-rows-[1fr] opacity-100'
-                                            : 'grid-rows-[0fr] opacity-0'
-                                        }`}
-                                >
-                                    <div className="min-h-0">
-                                        <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
-                                            {/* Menu con 1: Sơ đồ Timeline / Gantt Chart */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setActiveTab('booking-timeline');
-                                                    setIsBookingMenuOpen(true);
-                                                }}
-                                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'booking-timeline'
-                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                    </svg>
-                                                    <span className="truncate text-left">Lịch đặt phòng</span>
-                                                </div>
-                                                <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
-                                                    Sơ đồ
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 7. Quản lý Dịch vụ (Concierge & Kanban) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('services')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'services' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                    </svg>
-                                    <span className="truncate text-left">Yêu cầu Dịch vụ</span>
-                                </div>
-                                <span className="shrink-0 bg-purple-500/30 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-400/30 ml-2">
-                                    Kanban
-                                </span>
-                            </button>
-
-                            {/* 8. Quản lý Danh mục Dịch vụ & Thực đơn (CRUD) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('service-items')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'service-items' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <span className="text-sm shrink-0">🍽️</span>
-                                    <span className="truncate text-left">Danh mục Dịch vụ</span>
-                                </div>
-                                <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
-                                    Menu
-                                </span>
-                            </button>
-
-                            {/* 10. Quản lý Đánh giá & Phản hồi (Review & Rating) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('reviews')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'reviews' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                                    </svg>
-                                    <span className="truncate text-left">Quản lý Đánh giá</span>
-                                </div>
-                                <span className="shrink-0 bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30 ml-2">
-                                    Review
-                                </span>
-                            </button>
-
-                            {/* 10.1 Marketing & Khuyến mãi (Accordion Dropdown) */}
-                            <div className="space-y-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsMarketingMenuOpen((prev) => !prev)}
-                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${['posts', 'promotions'].includes(activeTab)
-                                            ? 'bg-slate-800 text-white'
                                             : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
-                                    title="Marketing & Khuyến mãi"
                                 >
                                     <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
                                         <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                         </svg>
-                                        <span className="truncate text-left">Marketing & Khuyến mãi</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                        <span className="shrink-0 bg-rose-500/30 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-400/30">
-                                            PROMO
-                                        </span>
-                                        {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
-                                        <span
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setIsMarketingMenuOpen((prev) => !prev);
-                                            }}
-                                            className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
-                                            title={isMarketingMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
-                                        >
-                                            <svg
-                                                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isMarketingMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
-                                                    }`}
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </span>
+                                        <span className="truncate text-left">Tổng quan</span>
                                     </div>
                                 </button>
+                            )}
 
-                                {/* Danh sách Menu Con: Tin tức & Blog, Khuyến mãi */}
-                                <div
-                                    className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isMarketingMenuOpen
-                                            ? 'grid-rows-[1fr] opacity-100'
-                                            : 'grid-rows-[0fr] opacity-0'
+                            {/* 2. Quản lý Khách hàng (Feature 1) */}
+                            {canViewGuests && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (location.pathname.startsWith('/admin/customers/')) {
+                                            navigate('/admin?tab=guests');
+                                        } else {
+                                            setActiveTab('guests');
+                                        }
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${['guests', 'customer-detail'].includes(activeTab)
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                 >
-                                    <div className="min-h-0">
-                                        <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
-                                            {/* Menu con 1: Tin tức & Blog */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setActiveTab('posts');
-                                                    setIsMarketingMenuOpen(true);
-                                                    navigate('/admin/posts');
-                                                }}
-                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'posts'
-                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                                    </svg>
-                                                    <span className="truncate text-left">Tin tức & Blog</span>
-                                                </div>
-                                                <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
-                                                    Blog
-                                                </span>
-                                            </button>
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                        <span className="truncate text-left">Quản lý Khách hàng</span>
+                                    </div>
+                                    <span className="shrink-0 bg-blue-500/30 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30 ml-2">
+                                        VIP
+                                    </span>
+                                </button>
+                            )}
 
-                                            {/* Menu con 2: Khuyến mãi */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setActiveTab('promotions');
-                                                    setIsMarketingMenuOpen(true);
-                                                    navigate('/admin/promotions');
+                            {/* 3. Quản lý Nhân sự & Phân quyền (Feature 2) */}
+                            {canViewEmployees && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('employees')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'employees'
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        <span className="truncate text-left">Quản lý Nhân sự</span>
+                                    </div>
+                                    <span className="shrink-0 bg-indigo-500/30 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-400/30 ml-2">
+                                        RBAC
+                                    </span>
+                                </button>
+                            )}
+
+                            {/* 4. Sơ đồ & Quản lý Phòng (PMS Room Board) */}
+                            {canViewRooms && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('rooms')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'rooms'
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                        </svg>
+                                        <span className="truncate text-left">Sơ đồ Phòng</span>
+                                    </div>
+                                    <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
+                                        PMS
+                                    </span>
+                                </button>
+                            )}
+
+                            {/* 5. Quản lý Hạng phòng & Bảng giá (Accordion / Collapsible Menu) */}
+                            {canViewCategories && (
+                                <div className="space-y-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (activeTab !== 'categories' && activeTab !== 'amenities') {
+                                                setActiveTab('categories');
+                                                setIsCategoryMenuOpen(true);
+                                            } else if (activeTab === 'amenities') {
+                                                setActiveTab('categories');
+                                                setIsCategoryMenuOpen(true);
+                                            } else {
+                                                setIsCategoryMenuOpen((prev) => !prev);
+                                            }
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${activeTab === 'categories'
+                                                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                                : activeTab === 'amenities'
+                                                    ? 'bg-slate-800 text-white'
+                                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                            }`}
+                                        title="Hạng phòng & Bảng giá"
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                            <span className="truncate text-left">Hạng phòng & Bảng giá</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                            <span className="shrink-0 bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                                                Suites
+                                            </span>
+                                            {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
+                                            <span
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsCategoryMenuOpen((prev) => !prev);
                                                 }}
-                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'promotions'
-                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                                    }`}
+                                                className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
+                                                title={isCategoryMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
                                             >
-                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                                    </svg>
-                                                    <span className="truncate text-left">Khuyến mãi</span>
-                                                </div>
-                                                <span className="shrink-0 text-[10px] font-bold bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 ml-2">
-                                                    Voucher
-                                                </span>
-                                            </button>
+                                                <svg
+                                                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isCategoryMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
+                                                        }`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </button>
+
+                                    {/* Danh sách Menu Con: Tiện nghi (link tới /admin/amenities) */}
+                                    <div
+                                        className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isCategoryMenuOpen
+                                                ? 'grid-rows-[1fr] opacity-100'
+                                                : 'grid-rows-[0fr] opacity-0'
+                                            }`}
+                                    >
+                                        <div className="min-h-0">
+                                            <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setActiveTab('amenities');
+                                                        setIsCategoryMenuOpen(true);
+                                                        navigate('/admin/amenities');
+                                                    }}
+                                                    className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'amenities'
+                                                            ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                        </svg>
+                                                        <span className="truncate text-left">Tiện nghi</span>
+                                                    </div>
+                                                    <span className="shrink-0 text-[10px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 ml-2">
+                                                        Tiện ích
+                                                    </span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* 6. Quản lý Đặt phòng (Accordion / Collapsible Menu) */}
+                            {canViewBookings && (
+                                <div className="space-y-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (activeTab !== 'bookings' || bookingSubFilter !== 'all') {
+                                                setActiveTab('bookings');
+                                                setBookingSubFilter('all');
+                                                setIsBookingMenuOpen(true);
+                                            } else {
+                                                setIsBookingMenuOpen((prev) => !prev);
+                                            }
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${activeTab === 'bookings' && bookingSubFilter === 'all'
+                                                ? 'bg-blue-600 text-white shadow-md'
+                                                : ['bookings', 'booking-timeline'].includes(activeTab)
+                                                    ? 'bg-slate-800 text-white'
+                                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                            }`}
+                                        title="Quản lý Đặt phòng"
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span className="truncate text-left">Quản lý Đặt phòng</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                            {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
+                                            <span
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsBookingMenuOpen((prev) => !prev);
+                                                }}
+                                                className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
+                                                title={isBookingMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
+                                            >
+                                                <svg
+                                                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isBookingMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
+                                                        }`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </button>
+
+                                    {/* Danh sách Menu Con: Dùng CSS Grid grid-rows-[0fr] -> grid-rows-[1fr] transition mượt mà */}
+                                    <div
+                                        className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isBookingMenuOpen
+                                                ? 'grid-rows-[1fr] opacity-100'
+                                                : 'grid-rows-[0fr] opacity-0'
+                                            }`}
+                                    >
+                                        <div className="min-h-0">
+                                            <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
+                                                {/* Menu con 1: Sơ đồ Timeline / Gantt Chart */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setActiveTab('booking-timeline');
+                                                        setIsBookingMenuOpen(true);
+                                                    }}
+                                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'booking-timeline'
+                                                            ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                        </svg>
+                                                        <span className="truncate text-left">Lịch đặt phòng</span>
+                                                    </div>
+                                                    <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
+                                                        Sơ đồ
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 7. Quản lý Dịch vụ (Concierge & Kanban) */}
+                            {canViewServices && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('services')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'services' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                        </svg>
+                                        <span className="truncate text-left">Yêu cầu Dịch vụ</span>
+                                    </div>
+                                    <span className="shrink-0 bg-purple-500/30 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-400/30 ml-2">
+                                        Kanban
+                                    </span>
+                                </button>
+                            )}
+
+                            {/* 8. Quản lý Danh mục Dịch vụ & Thực đơn (CRUD) */}
+                            {canViewServices && isHighLevelManager && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('service-items')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'service-items' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <span className="text-sm shrink-0">🍽️</span>
+                                        <span className="truncate text-left">Danh mục Dịch vụ</span>
+                                    </div>
+                                    <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
+                                        Menu
+                                    </span>
+                                </button>
+                            )}
+
+                            {/* 10. Quản lý Đánh giá & Phản hồi (Review & Rating) */}
+                            {canViewReviews && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('reviews')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'reviews' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                        </svg>
+                                        <span className="truncate text-left">Quản lý Đánh giá</span>
+                                    </div>
+                                    <span className="shrink-0 bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30 ml-2">
+                                        Review
+                                    </span>
+                                </button>
+                            )}
+
+                            {/* 10.1 Marketing & Khuyến mãi (Accordion Dropdown) */}
+                            {canViewMarketing && (
+                                <div className="space-y-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsMarketingMenuOpen((prev) => !prev)}
+                                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${['posts', 'promotions'].includes(activeTab)
+                                                ? 'bg-slate-800 text-white'
+                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                            }`}
+                                        title="Marketing & Khuyến mãi"
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                            </svg>
+                                            <span className="truncate text-left">Marketing & Khuyến mãi</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                            <span className="shrink-0 bg-rose-500/30 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-400/30">
+                                                PROMO
+                                            </span>
+                                            {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
+                                            <span
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsMarketingMenuOpen((prev) => !prev);
+                                                }}
+                                                className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
+                                                title={isMarketingMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
+                                            >
+                                                <svg
+                                                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isMarketingMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
+                                                        }`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </button>
+
+                                    {/* Danh sách Menu Con: Tin tức & Blog, Khuyến mãi */}
+                                    <div
+                                        className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isMarketingMenuOpen
+                                                ? 'grid-rows-[1fr] opacity-100'
+                                                : 'grid-rows-[0fr] opacity-0'
+                                            }`}
+                                    >
+                                        <div className="min-h-0">
+                                            <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
+                                                {/* Menu con 1: Tin tức & Blog */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setActiveTab('posts');
+                                                        setIsMarketingMenuOpen(true);
+                                                        navigate('/admin/posts');
+                                                    }}
+                                                    className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'posts'
+                                                            ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                                        </svg>
+                                                        <span className="truncate text-left">Tin tức & Blog</span>
+                                                    </div>
+                                                    <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
+                                                        Blog
+                                                    </span>
+                                                </button>
+
+                                                {/* Menu con 2: Khuyến mãi */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setActiveTab('promotions');
+                                                        setIsMarketingMenuOpen(true);
+                                                        navigate('/admin/promotions');
+                                                    }}
+                                                    className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'promotions'
+                                                            ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                        </svg>
+                                                        <span className="truncate text-left">Khuyến mãi</span>
+                                                    </div>
+                                                    <span className="shrink-0 text-[10px] font-bold bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 ml-2">
+                                                        Voucher
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* 10.2 Quản lý Liên hệ (Contact) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('contacts')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'contacts' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className="truncate text-left">Quản lý Liên hệ</span>
-                                </div>
-                            </button>
+                            {canViewContacts && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('contacts')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'contacts' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="truncate text-left">Quản lý Liên hệ</span>
+                                    </div>
+                                </button>
+                            )}
 
                             {/* 10.2.1 Quản lý Thanh toán & Hóa đơn */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('invoices')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'invoices' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
-                                    </svg>
-                                    <span className="truncate text-left">Thanh toán & Hóa đơn</span>
-                                </div>
-                                <span className="shrink-0 bg-blue-500/30 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30 ml-2">
-                                    VietQR
-                                </span>
-                            </button>
+                            {canViewInvoices && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('invoices')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'invoices' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                                        </svg>
+                                        <span className="truncate text-left">Thanh toán & Hóa đơn</span>
+                                    </div>
+                                    <span className="shrink-0 bg-blue-500/30 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30 ml-2">
+                                        VietQR
+                                    </span>
+                                </button>
+                            )}
 
                             {/* 10.3 Báo cáo & Thống kê Doanh thu */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (location.pathname.startsWith('/admin/customers/') || location.pathname === '/admin/profile') {
-                                        navigate('/admin?tab=analytics');
-                                    } else {
-                                        setActiveTab('analytics');
-                                    }
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${['analytics', 'reports'].includes(activeTab)
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                    </svg>
-                                    <span className="truncate text-left">Báo cáo & Thống kê</span>
-                                </div>
-                                <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
-                                    KPI
-                                </span>
-                            </button>
+                            {canViewAnalytics && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (location.pathname.startsWith('/admin/customers/') || location.pathname === '/admin/profile') {
+                                            navigate('/admin?tab=analytics');
+                                        } else {
+                                            setActiveTab('analytics');
+                                        }
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${['analytics', 'reports'].includes(activeTab)
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                        <span className="truncate text-left">Báo cáo & Thống kê</span>
+                                    </div>
+                                    <span className="shrink-0 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 ml-2">
+                                        KPI
+                                    </span>
+                                </button>
+                            )}
 
                             {/* 11. Cài đặt hệ thống */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('settings')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <span className="truncate text-left">Cài đặt hệ thống</span>
-                                </div>
-                            </button>
+                            {canViewSettings && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('settings')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <span className="truncate text-left">Cài đặt hệ thống</span>
+                                    </div>
+                                </button>
+                            )}
                         </nav>
                 </div>
 

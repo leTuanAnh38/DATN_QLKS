@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
+import { isStaffRole, getRoleTitle } from '../../utils/permission';
 
 export default function AuthBookingPage() {
     const navigate = useNavigate();
@@ -59,10 +60,20 @@ export default function AuthBookingPage() {
         setIsLoading(false);
 
         if (result.success) {
-            setSuccessMessage(result.data?.message || 'Đăng nhập thành công! Đang chuyển hướng về trang chủ...');
-            setTimeout(() => {
-                navigate('/');
-            }, 700);
+            const loggedInUser = result.data?.user;
+            const isStaff = isStaffRole(loggedInUser);
+
+            if (isStaff) {
+                setSuccessMessage('Đăng nhập thành công! Đang chuyển hướng vào Hệ thống Quản trị & Bàn làm việc...');
+                setTimeout(() => {
+                    navigate('/admin');
+                }, 600);
+            } else {
+                setSuccessMessage(result.data?.message || 'Đăng nhập thành công! Đang chuyển hướng về trang chủ...');
+                setTimeout(() => {
+                    navigate('/');
+                }, 700);
+            }
         } else {
             setErrorMessage(result.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
         }
@@ -239,25 +250,36 @@ export default function AuthBookingPage() {
                                         <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
                                             <span>👋</span> Đang đăng nhập: <strong>{user?.full_name || user?.username}</strong>
                                         </div>
-                                        <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase">
-                                            {user?.role === 'admin' ? 'Admin' : 'Khách hàng'}
+                                        <span className="text-[10px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                                            {getRoleTitle(user?.role, user?.guest_profile?.vip_tier)}
                                         </span>
                                     </div>
                                     <p className="text-xs text-blue-700 mb-3">
-                                        Quý khách đã đăng nhập vào hệ thống. Bạn có thể quay về trang chủ hoặc đăng xuất để đổi tài khoản.
+                                        {isStaffRole(user)
+                                            ? 'Tài khoản nhân sự / quản lý của bạn đã đăng nhập thành công. Bạn có thể truy cập ngay vào Bàn làm việc Quản trị.'
+                                            : 'Quý khách đã đăng nhập vào hệ thống. Bạn có thể quay về trang chủ hoặc đăng xuất để đổi tài khoản.'}
                                     </p>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {isStaffRole(user) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate('/admin')}
+                                                className="px-3.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-xs cursor-pointer"
+                                            >
+                                                ⚙️ Vào Bàn Quản Trị →
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => navigate('/')}
-                                            className="px-3.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                                            className="px-3.5 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition cursor-pointer"
                                         >
-                                            Về Trang Chủ →
+                                            Về Trang Chủ
                                         </button>
                                         <button
                                             type="button"
                                             onClick={handleLogoutCurrent}
-                                            className="px-3.5 py-1.5 text-xs font-bold bg-white text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition"
+                                            className="px-3.5 py-1.5 text-xs font-bold bg-white text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition cursor-pointer"
                                         >
                                             Đăng xuất
                                         </button>

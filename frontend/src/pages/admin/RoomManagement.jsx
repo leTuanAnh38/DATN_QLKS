@@ -4,6 +4,8 @@ import roomService from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import CheckOutModal from '../../components/admin/modals/CheckOutModal';
 import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
+import { useAuth } from '../../store/authStore';
+import { useHasPermission } from '../../utils/permission';
 
 // Tiện ích format ngày DD/MM/YYYY
 const formatDate = (dateStr) => {
@@ -79,6 +81,13 @@ export const ROOM_STATUSES = {
 
 export default function RoomManagement({ onNavigateToBookings, onNavigateToCustomer }) {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const canCreateRoom = useHasPermission('rooms', 'create');
+    const canUpdateRoom = useHasPermission('rooms', 'update');
+    const canDeleteRoom = useHasPermission('rooms', 'delete');
+    const isManagerOrAdmin = Boolean(user && (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser));
+    const canManageBookings = Boolean(user && (['admin', 'owner', 'manager', 'receptionist'].includes(user.role) || user.is_superuser));
+
     const [rooms, setRooms] = useState([]);
     const [categories, setCategories] = useState([]);
     const [floors, setFloors] = useState([]);
@@ -216,6 +225,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
 
     // Thao tác Check-out từ Sơ đồ phòng PMS
     const handleOpenCheckOut = (room) => {
+        if (!canManageBookings) {
+            alert('Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện thủ tục Check-out trả phòng.');
+            return;
+        }
         if (room.current_booking) {
             setCheckOutBooking(room.current_booking);
         } else {
@@ -242,6 +255,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
 
     // Thao tác Mở Modal Gán phòng đón khách
     const handleOpenAssignModal = async (room) => {
+        if (!canManageBookings) {
+            alert('Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện thủ tục Gán phòng đón khách.');
+            return;
+        }
         setAssignModalRoom(room);
         setAssignSearchTerm('');
         setAssignFilterMode('match_category');
@@ -265,6 +282,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
 
     // Xác nhận Gán phòng & Check-in ngay
     const handleConfirmAssignCheckIn = async (booking) => {
+        if (!canManageBookings) {
+            alert('Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện Check-in.');
+            return;
+        }
         if (!assignModalRoom || isSubmittingAssignCheckIn) return;
 
         const todayStr = new Date().toISOString().split('T')[0];
@@ -633,14 +654,16 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         <span className={isLoading ? "animate-spin inline-block" : "inline-block"}>🔄</span>
                         <span className="hidden sm:inline">Làm Mới</span>
                     </button>
-                    <button
-                        type="button"
-                        onClick={handleOpenCreate}
-                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
-                    >
-                        <span>＋</span>
-                        <span>Thêm Phòng Mới</span>
-                    </button>
+                    {canCreateRoom && (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreate}
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                        >
+                            <span>＋</span>
+                            <span>Thêm Phòng Mới</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1016,6 +1039,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             formatCurrency={formatCurrency}
                                             formatDate={formatDate}
                                             isLoading={quickStatusLoadingId === room.id}
+                                            canUpdateRoom={canUpdateRoom}
+                                            canDeleteRoom={canDeleteRoom}
+                                            isManagerOrAdmin={isManagerOrAdmin}
+                                            userRole={user?.role}
+                                            canManageBookings={canManageBookings}
                                         />
                                     ))}
                                 </div>
@@ -1040,6 +1068,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 formatCurrency={formatCurrency}
                                 formatDate={formatDate}
                                 isLoading={quickStatusLoadingId === room.id}
+                                canUpdateRoom={canUpdateRoom}
+                                canDeleteRoom={canDeleteRoom}
+                                isManagerOrAdmin={isManagerOrAdmin}
+                                userRole={user?.role}
+                                canManageBookings={canManageBookings}
                             />
                         ))}
                     </div>
@@ -1305,16 +1338,18 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             </div>
 
                             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsEditModalOpen(false);
-                                        handleOpenDelete(selectedRoom);
-                                    }}
-                                    className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
-                                >
-                                    <span>🗑️</span> Xóa phòng này
-                                </button>
+                                {canDeleteRoom && isManagerOrAdmin ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsEditModalOpen(false);
+                                            handleOpenDelete(selectedRoom);
+                                        }}
+                                        className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <span>🗑️</span> Xóa phòng này
+                                    </button>
+                                ) : <div />}
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
@@ -1563,18 +1598,20 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 >
                                     Đóng
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const b = selectedOccupiedRoom.current_booking;
-                                        setSelectedOccupiedRoom(null);
-                                        setCheckOutBooking(b);
-                                    }}
-                                    className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <span>🧾</span>
-                                    <span>Thực hiện Check-out & Quyết toán</span>
-                                </button>
+                                {canManageBookings && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const b = selectedOccupiedRoom.current_booking;
+                                            setSelectedOccupiedRoom(null);
+                                            setCheckOutBooking(b);
+                                        }}
+                                        className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <span>🧾</span>
+                                        <span>Thực hiện Check-out & Quyết toán</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1853,7 +1890,12 @@ function RoomCard({
     onViewOccupied,
     formatCurrency,
     formatDate,
-    isLoading
+    isLoading,
+    canUpdateRoom = true,
+    canDeleteRoom = false,
+    isManagerOrAdmin = false,
+    userRole = '',
+    canManageBookings = false
 }) {
     const statusConfig = ROOM_STATUSES[room.status] || ROOM_STATUSES.available;
     const currentBk = room.current_booking;
@@ -1885,14 +1927,16 @@ function RoomCard({
                         <span className="px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/80 text-[10px] font-bold text-slate-600 shadow-2xs">
                             {room.floor}F
                         </span>
-                        <button
-                            type="button"
-                            onClick={() => onEdit(room)}
-                            className="w-6 h-6 rounded-md hover:bg-white text-slate-400 hover:text-slate-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
-                            title="Chỉnh sửa thông tin phòng"
-                        >
-                            ✏️
-                        </button>
+                        {isManagerOrAdmin && (
+                            <button
+                                type="button"
+                                onClick={() => onEdit(room)}
+                                className="w-6 h-6 rounded-md hover:bg-white text-slate-400 hover:text-slate-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
+                                title="Chỉnh sửa thông tin phòng"
+                            >
+                                ✏️
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -1962,15 +2006,17 @@ function RoomCard({
                 {/* 1. Nút cho phòng Occupied: Check-out trực tiếp & Xem chi tiết */}
                 {room.status === 'occupied' && (
                     <div className="space-y-1">
-                        <button
-                            type="button"
-                            onClick={() => onOpenCheckOut(room)}
-                            className="w-full py-1.5 px-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                            title="Thực hiện thủ tục Check-out & Lập Hóa Đơn Quyết Toán"
-                        >
-                            <span>🧾</span>
-                            <span>Trả phòng & Quyết toán</span>
-                        </button>
+                        {canManageBookings && (
+                            <button
+                                type="button"
+                                onClick={() => onOpenCheckOut(room)}
+                                className="w-full py-1.5 px-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                title="Thực hiện thủ tục Check-out & Lập Hóa Đơn Quyết Toán"
+                            >
+                                <span>🧾</span>
+                                <span>Trả phòng & Quyết toán</span>
+                            </button>
+                        )}
                         {currentBk && (
                             <button
                                 type="button"
@@ -1986,7 +2032,7 @@ function RoomCard({
                 )}
 
                 {/* 2. Nút cho phòng Available: Gán phòng đón khách (Check-in) */}
-                {room.status === 'available' && (
+                {room.status === 'available' && canManageBookings && (
                     <button
                         type="button"
                         onClick={() => onOpenAssign(room)}
@@ -2025,19 +2071,30 @@ function RoomCard({
                 )}
 
                 {/* Dropdown chỉnh sửa trạng thái thủ công */}
-                <div className="pt-1 border-t border-slate-200/50">
-                    <select
-                        value={room.status}
-                        onChange={(e) => onStatusChange(room.id, e.target.value, room.room_number)}
-                        className="w-full px-2 py-1 bg-white/80 hover:bg-white border border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition cursor-pointer"
-                        title="Đổi trạng thái thủ công"
-                    >
-                        <option value="available">🟢 Trống (Available)</option>
-                        <option value="occupied">🔴 Có khách (Occupied)</option>
-                        <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
-                        <option value="maintenance">⚪ Bảo trì (Maintenance)</option>
-                    </select>
-                </div>
+                {canUpdateRoom && userRole !== 'cashier' && (
+                    <div className="pt-1 border-t border-slate-200/50">
+                        <select
+                            value={room.status}
+                            onChange={(e) => onStatusChange(room.id, e.target.value, room.room_number)}
+                            className="w-full px-2 py-1 bg-white/80 hover:bg-white border border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition cursor-pointer"
+                            title="Đổi trạng thái thủ công"
+                        >
+                            {userRole === 'housekeeper' ? (
+                                <>
+                                    <option value="available">🟢 Trống (Available)</option>
+                                    <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
+                                </>
+                            ) : (
+                                <>
+                                    <option value="available">🟢 Trống (Available)</option>
+                                    <option value="occupied">🔴 Có khách (Occupied)</option>
+                                    <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
+                                    <option value="maintenance">⚪ Bảo trì (Maintenance)</option>
+                                </>
+                            )}
+                        </select>
+                    </div>
+                )}
             </div>
         </div>
     );

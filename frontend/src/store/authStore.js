@@ -139,6 +139,8 @@ export const authStore = {
     }
 };
 
+import { hasPermission } from '../utils/permission';
+
 /**
  * Custom hook React phản ứng tức thì khi đăng nhập / đăng xuất
  */
@@ -155,8 +157,10 @@ export function useAuth() {
         accessToken: authStore.getAccessToken(),
         login: (user, tokens) => authStore.setAuth(user, tokens),
         logout: () => authStore.clearAuth(),
-        updateUser: (userData) => authStore.updateUser(userData)
+        updateUser: (userData) => authStore.updateUser(userData),
+        hasPermission: (module, action = 'read') => hasPermission(user, module, action)
     };
 }
 
+export { hasPermission } from '../utils/permission';
 export default authStore;

@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -17,12 +17,27 @@ from ..bookings.models import Booking, BookingExtraService
 from core_project.pagination import StandardResultsSetPagination
 
 
+class IsManagerOrAdminOnly(BasePermission):
+    """
+    Chỉ cho phép cấp Quản lý trở lên (admin, owner, manager) cấu hình thực đơn và danh mục dịch vụ.
+    """
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_superuser:
+            return True
+        return getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']
+
+
 class ServiceCategoryListView(APIView):
     """
     API Lấy danh sách nhóm dịch vụ (GET /api/services/categories/)
     và Thêm mới nhóm dịch vụ (POST /api/services/categories/)
     """
-    permission_classes = [AllowAny]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsManagerOrAdminOnly()]
 
     def get(self, request):
         categories = ServiceCategory.objects.all().order_by('id')
@@ -63,7 +78,11 @@ class ServiceItemViewSet(viewsets.ModelViewSet):
     """
     serializer_class = ServiceItemSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsManagerOrAdminOnly()]
 
     def get_queryset(self):
         # Luôn tạo mới QuerySet để tránh cache in-memory

@@ -5,6 +5,7 @@ import { authService } from '../../services/authService';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
 import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
+import { isStaffRole, getRoleTitle } from '../../utils/permission';
 
 export const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
@@ -226,12 +227,29 @@ export default function Navbar({
                                                 {user?.email || user?.phone_number || 'Khách hàng thân thiết'}
                                             </div>
                                             <div className="mt-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                ★ {user?.role === 'admin' ? 'Admin Quản trị' : (user?.guest_profile?.vip_tier ? `Hội viên ${user.guest_profile.vip_tier}` : 'Khách hàng VIP')}
+                                                ★ {getRoleTitle(user?.role, user?.guest_profile?.vip_tier)}
                                             </div>
                                         </div>
 
                                         {/* 1. Hồ sơ của tôi, 2. Mã giảm giá của tôi, 3. Lịch sử đặt phòng, 4. Đổi mật khẩu */}
                                         <div className="py-1">
+                                            {/* Mục quản trị dành cho Ban Quản Lý & Nhân Viên */}
+                                            {isStaffRole(user) && (
+                                                <Link
+                                                    to="/admin"
+                                                    onClick={() => setUserMenuOpen(false)}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-blue-600 bg-blue-50/80 hover:bg-blue-100/80 transition text-left cursor-pointer border-b border-blue-100 mb-1"
+                                                >
+                                                    <span className="w-5 h-5 flex items-center justify-center shrink-0 text-blue-600">
+                                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                    </span>
+                                                    <span className="truncate">Cổng Quản Trị & Bàn Làm Việc</span>
+                                                </Link>
+                                            )}
+
                                             {/* Nút 1: Hồ sơ của tôi (chuyển sang trang riêng) */}
                                             <Link
                                                 to="/profile"
@@ -290,23 +308,6 @@ export default function Navbar({
                                                 </span>
                                                 <span className="truncate">Đổi mật khẩu</span>
                                             </button>
-
-                                            {/* Mục quản trị nếu là Admin */}
-                                            {(user?.role === 'admin' || user?.is_staff) && (
-                                                <Link
-                                                    to="/admin"
-                                                    onClick={() => setUserMenuOpen(false)}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition text-left cursor-pointer"
-                                                >
-                                                    <span className="w-5 h-5 flex items-center justify-center shrink-0 text-black">
-                                                        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                    </span>
-                                                    <span className="truncate">Trang quản trị khách sạn</span>
-                                                </Link>
-                                            )}
                                         </div>
 
                                         {/* Nút 5: Đăng xuất (màu đỏ) */}
@@ -438,13 +439,13 @@ export default function Navbar({
                                     🔑 Đăng nhập / Đăng ký
                                 </Link>
                             ) : (
-                                (user?.role === 'admin' || user?.is_staff) && (
+                                isStaffRole(user) && (
                                     <Link
                                         to="/admin"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="w-full py-2 text-center text-xs font-semibold text-blue-600 bg-blue-50 rounded-xl"
+                                        className="w-full py-2.5 text-center text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
                                     >
-                                        ⚙️ Trang Quản Trị Admin
+                                        ⚙️ Cổng Quản Trị & Bàn Làm Việc
                                     </Link>
                                 )
                             )}

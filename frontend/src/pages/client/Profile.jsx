@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer';
 import ChangePasswordModal from '../../components/auth/ChangePasswordModal';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
+import { isStaffRole, getRoleTitle } from '../../utils/permission';
 
 // Helper chuẩn hóa đường dẫn avatar từ backend
 export const getAvatarUrl = (avatar) => {
@@ -249,7 +250,8 @@ export default function Profile() {
                                 </span>
                                 {user && (
                                     <span className="text-xs text-slate-500">
-                                        Khách hàng: <strong>{user.full_name || user.username}</strong>
+                                        {isStaffRole(user) ? 'Nhân sự / Quản lý: ' : 'Khách hàng: '}
+                                        <strong>{user.full_name || user.username}</strong>
                                     </span>
                                 )}
                             </div>
@@ -261,9 +263,23 @@ export default function Profile() {
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
-                                ★ Hạng Hội Viên: {user?.guest_profile?.vip_tier || 'Silver Member'}
-                            </span>
+                            {isStaffRole(user) ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-xs">
+                                        🛡️ {getRoleTitle(user?.role)}
+                                    </span>
+                                    <Link
+                                        to="/admin"
+                                        className="px-4 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
+                                    >
+                                        Vào Bàn Quản Trị →
+                                    </Link>
+                                </div>
+                            ) : (
+                                <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
+                                    ★ Hạng Hội Viên: {user?.guest_profile?.vip_tier || 'Silver Member'}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>

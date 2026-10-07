@@ -3,8 +3,16 @@ import { Link } from 'react-router-dom';
 import adminUserService from '../../services/adminUserService';
 import UserAvatar from '../../components/common/UserAvatar';
 import Pagination from '../../components/common/Pagination';
+import { useAuth } from '../../store/authStore';
+import { useHasPermission } from '../../utils/permission';
 
 export default function GuestManagement() {
+    const { user } = useAuth();
+    const canCreateGuest = useHasPermission('guests', 'create');
+    const canUpdateGuest = useHasPermission('guests', 'update');
+    const canDeleteGuest = useHasPermission('guests', 'delete');
+    const isManagerOrAdmin = Boolean(user && (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser));
+
     const [guests, setGuests] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -242,13 +250,15 @@ export default function GuestManagement() {
                     >
                         <span>🔄</span> Tải lại
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition flex items-center gap-1.5 cursor-pointer"
-                    >
-                        <span>＋</span> Thêm Khách Hàng Mới
-                    </button>
+                    {canCreateGuest && (
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                            <span>＋</span> Thêm Khách Hàng Mới
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -489,30 +499,36 @@ export default function GuestManagement() {
                                                     >
                                                         👁️
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenEdit(g)}
-                                                        className="p-1.5 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition"
-                                                        title="Chỉnh sửa thông tin"
-                                                    >
-                                                        ✏️
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleToggleStatus(g)}
-                                                        className={`p-1.5 rounded-lg transition ${g.is_active ? 'text-slate-600 hover:text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
-                                                        title={g.is_active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
-                                                    >
-                                                        {g.is_active ? '🔒' : '🔓'}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDelete(g)}
-                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                                                        title="Xóa tài khoản"
-                                                    >
-                                                        🗑️
-                                                    </button>
+                                                    {canUpdateGuest && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenEdit(g)}
+                                                            className="p-1.5 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition"
+                                                            title="Chỉnh sửa thông tin"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                    )}
+                                                    {isManagerOrAdmin && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleToggleStatus(g)}
+                                                            className={`p-1.5 rounded-lg transition ${g.is_active ? 'text-slate-600 hover:text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                                                            title={g.is_active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+                                                        >
+                                                            {g.is_active ? '🔒' : '🔓'}
+                                                        </button>
+                                                    )}
+                                                    {canDeleteGuest && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDelete(g)}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                                            title="Xóa tài khoản"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

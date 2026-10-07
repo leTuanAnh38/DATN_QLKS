@@ -3,7 +3,7 @@ from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.decorators import action
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -399,19 +399,21 @@ class BookingViewSet(viewsets.ModelViewSet):
         """
         booking = self.get_object()
         user = request.user
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
+        user_role = getattr(user, 'role', '')
+        is_front_desk_or_manager = user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']
+        is_guest = not user.is_authenticated or user_role == 'guest'
 
         new_status = request.data.get('status')
 
+        # Nhân viên buồng phòng, thu ngân, kỹ thuật, phục vụ: CHỈ ĐƯỢC XEM, không được sửa
+        if user_role in ['housekeeper', 'cashier', 'service_staff', 'technician']:
+            return Response({
+                'success': False,
+                'message': 'Bộ phận của bạn chỉ có quyền xem thông tin đơn đặt phòng, không được phép chỉnh sửa.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         # Xử lý trường hợp tài khoản là khách hàng
-        if not is_staff_or_admin:
+        if is_guest or not is_front_desk_or_manager:
             if new_status == 'cancelled':
                 if booking.status not in ['pending', 'paid', 'PAID']:
                     return Response({
@@ -492,6 +494,19 @@ class BookingViewSet(viewsets.ModelViewSet):
             **serializer.data
         }, status=status.HTTP_200_OK)
 
+    def update(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager']):
+            return Response({
+                'success': False,
+                'message': 'Chỉ cấp quản lý hoặc quản trị viên mới có quyền xóa đơn đặt phòng.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=['get'], url_path='available-rooms')
     def available_rooms(self, request, pk=None):
         """
@@ -534,16 +549,9 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra phân quyền nhân sự khách sạn
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
-        if not is_staff_or_admin:
+        # 1. Kiểm tra phân quyền nhân sự khách sạn (Chỉ Lễ tân hoặc Quản lý)
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
             return Response({
                 'success': False,
                 'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện thủ tục Check-in nhận phòng.'
@@ -786,63 +794,6 @@ class BookingViewSet(viewsets.ModelViewSet):
             **serializer.data
         }, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], url_path='no-show')
-    def mark_no_show(self, request, pk=None):
-        """
-        API đánh dấu Khách không đến (No-Show):
-        - POST /api/bookings/:id/no-show/
-        - Đổi status = 'no_show'
-        - Nếu đơn đã được gán phòng vật lý đang occupied, giải phóng phòng về 'available'
-        - Ghi nhật ký vào internal_note
-        """
-        booking = self.get_object()
-        user = request.user
-
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
-        if not is_staff_or_admin:
-            return Response({
-                'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền đánh dấu No-Show.'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        if booking.status in ['checked_in', 'checked_out', 'completed']:
-            return Response({
-                'success': False,
-                'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể đánh dấu No-Show.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        now = timezone.now()
-        time_str = now.strftime('%H:%M • %d/%m/%Y')
-        receptionist_name = user.get_full_name() or user.username
-        reason = request.data.get('reason', 'Khách không đến nhận phòng theo lịch').strip()
-
-        with transaction.atomic():
-            booking.status = 'no_show'
-            no_show_log = f"[No-Show lúc {time_str} bởi {receptionist_name}]: Đã đánh dấu Khách không đến (No-Show). Lý do: {reason}."
-            if booking.internal_note:
-                booking.internal_note = f"{booking.internal_note}\n{no_show_log}".strip()
-            else:
-                booking.internal_note = no_show_log
-            booking.save(update_fields=['status', 'internal_note', 'updated_at'])
-
-            if booking.room and booking.room.status == 'occupied':
-                booking.room.status = 'available'
-                booking.room.save(update_fields=['status'])
-
-        serializer = self.get_serializer(booking, context={'request': request})
-        return Response({
-            'success': True,
-            'message': f'Đã đánh dấu đơn đặt phòng #{booking.booking_code} là Khách không đến (No-Show) và giải phóng phòng thành công.',
-            'booking': serializer.data,
-            **serializer.data
-        }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], url_path='walk-in')
     def walk_in(self, request):
@@ -856,16 +807,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         """
         user = request.user
 
-        # 1. Kiểm tra phân quyền Lễ tân / Quản trị
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
-        if not is_staff_or_admin:
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
             return Response({
                 'success': False,
                 'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện tiếp đón khách Walk-in tại quầy.'
@@ -1162,19 +1105,12 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra phân quyền nhân viên / lễ tân / quản trị
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
-        if not is_staff_or_admin:
+        # 1. Kiểm tra phân quyền nhân viên lễ tân / phục vụ / quản lý
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist', 'service_staff']):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên khách sạn hoặc quản lý mới có quyền thêm dịch vụ vào đơn đặt phòng.'
+                'message': 'Chỉ nhân viên lễ tân, phục vụ hoặc cấp quản lý mới có quyền thêm dịch vụ vào đơn đặt phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
 
         if booking.status == 'cancelled':
@@ -1296,18 +1232,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
-        if not is_staff_or_admin:
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên khách sạn hoặc quản lý mới có quyền xóa phụ phí.'
+                'message': 'Chỉ nhân viên lễ tân hoặc quản lý mới có quyền xóa phụ phí.'
             }, status=status.HTTP_403_FORBIDDEN)
 
         item_id = str(request.data.get('item_id', '')).strip()
@@ -1501,6 +1430,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         - Cập nhật bảng Room: Đổi trạng thái phòng thành cleaning (Đang dọn dẹp)
         """
         booking = self.get_object()
+        user = request.user
+
+        # Kiểm tra phân quyền: Chỉ Lễ tân hoặc cấp Quản lý mới được Check-out
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện thủ tục Check-out trả phòng.'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         # Kiểm tra trạng thái hợp lệ để Check-out (chỉ khi đang checked_in hoặc confirmed)
         if booking.status not in ['checked_in', 'confirmed']:
@@ -1642,15 +1580,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
 
         # 1. Kiểm tra phân quyền Lễ tân / Quản trị viên
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
-        if not is_staff_or_admin:
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
             return Response({
                 'success': False,
                 'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền đánh dấu đơn đặt phòng No-show.'
@@ -1740,20 +1671,17 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
 
         # 1. Kiểm tra phân quyền truy cập
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier'] or
-                getattr(user, 'role', '') != 'guest'
-            )
+        user_role = getattr(user, 'role', '')
+        can_extend_staff = (
+            user.is_superuser or 
+            user_role in ['admin', 'owner', 'manager', 'receptionist']
         )
         is_owner_guest = user.is_authenticated and (booking.guest_id == user.id)
 
-        if not (is_staff_or_admin or is_owner_guest):
+        if not (can_extend_staff or is_owner_guest):
             return Response({
                 'success': False,
-                'message': 'Bạn không có quyền thực hiện gia hạn cho đơn đặt phòng này.'
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền gia hạn lưu trú cho đơn đặt phòng này.'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 2. Kiểm tra trạng thái: Bắt buộc phải là 'checked_in'
@@ -2470,6 +2398,18 @@ class ValidatePromoCodeView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class IsManagerOrAdminOnly(BasePermission):
+    """
+    Chỉ cho phép cấp Quản lý trở lên (admin, owner, manager) cấu hình khuyến mãi/voucher.
+    """
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_superuser:
+            return True
+        return getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']
+
+
 class PromotionViewSet(viewsets.ModelViewSet):
     """
     CRUD Quản lý Khuyến mãi / Voucher cho Admin:
@@ -2485,5 +2425,5 @@ class PromotionViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
-        return [AllowAny()]
+        return [IsManagerOrAdminOnly()]
 

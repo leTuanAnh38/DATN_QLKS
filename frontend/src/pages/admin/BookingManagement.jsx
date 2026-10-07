@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useAuth } from '../../store/authStore';
 import { bookingService } from '../../services/bookingService';
 import { hotelService } from '../../services/hotelService';
 import roomService from '../../services/roomService';
@@ -48,6 +49,11 @@ const STATUS_OPTIONS = [
 ];
 
 export default function BookingManagement({ onBookingChanged, initialFilter = 'all' }) {
+    // Phân quyền theo vai trò người dùng (Housekeeper, Thu ngân... chỉ được xem, không được duyệt/check-in/check-out/sửa)
+    const { user: currentUser } = useAuth();
+    const currentUserRole = currentUser?.role || '';
+    const canManageBookings = Boolean(currentUser?.is_superuser || ['admin', 'owner', 'manager', 'receptionist'].includes(currentUserRole));
+
     // 1. Quản lý State Dữ liệu
     const [bookings, setBookings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -353,6 +359,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const handleQuickStatusChange = async (bookingId, newStatus) => {
         if (!bookingId || !newStatus) return;
 
+        if (!canManageBookings) {
+            showToast('error', 'Bạn không có quyền thay đổi trạng thái đơn đặt phòng.');
+            return;
+        }
+
         // Nếu chọn chuyển sang "checked_in": Bắt buộc phải thực hiện gán phòng thực tế qua Modal Check-in
         if (newStatus === 'checked_in') {
             const targetBooking = bookings.find((b) => b.id === bookingId);
@@ -476,6 +487,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
     // Mở Modal Check-in (Nhận phòng & Gán phòng thực tế)
     const handleOpenCheckInModal = async (booking) => {
+        if (!canManageBookings) {
+            showToast('error', 'Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện thủ tục Check-in nhận phòng.');
+            return;
+        }
+
         setCheckInModalBooking(booking);
         setSelectedRoomId('');
         setCheckInNote('');
@@ -674,6 +690,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
     // Mở Modal Khách Walk-in (Đặt trực tiếp tại quầy)
     const handleOpenWalkInModal = async () => {
+        if (!canManageBookings) {
+            showToast('error', 'Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền tiếp đón khách Walk-in.');
+            return;
+        }
+
         const todayStr = new Date().toISOString().split('T')[0];
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -715,6 +736,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     // Xác nhận tiếp đón và Check-in khách Walk-in ngay tại quầy
     const handleConfirmWalkIn = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
+
+        if (!canManageBookings) {
+            showToast('error', 'Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền tạo đơn đặt phòng trực tiếp.');
+            return;
+        }
 
         if (!walkInForm.guest_name.trim()) {
             showToast('error', 'Vui lòng nhập Họ và tên khách hàng.');
@@ -1106,15 +1132,17 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={handleOpenWalkInModal}
-                        className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 hover:shadow-blue-600/40 transition flex items-center gap-2 cursor-pointer active:scale-95"
-                        title="Tiếp đón khách vãng lai và nhận phòng trực tiếp tại quầy Lễ tân"
-                    >
-                        <span className="text-sm"></span>
-                        <span>+ Khách Walk-in / Đặt trực tiếp</span>
-                    </button>
+                    {canManageBookings && (
+                        <button
+                            type="button"
+                            onClick={handleOpenWalkInModal}
+                            className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 hover:shadow-blue-600/40 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                            title="Tiếp đón khách vãng lai và nhận phòng trực tiếp tại quầy Lễ tân"
+                        >
+                            <span className="text-sm"></span>
+                            <span>+ Khách Walk-in / Đặt trực tiếp</span>
+                        </button>
+                    )}
 
                     <button
                         type="button"
@@ -1560,70 +1588,75 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             {/* CỘT 7: HÀNH ĐỘNG (THIẾT KẾ GỌN GÀNG, KHÔNG PHÌNH CỘT) */}
                                             <td className="py-2.5 px-2 text-center whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    {/* Nút Duyệt cho các đơn Chờ duyệt (Pending hoặc Đã TT QR) */}
-                                                    {['pending', 'paid', 'PAID'].includes(booking.status) && (
+                                                    {/* Các nút thao tác nghiệp vụ: Chỉ dành cho Lễ tân, Quản lý, Owner, Admin */}
+                                                    {canManageBookings && (
                                                         <>
-                                                            <button
-                                                                type="button"
-                                                                disabled={isRowUpdating}
-                                                                onClick={() => handleQuickStatusChange(booking.id, 'confirmed')}
-                                                                className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95 disabled:opacity-50"
-                                                                title="Duyệt đơn đặt phòng (Chuyển sang Đã xác nhận)"
-                                                            >
-                                                                <span>✓</span>
-                                                                <span>Duyệt</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                disabled={isRowUpdating}
-                                                                onClick={() => {
-                                                                    if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt phòng #${booking.booking_code}?`)) {
-                                                                        handleQuickStatusChange(booking.id, 'cancelled');
-                                                                    }
-                                                                }}
-                                                                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-50"
-                                                                title="Từ chối / Hủy đơn đặt phòng này"
-                                                            >
-                                                                ✕
-                                                            </button>
+                                                            {/* Nút Duyệt cho các đơn Chờ duyệt (Pending hoặc Đã TT QR) */}
+                                                            {['pending', 'paid', 'PAID'].includes(booking.status) && (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={isRowUpdating}
+                                                                        onClick={() => handleQuickStatusChange(booking.id, 'confirmed')}
+                                                                        className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95 disabled:opacity-50"
+                                                                        title="Duyệt đơn đặt phòng (Chuyển sang Đã xác nhận)"
+                                                                    >
+                                                                        <span>✓</span>
+                                                                        <span>Duyệt</span>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={isRowUpdating}
+                                                                        onClick={() => {
+                                                                            if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt phòng #${booking.booking_code}?`)) {
+                                                                                handleQuickStatusChange(booking.id, 'cancelled');
+                                                                            }
+                                                                        }}
+                                                                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-50"
+                                                                        title="Từ chối / Hủy đơn đặt phòng này"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </>
+                                                            )}
+
+                                                            {/* Nút hành động chính theo trạng thái */}
+                                                            {booking.status === 'confirmed' && (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleOpenCheckInModal(booking)}
+                                                                        className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
+                                                                        title="Thực hiện gán phòng và Check-in cho khách"
+                                                                    >
+                                                                        <span>🔑</span>
+                                                                        <span>Check-in</span>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setNoShowModalBooking(booking)}
+                                                                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95"
+                                                                        title="Đánh dấu Khách không đến (No-show)"
+                                                                    >
+                                                                        🚫
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            {booking.status === 'checked_in' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setCheckOutModalBooking(booking)}
+                                                                    className="px-2 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
+                                                                    title="Thực hiện thanh toán và Check-out trả phòng"
+                                                                >
+                                                                    <span>🧾</span>
+                                                                    <span>Check-out</span>
+                                                                </button>
+                                                            )}
                                                         </>
                                                     )}
 
-                                                    {/* Nút hành động chính theo trạng thái */}
-                                                    {booking.status === 'confirmed' && (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleOpenCheckInModal(booking)}
-                                                                className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
-                                                                title="Thực hiện gán phòng và Check-in cho khách"
-                                                            >
-                                                                <span>🔑</span>
-                                                                <span>Check-in</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setNoShowModalBooking(booking)}
-                                                                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95"
-                                                                title="Đánh dấu Khách không đến (No-show)"
-                                                            >
-                                                                🚫
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {booking.status === 'checked_in' && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setCheckOutModalBooking(booking)}
-                                                            className="px-2 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
-                                                            title="Thực hiện thanh toán và Check-out trả phòng"
-                                                        >
-                                                            <span>🧾</span>
-                                                            <span>Check-out</span>
-                                                        </button>
-                                                    )}
-
-                                                    {/* Nút Xem chi tiết đơn */}
+                                                    {/* Nút Xem chi tiết đơn (Mọi vai trò đều được xem) */}
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenDetailModal(booking)}
@@ -1646,7 +1679,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                     </button>
 
                                                     {/* Nút Nhắc khách */}
-                                                    {['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(booking.status) && (
+                                                    {canManageBookings && ['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(booking.status) && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleSendReminderForBooking(booking.id)}
@@ -1724,20 +1757,26 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
                                 <div className="flex items-center gap-2">
                                     <label className="text-xs font-semibold text-slate-600">Đổi trạng thái:</label>
-                                    <select
-                                        value={selectedBooking.status}
-                                        disabled={updatingId === selectedBooking.id}
-                                        onChange={(e) =>
-                                            handleQuickStatusChange(selectedBooking.id, e.target.value)
-                                        }
-                                        className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/30 cursor-pointer"
-                                    >
-                                        {STATUS_OPTIONS.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {canManageBookings ? (
+                                        <select
+                                            value={selectedBooking.status}
+                                            disabled={updatingId === selectedBooking.id}
+                                            onChange={(e) =>
+                                                handleQuickStatusChange(selectedBooking.id, e.target.value)
+                                            }
+                                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/30 cursor-pointer"
+                                        >
+                                            {STATUS_OPTIONS.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200">
+                                            Chỉ xem (Không có quyền sửa)
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -1814,7 +1853,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             </div>
 
                             {/* KHỐI 3.1: GIA HẠN LƯU TRÚ (EXTEND STAY) CHO ĐƠN ĐANG Ở (checked_in) */}
-                            {selectedBooking.status === 'checked_in' && (
+                            {canManageBookings && selectedBooking.status === 'checked_in' && (
                                 <div className="p-4 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50/70 via-indigo-50/30 to-white space-y-3.5 shadow-2xs">
                                     <div className="flex items-center justify-between flex-wrap gap-2">
                                         <h4 className="font-bold text-blue-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
@@ -1927,7 +1966,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     </div>
 
                                     {/* Nút Thêm Dịch Vụ Cho Khách (Yêu cầu tại quầy / qua điện thoại) */}
-                                    {selectedBooking.status !== 'cancelled' && (
+                                    {(canManageBookings || currentUserRole === 'service_staff') && selectedBooking.status !== 'cancelled' && (
                                         <button
                                             type="button"
                                             onClick={openAddServiceModal}
@@ -1970,23 +2009,27 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         <span className="font-bold text-slate-700">
                                                             {Number(req.total_price || (req.price * req.quantity)).toLocaleString('vi-VN')} VND
                                                         </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleQuickCompleteService(req.raw_id, req.service_name)}
-                                                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs transition cursor-pointer active:scale-95"
-                                                            title="Xác nhận đã phục vụ xong và chuyển vào hóa đơn thanh toán"
-                                                        >
-                                                            <span>✓</span>
-                                                            <span>Đã giao</span>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveExtraService(req.id, req.service_name)}
-                                                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                                            title="Hủy yêu cầu này"
-                                                        >
-                                                            🗑️
-                                                        </button>
+                                                        {(canManageBookings || currentUserRole === 'service_staff') && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleQuickCompleteService(req.raw_id, req.service_name)}
+                                                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs transition cursor-pointer active:scale-95"
+                                                                    title="Xác nhận đã phục vụ xong và chuyển vào hóa đơn thanh toán"
+                                                                >
+                                                                    <span>✓</span>
+                                                                    <span>Đã giao</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveExtraService(req.id, req.service_name)}
+                                                                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                                                    title="Hủy yêu cầu này"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -2022,7 +2065,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                             <span className="font-bold text-slate-900">
                                                                 {Number(item.total_price || (item.price * item.quantity)).toLocaleString('vi-VN')} VND
                                                             </span>
-                                                            {selectedBooking.status !== 'cancelled' && (
+                                                            {(canManageBookings || currentUserRole === 'service_staff') && selectedBooking.status !== 'cancelled' && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleRemoveExtraService(item.id, cleanName)}
@@ -2047,7 +2090,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 ) : (
                                     <div className="p-4 bg-slate-50 rounded-xl text-center text-slate-400 text-xs">
                                         <p>Chưa có phụ phí phát sinh nào được ghi nhận cho phòng này.</p>
-                                        {selectedBooking.status !== 'cancelled' && (
+                                        {(canManageBookings || currentUserRole === 'service_staff') && selectedBooking.status !== 'cancelled' && (
                                             <button
                                                 type="button"
                                                 onClick={openAddServiceModal}
@@ -2124,16 +2167,18 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                         onChange={(e) => setInternalNoteInput(e.target.value)}
                                         className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
                                     />
-                                    <div className="flex justify-end">
-                                        <button
-                                            type="button"
-                                            disabled={isSavingInternalNote}
-                                            onClick={handleSaveInternalNote}
-                                            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition cursor-pointer shadow-xs"
-                                        >
-                                            {isSavingInternalNote ? 'Đang lưu...' : 'Lưu ghi chú nội bộ'}
-                                        </button>
-                                    </div>
+                                    {canManageBookings && (
+                                        <div className="flex justify-end">
+                                            <button
+                                                type="button"
+                                                disabled={isSavingInternalNote}
+                                                onClick={handleSaveInternalNote}
+                                                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition cursor-pointer shadow-xs"
+                                            >
+                                                {isSavingInternalNote ? 'Đang lưu...' : 'Lưu ghi chú nội bộ'}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -2141,7 +2186,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         {/* Nút hành động Modal */}
                         <div className="pt-5 mt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
-                                {selectedBooking.status === 'confirmed' && (
+                                {canManageBookings && selectedBooking.status === 'confirmed' && (
                                     <>
                                         <button
                                             type="button"

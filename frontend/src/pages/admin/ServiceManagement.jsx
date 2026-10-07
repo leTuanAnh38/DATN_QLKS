@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import hotelService from '../../services/hotelService';
+import { useAuth } from '../../store/authStore';
+import { useHasPermission } from '../../utils/permission';
 
 export default function ServiceManagement() {
+    const { user } = useAuth();
+    const canCreateService = useHasPermission('services', 'create');
+    const canUpdateService = useHasPermission('services', 'update');
+    const canDeleteService = useHasPermission('services', 'delete');
+    const isManagerOrAdmin = Boolean(user && (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser));
+
     const [services, setServices] = useState([]);
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -413,23 +421,27 @@ export default function ServiceManagement() {
                         <span className="text-[10px] text-slate-400">↗</span>
                     </a>
 
-                    <button
-                        type="button"
-                        onClick={() => setIsCategoryModalOpen(true)}
-                        className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-slate-900/20"
-                    >
-                        <span>📂</span>
-                        <span>+ Thêm Nhóm</span>
-                    </button>
+                    {canCreateService && isManagerOrAdmin && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setIsCategoryModalOpen(true)}
+                                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-slate-900/20"
+                            >
+                                <span>📂</span>
+                                <span>+ Thêm Nhóm</span>
+                            </button>
 
-                    <button
-                        type="button"
-                        onClick={handleOpenCreateModal}
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-2 transform active:scale-95"
-                    >
-                        <span className="text-base leading-none">+</span>
-                        <span>Thêm Dịch Vụ Mới</span>
-                    </button>
+                            <button
+                                type="button"
+                                onClick={handleOpenCreateModal}
+                                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-2 transform active:scale-95"
+                            >
+                                <span className="text-base leading-none">+</span>
+                                <span>Thêm Dịch Vụ Mới</span>
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -688,24 +700,30 @@ export default function ServiceManagement() {
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenEditModal(service)}
-                                            className="px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1"
-                                        >
-                                            <span>✏️</span>
-                                            <span>Chỉnh sửa</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenDeleteModal(service)}
-                                            className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1"
-                                        >
-                                            <span>🗑️</span>
-                                            <span>Xóa</span>
-                                        </button>
-                                    </div>
+                                    {isManagerOrAdmin && (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {canUpdateService && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenEditModal(service)}
+                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1"
+                                                >
+                                                    <span>✏️</span>
+                                                    <span>Chỉnh sửa</span>
+                                                </button>
+                                            )}
+                                            {canDeleteService && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenDeleteModal(service)}
+                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1"
+                                                >
+                                                    <span>🗑️</span>
+                                                    <span>Xóa</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -766,8 +784,11 @@ export default function ServiceManagement() {
                                         <td className="py-3 px-4 text-center whitespace-nowrap">
                                             <button
                                                 type="button"
-                                                onClick={() => handleToggleActive(service)}
+                                                disabled={!(canUpdateService && isManagerOrAdmin)}
+                                                onClick={() => (canUpdateService && isManagerOrAdmin) && handleToggleActive(service)}
                                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
+                                                    !(canUpdateService && isManagerOrAdmin) ? 'cursor-default opacity-85' : 'cursor-pointer'
+                                                } ${
                                                     service.is_active
                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                                                         : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
@@ -782,22 +803,30 @@ export default function ServiceManagement() {
                                             </button>
                                         </td>
                                         <td className="py-3 px-4 text-right whitespace-nowrap">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenEditModal(service)}
-                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
-                                                >
-                                                    Sửa
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenDeleteModal(service)}
-                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
-                                                >
-                                                    Xóa
-                                                </button>
-                                            </div>
+                                            {isManagerOrAdmin ? (
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    {canUpdateService && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenEditModal(service)}
+                                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
+                                                        >
+                                                            Sửa
+                                                        </button>
+                                                    )}
+                                                    {canDeleteService && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenDeleteModal(service)}
+                                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
+                                                        >
+                                                            Xóa
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-[11px] text-slate-400 italic">Chỉ xem</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

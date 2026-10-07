@@ -27,14 +27,29 @@ User = get_user_model()
 
 class IsManagerOrAdmin(BasePermission):
     """
-    Cho phép tài khoản có vai trò Quản lý / Quản trị viên (admin, owner, manager hoặc is_staff)
+    Cho phép tài khoản có vai trò Quản lý / Quản trị viên (admin, owner, manager)
     truy cập phân hệ quản trị.
     """
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
+        if request.user.is_superuser:
+            return True
         allowed_roles = ['admin', 'owner', 'manager']
-        return request.user.role in allowed_roles or request.user.is_staff or request.user.is_superuser
+        return getattr(request.user, 'role', '') in allowed_roles
+
+
+class IsFrontDeskOrManager(BasePermission):
+    """
+    Cho phép Lễ tân, Quản lý, Chủ và Admin xem, tạo hoặc cập nhật hồ sơ khách hàng.
+    """
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_superuser:
+            return True
+        allowed_roles = ['admin', 'owner', 'manager', 'receptionist']
+        return getattr(request.user, 'role', '') in allowed_roles
 
 
 class RegisterView(APIView):
@@ -204,7 +219,7 @@ class ChangePasswordView(APIView):
 # =========================================================================
 
 class AdminGuestListCreateView(APIView):
-    permission_classes = [IsManagerOrAdmin]
+    permission_classes = [IsFrontDeskOrManager]
     pagination_class = StandardResultsSetPagination
 
     def get(self, request):
@@ -291,7 +306,7 @@ class AdminGuestListCreateView(APIView):
 
 
 class AdminGuestDetailView(APIView):
-    permission_classes = [IsManagerOrAdmin]
+    permission_classes = [IsFrontDeskOrManager]
 
     def get(self, request, pk):
         try:
@@ -348,6 +363,12 @@ class AdminGuestDetailView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
+        if not (request.user.is_superuser or getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']):
+            return Response({
+                'success': False,
+                'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền xóa tài khoản khách hàng.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         try:
             guest = User.objects.get(pk=pk, role='guest')
             guest.delete()
@@ -426,6 +447,15 @@ class AdminEmployeeListCreateView(APIView):
         }, status=status.HTTP_200_OK)
 
     def post(self, request):
+        requester_role = getattr(request.user, 'role', '')
+        if requester_role == 'manager':
+            new_role = request.data.get('role')
+            if new_role in ['admin', 'owner', 'manager']:
+                return Response({
+                    'success': False,
+                    'message': 'Quản lý không có quyền tạo tài khoản với vai trò Chủ khách sạn, Quản trị viên hoặc Quản lý.'
+                }, status=status.HTTP_403_FORBIDDEN)
+
         serializer = AdminEmployeeSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             employee = serializer.save()
@@ -462,6 +492,21 @@ class AdminEmployeeDetailView(APIView):
         except User.DoesNotExist:
             return Response({'success': False, 'message': 'Không tìm thấy thông tin nhân viên.'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Thẩm quyền: Manager không được chỉnh sửa Admin hoặc Owner
+        requester_role = getattr(request.user, 'role', '')
+        if requester_role == 'manager':
+            if employee.role in ['admin', 'owner']:
+                return Response({
+                    'success': False,
+                    'message': 'Quản lý không có quyền chỉnh sửa hồ sơ hoặc phân quyền của Chủ khách sạn và Quản trị viên.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            new_role = request.data.get('role')
+            if new_role and new_role in ['admin', 'owner', 'manager'] and new_role != employee.role:
+                return Response({
+                    'success': False,
+                    'message': 'Quản lý không có quyền cấp quyền Chủ khách sạn, Quản trị viên hoặc thăng chức Quản lý.'
+                }, status=status.HTTP_403_FORBIDDEN)
+
         serializer = AdminEmployeeSerializer(employee, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             updated_emp = serializer.save()
@@ -485,6 +530,15 @@ class AdminEmployeeDetailView(APIView):
             # Ngăn admin tự xóa chính mình
             if employee.id == request.user.id:
                 return Response({'success': False, 'message': 'Không thể xóa tài khoản quản trị đang đăng nhập hiện tại.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Thẩm quyền: Manager không được xóa Admin, Owner hoặc Manager khác
+            requester_role = getattr(request.user, 'role', '')
+            if requester_role == 'manager' and employee.role in ['admin', 'owner', 'manager']:
+                return Response({
+                    'success': False,
+                    'message': 'Quản lý không có quyền xóa tài khoản của Chủ khách sạn, Quản trị viên hoặc cấp Quản lý khác.'
+                }, status=status.HTTP_403_FORBIDDEN)
+
             employee.delete()
             return Response({'success': True, 'message': 'Đã xóa tài khoản nhân viên thành công.'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
@@ -642,6 +696,36 @@ class AdminRoleListView(APIView):
     def get(self, request):
         roles_data = get_all_roles_matrix()
         return Response({'success': True, 'count': len(roles_data), 'roles': roles_data}, status=status.HTTP_200_OK)
+
+
+class AdminRolePermissionsView(APIView):
+    permission_classes = [IsManagerOrAdmin]
+
+    def put(self, request, role):
+        # 1. Admin và Owner có toàn quyền bất biến, không ai được phép sửa
+        if role in ['admin', 'owner']:
+            return Response({
+                'success': False,
+                'message': 'Không được phép chỉnh sửa ma trận phân quyền của Chủ khách sạn (Owner) và Quản trị viên (Admin). Các vai trò này có toàn quyền cố định.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2. Quản lý (Manager) chỉ được sửa quyền cho nhân viên cấp dưới (không được sửa quyền Quản lý, Chủ khách sạn, Admin)
+        requester_role = getattr(request.user, 'role', '')
+        if requester_role == 'manager' and role in ['manager', 'owner', 'admin']:
+            return Response({
+                'success': False,
+                'message': 'Quản lý (Manager) chỉ có quyền điều chỉnh phân quyền cho nhân viên cấp dưới (Lễ tân, Thu ngân, Buồng phòng, Phục vụ, Kỹ thuật).'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        permissions = request.data.get('permissions', {})
+        permission_codes = request.data.get('permission_codes', [])
+        return Response({
+            'success': True,
+            'message': f'Đã cập nhật cấu hình phân quyền cho vai trò {role} thành công!',
+            'role': role,
+            'permissions': permissions,
+            'permission_codes': permission_codes
+        }, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ModelViewSet):

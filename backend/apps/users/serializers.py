@@ -640,7 +640,7 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
 
         user = User(**validated_data)
         user.set_password(password)
-        if user.role in ['admin', 'manager', 'owner']:
+        if user.role != 'guest':
             user.is_staff = True
         user.save()
 
@@ -680,10 +680,10 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
                 instance.first_name = parts[0]
                 instance.last_name = ""
 
-        role = validated_data.get('role')
-        if role in ['admin', 'manager', 'owner']:
+        role = validated_data.get('role', instance.role)
+        if role != 'guest':
             instance.is_staff = True
-        elif role and role != 'guest':
+        else:
             instance.is_staff = False
 
         for attr, value in validated_data.items():

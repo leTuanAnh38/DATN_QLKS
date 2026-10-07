@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import adminUserService from '../../services/adminUserService';
 import RoleMatrixModal, { DEFAULT_ROLE_MATRIX } from '../../components/admin/modals/RoleMatrixModal';
 import UserAvatar from '../../components/common/UserAvatar';
 import Pagination from '../../components/common/Pagination';
+import { useAuth } from '../../store/authStore';
 
 // =========================================================================
 // DANH MỤC PHÒNG BAN, CHỨC DANH & CA LÀM VIỆC CHUẨN KHÁCH SẠN 5 SAO
@@ -115,9 +116,21 @@ export const HOTEL_SHIFTS = [
 ];
 
 export default function EmployeeManagement() {
+    const { user: currentUser } = useAuth();
+    const currentUserRole = currentUser?.role || '';
+    const isManager = currentUserRole === 'manager';
+
     const [employees, setEmployees] = useState([]);
     const [roles, setRoles] = useState(DEFAULT_ROLE_MATRIX);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Danh sách vai trò có thể thao tác (Quản lý không được can thiệp vào Admin/Owner/Manager)
+    const availableRoles = useMemo(() => {
+        if (isManager) {
+            return roles.filter((r) => !['admin', 'owner', 'manager'].includes(r.code || r.role));
+        }
+        return roles;
+    }, [roles, isManager]);
 
     // Phân trang (Pagination)
     const [currentPage, setCurrentPage] = useState(1);
@@ -160,6 +173,8 @@ export default function EmployeeManagement() {
         email: '',
         phone_number: '',
         address: '',
+        password: '',
+        showPassword: false,
         employee_code: '',
         department: '',
         position: '',
@@ -358,6 +373,16 @@ export default function EmployeeManagement() {
     // Submit tạo nhân viên
     const handleCreateEmployee = async (e) => {
         e.preventDefault();
+
+        // Bảo mật: Quản lý không được phép tạo tài khoản có vai trò Quản lý, Chủ khách sạn hoặc Admin
+        if (isManager && ['admin', 'owner', 'manager'].includes(createFormData.role)) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Quản lý (Manager) chỉ có quyền tạo tài khoản cho nhân viên cấp dưới (Lễ tân, Thu ngân, Buồng phòng...).',
+            });
+            return;
+        }
+
         setIsSubmitting(true);
 
         const payload = {
@@ -396,6 +421,15 @@ export default function EmployeeManagement() {
     // 2. CHỨC NĂNG CHỈNH SỬA THÔNG TIN NHÂN VIÊN
     // =========================================================================
     const handleOpenEdit = (emp) => {
+        // Quản lý không được can thiệp vào tài khoản Admin hoặc Chủ khách sạn
+        if (isManager && ['admin', 'owner', 'manager'].includes(emp.role)) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Quản lý không có quyền chỉnh sửa hồ sơ của Chủ khách sạn, Admin hoặc Quản lý khác.',
+            });
+            return;
+        }
+
         setSelectedEmployee(emp);
         const dept = emp.employee_profile?.department || HOTEL_DEPARTMENTS[0].name;
         const currentPos = emp.employee_profile?.position || 'Nhân viên';
@@ -407,6 +441,8 @@ export default function EmployeeManagement() {
             email: emp.email || '',
             phone_number: emp.phone_number || '',
             address: emp.address || '',
+            password: '',
+            showPassword: false,
             employee_code: emp.employee_profile?.employee_code || '',
             department: dept,
             position: currentPos,
@@ -433,6 +469,16 @@ export default function EmployeeManagement() {
     // Submit lưu chỉnh sửa
     const handleSaveEdit = async (e) => {
         e.preventDefault();
+
+        // Kiểm tra độ dài mật khẩu nếu có nhập
+        if (editFormData.password && editFormData.password.trim().length < 6) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Mật khẩu mới phải có tối thiểu 6 ký tự.',
+            });
+            return;
+        }
+
         setIsSubmitting(true);
 
         const payload = {
@@ -449,14 +495,20 @@ export default function EmployeeManagement() {
             is_active: editFormData.is_active,
         };
 
+        // Chỉ gửi password khi admin có nhập mật khẩu mới
+        if (editFormData.password && editFormData.password.trim()) {
+            payload.password = editFormData.password.trim();
+        }
+
         const res = await adminUserService.updateEmployee(selectedEmployee.id, payload);
         setIsSubmitting(false);
 
         if (res.success) {
             setIsEditModalOpen(false);
+            const passNote = editFormData.password ? ' (Đã cập nhật mật khẩu mới)' : '';
             setAlertMessage({
                 type: 'success',
-                text: `Cập nhật hồ sơ nhân viên ${res.employee.full_name} thành công!`,
+                text: `Cập nhật hồ sơ nhân viên ${res.employee?.full_name || editFormData.full_name} thành công!${passNote}`,
             });
             fetchEmployees();
         } else {
@@ -471,6 +523,15 @@ export default function EmployeeManagement() {
     // 3. CHỨC NĂNG PHÂN QUYỀN VAI TRÒ (RBAC ROLE ASSIGNMENT)
     // =========================================================================
     const handleOpenAssignRole = (emp) => {
+        // Quản lý không được phép phân quyền cho Chủ khách sạn, Admin hoặc Quản lý khác
+        if (isManager && ['admin', 'owner', 'manager'].includes(emp.role)) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Quản lý không có quyền phân quyền hoặc thay đổi vai trò của Chủ khách sạn, Admin hoặc Quản lý khác.',
+            });
+            return;
+        }
+
         setSelectedEmployee(emp);
         const currentDept = emp.employee_profile?.department || 'Lễ Tân & Tiền Sảnh';
         const currentPos = emp.employee_profile?.position || 'Nhân viên';
@@ -542,6 +603,16 @@ export default function EmployeeManagement() {
     const handleSaveRole = async (e) => {
         e.preventDefault();
         if (!selectedEmployee || !assignRoleData.role) return;
+
+        // Quản lý không được phép gán vai trò Admin, Owner, Manager
+        if (isManager && ['admin', 'owner', 'manager'].includes(assignRoleData.role)) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Quản lý chỉ có quyền phân quyền cho nhân viên các vai trò cấp dưới.',
+            });
+            return;
+        }
+
         setIsSubmitting(true);
 
         const payload = {
@@ -573,6 +644,13 @@ export default function EmployeeManagement() {
     // 4. CHỨC NĂNG XÓA NHÂN VIÊN VỚI MODAL XÁC NHẬN AN TOÀN
     // =========================================================================
     const handleOpenDelete = (emp) => {
+        if (isManager && ['admin', 'owner', 'manager'].includes(emp.role)) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Quản lý không có quyền xóa tài khoản của Chủ khách sạn, Admin hoặc Quản lý khác.',
+            });
+            return;
+        }
         setSelectedEmployee(emp);
         setIsDeleteModalOpen(true);
     };
@@ -611,6 +689,14 @@ export default function EmployeeManagement() {
     // 6. KHÓA / MỞ KHÓA TÀI KHOẢN NHANH
     // =========================================================================
     const handleToggleStatus = async (emp) => {
+        if (isManager && ['admin', 'owner', 'manager'].includes(emp.role)) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Quản lý không có quyền khóa tài khoản của Chủ khách sạn, Admin hoặc Quản lý khác.',
+            });
+            return;
+        }
+
         const actionText = emp.is_active ? 'tạm khóa' : 'kích hoạt lại';
         const res = await adminUserService.toggleEmployeeStatus(emp.id, !emp.is_active);
         if (res.success) {
@@ -635,9 +721,9 @@ export default function EmployeeManagement() {
 
     // Helper badge vai trò
     const getRoleBadge = (roleCode) => {
-        const roleObj = roles.find((r) => r.code === roleCode);
-        const name = roleObj ? roleObj.name : roleCode;
-        const color = roleObj ? roleObj.color : 'slate';
+        const roleObj = roles.find((r) => r.code === roleCode || r.role === roleCode);
+        const name = roleObj ? (roleObj.name || roleObj.title || roleCode) : roleCode;
+        const color = roleObj ? (roleObj.color || roleObj.badge_color || 'slate') : 'slate';
 
         const styleMap = {
             purple: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -1004,43 +1090,52 @@ export default function EmployeeManagement() {
                                                 >
                                                     👁️ Xem
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenAssignRole(emp)}
-                                                    className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer"
-                                                    title="Phân quyền vai trò chi tiết"
-                                                >
-                                                    <span>🛡️</span>
-                                                    <span>Phân quyền</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenEdit(emp)}
-                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] transition cursor-pointer"
-                                                    title="Chỉnh sửa hồ sơ"
-                                                >
-                                                    ✏️ Sửa
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleToggleStatus(emp)}
-                                                    className={`px-2 py-1 rounded-lg font-medium text-[11px] transition cursor-pointer ${
-                                                        emp.is_active
-                                                            ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
-                                                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-                                                    }`}
-                                                    title={emp.is_active ? 'Khóa tài khoản' : 'Mở khóa'}
-                                                >
-                                                    {emp.is_active ? '🔒 Khóa' : '🔓 Mở'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenDelete(emp)}
-                                                    className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium text-[11px] transition cursor-pointer"
-                                                    title="Xóa tài khoản nhân viên"
-                                                >
-                                                    🗑️
-                                                </button>
+                                                {isManager && ['admin', 'owner', 'manager'].includes(emp.role) ? (
+                                                    <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
+                                                        <span>🔒</span>
+                                                        <span>Cấp trên (Chỉ xem)</span>
+                                                    </span>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenAssignRole(emp)}
+                                                            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer"
+                                                            title="Phân quyền vai trò chi tiết"
+                                                        >
+                                                            <span>🛡️</span>
+                                                            <span>Phân quyền</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenEdit(emp)}
+                                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] transition cursor-pointer"
+                                                            title="Chỉnh sửa hồ sơ"
+                                                        >
+                                                            ✏️ Sửa
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleToggleStatus(emp)}
+                                                            className={`px-2 py-1 rounded-lg font-medium text-[11px] transition cursor-pointer ${
+                                                                emp.is_active
+                                                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                                                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                                                            }`}
+                                                            title={emp.is_active ? 'Khóa tài khoản' : 'Mở khóa'}
+                                                        >
+                                                            {emp.is_active ? '🔒 Khóa' : '🔓 Mở'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenDelete(emp)}
+                                                            className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium text-[11px] transition cursor-pointer"
+                                                            title="Xóa tài khoản nhân viên"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -1189,9 +1284,9 @@ export default function EmployeeManagement() {
                                             onChange={(e) => handleCreateRoleChange(e.target.value)}
                                             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-600 focus:outline-none transition font-bold text-blue-700"
                                         >
-                                            {roles.map((r) => (
-                                                <option key={r.code} value={r.code}>
-                                                    {r.name}
+                                            {availableRoles.map((r) => (
+                                                <option key={r.code || r.role} value={r.code || r.role}>
+                                                    {r.name || r.title || r.code}
                                                 </option>
                                             ))}
                                         </select>
@@ -1521,6 +1616,64 @@ export default function EmployeeManagement() {
                                         placeholder="Ví dụ: 128 Võ Nguyên Giáp, Sơn Trà, Đà Nẵng"
                                     />
                                 </div>
+
+                                {/* Đặt lại mật khẩu mới cho nhân viên */}
+                                <div className="sm:col-span-2 p-4 bg-amber-50/70 rounded-2xl border border-amber-200/90 space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-base">🔑</span>
+                                            <label className="font-bold text-slate-800 text-xs">
+                                                Cấp lại Mật khẩu mới cho nhân viên
+                                            </label>
+                                            <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                                                Admin Reset
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const randomPass = 'Pass@' + Math.floor(100000 + Math.random() * 900000);
+                                                setEditFormData({ ...editFormData, password: randomPass, showPassword: true });
+                                            }}
+                                            className="text-[11px] text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                                        >
+                                            <span>🎲</span>
+                                            <span>Tạo ngẫu nhiên</span>
+                                        </button>
+                                    </div>
+                                    <div className="relative">
+                                        <input
+                                            type={editFormData.showPassword ? 'text' : 'password'}
+                                            value={editFormData.password}
+                                            onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                                            placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự) hoặc để trống nếu giữ nguyên..."
+                                            className="w-full pl-3.5 pr-20 py-2.5 bg-white border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition font-mono text-xs"
+                                            minLength={6}
+                                        />
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                            {editFormData.password && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditFormData({ ...editFormData, password: '' })}
+                                                    className="px-2 py-1 text-[10px] text-slate-400 hover:text-slate-600 rounded cursor-pointer"
+                                                    title="Xóa mật khẩu đã nhập"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditFormData({ ...editFormData, showPassword: !editFormData.showPassword })}
+                                                className="px-2 py-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                                            >
+                                                {editFormData.showPassword ? 'Ẩn' : 'Hiện'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 italic">
+                                        * Lưu ý: Nếu không cần đổi mật khẩu của nhân viên, vui lòng <strong>để trống ô này</strong>. Mật khẩu mới sau khi lưu sẽ có hiệu lực ngay lập tức.
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
@@ -1585,12 +1738,14 @@ export default function EmployeeManagement() {
                                     Lựa chọn vai trò nội bộ (RBAC):
                                 </label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
-                                    {roles.map((r) => {
-                                        const isSelected = assignRoleData.role === r.code;
+                                    {availableRoles.map((r) => {
+                                        const roleCode = r.code || r.role;
+                                        const roleTitle = r.name || r.title || roleCode;
+                                        const isSelected = assignRoleData.role === roleCode;
                                         return (
                                             <div
-                                                key={r.code}
-                                                onClick={() => handleAssignRoleChange(r.code)}
+                                                key={roleCode}
+                                                onClick={() => handleAssignRoleChange(roleCode)}
                                                 className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between ${
                                                     isSelected
                                                         ? 'bg-blue-50/70 border-blue-600 ring-2 ring-blue-600/20 shadow-xs'
@@ -1599,13 +1754,13 @@ export default function EmployeeManagement() {
                                             >
                                                 <div className="flex items-start justify-between mb-1">
                                                     <span className="font-bold text-xs text-slate-900">
-                                                        {r.name}
+                                                        {roleTitle}
                                                     </span>
                                                     <input
                                                         type="radio"
                                                         name="roleOption"
                                                         checked={isSelected}
-                                                        onChange={() => handleAssignRoleChange(r.code)}
+                                                        onChange={() => handleAssignRoleChange(roleCode)}
                                                         className="text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                     />
                                                 </div>
@@ -1938,26 +2093,30 @@ export default function EmployeeManagement() {
                             {/* Action Buttons */}
                             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsDetailModalOpen(false);
-                                            handleOpenAssignRole(selectedEmployee);
-                                        }}
-                                        className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition cursor-pointer"
-                                    >
-                                        🛡️ Phân quyền vai trò
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsDetailModalOpen(false);
-                                            handleOpenEdit(selectedEmployee);
-                                        }}
-                                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
-                                    >
-                                        ✏️ Sửa hồ sơ
-                                    </button>
+                                    {!(isManager && ['admin', 'owner', 'manager'].includes(selectedEmployee.role)) && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsDetailModalOpen(false);
+                                                    handleOpenAssignRole(selectedEmployee);
+                                                }}
+                                                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                                            >
+                                                🛡️ Phân quyền vai trò
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsDetailModalOpen(false);
+                                                    handleOpenEdit(selectedEmployee);
+                                                }}
+                                                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                                            >
+                                                ✏️ Sửa hồ sơ
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                                 <button
                                     type="button"
