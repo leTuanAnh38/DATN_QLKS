@@ -1225,26 +1225,26 @@ export default function Checkout() {
                             });
                         }}
                         onSuccess={() => {
-                            setCreatedBooking(null);
-                            navigate('/booking-history', {
-                                state: {
-                                    toast: {
-                                        type: 'success',
-                                        text: `Thanh toán VietQR cho đơn ${createdBooking.booking_code} thành công!`
-                                    }
-                                }
-                            });
+                            try {
+                                localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                                window.dispatchEvent(new Event('pms_booking_created'));
+                            } catch { }
+                            setCreatedBooking((prev) => ({
+                                ...prev,
+                                payment_method: 'vietqr_success',
+                                is_paid: true
+                            }));
                         }}
                         onConfirm={() => {
-                            setCreatedBooking(null);
-                            navigate('/booking-history', {
-                                state: {
-                                    toast: {
-                                        type: 'success',
-                                        text: `Đã xác nhận thanh toán đơn ${createdBooking.booking_code} thành công!`
-                                    }
-                                }
-                            });
+                            try {
+                                localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                                window.dispatchEvent(new Event('pms_booking_created'));
+                            } catch { }
+                            setCreatedBooking((prev) => ({
+                                ...prev,
+                                payment_method: 'vietqr_success',
+                                is_paid: true
+                            }));
                         }}
                     />
                 ) : (
@@ -1256,7 +1256,9 @@ export default function Checkout() {
                         </div>
 
                         <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider">
-                            Đặt phòng thành công!
+                            {createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success'
+                                ? 'Thanh toán & Đặt phòng thành công!'
+                                : 'Đặt phòng thành công!'}
                         </span>
 
                         <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-3 mb-2">
@@ -1285,7 +1287,7 @@ export default function Checkout() {
                                             setTimeout(() => setCopiedCode(false), 2500);
                                         }
                                     }}
-                                    className="p-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-600 hover:text-blue-600 transition"
+                                    className="p-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-600 hover:text-blue-600 transition cursor-pointer"
                                     title="Sao chép mã"
                                 >
                                     {copiedCode ? '✓ Đã sao chép' : '📋 Chép'}
@@ -1309,6 +1311,14 @@ export default function Checkout() {
                                 <span>Tổng tiền thanh toán:</span>
                                 <strong className="text-rose-600 font-bold">
                                     {Number(createdBooking.total_amount).toLocaleString('vi-VN')} VND
+                                </strong>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Phương thức:</span>
+                                <strong className={createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success' ? "text-emerald-700 font-bold" : "text-slate-800"}>
+                                    {createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success'
+                                        ? '✓ Đã thanh toán VietQR'
+                                        : 'Thanh toán khi nhận phòng (Reception)'}
                                 </strong>
                             </div>
                             <div className="flex justify-between">

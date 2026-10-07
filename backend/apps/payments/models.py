@@ -100,3 +100,66 @@ class Payment(models.Model):
         verbose_name = "Thanh Toán"
         verbose_name_plural = "Danh sách Thanh Toán"
         ordering = ['-created_at']
+
+
+class PaymentConfig(models.Model):
+    """
+    Cấu hình thông tin thanh toán VietQR (Mô hình Singleton - duy nhất 1 bản ghi).
+    Admin có thể thay đổi số tài khoản, mã BIN ngân hàng và tên chủ thẻ trong Cài đặt hệ thống.
+    """
+    bank_bin = models.CharField(
+        max_length=20,
+        default='970422',
+        verbose_name="Mã BIN ngân hàng"
+    )
+    account_no = models.CharField(
+        max_length=50,
+        default='123456789',
+        verbose_name="Số tài khoản"
+    )
+    account_name = models.CharField(
+        max_length=100,
+        default='KHACH SAN TA DA NANG',
+        verbose_name="Tên chủ tài khoản"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Thời gian cập nhật gần nhất"
+    )
+
+    def save(self, *args, **kwargs):
+        # Đảm bảo Singleton: Luôn cố định id=1
+        self.pk = 1
+        if self.account_name:
+            self.account_name = self.account_name.strip().upper()
+        if self.bank_bin:
+            self.bank_bin = self.bank_bin.strip()
+        if self.account_no:
+            self.account_no = self.account_no.strip()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Không xóa cấu hình duy nhất
+        pass
+
+    @classmethod
+    def get_solo(cls):
+        """
+        Lấy bản ghi cấu hình duy nhất. Nếu chưa có thì tự động tạo với giá trị mặc định.
+        """
+        obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                'bank_bin': '970422',
+                'account_no': '123456789',
+                'account_name': 'KHACH SAN TA DA NANG'
+            }
+        )
+        return obj
+
+    def __str__(self):
+        return f"VietQR Config ({self.bank_bin} - {self.account_no} - {self.account_name})"
+
+    class Meta:
+        verbose_name = "Cấu hình Thanh toán VietQR"
+        verbose_name_plural = "Cấu hình Thanh toán VietQR"

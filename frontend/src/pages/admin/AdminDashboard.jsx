@@ -20,6 +20,7 @@ import PostManagement from './PostManagement';
 import ContactManagement from './ContactManagement';
 import Analytics from './Analytics';
 import InvoiceManagement from './InvoiceManagement';
+import SystemSettings from './SystemSettings';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -95,6 +96,7 @@ export default function HotelAdminDashboard({ initialTab }) {
         if (location.pathname === '/admin/profile') return 'profile';
         if (location.pathname.startsWith('/admin/customers/')) return 'customer-detail';
         if (location.pathname === '/admin/analytics' || location.pathname === '/admin/reports') return 'analytics';
+        if (location.pathname === '/admin/settings') return 'settings';
         const params = new URLSearchParams(location.search);
         return params.get('tab') || initialTab || 'overview';
     };
@@ -1059,6 +1061,9 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 9: HỒ SƠ NHÂN SỰ & QUẢN TRỊ VIÊN (STAFF PROFILE) */}
                     {activeTab === 'profile' && <StaffProfile />}
 
+                    {/* TAB 10: CÀI ĐẶT HỆ THỐNG */}
+                    {activeTab === 'settings' && <SystemSettings />}
+
                     {/* TAB TỔNG QUAN HỆ THỐNG */}
                     {activeTab === 'overview' && (
                         <>
@@ -1686,7 +1691,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts', 'invoices', 'analytics', 'reports'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts', 'invoices', 'analytics', 'reports', 'settings'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

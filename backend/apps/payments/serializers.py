@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Payment
+from .models import Payment, PaymentConfig
 
 class PaymentSerializer(serializers.ModelSerializer):
     booking_id = serializers.IntegerField(source='booking.id', read_only=True)
@@ -59,3 +59,32 @@ class PaymentSerializer(serializers.ModelSerializer):
                 'status': invoice.status
             }
         return data
+
+
+class PaymentConfigSerializer(serializers.ModelSerializer):
+    """
+    Serializer cho cấu hình thanh toán VietQR động
+    """
+    class Meta:
+        model = PaymentConfig
+        fields = ['id', 'bank_bin', 'account_no', 'account_name', 'updated_at']
+        read_only_fields = ['id', 'updated_at']
+
+    def validate_bank_bin(self, value):
+        val = str(value).strip() if value else ''
+        if not val:
+            raise serializers.ValidationError("Mã BIN ngân hàng không được để trống.")
+        return val
+
+    def validate_account_no(self, value):
+        val = str(value).strip() if value else ''
+        if not val:
+            raise serializers.ValidationError("Số tài khoản không được để trống.")
+        return val
+
+    def validate_account_name(self, value):
+        val = str(value).strip().upper() if value else ''
+        if not val:
+            raise serializers.ValidationError("Tên chủ tài khoản không được để trống.")
+        return val
+

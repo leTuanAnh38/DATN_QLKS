@@ -80,7 +80,9 @@ function App() {
         <Route path="/admin/customers/:id" element={<AdminDashboard initialTab="customer-detail" />} />
         <Route path="/admin/analytics" element={<AdminDashboard initialTab="analytics" />} />
         <Route path="/admin/reports" element={<AdminDashboard initialTab="analytics" />} />
+        <Route path="/admin/settings" element={<AdminDashboard initialTab="settings" />} />
       </Routes>
+
     </BrowserRouter>
   );
 }

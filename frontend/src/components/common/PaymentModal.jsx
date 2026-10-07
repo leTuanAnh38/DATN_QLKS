@@ -21,14 +21,26 @@ import api from '../../services/api';
 import { bookingService } from '../../services/bookingService';
 
 /**
- * THÔNG TIN TÀI KHOẢN NGÂN HÀNG KHÁCH SẠN (GÁN CỨNG)
+ * CẤU HÌNH DỰ PHÒNG THÔNG TIN TÀI KHOẢN NGÂN HÀNG (FALLBACK)
  */
-const BANK_CONFIG = {
-    bin: '970422', // Mã BIN MB Bank
-    shortName: 'MB Bank',
-    fullName: 'Ngân hàng TMCP Quân Đội',
-    accountNo: '123456789',
-    accountName: 'KHACH SAN TA DA NANG',
+const DEFAULT_BANK_CONFIG = {
+    bank_bin: '970422', // Mã BIN MB Bank
+    account_no: '123456789',
+    account_name: 'KHACH SAN TA DA NANG',
+};
+
+// Từ điển tên viết tắt các ngân hàng phổ biến theo BIN
+const BANK_NAMES_BY_BIN = {
+    '970422': { short: 'MB Bank', full: 'Ngân hàng TMCP Quân Đội' },
+    '970436': { short: 'Vietcombank', full: 'Ngân hàng TMCP Ngoại Thương VN' },
+    '970415': { short: 'VietinBank', full: 'Ngân hàng TMCP Công Thương VN' },
+    '970418': { short: 'BIDV', full: 'Ngân hàng TMCP Đầu Tư & PT VN' },
+    '970407': { short: 'Techcombank', full: 'Ngân hàng TMCP Kỹ Thương VN' },
+    '970416': { short: 'ACB', full: 'Ngân hàng TMCP Á Châu' },
+    '970432': { short: 'VPBank', full: 'Ngân hàng TMCP VN Thịnh Vượng' },
+    '970423': { short: 'TPBank', full: 'Ngân hàng TMCP Tiên Phong' },
+    '970403': { short: 'Sacombank', full: 'Ngân hàng TMCP Sài Gòn Thương Tín' },
+    '970405': { short: 'Agribank', full: 'Ngân hàng Nông Nghiệp & PTNT' },
 };
 
 /**
@@ -64,6 +76,10 @@ export default function PaymentModal({
     const [copiedKey, setCopiedKey] = useState(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
 
+    // State cấu hình ngân hàng VietQR động
+    const [bankConfig, setBankConfig] = useState(DEFAULT_BANK_CONFIG);
+    const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+
     // Đồng hồ đếm ngược giữ phòng 15 phút (900 giây)
     const [timeLeft, setTimeLeft] = useState(900);
 
@@ -76,6 +92,40 @@ export default function PaymentModal({
     const totalAmount = Number(booking?.total_amount ?? amount ?? 0);
     const code = booking?.booking_code || bookingCode || 'BK-10293';
     const guest = booking?.customer_name || booking?.guest_name || customerName || 'Quý khách';
+
+    // Gọi API lấy cấu hình VietQR động ngay khi Modal mở
+    useEffect(() => {
+        if (!isOpen) return;
+        let isMounted = true;
+        const fetchBankConfig = async () => {
+            setIsLoadingConfig(true);
+            try {
+                const response = await api.get('/payments/config/');
+                const data = response.data?.data || response.data;
+                if (isMounted && data) {
+                    setBankConfig({
+                        bank_bin: data.bank_bin || DEFAULT_BANK_CONFIG.bank_bin,
+                        account_no: data.account_no || DEFAULT_BANK_CONFIG.account_no,
+                        account_name: (data.account_name || DEFAULT_BANK_CONFIG.account_name).toUpperCase()
+                    });
+                }
+            } catch (error) {
+                console.error('Không thể lấy cấu hình VietQR từ server, sử dụng cấu hình mặc định:', error);
+            } finally {
+                if (isMounted) setIsLoadingConfig(false);
+            }
+        };
+
+        fetchBankConfig();
+        return () => {
+            isMounted = false;
+        };
+    }, [isOpen]);
+
+    // Reset trạng thái tải ảnh khi cấu hình thay đổi
+    useEffect(() => {
+        setIsImageLoading(true);
+    }, [bankConfig.bank_bin, bankConfig.account_no, bankConfig.account_name]);
 
     // Đếm ngược thời gian thanh toán
     useEffect(() => {
@@ -94,9 +144,13 @@ export default function PaymentModal({
 
     if (!isOpen) return null;
 
-    // 1. LOGIC TẠO URL VIETQR ĐỘNG
-    const transferContent = `Thanh toan phong ${code}`;
-    const qrUrl = `https://img.vietqr.io/image/${BANK_CONFIG.bin}-${BANK_CONFIG.accountNo}-compact2.jpg?amount=${totalAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(BANK_CONFIG.accountName)}`;
+    // 1. LOGIC TẠO URL VIETQR ĐỘNG THEO STATE bankConfig
+    const bookingCodeValue = booking?.booking_code || code;
+    const bookingAmountValue = booking?.total_amount ?? totalAmount;
+    const transferContent = `Thanh toan phong ${bookingCodeValue}`;
+    const qrUrl = (bankConfig.bank_bin && bankConfig.account_no)
+        ? `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${bookingAmountValue}&addInfo=${encodeURIComponent('Thanh toan phong ' + bookingCodeValue)}&accountName=${encodeURIComponent(bankConfig.account_name || '')}`
+        : '';
 
     // Sao chép nhanh
     const handleCopy = async (text, key) => {
@@ -310,9 +364,11 @@ export default function PaymentModal({
                                 <span className="text-slate-500 shrink-0">Ngân hàng:</span>
                                 <div className="flex items-center gap-1.5 font-bold text-slate-800 text-right">
                                     <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-mono font-black">
-                                        MB
+                                        {bankConfig.bank_bin}
                                     </span>
-                                    <span>{BANK_CONFIG.fullName}</span>
+                                    <span>
+                                        {BANK_NAMES_BY_BIN[bankConfig.bank_bin]?.short || `Napas247 (BIN: ${bankConfig.bank_bin})`}
+                                    </span>
                                 </div>
                             </div>
 
@@ -321,11 +377,11 @@ export default function PaymentModal({
                                 <span className="text-slate-500 shrink-0">Số tài khoản:</span>
                                 <div className="flex items-center gap-2">
                                     <span className="font-mono text-base font-black text-slate-900 tracking-wider">
-                                        {BANK_CONFIG.accountNo}
+                                        {bankConfig.account_no}
                                     </span>
                                     <button
                                         type="button"
-                                        onClick={() => handleCopy(BANK_CONFIG.accountNo, 'accountNo')}
+                                        onClick={() => handleCopy(bankConfig.account_no, 'accountNo')}
                                         className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer active:scale-95"
                                         title="Sao chép số tài khoản"
                                     >
@@ -343,11 +399,11 @@ export default function PaymentModal({
                                 <span className="text-slate-500 shrink-0">Tên tài khoản:</span>
                                 <div className="flex items-center gap-2">
                                     <strong className="text-slate-900 uppercase tracking-wide">
-                                        {BANK_CONFIG.accountName}
+                                        {bankConfig.account_name}
                                     </strong>
                                     <button
                                         type="button"
-                                        onClick={() => handleCopy(BANK_CONFIG.accountName, 'accountName')}
+                                        onClick={() => handleCopy(bankConfig.account_name, 'accountName')}
                                         className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer active:scale-95"
                                         title="Sao chép tên tài khoản"
                                     >
@@ -410,22 +466,34 @@ export default function PaymentModal({
 
                         {/* Thẻ <img> hiển thị qrUrl với hiệu ứng viền đứt nét */}
                         <div className="relative p-2.5 bg-white rounded-2xl border-2 border-dashed border-blue-400 shadow-md max-w-[270px] w-full aspect-square flex items-center justify-center overflow-hidden group">
-                            {isImageLoading && (
+                            {isLoadingConfig ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-2 z-10">
+                                    <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+                                    <span className="text-xs font-semibold text-slate-600">Đang tải cấu hình VietQR...</span>
+                                </div>
+                            ) : isImageLoading ? (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-2">
                                     <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
                                     <span className="text-xs font-semibold">Đang nạp mã VietQR...</span>
                                 </div>
-                            )}
+                            ) : null}
 
-                            <img
-                                src={qrUrl}
-                                alt={`VietQR thanh toán ${code}`}
-                                className={`w-full h-full object-contain rounded-xl transition-all duration-300 ${
-                                    isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                                }`}
-                                onLoad={() => setIsImageLoading(false)}
-                                onError={() => setIsImageLoading(false)}
-                            />
+                            {qrUrl ? (
+                                <img
+                                    src={qrUrl}
+                                    alt={`VietQR thanh toán ${code}`}
+                                    className={`w-full h-full object-contain rounded-xl transition-all duration-300 ${
+                                        isLoadingConfig || isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                    }`}
+                                    onLoad={() => setIsImageLoading(false)}
+                                    onError={() => setIsImageLoading(false)}
+                                />
+                            ) : (
+                                <div className="text-xs text-slate-400 flex flex-col items-center gap-1">
+                                    <AlertCircle className="w-6 h-6 text-amber-500" />
+                                    <span>Chưa có thông tin QR</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Dòng chữ hướng dẫn */}

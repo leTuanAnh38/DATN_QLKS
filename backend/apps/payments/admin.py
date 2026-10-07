@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Invoice, Payment
+from .models import Invoice, Payment, PaymentConfig
 
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('invoice_code', 'booking', 'total_amount', 'payment_method', 'status', 'created_at')
@@ -29,3 +29,15 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ('payment_status', 'payment_method', 'created_at')
     search_fields = ('transaction_id', 'booking__booking_code', 'booking__guest__username')
     readonly_fields = ('created_at',)
+
+@admin.register(PaymentConfig)
+class PaymentConfigAdmin(admin.ModelAdmin):
+    list_display = ('bank_bin', 'account_no', 'account_name', 'updated_at')
+    readonly_fields = ('updated_at',)
+
+    def has_add_permission(self, request):
+        # Chỉ duy trì 1 bản ghi singleton
+        return not PaymentConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

@@ -4,11 +4,25 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 
 from ..bookings.models import Booking
-from .models import Payment, Invoice
-from .serializers import PaymentSerializer
+from .models import Payment, Invoice, PaymentConfig
+from .serializers import PaymentSerializer, PaymentConfigSerializer
+
+class IsAdminOrManagerUser(BasePermission):
+    """
+    Chỉ cho phép tài khoản có quyền Admin / Manager / Staff truy cập để sửa đổi cấu hình.
+    """
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        allowed_roles = ['admin', 'owner', 'manager']
+        return (
+            getattr(request.user, 'role', None) in allowed_roles or
+            request.user.is_staff or
+            request.user.is_superuser
+        )
 
 class ConfirmPaymentView(APIView):
     """
@@ -182,3 +196,55 @@ class PaymentListView(APIView):
             "count": queryset.count(),
             "results": serializer.data
         }, status=status.HTTP_200_OK)
+
+
+class PaymentConfigView(APIView):
+    """
+    API endpoint: /api/payments/config/
+    - GET (Public): Lấy bản ghi cấu hình VietQR đầu tiên. Nếu chưa có, tự động tạo cấu hình mặc định.
+    - PUT / PATCH (Admin Only): Cập nhật thông tin tài khoản ngân hàng thụ hưởng VietQR.
+    """
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminOrManagerUser()]
+
+    def get(self, request):
+        config = PaymentConfig.get_solo()
+        serializer = PaymentConfigSerializer(config)
+        return Response({
+            "success": True,
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        config = PaymentConfig.get_solo()
+        serializer = PaymentConfigSerializer(config, data=request.data, partial=False)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "success": True,
+                "message": "Cập nhật cấu hình thanh toán VietQR thành công!",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            "success": False,
+            "message": "Dữ liệu cấu hình không hợp lệ.",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        config = PaymentConfig.get_solo()
+        serializer = PaymentConfigSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "success": True,
+                "message": "Cập nhật cấu hình thanh toán VietQR thành công!",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            "success": False,
+            "message": "Dữ liệu cấu hình không hợp lệ.",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
