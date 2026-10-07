@@ -76,6 +76,7 @@ class Promotion(models.Model):
     )
 
     code = models.CharField(max_length=20, unique=True, verbose_name="Mã giảm giá (VD: SUMMER2026)")
+    name = models.CharField(max_length=200, default='', blank=True, verbose_name="Tên chương trình khuyến mãi")
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPES, default='percentage', verbose_name="Loại khuyến mãi")
     discount_value = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Giá trị giảm")
     

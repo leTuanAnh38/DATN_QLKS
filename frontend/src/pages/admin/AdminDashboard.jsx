@@ -21,6 +21,8 @@ import ContactManagement from './ContactManagement';
 import Analytics from './Analytics';
 import InvoiceManagement from './InvoiceManagement';
 import SystemSettings from './SystemSettings';
+import AmenityManagement from './AmenityManagement';
+import PromotionManagement from './PromotionManagement';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -97,6 +99,9 @@ export default function HotelAdminDashboard({ initialTab }) {
         if (location.pathname.startsWith('/admin/customers/')) return 'customer-detail';
         if (location.pathname === '/admin/analytics' || location.pathname === '/admin/reports') return 'analytics';
         if (location.pathname === '/admin/settings') return 'settings';
+        if (location.pathname === '/admin/amenities') return 'amenities';
+        if (location.pathname === '/admin/posts') return 'posts';
+        if (location.pathname === '/admin/promotions') return 'promotions';
         const params = new URLSearchParams(location.search);
         return params.get('tab') || initialTab || 'overview';
     };
@@ -134,6 +139,17 @@ export default function HotelAdminDashboard({ initialTab }) {
             setActiveTab('customer-detail');
         } else if (location.pathname === '/admin/analytics' || location.pathname === '/admin/reports') {
             setActiveTab('analytics');
+        } else if (location.pathname === '/admin/settings') {
+            setActiveTab('settings');
+        } else if (location.pathname === '/admin/amenities') {
+            setActiveTab('amenities');
+            setIsCategoryMenuOpen(true);
+        } else if (location.pathname === '/admin/posts') {
+            setActiveTab('posts');
+            setIsMarketingMenuOpen(true);
+        } else if (location.pathname === '/admin/promotions') {
+            setActiveTab('promotions');
+            setIsMarketingMenuOpen(true);
         } else {
             const params = new URLSearchParams(location.search);
             const tabParam = params.get('tab');
@@ -167,6 +183,8 @@ export default function HotelAdminDashboard({ initialTab }) {
     const [checkInTodayCount, setCheckInTodayCount] = useState(0);
     const [checkOutTodayCount, setCheckOutTodayCount] = useState(0);
     const [isBookingMenuOpen, setIsBookingMenuOpen] = useState(true);
+    const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(true);
+    const [isMarketingMenuOpen, setIsMarketingMenuOpen] = useState(true);
 
     // Kiểm tra phân hệ: Cho phép tài khoản Quản trị, Lễ tân và Nhân sự
     // (admin, owner, manager, receptionist, staff, cashier hoặc is_staff, is_superuser)
@@ -556,26 +574,96 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </span>
                             </button>
 
-                            {/* 5. Quản lý Hạng phòng & Bảng giá (Room Categories & Multi-Images) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('categories')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'categories'
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                                title="Hạng phòng & Bảng giá"
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
-                                    <span className="truncate text-left">Hạng phòng & Bảng giá</span>
+                            {/* 5. Quản lý Hạng phòng & Bảng giá (Accordion / Collapsible Menu) */}
+                            <div className="space-y-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (activeTab !== 'categories' && activeTab !== 'amenities') {
+                                            setActiveTab('categories');
+                                            setIsCategoryMenuOpen(true);
+                                        } else if (activeTab === 'amenities') {
+                                            setActiveTab('categories');
+                                            setIsCategoryMenuOpen(true);
+                                        } else {
+                                            setIsCategoryMenuOpen((prev) => !prev);
+                                        }
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${activeTab === 'categories'
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : activeTab === 'amenities'
+                                                ? 'bg-slate-800 text-white'
+                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                    title="Hạng phòng & Bảng giá"
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                        <span className="truncate text-left">Hạng phòng & Bảng giá</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="shrink-0 bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                                            Suites
+                                        </span>
+                                        {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
+                                        <span
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsCategoryMenuOpen((prev) => !prev);
+                                            }}
+                                            className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
+                                            title={isCategoryMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
+                                        >
+                                            <svg
+                                                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isCategoryMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
+                                                    }`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                </button>
+
+                                {/* Danh sách Menu Con: Tiện nghi (link tới /admin/amenities) */}
+                                <div
+                                    className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isCategoryMenuOpen
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0'
+                                        }`}
+                                >
+                                    <div className="min-h-0">
+                                        <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveTab('amenities');
+                                                    setIsCategoryMenuOpen(true);
+                                                    navigate('/admin/amenities');
+                                                }}
+                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'amenities'
+                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                    </svg>
+                                                    <span className="truncate text-left">Tiện nghi</span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 ml-2">
+                                                    Tiện ích
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="shrink-0 bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30 ml-2">
-                                    Suites
-                                </span>
-                            </button>
+                            </div>
 
                             {/* 6. Quản lý Đặt phòng (Accordion / Collapsible Menu) */}
                             <div className="space-y-1">
@@ -715,23 +803,109 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </span>
                             </button>
 
-                            {/* 10.1 Quản lý Tin tức & Bài viết (Blog / News) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('posts')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'posts' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                    </svg>
-                                    <span className="truncate text-left">Quản lý Tin tức</span>
+                            {/* 10.1 Marketing & Khuyến mãi (Accordion Dropdown) */}
+                            <div className="space-y-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsMarketingMenuOpen((prev) => !prev)}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${['posts', 'promotions'].includes(activeTab)
+                                            ? 'bg-slate-800 text-white'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                    title="Marketing & Khuyến mãi"
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                        </svg>
+                                        <span className="truncate text-left">Marketing & Khuyến mãi</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="shrink-0 bg-rose-500/30 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-400/30">
+                                            PROMO
+                                        </span>
+                                        {/* Nút ChevronDown toggle đóng/mở menu con độc lập */}
+                                        <span
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsMarketingMenuOpen((prev) => !prev);
+                                            }}
+                                            className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
+                                            title={isMarketingMenuOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
+                                        >
+                                            <svg
+                                                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isMarketingMenuOpen ? 'rotate-180 text-white' : 'rotate-0'
+                                                    }`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                </button>
+
+                                {/* Danh sách Menu Con: Tin tức & Blog, Khuyến mãi */}
+                                <div
+                                    className={`grid transition-all duration-300 ease-in-out overflow-hidden ${isMarketingMenuOpen
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0'
+                                        }`}
+                                >
+                                    <div className="min-h-0">
+                                        <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
+                                            {/* Menu con 1: Tin tức & Blog */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveTab('posts');
+                                                    setIsMarketingMenuOpen(true);
+                                                    navigate('/admin/posts');
+                                                }}
+                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'posts'
+                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                                    </svg>
+                                                    <span className="truncate text-left">Tin tức & Blog</span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
+                                                    Blog
+                                                </span>
+                                            </button>
+
+                                            {/* Menu con 2: Khuyến mãi */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveTab('promotions');
+                                                    setIsMarketingMenuOpen(true);
+                                                    navigate('/admin/promotions');
+                                                }}
+                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'promotions'
+                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                    </svg>
+                                                    <span className="truncate text-left">Khuyến mãi</span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-bold bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 ml-2">
+                                                    Voucher
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="shrink-0 bg-blue-500/30 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30 ml-2">
-                                    Blog
-                                </span>
-                            </button>
+                            </div>
 
                             {/* 10.2 Quản lý Liên hệ (Contact) */}
                             <button
@@ -1018,6 +1192,9 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 4: QUẢN LÝ HẠNG PHÒNG & BẢNG GIÁ (CRUD + MULTI-IMAGE UPLOAD) */}
                     {activeTab === 'categories' && <CategoryManagement />}
 
+                    {/* TAB 4.1: QUẢN LÝ TIỆN NGHI PHÒNG (AMENITIES) */}
+                    {activeTab === 'amenities' && <AmenityManagement />}
+
                     {/* TAB 5: QUẢN LÝ DANH SÁCH ĐẶT PHÒNG (LỄ TÂN & ADMIN) */}
                     {activeTab === 'bookings' && (
                         <BookingManagement
@@ -1048,6 +1225,7 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                     {/* TAB 8.1: QUẢN LÝ TIN TỨC & BÀI VIẾT (BLOG / NEWS) */}
                     {activeTab === 'posts' && <PostManagement />}
+                    {activeTab === 'promotions' && <PromotionManagement />}
                     {activeTab === 'contacts' && <ContactManagement />}
 
                     {/* TAB 8.2: QUẢN LÝ THANH TOÁN & HÓA ĐƠN (VIETQR / CASH) */}
@@ -1691,7 +1869,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'contacts', 'invoices', 'analytics', 'reports', 'settings'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'amenities', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

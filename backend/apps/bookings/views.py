@@ -2468,3 +2468,22 @@ class ValidatePromoCodeView(APIView):
             'discount_amount': discount_amount,
             'message': f'Áp dụng mã {promo.code} thành công! Tiết kiệm {discount_amount:,.0f} VND.'
         }, status=status.HTTP_200_OK)
+
+
+class PromotionViewSet(viewsets.ModelViewSet):
+    """
+    CRUD Quản lý Khuyến mãi / Voucher cho Admin:
+    - GET /api/bookings/promotions/ (hoặc /api/promotions/): Danh sách voucher
+    - POST /api/bookings/promotions/: Thêm voucher mới
+    - PUT /api/bookings/promotions/<id>/: Cập nhật voucher
+    - DELETE /api/bookings/promotions/<id>/: Xóa voucher
+    """
+    queryset = Promotion.objects.all().order_by('-id')
+    serializer_class = PromotionSerializer
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [AllowAny()]
+

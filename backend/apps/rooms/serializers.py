@@ -5,7 +5,7 @@ from .models import Room, RoomCategory, Amenity, RoomImage
 class AmenitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Amenity
-        fields = ['id', 'name', 'icon']
+        fields = ['id', 'name', 'description', 'icon']
 
 
 class RoomImageSerializer(serializers.ModelSerializer):

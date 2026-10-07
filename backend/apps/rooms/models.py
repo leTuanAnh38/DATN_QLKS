@@ -3,6 +3,7 @@ from django.db import models
 # 1. BẢNG TIỆN NGHI (Amenities)
 class Amenity(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên tiện nghi (VD: Wifi, Smart TV, Ban công)")
+    description = models.TextField(blank=True, default='', verbose_name="Mô tả tiện nghi")
     icon = models.CharField(max_length=50, blank=True, verbose_name="Icon (Mã CSS hoặc Emoji)")
 
     def __str__(self):

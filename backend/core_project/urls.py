@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 
 from apps.services.views import ServiceRequestViewSet
 from apps.posts.views import ImageUploadView
+from apps.bookings.views import PromotionViewSet
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,6 +29,8 @@ urlpatterns = [
     path('api/users/', include('apps.users.urls')),
     path('api/rooms/', include('apps.rooms.urls')),
     path('api/bookings/', include('apps.bookings.urls')),
+    path('api/promotions/', PromotionViewSet.as_view({'get': 'list', 'post': 'create'}), name='promotions-direct-list'),
+    path('api/promotions/<int:pk>/', PromotionViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='promotions-direct-detail'),
     path('api/services/', include('apps.services.urls')),
     path('api/service-requests/', ServiceRequestViewSet.as_view({'get': 'list', 'post': 'create'}), name='service-requests-direct'),
     path('api/service-requests/<int:pk>/', ServiceRequestViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}), name='service-request-detail-direct'),

@@ -6,9 +6,36 @@ import datetime
 
 
 class PromotionSerializer(serializers.ModelSerializer):
+    is_expired = serializers.SerializerMethodField()
+    status_label = serializers.SerializerMethodField()
+
     class Meta:
         model = Promotion
-        fields = ['id', 'code', 'discount_type', 'discount_value', 'is_active', 'min_order_value']
+        fields = [
+            'id', 'code', 'name', 'discount_type', 'discount_value',
+            'valid_from', 'valid_to', 'usage_limit', 'used_count',
+            'min_order_value', 'max_discount_amount', 'is_active',
+            'is_expired', 'status_label'
+        ]
+
+    def get_is_expired(self, obj):
+        from django.utils import timezone
+        if obj.valid_to and obj.valid_to < timezone.now():
+            return True
+        return False
+
+    def get_status_label(self, obj):
+        from django.utils import timezone
+        now = timezone.now()
+        if not obj.is_active:
+            return 'Đã tạm dừng'
+        if obj.valid_to and obj.valid_to < now:
+            return 'Hết hạn'
+        if obj.valid_from and obj.valid_from > now:
+            return 'Sắp diễn ra'
+        if obj.used_count >= obj.usage_limit:
+            return 'Hết lượt dùng'
+        return 'Đang diễn ra'
 
 
 class BookingExtraServiceSerializer(serializers.ModelSerializer):

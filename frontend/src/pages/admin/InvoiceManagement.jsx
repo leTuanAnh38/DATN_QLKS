@@ -258,9 +258,7 @@ export default function InvoiceManagement() {
             {/* ================================================================= */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
                 <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
-                        <Receipt className="w-6 h-6" />
-                    </div>
+                   
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
                             <span>Thanh toán & Hóa đơn</span>
