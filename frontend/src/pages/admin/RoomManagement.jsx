@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import roomService from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
-import CheckOutModal from './CheckOutModal';
-import HotelInvoiceModal from './HotelInvoiceModal';
+import CheckOutModal from '../../components/admin/modals/CheckOutModal';
+import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
 
 // Tiện ích format ngày DD/MM/YYYY
 const formatDate = (dateStr) => {

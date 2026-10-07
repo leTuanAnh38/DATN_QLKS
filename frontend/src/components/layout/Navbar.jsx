@@ -113,7 +113,7 @@ export default function Navbar({
                             <>
                                 <span className="hidden md:inline text-slate-300">|</span>
                                 <span className="hidden md:inline text-amber-700 font-medium">
-                                    👋 Kính chào Quý khách: <strong>{user?.full_name || user?.username}</strong>
+                                     Kính chào Quý khách: <strong>{user?.full_name || user?.username}</strong>
                                 </span>
                             </>
                         )}

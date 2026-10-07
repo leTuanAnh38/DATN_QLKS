@@ -27,8 +27,8 @@ import api from '../../services/api';
 // Nếu bạn có component <InvoiceModal /> hoặc <HotelInvoiceModal /> từ trước,
 // hãy mở comment import dưới đây:
 // =========================================================================
-import HotelInvoiceModal from './HotelInvoiceModal';
-import Pagination from '../common/Pagination';
+import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
+import Pagination from '../../components/common/Pagination';
 // import InvoiceModal from './InvoiceModal'; // <-- Hoặc đường dẫn component của bạn
 
 /**

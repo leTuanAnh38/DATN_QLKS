@@ -3,9 +3,9 @@ import { bookingService } from '../../services/bookingService';
 import { hotelService } from '../../services/hotelService';
 import roomService from '../../services/roomService';
 import { notificationService } from '../../services/notificationService';
-import HotelInvoiceModal from './HotelInvoiceModal';
-import CheckOutModal from './CheckOutModal';
-import Pagination from '../common/Pagination';
+import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
+import CheckOutModal from '../../components/admin/modals/CheckOutModal';
+import Pagination from '../../components/common/Pagination';
 
 // Format ngày tháng DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {

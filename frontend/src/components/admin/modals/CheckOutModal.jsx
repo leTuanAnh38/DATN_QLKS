@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { bookingService } from '../../services/bookingService';
-import { PaymentSection } from '../common/PaymentModal';
+import { bookingService } from '../../../services/bookingService';
+import { PaymentSection } from '../../common/PaymentModal';
 
 // Helper format tiền tệ VNĐ
 const formatCurrency = (amount) => {

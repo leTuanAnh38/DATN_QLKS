@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import adminUserService from '../../services/adminUserService';
-import RoleMatrixModal, { DEFAULT_ROLE_MATRIX } from './RoleMatrixModal';
-import UserAvatar from '../common/UserAvatar';
-import Pagination from '../common/Pagination';
+import RoleMatrixModal, { DEFAULT_ROLE_MATRIX } from '../../components/admin/modals/RoleMatrixModal';
+import UserAvatar from '../../components/common/UserAvatar';
+import Pagination from '../../components/common/Pagination';
 
 // =========================================================================
 // DANH MỤC PHÒNG BAN, CHỨC DANH & CA LÀM VIỆC CHUẨN KHÁCH SẠN 5 SAO

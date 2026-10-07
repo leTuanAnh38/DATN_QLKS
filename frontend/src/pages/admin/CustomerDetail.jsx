@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import adminUserService from '../../services/adminUserService';
-import UserAvatar from '../common/UserAvatar';
-import Pagination from '../common/Pagination';
+import UserAvatar from '../../components/common/UserAvatar';
+import Pagination from '../../components/common/Pagination';
 
 // Helper format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Mail, MailOpen, Trash2, Eye, Check, X, Inbox, AlertTriangle, RefreshCw, Filter } from 'lucide-react';
 import { contactService } from '../../services/contactService';
-import Pagination from '../common/Pagination';
+import Pagination from '../../components/common/Pagination';
 
 const PAGE_SIZE = 10;
 

@@ -3,23 +3,23 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, User as UserIcon, LogOut, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { bookingService } from '../../services/bookingService';
-import GuestManagement from '../../components/admin/GuestManagement';
-import EmployeeManagement from '../../components/admin/EmployeeManagement';
-import RoomManagement from '../../components/admin/RoomManagement';
-import CategoryManagement from '../../components/admin/CategoryManagement';
-import BookingManagement from '../../components/admin/BookingManagement';
-import BookingTimeline from '../../components/admin/BookingTimeline';
-import ServiceRequestKanban from '../../components/admin/ServiceRequestKanban';
-import ServiceManagement from '../../components/admin/ServiceManagement';
-import ReviewManagement from '../../components/admin/ReviewManagement';
+import GuestManagement from './GuestManagement';
+import EmployeeManagement from './EmployeeManagement';
+import RoomManagement from './RoomManagement';
+import CategoryManagement from './CategoryManagement';
+import BookingManagement from './BookingManagement';
+import BookingTimeline from './BookingTimeline';
+import ServiceRequestKanban from './ServiceRequestKanban';
+import ServiceManagement from './ServiceManagement';
+import ReviewManagement from './ReviewManagement';
 import UserAvatar from '../../components/common/UserAvatar';
 import NotificationBell from '../../components/common/NotificationBell';
-import StaffProfile from '../../components/admin/StaffProfile';
-import CustomerDetail from '../../components/admin/CustomerDetail';
-import PostManagement from '../../components/admin/PostManagement';
-import ContactManagement from '../../components/admin/ContactManagement';
-import Analytics from '../../components/admin/Analytics';
-import InvoiceManagement from '../../components/admin/InvoiceManagement';
+import StaffProfile from './StaffProfile';
+import CustomerDetail from './CustomerDetail';
+import PostManagement from './PostManagement';
+import ContactManagement from './ContactManagement';
+import Analytics from './Analytics';
+import InvoiceManagement from './InvoiceManagement';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -1066,7 +1066,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
                                     <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
-                                        Xin chào, {user?.full_name || user?.username} 👋
+                                        Xin chào, {user?.full_name || user?.username}
                                     </h1>
                                     <p className="text-xs text-slate-500 mt-0.5">
                                         Bảng điều khiển vận hành khách sạn & giám sát công suất phòng thực tế tại Khách Sạn TA Đà Nẵng.
@@ -1245,7 +1245,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                             <span>
                                                 {(dashboardData?.bookings?.pending_count ?? pendingBookingsCount) > 0
                                                     ? '⚠️ Cần phản hồi < 15 phút'
-                                                    : '✅ Tất cả đơn đã được xử lý'}
+                                                    : ' Tất cả đơn đã được xử lý'}
                                             </span>
                                         </div>
                                     </div>

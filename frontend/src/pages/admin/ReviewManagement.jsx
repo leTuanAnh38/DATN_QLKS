@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { reviewService } from '../../services/reviewService';
-import UserAvatar from '../common/UserAvatar';
-import Pagination from '../common/Pagination';
+import UserAvatar from '../../components/common/UserAvatar';
+import Pagination from '../../components/common/Pagination';
 
 // Tiện ích format ngày giờ chi tiết
 const formatDateTimeDisplay = (isoStr) => {

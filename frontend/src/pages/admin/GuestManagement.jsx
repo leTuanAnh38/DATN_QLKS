@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import adminUserService from '../../services/adminUserService';
-import UserAvatar from '../common/UserAvatar';
-import Pagination from '../common/Pagination';
+import UserAvatar from '../../components/common/UserAvatar';
+import Pagination from '../../components/common/Pagination';
 
 export default function GuestManagement() {
     const [guests, setGuests] = useState([]);
