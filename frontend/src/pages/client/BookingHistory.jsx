@@ -713,15 +713,54 @@ export default function BookingHistory() {
                                         booking.room_image ||
                                         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
 
+                                    const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
                                     const isPending = ['pending', 'paid', 'PAID'].includes(booking.status);
-                                    const isPaid = Boolean(
+                                    const isPaid = !isCancelled && Boolean(
+                                        booking.payment_status === 'COMPLETED' ||
                                         booking.is_paid ||
-                                        ['paid', 'PAID'].includes(booking.status) ||
+                                        ['paid', 'PAID', 'completed', 'checked_out'].includes(booking.status) ||
+                                        (booking.payments && Array.isArray(booking.payments) && booking.payments.some(p => p.payment_status === 'COMPLETED')) ||
                                         (booking.note && (
                                             booking.note.toLowerCase().includes('vietqr: đã thanh toán') ||
                                             booking.note.toLowerCase().includes('đã thanh toán thành công')
                                         ))
                                     );
+
+                                    // Xác định phương thức thanh toán thực tế của đơn
+                                    const getMethodCode = () => {
+                                        const raw = (
+                                            booking.payment_method ||
+                                            (booking.payments && Array.isArray(booking.payments) && (
+                                                booking.payments.find(p => p.payment_status === 'COMPLETED')?.payment_method ||
+                                                booking.payments[0]?.payment_method
+                                            )) ||
+                                            booking.invoice?.payment_method ||
+                                            ''
+                                        );
+                                        const rawLower = String(raw).trim().toLowerCase();
+                                        if (['cash', 'tiền mặt', 'tien_mat', 'reception', 'tai_quay', 'tại quầy', 'tại lễ tân'].includes(rawLower)) {
+                                            return 'CASH';
+                                        }
+                                        if (['transfer', 'vietqr', 'bank_transfer', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(rawLower)) {
+                                            return 'TRANSFER';
+                                        }
+
+                                        const noteLower = (booking.note || '').toLowerCase();
+                                        if (noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer')) {
+                                            return 'TRANSFER';
+                                        }
+                                        if (noteLower.includes('reception') || noteLower.includes('tiền mặt') || noteLower.includes('cash') || noteLower.includes('tại lễ tân') || noteLower.includes('tại quầy')) {
+                                            return 'CASH';
+                                        }
+                                        if (['completed', 'checked_out'].includes(booking.status)) {
+                                            return 'CASH';
+                                        }
+                                        return 'CASH';
+                                    };
+
+                                    const methodCode = getMethodCode();
+                                    const isCash = methodCode === 'CASH';
+                                    const isTransfer = methodCode === 'TRANSFER';
                                     const grandTotalNum = Number(booking.grand_total_amount ?? booking.total_amount) || 0;
                                     const roomAmountNum = Number(booking.room_amount ?? booking.total_amount) || 0;
                                     const extraServicesTotal = Number(booking.extra_services_total) || 0;
@@ -760,9 +799,29 @@ export default function BookingHistory() {
                                                     </span>
                                                 </div>
 
-                                                {/* BADGE TRẠNG THÁI CHUẨN */}
-                                                <div>
+                                                {/* BADGE TRẠNG THÁI PHÒNG & TRẠNG THÁI THANH TOÁN */}
+                                                <div className="flex flex-wrap items-center gap-2">
                                                     {renderStatusBadge(booking.status)}
+
+                                                    {/* Badge Trạng thái thanh toán (KHÔNG HIỆN nếu đơn đã hủy) */}
+                                                    {!isCancelled && (
+                                                        (booking.payment_status === 'COMPLETED' || isPaid) ? (
+                                                            <span
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs"
+                                                                title={isCash ? "Đã thanh toán bằng tiền mặt tại quầy lễ tân" : (isTransfer ? "Đã thanh toán thành công qua VietQR" : "Đã thanh toán")}
+                                                            >
+                                                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                                {isCash ? '✓ Tiền mặt (Đã TT)' : (isTransfer ? '✓ VietQR (Đã TT)' : '✓ Đã thanh toán')}
+                                                            </span>
+                                                        ) : (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                                                                title="Chưa thanh toán tiền phòng"
+                                                            >
+                                                                <span>💵 Chưa TT</span>
+                                                            </span>
+                                                        )
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -841,10 +900,16 @@ export default function BookingHistory() {
                                                     {/* Phần bên phải: Tổng tiền & Nút thao tác */}
                                                     <div className="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-center gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                                                         <div className="text-left lg:text-right">
-                                                            <span className={`text-[11px] font-bold uppercase tracking-wider block ${isPaid ? 'text-emerald-700' : 'text-slate-400'}`}>
-                                                                {isPaid ? '✓ Đã thanh toán (VietQR)' : 'Tổng tiền cần thanh toán'}
+                                                            <span className={`text-[11px] font-bold uppercase tracking-wider block ${
+                                                                isCancelled ? 'text-rose-500' : (isPaid ? 'text-emerald-700' : 'text-slate-400')
+                                                            }`}>
+                                                                {isCancelled
+                                                                    ? 'Đơn đã hủy'
+                                                                    : (isPaid ? (isCash ? '✓ Đã thanh toán (Tiền mặt)' : (isTransfer ? '✓ Đã thanh toán (VietQR)' : '✓ Đã thanh toán')) : 'Tổng tiền cần thanh toán')}
                                                             </span>
-                                                            <div className={`text-xl sm:text-2xl font-black mt-0.5 ${isPaid ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                            <div className={`text-xl sm:text-2xl font-black mt-0.5 ${
+                                                                isCancelled ? 'text-slate-400 line-through' : (isPaid ? 'text-emerald-600' : 'text-rose-600')
+                                                            }`}>
                                                                 {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
                                                             </div>
                                                             {hasExtraServices ? (

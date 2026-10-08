@@ -625,8 +625,11 @@ export default function InvoiceManagement() {
                         guest: { get_full_name: selectedPayment.guest_name },
                         total_amount: selectedPayment.amount,
                         room_amount: selectedPayment.amount,
-                        status: 'paid'
+                        status: 'paid',
+                        payment_method: selectedPayment.payment_method
                     }}
+                    payment={selectedPayment}
+                    paymentMethod={selectedPayment.payment_method}
                     onClose={() => setSelectedPayment(null)}
                 />
 

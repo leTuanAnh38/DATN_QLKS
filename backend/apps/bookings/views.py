@@ -924,8 +924,8 @@ class BookingViewSet(viewsets.ModelViewSet):
                     counter += 1
 
                 name_parts = guest_name.split()
-                last_name = name_parts[0] if len(name_parts) > 1 else ''
-                first_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else guest_name
+                first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
+                last_name = name_parts[-1] if len(name_parts) > 1 else ''
                 email_to_use = guest_email or f"{username}@walkin.hotel.local"
 
                 guest_user = User.objects.create_user(
@@ -940,8 +940,8 @@ class BookingViewSet(viewsets.ModelViewSet):
                 # Cập nhật họ tên nếu tài khoản cũ chưa có họ tên
                 if guest_name and not (guest_user.first_name or guest_user.last_name):
                     name_parts = guest_name.split()
-                    guest_user.last_name = name_parts[0] if len(name_parts) > 1 else ''
-                    guest_user.first_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else guest_name
+                    guest_user.first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
+                    guest_user.last_name = name_parts[-1] if len(name_parts) > 1 else ''
                     guest_user.save(update_fields=['first_name', 'last_name'])
 
             # Cập nhật hoặc tạo GuestProfile
@@ -1411,9 +1411,12 @@ class BookingViewSet(viewsets.ModelViewSet):
             'daily_rate': daily_rate,
             'room_charge': room_charge,
             'extra_services': extra_services,
+            'service_charge': total_service_charge,
             'total_service_charge': total_service_charge,
+            'total_amount': grand_total,
             'grand_total': grand_total,
             'paid_amount': paid_amount,
+            'remaining_balance': remaining_amount,
             'remaining_amount': remaining_amount,
             'status': booking.status,
             'status_display': booking.get_status_display(),
@@ -1672,10 +1675,14 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         # 1. Kiểm tra phân quyền truy cập
         user_role = getattr(user, 'role', '')
-        can_extend_staff = (
-            user.is_superuser or 
-            user_role in ['admin', 'owner', 'manager', 'receptionist']
+        is_staff_or_admin = bool(
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                user_role in ['admin', 'owner', 'manager', 'receptionist']
+            )
         )
+        can_extend_staff = is_staff_or_admin
         is_owner_guest = user.is_authenticated and (booking.guest_id == user.id)
 
         if not (can_extend_staff or is_owner_guest):

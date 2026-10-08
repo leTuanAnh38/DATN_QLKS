@@ -238,7 +238,7 @@ class ActiveGuestBookingsView(APIView):
         for b in base_qs:
             room_num = b.room.room_number if b.room else 'Chờ xếp'
             cat_name = b.category.name if b.category else (b.room.category.name if b.room and b.room.category else 'Tiêu chuẩn')
-            guest_name = f"{b.guest.last_name or ''} {b.guest.first_name or ''}".strip() if b.guest else 'Khách lưu trú'
+            guest_name = (b.guest.get_full_name().strip() or f"{b.guest.first_name or ''} {b.guest.last_name or ''}".strip()) if b.guest else 'Khách lưu trú'
             results.append({
                 'id': b.id,
                 'booking_code': b.booking_code,

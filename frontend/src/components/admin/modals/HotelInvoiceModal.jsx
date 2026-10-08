@@ -7,7 +7,7 @@ import React from 'react';
  * - KHÔNG có icon emoji, KHÔNG có chữ màu mè hay badge gradient
  * - Tương thích lệnh in trình duyệt window.print() (chỉ in nội dung hóa đơn, ẩn hoàn toàn giao diện xung quanh)
  */
-export default function HotelInvoiceModal({ booking, onClose }) {
+export default function HotelInvoiceModal({ booking, payment, transaction, paymentMethod, onClose }) {
     if (!booking) return null;
 
     // Helper format ngày DD/MM/YYYY
@@ -49,13 +49,86 @@ export default function HotelInvoiceModal({ booking, onClose }) {
         return `${num.toLocaleString('vi-VN')}đ`;
     };
 
-    // Trích xuất phương thức thanh toán từ note (nếu có)
+    // Xác định chuẩn hóa mã phương thức thanh toán: 'CASH' | 'TRANSFER' | 'CREDIT_CARD' | 'MOMO'
+    const resolvePaymentMethodCode = () => {
+        const raw = (
+            paymentMethod ||
+            payment?.payment_method ||
+            payment?.method ||
+            transaction?.payment_method ||
+            transaction?.method ||
+            booking?.payment_method ||
+            (booking?.payments && Array.isArray(booking.payments) && (
+                booking.payments.find(p => p.payment_status === 'COMPLETED')?.payment_method ||
+                booking.payments[0]?.payment_method
+            )) ||
+            booking?.invoice?.payment_method ||
+            ''
+        );
+
+        const rawLower = String(raw).trim().toLowerCase();
+        if (['cash', 'tiền mặt', 'tien_mat', 'reception', 'tai_quay', 'tại quầy', 'tại lễ tân'].includes(rawLower)) {
+            return 'CASH';
+        }
+        if (['transfer', 'bank_transfer', 'vietqr', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(rawLower)) {
+            return 'TRANSFER';
+        }
+        if (['credit_card', 'card', 'the_tin_dung', 'thẻ tín dụng'].includes(rawLower)) {
+            return 'CREDIT_CARD';
+        }
+        if (['momo'].includes(rawLower)) {
+            return 'MOMO';
+        }
+
+        // Kiểm tra tiếp trong booking.note
+        const noteLower = (booking?.note || '').toLowerCase();
+        if (noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer')) {
+            return 'TRANSFER';
+        }
+        if (noteLower.includes('reception') || noteLower.includes('tiền mặt') || noteLower.includes('cash') || noteLower.includes('tại lễ tân') || noteLower.includes('tại quầy')) {
+            return 'CASH';
+        }
+
+        // Nếu đơn đã hoàn thành/check-out mà không có ghi chú VietQR -> Mặc định là Tiền mặt tại quầy
+        if (['completed', 'checked_out'].includes(booking?.status)) {
+            return 'CASH';
+        }
+
+        return 'CASH';
+    };
+
+    // Nhãn trạng thái phương thức thanh toán cho bảng Chi tiết tiền phòng
+    const getPaidMethodLabel = () => {
+        const code = resolvePaymentMethodCode();
+        if (code === 'CASH') return 'Đã thanh toán (Tiền mặt)';
+        if (code === 'TRANSFER') return 'Đã thanh toán (VietQR)';
+        if (code === 'CREDIT_CARD') return 'Đã thanh toán (Thẻ tín dụng)';
+        if (code === 'MOMO') return 'Đã thanh toán (Ví MoMo)';
+        return 'Đã thanh toán';
+    };
+
+    // Nhãn dòng khấu trừ đã thanh toán trong khối Tổng kết
+    const getPaidAdvanceLabel = () => {
+        const code = resolvePaymentMethodCode();
+        if (code === 'CASH') return '✓ Đã thanh toán (Tiền mặt):';
+        if (code === 'TRANSFER') return '✓ Đã thanh toán (VietQR):';
+        if (code === 'CREDIT_CARD') return '✓ Đã thanh toán (Thẻ tín dụng):';
+        if (code === 'MOMO') return '✓ Đã thanh toán (Ví MoMo):';
+        return '✓ Đã thanh toán:';
+    };
+
+    // Trích xuất phương thức thanh toán hiển thị trên thông tin đặt phòng
     const getPaymentMethod = () => {
+        const code = resolvePaymentMethodCode();
+        if (code === 'CASH') return 'Tiền mặt (Tại quầy lễ tân)';
+        if (code === 'TRANSFER') return 'Chuyển khoản VietQR';
+        if (code === 'CREDIT_CARD') return 'Thẻ tín dụng / Ghi nợ';
+        if (code === 'MOMO') return 'Ví điện tử MoMo';
         if (booking.note && booking.note.includes('Thanh toán:')) {
             const method = booking.note.split('Thanh toán:')[1].trim().split('|')[0].trim();
             if (method) return method;
         }
-        return 'Chuyển khoản ngân hàng / Tiền mặt';
+        return 'Tiền mặt / Chuyển khoản';
     };
 
     // Trích xuất yêu cầu đặc biệt từ note
@@ -86,13 +159,27 @@ export default function HotelInvoiceModal({ booking, onClose }) {
 
     // Tổng thanh toán thực tế (Grand Total bao gồm cả tiền phòng và toàn bộ dịch vụ phát sinh)
     const grandTotal = Number(booking.grand_total_amount) || (roomAmount + extraServicesTotal);
-    const paidAmount = Number(
-        booking.paid_amount ?? 
-        (booking.is_paid || booking.status === 'paid' || (booking.status === 'completed' && booking.note?.includes('VietQR'))
-            ? roomAmount
-            : 0)
+
+    // Xác định đơn đã hủy hay không
+    const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
+
+    // Xác định tiền phòng đã được thanh toán trước hay chưa
+    const isRoomPaid = !isCancelled && Boolean(
+        booking.is_paid ||
+        booking.payment_status === 'COMPLETED' ||
+        ['paid', 'PAID', 'completed', 'checked_out'].includes(booking.status) ||
+        (booking.payments && Array.isArray(booking.payments) && booking.payments.some(p => p.payment_status === 'COMPLETED')) ||
+        (booking.note && (
+            booking.note.toLowerCase().includes('vietqr: đã thanh toán') ||
+            booking.note.toLowerCase().includes('đã thanh toán thành công')
+        ))
     );
-    const balanceDue = Number(booking.remaining_amount != null ? booking.remaining_amount : Math.max(0, grandTotal - paidAmount));
+
+    const paidAmount = isCancelled ? 0 : Number(
+        booking.paid_amount ?? 
+        (isRoomPaid ? roomAmount : 0)
+    );
+    const balanceDue = isCancelled ? 0 : Number(booking.remaining_amount != null ? booking.remaining_amount : Math.max(0, grandTotal - paidAmount));
     const bookingCodeDisplay = `#${String(booking.booking_code || '').replace('-', '')}`;
     const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
 
@@ -223,6 +310,11 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
                                 HÓA ĐƠN ĐẶT PHÒNG
                             </h2>
+                            {isCancelled && (
+                                <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded">
+                                    ✕ ĐƠN ĐÃ HỦY
+                                </span>
+                            )}
                             <p className="text-xs text-slate-700 mt-1.5 font-medium">
                                 Mã đặt phòng: <strong className="font-bold text-slate-900">{bookingCodeDisplay}</strong>
                             </p>
@@ -302,16 +394,19 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                             <table className="w-full text-xs border-collapse">
                                 <thead>
                                     <tr className="border-b border-slate-300 text-slate-700">
-                                        <th className="py-2.5 text-left font-bold uppercase text-[11px] tracking-wider w-1/2">
+                                        <th className="py-2.5 text-left font-bold uppercase text-[11px] tracking-wider w-[38%]">
                                             NỘI DUNG THANH TOÁN
                                         </th>
-                                        <th className="py-2.5 text-right font-bold uppercase text-[11px] tracking-wider">
+                                        <th className="py-2.5 text-center font-bold uppercase text-[11px] tracking-wider w-[22%]">
+                                            TRẠNG THÁI
+                                        </th>
+                                        <th className="py-2.5 text-right font-bold uppercase text-[11px] tracking-wider w-[15%]">
                                             ĐƠN GIÁ
                                         </th>
-                                        <th className="py-2.5 text-center font-bold uppercase text-[11px] tracking-wider">
+                                        <th className="py-2.5 text-center font-bold uppercase text-[11px] tracking-wider w-[10%]">
                                             SỐ LƯỢNG
                                         </th>
-                                        <th className="py-2.5 text-right font-bold uppercase text-[11px] tracking-wider">
+                                        <th className="py-2.5 text-right font-bold uppercase text-[11px] tracking-wider w-[15%]">
                                             THÀNH TIỀN
                                         </th>
                                     </tr>
@@ -325,6 +420,21 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                             <div className="text-[11px] text-slate-500 mt-0.5">
                                                 {(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : (booking.room_name || booking.category?.name || 'Phòng tiêu chuẩn')} ({nights} đêm x {formatCurrency(pricePerNight)})
                                             </div>
+                                        </td>
+                                        <td className="py-3 text-center">
+                                            {isCancelled ? (
+                                                <span className="inline-block text-[10.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                                    ✕ Đơn đã hủy
+                                                </span>
+                                            ) : isRoomPaid ? (
+                                                <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                    ✓ {getPaidMethodLabel()}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-block text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                                    Chưa thanh toán
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="py-3 text-right text-slate-800 font-medium">
                                             {formatCurrency(pricePerNight)}
@@ -348,6 +458,11 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                                     Phí dịch vụ ghi nhận theo hóa đơn
                                                 </div>
                                             </td>
+                                            <td className="py-2.5 text-center">
+                                                <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                    Chưa thanh toán (Thu khi Check-out)
+                                                </span>
+                                            </td>
                                             <td className="py-2.5 text-right text-slate-800 font-medium">
                                                 {formatCurrency(extraServicesTotal)}
                                             </td>
@@ -365,6 +480,7 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                             .replace(/\[Yêu cầu #\d+\]/gi, '')
                                             .replace(/\(x\d+\)/gi, '')
                                             .trim();
+                                        const serviceIsPaid = Boolean(service.is_paid || (booking.status === 'completed' && booking.invoice?.status === 'paid'));
                                         return (
                                             <tr key={service.id || idx} className="border-b border-slate-200">
                                                 <td className="py-2.5 text-left">
@@ -374,6 +490,17 @@ export default function HotelInvoiceModal({ booking, onClose }) {
                                                     <div className="text-[10px] text-slate-500">
                                                         Dịch vụ phát sinh / Gọi món tại phòng
                                                     </div>
+                                                </td>
+                                                <td className="py-2.5 text-center">
+                                                    {serviceIsPaid ? (
+                                                        <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                            ✓ Đã thanh toán
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                            Chưa thanh toán (Thu khi Check-out)
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="py-2.5 text-right text-slate-800 font-medium">
                                                     {formatCurrency(service.price)}
@@ -449,7 +576,7 @@ export default function HotelInvoiceModal({ booking, onClose }) {
 
                             {paidAmount > 0 && (
                                 <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
-                                    <span>✓ Đã thanh toán trước (VietQR):</span>
+                                    <span>{getPaidAdvanceLabel()}</span>
                                     <span className="w-36 text-right font-bold">
                                         -{formatCurrency(paidAmount)}
                                     </span>

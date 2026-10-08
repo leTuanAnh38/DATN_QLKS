@@ -90,7 +90,7 @@ export default function Checkout() {
     // Tự động điền thông tin nếu khách hàng đã đăng nhập
     useEffect(() => {
         if (isAuthenticated && user) {
-            const fullName = `${user.last_name || ''} ${user.first_name || ''}`.trim() || user.username || '';
+            const fullName = user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || '';
             setGuestName((prev) => prev || fullName);
             if (user.phone_number) setGuestPhone((prev) => prev || user.phone_number);
             if (user.email) setGuestEmail((prev) => prev || user.email);

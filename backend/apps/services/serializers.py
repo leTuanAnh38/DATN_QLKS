@@ -129,7 +129,9 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
 
     def get_guest_name(self, obj):
         if obj.booking and obj.booking.guest:
-            full_name = f"{obj.booking.guest.last_name or ''} {obj.booking.guest.first_name or ''}".strip()
+            full_name = obj.booking.guest.get_full_name().strip()
+            if not full_name:
+                full_name = f"{obj.booking.guest.first_name or ''} {obj.booking.guest.last_name or ''}".strip()
             return full_name or obj.booking.guest.username
         return 'Khách lưu trú'
 

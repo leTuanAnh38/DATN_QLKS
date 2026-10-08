@@ -58,6 +58,8 @@ class PaymentSerializer(serializers.ModelSerializer):
                 'payment_method': invoice.payment_method,
                 'status': invoice.status
             }
+        if not data.get('payment_method'):
+            data['payment_method'] = obj.payment_method
         return data
 
 

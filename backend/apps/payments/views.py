@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -87,40 +87,75 @@ class ConfirmPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if abs(amount_dec - booking_total) > Decimal('100'):
+        if amount_dec <= Decimal('0'):
             return Response(
                 {
                     "success": False,
-                    "message": f"Số tiền thanh toán ({amount_dec:,.0f} VND) không khớp với tổng tiền đơn đặt phòng ({booking_total:,.0f} VND)."
+                    "message": "Số tiền thanh toán phải lớn hơn 0 VND."
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 4. Hợp lệ: Đổi trạng thái Booking thành "Đã thanh toán" (PAID)
-        booking.status = 'paid'
-        note_str = (booking.note or '').strip()
-        if 'VietQR: Đã thanh toán' not in note_str:
-            booking.note = f"{note_str} | VietQR: Đã thanh toán ({amount_dec:,.0f} VND)" if note_str else f"VietQR: Đã thanh toán ({amount_dec:,.0f} VND)"
-        booking.save(update_fields=['status', 'note'])
+        # 4. Bọc trong Transaction Atomic: Đảm bảo Payment được lưu thành công thì mới update Booking
+        with transaction.atomic():
+            # 4.1 Kiểm tra chống trùng giao dịch kép trong 30 giây (Idempotency check)
+            thirty_seconds_ago = timezone.now() - timezone.timedelta(seconds=30)
+            recent_duplicate = Payment.objects.filter(
+                booking=booking,
+                amount=amount_dec,
+                payment_status='COMPLETED',
+                created_at__gte=thirty_seconds_ago
+            ).first()
 
-        # Cập nhật hóa đơn nếu có
-        try:
-            invoice = getattr(booking, 'invoice', None)
-            if invoice:
-                invoice.status = 'paid'
-                invoice.payment_method = 'bank_transfer'
-                invoice.paid_at = timezone.now()
-                invoice.save()
-        except Exception:
-            pass
+            if recent_duplicate:
+                serializer = PaymentSerializer(recent_duplicate)
+                return Response(
+                    {
+                        "success": True,
+                        "message": f"Giao dịch thanh toán {amount_dec:,.0f} VND cho đơn {booking.booking_code} đã được ghi nhận trước đó ({recent_duplicate.transaction_id}).",
+                        "data": serializer.data
+                    },
+                    status=status.HTTP_200_OK
+                )
 
-        # 5. Tạo bản ghi Payment với status "COMPLETED"
-        payment = Payment.objects.create(
-            booking=booking,
-            amount=amount_dec,
-            payment_method=payment_method or 'TRANSFER',
-            payment_status='COMPLETED'
-        )
+            # 4.2 Cập nhật bản ghi Payment PENDING nếu có khớp số tiền, hoặc tạo mới bản ghi COMPLETED
+            pending_payment = Payment.objects.filter(
+                booking=booking,
+                payment_status='PENDING',
+                amount=amount_dec
+            ).first()
+
+            if pending_payment:
+                pending_payment.payment_method = payment_method or 'TRANSFER'
+                pending_payment.payment_status = 'COMPLETED'
+                pending_payment.save(update_fields=['payment_method', 'payment_status'])
+                payment = pending_payment
+            else:
+                payment = Payment.objects.create(
+                    booking=booking,
+                    amount=amount_dec,
+                    payment_method=payment_method or 'TRANSFER',
+                    payment_status='COMPLETED'
+                )
+
+            # 4.3 Cập nhật hóa đơn nếu có
+            try:
+                invoice = getattr(booking, 'invoice', None)
+                if invoice:
+                    invoice.status = 'paid'
+                    invoice.payment_method = 'bank_transfer'
+                    invoice.paid_at = timezone.now()
+                    invoice.save()
+            except Exception:
+                pass
+
+            # 4.4 Sau khi Payment đã tạo thành công 100%: Cập nhật bảng Booking
+            if booking.status == 'pending':
+                booking.status = 'paid'
+            note_str = (booking.note or '').strip()
+            if 'VietQR: Đã thanh toán' not in note_str:
+                booking.note = f"{note_str} | VietQR: Đã thanh toán ({amount_dec:,.0f} VND)" if note_str else f"VietQR: Đã thanh toán ({amount_dec:,.0f} VND)"
+            booking.save(update_fields=['status', 'note'])
 
         serializer = PaymentSerializer(payment)
         return Response(
@@ -159,15 +194,21 @@ class PaymentListView(APIView):
                     transaction_id=f"TXN-{inv.invoice_code.replace('INV-', '')}"
                 )
 
-        # Đồng bộ thêm các booking completed/paid mà chưa có payment
-        completed_bookings = Booking.objects.filter(
-            status__in=['completed', 'checked_out', 'paid', 'PAID']
-        ).exclude(payments__isnull=False)
-        for b in completed_bookings:
+        # 2. Đồng bộ thêm các booking đã thanh toán hợp lệ mà chưa có payment
+        # TUYỆT ĐỐI LOẠI TRỪ các đơn đã hủy (cancelled) hoặc vắng mặt (no_show)
+        paid_bookings = Booking.objects.filter(
+            models.Q(status__in=['completed', 'checked_out', 'paid', 'PAID']) |
+            models.Q(note__icontains='VietQR: Đã thanh toán') |
+            models.Q(note__icontains='đã thanh toán thành công')
+        ).exclude(status__in=['cancelled', 'no_show']).exclude(payments__isnull=False)
+
+        for b in paid_bookings:
+            note_lower = (b.note or '').lower()
+            method_code = 'TRANSFER' if ('vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower) else 'CASH'
             Payment.objects.create(
                 booking=b,
                 amount=b.total_amount or 0,
-                payment_method='CASH',
+                payment_method=method_code,
                 payment_status='COMPLETED',
                 transaction_id=f"TXN-{b.booking_code.replace('BK-', '')}"
             )

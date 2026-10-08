@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { bookingService } from '../../../services/bookingService';
-import { PaymentSection } from '../../common/PaymentModal';
+import { paymentService } from '../../../services/paymentService';
+import api from '../../../services/api';
 
 // Helper format tiền tệ VNĐ
 const formatCurrency = (amount) => {
@@ -41,27 +42,56 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Form thanh toán
-    const [paymentMethod, setPaymentMethod] = useState('cash');
+    // Form thanh toán & Ghi chú
     const [checkoutNote, setCheckoutNote] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [completedInvoice, setCompletedInvoice] = useState(null);
 
-    // Tải bảng kê chi tiết từ API /api/bookings/:id/summary/
+    // Trạng thái xử lý thanh toán phần nợ remaining_balance
+    const [isProcessingDebtPayment, setIsProcessingDebtPayment] = useState(false);
+    const [isDebtPaid, setIsDebtPaid] = useState(false); // Đã giải quyết xong phần nợ chưa
+    const [paymentMethod, setPaymentMethod] = useState('bank_transfer'); // 'bank_transfer' | 'cash'
+
+    // Cấu hình ngân hàng VietQR động
+    const [bankConfig, setBankConfig] = useState({
+        bank_bin: '970422',
+        account_no: '123456789',
+        account_name: 'KHACH SAN TA DA NANG'
+    });
+
+    // 1. TẢI BẢNG KÊ CHI TIẾT TỪ BACKEND
     useEffect(() => {
         if (!booking?.id) return;
 
         let isMounted = true;
-        const fetchSummary = async () => {
+        const fetchSummaryAndConfig = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
-                const res = await bookingService.getBookingSummary(booking.id);
+
+                const [summaryRes, configRes] = await Promise.allSettled([
+                    bookingService.getBookingSummary(booking.id),
+                    api.get('/payments/config/')
+                ]);
+
                 if (isMounted) {
-                    if (res.success && res.data) {
-                        setSummary(res.data);
+                    if (summaryRes.status === 'fulfilled' && summaryRes.value?.success && summaryRes.value?.data) {
+                        setSummary(summaryRes.value.data);
+                    } else if (summaryRes.status === 'fulfilled' && summaryRes.value?.data) {
+                        setSummary(summaryRes.value.data);
                     } else {
-                        setError(res.message || 'Không thể tải bảng kê chi tiết thanh toán.');
+                        setError('Không thể tải bảng kê chi tiết thanh toán từ hệ thống.');
+                    }
+
+                    if (configRes.status === 'fulfilled') {
+                        const cData = configRes.value.data?.data || configRes.value.data;
+                        if (cData?.bank_bin) {
+                            setBankConfig({
+                                bank_bin: cData.bank_bin,
+                                account_no: cData.account_no,
+                                account_name: (cData.account_name || '').toUpperCase()
+                            });
+                        }
                     }
                 }
             } catch (err) {
@@ -75,34 +105,116 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             }
         };
 
-        fetchSummary();
+        fetchSummaryAndConfig();
 
         return () => {
             isMounted = false;
         };
     }, [booking?.id]);
 
-    // Xử lý gửi yêu cầu Check-out tới API POST /api/bookings/:id/check-out/
+    // 2. TÍNH TOÁN CÁC KHOẢN MỤC TÀI CHÍNH (FOLIO BALANCE) TỪ BACKEND TRẢ VỀ
+    const roomCharge = useMemo(() => {
+        return Number(summary?.room_charge ?? booking?.room_charge ?? booking?.total_amount ?? 0);
+    }, [summary, booking]);
+
+    const serviceCharge = useMemo(() => {
+        return Number(summary?.service_charge ?? summary?.total_service_charge ?? booking?.service_charge ?? booking?.extra_services_total ?? 0);
+    }, [summary, booking]);
+
+    const totalAmount = useMemo(() => {
+        if (summary?.total_amount !== undefined && summary?.total_amount !== null) {
+            return Number(summary.total_amount);
+        }
+        if (summary?.grand_total !== undefined && summary?.grand_total !== null) {
+            return Number(summary.grand_total);
+        }
+        return Number(roomCharge + serviceCharge);
+    }, [summary, roomCharge, serviceCharge]);
+
+    const paidAmount = useMemo(() => {
+        if (summary?.paid_amount !== undefined && summary?.paid_amount !== null) {
+            return Number(summary.paid_amount);
+        }
+        if (booking?.paid_amount !== undefined && booking?.paid_amount !== null) {
+            return Number(booking.paid_amount);
+        }
+        return 0;
+    }, [summary, booking]);
+
+    // Số tiền còn thiếu ban đầu từ backend (Folio Balance Due)
+    const initialRemainingBalance = useMemo(() => {
+        if (summary?.remaining_balance !== undefined && summary?.remaining_balance !== null) {
+            return Number(summary.remaining_balance);
+        }
+        if (summary?.remaining_amount !== undefined && summary?.remaining_amount !== null) {
+            return Number(summary.remaining_amount);
+        }
+        return Math.max(0, totalAmount - paidAmount);
+    }, [summary, totalAmount, paidAmount]);
+
+    // Số tiền còn thiếu thực tế (sau khi lễ tân vừa bấm xác nhận thanh toán nợ)
+    const currentRemainingBalance = useMemo(() => {
+        if (isDebtPaid) return 0;
+        return initialRemainingBalance;
+    }, [isDebtPaid, initialRemainingBalance]);
+
+    // Kiểm tra xem khách đã thanh toán đủ tiền chưa
+    const isPaymentSettled = currentRemainingBalance <= 0;
+
+    // 3. TẠO URL VIETQR ĐỘNG THEO ĐÚNG SỐ TIỀN REMAINING_BALANCE
+    const qrUrl = useMemo(() => {
+        if (!bankConfig.bank_bin || !bankConfig.account_no || currentRemainingBalance <= 0) return '';
+        const bCode = summary?.booking_code || booking.booking_code || `BK-${booking.id}`;
+        const addInfo = encodeURIComponent(`Thanh toan checkout ${bCode}`);
+        return `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${currentRemainingBalance}&addInfo=${addInfo}&accountName=${encodeURIComponent(bankConfig.account_name)}`;
+    }, [bankConfig, currentRemainingBalance, summary, booking]);
+
+    // 4. XỬ LÝ XÁC NHẬN THANH TOÁN PHẦN NỢ (REMAINING BALANCE)
+    const handleConfirmDebtPayment = async () => {
+        if (currentRemainingBalance <= 0) return;
+
+        try {
+            setIsProcessingDebtPayment(true);
+
+            // Ghi nhận bản ghi thanh toán nốt phần nợ vào database
+            await paymentService.confirmPayment({
+                booking_id: booking.id,
+                amount: currentRemainingBalance,
+                payment_method: paymentMethod === 'bank_transfer' ? 'TRANSFER' : 'CASH'
+            });
+
+            // Đánh dấu đã giải quyết xong công nợ -> Nút Hoàn tất Check-out sẽ sáng lên
+            setIsDebtPaid(true);
+        } catch (err) {
+            console.error('Lỗi khi ghi nhận thanh toán nợ Check-out:', err);
+            alert(err.response?.data?.message || 'Không thể ghi nhận thanh toán. Vui lòng thử lại.');
+        } finally {
+            setIsProcessingDebtPayment(false);
+        }
+    };
+
+    // 5. GỬI YÊU CẦU HOÀN TẤT CHECK-OUT TỚI API POST /api/bookings/:id/check-out/
     const handleConfirmCheckOut = async () => {
-        if (!booking?.id || isSubmitting) return;
+        if (!booking?.id || isSubmitting || !isPaymentSettled) return;
 
         try {
             setIsSubmitting(true);
             const res = await bookingService.checkOut(booking.id, {
                 payment_method: paymentMethod,
-                note: checkoutNote
+                note: checkoutNote.trim()
             });
 
             if (res.success && res.data) {
                 setCompletedInvoice(res.data.invoice || res.data);
-                // Bắn tín hiệu đồng bộ realtime sang tất cả tab/cửa sổ khác (kể cả tab Lịch sử đặt phòng của khách)
+
+                // Phát tín hiệu đồng bộ realtime
                 try {
                     localStorage.setItem('pms_last_booking_event', Date.now().toString());
                     window.dispatchEvent(new CustomEvent('pms_booking_created'));
                 } catch (e) {
                     console.error('Lỗi khi phát tín hiệu pms event:', e);
                 }
-                // Thông báo ra component cha để reload dữ liệu
+
                 if (typeof onSuccess === 'function') {
                     onSuccess(res.data);
                 }
@@ -123,7 +235,9 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
             <div className="bg-white rounded-3xl border border-slate-200 max-w-3xl w-full p-6 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
                 
-                {/* 1. MODAL HEADER */}
+                {/* ========================================================================= */}
+                {/* 1. MODAL HEADER                                                           */}
+                {/* ========================================================================= */}
                 <div className="flex items-start justify-between pb-4 border-b border-slate-200 mb-6">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-orange-500/20 shrink-0">
@@ -140,7 +254,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 </span>
                             </div>
                             <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-1">
-                                {completedInvoice ? 'Hóa Đơn Thanh Toán Đã Hoàn Tất' : 'Bảng Kê Thanh Toán & Trả Phòng (Check-out)'}
+                                {completedInvoice ? 'Hóa Đơn Thanh Toán Đã Hoàn Tất' : 'Bảng Kê Chi Tiết & Trả Phòng (Check-out)'}
                             </h2>
                         </div>
                     </div>
@@ -154,12 +268,14 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                     </button>
                 </div>
 
-                {/* 2. NỘI DUNG CHÍNH (LOADING / ERROR / THÀNH CÔNG / BẢNG KÊ) */}
+                {/* ========================================================================= */}
+                {/* 2. NỘI DUNG CHÍNH (LOADING / ERROR / THÀNH CÔNG / BẢNG KÊ)                */}
+                {/* ========================================================================= */}
                 {isLoading ? (
                     <div className="py-16 text-center space-y-4">
                         <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
                         <p className="text-xs font-semibold text-slate-600">
-                            Đang tổng hợp tiền phòng và các dịch vụ phát sinh từ hệ thống...
+                            Đang tổng hợp dữ liệu Folio tiền phòng và các dịch vụ phát sinh từ hệ thống...
                         </p>
                     </div>
                 ) : error ? (
@@ -169,7 +285,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl"
+                            className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl cursor-pointer"
                         >
                             Đóng cửa sổ
                         </button>
@@ -187,10 +303,6 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                             <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
                                 Phòng <strong>{summary?.room_number || booking.room_number}</strong> đã hoàn tất thủ tục trả phòng và chuyển sang trạng thái <strong>Đang dọn dẹp (Cleaning)</strong>.
                             </p>
-                            <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-semibold flex items-center justify-center gap-2 max-w-lg mx-auto">
-                                <span>⭐</span>
-                                <span>Khách hàng trả phòng thành công và có thể đánh giá phòng, dịch vụ khách sạn.</span>
-                            </div>
                             <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-emerald-300 font-mono text-sm font-bold text-emerald-800 shadow-xs">
                                 <span>Mã hóa đơn:</span>
                                 <span>{completedInvoice.invoice_code}</span>
@@ -200,38 +312,23 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         {/* Tóm tắt số tiền đã thanh toán */}
                         <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs">
                             <div className="flex justify-between text-slate-600">
-                                <span>Tiền lưu trú phòng ({summary?.nights || 1} đêm):</span>
-                                <span className="font-semibold text-slate-900">{formatCurrency(completedInvoice.room_charge || summary?.room_charge)}</span>
+                                <span>Tổng tiền phòng:</span>
+                                <span className="font-semibold text-slate-900">{formatCurrency(roomCharge)}</span>
                             </div>
                             <div className="flex justify-between text-slate-600">
-                                <span>Tổng phí dịch vụ phát sinh:</span>
-                                <span className="font-semibold text-slate-900">{formatCurrency(completedInvoice.service_charge || summary?.total_service_charge)}</span>
+                                <span>Tổng tiền dịch vụ:</span>
+                                <span className="font-semibold text-slate-900">{formatCurrency(serviceCharge)}</span>
                             </div>
                             <div className="flex justify-between text-slate-600">
-                                <span>Tổng giá trị hóa đơn lưu trú:</span>
-                                <span className="font-semibold text-slate-900">{formatCurrency(completedInvoice.total_amount || summary?.grand_total)}</span>
+                                <span>Tổng chi phí lưu trú (Folio Total):</span>
+                                <span className="font-semibold text-slate-900">{formatCurrency(totalAmount)}</span>
                             </div>
-                            {Number(summary?.paid_amount) > 0 && (
-                                <div className="flex justify-between text-emerald-700 font-semibold">
-                                    <span>✓ Đã thanh toán trước (Tiền phòng VietQR):</span>
-                                    <span>-{formatCurrency(summary.paid_amount)}</span>
-                                </div>
-                            )}
                             <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline font-bold">
-                                <span className="text-sm text-slate-800">
-                                    {Number(summary?.paid_amount) > 0 ? 'Thực thu khi trả phòng:' : 'Tổng tiền đã thu:'}
-                                </span>
-                                <span className="text-xl text-emerald-700 font-black">
-                                    {formatCurrency(Number(summary?.paid_amount) > 0 ? (summary?.remaining_amount ?? 0) : (completedInvoice.total_amount || summary?.grand_total))}
-                                </span>
-                            </div>
-                            <div className="flex justify-between text-[11px] text-slate-500 pt-1">
-                                <span>Phương thức thanh toán:</span>
-                                <span className="font-semibold text-slate-700 uppercase">{completedInvoice.payment_method_display || completedInvoice.payment_method || paymentMethod}</span>
+                                <span className="text-sm text-slate-800">Tổng tiền đã thanh toán hoàn tất:</span>
+                                <span className="text-xl text-emerald-700 font-black">{formatCurrency(totalAmount)}</span>
                             </div>
                         </div>
 
-                        {/* Nút hành động sau khi Check-out xong */}
                         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                             {onOpenInvoice && (
                                 <button
@@ -241,11 +338,9 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         onOpenInvoice({
                                             ...booking,
                                             status: 'completed',
-                                            room_amount: completedInvoice.room_charge || summary?.room_charge,
-                                            extra_services_total: completedInvoice.service_charge || summary?.total_service_charge,
-                                            grand_total_amount: completedInvoice.total_amount || summary?.grand_total,
-                                            paid_amount: summary?.paid_amount,
-                                            remaining_amount: summary?.remaining_amount,
+                                            room_amount: roomCharge,
+                                            extra_services_total: serviceCharge,
+                                            grand_total_amount: totalAmount,
                                             invoice: completedInvoice
                                         });
                                     }}
@@ -266,7 +361,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         </div>
                     </div>
                 ) : (
-                    /* 2B. BẢNG KÊ CHI TIẾT TRƯỚC THANH TOÁN (YÊU CẦU CHÍNH) */
+                    /* 2B. BẢNG KÊ CHI TIẾT TRƯỚC THANH TOÁN (FOLIO ITEMIZED TABLE) */
                     <div className="space-y-6">
                         {/* THÔNG TIN KHÁCH VÀ PHÒNG */}
                         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-200 text-xs">
@@ -274,44 +369,46 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 <div>
                                     <span className="text-[11px] text-slate-400 block">Khách hàng lưu trú:</span>
                                     <strong className="text-slate-900 text-sm block truncate">
-                                        👤 {summary.guest_name}
+                                        👤 {summary?.guest_name || booking.guest_name}
                                     </strong>
                                     <span className="text-[11px] text-slate-500 block mt-0.5">
-                                        📞 {summary.guest_phone || 'Chưa có SĐT'}
+                                        📞 {summary?.guest_phone || booking.guest_phone || 'Chưa có SĐT'}
                                     </span>
                                 </div>
                                 <div>
                                     <span className="text-[11px] text-slate-400 block">Hạng phòng & Số phòng:</span>
                                     <strong className="text-slate-900 text-xs block text-blue-700 font-bold">
-                                        🏨 {summary.room_name}
+                                        🏨 {summary?.room_name || booking.room_name}
                                     </strong>
                                     <span className="text-[11px] text-slate-600 font-bold block mt-0.5">
-                                        {summary.room_number ? `🚪 Phòng số: ${summary.room_number}` : 'Chưa gán số phòng'}
+                                        {summary?.room_number ? `🚪 Phòng số: ${summary.room_number}` : (booking.room_number ? `🚪 Phòng số: ${booking.room_number}` : 'Chưa gán số phòng')}
                                     </span>
                                 </div>
                                 <div>
                                     <span className="text-[11px] text-slate-400 block">Thời gian lưu trú:</span>
                                     <div className="text-[11px] text-slate-700 font-medium mt-0.5">
-                                        <span>Check-in: {formatDateTime(summary.actual_check_in || summary.check_in_date)}</span>
+                                        <span>Check-in: {formatDateTime(summary?.actual_check_in || summary?.check_in_date || booking.check_in_date)}</span>
                                     </div>
                                     <div className="text-[11px] text-slate-700 font-medium">
                                         <span>Check-out: {formatDateTime(new Date().toISOString())}</span>
                                     </div>
                                     <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded-md">
-                                        🌙 {summary.nights} đêm thực tế
+                                        🌙 {summary?.nights || booking.nights || 1} đêm lưu trú
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* BẢNG KÊ CHI TIẾT CHI PHÍ (ITEMIZED TABLE) */}
+                        {/* ================================================================= */}
+                        {/* BẢNG KÊ CHI TIẾT KHOẢN MỤC (FOLIO STATEMENT)                     */}
+                        {/* ================================================================= */}
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="font-serif text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
                                     <span>📋</span>
-                                    <span>Bảng Kê Chi Tiết Trước Khi Thanh Toán</span>
+                                    <span>Bảng Kê Chi Tiết Folio Thanh Toán</span>
                                 </h3>
-                                <span className="text-[11px] text-slate-400">Đơn vị tính: VNĐ</span>
+                                <span className="text-[11px] text-slate-400">Đơn vị: VNĐ</span>
                             </div>
 
                             <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
@@ -325,29 +422,29 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {/* 1. TIỀN PHÒNG (ROOM CHARGE) */}
+                                        {/* 1. TIỀN PHÒNG */}
                                         <tr className="bg-white font-medium hover:bg-slate-50/50">
                                             <td className="py-3 px-4">
                                                 <div className="font-bold text-slate-900">
-                                                    Tiền lưu trú: {summary.room_name}
+                                                    Tiền lưu trú phòng: {summary?.room_name || booking.room_name}
                                                 </div>
                                                 <div className="text-[11px] text-slate-400">
-                                                    {formatDate(summary.check_in_date)} → {formatDate(summary.check_out_date)}
+                                                    {formatDate(summary?.check_in_date || booking.check_in_date)} → {formatDate(summary?.check_out_date || booking.check_out_date)}
                                                 </div>
                                             </td>
                                             <td className="py-3 px-3 text-center font-bold text-slate-700">
-                                                {summary.nights} đêm
+                                                {summary?.nights || booking.nights || 1} đêm
                                             </td>
                                             <td className="py-3 px-3 text-right text-slate-600">
-                                                {formatCurrency(summary.daily_rate)}
+                                                {formatCurrency(summary?.daily_rate || (roomCharge / (summary?.nights || 1)))}
                                             </td>
                                             <td className="py-3 px-4 text-right font-bold text-slate-900">
-                                                {formatCurrency(summary.room_charge)}
+                                                {formatCurrency(roomCharge)}
                                             </td>
                                         </tr>
 
-                                        {/* 2. CÁC DỊCH VỤ PHÁT SINH (EXTRA SERVICES COMPLETED) */}
-                                        {summary.extra_services && summary.extra_services.length > 0 ? (
+                                        {/* 2. DỊCH VỤ PHÁT SINH */}
+                                        {summary?.extra_services && summary.extra_services.length > 0 ? (
                                             summary.extra_services.map((svc, idx) => (
                                                 <tr key={svc.id || idx} className="bg-amber-50/20 hover:bg-amber-50/40">
                                                     <td className="py-2.5 px-4">
@@ -380,47 +477,62 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             </tr>
                                         )}
                                     </tbody>
+
+                                    {/* FOOTER BẢNG KÊ: BẮT BUỘC THEO YÊU CẦU ĐỀ BÀI */}
                                     <tfoot className="bg-slate-50/90 border-t border-slate-200">
+                                        {/* Tổng tiền phòng */}
                                         <tr>
-                                            <td colSpan={3} className="py-2.5 px-4 text-right font-semibold text-slate-600">
-                                                Tiền lưu trú (Room Charge):
+                                            <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-600">
+                                                Tổng tiền phòng (Room Charge):
                                             </td>
-                                            <td className="py-2.5 px-4 text-right font-bold text-slate-800">
-                                                {formatCurrency(summary.room_charge)}
+                                            <td className="py-2 px-4 text-right font-bold text-slate-800">
+                                                {formatCurrency(roomCharge)}
                                             </td>
                                         </tr>
+
+                                        {/* Tổng dịch vụ */}
                                         <tr>
-                                            <td colSpan={3} className="py-2.5 px-4 text-right font-semibold text-slate-600">
-                                                Tổng tiền dịch vụ (Total Service Charge):
+                                            <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-600">
+                                                Tổng dịch vụ (Service Charge):
                                             </td>
-                                            <td className="py-2.5 px-4 text-right font-bold text-slate-800">
-                                                {formatCurrency(summary.total_service_charge)}
+                                            <td className="py-2 px-4 text-right font-bold text-slate-800">
+                                                {formatCurrency(serviceCharge)}
                                             </td>
                                         </tr>
-                                        <tr>
+
+                                        {/* Tổng chi phí */}
+                                        <tr className="border-t border-slate-200">
                                             <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-700">
-                                                Tổng chi phí lưu trú (Grand Total):
+                                                Tổng chi phí lưu trú (Total Amount):
                                             </td>
                                             <td className="py-2 px-4 text-right font-bold text-slate-900">
-                                                {formatCurrency(summary.grand_total)}
+                                                {formatCurrency(totalAmount)}
                                             </td>
                                         </tr>
-                                        {Number(summary.paid_amount) > 0 && (
-                                            <tr className="bg-emerald-50/70 border-t border-emerald-200 text-emerald-800">
-                                                <td colSpan={3} className="py-2 px-4 text-right font-bold">
-                                                    ✓ Đã thanh toán trước (Tiền phòng VietQR):
-                                                </td>
-                                                <td className="py-2 px-4 text-right font-extrabold text-emerald-700">
-                                                    -{formatCurrency(summary.paid_amount)}
-                                                </td>
-                                            </tr>
-                                        )}
-                                        <tr className="bg-amber-100/70 border-t-2 border-amber-300">
-                                            <td colSpan={3} className="py-3 px-4 text-right font-extrabold text-slate-900 text-sm uppercase tracking-wide">
-                                                {Number(summary.paid_amount) > 0 ? 'Còn lại cần thu khi trả phòng (Balance Due):' : 'Tổng thanh toán cuối cùng (Grand Total):'}
+
+                                        {/* Số tiền Đã thanh toán trước đó (chữ xanh lá) */}
+                                        <tr className="bg-emerald-50/70 border-t border-emerald-200">
+                                            <td colSpan={3} className="py-2.5 px-4 text-right font-bold text-emerald-800">
+                                                ✓ Số tiền Đã thanh toán trước đó:
                                             </td>
-                                            <td className="py-3 px-4 text-right font-black text-amber-800 text-xl">
-                                                {formatCurrency(summary.remaining_amount != null ? summary.remaining_amount : (summary.grand_total - (summary.paid_amount || 0)))}
+                                            <td className="py-2.5 px-4 text-right font-black text-emerald-600 text-sm">
+                                                -{formatCurrency(paidAmount + (isDebtPaid ? initialRemainingBalance : 0))}
+                                            </td>
+                                        </tr>
+
+                                        {/* SỐ TIỀN CẦN THANH TOÁN THÊM: remaining_balance (chữ đỏ, in đậm) */}
+                                        <tr className={`border-t-2 ${currentRemainingBalance > 0 ? 'bg-rose-50/80 border-rose-300' : 'bg-emerald-50 border-emerald-300'}`}>
+                                            <td colSpan={3} className="py-3 px-4 text-right font-extrabold text-sm uppercase tracking-wide">
+                                                <span className={currentRemainingBalance > 0 ? 'text-rose-900' : 'text-emerald-900'}>
+                                                    {currentRemainingBalance > 0 ? 'SỐ TIỀN CẦN THANH TOÁN THÊM (Remaining Balance):' : 'CÔNG NỢ CÒN LẠI (Folio Balance):'}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                <span className={`text-xl font-black ${
+                                                    currentRemainingBalance > 0 ? 'text-rose-600 font-extrabold' : 'text-emerald-700 font-black'
+                                                }`}>
+                                                    {currentRemainingBalance > 0 ? formatCurrency(currentRemainingBalance) : '0đ (ĐÃ THANH TOÁN ĐỦ)'}
+                                                </span>
                                             </td>
                                         </tr>
                                     </tfoot>
@@ -428,129 +540,244 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                             </div>
                         </div>
 
-                        {/* 3. CHỌN PHƯƠNG THỨC THANH TOÁN (PAYMENT METHOD SELECTOR) */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                                <span>💳</span>
-                                <span>Chọn phương thức thanh toán phát sinh:</span>
-                                <span className="text-rose-500">*</span>
-                            </label>
+                        {/* ================================================================= */}
+                        {/* 3. LOGIC THANH TOÁN THÔNG MINH THEO YÊU CẦU ĐỀ BÀI                */}
+                        {/* ================================================================= */}
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                {[
-                                    { id: 'cash', label: 'Tiền mặt', icon: '💵', desc: 'Thu ngân tại quầy' },
-                                    { id: 'bank_transfer', label: 'Chuyển khoản', icon: '🏦', desc: 'Quét mã VietQR / Chuyển khoản' },
-                                    { id: 'credit_card', label: 'Thẻ tín dụng', icon: '💳', desc: 'Quẹt máy POS (Visa/Master)' },
-                                    { id: 'momo', label: 'Ví điện tử', icon: '📱', desc: 'Momo / ZaloPay' },
-                                ].map((m) => (
-                                    <button
-                                        key={m.id}
-                                        type="button"
-                                        onClick={() => setPaymentMethod(m.id)}
-                                        className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                                            paymentMethod === m.id
-                                                ? 'bg-amber-50/80 border-2 border-amber-500 text-slate-900 shadow-sm ring-2 ring-amber-500/20'
-                                                : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
-                                        }`}
-                                    >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-lg">{m.icon}</span>
-                                            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                                                paymentMethod === m.id ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
-                                            }`}>
-                                                {paymentMethod === m.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                            </div>
-                                        </div>
-                                        <div className="font-bold text-xs text-slate-900">{m.label}</div>
-                                        <div className="text-[10px] text-slate-400 mt-0.5">{m.desc}</div>
-                                    </button>
-                                ))}
-                            </div>
+                        {/* TRƯỜNG HỢP A: remaining_balance > 0 (Có nợ tiền phòng hoặc dịch vụ) */}
+                        {/* Bắt buộc render form thanh toán VietQR yêu cầu quét ĐÚNG SỐ TIỀN remaining_balance này */}
+                        {currentRemainingBalance > 0 ? (
+                            <div className="p-4.5 rounded-2xl border-2 border-rose-400 bg-rose-50/20 space-y-4 animate-in fade-in duration-200">
+                                <div className="flex items-center justify-between pb-2 border-b border-rose-200">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">⚠️</span>
+                                        <h4 className="font-bold text-rose-900 text-xs sm:text-sm uppercase tracking-wide">
+                                            Yêu cầu thu thêm tiền phát sinh: <span className="text-rose-600 font-black">{formatCurrency(currentRemainingBalance)}</span>
+                                        </h4>
+                                    </div>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px] border border-rose-300">
+                                        Chưa thanh toán
+                                    </span>
+                                </div>
 
-                            {/* Thông báo nếu đã thanh toán đủ 100% không phát sinh dịch vụ */}
-                            {Number(summary?.paid_amount) > 0 && (summary?.remaining_amount === 0 || (summary?.remaining_amount == null && summary?.grand_total <= summary?.paid_amount)) && (
-                                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
-                                    <span className="text-base">✅</span>
-                                    <div>
-                                        <strong>Đã thanh toán đủ:</strong> Tiền phòng đã được thanh toán trước qua VietQR và khách không phát sinh thêm dịch vụ. Số tiền cần thu tại quầy là <strong>0đ</strong>.
+                                <p className="text-[11px] text-slate-600">
+                                    Khách có phát sinh dịch vụ hoặc chưa thanh toán đủ tiền phòng. Vui lòng quét mã VietQR hoặc thu tiền mặt trước khi bấm hoàn tất Check-out.
+                                </p>
+
+                                {/* Lựa chọn phương thức thu */}
+                                <div className="flex items-center gap-3">
+                                    <label className="text-[11px] font-bold text-slate-700">Hình thức thanh toán:</label>
+                                    <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPaymentMethod('bank_transfer')}
+                                            className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                paymentMethod === 'bank_transfer'
+                                                    ? 'bg-blue-600 text-white shadow-xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            🏦 Quét mã VietQR
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPaymentMethod('cash')}
+                                            className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                paymentMethod === 'cash'
+                                                    ? 'bg-amber-600 text-white shadow-xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            💵 Tiền mặt tại quầy
+                                        </button>
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Hiển thị mã VietQR động khi chọn phương thức Chuyển khoản */}
-                            {paymentMethod === 'bank_transfer' && (summary?.remaining_amount != null ? summary.remaining_amount : summary.grand_total) > 0 && (
-                                <div className="mt-3 rounded-2xl border border-blue-200 bg-white overflow-hidden shadow-sm animate-fadeIn">
-                                    <PaymentSection
-                                        amount={summary.remaining_amount != null ? summary.remaining_amount : summary.grand_total}
-                                        bookingCode={booking.booking_code || `BK-${booking.id}`}
-                                        customerName={booking.guest_name}
-                                        isModalView={false}
-                                    />
-                                </div>
-                            )}
-                        </div>
+                                {/* FORM THANH TOÁN VIETQR: YÊU CẦU QUÉT ĐÚNG SỐ TIỀN remaining_balance */}
+                                {paymentMethod === 'bank_transfer' && (
+                                    <div className="p-4 bg-white rounded-2xl border border-blue-200 shadow-sm flex flex-col sm:flex-row items-center gap-5">
+                                        {/* Mã QR với viền đứt nét nổi bật */}
+                                        <div className="relative p-2 bg-white rounded-2xl border-2 border-dashed border-blue-400 max-w-[190px] w-full aspect-square flex items-center justify-center shrink-0">
+                                            {qrUrl ? (
+                                                <img
+                                                    src={qrUrl}
+                                                    alt={`VietQR thanh toán ${formatCurrency(currentRemainingBalance)}`}
+                                                    className="w-full h-full object-contain rounded-xl"
+                                                />
+                                            ) : (
+                                                <div className="text-[11px] text-slate-400 text-center">Đang nạp mã QR...</div>
+                                            )}
+                                        </div>
 
-                        {/* 4. GHI CHÚ NỘI BỘ KHI CHECK-OUT (OPTIONAL) */}
-                        <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                                    📝 Ghi chú thanh toán / Trả phòng:
-                                </label>
-                                <span className="text-[10px] text-slate-400">Không bắt buộc</span>
+                                        {/* Chi tiết số tiền yêu cầu thanh toán */}
+                                        <div className="space-y-2 text-xs text-slate-700 flex-1 w-full">
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200">
+                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                                VietQR Chuyển khoản tức thì
+                                            </div>
+
+                                            <div className="space-y-1 pt-1">
+                                                <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                    <span className="text-slate-500">Ngân hàng:</span>
+                                                    <strong className="text-slate-900">{bankConfig.bank_bin}</strong>
+                                                </div>
+                                                <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                    <span className="text-slate-500">Số tài khoản:</span>
+                                                    <strong className="font-mono text-slate-900">{bankConfig.account_no}</strong>
+                                                </div>
+                                                <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                    <span className="text-slate-500">Chủ tài khoản:</span>
+                                                    <strong className="text-slate-900">{bankConfig.account_name}</strong>
+                                                </div>
+                                                <div className="flex justify-between items-baseline pt-1">
+                                                    <span className="font-bold text-slate-800">Số tiền cần quét:</span>
+                                                    <strong className="text-base text-rose-600 font-black">{formatCurrency(currentRemainingBalance)}</strong>
+                                                </div>
+                                            </div>
+
+                                            {/* Nút xác nhận thanh toán nợ */}
+                                            <div className="pt-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={isProcessingDebtPayment}
+                                                    onClick={handleConfirmDebtPayment}
+                                                    className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                                >
+                                                    {isProcessingDebtPayment ? (
+                                                        <>
+                                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            <span>Đang xác nhận thanh toán...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span>✓</span>
+                                                            <span>Xác nhận Đã nhận {formatCurrency(currentRemainingBalance)} qua VietQR</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* FORM THU TIỀN MẶT */}
+                                {paymentMethod === 'cash' && (
+                                    <div className="p-4 bg-white rounded-2xl border border-amber-200 flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <div className="font-bold text-slate-900 text-xs">Thu ngân tại quầy lễ tân:</div>
+                                            <p className="text-[11px] text-slate-500">
+                                                Lễ tân nhận trực tiếp số tiền <strong className="text-rose-600">{formatCurrency(currentRemainingBalance)}</strong> từ khách hàng.
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            disabled={isProcessingDebtPayment}
+                                            onClick={handleConfirmDebtPayment}
+                                            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                        >
+                                            {isProcessingDebtPayment ? (
+                                                <>
+                                                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    <span>Đang ghi nhận...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>💵</span>
+                                                    <span>Xác nhận Đã thu tiền mặt</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
+                        ) : (
+                            /* TRƯỜNG HỢP B: remaining_balance <= 0 (Đã thanh toán đủ 100%, không gọi dịch vụ hoặc đã trả xong nợ) */
+                            /* ẨN TOÀN BỘ KHU VỰC QUÉT QR */
+                            <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900 flex items-center justify-between animate-in fade-in duration-200">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-emerald-500/20">
+                                        ✓
+                                    </div>
+                                    <div>
+                                        <strong className="text-sm text-emerald-950 block">Folio Đã Cân Bằng (Đã Thanh Toán Đủ 100%)</strong>
+                                        <span className="text-[11px] text-emerald-700">
+                                            Toàn bộ tiền phòng và phụ phí dịch vụ đã được tất toán thành công. Không phát sinh công nợ tại quầy.
+                                        </span>
+                                    </div>
+                                </div>
+                                <span className="px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs shadow-xs">
+                                    0đ CẦN THU
+                                </span>
+                            </div>
+                        )}
+
+                        {/* GHI CHÚ NỘI BỘ KHI CHECK-OUT */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                                <span>📝 Ghi chú trả phòng (Lễ tân):</span>
+                                <span className="text-[10px] text-slate-400 font-normal">Không bắt buộc</span>
+                            </label>
                             <input
                                 type="text"
-                                placeholder="VD: Khách đã thanh toán đủ tiền mặt, hài lòng với dịch vụ, đã nhận lại thẻ phòng..."
+                                placeholder="VD: Khách đã bàn giao thẻ phòng, đồ đạc đầy đủ, hài lòng với dịch vụ..."
                                 value={checkoutNote}
                                 onChange={(e) => setCheckoutNote(e.target.value)}
                                 disabled={isSubmitting}
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition"
+                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
                             />
                         </div>
 
-                        {/* THÔNG BÁO TỰ ĐỘNG CỦA HỆ THỐNG */}
-                        <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-950 flex items-start gap-2">
-                            <span className="text-sm">ℹ️</span>
-                            <div>
-                                Khi bấm <strong>"Xác nhận Thanh toán & Trả phòng"</strong>, hệ thống sẽ:
-                                <ul className="list-disc list-inside mt-0.5 space-y-0.5 text-[10px] text-amber-900">
-                                    <li>Tự động tạo bản ghi <strong>Hóa đơn (Invoice)</strong> lưu tổng số tiền <strong>{formatCurrency(summary.grand_total)}</strong>.</li>
-                                    <li>Cập nhật đơn đặt phòng sang trạng thái <strong>Đã hoàn tất (completed)</strong>.</li>
-                                    <li>Giải phóng phòng <strong>{summary.room_number || booking.room_number}</strong> và chuyển sang trạng thái <strong>Đang dọn dẹp (cleaning)</strong>.</li>
-                                </ul>
+                        {/* ================================================================= */}
+                        {/* 4. FOOTER BUTTONS                                                 */}
+                        {/* ================================================================= */}
+                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <div className="text-[11px] text-slate-500">
+                                {!isPaymentSettled && (
+                                    <span className="text-rose-600 font-bold flex items-center gap-1">
+                                        <span>🔒</span>
+                                        <span>Cần tất toán khoản nợ {formatCurrency(currentRemainingBalance)} để mở khóa nút Check-out</span>
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    disabled={isSubmitting}
+                                    onClick={onClose}
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
+                                >
+                                    Hủy bỏ
+                                </button>
+
+                                {/* Nút "Hoàn tất Check-out": Bị vô hiệu hóa nếu còn nợ, tự động sáng lên khi remaining_balance <= 0 */}
+                                <button
+                                    type="button"
+                                    disabled={isSubmitting || !isPaymentSettled}
+                                    onClick={handleConfirmCheckOut}
+                                    className={`px-6 py-2.5 font-extrabold text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95 text-white ${
+                                        !isPaymentSettled
+                                            ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                                            : 'bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 shadow-amber-500/25 ring-2 ring-amber-400/40'
+                                    }`}
+                                    title={!isPaymentSettled ? 'Vui lòng hoàn tất thanh toán số tiền còn thiếu trước khi Check-out.' : 'Nhấn để hoàn tất Check-out và trả phòng'}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Đang xử lý Check-out...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>{isPaymentSettled ? '✓' : '🔒'}</span>
+                                            <span>Hoàn Tất Check-out & Trả Phòng</span>
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
 
-                        {/* 5. FOOTER BUTTONS */}
-                        <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                disabled={isSubmitting}
-                                onClick={onClose}
-                                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
-                            >
-                                Hủy bỏ
-                            </button>
-
-                            <button
-                                type="button"
-                                disabled={isSubmitting}
-                                onClick={handleConfirmCheckOut}
-                                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Đang xử lý thanh toán...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>✓</span>
-                                        <span>Xác nhận Thanh toán & Trả phòng</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
                     </div>
                 )}
 

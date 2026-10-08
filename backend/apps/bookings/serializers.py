@@ -62,6 +62,13 @@ class BookingSerializer(serializers.ModelSerializer):
     promotion_code = serializers.CharField(source='applied_promotion.code', read_only=True, default=None)
     daily_rate = serializers.SerializerMethodField()
     
+    # Folio Balance & Financial Fields (Thanh Toán Lấp Đầy)
+    room_charge = serializers.SerializerMethodField()
+    service_charge = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
+    paid_amount = serializers.SerializerMethodField()
+    remaining_balance = serializers.SerializerMethodField()
+
     # Phụ phí & Dịch vụ phát sinh tại phòng (In-Room Services)
     extra_services = serializers.SerializerMethodField()
     extra_services_total = serializers.SerializerMethodField()
@@ -70,6 +77,9 @@ class BookingSerializer(serializers.ModelSerializer):
     grand_total_amount = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
     is_paid = serializers.SerializerMethodField()
+    payment_status = serializers.SerializerMethodField()
+    payment_method = serializers.SerializerMethodField()
+    payment_method_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -95,7 +105,11 @@ class BookingSerializer(serializers.ModelSerializer):
             'nights',
             'daily_rate',
             'promotion_code',
+            'room_charge',
+            'service_charge',
             'total_amount',
+            'paid_amount',
+            'remaining_balance',
             'room_amount',
             'extra_services',
             'extra_services_total',
@@ -104,6 +118,9 @@ class BookingSerializer(serializers.ModelSerializer):
             'status',
             'status_display',
             'is_paid',
+            'payment_status',
+            'payment_method',
+            'payment_method_display',
             'note',
             'internal_note',
             'created_at',
@@ -117,6 +134,14 @@ class BookingSerializer(serializers.ModelSerializer):
         synced_service_signatures = set()
 
         # 1. Nguồn chuẩn xác nhất cho các món gọi tại phòng: các ServiceRequest đã hoàn thành (completed)
+        # Xác định dịch vụ phát sinh đã được thanh toán chưa (Khi checkout thành công có invoice paid)
+        services_is_paid = bool(
+            obj.status in ['completed', 'checked_out'] and 
+            hasattr(obj, 'invoice') and 
+            obj.invoice and 
+            obj.invoice.status == 'paid'
+        )
+
         for req in obj.service_requests.filter(status='completed').select_related('service').order_by('created_at'):
             clean_item_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
             total = float(req.total_price or ((req.service.price if req.service else 0) * req.quantity))
@@ -132,6 +157,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 'quantity': req.quantity,
                 'price': float(req.service.price if req.service else 0),
                 'total_price': total,
+                'is_paid': services_is_paid,
                 'added_time': req.updated_at.isoformat() if req.updated_at else (req.created_at.isoformat() if req.created_at else None)
             })
 
@@ -167,6 +193,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 'quantity': bes.quantity,
                 'price': float(bes.price or 0),
                 'total_price': total,
+                'is_paid': services_is_paid,
                 'added_time': bes.added_time.isoformat() if bes.added_time else None
             })
 
@@ -195,13 +222,96 @@ class BookingSerializer(serializers.ModelSerializer):
             })
         return pending_list
 
+    # =========================================================================
+    # FOLIO BALANCE & FINANCIAL CALCULATIONS (THANH TOÁN LẤP ĐẦY PMS)
+    # =========================================================================
+    def get_room_charge(self, obj):
+        """
+        room_charge: Tiền phòng (Giá phòng * Số đêm).
+        Ưu tiên lấy total_amount đã lưu ở booking nếu có, hoặc tính động (daily_rate * nights).
+        """
+        # Nếu model booking đã lưu trường total_amount gốc cho tiền phòng
+        raw_val = getattr(obj, '_state', None)
+        # Sử dụng giá trị booking.total_amount từ database nếu hợp lệ
+        try:
+            from django.db import connection
+            # Lấy trường total_amount trực tiếp từ DB model Booking
+            db_total = obj._total_amount if hasattr(obj, '_total_amount') else None
+        except Exception:
+            db_total = None
+
+        # Kiểm tra tiền phòng trong model Booking (obj.total_amount)
+        # Lưu ý: Vì ta override serializer field total_amount, cần đọc trực tiếp thuộc tính model:
+        model_total = None
+        try:
+            # Truy cập giá trị ban đầu từ database instance
+            model_total = obj.__dict__.get('total_amount', None)
+        except Exception:
+            pass
+
+        if model_total is not None and float(model_total) > 0:
+            return float(model_total)
+
+        nights = self.get_nights(obj)
+        daily_rate = self.get_daily_rate(obj)
+        return float(daily_rate * nights)
+
+    def get_service_charge(self, obj):
+        """
+        service_charge: Tổng tiền dịch vụ phát sinh (Room service, giặt ủi...).
+        """
+        return float(self.get_extra_services_total(obj))
+
+    def get_total_amount(self, obj):
+        """
+        total_amount: room_charge + service_charge.
+        """
+        return float(self.get_room_charge(obj) + self.get_service_charge(obj))
+
+    def get_paid_amount(self, obj):
+        """
+        paid_amount: CỰC KỲ QUAN TRỌNG.
+        Query SUM cột amount từ bảng Payment liên kết với booking này
+        NHƯNG chỉ lấy những record có status là COMPLETED.
+        """
+        from django.db.models import Sum
+        try:
+            completed_payments = obj.payments.filter(payment_status='COMPLETED')
+            total = completed_payments.aggregate(total=Sum('amount'))['total']
+            if total is not None:
+                return float(total)
+        except Exception:
+            pass
+
+        # Fallback an toàn cho dữ liệu cũ (chưa sinh bản ghi Payment)
+        if obj.status in ['paid', 'PAID']:
+            return float(self.get_room_charge(obj))
+        try:
+            if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.status == 'paid':
+                return float(self.get_room_charge(obj))
+        except Exception:
+            pass
+        note_lower = (obj.note or '').lower()
+        if 'vietqr: đã thanh toán' in note_lower or 'đã thanh toán thành công' in note_lower:
+            return float(self.get_room_charge(obj))
+
+        return 0.0
+
+    def get_remaining_balance(self, obj):
+        """
+        remaining_balance: total_amount - paid_amount.
+        Số tiền dương là khách nợ cần thu thêm, số 0 là hòa, số âm là phải thối lại.
+        """
+        total = self.get_total_amount(obj)
+        paid = self.get_paid_amount(obj)
+        return float(total - paid)
+
+    # Tương thích ngược với các components cũ
     def get_room_amount(self, obj):
-        return float(obj.total_amount or 0)
+        return self.get_room_charge(obj)
 
     def get_grand_total_amount(self, obj):
-        room_tot = self.get_room_amount(obj)
-        extra_tot = self.get_extra_services_total(obj)
-        return float(room_tot + extra_tot)
+        return self.get_total_amount(obj)
 
     def validate_identity_card(self, value):
         val = str(value or '').strip()
@@ -252,7 +362,9 @@ class BookingSerializer(serializers.ModelSerializer):
 
     def get_guest_name(self, obj):
         if obj.guest:
-            full_name = f"{obj.guest.last_name or ''} {obj.guest.first_name or ''}".strip()
+            full_name = obj.guest.get_full_name().strip()
+            if not full_name:
+                full_name = f"{obj.guest.first_name or ''} {obj.guest.last_name or ''}".strip()
             return full_name or obj.guest.username
         return "Khách vãng lai"
 
@@ -286,6 +398,9 @@ class BookingSerializer(serializers.ModelSerializer):
         return None
 
     def get_is_paid(self, obj):
+        # Đơn đã hủy hoặc không đến không được coi là đã thanh toán
+        if obj.status in ['cancelled', 'no_show']:
+            return False
         if obj.status in ['paid', 'PAID']:
             return True
         try:
@@ -302,3 +417,82 @@ class BookingSerializer(serializers.ModelSerializer):
         if 'vietqr: đã thanh toán' in note_lower or 'đã thanh toán thành công' in note_lower:
             return True
         return False
+
+    def get_payment_status(self, obj):
+        # Đơn đã hủy hoặc không đến trả về trạng thái tương ứng, không được coi là COMPLETED
+        if obj.status == 'cancelled':
+            return 'CANCELLED'
+        if obj.status == 'no_show':
+            return 'NO_SHOW'
+        # 1. Kiểm tra trực tiếp bảng Payment
+        try:
+            if obj.payments.filter(payment_status='COMPLETED').exists():
+                return 'COMPLETED'
+            if obj.payments.filter(payment_status='PENDING').exists():
+                return 'PENDING'
+        except Exception:
+            pass
+        # 2. Kiểm tra hóa đơn
+        try:
+            if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.status == 'paid':
+                return 'COMPLETED'
+        except Exception:
+            pass
+        # 3. Kiểm tra trạng thái đơn đặt phòng
+        if obj.status in ['paid', 'PAID']:
+            return 'COMPLETED'
+        # 4. Kiểm tra ghi chú xác nhận thanh toán thành công thực tế
+        note_lower = (obj.note or '').lower()
+        if 'vietqr: đã thanh toán' in note_lower or 'đã thanh toán thành công' in note_lower:
+            return 'COMPLETED'
+        return 'UNPAID'
+
+    def get_payment_method(self, obj):
+        # 1. Kiểm tra trực tiếp bảng Payment
+        try:
+            completed_payment = obj.payments.filter(payment_status='COMPLETED').order_by('-created_at').first()
+            if completed_payment and completed_payment.payment_method:
+                return completed_payment.payment_method
+            any_payment = obj.payments.first()
+            if any_payment and any_payment.payment_method:
+                return any_payment.payment_method
+        except Exception:
+            pass
+
+        # 2. Kiểm tra hóa đơn Invoice
+        try:
+            if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.payment_method:
+                inv_m = str(obj.invoice.payment_method).lower()
+                if inv_m in ['cash', 'tiền mặt', 'tien_mat']:
+                    return 'CASH'
+                if inv_m in ['bank_transfer', 'vietqr', 'transfer', 'chuyển khoản', 'momo']:
+                    return 'TRANSFER'
+                if inv_m in ['credit_card', 'thẻ tín dụng']:
+                    return 'CREDIT_CARD'
+                return obj.invoice.payment_method.upper()
+        except Exception:
+            pass
+
+        # 3. Phân tích ghi chú note
+        note_lower = (obj.note or '').lower()
+        if 'vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower:
+            return 'TRANSFER'
+        if 'reception' in note_lower or 'tiền mặt' in note_lower or 'cash' in note_lower or 'tại lễ tân' in note_lower or 'tại quầy' in note_lower:
+            return 'CASH'
+
+        # 4. Nếu đơn đã hoàn thành hoặc check-out mà không có thông tin VietQR, mặc định là thanh toán tại quầy (CASH)
+        if obj.status in ['completed', 'checked_out']:
+            return 'CASH'
+
+        return None
+
+    def get_payment_method_display(self, obj):
+        method = self.get_payment_method(obj)
+        if method == 'CASH':
+            return 'Tiền mặt'
+        if method == 'TRANSFER':
+            return 'VietQR'
+        if method == 'CREDIT_CARD':
+            return 'Thẻ tín dụng'
+        return 'Chưa xác định'
+
