@@ -332,8 +332,8 @@ export default function PromotionManagement() {
             {toast && (
                 <div
                     className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 animate-slideInRight ${toast.type === 'success'
-                            ? 'bg-emerald-500/95 text-white border-emerald-400 shadow-emerald-500/20'
-                            : 'bg-rose-500/95 text-white border-rose-400 shadow-rose-500/20'
+                        ? 'bg-emerald-500/95 text-white border-emerald-400 shadow-emerald-500/20'
+                        : 'bg-rose-500/95 text-white border-rose-400 shadow-rose-500/20'
                         }`}
                 >
                     {toast.type === 'success' ? (
@@ -389,7 +389,7 @@ export default function PromotionManagement() {
                         className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />
-                        <span>+ Thêm Voucher</span>
+                        <span>Thêm Voucher</span>
                     </button>
                 </div>
             </div>
@@ -565,10 +565,10 @@ export default function PromotionManagement() {
                                                 >
                                                     <span
                                                         className={`w-1.5 h-1.5 rounded-full ${status.type === 'active'
-                                                                ? 'bg-emerald-500 animate-pulse'
-                                                                : status.type === 'upcoming'
-                                                                    ? 'bg-amber-500'
-                                                                    : 'bg-rose-500'
+                                                            ? 'bg-emerald-500 animate-pulse'
+                                                            : status.type === 'upcoming'
+                                                                ? 'bg-amber-500'
+                                                                : 'bg-rose-500'
                                                             }`}
                                                     />
                                                     {status.label}

@@ -1811,7 +1811,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
                                 <div className="flex items-center gap-2">
                                     <label className="text-xs font-semibold text-slate-600">Đổi trạng thái:</label>
-                                    {canManageBookings ? (
+                                    {['completed', 'checked_out', 'cancelled', 'no_show'].includes(selectedBooking.status?.toLowerCase()) ? (
+                                        <span className="px-3 py-1 bg-slate-100 text-slate-500 font-semibold rounded-xl text-xs border border-slate-200" title="Đơn đã đóng sổ (Check-out hoặc Hủy), không thể thay đổi trạng thái">
+                                            🔒 Đã khóa sổ (Không thể đổi trạng thái)
+                                        </span>
+                                    ) : canManageBookings ? (
                                         <select
                                             value={selectedBooking.status}
                                             disabled={updatingId === selectedBooking.id}
@@ -2019,13 +2023,14 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                         </span>
                                     </div>
 
-                                    {/* Nút Thêm Dịch Vụ Cho Khách (Yêu cầu tại quầy / qua điện thoại) */}
-                                    {(canManageBookings || currentUserRole === 'service_staff') && selectedBooking.status !== 'cancelled' && (
+                                    {/* Nút Thêm Dịch Vụ Cho Khách (Quy tắc: CHỈ hiển thị khi khách đang lưu trú - in-house / checked_in) */}
+                                    {(canManageBookings || currentUserRole === 'service_staff') && 
+                                     (selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
                                         <button
                                             type="button"
                                             onClick={openAddServiceModal}
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm hover:shadow-md transition cursor-pointer active:scale-95"
-                                            title="Thêm dịch vụ khách sạn hoặc phụ thu cho khách tại quầy / qua điện thoại"
+                                            title="Thêm dịch vụ khách sạn hoặc phụ thu cho khách đang lưu trú tại phòng"
                                         >
                                             <span className="text-sm leading-none font-black">+</span>
                                             <span>Thêm dịch vụ</span>
@@ -2074,14 +2079,17 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                                     <span>✓</span>
                                                                     <span>Đã giao</span>
                                                                 </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleRemoveExtraService(req.id, req.service_name)}
-                                                                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                                                    title="Hủy yêu cầu này"
-                                                                >
-                                                                    🗑️
-                                                                </button>
+                                                                {/* Ẩn thùng rác khi đơn đã bị khóa sổ hoặc không còn in-house */}
+                                                                {(selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveExtraService(req.id, req.service_name)}
+                                                                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                                                        title="Hủy yêu cầu này"
+                                                                    >
+                                                                        🗑️
+                                                                    </button>
+                                                                )}
                                                             </>
                                                         )}
                                                     </div>
@@ -2119,7 +2127,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                             <span className="font-bold text-slate-900">
                                                                 {Number(item.total_price || (item.price * item.quantity)).toLocaleString('vi-VN')} VND
                                                             </span>
-                                                            {(canManageBookings || currentUserRole === 'service_staff') && selectedBooking.status !== 'cancelled' && (
+                                                            {/* Quy tắc: Chỉ hiển thị nút xóa (thùng rác) khi khách ĐANG LƯU TRÚ (in-house), ẩn hoàn toàn khi đơn đã khóa sổ (Check-out/Hủy/Hoàn tất) */}
+                                                            {(canManageBookings || currentUserRole === 'service_staff') && 
+                                                             (selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleRemoveExtraService(item.id, cleanName)}
@@ -2144,7 +2154,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 ) : (
                                     <div className="p-4 bg-slate-50 rounded-xl text-center text-slate-400 text-xs">
                                         <p>Chưa có phụ phí phát sinh nào được ghi nhận cho phòng này.</p>
-                                        {(canManageBookings || currentUserRole === 'service_staff') && selectedBooking.status !== 'cancelled' && (
+                                        {(canManageBookings || currentUserRole === 'service_staff') && 
+                                         (selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
                                             <button
                                                 type="button"
                                                 onClick={openAddServiceModal}

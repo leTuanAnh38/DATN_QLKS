@@ -1,3 +1,4 @@
+import datetime
 import logging
 from django.db import models
 from django.utils import timezone
@@ -39,10 +40,16 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
        - Gửi thông báo đến Khách hàng: Giờ check-out tiêu chuẩn (trước 12:00 trưa), hỗ trợ hành lý / gia hạn.
        - Gửi thông báo đến Nhân viên & Quản lý: Rà soát phụ phí, minibar, chuẩn bị hóa đơn và báo Buồng phòng dọn dẹp.
     
-    Ngăn chặn trùng lặp: Kiểm tra nếu trong ngày đã gửi thông báo cho đơn này thì bỏ qua (trừ khi force=True).
+    Ngăn chặn spam (Cách 1): Kiểm tra .exists() trong bảng Notification theo ngày.
+    Nếu hôm nay đã gửi thông báo cho đơn này rồi thì lập tức bỏ qua (continue).
     """
     if target_date is None:
         target_date = timezone.localdate()
+
+    # Tính khoảng thời gian 00:00:00 -> 23:59:59 của ngày target theo múi giờ hệ thống
+    tz = timezone.get_current_timezone()
+    start_of_day = timezone.make_aware(datetime.datetime.combine(target_date, datetime.time.min), tz)
+    end_of_day = timezone.make_aware(datetime.datetime.combine(target_date, datetime.time.max), tz)
 
     date_str = target_date.strftime('%d/%m/%Y')
     staff_users = list(get_staff_and_admin_users())
@@ -63,6 +70,17 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
     ).select_related('guest', 'category', 'room')
 
     for booking in checkin_bookings:
+        # CÁCH 1: KIỂM TRA TỒN TẠI TRONG BẢNG NOTIFICATION ĐỂ CHỐNG SPAM
+        already_notified_checkin = Notification.objects.filter(
+            title__icontains="Check-in",
+            message__contains=booking.booking_code,
+            created_at__range=(start_of_day, end_of_day)
+        ).exists()
+
+        if already_notified_checkin and not force:
+            logger.debug(f"[Check-in Reminder] Bỏ qua đơn #{booking.booking_code}: Đã gửi thông báo trong ngày {date_str}.")
+            continue
+
         guest = booking.guest
         guest_name = guest.get_full_name() or guest.username if guest else "Quý khách"
         category_name = booking.category.name if booking.category else "Tiêu chuẩn"
@@ -70,55 +88,39 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
 
         # 1.1. Thông báo cho Khách hàng
         if guest:
-            already_notified_guest = Notification.objects.filter(
-                recipient=guest,
-                title__icontains="Check-in",
-                message__contains=booking.booking_code,
-                created_at__date=target_date
-            ).exists()
-
-            if not already_notified_guest or force:
-                new_notifications.append(
-                    Notification(
-                        recipient=guest,
-                        title="🔔 Nhắc nhở Check-in: Kỳ nghỉ của quý khách bắt đầu hôm nay!",
-                        message=(
-                            f"Khách sạn TA Đà Nẵng xin chào quý khách {guest_name}! Hôm nay ({date_str}) là ngày nhận phòng của quý khách "
-                            f"(Mã đơn: #{booking.booking_code}, Hạng phòng: {category_name}). "
-                            f"Giờ nhận phòng tiêu chuẩn bắt đầu từ 14:00. Quý khách vui lòng chuẩn bị CCCD/Hộ chiếu khi đến quầy Lễ tân để hoàn tất thủ tục nhận phòng. "
-                            f"Khách sạn rất hân hạnh được đón tiếp và phục vụ quý khách!"
-                        )
+            new_notifications.append(
+                Notification(
+                    recipient=guest,
+                    title="🔔 Nhắc nhở Check-in: Kỳ nghỉ của quý khách bắt đầu hôm nay!",
+                    message=(
+                        f"Khách sạn TA Đà Nẵng xin chào quý khách {guest_name}! Hôm nay ({date_str}) là ngày nhận phòng của quý khách "
+                        f"(Mã đơn: #{booking.booking_code}, Hạng phòng: {category_name}). "
+                        f"Giờ nhận phòng tiêu chuẩn bắt đầu từ 14:00. Quý khách vui lòng chuẩn bị CCCD/Hộ chiếu khi đến quầy Lễ tân để hoàn tất thủ tục nhận phòng. "
+                        f"Khách sạn rất hân hạnh được đón tiếp và phục vụ quý khách!"
                     )
                 )
-                guest_checkin_count += 1
+            )
+            guest_checkin_count += 1
 
         # 1.2. Thông báo cho Nhân viên & Quản lý
-        already_notified_staff = Notification.objects.filter(
-            title__icontains="Lịch Check-in hôm nay",
-            message__contains=booking.booking_code,
-            created_at__date=target_date
-        ).exists()
-
-        if not already_notified_staff or force:
-            for staff in staff_users:
-                # Tránh gửi thông báo nội bộ cho chính tài khoản khách nếu khách có role staff
-                if guest and staff.id == guest.id:
-                    continue
-                new_notifications.append(
-                    Notification(
-                        recipient=staff,
-                        title=f"📥 Lịch Check-in hôm nay: Khách {guest_name} (#{booking.booking_code})",
-                        message=(
-                            f"Hôm nay ({date_str}) có lịch đón khách {guest_name} đến nhận phòng "
-                            f"(Mã đơn: #{booking.booking_code}, Hạng: {category_name}, Số phòng: {room_label}). "
-                            f"Giờ check-in tiêu chuẩn từ 14:00. Bộ phận Lễ tân & Buồng phòng vui lòng kiểm tra phòng ốc sẵn sàng đón khách chu đáo."
-                        )
+        for staff in staff_users:
+            if guest and staff.id == guest.id:
+                continue
+            new_notifications.append(
+                Notification(
+                    recipient=staff,
+                    title=f"📥 Lịch Check-in hôm nay: Khách {guest_name} (#{booking.booking_code})",
+                    message=(
+                        f"Hôm nay ({date_str}) có lịch đón khách {guest_name} đến nhận phòng "
+                        f"(Mã đơn: #{booking.booking_code}, Hạng: {category_name}, Số phòng: {room_label}). "
+                        f"Giờ check-in tiêu chuẩn từ 14:00. Bộ phận Lễ tân & Buồng phòng vui lòng kiểm tra phòng ốc sẵn sàng đón khách chu đáo."
                     )
                 )
-                staff_checkin_count += 1
+            )
+            staff_checkin_count += 1
 
     # ==============================================================================
-    # 2. XỬ LÝ NHẮC NHỞ CHECK-OUT HÔM NAY
+    # 2. XỬ LÝ NHẮC NHỞ CHECK-OUT HÔM NAY (QUY TẮC CHỐNG SPAM MỖI 15 PHÚT)
     # ==============================================================================
     checkout_bookings = Booking.objects.filter(
         check_out_date=target_date,
@@ -126,57 +128,53 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
     ).select_related('guest', 'category', 'room')
 
     for booking in checkout_bookings:
+        # CÁCH 1: KIỂM TRA TỒN TẠI TRONG BẢNG NOTIFICATION ĐỂ CHỐNG SPAM
+        already_notified_checkout = Notification.objects.filter(
+            title__icontains="Check-out",
+            message__contains=booking.booking_code,
+            created_at__range=(start_of_day, end_of_day)
+        ).exists()
+
+        if already_notified_checkout and not force:
+            logger.debug(f"[Check-out Reminder] Bỏ qua đơn #{booking.booking_code}: Đã gửi thông báo trong ngày {date_str}.")
+            continue
+
         guest = booking.guest
         guest_name = guest.get_full_name() or guest.username if guest else "Quý khách"
         room_label = f"Phòng {booking.room.room_number}" if booking.room else "Phòng lưu trú"
 
         # 2.1. Thông báo cho Khách hàng
         if guest:
-            already_notified_guest = Notification.objects.filter(
-                recipient=guest,
-                title__icontains="Check-out",
-                message__contains=booking.booking_code,
-                created_at__date=target_date
-            ).exists()
-
-            if not already_notified_guest or force:
-                new_notifications.append(
-                    Notification(
-                        recipient=guest,
-                        title="🔔 Nhắc nhở Check-out: Đến hạn trả phòng hôm nay",
-                        message=(
-                            f"Khách sạn TA Đà Nẵng xin thông báo: Hôm nay ({date_str}) là ngày trả phòng của quý khách "
-                            f"({room_label}, Mã đơn: #{booking.booking_code}). "
-                            f"Giờ trả phòng tiêu chuẩn là trước 12:00 trưa. Nếu quý khách có nhu cầu gia hạn thời gian lưu trú "
-                            f"hoặc cần hỗ trợ hành lý, xe đưa đón sân bay, vui lòng liên hệ quầy Lễ tân qua hotline khách sạn để được phục vụ tốt nhất!"
-                        )
+            new_notifications.append(
+                Notification(
+                    recipient=guest,
+                    title="🔔 Nhắc nhở Check-out: Đến hạn trả phòng hôm nay",
+                    message=(
+                        f"Khách sạn TA Đà Nẵng xin thông báo: Hôm nay ({date_str}) là ngày trả phòng của quý khách "
+                        f"({room_label}, Mã đơn: #{booking.booking_code}). "
+                        f"Giờ trả phòng tiêu chuẩn là trước 12:00 trưa. Nếu quý khách có nhu cầu gia hạn thời gian lưu trú "
+                        f"hoặc cần hỗ trợ hành lý, xe đưa đón sân bay, vui lòng liên hệ quầy Lễ tân qua hotline khách sạn để được phục vụ tốt nhất!"
                     )
                 )
-                guest_checkout_count += 1
+            )
+            guest_checkout_count += 1
 
         # 2.2. Thông báo cho Nhân viên & Quản lý
-        already_notified_staff = Notification.objects.filter(
-            title__icontains="Lịch Check-out hôm nay",
-            message__contains=booking.booking_code,
-            created_at__date=target_date
-        ).exists()
-
-        if not already_notified_staff or force:
-            for staff in staff_users:
-                if guest and staff.id == guest.id:
-                    continue
-                new_notifications.append(
-                    Notification(
-                        recipient=staff,
-                        title=f"📤 Lịch Check-out hôm nay: {room_label} - Khách {guest_name}",
-                        message=(
-                            f"{room_label} (Khách hàng: {guest_name}, Mã đơn: #{booking.booking_code}) "
-                            f"có lịch trả phòng trong ngày hôm nay ({date_str}, tiêu chuẩn trước 12:00 trưa). "
-                            f"Bộ phận Lễ tân rà soát phụ phí/minibar, chuẩn bị hóa đơn thanh toán và thông báo Buồng phòng sẵn sàng dọn phòng sau khi khách trả phòng."
-                        )
+        for staff in staff_users:
+            if guest and staff.id == guest.id:
+                continue
+            new_notifications.append(
+                Notification(
+                    recipient=staff,
+                    title=f"📤 Lịch Check-out hôm nay: {room_label} - Khách {guest_name}",
+                    message=(
+                        f"{room_label} (Khách hàng: {guest_name}, Mã đơn: #{booking.booking_code}) "
+                        f"có lịch trả phòng trong ngày hôm nay ({date_str}, tiêu chuẩn trước 12:00 trưa). "
+                        f"Bộ phận Lễ tân rà soát phụ phí/minibar, chuẩn bị hóa đơn thanh toán và thông báo Buồng phòng sẵn sàng dọn phòng sau khi khách trả phòng."
                     )
                 )
-                staff_checkout_count += 1
+            )
+            staff_checkout_count += 1
 
     # Lưu tất cả thông báo mới tạo vào database
     if new_notifications:
