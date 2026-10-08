@@ -557,6 +557,28 @@ export default function HotelAdminDashboard({ initialTab }) {
         });
     }, [realBookings, bookingFilter, searchTerm]);
 
+    // Hàm phụ trợ hiển thị cảnh báo phân quyền khi truy cập tab không được cấp phép
+    const renderAccessDenied = (message) => (
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
+            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
+                🛡️
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">Giới hạn quyền truy cập</h2>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                {message || 'Tài khoản của bạn không có quyền truy cập vào phân hệ này.'} Vui lòng liên hệ Quản trị viên nếu bạn cần cấp quyền cho phân hệ này.
+            </p>
+            <div className="mt-6">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('overview')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30 transition cursor-pointer"
+                >
+                    Quay về Tổng quan
+                </button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white print:bg-white print:block">
             {/* ========================================================================= */}
@@ -1281,80 +1303,114 @@ export default function HotelAdminDashboard({ initialTab }) {
                 {/* Nội dung bảng điều khiển thay đổi theo Tab */}
                 <main className="p-6 lg:p-8 space-y-6 flex-1 min-w-0 max-w-full print:p-0 print:m-0 print:w-full">
                     {/* TAB 1: QUẢN LÝ KHÁCH HÀNG (FEATURE 1) */}
-                    {activeTab === 'guests' && <GuestManagement />}
+                    {activeTab === 'guests' && (
+                        canViewGuests ? <GuestManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem phân hệ Khách hàng.')
+                    )}
 
                     {/* TAB 1.1: CHI TIẾT KHÁCH HÀNG / CRM PROFILE */}
-                    {activeTab === 'customer-detail' && <CustomerDetail />}
+                    {activeTab === 'customer-detail' && (
+                        canViewGuests ? <CustomerDetail /> : renderAccessDenied('Tài khoản của bạn không có quyền xem chi tiết khách hàng.')
+                    )}
 
                     {/* TAB 2: QUẢN LÝ NHÂN SỰ & PHÂN QUYỀN (FEATURE 2) */}
-                    {activeTab === 'employees' && <EmployeeManagement />}
+                    {activeTab === 'employees' && (
+                        canViewEmployees ? <EmployeeManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền truy cập Nhân sự & Phân quyền.')
+                    )}
 
                     {/* TAB 3: QUẢN LÝ DANH SÁCH & SƠ ĐỒ PHÒNG THỰC TẾ (PMS ROOM BOARD) */}
                     {activeTab === 'rooms' && (
-                        <RoomManagement
-                            onNavigateToBookings={(filter) => {
-                                setActiveTab('bookings');
-                                setBookingSubFilter(filter || 'all');
-                                setIsBookingMenuOpen(true);
-                            }}
-                            onNavigateToCustomer={(guestId) => {
-                                navigate(`/admin/customers/${guestId}`);
-                            }}
-                        />
+                        canViewRooms ? (
+                            <RoomManagement
+                                onNavigateToBookings={(filter) => {
+                                    setActiveTab('bookings');
+                                    setBookingSubFilter(filter || 'all');
+                                    setIsBookingMenuOpen(true);
+                                }}
+                                onNavigateToCustomer={(guestId) => {
+                                    navigate(`/admin/customers/${guestId}`);
+                                }}
+                            />
+                        ) : renderAccessDenied('Tài khoản của bạn không có quyền truy cập Sơ đồ Phòng.')
                     )}
 
                     {/* TAB 4: QUẢN LÝ HẠNG PHÒNG & BẢNG GIÁ (CRUD + MULTI-IMAGE UPLOAD) */}
-                    {activeTab === 'categories' && <CategoryManagement />}
+                    {activeTab === 'categories' && (
+                        canViewCategories ? <CategoryManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Hạng phòng & Bảng giá.')
+                    )}
 
                     {/* TAB 4.1: QUẢN LÝ TIỆN NGHI PHÒNG (AMENITIES) */}
-                    {activeTab === 'amenities' && <AmenityManagement />}
+                    {activeTab === 'amenities' && (
+                        canViewCategories ? <AmenityManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Tiện nghi phòng.')
+                    )}
 
                     {/* TAB 5: QUẢN LÝ DANH SÁCH ĐẶT PHÒNG (LỄ TÂN & ADMIN) */}
                     {activeTab === 'bookings' && (
-                        <BookingManagement
-                            initialFilter={bookingSubFilter}
-                            onBookingChanged={loadRealBookingStats}
-                        />
+                        canViewBookings ? (
+                            <BookingManagement
+                                initialFilter={bookingSubFilter}
+                                onBookingChanged={loadRealBookingStats}
+                            />
+                        ) : renderAccessDenied('Tài khoản của bạn không có quyền xem Quản lý Đặt phòng.')
                     )}
 
                     {/* TAB 5.1: SƠ ĐỒ TRỰC QUAN GANTT / TIMELINE ĐẶT PHÒNG */}
                     {activeTab === 'booking-timeline' && (
-                        <BookingTimeline
-                            onNavigateToBookings={() => {
-                                setActiveTab('bookings');
-                                setBookingSubFilter('all');
-                                setIsBookingMenuOpen(true);
-                            }}
-                        />
+                        canViewBookings ? (
+                            <BookingTimeline
+                                onNavigateToBookings={() => {
+                                    setActiveTab('bookings');
+                                    setBookingSubFilter('all');
+                                    setIsBookingMenuOpen(true);
+                                }}
+                            />
+                        ) : renderAccessDenied('Tài khoản của bạn không có quyền xem Lịch đặt phòng.')
                     )}
 
                     {/* TAB 6: QUẢN LÝ YÊU CẦU DỊCH VỤ TẠI PHÒNG (KANBAN BOARD) */}
-                    {activeTab === 'services' && <ServiceRequestKanban />}
+                    {activeTab === 'services' && (
+                        canViewServices ? <ServiceRequestKanban /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Yêu cầu dịch vụ.')
+                    )}
 
                     {/* TAB 7: QUẢN LÝ THỰC ĐƠN & DANH MỤC DỊCH VỤ (CRUD) */}
-                    {activeTab === 'service-items' && <ServiceManagement />}
+                    {activeTab === 'service-items' && (
+                        (canViewServices && isHighLevelManager) ? <ServiceManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền quản lý Danh mục thực đơn & Dịch vụ.')
+                    )}
 
                     {/* TAB 8: QUẢN LÝ ĐÁNH GIÁ & PHẢN HỒI (REVIEW & RATING) */}
-                    {activeTab === 'reviews' && <ReviewManagement />}
+                    {activeTab === 'reviews' && (
+                        canViewReviews ? <ReviewManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Đánh giá & Phản hồi.')
+                    )}
 
                     {/* TAB 8.1: QUẢN LÝ TIN TỨC & BÀI VIẾT (BLOG / NEWS) */}
-                    {activeTab === 'posts' && <PostManagement />}
-                    {activeTab === 'promotions' && <PromotionManagement />}
-                    {activeTab === 'contacts' && <ContactManagement />}
+                    {activeTab === 'posts' && (
+                        canViewMarketing ? <PostManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền quản lý Tin tức & Blog.')
+                    )}
+                    {activeTab === 'promotions' && (
+                        canViewMarketing ? <PromotionManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền quản lý Khuyến mãi.')
+                    )}
+                    {activeTab === 'contacts' && (
+                        canViewContacts ? <ContactManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Liên hệ khách hàng.')
+                    )}
 
                     {/* TAB 8.2: QUẢN LÝ THANH TOÁN & HÓA ĐƠN (VIETQR / CASH) */}
-                    {activeTab === 'invoices' && <InvoiceManagement />}
+                    {activeTab === 'invoices' && (
+                        canViewInvoices ? <InvoiceManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Quản lý Hóa đơn & Thu ngân.')
+                    )}
 
                     {/* BÁO CÁO & THỐNG KÊ DOANH THU CHUYÊN SÂU */}
                     {['analytics', 'reports'].includes(activeTab) && (
-                        <Analytics onNavigateToCustomer={(id) => navigate(`/admin/customers/${id}`)} />
+                        canViewAnalytics ? (
+                            <Analytics onNavigateToCustomer={(id) => navigate(`/admin/customers/${id}`)} />
+                        ) : renderAccessDenied('Tài khoản của bạn không có quyền xem Báo cáo doanh thu & Thống kê.')
                     )}
 
                     {/* TAB 9: HỒ SƠ NHÂN SỰ & QUẢN TRỊ VIÊN (STAFF PROFILE) */}
                     {activeTab === 'profile' && <StaffProfile />}
 
                     {/* TAB 10: CÀI ĐẶT HỆ THỐNG */}
-                    {activeTab === 'settings' && <SystemSettings />}
+                    {activeTab === 'settings' && (
+                        canViewSettings ? <SystemSettings /> : renderAccessDenied('Tài khoản của bạn không có quyền Cài đặt hệ thống.')
+                    )}
 
                     {/* TAB TỔNG QUAN HỆ THỐNG */}
                     {activeTab === 'overview' && (
@@ -1410,58 +1466,81 @@ export default function HotelAdminDashboard({ initialTab }) {
                                             Năm {new Date().getFullYear()}
                                         </button>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveTab('guests')}
-                                        className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5"
-                                    >
-                                        <span>👥</span>
-                                        <span>Khách Hàng</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveTab('employees')}
-                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition flex items-center gap-1.5"
-                                    >
-                                        <span>🛡️</span>
-                                        <span>Nhân Sự & Phân Quyền</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveTab('rooms')}
-                                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5"
-                                    >
-                                        <span>🏢</span>
-                                        <span>Sơ Đồ Phòng (PMS)</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setActiveTab('bookings');
-                                            setBookingSubFilter('all');
-                                            setIsBookingMenuOpen(true);
-                                        }}
-                                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/25 transition flex items-center gap-1.5"
-                                    >
-                                        <span>📅</span>
-                                        <span>Xử Lý Đặt Phòng</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveTab('services')}
-                                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-600/25 transition flex items-center gap-1.5"
-                                    >
-                                        <span>🛎️</span>
-                                        <span>Kanban Dịch Vụ</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveTab('service-items')}
-                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center gap-1.5"
-                                    >
-                                        <span>🍽️</span>
-                                        <span>Quản Lý Thực Đơn</span>
-                                    </button>
+                                    {/* Quick Actions (Ẩn/Hiện chuẩn theo phân quyền vai trò người dùng) */}
+                                    {canViewGuests && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('guests')}
+                                            className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>👥</span>
+                                            <span>Khách Hàng</span>
+                                        </button>
+                                    )}
+                                    {canViewEmployees && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('employees')}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>🛡️</span>
+                                            <span>Nhân Sự & Phân Quyền</span>
+                                        </button>
+                                    )}
+                                    {canViewRooms && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('rooms')}
+                                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>🏢</span>
+                                            <span>Sơ Đồ Phòng (PMS)</span>
+                                        </button>
+                                    )}
+                                    {canViewBookings && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveTab('bookings');
+                                                setBookingSubFilter('all');
+                                                setIsBookingMenuOpen(true);
+                                            }}
+                                            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/25 transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>📅</span>
+                                            <span>Xử Lý Đặt Phòng</span>
+                                        </button>
+                                    )}
+                                    {canViewServices && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('services')}
+                                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-600/25 transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>🛎️</span>
+                                            <span>Kanban Dịch Vụ</span>
+                                        </button>
+                                    )}
+                                    {canViewServices && isHighLevelManager && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('service-items')}
+                                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>🍽️</span>
+                                            <span>Quản Lý Thực Đơn</span>
+                                        </button>
+                                    )}
+                                    {canViewInvoices && !isHighLevelManager && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('invoices')}
+                                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-xl shadow-md shadow-cyan-600/25 transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>💳</span>
+                                            <span>Hóa Đơn & Thu Ngân</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -1994,18 +2073,28 @@ export default function HotelAdminDashboard({ initialTab }) {
                             <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
                                 Chức năng đang hoạt động trong tiến trình mở rộng. Bạn có thể sử dụng đầy đủ <strong>Quản lý Khách hàng</strong> và <strong>Quản lý Nhân sự & Phân quyền</strong>.
                             </p>
-                            <div className="mt-6 flex items-center justify-center gap-3">
+                            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                                {canViewGuests && (
+                                    <button
+                                        onClick={() => setActiveTab('guests')}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30 cursor-pointer"
+                                    >
+                                        Quản lý Khách Hàng
+                                    </button>
+                                )}
+                                {canViewEmployees && (
+                                    <button
+                                        onClick={() => setActiveTab('employees')}
+                                        className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
+                                    >
+                                        Quản lý Nhân Sự & Phân Quyền
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => setActiveTab('guests')}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30"
+                                    onClick={() => setActiveTab('overview')}
+                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition"
                                 >
-                                    Quản lý Khách Hàng
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('employees')}
-                                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold"
-                                >
-                                    Quản lý Nhân Sự & Phân Quyền
+                                    Quay về Tổng quan
                                 </button>
                             </div>
                         </div>

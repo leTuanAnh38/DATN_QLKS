@@ -33,6 +33,7 @@ export default function Sidebar({
     );
     const [internalMarketingOpen, setInternalMarketingOpen] = useState(
         ['posts', 'promotions'].includes(activeTab) || location.pathname === '/admin/posts' || location.pathname === '/admin/promotions'
+    );
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -59,6 +60,11 @@ export default function Sidebar({
     const canViewEmployees = useHasPermission('employees', 'read');
     const canViewMarketing = useHasPermission('marketing', 'read');
     const canViewSettings = useHasPermission('settings', 'read');
+
+    const isHighLevelManager = Boolean(
+        user &&
+        (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser)
+    );
 
     const handleSelectTab = (tab, path = null) => {
         if (setActiveTab) setActiveTab(tab);
@@ -380,6 +386,27 @@ export default function Sidebar({
                                 </div>
                                 <span className="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-500/30">
                                     Kanban
+                                </span>
+                            </button>
+                        )}
+
+                        {/* Danh mục Thực đơn & Dịch vụ (Chỉ dành cho Admin, Owner, Manager) */}
+                        {canViewServices && isHighLevelManager && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('service-items')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'service-items'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-base shrink-0">🍽️</span>
+                                    <span>Danh mục Dịch vụ</span>
+                                </div>
+                                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                                    Menu
                                 </span>
                             </button>
                         )}

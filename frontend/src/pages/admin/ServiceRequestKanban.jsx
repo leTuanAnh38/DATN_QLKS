@@ -129,6 +129,12 @@ export default function ServiceRequestKanban() {
 
         if (!currentItem || sourceColumn === newStatus) return;
 
+        // 🔒 CHẶN THAY ĐỔI TRẠNG THÁI NẾU ĐƠN ĐÃ HOÀN THÀNH (ĐÃ TÍNH VÀO HÓA ĐƠN)
+        if (currentItem.status === 'completed' || sourceColumn === 'completed') {
+            showToast('warning', 'Yêu cầu dịch vụ này đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái.');
+            return;
+        }
+
         // Lưu bản sao cũ để rollback nếu lỗi
         const previousState = { ...kanbanData };
 
@@ -179,7 +185,15 @@ export default function ServiceRequestKanban() {
     // =========================================================================
     // DRAG AND DROP HANDLERS (HTML5 NATIVE API)
     // =========================================================================
-    const handleDragStart = (e, itemId) => {
+    const handleDragStart = (e, itemOrId) => {
+        const itemId = typeof itemOrId === 'object' ? itemOrId.id : itemOrId;
+        const itemStatus = typeof itemOrId === 'object' ? itemOrId.status : null;
+
+        if (itemStatus === 'completed') {
+            e.preventDefault();
+            return;
+        }
+
         setDraggedItemId(itemId);
         e.dataTransfer.setData('text/plain', String(itemId));
         e.dataTransfer.effectAllowed = 'move';
@@ -601,18 +615,28 @@ export default function ServiceRequestKanban() {
 
                                             {/* Trạng thái - đổi nhanh */}
                                             <td className="py-2.5 px-3 whitespace-nowrap">
-                                                <select
-                                                    value={item.status}
-                                                    disabled={isUpdatingThis}
-                                                    onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                                                    className={`px-2 py-1 rounded-lg border text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${meta.pill}`}
-                                                >
-                                                    {STATUS_ORDER.map((key) => (
-                                                        <option key={key} value={key}>
-                                                            {STATUS_META[key].icon} {STATUS_META[key].label}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                {item.status === 'completed' ? (
+                                                    <span
+                                                        title="Đơn dịch vụ đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái"
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold select-none cursor-not-allowed shadow-2xs"
+                                                    >
+                                                        <span></span>
+                                                        <span>✓ Hoàn thành</span>
+                                                    </span>
+                                                ) : (
+                                                    <select
+                                                        value={item.status}
+                                                        disabled={isUpdatingThis}
+                                                        onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                                                        className={`px-2 py-1 rounded-lg border text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${meta.pill}`}
+                                                    >
+                                                        {STATUS_ORDER.map((key) => (
+                                                            <option key={key} value={key}>
+                                                                {STATUS_META[key].icon} {STATUS_META[key].label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
                                             </td>
 
                                             {/* Thao tác nhanh theo trạng thái */}
@@ -781,16 +805,19 @@ export default function ServiceRequestKanban() {
                                         const isDraggingThis = draggedItemId === item.id;
                                         const isUpdatingThis = isUpdatingId === item.id;
                                         const totalAmt = Number(item.total_price) || 0;
+                                        const isCompleted = item.status === 'completed' || col.key === 'completed';
 
                                         return (
                                             <div
                                                 key={item.id}
-                                                draggable={true}
-                                                onDragStart={(e) => handleDragStart(e, item.id)}
+                                                draggable={!isCompleted}
+                                                onDragStart={(e) => handleDragStart(e, item)}
                                                 onDragEnd={handleDragEnd}
-                                                className={`bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing relative overflow-hidden flex flex-col justify-between ${
-                                                    col.accentHover
-                                                } ${isDraggingThis ? 'opacity-40 scale-95 border-blue-400' : ''}`}
+                                                className={`bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs transition-all duration-200 relative overflow-hidden flex flex-col justify-between ${
+                                                    isCompleted
+                                                        ? 'cursor-default ring-1 ring-emerald-100/80 bg-emerald-50/20'
+                                                        : 'cursor-grab active:cursor-grabbing hover:shadow-md'
+                                                } ${col.accentHover} ${isDraggingThis ? 'opacity-40 scale-95 border-blue-400' : ''}`}
                                             >
                                                 {/* Loading overlay when updating */}
                                                 {isUpdatingThis && (
@@ -915,17 +942,13 @@ export default function ServiceRequestKanban() {
 
                                                         {col.key === 'completed' && (
                                                             <div className="flex items-center gap-1.5">
-                                                                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                                                    ✓ Đã tính hóa đơn
-                                                                </span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleUpdateStatus(item.id, 'in_progress')}
-                                                                    title="Mở lại yêu cầu này"
-                                                                    className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded text-[10px] font-bold"
+                                                                <span
+                                                                    title="Đã tính vào hóa đơn phòng, không thể thay đổi trạng thái"
+                                                                    className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-flex items-center gap-1 select-none"
                                                                 >
-                                                                    ↩
-                                                                </button>
+                                                                    <span>🔒</span>
+                                                                    <span>Đã tính hóa đơn</span>
+                                                                </span>
                                                             </div>
                                                         )}
                                                     </div>

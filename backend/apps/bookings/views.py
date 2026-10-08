@@ -2194,14 +2194,18 @@ class BookingViewSet(viewsets.ModelViewSet):
         ).count()
 
         # Cơ cấu đặt phòng (Booking breakdown / source)
-        promo_count = all_bookings.filter(applied_promotion__isnull=False).count()
-        vip_count = all_bookings.filter(
-            Q(guest__role__in=['vip', 'admin', 'manager', 'owner', 'staff']) |
-            Q(guest__guest_profile__vip_tier__in=['Gold', 'Platinum', 'Diamond']) |
-            Q(guest__guest_profile__loyalty_points__gt=0)
-        ).distinct().count()
-        direct_count = max(0, total_bookings - promo_count - vip_count)
-        if direct_count == 0 and total_bookings > 0 and promo_count == 0:
+        walkin_filter = (
+            Q(guest__username__startswith='walkin_') |
+            Q(guest__email__icontains='walkin') |
+            Q(note__icontains='walk-in') |
+            Q(internal_note__icontains='walk-in') |
+            Q(note__icontains='quầy') |
+            Q(internal_note__icontains='quầy')
+        )
+        walkin_count = all_bookings.filter(walkin_filter).distinct().count()
+        promo_count = all_bookings.filter(applied_promotion__isnull=False).exclude(walkin_filter).distinct().count()
+        direct_count = max(0, total_bookings - promo_count - walkin_count)
+        if direct_count == 0 and total_bookings > 0 and promo_count == 0 and walkin_count == 0:
             direct_count = total_bookings
 
         def calc_pct(count, total):
@@ -2209,22 +2213,22 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         booking_sources = [
             {
-                'source': 'TA Direct Website',
+                'source': 'Website trực tuyến',
                 'count': direct_count,
                 'percentage': calc_pct(direct_count, total_bookings),
                 'color': '#2563eb'
+            },
+            {
+                'source': 'Tại quầy Lễ tân (Walk-in)',
+                'count': walkin_count,
+                'percentage': calc_pct(walkin_count, total_bookings),
+                'color': '#0f172a'
             },
             {
                 'source': 'Ưu đãi & Voucher',
                 'count': promo_count,
                 'percentage': calc_pct(promo_count, total_bookings),
                 'color': '#f97316'
-            },
-            {
-                'source': 'Hội viên VIP Club',
-                'count': vip_count,
-                'percentage': calc_pct(vip_count, total_bookings),
-                'color': '#0f172a'
             }
         ]
 

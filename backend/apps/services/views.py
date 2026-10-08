@@ -531,6 +531,13 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                     'message': f'Trạng thái "{new_status}" không hợp lệ. Cho phép: {", ".join(valid_statuses)}'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Chặn thay đổi trạng thái nếu đơn đã hoàn thành (đã tính vào hóa đơn)
+            if service_req.status == 'completed' and new_status != 'completed':
+                return Response({
+                    'success': False,
+                    'message': 'Yêu cầu dịch vụ này đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             old_status = service_req.status
             service_req.status = new_status
             update_fields.append('status')
