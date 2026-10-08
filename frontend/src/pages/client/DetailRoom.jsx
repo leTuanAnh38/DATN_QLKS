@@ -1474,7 +1474,7 @@ export default function DetailRoom() {
                                     <span className="uppercase font-bold tracking-wider text-blue-600">
                                         Giá ưu đãi đặt trực tiếp
                                     </span>
-                                    <span className="text-emerald-600 font-bold">🛡️ Giá tốt nhất</span>
+                                    <span className="text-emerald-600 font-bold"> Giá tốt nhất</span>
                                 </div>
 
                                 <div className="flex items-baseline gap-2">
@@ -1576,7 +1576,7 @@ export default function DetailRoom() {
                                     <span>{vatAndService.toLocaleString('vi-VN')} VND</span>
                                 </div>
                                 <div className="flex justify-between text-blue-600 font-semibold pt-1 border-t border-slate-200">
-                                    <span>💎 Tích lũy TA Club Points</span>
+                                    <span> Tích lũy TA Club Points</span>
                                     <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                                 </div>
                                 <div className="flex justify-between items-baseline pt-2 border-t border-slate-200">
@@ -1631,7 +1631,7 @@ export default function DetailRoom() {
                                 }}
                                 className="w-full py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-2xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
                             >
-                                <span>⚡</span>
+                                <span></span>
                                 Tiến Hành Đặt Phòng Ngay
                             </button>
 

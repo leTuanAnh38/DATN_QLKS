@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, User as UserIcon, LogOut, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
+import { authService } from '../../services/authService';
 import { useHasPermission } from '../../utils/permission';
 import { bookingService } from '../../services/bookingService';
 import GuestManagement from './GuestManagement';
@@ -23,6 +24,7 @@ import Analytics from './Analytics';
 import InvoiceManagement from './InvoiceManagement';
 import SystemSettings from './SystemSettings';
 import AmenityManagement from './AmenityManagement';
+import LogoutConfirmModal from '../../components/common/LogoutConfirmModal';
 import PromotionManagement from './PromotionManagement';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
@@ -352,10 +354,35 @@ export default function HotelAdminDashboard({ initialTab }) {
         }
     }, [isAuthenticated, isManagerRole, activeTab, timeFilter]);
 
-    // Xử lý đăng xuất
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
+    // State modal xác nhận đăng xuất
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    // Mở modal xác nhận đăng xuất
+    const handleRequestLogout = () => {
+        setIsProfileMenuOpen(false);
+        setIsLogoutModalOpen(true);
+    };
+
+    // Tự động chuyển hướng về trang đăng nhập nếu chưa đăng nhập
+    useEffect(() => {
+        if (!isAuthenticated) {
+            window.location.href = '/login';
+        }
+    }, [isAuthenticated]);
+
+    // Thực hiện đăng xuất khi đã xác nhận
+    const handleConfirmLogout = async () => {
+        try {
+            setIsLoggingOut(true);
+            await authService.logout();
+        } catch (err) {
+            console.error('Logout error:', err);
+        } finally {
+            setIsLogoutModalOpen(false);
+            setIsLoggingOut(false);
+            window.location.href = '/login';
+        }
     };
 
     // Helper tên vai trò hiển thị
@@ -388,6 +415,17 @@ export default function HotelAdminDashboard({ initialTab }) {
     // NẾU CHƯA ĐĂNG NHẬP HOẶC KHÔNG PHẢI PHÂN HỆ QUẢN LÝ -> HIỂN THỊ CHẶN BẢO MẬT
     // =========================================================================
     if (!isAuthenticated || !isManagerRole) {
+        if (!isAuthenticated) {
+            return (
+                <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-100 font-sans">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-xs text-slate-400">Đang chuyển hướng về trang đăng nhập...</p>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
                 {/* Background decorative glow */}
@@ -440,8 +478,8 @@ export default function HotelAdminDashboard({ initialTab }) {
                             <>
                                 <button
                                     type="button"
-                                    onClick={handleLogout}
-                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-blue-600/30 transition"
+                                    onClick={handleRequestLogout}
+                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-blue-600/30 transition cursor-pointer"
                                 >
                                     Đăng xuất & Đăng nhập Tài khoản Quản lý
                                 </button>
@@ -474,6 +512,18 @@ export default function HotelAdminDashboard({ initialTab }) {
                         Hệ thống Kiểm soát Truy cập Phân quyền (RBAC) • TA Da Nang Luxury Hotel
                     </div>
                 </div>
+
+                {/* Modal Xác Nhận Đăng Xuất Quản Trị trong màn hình chặn bảo mật */}
+                <LogoutConfirmModal
+                    isOpen={isLogoutModalOpen}
+                    onClose={() => !isLoggingOut && setIsLogoutModalOpen(false)}
+                    onConfirm={handleConfirmLogout}
+                    isLoading={isLoggingOut}
+                    title="Xác Nhận Đăng Xuất"
+                    userName={user?.full_name || user?.username}
+                    role={getRoleDisplayName(user?.role)}
+                    message="Bạn có chắc chắn muốn đăng xuất khỏi tài khoản hiện tại?"
+                />
             </div>
         );
     }
@@ -1073,7 +1123,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                         </div>
                         <button
                             type="button"
-                            onClick={handleLogout}
+                            onClick={handleRequestLogout}
                             className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700/50 rounded-lg transition shrink-0 cursor-pointer"
                             title="Đăng xuất khỏi hệ thống"
                         >
@@ -1215,10 +1265,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     <div className="border-t border-slate-100 p-1.5">
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setIsProfileMenuOpen(false);
-                                                handleLogout();
-                                            }}
+                                            onClick={handleRequestLogout}
                                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-medium transition cursor-pointer text-left text-xs"
                                         >
                                             <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
@@ -1965,6 +2012,18 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
                 </main>
             </div>
+
+            {/* Modal Xác Nhận Đăng Xuất Quản Trị */}
+            <LogoutConfirmModal
+                isOpen={isLogoutModalOpen}
+                onClose={() => !isLoggingOut && setIsLogoutModalOpen(false)}
+                onConfirm={handleConfirmLogout}
+                isLoading={isLoggingOut}
+                title="Xác Nhận Đăng Xuất Quản Trị"
+                userName={user?.full_name || user?.username}
+                role={getRoleDisplayName(user?.role)}
+                message="Bạn có chắc chắn muốn đăng xuất khỏi cổng Quản trị Khách Sạn TA? Mọi phiên làm việc chưa hoàn tất có thể bị gián đoạn."
+            />
         </div>
     );
 }

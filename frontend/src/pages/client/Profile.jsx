@@ -443,52 +443,26 @@ export default function Profile() {
 
                     {/* CỘT BÊN PHẢI: FORM CHỈNH SỬA THÔNG TIN CÁ NHÂN (8 CỘT) */}
                     <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100">
-                        <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                                <div className="flex items-center gap-2.5 mb-1">
-                                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
-                                        Thông Tin Cá Nhân
-                                    </h2>
-                                    {isEditing ? (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                                            <span>✏️</span>
-                                            <span>Đang chỉnh sửa</span>
-                                        </span>
-                                    ) : (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
-                                            <span>👁️</span>
-                                            <span>Chế độ xem</span>
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs text-slate-500">
-                                    Cập nhật thông tin chính xác giúp quá trình nhận phòng và nhận đặc quyền diễn ra nhanh chóng
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 self-start sm:self-auto">
-                                {!isEditing ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditing(true)}
-                                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                        <span>Cập nhật</span>
-                                    </button>
+                        <div className="border-b border-slate-100 pb-5 mb-6">
+                            <div className="flex items-center gap-2.5 mb-1">
+                                <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
+                                    Thông Tin Cá Nhân
+                                </h2>
+                                {isEditing ? (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                                        <span>✏️</span>
+                                        <span>Đang chỉnh sửa</span>
+                                    </span>
                                 ) : (
-                                    <button
-                                        type="button"
-                                        onClick={handleCancelEdit}
-                                        disabled={isLoading}
-                                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
-                                    >
-                                        ✕ Hủy bỏ
-                                    </button>
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                                        <span>👁️</span>
+                                        <span>Chế độ xem</span>
+                                    </span>
                                 )}
                             </div>
+                            <p className="text-xs text-slate-500">
+                                Cập nhật thông tin chính xác giúp quá trình nhận phòng và nhận đặc quyền diễn ra nhanh chóng
+                            </p>
                         </div>
 
                         {/* Alerts */}

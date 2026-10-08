@@ -335,7 +335,7 @@ export default function AuthBookingPage() {
                                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                            Email hoặc Số điện thoại đặt phòng <span className="text-red-500">*</span>
+                                            Tên đăng nhập, Email hoặc Số điện thoại <span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
                                             <input
@@ -343,7 +343,7 @@ export default function AuthBookingPage() {
                                                 required
                                                 value={loginForm.identifier}
                                                 onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
-                                                placeholder="vidu@email.com hoặc 0901234567"
+                                                placeholder="Tên đăng nhập, email hoặc số điện thoại"
                                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                                             />
                                             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">✉️</span>
@@ -403,7 +403,7 @@ export default function AuthBookingPage() {
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
                                         )}
-                                        <span>{isLoading ? 'Đang xác thực...' : 'Đăng Nhập Tài Khoản Đặt Phòng'}</span>
+                                        <span>{isLoading ? 'Đang xác thực...' : 'Đăng Nhập Tài Khoản'}</span>
                                     </button>
                                 </form>
                             )}

@@ -726,31 +726,42 @@ export default function ServicesMenu() {
                                         Giao đến Phòng / Mã Đặt phòng <span className="text-rose-500">*</span>
                                     </label>
                                     {activeBookings.length > 0 ? (
-                                        <select
-                                            value={selectedBookingId}
-                                            onChange={(e) => setSelectedBookingId(e.target.value)}
-                                            required
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            {activeBookings.map((b) => (
-                                                <option key={b.id} value={b.id}>
-                                                    {b.display_label}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <>
+                                            <select
+                                                value={selectedBookingId}
+                                                onChange={(e) => setSelectedBookingId(e.target.value)}
+                                                required
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                {activeBookings.map((b) => (
+                                                    <option key={b.id} value={b.id}>
+                                                        {b.display_label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <span className="text-[10px] text-emerald-600 mt-1 block font-medium">
+                                                ✓ Đang phục vụ tận phòng cho đơn lưu trú của quý khách.
+                                            </span>
+                                        </>
                                     ) : (
-                                        <div className="space-y-2">
+                                        <div className="space-y-2.5">
+                                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2.5">
+                                                <span className="text-base shrink-0">⚠️</span>
+                                                <div className="space-y-0.5">
+                                                    <p className="font-bold">Yêu cầu hoàn tất nhận phòng (Check-in)</p>
+                                                    <p className="text-[11px] text-amber-700 leading-relaxed">
+                                                        Dịch vụ tại phòng chỉ áp dụng cho quý khách <strong>đã nhận phòng (Check-in)</strong> và <strong>đã được xếp phòng thực tế</strong>. Nếu quý khách đã đặt phòng trước, vui lòng làm thủ tục nhận phòng tại quầy lễ tân trước khi gọi dịch vụ.
+                                                    </p>
+                                                </div>
+                                            </div>
                                             <input
                                                 type="text"
                                                 value={selectedBookingId}
                                                 onChange={(e) => setSelectedBookingId(e.target.value)}
-                                                placeholder="Nhập Mã Booking (VD: BK-B38570) hoặc số ID đơn"
+                                                placeholder="Nhập Mã Booking đã Check-in (VD: BK-B38570)"
                                                 required
                                                 className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             />
-                                            <p className="text-[11px] text-amber-600 italic">
-                                                💡 Nếu bạn đang đăng nhập, hãy đảm bảo tài khoản đã có đơn đặt phòng ở trạng thái đang lưu trú.
-                                            </p>
                                         </div>
                                     )}
                                     <span className="text-[10px] text-slate-400 mt-1 block">

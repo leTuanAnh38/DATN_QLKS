@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
+import { authService } from '../../services/authService';
 import { useHasPermission } from '../../utils/permission';
+import LogoutConfirmModal from '../common/LogoutConfirmModal';
 
 /**
  * Component Sidebar dành cho Quản trị viên (Admin Layout)
@@ -31,7 +33,8 @@ export default function Sidebar({
     );
     const [internalMarketingOpen, setInternalMarketingOpen] = useState(
         ['posts', 'promotions'].includes(activeTab) || location.pathname === '/admin/posts' || location.pathname === '/admin/promotions'
-    );
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const isCategoryOpen = externalCatOpen !== undefined ? externalCatOpen : internalCatOpen;
     const setIsCategoryOpen = setExternalCatOpen || setInternalCatOpen;
@@ -613,7 +616,7 @@ export default function Sidebar({
                     {logout && (
                         <button
                             type="button"
-                            onClick={logout}
+                            onClick={() => setIsLogoutModalOpen(true)}
                             className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-400 transition cursor-pointer"
                             title="Đăng xuất"
                         >
@@ -624,6 +627,29 @@ export default function Sidebar({
                     )}
                 </div>
             </div>
+
+            {/* Modal Xác Nhận Đăng Xuất Quản Trị */}
+            <LogoutConfirmModal
+                isOpen={isLogoutModalOpen}
+                onClose={() => !isLoggingOut && setIsLogoutModalOpen(false)}
+                onConfirm={async () => {
+                    try {
+                        setIsLoggingOut(true);
+                        await authService.logout();
+                    } catch (e) {
+                        console.error('Sidebar logout error:', e);
+                    } finally {
+                        setIsLogoutModalOpen(false);
+                        setIsLoggingOut(false);
+                        window.location.href = '/login';
+                    }
+                }}
+                isLoading={isLoggingOut}
+                title="Xác Nhận Đăng Xuất Quản Trị"
+                userName={user?.full_name || user?.username}
+                role={user?.role}
+                message="Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Quản trị Khách Sạn TA?"
+            />
         </aside>
     );
 }

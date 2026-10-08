@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
+import LogoutConfirmModal from '../common/LogoutConfirmModal';
 import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
@@ -28,6 +29,8 @@ export default function Navbar({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const userMenuRef = useRef(null);
 
     // Tự động đóng dropdown khi click ra ngoài
@@ -49,11 +52,25 @@ export default function Navbar({
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     };
 
-    const handleLogout = async () => {
+    const handleRequestLogout = () => {
         setUserMenuOpen(false);
         setMobileMenuOpen(false);
-        await authService.logout();
-        navigate('/');
+        setIsLogoutModalOpen(true);
+    };
+
+    const handleConfirmLogout = async () => {
+        try {
+            setIsLoggingOut(true);
+            await authService.logout();
+            setIsLogoutModalOpen(false);
+            navigate('/');
+        } catch (err) {
+            console.error('Logout error:', err);
+            setIsLogoutModalOpen(false);
+            navigate('/');
+        } finally {
+            setIsLoggingOut(false);
+        }
     };
 
     const navItems = [
@@ -314,7 +331,7 @@ export default function Navbar({
                                         <div className="pt-1">
                                             <button
                                                 type="button"
-                                                onClick={handleLogout}
+                                                onClick={handleRequestLogout}
                                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition text-left cursor-pointer"
                                             >
                                                 <span className="w-5 h-5 flex items-center justify-center shrink-0 text-red-600">
@@ -379,7 +396,7 @@ export default function Navbar({
                                     </Link>
                                     <button
                                         type="button"
-                                        onClick={handleLogout}
+                                        onClick={handleRequestLogout}
                                         className="px-2.5 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
                                     >
                                         Đăng xuất
@@ -458,6 +475,17 @@ export default function Navbar({
             <ChangePasswordModal
                 isOpen={isChangePasswordOpen}
                 onClose={() => setIsChangePasswordOpen(false)}
+            />
+
+            {/* Modal Xác Nhận Đăng Xuất */}
+            <LogoutConfirmModal
+                isOpen={isLogoutModalOpen}
+                onClose={() => !isLoggingOut && setIsLogoutModalOpen(false)}
+                onConfirm={handleConfirmLogout}
+                isLoading={isLoggingOut}
+                title="Xác Nhận Đăng Xuất"
+                userName={user?.full_name || user?.username}
+                message="Quý khách có chắc chắn muốn đăng xuất khỏi tài khoản không? Bạn sẽ cần đăng nhập lại để xem lịch sử đặt phòng và quản lý kỳ nghỉ của mình."
             />
         </>
     );

@@ -476,16 +476,6 @@ export default function BookingHistory() {
                                 Theo dõi chi tiết các kỳ nghỉ, tình trạng duyệt đơn và thông tin nhận phòng tại Khách Sạn TA Đà Nẵng.
                             </p>
                         </div>
-
-                        <div className="flex items-center gap-3">
-                            <Link
-                                to="/rooms"
-                                className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 cursor-pointer"
-                            >
-                                <span>➕</span>
-                                <span>Đặt thêm phòng mới</span>
-                            </Link>
-                        </div>
                     </div>
 
                     {/* HÀNG THỐNG KÊ NHANH (QUICK STATS) */}

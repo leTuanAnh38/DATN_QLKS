@@ -210,7 +210,8 @@ class ActiveGuestBookingsView(APIView):
     def get(self, request):
         user = request.user
         base_qs = Booking.objects.select_related('room', 'category', 'guest').filter(
-            status__in=['checked_in', 'confirmed']
+            status='checked_in',
+            room__isnull=False
         ).order_by('-created_at')
 
         # Phân quyền
@@ -232,11 +233,13 @@ class ActiveGuestBookingsView(APIView):
                     base_qs = base_qs.filter(guest=user)
             else:
                 # Khách vãng lai chưa đăng nhập: lấy danh sách các phòng đang lưu trú để chọn
-                base_qs = base_qs.filter(status='checked_in')[:20]
+                base_qs = base_qs[:20]
 
         results = []
         for b in base_qs:
-            room_num = b.room.room_number if b.room else 'Chờ xếp'
+            if not b.room or not b.room.room_number:
+                continue
+            room_num = b.room.room_number
             cat_name = b.category.name if b.category else (b.room.category.name if b.room and b.room.category else 'Tiêu chuẩn')
             guest_name = (b.guest.get_full_name().strip() or f"{b.guest.first_name or ''} {b.guest.last_name or ''}".strip()) if b.guest else 'Khách lưu trú'
             results.append({
@@ -404,11 +407,47 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 'message': 'Không tìm thấy thông tin đơn đặt phòng tương ứng.'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Kiểm tra trạng thái đơn: Phải là đang ở hoặc đã xác nhận
-        if booking.status in ['checked_out', 'cancelled']:
+        # 2.1. Phân quyền: Khách hàng chỉ được đặt dịch vụ cho đơn của chính mình
+        user = request.user
+        is_staff_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                user.is_superuser or 
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'service_staff', 'housekeeper'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+        if user.is_authenticated and not is_staff_or_admin:
+            user_email = user.email.strip() if user.email else ''
+            is_owner = (booking.guest == user) or (user_email and booking.guest and booking.guest.email == user_email)
+            if not is_owner:
+                return Response({
+                    'success': False,
+                    'message': 'Quý khách không thể gọi dịch vụ cho đơn đặt phòng của khách hàng khác.'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2.2. Kiểm tra trạng thái đơn: Phải là đang lưu trú (checked_in)
+        if booking.status != 'checked_in':
+            if booking.status == 'confirmed':
+                status_desc = "chưa làm thủ tục nhận phòng (Check-in). Quý khách vui lòng nhận phòng tại quầy lễ tân trước khi gọi dịch vụ lên phòng."
+            elif booking.status == 'pending':
+                status_desc = "đang ở trạng thái chờ duyệt. Quý khách vui lòng hoàn tất đặt phòng và nhận phòng trước khi gọi dịch vụ."
+            elif booking.status == 'checked_out':
+                status_desc = "đã hoàn tất trả phòng (Check-out). Không thể đặt thêm dịch vụ phòng."
+            elif booking.status == 'cancelled':
+                status_desc = "đã bị hủy. Không thể đặt dịch vụ phòng."
+            else:
+                status_desc = "chưa ở trạng thái đang lưu trú. Quý khách chỉ có thể gọi dịch vụ khi đã nhận phòng tại khách sạn."
             return Response({
                 'success': False,
-                'message': f'Đơn đặt phòng {booking.booking_code} đã trả phòng hoặc bị hủy. Không thể đặt thêm dịch vụ phòng.'
+                'message': f'Đơn đặt phòng {booking.booking_code} {status_desc}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2.3. Kiểm tra xếp phòng: Bắt buộc phải có số phòng thực tế
+        if not booking.room or not booking.room.room_number:
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} hiện chưa được xếp phòng cụ thể. Quý khách vui lòng liên hệ lễ tân để được xếp phòng trước khi gọi dịch vụ.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # 3. Tìm ServiceItem

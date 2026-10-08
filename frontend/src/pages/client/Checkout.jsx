@@ -505,7 +505,7 @@ export default function Checkout() {
                                     </div>
 
                                     <span className="px-3 py-1 rounded-xl bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
-                                        🌙 {nights} đêm lưu trú
+                                        {nights} đêm lưu trú
                                     </span>
                                 </div>
 
@@ -632,7 +632,7 @@ export default function Checkout() {
 
                                     {isAuthenticated ? (
                                         <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100 flex items-center gap-1">
-                                            ✓ Đã điền từ tài khoản VIP
+                                            ✓ Đã điền từ tài khoản
                                         </span>
                                     ) : (
                                         <Link
@@ -1096,7 +1096,7 @@ export default function Checkout() {
                                     </div>
 
                                     <div className="flex justify-between text-blue-600 font-semibold pt-1 border-t border-slate-100">
-                                        <span>💎 Điểm thưởng TA Club</span>
+                                        <span> Điểm thưởng TA Club</span>
                                         <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                                     </div>
 
@@ -1152,7 +1152,7 @@ export default function Checkout() {
                                         <span>Hạng Phòng Đã Hết (Vui Lòng Chọn Ngày Khác)</span>
                                     ) : (
                                         <>
-                                            <span>⚡</span>
+                                            <span></span>
                                             <span>Xác Nhận Đặt Phòng Ngay</span>
                                         </>
                                     )}
