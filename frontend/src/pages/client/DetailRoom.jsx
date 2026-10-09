@@ -521,10 +521,9 @@ export default function DetailRoom() {
         }))
         : (room.feature_image ? [{ id: 1, url: room.feature_image, title: room.name }] : []);
 
-    // Nếu API trả về ít hơn 5 ảnh, bổ trợ ảnh fallback để khung 5-Grid không bị khuyết
-    const gallery = apiImageList.length >= 5
-        ? apiImageList
-        : [...apiImageList, ...FALLBACK_GALLERY.slice(apiImageList.length)];
+    // Chỉ dùng ảnh mẫu dự phòng (fallback) nếu phòng hoàn toàn chưa upload ảnh nào
+    const gallery = apiImageList.length > 0 ? apiImageList : FALLBACK_GALLERY;
+    const safeImageIndex = selectedImageIndex < gallery.length ? selectedImageIndex : 0;
 
     // 2. Map Thông tin cơ bản & Giá cả
     const basePriceNum = Number(room.base_price || 0);
@@ -645,26 +644,26 @@ export default function DetailRoom() {
                 </div>
             </section>
 
-            {/* GALLERY 5-GRID MAP TỪ DỮ LIỆU ẢNH API */}
+            {/* GALLERY TỰ ĐỘNG THÍCH ỨNG THEO SỐ LƯỢNG ẢNH THỰC TẾ */}
             <section className="bg-white pb-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden relative">
-                        {/* Ảnh chính lớn (Bên trái) */}
+                        {/* Ảnh chính lớn (Tràn 100% nếu chỉ có 1 ảnh, hoặc 50% nếu có từ 2 ảnh trở lên) */}
                         <div
-                            className="col-span-12 lg:col-span-6 relative group overflow-hidden h-full cursor-pointer"
-                            onClick={() => setLightboxImage(gallery[selectedImageIndex]?.url || gallery[0]?.url)}
+                            className={`${gallery.length === 1 ? 'col-span-12' : 'col-span-12 lg:col-span-6'} relative group overflow-hidden h-full cursor-pointer`}
+                            onClick={() => setLightboxImage(gallery[safeImageIndex]?.url || gallery[0]?.url)}
                         >
                             <img
-                                src={gallery[selectedImageIndex]?.url || gallery[0]?.url}
-                                alt={gallery[selectedImageIndex]?.title || room.name}
+                                src={gallery[safeImageIndex]?.url || gallery[0]?.url}
+                                alt={gallery[safeImageIndex]?.title || room.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex flex-col justify-end p-6 text-white pointer-events-none">
                                 <span className="text-[11px] uppercase tracking-widest text-amber-300 font-bold mb-1">
-                                    Góc nhìn chính
+                                    {gallery.length === 1 ? 'Hình ảnh phòng' : 'Góc nhìn chính'}
                                 </span>
                                 <p className="font-serif text-lg sm:text-xl font-bold">
-                                    {gallery[selectedImageIndex]?.title || room.name}
+                                    {gallery[safeImageIndex]?.title || room.name}
                                 </p>
                             </div>
                             <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md p-2 rounded-full text-white cursor-pointer hover:bg-black/60 transition">
@@ -672,41 +671,49 @@ export default function DetailRoom() {
                             </div>
                         </div>
 
-                        {/* 4 Thumbnails nhỏ (Bên phải) */}
-                        <div className="hidden lg:grid col-span-6 grid-cols-2 gap-3 h-full">
-                            {gallery.slice(1, 5).map((img, idx) => {
-                                const actualIndex = idx + 1;
-                                const isSelected = selectedImageIndex === actualIndex;
-                                return (
-                                    <div
-                                        key={img.id || idx}
-                                        onClick={() => setSelectedImageIndex(actualIndex)}
-                                        className={`relative group overflow-hidden rounded-xl h-full cursor-pointer border-2 transition ${
-                                            isSelected ? 'border-amber-400' : 'border-transparent'
-                                        }`}
-                                    >
-                                        <img
-                                            src={img.url}
-                                            alt={img.title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out"
-                                        />
-                                        <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/10 transition" />
-                                        <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] text-white font-medium">
-                                            {img.title}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        {/* Các ảnh phụ bên phải (Chỉ hiển thị khi có từ 2 ảnh trở lên) */}
+                        {gallery.length >= 2 && (
+                            <div className={`hidden lg:grid col-span-6 gap-3 h-full ${
+                                gallery.length === 2
+                                    ? 'grid-cols-1'
+                                    : gallery.length === 3
+                                        ? 'grid-rows-2'
+                                        : 'grid-cols-2'
+                            }`}>
+                                {gallery.slice(1, 5).map((img, idx) => {
+                                    const actualIndex = idx + 1;
+                                    const isSelected = safeImageIndex === actualIndex;
+                                    return (
+                                        <div
+                                            key={img.id || idx}
+                                            onClick={() => setSelectedImageIndex(actualIndex)}
+                                            className={`relative group overflow-hidden rounded-xl h-full cursor-pointer border-2 transition ${
+                                                isSelected ? 'border-amber-400' : 'border-transparent'
+                                            }`}
+                                        >
+                                            <img
+                                                src={img.url}
+                                                alt={img.title}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out"
+                                            />
+                                            <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/10 transition" />
+                                            <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] text-white font-medium">
+                                                {img.title}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
 
                         {/* Nút Xem tất cả ảnh */}
                         <button
                             type="button"
-                            onClick={() => setLightboxImage(gallery[selectedImageIndex]?.url || gallery[0]?.url)}
-                            className="absolute bottom-5 right-5 z-10 bg-white/95 hover:bg-white text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-2 transition hover:scale-105"
+                            onClick={() => setLightboxImage(gallery[safeImageIndex]?.url || gallery[0]?.url)}
+                            className="absolute bottom-5 right-5 z-10 bg-white/95 hover:bg-white text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-2 transition hover:scale-105 cursor-pointer"
                         >
                             <span>📷</span>
-                            Tất cả {gallery.length} ảnh
+                            {gallery.length === 1 ? 'Xem ảnh' : `Tất cả ${gallery.length} ảnh`}
                         </button>
                     </div>
                 </div>
