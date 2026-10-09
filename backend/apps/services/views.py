@@ -14,6 +14,7 @@ from .serializers import (
     ServiceRequestSerializer,
 )
 from ..bookings.models import Booking, BookingExtraService
+from ..users.models import log_action
 from core_project.pagination import StandardResultsSetPagination
 
 
@@ -58,6 +59,15 @@ class ServiceCategoryListView(APIView):
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         cat = serializer.save()
+
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='SERVICE',
+            description=f'Tạo nhóm dịch vụ "{cat.name}"',
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Đã tạo nhóm dịch vụ "{cat.name}" thành công.',
@@ -140,6 +150,15 @@ class ServiceItemViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         instance = serializer.save()
+
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='SERVICE',
+            description=f'Thêm dịch vụ mới "{instance.name}" ({instance.price:,.0f} VNĐ, Nhóm: {instance.category.name if instance.category else "Chưa phân loại"})',
+            request=request
+        )
+
         out_serializer = self.get_serializer(instance, context={'request': request})
         return Response({
             'success': True,
@@ -160,6 +179,15 @@ class ServiceItemViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         updated_instance = serializer.save()
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='SERVICE',
+            description=f'Cập nhật thông tin dịch vụ "{updated_instance.name}"',
+            request=request
+        )
+
         out_serializer = self.get_serializer(updated_instance, context={'request': request})
         return Response({
             'success': True,
@@ -179,6 +207,15 @@ class ServiceItemViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         instance.delete()
+
+        log_action(
+            user=request.user,
+            action='DELETE',
+            module='SERVICE',
+            description=f'Xóa dịch vụ "{name}" khỏi hệ thống',
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Đã xóa dịch vụ "{name}" khỏi hệ thống thành công.'
@@ -190,6 +227,15 @@ class ServiceItemViewSet(viewsets.ModelViewSet):
         instance.is_active = not instance.is_active
         instance.save(update_fields=['is_active'])
         status_text = "Đang phục vụ" if instance.is_active else "Tạm ngưng phục vụ"
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='SERVICE',
+            description=f'Chuyển trạng thái dịch vụ "{instance.name}" sang: {status_text}',
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Đã chuyển trạng thái dịch vụ "{instance.name}" sang: {status_text}.',
@@ -578,6 +624,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
         service_req.save(update_fields=list(set(update_fields)))
         service_req.refresh_from_db()
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=user if user.is_authenticated else None,
+            action='UPDATE',
+            module='SERVICE',
+            description=f"Cập nhật yêu cầu dịch vụ #{service_req.id} ({service_req.service.name if service_req.service else 'Dịch vụ'}) sang \"{service_req.get_status_display()}\"",
+            request=request
+        )
 
         serializer = self.get_serializer(service_req, context={'request': request})
         return Response({

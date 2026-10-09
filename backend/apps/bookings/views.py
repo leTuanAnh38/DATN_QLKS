@@ -1251,6 +1251,15 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         # Trả về đối tượng Booking đã cập nhật mới nhất
         booking.refresh_from_db()
+
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='BOOKING',
+            description=f'{msg} cho đơn đặt phòng #{booking.booking_code}',
+            request=request
+        )
+
         serializer = self.get_serializer(booking, context={'request': request})
         return Response({
             'success': True,
@@ -1297,6 +1306,15 @@ class BookingViewSet(viewsets.ModelViewSet):
                 BookingExtraService.objects.filter(pk=item_id, booking=booking).delete()
 
         booking.refresh_from_db()
+
+        log_action(
+            user=request.user,
+            action='DELETE',
+            module='BOOKING',
+            description=f'Xóa dịch vụ / phụ phí (Mã {item_id}) khỏi đơn đặt phòng #{booking.booking_code}',
+            request=request
+        )
+
         serializer = self.get_serializer(booking, context={'request': request})
         return Response({
             'success': True,
@@ -2501,4 +2519,35 @@ class PromotionViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         return [IsManagerOrAdminOnly()]
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        log_action(
+            user=self.request.user,
+            action='CREATE',
+            module='PROMOTION',
+            description=f'Tạo mã khuyến mãi mới "{instance.code}" (Giảm {instance.discount_value})',
+            request=self.request
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        log_action(
+            user=self.request.user,
+            action='UPDATE',
+            module='PROMOTION',
+            description=f'Cập nhật thông tin mã khuyến mãi "{instance.code}"',
+            request=self.request
+        )
+
+    def perform_destroy(self, instance):
+        code = instance.code
+        instance.delete()
+        log_action(
+            user=self.request.user,
+            action='DELETE',
+            module='PROMOTION',
+            description=f'Xóa mã khuyến mãi "{code}"',
+            request=self.request
+        )
 

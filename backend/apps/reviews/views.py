@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from core_project.pagination import StandardResultsSetPagination
 from .models import Review
 from .serializers import ReviewSerializer, ReviewCreateSerializer
+from ..users.models import log_action
 
 
 class IsStaffOrAdminUser(permissions.BasePermission):
@@ -111,6 +112,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
         review.admin_reply = str(admin_reply).strip() if admin_reply else None
         review.save(update_fields=['admin_reply', 'updated_at'])
 
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='OTHER',
+            description=f'Phản hồi đánh giá #{review.id} của khách {review.guest.username if review.guest else "Khách"}',
+            request=request
+        )
+
         return Response(
             {
                 'success': True,
@@ -132,6 +141,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
         review.save(update_fields=['is_visible', 'updated_at'])
 
         state_text = 'Hiển thị' if review.is_visible else 'Đã ẩn'
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='OTHER',
+            description=f'Chuyển trạng thái hiển thị đánh giá #{review.id} sang: {state_text}',
+            request=request
+        )
+
         return Response(
             {
                 'success': True,
@@ -145,6 +163,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
         review = self.get_object()
         review_id = review.id
         review.delete()
+
+        log_action(
+            user=request.user,
+            action='DELETE',
+            module='OTHER',
+            description=f'Xóa đánh giá #{review_id} khỏi hệ thống',
+            request=request
+        )
+
         return Response(
             {
                 'success': True,

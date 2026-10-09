@@ -191,6 +191,15 @@ class LogoutView(APIView):
             # Nếu blacklist không cấu hình hoặc token hết hạn thì vẫn cho logout phía client
             pass
 
+        if request.user and request.user.is_authenticated:
+            log_action(
+                user=request.user,
+                action='LOGOUT',
+                module='USER',
+                description=f"Tài khoản {request.user.username} ({request.user.get_role_display()}) đăng xuất khỏi hệ thống",
+                request=request
+            )
+
         return Response({
             'success': True,
             'message': 'Đăng xuất tài khoản thành công.'
@@ -205,6 +214,14 @@ class ChangePasswordView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             refresh = RefreshToken.for_user(user)
+
+            log_action(
+                user=user,
+                action='UPDATE',
+                module='USER',
+                description=f"Đổi mật khẩu tài khoản {user.username}",
+                request=request
+            )
 
             return Response({
                 'success': True,
@@ -300,6 +317,14 @@ class AdminGuestListCreateView(APIView):
                     profile.loyalty_points = int(request.data.get('loyalty_points', 0))
                 profile.save()
 
+            log_action(
+                user=request.user,
+                action='CREATE',
+                module='USER',
+                description=f"Tạo hồ sơ khách hàng mới {user.username} ({user.get_full_name() or user.email})",
+                request=request
+            )
+
             return Response({
                 'success': True,
                 'message': 'Tạo tài khoản khách hàng mới thành công!',
@@ -358,6 +383,15 @@ class AdminGuestDetailView(APIView):
         serializer = AdminGuestSerializer(guest, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             updated_guest = serializer.save()
+
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='USER',
+                description=f"Cập nhật hồ sơ khách hàng {updated_guest.username}",
+                request=request
+            )
+
             return Response({
                 'success': True,
                 'message': 'Cập nhật thông tin khách hàng thành công!',
@@ -381,7 +415,17 @@ class AdminGuestDetailView(APIView):
 
         try:
             guest = User.objects.get(pk=pk, role='guest')
+            guest_uname = guest.username
             guest.delete()
+
+            log_action(
+                user=request.user,
+                action='DELETE',
+                module='USER',
+                description=f"Xóa tài khoản khách hàng {guest_uname}",
+                request=request
+            )
+
             return Response({'success': True, 'message': 'Đã xóa tài khoản khách hàng thành công.'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'success': False, 'message': 'Không tìm thấy khách hàng cần xóa.'}, status=status.HTTP_404_NOT_FOUND)
@@ -469,6 +513,15 @@ class AdminEmployeeListCreateView(APIView):
         serializer = AdminEmployeeSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             employee = serializer.save()
+
+            log_action(
+                user=request.user,
+                action='CREATE',
+                module='USER',
+                description=f"Tạo mới tài khoản nhân viên {employee.username} ({employee.get_role_display()})",
+                request=request
+            )
+
             return Response({
                 'success': True,
                 'message': 'Tạo tài khoản nhân viên mới thành công!',
@@ -520,6 +573,15 @@ class AdminEmployeeDetailView(APIView):
         serializer = AdminEmployeeSerializer(employee, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             updated_emp = serializer.save()
+
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='USER',
+                description=f"Cập nhật thông tin/phân quyền nhân viên {updated_emp.username} ({updated_emp.get_role_display()})",
+                request=request
+            )
+
             return Response({
                 'success': True,
                 'message': 'Cập nhật thông tin nhân viên & phân quyền thành công!',
@@ -549,7 +611,18 @@ class AdminEmployeeDetailView(APIView):
                     'message': 'Quản lý không có quyền xóa tài khoản của Chủ khách sạn, Quản trị viên hoặc cấp Quản lý khác.'
                 }, status=status.HTTP_403_FORBIDDEN)
 
+            emp_username = employee.username
+            emp_role = employee.get_role_display()
             employee.delete()
+
+            log_action(
+                user=request.user,
+                action='DELETE',
+                module='USER',
+                description=f"Xóa tài khoản nhân viên {emp_username} ({emp_role})",
+                request=request
+            )
+
             return Response({'success': True, 'message': 'Đã xóa tài khoản nhân viên thành công.'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'success': False, 'message': 'Không tìm thấy nhân viên cần xóa.'}, status=status.HTTP_404_NOT_FOUND)
@@ -746,6 +819,15 @@ class AdminRolePermissionsView(APIView):
                 permissions['settings'] = {'read': False, 'create': False, 'update': False, 'delete': False}
             if isinstance(permission_codes, list):
                 permission_codes = [code for code in permission_codes if not str(code).startswith('settings.')]
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='SYSTEM',
+            description=f"Cập nhật ma trận phân quyền cho vai trò {role.upper()}",
+            request=request
+        )
 
         return Response({
             'success': True,

@@ -272,7 +272,14 @@ class PaymentConfigView(APIView):
         config = PaymentConfig.get_solo()
         serializer = PaymentConfigSerializer(config, data=request.data, partial=False)
         if serializer.is_valid():
-            serializer.save()
+            cfg = serializer.save()
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='SYSTEM',
+                description=f"Cập nhật cấu hình thụ hưởng VietQR ({cfg.bank_id} - STK: {cfg.account_no} - {cfg.account_name})",
+                request=request
+            )
             return Response({
                 "success": True,
                 "message": "Cập nhật cấu hình thanh toán VietQR thành công!",
@@ -288,7 +295,14 @@ class PaymentConfigView(APIView):
         config = PaymentConfig.get_solo()
         serializer = PaymentConfigSerializer(config, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            cfg = serializer.save()
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='SYSTEM',
+                description=f"Cập nhật cấu hình thụ hưởng VietQR ({cfg.bank_id} - STK: {cfg.account_no} - {cfg.account_name})",
+                request=request
+            )
             return Response({
                 "success": True,
                 "message": "Cập nhật cấu hình thanh toán VietQR thành công!",

@@ -17,6 +17,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 
 export default function SystemLog() {
@@ -28,7 +30,7 @@ export default function SystemLog() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
 
   // State các bộ lọc
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,7 +92,36 @@ export default function SystemLog() {
   }, [fetchLogs]);
 
   // Xử lý đổi trang
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize) || 1);
+  const fromIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const toIndex = Math.min(page * pageSize, totalCount);
+
+  // Tính dải số trang hiển thị (hỗ trợ dấu ...)
+  const paginationRange = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const delta = 1;
+    const range = [];
+    for (
+      let i = Math.max(2, page - delta);
+      i <= Math.min(totalPages - 1, page + delta);
+      i++
+    ) {
+      range.push(i);
+    }
+
+    if (page - delta > 2) {
+      range.unshift('...');
+    }
+    if (page + delta < totalPages - 1) {
+      range.push('...');
+    }
+
+    range.unshift(1);
+    range.push(totalPages);
+    return range;
+  }, [page, totalPages]);
 
   // Render Badge Hành động theo màu quy định
   const renderActionBadge = (action) => {
@@ -392,33 +423,107 @@ export default function SystemLog() {
           </table>
         </div>
 
-        {/* Footer Phân Trang */}
-        <div className="py-3.5 px-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>
-            Hiển thị <strong>{logs.length}</strong> / <strong>{totalCount}</strong> bản ghi
+        {/* Footer Phân Trang Nâng Cao */}
+        <div className="py-3.5 px-4 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-3.5 text-xs text-slate-500">
+          {/* Thông tin số lượng & Lựa chọn số bản ghi / trang */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              Hiển thị <strong className="text-slate-700">{fromIndex}</strong> – <strong className="text-slate-700">{toIndex}</strong> trong tổng số <strong className="text-slate-700">{totalCount}</strong> bản ghi
+            </div>
+
+            <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+              <span className="text-slate-400">Số dòng:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-2xs"
+              >
+                <option value={5}>5 / trang</option>
+                <option value={10}>10 / trang</option>
+                <option value={20}>20 / trang</option>
+                <option value={30}>30 / trang</option>
+                <option value={50}>50 / trang</option>
+              </select>
+            </div>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                disabled={page <= 1 || loading}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="font-medium text-slate-700">
-                Trang {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={page >= totalPages || loading}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+          {/* Cụm nút chuyển trang linh hoạt */}
+          <div className="flex items-center gap-1.5">
+            {/* Về trang đầu */}
+            <button
+              onClick={() => setPage(1)}
+              disabled={page <= 1 || loading}
+              title="Trang đầu"
+              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white cursor-pointer transition shadow-2xs"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+
+            {/* Trang trước */}
+            <button
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              disabled={page <= 1 || loading}
+              title="Trang trước"
+              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white cursor-pointer transition shadow-2xs"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Các nút số trang */}
+            <div className="flex items-center gap-1">
+              {paginationRange.map((item, idx) => {
+                if (item === '...') {
+                  return (
+                    <span
+                      key={`ellipsis-${idx}`}
+                      className="px-2 py-1 text-slate-400 select-none text-xs"
+                    >
+                      ...
+                    </span>
+                  );
+                }
+
+                const isCurrent = item === page;
+                return (
+                  <button
+                    key={`page-${item}`}
+                    onClick={() => setPage(item)}
+                    disabled={loading}
+                    className={`min-w-[32px] h-8 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center justify-center ${
+                      isCurrent
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
             </div>
-          )}
+
+            {/* Trang kế tiếp */}
+            <button
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={page >= totalPages || loading}
+              title="Trang tiếp"
+              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white cursor-pointer transition shadow-2xs"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            {/* Đến trang cuối */}
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages || loading}
+              title="Trang cuối"
+              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white cursor-pointer transition shadow-2xs"
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

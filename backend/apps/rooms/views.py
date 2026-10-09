@@ -185,6 +185,15 @@ class RoomCategoryViewSet(viewsets.ModelViewSet):
             )
 
         category.refresh_from_db()
+
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='ROOM',
+            description=f'Thêm mới hạng phòng "{category.name}" (Giá cơ sở: {category.base_price:,.0f} VNĐ)',
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Thêm mới hạng phòng "{category.name}" thành công!',
@@ -270,6 +279,15 @@ class RoomCategoryViewSet(viewsets.ModelViewSet):
             first_img.save()
 
         category.refresh_from_db()
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='ROOM',
+            description=f'Cập nhật hạng phòng "{category.name}"',
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Cập nhật hạng phòng "{category.name}" thành công!',
@@ -287,6 +305,15 @@ class RoomCategoryViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         category.delete()
+
+        log_action(
+            user=request.user,
+            action='DELETE',
+            module='ROOM',
+            description=f'Xóa hạng phòng "{name}"',
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Đã xóa hạng phòng "{name}" thành công.'
@@ -463,6 +490,15 @@ class AdminRoomListCreateView(APIView):
         serializer = RoomSerializer(data=request.data)
         if serializer.is_valid():
             room = serializer.save()
+
+            log_action(
+                user=request.user,
+                action='CREATE',
+                module='ROOM',
+                description=f'Thêm phòng mới {room.room_number} (Tầng {room.floor}, Hạng phòng: {room.category.name if room.category else "Chưa chọn"})',
+                request=request
+            )
+
             return Response({
                 'success': True,
                 'message': f'Thêm phòng {room.room_number} (Tầng {room.floor}) thành công!',
@@ -520,6 +556,15 @@ class AdminRoomDetailView(APIView):
         serializer = RoomSerializer(room, data=request.data, partial=True)
         if serializer.is_valid():
             updated_room = serializer.save()
+
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='ROOM',
+                description=f'Cập nhật thông tin phòng {updated_room.room_number}',
+                request=request
+            )
+
             return Response({
                 'success': True,
                 'message': f'Cập nhật thông tin phòng {updated_room.room_number} thành công!',
@@ -547,6 +592,15 @@ class AdminRoomDetailView(APIView):
 
         room_num = room.room_number
         room.delete()
+
+        log_action(
+            user=request.user,
+            action='DELETE',
+            module='ROOM',
+            description=f'Xóa phòng {room_num} khỏi sơ đồ phòng',
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Đã xóa phòng {room_num} khỏi sơ đồ phòng khách sạn thành công.'
