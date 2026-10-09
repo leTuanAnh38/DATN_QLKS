@@ -44,14 +44,15 @@ export const adminUserService = {
 
     /**
      * Lấy Lịch sử Đặt phòng của khách hàng (có phân trang)
-     * GET /api/bookings/?guest_id={id}&page={page}
+     * GET /api/bookings/?guest_id={id}&page={page}&page_size={pageSize}
      */
-    async getGuestBookings(guestId, page = 1) {
+    async getGuestBookings(guestId, page = 1, pageSize = 5) {
         try {
             const response = await api.get('/bookings/', {
                 params: {
                     guest_id: guestId,
-                    page: page
+                    page: page,
+                    page_size: pageSize
                 }
             });
             return response.data;
@@ -68,14 +69,15 @@ export const adminUserService = {
 
     /**
      * Lấy Lịch sử Sử dụng Dịch vụ của khách hàng (có phân trang)
-     * GET /api/service-requests/?guest_id={id}&page={page}
+     * GET /api/service-requests/?guest_id={id}&page={page}&page_size={pageSize}
      */
-    async getGuestServiceRequests(guestId, page = 1) {
+    async getGuestServiceRequests(guestId, page = 1, pageSize = 5) {
         try {
             const response = await api.get('/service-requests/', {
                 params: {
                     guest_id: guestId,
-                    page: page
+                    page: page,
+                    page_size: pageSize
                 }
             });
             return response.data;
@@ -84,7 +86,7 @@ export const adminUserService = {
             // Fallback sang /services/requests/ nếu cần
             try {
                 const fb = await api.get('/services/requests/', {
-                    params: { guest_id: guestId, page }
+                    params: { guest_id: guestId, page, page_size: pageSize }
                 });
                 return fb.data;
             } catch (err2) {

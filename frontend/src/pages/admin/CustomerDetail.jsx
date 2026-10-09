@@ -74,6 +74,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
     const [bookings, setBookings] = useState([]);
     const [isLoadingBookings, setIsLoadingBookings] = useState(false);
     const [bookingCurrentPage, setBookingCurrentPage] = useState(1);
+    const [bookingPageSize, setBookingPageSize] = useState(5);
     const [bookingTotalPages, setBookingTotalPages] = useState(1);
     const [bookingTotalCount, setBookingTotalCount] = useState(0);
 
@@ -81,6 +82,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
     const [serviceRequests, setServiceRequests] = useState([]);
     const [isLoadingServices, setIsLoadingServices] = useState(false);
     const [serviceCurrentPage, setServiceCurrentPage] = useState(1);
+    const [servicePageSize, setServicePageSize] = useState(5);
     const [serviceTotalPages, setServiceTotalPages] = useState(1);
     const [serviceTotalCount, setServiceTotalCount] = useState(0);
 
@@ -104,18 +106,19 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
         }
     }, [customerId]);
 
-    // 2. Tải lịch sử đặt phòng (GET /api/bookings/?guest_id={id}&page={page})
-    const fetchBookings = useCallback(async (page = 1) => {
+    // 2. Tải lịch sử đặt phòng (GET /api/bookings/?guest_id={id}&page={page}&page_size={pageSize})
+    const fetchBookings = useCallback(async (page = 1, pageSize = bookingPageSize) => {
         if (!customerId) return;
         setIsLoadingBookings(true);
         try {
-            const res = await adminUserService.getGuestBookings(customerId, page);
+            const res = await adminUserService.getGuestBookings(customerId, page, pageSize);
             if (res && (res.results || res.bookings || Array.isArray(res))) {
                 const list = res.results || res.bookings || res;
                 setBookings(list);
                 setBookingCurrentPage(page);
-                setBookingTotalCount(res.count !== undefined ? res.count : list.length);
-                setBookingTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
+                const count = res.count !== undefined ? res.count : list.length;
+                setBookingTotalCount(count);
+                setBookingTotalPages(res.total_pages || Math.ceil(count / pageSize) || 1);
             } else {
                 setBookings([]);
                 setBookingTotalCount(0);
@@ -127,20 +130,21 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
         } finally {
             setIsLoadingBookings(false);
         }
-    }, [customerId]);
+    }, [customerId, bookingPageSize]);
 
-    // 3. Tải lịch sử sử dụng dịch vụ (GET /api/service-requests/?guest_id={id}&page={page})
-    const fetchServiceRequests = useCallback(async (page = 1) => {
+    // 3. Tải lịch sử sử dụng dịch vụ (GET /api/service-requests/?guest_id={id}&page={page}&page_size={pageSize})
+    const fetchServiceRequests = useCallback(async (page = 1, pageSize = servicePageSize) => {
         if (!customerId) return;
         setIsLoadingServices(true);
         try {
-            const res = await adminUserService.getGuestServiceRequests(customerId, page);
+            const res = await adminUserService.getGuestServiceRequests(customerId, page, pageSize);
             if (res && (res.results || res.requests || res.items || Array.isArray(res))) {
                 const list = res.results || res.requests || res.items || res;
                 setServiceRequests(list);
                 setServiceCurrentPage(page);
-                setServiceTotalCount(res.count !== undefined ? res.count : list.length);
-                setServiceTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
+                const count = res.count !== undefined ? res.count : list.length;
+                setServiceTotalCount(count);
+                setServiceTotalPages(res.total_pages || Math.ceil(count / pageSize) || 1);
             } else {
                 setServiceRequests([]);
                 setServiceTotalCount(0);
@@ -152,23 +156,35 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
         } finally {
             setIsLoadingServices(false);
         }
-    }, [customerId]);
+    }, [customerId, servicePageSize]);
 
     // Tải dữ liệu ban đầu
     useEffect(() => {
         fetchCustomerProfile();
-        fetchBookings(1);
-        fetchServiceRequests(1);
-    }, [fetchCustomerProfile, fetchBookings, fetchServiceRequests]);
+        fetchBookings(1, bookingPageSize);
+        fetchServiceRequests(1, servicePageSize);
+    }, [fetchCustomerProfile, fetchBookings, fetchServiceRequests, bookingPageSize, servicePageSize]);
 
     // Handler khi chuyển trang đặt phòng
     const handleBookingPageChange = (newPage) => {
-        fetchBookings(newPage);
+        fetchBookings(newPage, bookingPageSize);
+    };
+
+    // Handler khi đổi số dòng / trang đặt phòng
+    const handleBookingPageSizeChange = (newSize) => {
+        setBookingPageSize(newSize);
+        fetchBookings(1, newSize);
     };
 
     // Handler khi chuyển trang dịch vụ
     const handleServicePageChange = (newPage) => {
-        fetchServiceRequests(newPage);
+        fetchServiceRequests(newPage, servicePageSize);
+    };
+
+    // Handler khi đổi số dòng / trang dịch vụ
+    const handleServicePageSizeChange = (newSize) => {
+        setServicePageSize(newSize);
+        fetchServiceRequests(1, newSize);
     };
 
     // Trích xuất số CCCD/Passport an toàn
@@ -535,13 +551,15 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                         </div>
 
                         {/* Phân trang Tab 1 */}
-                        {bookingTotalPages > 1 && (
+                        {bookingTotalCount > 0 && (
                             <Pagination
                                 currentPage={bookingCurrentPage}
                                 totalPages={bookingTotalPages}
                                 totalCount={bookingTotalCount}
-                                pageSize={10}
+                                pageSize={bookingPageSize}
                                 onPageChange={handleBookingPageChange}
+                                onPageSizeChange={handleBookingPageSizeChange}
+                                pageSizeOptions={[5, 10, 20, 50]}
                             />
                         )}
                     </div>
@@ -669,13 +687,15 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                         </div>
 
                         {/* Phân trang Tab 2 */}
-                        {serviceTotalPages > 1 && (
+                        {serviceTotalCount > 0 && (
                             <Pagination
                                 currentPage={serviceCurrentPage}
                                 totalPages={serviceTotalPages}
                                 totalCount={serviceTotalCount}
-                                pageSize={10}
+                                pageSize={servicePageSize}
                                 onPageChange={handleServicePageChange}
+                                onPageSizeChange={handleServicePageSizeChange}
+                                pageSizeOptions={[5, 10, 20, 50]}
                             />
                         )}
                     </div>
