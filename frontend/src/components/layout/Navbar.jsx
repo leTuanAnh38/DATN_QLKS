@@ -8,7 +8,7 @@ import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 
-export const getAvatarUrl = (avatar) => {
+const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
     if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')) {
         return avatar;

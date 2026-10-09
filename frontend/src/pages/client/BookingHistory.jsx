@@ -459,16 +459,7 @@ export default function BookingHistory() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
-                                    ✦ Trung tâm quản lý lưu trú
-                                </span>
-                                {user && (
-                                    <span className="text-xs text-slate-500">
-                                        Khách hàng: <strong>{user.full_name || user.username}</strong>
-                                    </span>
-                                )}
-                            </div>
+                            
                             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                                 Lịch sử & Đơn đặt phòng của tôi
                             </h1>

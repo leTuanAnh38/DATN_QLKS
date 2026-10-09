@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import adminUserService from '../../services/adminUserService';
-import RoleMatrixModal, { DEFAULT_ROLE_MATRIX } from '../../components/admin/modals/RoleMatrixModal';
+import RoleMatrixModal from '../../components/admin/modals/RoleMatrixModal';
+import { DEFAULT_ROLE_MATRIX } from '../../data/roleMatrixData';
 import UserAvatar from '../../components/common/UserAvatar';
 import Pagination from '../../components/common/Pagination';
 import { useAuth } from '../../store/authStore';
@@ -8,7 +9,7 @@ import { useAuth } from '../../store/authStore';
 // =========================================================================
 // DANH MỤC PHÒNG BAN, CHỨC DANH & CA LÀM VIỆC CHUẨN KHÁCH SẠN 5 SAO
 // =========================================================================
-export const HOTEL_DEPARTMENTS = [
+const HOTEL_DEPARTMENTS = [
     {
         name: 'Ban Quản Lý & Điều Hành',
         codePrefix: 'NV-MGR',
@@ -106,7 +107,7 @@ export const HOTEL_DEPARTMENTS = [
     }
 ];
 
-export const HOTEL_SHIFTS = [
+const HOTEL_SHIFTS = [
     'Ca Sáng (06:00 - 14:00)',
     'Ca Chiều (14:00 - 22:00)',
     'Ca Đêm (22:00 - 06:00 hôm sau)',

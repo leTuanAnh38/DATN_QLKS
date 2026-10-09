@@ -19,6 +19,7 @@ import {
     Eye
 } from 'lucide-react';
 import { amenityService } from '../../services/amenityService';
+import Pagination from '../../components/common/Pagination';
 
 // Danh sách gợi ý các icon / emoji tiện nghi phổ biến để Admin chọn nhanh
 const SUGGESTED_ICONS = [
@@ -45,6 +46,10 @@ export default function AmenityManagement() {
     const [amenities, setAmenities] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     // 2. STATE MODAL THÊM MỚI / CHỈNH SỬA
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -104,6 +109,19 @@ export default function AmenityManagement() {
             (item.id && String(item.id).includes(query))
         );
     }, [amenities, searchTerm]);
+
+    // Tự động về trang 1 khi đổi từ khóa tìm kiếm hoặc đổi số lượng dòng hiển thị
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, pageSize]);
+
+    // Tính toán phân trang
+    const totalPages = Math.max(1, Math.ceil(filteredAmenities.length / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const paginatedAmenities = useMemo(() => {
+        const startIndex = (safePage - 1) * pageSize;
+        return filteredAmenities.slice(startIndex, startIndex + pageSize);
+    }, [filteredAmenities, safePage, pageSize]);
 
     // 7. MỞ MODAL THÊM MỚI
     const handleOpenCreateModal = () => {
@@ -196,6 +214,9 @@ export default function AmenityManagement() {
             if (res.success) {
                 showToast('success', `Đã xóa tiện nghi "${deleteModal.item.name}" thành công!`);
                 setDeleteModal({ isOpen: false, item: null, isDeleting: false });
+                if (paginatedAmenities.length === 1 && safePage > 1) {
+                    setCurrentPage(safePage - 1);
+                }
                 fetchAmenities();
             } else {
                 showToast('error', res.message);
@@ -299,7 +320,9 @@ export default function AmenityManagement() {
                 </div>
 
                 <div className="text-xs text-slate-500 flex items-center gap-2">
-                    <span>Hiển thị: <strong className="text-slate-800">{filteredAmenities.length}</strong> / {amenities.length} tiện nghi</span>
+                    <span>
+                        Hiển thị trang <strong className="text-slate-800">{safePage}</strong> / {totalPages} (Tổng cộng <strong className="text-slate-800">{filteredAmenities.length}</strong> tiện nghi)
+                    </span>
                 </div>
             </div>
 
@@ -337,7 +360,7 @@ export default function AmenityManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredAmenities.map((item) => (
+                                paginatedAmenities.map((item) => (
                                     <tr key={item.id} className="hover:bg-slate-50/60 transition group">
                                         {/* CỘT 1: ID */}
                                         <td className="py-4 px-6 text-center">
@@ -405,6 +428,22 @@ export default function AmenityManagement() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Phân trang (Pagination) */}
+                {!isLoading && filteredAmenities.length > 0 && (
+                    <Pagination
+                        currentPage={safePage}
+                        totalPages={totalPages}
+                        totalCount={filteredAmenities.length}
+                        pageSize={pageSize}
+                        onPageSizeChange={(newSize) => {
+                            setPageSize(newSize);
+                            setCurrentPage(1);
+                        }}
+                        onPageChange={(page) => setCurrentPage(page)}
+                        pageSizeOptions={[5, 10, 20, 50]}
+                    />
+                )}
             </div>
 
             {/* MODAL FORM: THÊM MỚI HOẶC CẬP NHẬT TIỆN NGHI */}

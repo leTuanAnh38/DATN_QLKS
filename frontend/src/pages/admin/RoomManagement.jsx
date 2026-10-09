@@ -36,7 +36,7 @@ const formatDateTime = (isoStr) => {
 // =========================================================================
 // CẤU HÌNH TRẠNG THÁI PHÒNG & MÀU SẮC CHUẨN PMS KHÁCH SẠN
 // =========================================================================
-export const ROOM_STATUSES = {
+const ROOM_STATUSES = {
     available: {
         key: 'available',
         label: 'Phòng trống (Sẵn sàng)',

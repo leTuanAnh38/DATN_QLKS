@@ -8,7 +8,7 @@ import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 
 // Helper chuẩn hóa đường dẫn avatar từ backend
-export const getAvatarUrl = (avatar) => {
+const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
     if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')) {
         return avatar;

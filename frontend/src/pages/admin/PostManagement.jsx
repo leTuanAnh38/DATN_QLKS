@@ -13,7 +13,7 @@ const quillFormats = [
 ];
 
 // Hàm chuyển đổi tiếng Việt có dấu thành slug không dấu cho SEO
-export function generateVietnameseSlug(text) {
+function generateVietnameseSlug(text) {
     if (!text) return '';
     let slug = text.toLowerCase();
     slug = slug.replace(/đ/g, 'd');
