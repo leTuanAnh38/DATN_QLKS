@@ -26,6 +26,7 @@ import SystemSettings from './SystemSettings';
 import AmenityManagement from './AmenityManagement';
 import LogoutConfirmModal from '../../components/common/LogoutConfirmModal';
 import PromotionManagement from './PromotionManagement';
+import SystemLog from './SystemLog';
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -168,6 +169,8 @@ export default function HotelAdminDashboard({ initialTab }) {
         } else if (location.pathname === '/admin/promotions') {
             setActiveTab('promotions');
             setIsMarketingMenuOpen(true);
+        } else if (location.pathname === '/admin/audit-logs' || location.pathname === '/admin/logs') {
+            setActiveTab('audit-logs');
         } else {
             const params = new URLSearchParams(location.search);
             const tabParam = params.get('tab');
@@ -1120,6 +1123,23 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     </div>
                                 </button>
                             )}
+
+                            {/* 12. Nhật ký thao tác hệ thống (Audit Log) - Dành riêng cho ADMIN, OWNER, MANAGER */}
+                            {isHighLevelManager && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('audit-logs')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'audit-logs' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span className="truncate text-left">Nhật ký hệ thống</span>
+                                    </div>
+                                </button>
+                            )}
                         </nav>
                 </div>
 
@@ -1410,6 +1430,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 10: CÀI ĐẶT HỆ THỐNG */}
                     {activeTab === 'settings' && (
                         canViewSettings ? <SystemSettings /> : renderAccessDenied('Tài khoản của bạn không có quyền Cài đặt hệ thống.')
+                    )}
+
+                    {/* TAB 11: NHẬT KÝ THAO TÁC HỆ THỐNG (AUDIT LOGS) */}
+                    {activeTab === 'audit-logs' && (
+                        isHighLevelManager ? <SystemLog /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Nhật ký hệ thống.')
                     )}
 
                     {/* TAB TỔNG QUAN HỆ THỐNG */}
@@ -2062,7 +2087,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'amenities', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'amenities', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings', 'audit-logs'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

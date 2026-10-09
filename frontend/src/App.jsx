@@ -84,6 +84,8 @@ function App() {
         <Route path="/admin/amenities" element={<AdminDashboard initialTab="amenities" />} />
         <Route path="/admin/posts" element={<AdminDashboard initialTab="posts" />} />
         <Route path="/admin/promotions" element={<AdminDashboard initialTab="promotions" />} />
+        <Route path="/admin/audit-logs" element={<AdminDashboard initialTab="audit-logs" />} />
+        <Route path="/admin/system-logs" element={<AdminDashboard initialTab="audit-logs" />} />
       </Routes>
 
     </BrowserRouter>

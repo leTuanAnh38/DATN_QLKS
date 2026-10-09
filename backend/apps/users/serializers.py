@@ -2,7 +2,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from .models import GuestProfile, EmployeeProfile
+from .models import GuestProfile, EmployeeProfile, AuditLog
 
 User = get_user_model()
 
@@ -709,5 +709,45 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
         profile.save()
 
         return instance
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    """
+    Serializer cho Nhật ký thao tác hệ thống (Audit Log)
+    Cung cấp thông tin chi tiết người thực hiện (tên, vai trò, hiển thị vai trò)
+    """
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    user_full_name = serializers.SerializerMethodField()
+    user_role = serializers.CharField(source='user.role', read_only=True)
+    user_role_display = serializers.CharField(source='user.get_role_display', read_only=True)
+    action_display = serializers.CharField(source='get_action_display', read_only=True)
+    module_display = serializers.CharField(source='get_module_display', read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            'id',
+            'user_id',
+            'username',
+            'user_full_name',
+            'user_role',
+            'user_role_display',
+            'action',
+            'action_display',
+            'module',
+            'module_display',
+            'description',
+            'ip_address',
+            'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_user_full_name(self, obj):
+        if not obj.user:
+            return "Hệ thống"
+        full_name = f"{obj.user.last_name or ''} {obj.user.first_name or ''}".strip()
+        return full_name if full_name else obj.user.username
+
 
 

@@ -22,11 +22,14 @@ from django.conf.urls.static import static
 from apps.services.views import ServiceRequestViewSet
 from apps.posts.views import ImageUploadView
 from apps.bookings.views import PromotionViewSet
+from apps.users.views import AuditLogViewSet
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('apps.users.urls')),
     path('api/users/', include('apps.users.urls')),
+    path('api/audit-logs/', AuditLogViewSet.as_view({'get': 'list'}), name='audit-logs-list'),
+    path('api/audit-logs/<int:pk>/', AuditLogViewSet.as_view({'get': 'retrieve'}), name='audit-logs-detail'),
     path('api/rooms/', include('apps.rooms.urls')),
     path('api/bookings/', include('apps.bookings.urls')),
     path('api/promotions/', PromotionViewSet.as_view({'get': 'list', 'post': 'create'}), name='promotions-direct-list'),
