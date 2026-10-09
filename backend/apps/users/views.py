@@ -1,3 +1,6 @@
+import os
+import json
+import logging
 import re
 
 from rest_framework import status, viewsets
@@ -9,6 +12,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 from rest_framework.exceptions import PermissionDenied
 from .models import GuestProfile, EmployeeProfile, AuditLog, log_action
@@ -25,6 +29,85 @@ from .serializers import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+ROLE_MATRIX_FILE = os.path.join(settings.BASE_DIR, 'role_matrix.json')
+
+
+def load_role_matrix():
+    if os.path.exists(ROLE_MATRIX_FILE):
+        try:
+            with open(ROLE_MATRIX_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Error loading role matrix: {e}")
+    return {}
+
+
+def save_role_matrix(matrix):
+    try:
+        with open(ROLE_MATRIX_FILE, 'w', encoding='utf-8') as f:
+            json.dump(matrix, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving role matrix: {e}")
+
+
+def check_role_permission(user, module, action='read'):
+    if not (user and user.is_authenticated):
+        return False
+    if user.is_superuser or getattr(user, 'role', '') in ['admin', 'owner']:
+        return True
+
+    user_role = getattr(user, 'role', '')
+    if not user_role or user_role == 'guest':
+        return False
+
+    # 1. Tra cứu ma trận phân quyền đã lưu động từ hệ thống
+    matrix = load_role_matrix()
+    if user_role in matrix and module in matrix[user_role]:
+        mod_perms = matrix[user_role][module]
+        if isinstance(mod_perms, dict) and action in mod_perms:
+            return bool(mod_perms[action])
+
+    # 2. Quy tắc mặc định (Default fallback) khi chưa cấu hình chi tiết
+    DEFAULT_STAFF_PERMS = {
+        'manager': {'*': {'read': True, 'create': True, 'update': True, 'delete': False}},
+        'receptionist': {
+            'guests': {'read': True, 'create': True, 'update': True, 'delete': False},
+            'bookings': {'read': True, 'create': True, 'update': True, 'delete': False},
+            'rooms': {'read': True, 'create': False, 'update': True, 'delete': False},
+        },
+        'cashier': {
+            'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'finance': {'read': True, 'create': True, 'update': True, 'delete': False},
+            'bookings': {'read': True, 'create': False, 'update': False, 'delete': False},
+        },
+        'housekeeper': {
+            'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'rooms': {'read': True, 'create': False, 'update': True, 'delete': False},
+            'bookings': {'read': True, 'create': False, 'update': False, 'delete': False},
+        },
+        'service_staff': {
+            'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'services': {'read': True, 'create': True, 'update': True, 'delete': False},
+        },
+        'technician': {
+            'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'rooms': {'read': True, 'create': False, 'update': True, 'delete': False},
+        },
+    }
+
+    role_rules = DEFAULT_STAFF_PERMS.get(user_role, {})
+    if '*' in role_rules:
+        return bool(role_rules['*'].get(action, False))
+    if module in role_rules:
+        return bool(role_rules[module].get(action, False))
+
+    # Mặc định cho phép nhân sự nội bộ xem (read) thông tin khách hàng phục vụ vận hành
+    if action == 'read' and user_role in ['cashier', 'housekeeper', 'service_staff', 'technician', 'receptionist', 'manager']:
+        return True
+
+    return False
 
 
 class IsManagerOrAdmin(BasePermission):
@@ -43,15 +126,26 @@ class IsManagerOrAdmin(BasePermission):
 
 class IsFrontDeskOrManager(BasePermission):
     """
-    Cho phép Lễ tân, Quản lý, Chủ và Admin xem, tạo hoặc cập nhật hồ sơ khách hàng.
+    Cho phép Lễ tân, Quản lý, Chủ, Admin hoặc nhân viên đã được phân quyền
+    xem, tạo hoặc cập nhật hồ sơ khách hàng.
     """
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
         if request.user.is_superuser:
             return True
-        allowed_roles = ['admin', 'owner', 'manager', 'receptionist']
-        return getattr(request.user, 'role', '') in allowed_roles
+
+        action_map = {
+            'GET': 'read',
+            'HEAD': 'read',
+            'OPTIONS': 'read',
+            'POST': 'create',
+            'PUT': 'update',
+            'PATCH': 'update',
+            'DELETE': 'delete'
+        }
+        action = action_map.get(request.method, 'read')
+        return check_role_permission(request.user, 'guests', action)
 
 
 class RegisterView(APIView):
@@ -633,7 +727,7 @@ class AdminEmployeeDetailView(APIView):
 # =========================================================================
 
 def get_all_roles_matrix():
-    return [
+    matrix_list = [
         {
             'role': 'admin',
             'title': 'Admin Hệ Thống',
@@ -772,6 +866,10 @@ def get_all_roles_matrix():
             }
         }
     ]
+    for r in matrix_list:
+        r['code'] = r['role']
+        r['name'] = r['title']
+    return matrix_list
 
 
 class AdminRoleListView(APIView):
@@ -784,6 +882,19 @@ class AdminRoleListView(APIView):
 
 class AdminRolePermissionsView(APIView):
     permission_classes = [IsManagerOrAdmin]
+
+    def get(self, request, role=None):
+        matrix = load_role_matrix()
+        if role:
+            return Response({
+                'success': True,
+                'role': role,
+                'permissions': matrix.get(role, {})
+            }, status=status.HTTP_200_OK)
+        return Response({
+            'success': True,
+            'matrix': matrix
+        }, status=status.HTTP_200_OK)
 
     def put(self, request, role):
         # 1. Admin hệ thống có quyền tối cao bất biến, không ai được phép chỉnh sửa để đảm bảo an toàn hệ thống
@@ -820,6 +931,12 @@ class AdminRolePermissionsView(APIView):
             if isinstance(permission_codes, list):
                 permission_codes = [code for code in permission_codes if not str(code).startswith('settings.')]
 
+        # 5. Lưu bền vững vào file JSON cấu hình phân quyền hệ thống
+        if isinstance(permissions, dict):
+            matrix = load_role_matrix()
+            matrix[role] = permissions
+            save_role_matrix(matrix)
+
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
         log_action(
             user=request.user,
@@ -844,8 +961,12 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
-    permission_classes = [IsManagerOrAdmin]
     pagination_class = StandardResultsSetPagination
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [IsAuthenticated()]
+        return [IsManagerOrAdmin()]
 
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):

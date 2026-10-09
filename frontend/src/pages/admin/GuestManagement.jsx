@@ -77,6 +77,10 @@ export default function GuestManagement() {
             setGuests(list);
             setTotalCount(res.count !== undefined ? res.count : list.length);
             setTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
+        } else {
+            setGuests([]);
+            setTotalCount(0);
+            setTotalPages(1);
         }
         setIsLoading(false);
     };
@@ -225,7 +229,7 @@ export default function GuestManagement() {
     };
 
     // Stats calculations
-    const totalGuests = guests.length;
+    const totalGuests = totalCount !== undefined && totalCount > 0 ? totalCount : guests.length;
     const vipDiamondCount = guests.filter(g => g.guest_profile?.vip_tier === 'Diamond').length;
     const vipPlatinumCount = guests.filter(g => g.guest_profile?.vip_tier === 'Platinum').length;
     const activeCount = guests.filter(g => g.is_active).length;

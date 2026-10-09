@@ -885,11 +885,15 @@ export default function EmployeeManagement() {
                                 className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-blue-600 transition"
                             >
                                 <option value="all">Tất cả vai trò ({roles.length})</option>
-                                {roles.map((r) => (
-                                    <option key={r.code} value={r.code}>
-                                        {r.name}
-                                    </option>
-                                ))}
+                                {roles.map((r) => {
+                                    const roleCode = r.code || r.role;
+                                    const roleName = r.name || r.title || roleCode;
+                                    return (
+                                        <option key={roleCode} value={roleCode}>
+                                            {roleName}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </div>
 
