@@ -215,8 +215,13 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                     console.error('Lỗi khi phát tín hiệu pms event:', e);
                 }
 
+                onClose();
                 if (typeof onSuccess === 'function') {
-                    onSuccess(res.data);
+                    try {
+                        onSuccess(res.data);
+                    } catch (callbackErr) {
+                        console.error('Lỗi trong onSuccess checkout:', callbackErr);
+                    }
                 }
             } else {
                 alert(res.message || 'Check-out thất bại. Vui lòng kiểm tra lại.');

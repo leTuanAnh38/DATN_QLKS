@@ -2316,10 +2316,18 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     : b
                             )
                         );
-                        if (activeTab === 'checkin_today') {
-                            fetchBookings({ is_checkin_today: true }, false);
+                        if (quickFilterMode === 'check-in-today') {
+                            fetchBookings(true, 'check-in-today');
+                        } else {
+                            fetchBookings(true);
                         }
-                        fetchStats();
+                        try {
+                            localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                            window.dispatchEvent(new CustomEvent('pms_booking_created'));
+                        } catch (e) { }
+                        if (typeof onBookingChanged === 'function') {
+                            onBookingChanged();
+                        }
                         setCheckInModalBooking(null);
                     }}
                 />

@@ -218,10 +218,14 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
             });
 
             if (res && res.success) {
-                if (typeof onSuccess === 'function') {
-                    onSuccess(res.data, res.room);
-                }
                 onClose();
+                if (typeof onSuccess === 'function') {
+                    try {
+                        onSuccess(res.data, res.room);
+                    } catch (callbackErr) {
+                        console.error('Lỗi trong onSuccess callback:', callbackErr);
+                    }
+                }
             } else {
                 alert(res?.message || 'Check-in thất bại. Vui lòng kiểm tra lại.');
             }
