@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../store/authStore';
 
 /**
@@ -11,19 +11,9 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         '*': { read: true, create: true, update: true, delete: true }
     },
 
-    // 2. Chủ Khách Sạn (Owner): Toàn quyền tài chính, xem & đổi giá phòng, giám sát
+    // 2. Chủ Khách Sạn (Owner): Toàn quyền quản trị cơ sở khách sạn, tài chính, nhân sự
     owner: {
-        overview: { read: true, create: false, update: false, delete: false },
-        rooms: { read: true, create: true, update: true, delete: true },
-        categories: { read: true, create: true, update: true, delete: true },
-        bookings: { read: true, create: false, update: false, delete: false },
-        guests: { read: true, create: false, update: false, delete: false },
-        services: { read: true, create: true, update: true, delete: true },
-        finance: { read: true, create: true, update: true, delete: true },
-        reports: { read: true, create: true, update: true, delete: true },
-        employees: { read: true, create: false, update: false, delete: false },
-        marketing: { read: true, create: true, update: true, delete: false },
-        settings: { read: true, create: false, update: true, delete: false },
+        '*': { read: true, create: true, update: true, delete: true }
     },
 
     // 3. Quản Lý Khách Sạn (Manager): Điều hành toàn diện
@@ -35,7 +25,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         guests: { read: true, create: true, update: true, delete: true },
         services: { read: true, create: true, update: true, delete: true },
         finance: { read: true, create: true, update: true, delete: false },
-        reports: { read: false, create: false, update: false, delete: false },
+        reports: { read: true, create: false, update: false, delete: false },
         employees: { read: true, create: true, update: true, delete: false },
         marketing: { read: true, create: true, update: true, delete: false },
         settings: { read: false, create: false, update: false, delete: false },
@@ -118,7 +108,21 @@ export function hasPermission(user, module, action = 'read') {
         return true;
     }
 
-    // 2. Kiểm tra permissions động trả về từ API backend
+    // 2. Kiểm tra cấu hình ma trận tùy chỉnh đã lưu trong localStorage (Do Admin cấu hình chi tiết)
+    try {
+        const savedMatrixStr = localStorage.getItem('hotel_role_matrix');
+        if (savedMatrixStr) {
+            const matrix = JSON.parse(savedMatrixStr);
+            if (matrix && matrix[user.role] && matrix[user.role][module]) {
+                const actionVal = matrix[user.role][module][action];
+                if (typeof actionVal === 'boolean') {
+                    return actionVal;
+                }
+            }
+        }
+    } catch (eStorage) {
+        // bỏ qua lỗi parse
+    }
     if (user.permissions) {
         // Kiểu 1: Object map { module: { read: true, create: false } }
         if (typeof user.permissions[module] === 'object' && !Array.isArray(user.permissions[module])) {
@@ -157,9 +161,17 @@ export function hasPermission(user, module, action = 'read') {
  */
 export function useHasPermission(module, action = 'read') {
     const { user } = useAuth();
+    const [syncKey, setSyncKey] = useState(0);
+
+    useEffect(() => {
+        const onPermUpdate = () => setSyncKey((prev) => prev + 1);
+        window.addEventListener('hotel_permissions_updated', onPermUpdate);
+        return () => window.removeEventListener('hotel_permissions_updated', onPermUpdate);
+    }, []);
+
     return useMemo(() => {
         return hasPermission(user, module, action);
-    }, [user, module, action]);
+    }, [user, module, action, syncKey]);
 }
 
 /**

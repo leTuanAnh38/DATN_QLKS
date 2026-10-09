@@ -29,19 +29,19 @@ export const DEFAULT_ROLE_MATRIX = [
         code: 'owner',
         title: 'Chủ Khách Sạn (Owner)',
         name: 'Chủ Khách Sạn (Owner)',
-        level: 'Cấp cao',
+        level: 'Toàn quyền',
         badge_color: 'amber',
         color: 'amber',
         icon: '💼',
-        description: 'Giám sát hoạt động kinh doanh, xem báo cáo doanh thu tài chính, công suất phòng và chiến lược giá.',
-        scope: 'Báo cáo doanh thu, chiến lược phòng, giám sát nhân sự',
+        description: 'Sở hữu khách sạn, quản lý toàn diện kinh doanh, nhân sự, tài chính, công suất phòng và chiến lược giá.',
+        scope: 'Toàn quyền vận hành, doanh thu, nhân sự và báo cáo',
         permissions: {
-            rooms: 'Xem & Đổi giá',
-            bookings: 'Xem chi tiết',
-            guests: 'Xem danh sách VIP',
-            employees: 'Xem báo cáo nhân sự',
+            rooms: 'Toàn quyền cấu hình',
+            bookings: 'Toàn quyền quản lý',
+            guests: 'Toàn quyền quản lý',
+            employees: 'Toàn quyền nhân sự',
             finance: 'Toàn quyền tài chính',
-            settings: 'Xem cấu hình',
+            settings: 'Toàn quyền cấu hình',
         }
     },
     {
@@ -205,17 +205,17 @@ const INITIAL_CRUD_MATRIX = {
         settings: { read: true, create: true, update: true, delete: true },
     },
     owner: {
-        overview: { read: true, create: false, update: false, delete: false },
-        rooms: { read: true, create: true, update: true, delete: false },
-        categories: { read: true, create: true, update: true, delete: false },
-        bookings: { read: true, create: false, update: false, delete: false },
-        guests: { read: true, create: false, update: false, delete: false },
-        services: { read: true, create: false, update: false, delete: false },
+        overview: { read: true, create: true, update: true, delete: true },
+        rooms: { read: true, create: true, update: true, delete: true },
+        categories: { read: true, create: true, update: true, delete: true },
+        bookings: { read: true, create: true, update: true, delete: true },
+        guests: { read: true, create: true, update: true, delete: true },
+        services: { read: true, create: true, update: true, delete: true },
         finance: { read: true, create: true, update: true, delete: true },
         reports: { read: true, create: true, update: true, delete: true },
-        employees: { read: true, create: false, update: false, delete: false },
-        marketing: { read: true, create: true, update: true, delete: false },
-        settings: { read: true, create: false, update: true, delete: false },
+        employees: { read: true, create: true, update: true, delete: true },
+        marketing: { read: true, create: true, update: true, delete: true },
+        settings: { read: true, create: true, update: true, delete: true },
     },
     manager: {
         overview: { read: true, create: true, update: true, delete: false },
@@ -228,7 +228,7 @@ const INITIAL_CRUD_MATRIX = {
         reports: { read: true, create: false, update: false, delete: false },
         employees: { read: true, create: true, update: true, delete: false },
         marketing: { read: true, create: true, update: true, delete: false },
-        settings: { read: true, create: false, update: false, delete: false },
+        settings: { read: false, create: false, update: false, delete: false },
     },
     receptionist: {
         overview: { read: true, create: false, update: false, delete: false },
@@ -331,14 +331,25 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
     // Role đang được chọn để cấu hình quyền
     const [selectedRole, setSelectedRole] = useState('receptionist');
 
-    // Vai trò tối cao có quyền cố định, không thể chỉnh sửa
-    const isFixedSystemRole = ['admin', 'owner'].includes(selectedRole);
+    // Vai trò tối cao có quyền cố định, không thể chỉnh sửa (Chỉ Admin Hệ Thống cố định toàn quyền)
+    const isFixedSystemRole = selectedRole === 'admin';
 
     // Chế độ xem: 'matrix' (Bảng ma trận checkbox CRUD) hoặc 'overview' (Tóm tắt quyền)
     const [viewMode, setViewMode] = useState('matrix');
 
-    // State lưu trữ dữ liệu quyền của tất cả vai trò
-    const [matrixState, setMatrixState] = useState(INITIAL_CRUD_MATRIX);
+    // State lưu trữ dữ liệu quyền của tất cả vai trò (Ưu tiên khôi phục từ localStorage nếu đã được Admin cấu hình)
+    const [matrixState, setMatrixState] = useState(() => {
+        try {
+            const saved = localStorage.getItem('hotel_role_matrix');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return { ...INITIAL_CRUD_MATRIX, ...parsed };
+            }
+        } catch (e) {
+            console.warn('[RBAC] Lỗi khi nạp ma trận từ localStorage:', e);
+        }
+        return INITIAL_CRUD_MATRIX;
+    });
 
     // Trạng thái gửi API PUT
     const [isSaving, setIsSaving] = useState(false);
@@ -377,9 +388,18 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
 
     const totalPossible = SYSTEM_MODULES.length * CRUD_ACTIONS.length;
 
+    // Kiểm tra xem phân hệ này có bị hạn chế/khóa đối với người đang thao tác hay không
+    // Quản lý (Manager) tuyệt đối không có thẩm quyền cấp phát hoặc thay đổi phân hệ "Cài đặt hệ thống" cho nhân viên
+    const isModuleRestricted = (moduleKey) => {
+        if (isManager && moduleKey === 'settings') {
+            return true;
+        }
+        return false;
+    };
+
     // 1. Thao tác bật/tắt từng ô Checkbox
     const handleToggleCell = (moduleKey, actionKey) => {
-        if (isFixedSystemRole) return;
+        if (isFixedSystemRole || isModuleRestricted(moduleKey)) return;
         setMatrixState((prev) => {
             const currentRoleData = prev[selectedRole] || {};
             const moduleData = currentRoleData[moduleKey] || { read: false, create: false, update: false, delete: false };
@@ -402,7 +422,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
 
     // 2. Thao tác bật/tắt toàn bộ 4 quyền của 1 dòng Module
     const handleToggleRow = (moduleKey) => {
-        if (isFixedSystemRole) return;
+        if (isFixedSystemRole || isModuleRestricted(moduleKey)) return;
         const row = currentPermissions[moduleKey] || {};
         const isAllActive = CRUD_ACTIONS.every((act) => Boolean(row[act.key]));
 
@@ -424,8 +444,14 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
     const handleQuickAction = (mode) => {
         if (isFixedSystemRole) return;
         setMatrixState((prev) => {
-            const newRolePerms = {};
+            const newRolePerms = { ...(prev[selectedRole] || {}) };
             SYSTEM_MODULES.forEach((mod) => {
+                // Nếu module bị khóa với vai trò người đang thao tác (Quản lý không được cấp settings), giữ nguyên tắt
+                if (isModuleRestricted(mod.key)) {
+                    newRolePerms[mod.key] = { read: false, create: false, update: false, delete: false };
+                    return;
+                }
+
                 if (mode === 'GRANT_ALL') {
                     newRolePerms[mod.key] = { read: true, create: true, update: true, delete: true };
                 } else if (mode === 'READ_ONLY') {
@@ -446,10 +472,18 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
 
     // 4. Lưu lại quyền - Gửi API PUT lên Server
     const handleSavePermissions = async () => {
-        if (isFixedSystemRole || (isManager && ['admin', 'owner', 'manager'].includes(selectedRole))) {
+        if (isFixedSystemRole) {
             setAlertMessage({
                 type: 'error',
-                text: 'Không thể chỉnh sửa ma trận phân quyền của vai trò quản trị tối cao (Admin & Owner).'
+                text: 'Không thể chỉnh sửa ma trận phân quyền của vai trò quản trị tối cao (Admin Hệ Thống).'
+            });
+            return;
+        }
+
+        if (isManager && ['admin', 'owner', 'manager'].includes(selectedRole)) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Quản lý chỉ có quyền phân quyền cho nhân viên cấp dưới, không thể phân quyền cho Admin, Owner hoặc Manager.'
             });
             return;
         }
@@ -457,12 +491,31 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
         setIsSaving(true);
         setAlertMessage(null);
 
+        // Chuẩn bị dữ liệu phân quyền đã được làm sạch bảo mật
+        let sanitizedCurrentPermissions = { ...currentPermissions };
+        let sanitizedMatrixState = { ...matrixState };
+
+        // Nếu người thao tác là Quản lý, tuyệt đối không được cấp phát phân hệ Cài đặt hệ thống
+        if (isManager) {
+            sanitizedCurrentPermissions = {
+                ...sanitizedCurrentPermissions,
+                settings: { read: false, create: false, update: false, delete: false }
+            };
+            sanitizedMatrixState = {
+                ...sanitizedMatrixState,
+                [selectedRole]: {
+                    ...(sanitizedMatrixState[selectedRole] || {}),
+                    settings: { read: false, create: false, update: false, delete: false }
+                }
+            };
+        }
+
         // Chuẩn bị payload chuẩn RESTful
         const payload = {
             role: selectedRole,
-            permissions: currentPermissions,
+            permissions: sanitizedCurrentPermissions,
             // Format danh sách chuỗi code phẳng để tương thích các middleware Django
-            permission_codes: Object.entries(currentPermissions).flatMap(([mod, acts]) =>
+            permission_codes: Object.entries(sanitizedCurrentPermissions).flatMap(([mod, acts]) =>
                 Object.entries(acts)
                     .filter(([, val]) => Boolean(val))
                     .map(([act]) => `${mod}.${act}`)
@@ -473,11 +526,20 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
         console.log('[RBAC] Gửi payload PUT lên API lưu phân quyền:', payload);
 
         try {
-            // Thử gọi endpoint backend nếu có
+            // 1. Lưu bền vững vào localStorage để nhớ vĩnh viễn cấu hình quyền cả khi đăng xuất / đăng nhập lại
+            try {
+                localStorage.setItem('hotel_role_matrix', JSON.stringify(sanitizedMatrixState));
+                // Bắn event đồng bộ tức thì cho Sidebar và các trang khác mà không cần F5
+                window.dispatchEvent(new Event('hotel_permissions_updated'));
+            } catch (eStorage) {
+                console.warn('[RBAC] Không thể lưu vào localStorage:', eStorage);
+            }
+
+            // 2. Thử gọi endpoint backend nếu có
             try {
                 await api.put(`/auth/admin/roles/${selectedRole}/permissions/`, payload);
             } catch (errApi) {
-                // Nếu endpoint chưa định nghĩa ở backend Django, vẫn log và cho phép mock thành công
+                // Nếu endpoint chưa định nghĩa ở backend Django, vẫn log và cho phép client lưu thành công
                 console.warn('[RBAC] Backend endpoint chưa kích hoạt, tiếp tục cập nhật phía Client:', errApi?.message);
             }
 
@@ -702,19 +764,30 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {SYSTEM_MODULES.map((mod) => {
-                                        const rowPerms = currentPermissions[mod.key] || {};
-                                        const isRowAllChecked = CRUD_ACTIONS.every((act) => Boolean(rowPerms[act.key]));
+                                        const isRestricted = isModuleRestricted(mod.key);
+                                        const isRowDisabled = isFixedSystemRole || isRestricted;
+                                        const rowPerms = isRestricted 
+                                            ? { read: false, create: false, update: false, delete: false }
+                                            : (currentPermissions[mod.key] || {});
+                                        const isRowAllChecked = !isRestricted && CRUD_ACTIONS.every((act) => Boolean(rowPerms[act.key]));
 
                                         return (
-                                            <tr key={mod.key} className="hover:bg-slate-50/70 transition">
+                                            <tr key={mod.key} className={`transition ${isRestricted ? 'bg-slate-50/60' : 'hover:bg-slate-50/70'}`}>
                                                 {/* Cột Dọc 1: Danh sách Module */}
                                                 <td className="p-3.5 pl-5">
                                                     <div>
-                                                        <strong className="block text-slate-900 font-bold text-xs">
-                                                            {mod.label}
-                                                        </strong>
+                                                        <div className="flex items-center gap-2">
+                                                            <strong className={`block text-xs font-bold ${isRestricted ? 'text-slate-500' : 'text-slate-900'}`}>
+                                                                {mod.label}
+                                                            </strong>
+                                                            {isRestricted && (
+                                                                <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                                                    🔒 Đặc quyền Admin/Owner
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <span className="text-[11px] text-slate-400 block line-clamp-1">
-                                                            {mod.desc}
+                                                            {isRestricted ? 'Quản lý không có quyền cấp phát phân hệ nhạy cảm này cho nhân viên' : mod.desc}
                                                         </span>
                                                     </div>
                                                 </td>
@@ -724,13 +797,20 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                                     const checked = Boolean(rowPerms[act.key]);
                                                     return (
                                                         <td key={act.key} className="p-3.5 text-center">
-                                                            <label className={`inline-flex items-center justify-center p-1 rounded-lg transition ${isFixedSystemRole ? 'cursor-not-allowed opacity-75' : 'hover:bg-slate-100 cursor-pointer'}`}>
+                                                            <label 
+                                                                className={`inline-flex items-center justify-center p-1 rounded-lg transition ${
+                                                                    isRowDisabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-slate-100 cursor-pointer'
+                                                                }`}
+                                                                title={isRestricted ? 'Quản lý không có quyền phân quyền phân hệ Cài đặt hệ thống' : undefined}
+                                                            >
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={checked}
-                                                                    disabled={isFixedSystemRole}
+                                                                    disabled={isRowDisabled}
                                                                     onChange={() => handleToggleCell(mod.key, act.key)}
-                                                                    className={`w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 focus:ring-2 transition ${isFixedSystemRole ? 'cursor-not-allowed bg-slate-100' : 'bg-white cursor-pointer'}`}
+                                                                    className={`w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 focus:ring-2 transition ${
+                                                                        isRowDisabled ? 'cursor-not-allowed bg-slate-100' : 'bg-white cursor-pointer'
+                                                                    }`}
                                                                 />
                                                             </label>
                                                         </td>
@@ -742,15 +822,21 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                                     <button
                                                         type="button"
                                                         onClick={() => handleToggleRow(mod.key)}
-                                                        disabled={isFixedSystemRole}
+                                                        disabled={isRowDisabled}
                                                         className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition ${
-                                                            isFixedSystemRole
-                                                                ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                            isRowDisabled
+                                                                ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
                                                                 : isRowAllChecked
                                                                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs cursor-pointer'
                                                                     : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 cursor-pointer'
                                                         }`}
-                                                        title={isFixedSystemRole ? 'Không thể chỉnh sửa vai trò cố định' : 'Bật/Tắt nhanh 4 quyền của module này'}
+                                                        title={
+                                                            isRestricted
+                                                                ? 'Quản lý không có quyền phân quyền phân hệ Cài đặt hệ thống'
+                                                                : isFixedSystemRole
+                                                                ? 'Không thể chỉnh sửa vai trò cố định'
+                                                                : 'Bật/Tắt nhanh 4 quyền của module này'
+                                                        }
                                                     >
                                                         {isRowAllChecked ? 'Đủ 4' : 'Bật hết'}
                                                     </button>

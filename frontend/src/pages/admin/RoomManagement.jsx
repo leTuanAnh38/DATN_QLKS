@@ -1927,7 +1927,7 @@ function RoomCard({
                         <span className="px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/80 text-[10px] font-bold text-slate-600 shadow-2xs">
                             {room.floor}F
                         </span>
-                        {isManagerOrAdmin && (
+                        {canUpdateRoom && (
                             <button
                                 type="button"
                                 onClick={() => onEdit(room)}

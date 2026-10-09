@@ -20,6 +20,7 @@ import {
     X
 } from 'lucide-react';
 import api from '../../services/api';
+import { useHasPermission } from '../../utils/permission';
 
 // Danh sách các ngân hàng phổ biến tại Việt Nam hỗ trợ chuẩn VietQR Napas247
 const POPULAR_BANKS = [
@@ -41,6 +42,8 @@ const POPULAR_BANKS = [
 ];
 
 export default function SystemSettings() {
+    const canUpdateSettings = useHasPermission('settings', 'update');
+
     // 1. STATE FORM CẤU HÌNH THANH TOÁN
     const [formData, setFormData] = useState({
         bank_bin: '',
@@ -104,6 +107,10 @@ export default function SystemSettings() {
 
     // 5. BẬT CHẾ ĐỘ CHỈNH SỬA (KHI BẤM NÚT "CẬP NHẬT")
     const handleStartEdit = () => {
+        if (!canUpdateSettings) {
+            showToast('error', 'Bạn chỉ có quyền xem, không được phép chỉnh sửa cấu hình hệ thống.');
+            return;
+        }
         setIsEditing(true);
         // Tự động focus vào ô nhập đầu tiên
         setTimeout(() => {
@@ -129,6 +136,11 @@ export default function SystemSettings() {
     // 8. XỬ LÝ LƯU CẤU HÌNH (GỌI API PUT /api/payments/config/)
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
+
+        if (!canUpdateSettings) {
+            showToast('error', 'Bạn chỉ có quyền xem, không được phép lưu cấu hình hệ thống.');
+            return;
+        }
 
         // Validate cơ bản phía client
         if (!formData.bank_bin.trim()) {
@@ -504,15 +516,22 @@ export default function SystemSettings() {
                                 {/* KHU VỰC NÚT THAO TÁC: NÚT CẬP NHẬT HOẶC NÚT LƯU + HỦY */}
                                 <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
                                     {!isEditing ? (
-                                        <button
-                                            type="button"
-                                            onClick={handleStartEdit}
-                                            disabled={isLoading}
-                                            className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
-                                        >
-                                            <Edit3 className="w-4 h-4" />
-                                            <span>Cập nhật</span>
-                                        </button>
+                                        canUpdateSettings ? (
+                                            <button
+                                                type="button"
+                                                onClick={handleStartEdit}
+                                                disabled={isLoading}
+                                                className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                                            >
+                                                <Edit3 className="w-4 h-4" />
+                                                <span>Cập nhật</span>
+                                            </button>
+                                        ) : (
+                                            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold">
+                                                <ShieldCheck className="w-4 h-4 text-slate-500 shrink-0" />
+                                                <span>Chế độ chỉ xem — Tài khoản của bạn không có quyền sửa đổi thông số thanh toán.</span>
+                                            </div>
+                                        )
                                     ) : (
                                         <div className="flex flex-wrap items-center gap-3 animate-fadeIn">
                                             <button

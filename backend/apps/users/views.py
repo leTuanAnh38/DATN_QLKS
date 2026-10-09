@@ -571,18 +571,18 @@ def get_all_roles_matrix():
         {
             'role': 'owner',
             'title': 'Chủ Khách Sạn (Owner)',
-            'level': 'Cấp cao',
+            'level': 'Toàn quyền',
             'badge_color': 'amber',
             'icon': '💼',
-            'description': 'Giám sát hoạt động kinh doanh, xem báo cáo doanh thu tài chính, công suất phòng và chiến lược giá.',
-            'scope': 'Báo cáo doanh thu, chiến lược phòng, giám sát nhân sự',
+            'description': 'Sở hữu khách sạn, quản lý toàn diện kinh doanh, nhân sự, tài chính, công suất phòng và chiến lược giá.',
+            'scope': 'Toàn quyền vận hành, doanh thu, nhân sự và báo cáo',
             'permissions': {
-                'rooms': 'Xem & Đổi giá',
-                'bookings': 'Xem chi tiết',
-                'guests': 'Xem danh sách VIP',
-                'employees': 'Xem báo cáo nhân sự',
+                'rooms': 'Toàn quyền cấu hình',
+                'bookings': 'Toàn quyền quản lý',
+                'guests': 'Toàn quyền quản lý',
+                'employees': 'Toàn quyền nhân sự',
                 'finance': 'Toàn quyền tài chính',
-                'settings': 'Xem cấu hình',
+                'settings': 'Toàn quyền cấu hình',
             }
         },
         {
@@ -599,7 +599,8 @@ def get_all_roles_matrix():
                 'guests': 'Toàn quyền quản lý',
                 'employees': 'Phân ca & Chấm công',
                 'finance': 'Xem & Xuất hóa đơn',
-                'settings': 'Cấu hình dịch vụ',
+                'reports': 'Xem báo cáo doanh thu',
+                'settings': 'Xem cấu hình',
             }
         },
         {
@@ -702,23 +703,40 @@ class AdminRolePermissionsView(APIView):
     permission_classes = [IsManagerOrAdmin]
 
     def put(self, request, role):
-        # 1. Admin và Owner có toàn quyền bất biến, không ai được phép sửa
-        if role in ['admin', 'owner']:
+        # 1. Admin hệ thống có quyền tối cao bất biến, không ai được phép chỉnh sửa để đảm bảo an toàn hệ thống
+        if role == 'admin':
             return Response({
                 'success': False,
-                'message': 'Không được phép chỉnh sửa ma trận phân quyền của Chủ khách sạn (Owner) và Quản trị viên (Admin). Các vai trò này có toàn quyền cố định.'
+                'message': 'Không được phép chỉnh sửa ma trận phân quyền của Quản trị viên tối cao (Admin Hệ Thống).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 2. Quản lý (Manager) chỉ được sửa quyền cho nhân viên cấp dưới (không được sửa quyền Quản lý, Chủ khách sạn, Admin)
         requester_role = getattr(request.user, 'role', '')
+        is_admin_or_super = request.user.is_superuser or requester_role == 'admin'
+
         if requester_role == 'manager' and role in ['manager', 'owner', 'admin']:
             return Response({
                 'success': False,
                 'message': 'Quản lý (Manager) chỉ có quyền điều chỉnh phân quyền cho nhân viên cấp dưới (Lễ tân, Thu ngân, Buồng phòng, Phục vụ, Kỹ thuật).'
             }, status=status.HTTP_403_FORBIDDEN)
 
+        # 3. Phân quyền cho Chủ khách sạn (Owner) chỉ dành riêng cho Admin Hệ Thống
+        if role == 'owner' and not is_admin_or_super:
+            return Response({
+                'success': False,
+                'message': 'Chỉ Quản trị viên Hệ thống (Admin) mới có quyền điều chỉnh phân quyền cho Chủ Khách Sạn (Owner).'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         permissions = request.data.get('permissions', {})
         permission_codes = request.data.get('permission_codes', [])
+
+        # 4. Quản lý (Manager) tuyệt đối không có quyền cấp phát hoặc thay đổi quyền phân hệ Cài đặt hệ thống (settings)
+        if requester_role == 'manager':
+            if isinstance(permissions, dict) and 'settings' in permissions:
+                permissions['settings'] = {'read': False, 'create': False, 'update': False, 'delete': False}
+            if isinstance(permission_codes, list):
+                permission_codes = [code for code in permission_codes if not str(code).startswith('settings.')]
+
         return Response({
             'success': True,
             'message': f'Đã cập nhật cấu hình phân quyền cho vai trò {role} thành công!',

@@ -509,7 +509,7 @@ export default function GuestManagement() {
                                                             ✏️
                                                         </button>
                                                     )}
-                                                    {isManagerOrAdmin && (
+                                                    {isManagerOrAdmin && canUpdateGuest && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleToggleStatus(g)}
