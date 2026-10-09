@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.contrib.auth import get_user_model
 
 from rest_framework.exceptions import PermissionDenied
-from .models import GuestProfile, EmployeeProfile, AuditLog
+from .models import GuestProfile, EmployeeProfile, AuditLog, log_action
 from .serializers import (
     UserSerializer,
     UserProfileSerializer,
@@ -90,6 +90,14 @@ class LoginView(APIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']
             refresh = RefreshToken.for_user(user)
+
+            log_action(
+                user=user,
+                action='LOGIN',
+                module='USER',
+                description=f"Tài khoản {user.username} ({user.get_role_display()}) đăng nhập thành công",
+                request=request
+            )
 
             return Response({
                 'success': True,

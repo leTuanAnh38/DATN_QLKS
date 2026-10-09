@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.db import transaction
 from .models import Booking, Promotion, BookingExtraService
 from ..rooms.models import Room, RoomCategory
-from ..users.models import User, GuestProfile
+from ..users.models import User, GuestProfile, log_action
 from ..services.models import ServiceItem, ServiceRequest
 from ..payments.models import Invoice, Payment
 from ..notifications.models import Notification
@@ -384,6 +384,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             booking.room.status = 'available'
             booking.room.save(update_fields=['status'])
 
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=request.user,
+            action='DELETE',
+            module='BOOKING',
+            description=f"Hủy đơn đặt phòng #{booking.booking_code}. Lý do: {reason}",
+            request=request
+        )
+
         return Response({
             'success': True,
             'message': f'Đơn đặt phòng {booking.booking_code} đã được hủy thành công.',
@@ -485,6 +494,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             elif booking.status in ['cancelled', 'no_show'] and booking.room.status == 'occupied':
                 booking.room.status = 'available'
                 booking.room.save(update_fields=['status'])
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=user if user.is_authenticated else None,
+            action='UPDATE',
+            module='BOOKING',
+            description=f"Cập nhật đơn đặt phòng #{booking.booking_code}" + (f" sang trạng thái {booking.get_status_display()}" if new_status else ""),
+            request=request
+        )
 
         serializer = self.get_serializer(booking, context={'request': request})
         return Response({
@@ -771,6 +789,16 @@ class BookingViewSet(viewsets.ModelViewSet):
         room_data = RoomSerializer(target_room).data
 
         guest_display = booking.guest.get_full_name() or booking.guest.username if booking.guest else "Khách hàng"
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='BOOKING',
+            description=f"Thực hiện Check-in đơn #{booking.booking_code} cho khách {guest_display} vào phòng {target_room.room_number}",
+            request=request
+        )
+
         success_message = f'Hoàn tất thủ tục Check-in thành công cho khách {guest_display}! Đã gán phòng {target_room.room_number} (Tầng {target_room.floor}).'
         if is_early_check_in:
             if additional_amount > 0:
@@ -980,6 +1008,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(booking, context={'request': request})
         from ..rooms.serializers import RoomSerializer
         room_data = RoomSerializer(target_room).data
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='BOOKING',
+            description=f"Tiếp đón khách Walk-in #{booking.booking_code} & Check-in ngay cho khách {guest_name} vào phòng {target_room.room_number}",
+            request=request
+        )
 
         return Response({
             'success': True,
@@ -1551,6 +1588,15 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'status_display': booking.room.get_status_display()
                 }
 
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='BOOKING',
+            description=f"Thực hiện Check-out đơn #{booking.booking_code} (Phòng {booking.room.room_number if booking.room else 'N/A'}). Tổng thu Folio: {grand_total:,.0f} VND",
+            request=request
+        )
+
         serializer = self.get_serializer(booking, context={'request': request})
         return Response({
             'success': True,
@@ -1642,6 +1688,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(booking, context={'request': request})
         from ..rooms.serializers import RoomSerializer
         room_data = RoomSerializer(released_room).data if released_room else None
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='BOOKING',
+            description=f"Đánh dấu Khách không đến (No-show) cho đơn #{booking.booking_code}",
+            request=request
+        )
 
         room_msg = f" Đã giải phóng phòng {released_room.room_number} về trạng thái Sẵn sàng (Available)." if released_room else ""
         return Response({
@@ -1827,6 +1882,15 @@ class BookingViewSet(viewsets.ModelViewSet):
                             f"đã được hệ thống xác nhận thành công. Số tiền phát sinh: {extra_amount:,.0f} VND."
                         )
                     )
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=user,
+            action='UPDATE',
+            module='BOOKING',
+            description=f"Gia hạn lưu trú đơn #{booking.booking_code} thêm {extra_nights} đêm đến {new_check_out_date.strftime('%d/%m/%Y')} (+{extra_amount:,.0f} VND)",
+            request=request
+        )
 
         serializer = BookingSerializer(booking, context={'request': request})
         return Response({

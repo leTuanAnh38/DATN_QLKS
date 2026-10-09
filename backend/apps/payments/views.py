@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 
 from ..bookings.models import Booking
+from ..users.models import log_action
 from .models import Payment, Invoice, PaymentConfig
 from .serializers import PaymentSerializer, PaymentConfigSerializer
 
@@ -155,6 +156,16 @@ class ConfirmPaymentView(APIView):
             if 'VietQR: Đã thanh toán' not in note_str:
                 booking.note = f"{note_str} | VietQR: Đã thanh toán ({amount_dec:,.0f} VND)" if note_str else f"VietQR: Đã thanh toán ({amount_dec:,.0f} VND)"
             booking.save(update_fields=['status', 'note'])
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        acting_user = request.user if (request.user and request.user.is_authenticated) else getattr(booking, 'guest', None)
+        log_action(
+            user=acting_user,
+            action='CREATE',
+            module='INVOICE',
+            description=f"Ghi nhận thanh toán {amount_dec:,.0f} VND ({payment_method}) cho đơn #{booking.booking_code}",
+            request=request
+        )
 
         serializer = PaymentSerializer(payment)
         return Response(

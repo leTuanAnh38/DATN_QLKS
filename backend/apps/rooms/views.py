@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
 from django.db.models import Q, Count
 from django.utils.text import slugify
+from ..users.models import log_action
 from .models import Room, RoomCategory, Amenity, RoomImage
 from .serializers import (
     AmenitySerializer,
@@ -601,6 +602,16 @@ class AdminRoomStatusUpdateView(APIView):
                 'maintenance': maintenance_count,
                 'occupancy_rate': occupancy_rate,
             }
+
+            # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='ROOM',
+                description=f"Cập nhật phòng {updated_room.room_number} sang trạng thái \"{updated_room.get_status_display()}\"",
+                request=request
+            )
+
             return Response({
                 'success': True,
                 'message': f'Đã đổi trạng thái phòng {updated_room.room_number} thành "{updated_room.get_status_display()}".',

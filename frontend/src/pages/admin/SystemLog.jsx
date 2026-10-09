@@ -38,13 +38,14 @@ export default function SystemLog() {
 
   // Chuẩn hóa role của người đăng nhập hiện tại
   const currentRole = useMemo(() => {
+    if (currentUser?.is_superuser) return 'ADMIN';
     return (currentUser?.role || '').toUpperCase();
   }, [currentUser]);
 
   // Kiểm tra phân quyền truy cập: Chỉ ADMIN, OWNER, MANAGER mới có quyền xem Audit Log
   const hasAccess = useMemo(() => {
-    return ['ADMIN', 'OWNER', 'MANAGER'].includes(currentRole);
-  }, [currentRole]);
+    return Boolean(currentUser?.is_superuser || ['ADMIN', 'OWNER', 'MANAGER'].includes(currentRole));
+  }, [currentUser, currentRole]);
 
   // Hàm tải dữ liệu log từ Backend
   const fetchLogs = useCallback(async () => {
