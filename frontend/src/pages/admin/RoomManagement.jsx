@@ -1735,58 +1735,51 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2">
+                        <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3">
                             <button
                                 type="button"
                                 onClick={handleGoToBookings}
-                                className="px-3 py-2 text-slate-600 hover:text-slate-900 font-bold text-xs rounded-xl hover:bg-slate-200/60 transition flex items-center gap-1 cursor-pointer"
+                                className="px-3 py-2 text-slate-600 hover:text-blue-700 font-bold text-xs rounded-xl hover:bg-slate-200/60 transition flex items-center gap-1.5 cursor-pointer"
+                                title="Đi tới trang Quản lý Đặt phòng"
                             >
                                 <span>📋</span>
                                 <span>Quản lý Đặt phòng</span>
                             </button>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedOccupiedRoom(null)}
-                                    className="px-3.5 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition cursor-pointer text-xs"
-                                >
-                                    Đóng
-                                </button>
-                                {canManageBookings && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const currentRoom = selectedOccupiedRoom;
-                                                const b = selectedOccupiedRoom.current_booking;
-                                                setSelectedOccupiedRoom(null);
-                                                handleOpenChangeRoom({
-                                                    room: currentRoom,
-                                                    booking: b,
-                                                    reason: '',
-                                                });
-                                            }}
-                                            className="px-3.5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-                                            title="Chuyển khách sang phòng trống mới"
-                                        >
-                                            <span>🔄</span>
-                                            <span>Đổi phòng</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const b = selectedOccupiedRoom.current_booking;
-                                                setSelectedOccupiedRoom(null);
-                                                setCheckOutBooking(b);
-                                            }}
-                                            className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>🧾</span>
-                                            <span>Thực hiện Check-out & Quyết toán</span>
-                                        </button>
-                                    </>
-                                )}
-                            </div>
+                            {canManageBookings && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const currentRoom = selectedOccupiedRoom;
+                                            const b = selectedOccupiedRoom.current_booking;
+                                            setSelectedOccupiedRoom(null);
+                                            handleOpenChangeRoom({
+                                                room: currentRoom,
+                                                booking: b,
+                                                reason: '',
+                                            });
+                                        }}
+                                        className="px-3.5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                        title="Chuyển khách sang phòng trống mới"
+                                    >
+                                        <span>🔄</span>
+                                        <span>Đổi phòng</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const b = selectedOccupiedRoom.current_booking;
+                                            setSelectedOccupiedRoom(null);
+                                            setCheckOutBooking(b);
+                                        }}
+                                        className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                        title="Thực hiện thủ tục Check-out trả phòng"
+                                    >
+                                        <span>🧾</span>
+                                        <span>Check-out</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

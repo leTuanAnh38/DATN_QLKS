@@ -1,5 +1,32 @@
 import api from './api';
 
+// Helper trích xuất thông báo lỗi chi tiết từ backend (DRF)
+const extractErrorMessage = (error, defaultMsg) => {
+    if (!error.response) return error.message || defaultMsg;
+    const { status, data } = error.response;
+    if (status === 403) {
+        return data?.detail || 'Tài khoản của bạn không có quyền thực hiện thao tác này. Chỉ Quản lý (Manager) hoặc Admin mới có quyền tạo/sửa/xóa khuyến mãi.';
+    }
+    if (typeof data === 'string') return data;
+    if (data?.detail) return data.detail;
+    if (data?.message) return data.message;
+    if (typeof data === 'object' && data !== null) {
+        // DRF validation error format: { field: ["error1"] }
+        const keys = Object.keys(data);
+        if (keys.length > 0) {
+            const firstKey = keys[0];
+            const firstVal = data[firstKey];
+            if (Array.isArray(firstVal) && firstVal.length > 0) {
+                return `${firstKey}: ${firstVal[0]}`;
+            }
+            if (typeof firstVal === 'string') {
+                return `${firstKey}: ${firstVal}`;
+            }
+        }
+    }
+    return defaultMsg;
+};
+
 export const promotionService = {
     /**
      * Lấy toàn bộ danh sách khuyến mãi / voucher
@@ -26,7 +53,7 @@ export const promotionService = {
                 return {
                     success: false,
                     data: [],
-                    message: error.response?.data?.message || 'Không thể tải danh sách khuyến mãi.'
+                    message: extractErrorMessage(error, 'Không thể tải danh sách khuyến mãi.')
                 };
             }
         }
@@ -46,14 +73,9 @@ export const promotionService = {
             };
         } catch (error) {
             console.error('Lỗi khi tạo khuyến mãi:', error);
-            const errDetail =
-                error.response?.data?.code?.[0] ||
-                error.response?.data?.name?.[0] ||
-                error.response?.data?.message ||
-                'Không thể tạo khuyến mãi mới.';
             return {
                 success: false,
-                message: errDetail
+                message: extractErrorMessage(error, 'Không thể tạo khuyến mãi mới.')
             };
         }
     },
@@ -73,14 +95,9 @@ export const promotionService = {
             };
         } catch (error) {
             console.error('Lỗi khi cập nhật khuyến mãi:', error);
-            const errDetail =
-                error.response?.data?.code?.[0] ||
-                error.response?.data?.name?.[0] ||
-                error.response?.data?.message ||
-                'Không thể cập nhật khuyến mãi.';
             return {
                 success: false,
-                message: errDetail
+                message: extractErrorMessage(error, 'Không thể cập nhật khuyến mãi.')
             };
         }
     },
@@ -100,7 +117,7 @@ export const promotionService = {
             console.error('Lỗi khi xóa khuyến mãi:', error);
             return {
                 success: false,
-                message: error.response?.data?.message || 'Không thể xóa voucher khuyến mãi.'
+                message: extractErrorMessage(error, 'Không thể xóa voucher khuyến mãi.')
             };
         }
     }

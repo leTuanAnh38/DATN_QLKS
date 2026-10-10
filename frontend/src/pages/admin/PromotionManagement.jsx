@@ -3,7 +3,6 @@ import {
     Tag,
     Plus,
     Search,
-    Edit2,
     Trash2,
     RefreshCw,
     X,
@@ -18,8 +17,14 @@ import {
     Sparkles
 } from 'lucide-react';
 import { promotionService } from '../../services/promotionService';
+import { useHasPermission } from '../../utils/permission';
 
 export default function PromotionManagement() {
+    // 0. PHÂN QUYỀN
+    const canCreatePromo = useHasPermission('marketing', 'create');
+    const canUpdatePromo = useHasPermission('marketing', 'update');
+    const canDeletePromo = useHasPermission('marketing', 'delete');
+
     // 1. STATE DỮ LIỆU
     const [promotions, setPromotions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -382,17 +387,40 @@ export default function PromotionManagement() {
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                     </button>
 
-                    {/* Nút "+ Thêm Voucher" ở góc phải */}
-                    <button
-                        type="button"
-                        onClick={handleOpenCreateModal}
-                        className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>Thêm Voucher</span>
-                    </button>
+                    {/* Nút "+ Thêm Voucher" ở góc phải (Phân quyền: Chỉ Quản lý/Admin) */}
+                    {canCreatePromo ? (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreateModal}
+                            className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Thêm Voucher</span>
+                        </button>
+                    ) : (
+                        <div
+                            title="Tài khoản của bạn chỉ có quyền xem, không có quyền tạo khuyến mãi mới (yêu cầu quyền Quản lý hoặc Admin)."
+                            className="px-4 py-2.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 font-semibold text-xs flex items-center gap-1.5 cursor-not-allowed select-none"
+                        >
+                            <Plus className="w-4 h-4 text-slate-300" />
+                            <span>Thêm Voucher (Chỉ xem)</span>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* BANNER THÔNG BÁO NẾU TÀI KHOẢN CHỈ CÓ QUYỀN XEM */}
+            {!canCreatePromo && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-3.5 rounded-2xl text-xs flex items-center gap-3 shadow-2xs">
+                    <span className="text-lg shrink-0">ℹ️</span>
+                    <div>
+                        <span className="font-bold">Chế độ Chỉ Xem (Tra cứu Voucher):</span>{' '}
+                        <span>
+                            Tài khoản của bạn có quyền xem và tra cứu mã khuyến mãi để áp dụng cho khách hàng, nhưng không có quyền tạo mới, sửa hoặc xóa (chỉ Quản lý hoặc Admin mới có quyền thao tác).
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* THANH TÌM KIẾM & BỘ LỌC */}
             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -452,13 +480,13 @@ export default function PromotionManagement() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                <th className="py-4 px-6 w-20 text-center">ID</th>
-                                <th className="py-4 px-6 min-w-[160px]">Mã Code</th>
+                                <th className="py-4 px-6 w-20 text-center whitespace-nowrap">ID</th>
+                                <th className="py-4 px-6 min-w-[160px] whitespace-nowrap">Mã Code</th>
                                 <th className="py-4 px-6 min-w-[240px]">Tên chương trình</th>
-                                <th className="py-4 px-6 min-w-[160px]">Mức giảm</th>
-                                <th className="py-4 px-6 min-w-[180px]">Thời gian áp dụng</th>
-                                <th className="py-4 px-6 w-36 text-center">Trạng thái</th>
-                                <th className="py-4 px-6 w-36 text-center">Hành động</th>
+                                <th className="py-4 px-6 min-w-[160px] whitespace-nowrap">Mức giảm</th>
+                                <th className="py-4 px-6 min-w-[180px] whitespace-nowrap">Thời gian áp dụng</th>
+                                <th className="py-4 px-6 min-w-[150px] text-center whitespace-nowrap">Trạng thái</th>
+                                <th className="py-4 px-6 min-w-[150px] text-center whitespace-nowrap">Hành động</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm">
@@ -559,47 +587,53 @@ export default function PromotionManagement() {
                                             </td>
 
                                             {/* CỘT 5: TRẠNG THÁI (Đang diễn ra / Hết hạn - Badge xanh / đỏ) */}
-                                            <td className="py-4 px-6 text-center">
+                                            <td className="py-4 px-6 text-center whitespace-nowrap">
                                                 <span
-                                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${status.color}`}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${status.color}`}
                                                 >
                                                     <span
-                                                        className={`w-1.5 h-1.5 rounded-full ${status.type === 'active'
+                                                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.type === 'active'
                                                             ? 'bg-emerald-500 animate-pulse'
                                                             : status.type === 'upcoming'
                                                                 ? 'bg-amber-500'
                                                                 : 'bg-rose-500'
                                                             }`}
                                                     />
-                                                    {status.label}
+                                                    <span className="whitespace-nowrap">{status.label}</span>
                                                 </span>
                                             </td>
 
                                             {/* CỘT 6: HÀNH ĐỘNG (NÚT SỬA, NÚT XÓA) */}
-                                            <td className="py-4 px-6 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    {/* Nút Sửa */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenEditModal(item)}
-                                                        className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                                        title="Chỉnh sửa voucher"
-                                                    >
-                                                        <Edit2 className="w-3.5 h-3.5 text-amber-600" />
-                                                        <span>Sửa</span>
-                                                    </button>
+                                            <td className="py-4 px-6 text-center whitespace-nowrap">
+                                                {canUpdatePromo || canDeletePromo ? (
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        {/* Nút Sửa */}
+                                                        {canUpdatePromo && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenEditModal(item)}
+                                                                className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                                title="Chỉnh sửa voucher"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                        )}
 
-                                                    {/* Nút Xóa */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenDeleteModal(item)}
-                                                        className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                                        title="Xóa voucher"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                                        <span>Xóa</span>
-                                                    </button>
-                                                </div>
+                                                        {/* Nút Xóa */}
+                                                        {canDeletePromo && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenDeleteModal(item)}
+                                                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                                title="Xóa voucher"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400 italic">Chỉ xem</span>
+                                                )}
                                             </td>
                                         </tr>
                                     );
