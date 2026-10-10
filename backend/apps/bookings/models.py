@@ -31,7 +31,9 @@ class Booking(models.Model):
     actual_check_out = models.DateTimeField(null=True, blank=True, verbose_name="Giờ Check-out thực tế")
 
     total_amount = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Tổng tiền phòng (VND)")
+    membership_discount = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Giảm giá Hạng thành viên (VND)")
     applied_promotion = models.ForeignKey('Promotion', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Mã KM áp dụng")
+    is_points_awarded = models.BooleanField(default=False, verbose_name="Đã cộng điểm tích lũy")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Trạng thái")
     
     # Ghi chú

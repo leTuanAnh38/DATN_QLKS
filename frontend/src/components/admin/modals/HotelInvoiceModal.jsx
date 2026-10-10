@@ -141,16 +141,37 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     const nights = Math.max(1, Number(booking.nights) || 1);
     const roomAmount = Number(booking.room_amount || booking.total_amount) || 0;
     
-    // Đơn giá phòng theo đêm:
-    // Chỉ tính khấu trừ khi thực tế có mã ưu đãi / khuyến mãi hợp lệ
-    const hasPromotion = Boolean(booking.promotion_code || booking.applied_promotion || (booking.discount_amount && Number(booking.discount_amount) > 0));
+    // Tách biệt các khoản giảm giá:
+    // 1. Giảm giá Hạng thành viên (Loyalty & Membership Program)
+    const membershipDiscount = Number(booking.membership_discount) || 0;
+    // 2. Mã khuyến mãi (Promotion Voucher)
+    const hasPromotion = Boolean(
+        booking.promotion_code || 
+        booking.applied_promotion || 
+        (booking.promotion_discount && Number(booking.promotion_discount) > 0) ||
+        (booking.discount_amount && Number(booking.discount_amount) > 0)
+    );
+    const hasDiscount = hasPromotion || membershipDiscount > 0;
+
     let pricePerNight = Number(booking.daily_rate) || 0;
-    if (!pricePerNight || pricePerNight <= 0 || !hasPromotion) {
-        pricePerNight = Math.round(roomAmount / nights);
+    if (!pricePerNight || pricePerNight <= 0 || !hasDiscount) {
+        pricePerNight = Math.round((roomAmount + membershipDiscount) / nights);
     }
 
     const roomSubtotal = pricePerNight * nights;
-    const discountAmount = hasPromotion ? Math.max(0, roomSubtotal - roomAmount) : 0;
+    const totalDiscount = Math.max(0, roomSubtotal - roomAmount);
+
+    // Tính chính xác số tiền giảm cho từng khoản:
+    const promoDiscount = booking.promotion_discount != null && Number(booking.promotion_discount) > 0
+        ? Number(booking.promotion_discount)
+        : hasPromotion 
+            ? Math.max(0, totalDiscount - membershipDiscount)
+            : 0;
+
+    const tierName = booking.guest_tier_name || 
+        booking.guest?.current_tier?.name || 
+        booking.guest_profile?.vip_tier || 
+        'Hội viên';
 
     // Phụ phí dịch vụ phát sinh tại phòng (In-Room Dining / Services)
     const extraServices = Array.isArray(booking.extra_services) ? booking.extra_services : [];
@@ -542,13 +563,38 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                 </span>
                             </div>
 
-                            {discountAmount > 0 && (
+                            {/* Khấu trừ mã khuyến mãi (nếu có) */}
+                            {promoDiscount > 0 && (
+                                <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                                    <span className="text-slate-500">
+                                        Khấu trừ khuyến mãi ({booking.promotion_code || 'ƯU ĐÃI'}):
+                                    </span>
+                                    <span className="font-medium text-slate-900 w-28 text-right">
+                                        -{formatCurrency(promoDiscount)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Ưu đãi Hạng thành viên (nếu có) */}
+                            {membershipDiscount > 0 && (
+                                <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                                    <span className="text-slate-500">
+                                        Ưu đãi hạng thành viên ({tierName}):
+                                    </span>
+                                    <span className="font-medium text-slate-900 w-28 text-right">
+                                        -{formatCurrency(membershipDiscount)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Trường hợp có chiết khấu nhưng không phân tách được */}
+                            {promoDiscount === 0 && membershipDiscount === 0 && totalDiscount > 0 && (
                                 <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
                                     <span className="text-slate-500">
                                         Khấu trừ giảm giá ({booking.promotion_code || 'ƯU ĐÃI'}):
                                     </span>
                                     <span className="font-medium text-slate-900 w-28 text-right">
-                                        -{formatCurrency(discountAmount)}
+                                        -{formatCurrency(totalDiscount)}
                                     </span>
                                 </div>
                             )}

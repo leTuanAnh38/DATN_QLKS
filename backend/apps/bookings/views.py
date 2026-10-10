@@ -250,11 +250,34 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         # 3. Tính toán tiền phòng
         price_per_night = category_instance.promo_price or category_instance.base_price
-        subtotal = price_per_night * nights
+        subtotal = Decimal(str(price_per_night * nights))
 
-        # 4. Xử lý Mã khuyến mãi (nếu có)
+        # 4. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách)
+        if request.user and request.user.is_authenticated:
+            guest_user = request.user
+        else:
+            # Tìm hoặc gán tài khoản khách
+            guest_user = None
+            if guest_email:
+                guest_user = User.objects.filter(email=guest_email).first()
+            if not guest_user:
+                # Gán vào tài khoản khách mặc định
+                guest_user = User.objects.filter(role='guest').first() or User.objects.first()
+
+        # 5. Xử lý Giảm giá Hạng thành viên (Loyalty & Membership Program)
+        membership_discount = Decimal('0')
+        tier_percent = Decimal('0')
+        tier_name = None
+        if guest_user and getattr(guest_user, 'current_tier', None):
+            tier = guest_user.current_tier
+            tier_percent = Decimal(str(tier.discount_percent or 0))
+            if tier_percent > 0:
+                membership_discount = (subtotal * tier_percent) / Decimal('100')
+                tier_name = tier.name
+
+        # 6. Xử lý Mã khuyến mãi (nếu có)
         promotion_obj = None
-        discount_amount = 0
+        discount_amount = Decimal('0')
         if promo_code:
             now = timezone.now()
             promo = Promotion.objects.filter(
@@ -278,15 +301,15 @@ class BookingViewSet(viewsets.ModelViewSet):
                     }
                 )
 
-            if promo and promo.used_count < promo.usage_limit and Decimal(str(subtotal)) >= Decimal(str(promo.min_order_value or 0)):
+            if promo and promo.used_count < promo.usage_limit and subtotal >= Decimal(str(promo.min_order_value or 0)):
                 promotion_obj = promo
                 if promo.discount_type == 'percentage':
-                    calc_discount = (Decimal(str(subtotal)) * Decimal(str(promo.discount_value))) / Decimal('100')
+                    calc_discount = (subtotal * Decimal(str(promo.discount_value))) / Decimal('100')
                     if promo.max_discount_amount:
                         calc_discount = min(calc_discount, Decimal(str(promo.max_discount_amount)))
                     discount_amount = calc_discount
                 else:
-                    discount_amount = min(Decimal(str(subtotal)), Decimal(str(promo.discount_value)))
+                    discount_amount = min(subtotal, Decimal(str(promo.discount_value)))
 
                 # Tăng lượt dùng khuyến mãi
                 promo.used_count += 1
@@ -297,21 +320,10 @@ class BookingViewSet(viewsets.ModelViewSet):
                 except (ValueError, TypeError):
                     pass
 
-        total_amount = max(Decimal('0'), Decimal(str(subtotal)) - Decimal(str(discount_amount)))
+        # 7. Tính tổng tiền thanh toán cuối cùng
+        total_amount = max(Decimal('0'), subtotal - membership_discount - discount_amount)
 
-        # 5. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách)
-        if request.user and request.user.is_authenticated:
-            guest_user = request.user
-        else:
-            # Tìm hoặc gán tài khoản khách
-            guest_user = None
-            if guest_email:
-                guest_user = User.objects.filter(email=guest_email).first()
-            if not guest_user:
-                # Gán vào tài khoản khách mặc định
-                guest_user = User.objects.filter(role='guest').first() or User.objects.first()
-
-        # 6. Tạo Đơn đặt phòng mới:
+        # 8. Tạo Đơn đặt phòng mới:
         # Khách hàng đặt phòng theo Hạng phòng (RoomCategory).
         # Số phòng thực tế (Room) để trống (None) để Lễ tân chọn và gán phòng trống khi làm thủ tục Check-in.
         booking = Booking.objects.create(
@@ -322,6 +334,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             check_in_date=check_in,
             check_out_date=check_out,
             total_amount=total_amount,
+            membership_discount=membership_discount,
             applied_promotion=promotion_obj,
             status='pending',
             note=note
@@ -346,6 +359,9 @@ class BookingViewSet(viewsets.ModelViewSet):
             'summary': {
                 'nights': nights,
                 'subtotal': float(subtotal),
+                'membership_discount': float(membership_discount),
+                'tier_name': tier_name,
+                'tier_percent': float(tier_percent),
                 'discount_amount': float(discount_amount),
                 'total_amount': float(total_amount),
             }

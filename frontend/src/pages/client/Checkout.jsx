@@ -231,10 +231,16 @@ export default function Checkout() {
     const pricePerNight = Number(room?.promo_price || room?.base_price || 0);
     const subtotal = pricePerNight * nights;
 
+    // Chiết khấu theo Hạng thành viên (Loyalty & Membership Program)
+    const userTier = isAuthenticated && user?.current_tier ? user.current_tier : null;
+    const tierDiscountPercent = userTier ? Number(userTier.discount_percent || 0) : 0;
+    const tierDiscountAmount = tierDiscountPercent > 0 ? Math.round((subtotal * tierDiscountPercent) / 100) : 0;
+
     // Tính số tiền giảm giá từ Promo Code (nếu có)
     const discountAmount = appliedPromo ? Number(appliedPromo.discount_amount || 0) : 0;
-    const finalTotal = Math.max(0, subtotal - discountAmount);
-    const earnedPoints = Math.round(finalTotal / 10000);
+    const finalTotal = Math.max(0, subtotal - tierDiscountAmount - discountAmount);
+    // Quy tắc: 100.000 VNĐ thanh toán thành công = 1 điểm tích lũy
+    const earnedPoints = Math.floor(finalTotal / 100000);
 
     // =========================================================================
     // LOGIC XỬ LÝ MÃ GIẢM GIÁ (PROMO CODE)
@@ -1083,8 +1089,16 @@ export default function Checkout() {
                                         </span>
                                     </div>
 
-                                    {discountAmount > 0 && (
+
+                                    {tierDiscountAmount > 0 && (
                                         <div className="flex justify-between text-emerald-600 font-semibold">
+                                            <span>Chiết khấu hạng {userTier?.name} ({tierDiscountPercent}%)</span>
+                                            <span>-{tierDiscountAmount.toLocaleString('vi-VN')} VND</span>
+                                        </div>
+                                    )}
+
+                                    {discountAmount > 0 && (
+                                        <div className="flex justify-between text-blue-600 font-semibold">
                                             <span>Mã khuyến mãi ({appliedPromo?.code})</span>
                                             <span>-{discountAmount.toLocaleString('vi-VN')} VND</span>
                                         </div>
@@ -1095,8 +1109,8 @@ export default function Checkout() {
                                         <span className="text-emerald-600 font-medium">Đã bao gồm</span>
                                     </div>
 
-                                    <div className="flex justify-between text-blue-600 font-semibold pt-1 border-t border-slate-100">
-                                        <span> Điểm thưởng TA Club</span>
+                                    <div className="flex justify-between text-amber-700 font-semibold pt-1 border-t border-slate-100">
+                                        <span>⭐ Tích lũy điểm thưởng (+1 pt / 100.000đ)</span>
                                         <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                                     </div>
 
@@ -1115,6 +1129,11 @@ export default function Checkout() {
                                                 {finalTotal.toLocaleString('vi-VN')}
                                             </span>
                                             <span className="text-[11px] font-bold text-slate-500 block">VND</span>
+                                            {tierDiscountAmount > 0 && (
+                                                <span className="text-[10px] font-semibold text-emerald-600 block mt-0.5">
+                                                    (Đã tiết kiệm {tierDiscountAmount.toLocaleString('vi-VN')} VND)
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

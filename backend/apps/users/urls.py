@@ -11,7 +11,8 @@ from .views import (
     AdminEmployeeListCreateView,
     AdminEmployeeDetailView,
     AdminRoleListView,
-    AdminRolePermissionsView
+    AdminRolePermissionsView,
+    MembershipTierListView
 )
 
 urlpatterns = [
@@ -19,6 +20,7 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='auth-register'),
     path('login/', LoginView.as_view(), name='auth-login'),
     path('me/', CurrentUserView.as_view(), name='auth-me'),
+    path('membership-tiers/', MembershipTierListView.as_view(), name='membership-tiers'),
     path('change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
     path('logout/', LogoutView.as_view(), name='auth-logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),

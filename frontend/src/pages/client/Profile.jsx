@@ -6,6 +6,7 @@ import ChangePasswordModal from '../../components/auth/ChangePasswordModal';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
+import MembershipCard from '../../components/client/MembershipCard';
 
 // Helper chuẩn hóa đường dẫn avatar từ backend
 const getAvatarUrl = (avatar) => {
@@ -244,17 +245,7 @@ export default function Profile() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
-                                    ✦ Trung tâm quản lý tài khoản
-                                </span>
-                                {user && (
-                                    <span className="text-xs text-slate-500">
-                                        {isStaffRole(user) ? 'Nhân sự / Quản lý: ' : 'Khách hàng: '}
-                                        <strong>{user.full_name || user.username}</strong>
-                                    </span>
-                                )}
-                            </div>
+                           
                             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                                 Hồ Sơ Của Tôi
                             </h1>
@@ -277,7 +268,7 @@ export default function Profile() {
                                 </div>
                             ) : (
                                 <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
-                                    ★ Hạng Hội Viên: {user?.guest_profile?.vip_tier || 'Silver Member'}
+                                    ★ Hạng Hội Viên: {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
                                 </span>
                             )}
                         </div>
@@ -287,6 +278,9 @@ export default function Profile() {
 
             {/* 2. MAIN PROFILE CONTAINER */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1">
+                {/* KHU VỰC THẺ THÀNH VIÊN & TIẾN TRÌNH THĂNG HẠNG (LOYALTY) */}
+                <MembershipCard user={user} />
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
                     {/* CỘT BÊN TRÁI: CARD AVATAR & THẺ HỘI VIÊN (4 CỘT) */}
@@ -378,13 +372,13 @@ export default function Profile() {
                                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
                                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Hạng thẻ</span>
                                     <span className="font-bold text-amber-600 text-sm flex items-center gap-1 mt-0.5">
-                                        👑 {user?.guest_profile?.vip_tier || 'Silver'}
+                                        👑 {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
                                     </span>
                                 </div>
                                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Điểm TA Club</span>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Điểm tích lũy</span>
                                     <span className="font-bold text-blue-600 text-sm mt-0.5 block">
-                                        {user?.guest_profile?.loyalty_points || 0} pts
+                                        {(user?.total_points ?? user?.guest_profile?.loyalty_points ?? 0).toLocaleString('vi-VN')} pts
                                     </span>
                                 </div>
                             </div>

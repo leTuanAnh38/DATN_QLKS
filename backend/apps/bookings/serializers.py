@@ -60,6 +60,9 @@ class BookingSerializer(serializers.ModelSerializer):
     guest_phone = serializers.CharField(source='guest.phone_number', read_only=True)
     guest_email = serializers.CharField(source='guest.email', read_only=True)
     promotion_code = serializers.CharField(source='applied_promotion.code', read_only=True, default=None)
+    promotion_discount = serializers.SerializerMethodField()
+    guest_tier_name = serializers.SerializerMethodField()
+    guest_tier_percent = serializers.SerializerMethodField()
     daily_rate = serializers.SerializerMethodField()
     
     # Folio Balance & Financial Fields (Thanh Toán Lấp Đầy)
@@ -105,6 +108,10 @@ class BookingSerializer(serializers.ModelSerializer):
             'nights',
             'daily_rate',
             'promotion_code',
+            'promotion_discount',
+            'membership_discount',
+            'guest_tier_name',
+            'guest_tier_percent',
             'room_charge',
             'service_charge',
             'total_amount',
@@ -305,6 +312,34 @@ class BookingSerializer(serializers.ModelSerializer):
         total = self.get_total_amount(obj)
         paid = self.get_paid_amount(obj)
         return float(total - paid)
+
+    def get_promotion_discount(self, obj):
+        if not obj.applied_promotion:
+            return 0.0
+        nights = self.get_nights(obj)
+        daily_rate = self.get_daily_rate(obj)
+        subtotal = float(daily_rate * nights)
+        membership_disc = float(obj.membership_discount or 0)
+        raw_total = None
+        try:
+            raw_total = obj.__dict__.get('total_amount', None)
+        except Exception:
+            pass
+        if raw_total is None:
+            raw_total = obj.total_amount
+        room_charge = float(raw_total or 0)
+        promo_disc = max(0.0, round(subtotal - room_charge - membership_disc))
+        return float(promo_disc)
+
+    def get_guest_tier_name(self, obj):
+        if obj.guest and getattr(obj.guest, 'current_tier', None):
+            return obj.guest.current_tier.name
+        return None
+
+    def get_guest_tier_percent(self, obj):
+        if obj.guest and getattr(obj.guest, 'current_tier', None):
+            return float(obj.guest.current_tier.discount_percent or 0)
+        return 0.0
 
     # Tương thích ngược với các components cũ
     def get_room_amount(self, obj):

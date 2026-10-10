@@ -2,15 +2,54 @@ import re
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from .models import GuestProfile, EmployeeProfile, AuditLog
+from .models import GuestProfile, EmployeeProfile, AuditLog, MembershipTier
 
 User = get_user_model()
 
 
+class MembershipTierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MembershipTier
+        fields = ('id', 'name', 'code', 'min_points', 'discount_percent', 'badge_color', 'description', 'order')
+
+
+def get_user_next_tier_info(user):
+    """
+    Tính thông tin hạng kế tiếp và số điểm cần tích lũy thêm
+    """
+    current_pts = getattr(user, 'total_points', 0) or 0
+    next_tier = MembershipTier.objects.filter(min_points__gt=current_pts).order_by('min_points', 'order').first()
+    if not next_tier:
+        return None
+    return {
+        'id': next_tier.id,
+        'name': next_tier.name,
+        'code': next_tier.code,
+        'min_points': next_tier.min_points,
+        'discount_percent': float(next_tier.discount_percent),
+        'points_needed': max(0, next_tier.min_points - current_pts),
+        'badge_color': next_tier.badge_color,
+        'description': next_tier.description
+    }
+
+
 class GuestProfileSerializer(serializers.ModelSerializer):
+    vip_tier = serializers.SerializerMethodField()
+    loyalty_points = serializers.SerializerMethodField()
+
     class Meta:
         model = GuestProfile
         fields = ('id_card_number', 'loyalty_points', 'vip_tier', 'preferences')
+
+    def get_vip_tier(self, obj):
+        if obj.user and getattr(obj.user, 'current_tier', None):
+            return obj.user.current_tier.name
+        return obj.vip_tier or 'Đồng (Bronze)'
+
+    def get_loyalty_points(self, obj):
+        if obj.user:
+            return getattr(obj.user, 'total_points', 0)
+        return obj.loyalty_points or 0
 
 
 class EmployeeProfileSerializer(serializers.ModelSerializer):
@@ -33,6 +72,8 @@ class UserSerializer(serializers.ModelSerializer):
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     guest_profile = GuestProfileSerializer(read_only=True)
     employee_profile = EmployeeProfileSerializer(read_only=True)
+    current_tier = MembershipTierSerializer(read_only=True)
+    next_tier_info = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -48,12 +89,18 @@ class UserSerializer(serializers.ModelSerializer):
             'role_display',
             'address',
             'avatar',
+            'total_points',
+            'current_tier',
+            'next_tier_info',
             'guest_profile',
             'employee_profile',
             'is_staff',
             'is_superuser',
         )
-        read_only_fields = ('id', 'role', 'is_staff', 'is_superuser')
+        read_only_fields = ('id', 'role', 'is_staff', 'is_superuser', 'total_points')
+
+    def get_next_tier_info(self, obj):
+        return get_user_next_tier_info(obj)
 
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
@@ -97,6 +144,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
     guest_profile = GuestProfileSerializer(read_only=True)
     employee_profile = EmployeeProfileSerializer(read_only=True)
+    current_tier = MembershipTierSerializer(read_only=True)
+    next_tier_info = serializers.SerializerMethodField()
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     identity_card = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     preferences = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
@@ -120,6 +169,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'hire_date',
             'address',
             'avatar',
+            'total_points',
+            'current_tier',
+            'next_tier_info',
             'guest_profile',
             'employee_profile',
             'is_staff',
@@ -138,6 +190,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'position',
             'shift',
             'hire_date',
+            'total_points',
+            'current_tier',
             'guest_profile',
             'employee_profile',
             'is_staff',
@@ -147,6 +201,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
+
+    def get_next_tier_info(self, obj):
+        return get_user_next_tier_info(obj)
 
     def get_department(self, obj):
         if hasattr(obj, 'employee_profile') and obj.employee_profile:
@@ -489,6 +546,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 class AdminGuestSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     guest_profile = GuestProfileSerializer(read_only=True)
+    current_tier = MembershipTierSerializer(read_only=True)
     total_bookings = serializers.SerializerMethodField()
     total_spent = serializers.SerializerMethodField()
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -510,6 +568,8 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             'avatar',
             'role',
             'is_active',
+            'total_points',
+            'current_tier',
             'date_joined',
             'last_login',
             'guest_profile',
@@ -573,9 +633,20 @@ class AdminGuestSerializer(serializers.ModelSerializer):
         if id_card is not None:
             profile.id_card_number = id_card
         if vip_tier is not None:
-            profile.vip_tier = vip_tier
+            clean_tier = str(vip_tier).strip()
+            tier_obj = MembershipTier.objects.filter(
+                Q(code__iexact=clean_tier) | Q(name__icontains=clean_tier)
+            ).first()
+            if tier_obj:
+                instance.current_tier = tier_obj
+                instance.save(update_fields=['current_tier'])
+                profile.vip_tier = tier_obj.name
+            else:
+                profile.vip_tier = clean_tier
         if points is not None:
             profile.loyalty_points = points
+            instance.total_points = points
+            instance.save(update_fields=['total_points'])
         if prefs is not None:
             profile.preferences = prefs
         profile.save()

@@ -219,6 +219,7 @@ export function getRoleTitle(role, vipTier = null) {
             return 'Nhân Viên Khách Sạn';
         case 'guest':
         default:
-            return vipTier ? `Hội viên ${vipTier}` : 'Khách hàng VIP';
+            if (!vipTier) return 'Hội viên Đồng (Bronze)';
+            return vipTier.startsWith('Hội viên') ? vipTier : `Hội viên ${vipTier}`;
     }
 }

@@ -6,6 +6,16 @@ import Pagination from '../../components/common/Pagination';
 import { useAuth } from '../../store/authStore';
 import { useHasPermission } from '../../utils/permission';
 
+// Helper chuẩn hóa mã hạng thẻ
+const mapTierCode = (tierStr) => {
+    if (!tierStr) return 'Bronze';
+    const s = String(tierStr).toLowerCase();
+    if (s.includes('diamond') || s.includes('kim cương')) return 'Diamond';
+    if (s.includes('gold') || s.includes('vàng')) return 'Gold';
+    if (s.includes('silver') || s.includes('bạc')) return 'Silver';
+    return 'Bronze';
+};
+
 export default function GuestManagement() {
     const { user } = useAuth();
     const canCreateGuest = useHasPermission('guests', 'create');
@@ -42,7 +52,7 @@ export default function GuestManagement() {
         phone_number: '',
         address: '',
         id_card_number: '',
-        vip_tier: 'Silver',
+        vip_tier: 'Bronze',
         loyalty_points: 0,
         preferences: '',
         is_active: true,
@@ -55,7 +65,7 @@ export default function GuestManagement() {
         phone: '',
         password: 'Password123',
         id_card_number: '',
-        vip_tier: 'Silver',
+        vip_tier: 'Bronze',
         loyalty_points: 0,
     });
 
@@ -113,8 +123,8 @@ export default function GuestManagement() {
             phone_number: guest.phone_number || '',
             address: guest.address || '',
             id_card_number: guest.guest_profile?.id_card_number || '',
-            vip_tier: guest.guest_profile?.vip_tier || 'Silver',
-            loyalty_points: guest.guest_profile?.loyalty_points || 0,
+            vip_tier: mapTierCode(guest.current_tier?.name || guest.guest_profile?.vip_tier),
+            loyalty_points: guest.total_points ?? guest.guest_profile?.loyalty_points ?? 0,
             preferences: guest.guest_profile?.preferences || '',
             is_active: guest.is_active,
         });
@@ -160,7 +170,7 @@ export default function GuestManagement() {
                 phone: '',
                 password: 'Password123',
                 id_card_number: '',
-                vip_tier: 'Silver',
+                vip_tier: 'Bronze',
                 loyalty_points: 0,
             });
             fetchGuests();
@@ -230,8 +240,9 @@ export default function GuestManagement() {
 
     // Stats calculations
     const totalGuests = totalCount !== undefined && totalCount > 0 ? totalCount : guests.length;
-    const vipDiamondCount = guests.filter(g => g.guest_profile?.vip_tier === 'Diamond').length;
-    const vipPlatinumCount = guests.filter(g => g.guest_profile?.vip_tier === 'Platinum').length;
+    const vipDiamondCount = guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Diamond').length;
+    const vipGoldCount = guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Gold').length;
+    const vipSilverCount = guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Silver').length;
     const activeCount = guests.filter(g => g.is_active).length;
 
     return (
@@ -304,12 +315,12 @@ export default function GuestManagement() {
 
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
                     <div>
-                        <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Khách VIP Platinum</span>
-                        <strong className="text-2xl font-bold text-slate-900 mt-1 block">{vipPlatinumCount}</strong>
-                        <span className="text-[11px] text-amber-600 font-medium">Đặc quyền quản gia</span>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Khách VIP Gold / Silver</span>
+                        <strong className="text-2xl font-bold text-slate-900 mt-1 block">{vipGoldCount + vipSilverCount}</strong>
+                        <span className="text-[11px] text-amber-600 font-medium">Hội viên hạng Vàng & Bạc</span>
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
-                        👑
+                        🏆
                     </div>
                 </div>
 
@@ -356,10 +367,10 @@ export default function GuestManagement() {
                             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-blue-600 cursor-pointer"
                         >
                             <option value="all">Tất cả hạng thẻ</option>
-                            <option value="Diamond">💎 Diamond (Kim Cương)</option>
-                            <option value="Platinum">👑 Platinum (Bạch Kim)</option>
-                            <option value="Gold">🏆 Gold (Vàng)</option>
-                            <option value="Silver">🥈 Silver (Bạc)</option>
+                            <option value="Diamond">💎 Kim Cương (Diamond)</option>
+                            <option value="Gold">🏆 Vàng (Gold)</option>
+                            <option value="Silver">🥈 Bạc (Silver)</option>
+                            <option value="Bronze">🥉 Đồng (Bronze)</option>
                         </select>
                     </div>
 
@@ -414,12 +425,13 @@ export default function GuestManagement() {
                                 </tr>
                             ) : (
                                 guests.map((g) => {
+                                    const tierCode = mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier);
                                     const tierStyles = {
                                         Diamond: 'bg-purple-50 text-purple-700 border-purple-200',
-                                        Platinum: 'bg-amber-50 text-amber-700 border-amber-200',
                                         Gold: 'bg-yellow-50 text-yellow-800 border-yellow-200',
                                         Silver: 'bg-slate-100 text-slate-700 border-slate-200',
-                                    }[g.guest_profile?.vip_tier] || 'bg-slate-100 text-slate-700 border-slate-200';
+                                        Bronze: 'bg-amber-50 text-amber-900 border-amber-300',
+                                    }[tierCode] || 'bg-amber-50 text-amber-900 border-amber-300';
 
                                     return (
                                         <tr key={g.id} className="hover:bg-slate-50/70 transition">
@@ -469,10 +481,10 @@ export default function GuestManagement() {
                                             <td className="p-4">
                                                 <div className="space-y-1">
                                                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tierStyles}`}>
-                                                        ★ {g.guest_profile?.vip_tier || 'Silver'}
+                                                        ★ {g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng (Bronze)'}
                                                     </span>
                                                     <div className="text-[11px] font-semibold text-amber-600">
-                                                        {g.guest_profile?.loyalty_points || 0} pts
+                                                        {g.total_points ?? g.guest_profile?.loyalty_points ?? 0} pts
                                                     </div>
                                                 </div>
                                             </td>
@@ -635,10 +647,10 @@ export default function GuestManagement() {
                                         onChange={(e) => setEditFormData({ ...editFormData, vip_tier: e.target.value })}
                                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white font-medium cursor-pointer"
                                     >
-                                        <option value="Silver">🥈 Silver Member</option>
-                                        <option value="Gold">🏆 Gold Member</option>
-                                        <option value="Platinum">👑 Platinum Member</option>
-                                        <option value="Diamond">💎 Diamond Member</option>
+                                        <option value="Bronze">🥉 Đồng (Bronze)</option>
+                                        <option value="Silver">🥈 Bạc (Silver)</option>
+                                        <option value="Gold">🏆 Vàng (Gold)</option>
+                                        <option value="Diamond">💎 Kim Cương (Diamond)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -762,7 +774,7 @@ export default function GuestManagement() {
                                     </div>
                                 </div>
                                 <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1 shadow-xs">
-                                    <span>★</span> Hạng {selectedGuest.guest_profile?.vip_tier || 'Silver'}
+                                    <span>★</span> Hạng {selectedGuest.current_tier?.name || selectedGuest.guest_profile?.vip_tier || 'Đồng (Bronze)'}
                                 </span>
                             </div>
 
@@ -926,10 +938,10 @@ export default function GuestManagement() {
                                         onChange={(e) => setCreateFormData({ ...createFormData, vip_tier: e.target.value })}
                                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
                                     >
-                                        <option value="Silver">🥈 Silver Member</option>
-                                        <option value="Gold">🏆 Gold Member</option>
-                                        <option value="Platinum">👑 Platinum Member</option>
-                                        <option value="Diamond">💎 Diamond Member</option>
+                                        <option value="Bronze">🥉 Đồng (Bronze)</option>
+                                        <option value="Silver">🥈 Bạc (Silver)</option>
+                                        <option value="Gold">🏆 Vàng (Gold)</option>
+                                        <option value="Diamond">💎 Kim Cương (Diamond)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -1004,7 +1016,7 @@ export default function GuestManagement() {
                                     </div>
                                 </div>
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                    {selectedGuest.guest_profile?.vip_tier || 'Silver'}
+                                    {selectedGuest.current_tier?.name || selectedGuest.guest_profile?.vip_tier || 'Đồng (Bronze)'}
                                 </span>
                             </div>
 

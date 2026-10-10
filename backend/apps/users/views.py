@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 
 from rest_framework.exceptions import PermissionDenied
-from .models import GuestProfile, EmployeeProfile, AuditLog, log_action
+from .models import GuestProfile, EmployeeProfile, AuditLog, log_action, MembershipTier
 from .serializers import (
     UserSerializer,
     UserProfileSerializer,
@@ -403,12 +403,27 @@ class AdminGuestListCreateView(APIView):
             # Cập nhật thêm nếu có CCCD, VIP tier từ form admin
             profile = getattr(user, 'guest_profile', None)
             if profile:
+                user_updated_fields = []
                 if 'vip_tier' in request.data:
-                    profile.vip_tier = request.data['vip_tier']
+                    clean_tier = str(request.data['vip_tier']).strip()
+                    tier_obj = MembershipTier.objects.filter(
+                        Q(code__iexact=clean_tier) | Q(name__icontains=clean_tier)
+                    ).first()
+                    if tier_obj:
+                        user.current_tier = tier_obj
+                        profile.vip_tier = tier_obj.name
+                    else:
+                        profile.vip_tier = clean_tier
+                    user_updated_fields.append('current_tier')
                 if 'id_card_number' in request.data:
                     profile.id_card_number = request.data['id_card_number']
                 if 'loyalty_points' in request.data:
-                    profile.loyalty_points = int(request.data.get('loyalty_points', 0))
+                    pts = int(request.data.get('loyalty_points', 0))
+                    profile.loyalty_points = pts
+                    user.total_points = pts
+                    user_updated_fields.append('total_points')
+                if user_updated_fields:
+                    user.save(update_fields=user_updated_fields)
                 profile.save()
 
             log_action(
@@ -1037,5 +1052,24 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         return queryset
+
+
+class MembershipTierListView(APIView):
+    """
+    API GET /api/users/membership-tiers/
+    Lấy danh sách các Hạng thành viên và đặc quyền tương ứng.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from .models import MembershipTier
+        from .serializers import MembershipTierSerializer
+        tiers = MembershipTier.objects.all().order_by('order', 'min_points')
+        serializer = MembershipTierSerializer(tiers, many=True)
+        return Response({
+            'success': True,
+            'tiers': serializer.data
+        }, status=status.HTTP_200_OK)
+
 
 

@@ -52,9 +52,18 @@ const SERVICE_STATUS_CONFIG = {
 // Config hạng VIP
 const VIP_TIER_CONFIG = {
     Diamond: { label: 'Kim Cương (Diamond)', badge: 'bg-purple-100 text-purple-800 border-purple-300', icon: '💎' },
-    Platinum: { label: 'Bạch Kim (Platinum)', badge: 'bg-amber-100 text-amber-800 border-amber-300', icon: '👑' },
     Gold: { label: 'Vàng (Gold)', badge: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '🏆' },
-    Silver: { label: 'Bạc (Silver)', badge: 'bg-slate-100 text-slate-700 border-slate-300', icon: '🥈' }
+    Silver: { label: 'Bạc (Silver)', badge: 'bg-slate-100 text-slate-700 border-slate-300', icon: '🥈' },
+    Bronze: { label: 'Đồng (Bronze)', badge: 'bg-amber-100 text-amber-900 border-amber-300', icon: '🥉' }
+};
+
+const mapTierCode = (tier) => {
+    if (!tier) return 'Bronze';
+    const t = String(tier).toLowerCase();
+    if (t.includes('diamond') || t.includes('kim')) return 'Diamond';
+    if (t.includes('gold') || t.includes('vàng') || t.includes('vang')) return 'Gold';
+    if (t.includes('silver') || t.includes('bạc') || t.includes('bac')) return 'Silver';
+    return 'Bronze';
 };
 
 export default function CustomerDetail({ customerId: propCustomerId }) {
@@ -189,8 +198,9 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
 
     // Trích xuất số CCCD/Passport an toàn
     const idCardNumber = customer?.id_card_number || customer?.guest_profile?.id_card_number || 'Chưa cập nhật';
-    const vipTier = customer?.guest_profile?.vip_tier || customer?.vip_tier || 'Silver';
-    const vipConfig = VIP_TIER_CONFIG[vipTier] || VIP_TIER_CONFIG.Silver;
+    const rawTier = customer?.current_tier?.name || customer?.guest_profile?.vip_tier || customer?.vip_tier || 'Bronze';
+    const tierCode = mapTierCode(rawTier);
+    const vipConfig = VIP_TIER_CONFIG[tierCode] || VIP_TIER_CONFIG.Bronze;
 
     return (
         <div className="space-y-6 max-w-full animate-fadeIn pb-12">

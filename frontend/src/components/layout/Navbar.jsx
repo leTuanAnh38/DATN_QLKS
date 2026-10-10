@@ -244,7 +244,7 @@ export default function Navbar({
                                                 {user?.email || user?.phone_number || 'Khách hàng thân thiết'}
                                             </div>
                                             <div className="mt-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                ★ {getRoleTitle(user?.role, user?.guest_profile?.vip_tier)}
+                                                ★ {getRoleTitle(user?.role, user?.current_tier?.name || user?.guest_profile?.vip_tier)}
                                             </div>
                                         </div>
 
@@ -411,7 +411,7 @@ export default function Navbar({
                                         <span>👤 Hồ sơ của tôi</span>
                                     </Link>
                                     <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                                        ★ {user?.guest_profile?.vip_tier || 'Silver'}
+                                        ★ {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
                                     </span>
                                 </div>
                             </div>

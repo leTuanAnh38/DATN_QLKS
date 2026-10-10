@@ -1,6 +1,37 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+class MembershipTier(models.Model):
+    """
+    Bảng quản lý các Hạng thành viên (Bronze, Silver, Gold, Diamond...)
+    Được cấu hình bởi Quản trị viên trong Django Admin.
+    """
+    name = models.CharField(max_length=50, unique=True, verbose_name="Tên hạng thẻ")
+    code = models.CharField(max_length=20, unique=True, verbose_name="Mã định danh (VD: BRONZE, SILVER, GOLD, DIAMOND)")
+    min_points = models.PositiveIntegerField(default=0, verbose_name="Điểm tối thiểu để đạt hạng")
+    discount_percent = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0.0, 
+        verbose_name="Phần trăm giảm giá (%)"
+    )
+    badge_color = models.CharField(
+        max_length=100, 
+        default="from-amber-700 via-amber-800 to-amber-950", 
+        verbose_name="Class màu nền / Gradient (Tailwind CSS)"
+    )
+    description = models.TextField(null=True, blank=True, verbose_name="Mô tả đặc quyền")
+    order = models.PositiveSmallIntegerField(default=1, verbose_name="Thứ tự ưu tiên / Cấp bậc")
+
+    class Meta:
+        verbose_name = "Hạng thành viên"
+        verbose_name_plural = "Quản lý Hạng thành viên"
+        ordering = ['order', 'min_points']
+
+    def __str__(self):
+        return f"{self.name} (>= {self.min_points} điểm - Giảm {self.discount_percent}%)"
+
+
 class User(AbstractUser):
     # 9 Vai trò trong hệ thống khách sạn
     ROLE_CHOICES = (
@@ -19,6 +50,17 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='guest', verbose_name='Vai trò')
     address = models.TextField(null=True, blank=True, verbose_name='Địa chỉ')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name='Ảnh đại diện')
+
+    # Chương trình Khách hàng thân thiết (Loyalty & Membership Program)
+    total_points = models.PositiveIntegerField(default=0, verbose_name="Tổng điểm tích lũy")
+    current_tier = models.ForeignKey(
+        MembershipTier, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='members',
+        verbose_name="Hạng thành viên hiện tại"
+    )
 
     # --- CÁCH KHẮC PHỤC LỖI E304 (Bổ sung related_name) ---
     groups = models.ManyToManyField(
@@ -49,7 +91,7 @@ class GuestProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='guest_profile', verbose_name='Tài khoản')
     id_card_number = models.CharField(max_length=20, null=True, blank=True, verbose_name='CCCD / Passport')
     loyalty_points = models.IntegerField(default=0, verbose_name='Điểm tích lũy (TA Club)')
-    vip_tier = models.CharField(max_length=50, default='Silver', verbose_name='Hạng Thành viên')
+    vip_tier = models.CharField(max_length=50, default='Đồng (Bronze)', verbose_name='Hạng Thành viên')
     preferences = models.TextField(null=True, blank=True, verbose_name='Ghi chú sở thích (Dị ứng, gối nệm...)')
 
     def __str__(self):
