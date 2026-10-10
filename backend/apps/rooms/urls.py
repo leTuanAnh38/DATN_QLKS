@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     RoomCategoryViewSet,
     AmenityViewSet,
+    MaintenanceTicketViewSet,
     AdminRoomListCreateView,
     AdminRoomDetailView,
     AdminRoomStatusUpdateView
@@ -11,6 +12,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'categories', RoomCategoryViewSet, basename='room-category')
 router.register(r'amenities', AmenityViewSet, basename='amenity')
+router.register(r'maintenance-tickets', MaintenanceTicketViewSet, basename='maintenance-ticket')
 
 urlpatterns = [
     # Router cho Hạng phòng: CRUD, upload-images, delete-image, set-feature-image

@@ -208,11 +208,18 @@ export const bookingService = {
      * Lấy danh sách các phòng thực tế đang trống (status='available')
      * thuộc đúng hạng phòng của đơn đặt phòng
      * @param {number|string} bookingId
+     * @param {number|string} bookingId
      * @param {number|string} [categoryId]
+     * @param {boolean} [allCategories]
      */
-    async getAvailableRoomsForBooking(bookingId, categoryId = null) {
+    async getAvailableRoomsForBooking(bookingId, categoryId = null, allCategories = false) {
         try {
-            const params = categoryId ? { category_id: categoryId } : {};
+            const params = {};
+            if (allCategories) {
+                params.all_categories = 'true';
+            } else if (categoryId) {
+                params.category_id = categoryId;
+            }
             const response = await api.get(`/bookings/${bookingId}/available-rooms/`, { params });
             return response.data;
         } catch (error) {
@@ -248,6 +255,32 @@ export const bookingService = {
                     error.response?.data?.message ||
                     error.response?.data?.detail ||
                     'Thực hiện Check-in thất bại. Vui lòng kiểm tra lại tình trạng phòng.'
+            };
+        }
+    },
+
+    /**
+     * Thực hiện Đổi phòng (Room Move) cho khách đang lưu trú
+     * POST /api/bookings/:id/change-room/
+     * @param {number|string} bookingId
+     * @param {Object} payload - { new_room_id, reason, old_room_status, maintenance_equipment, maintenance_issue_type, maintenance_description }
+     */
+    async changeRoom(bookingId, payload) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/change-room/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Đổi phòng thành công!',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi đổi phòng:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Đổi phòng thất bại. Vui lòng kiểm tra lại trạng thái phòng.'
             };
         }
     },

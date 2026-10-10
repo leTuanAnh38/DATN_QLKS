@@ -247,6 +247,59 @@ export const roomService = {
                 message: error.response?.data?.message || 'Xóa phòng thất bại.'
             };
         }
+    },
+
+    /**
+     * Lập phiếu báo hỏng thiết bị & Bắt đầu bảo trì phòng
+     * @param {Object} data - { room_id, equipment_name, issue_type, description, parts_replaced, cost, is_guest_fault, booking_id }
+     */
+    async createMaintenanceTicket(data) {
+        try {
+            const response = await api.post('/rooms/maintenance-tickets/', data);
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Lập phiếu bảo trì thất bại.'
+            };
+        }
+    },
+
+    /**
+     * Hoàn tất sửa chữa thiết bị & Bàn giao buồng phòng dọn dẹp
+     * @param {number|string} ticketId
+     * @param {Object} data - { parts_replaced, cost, note, is_guest_fault }
+     */
+    async completeMaintenanceTicket(ticketId, data = {}) {
+        try {
+            const response = await api.post(`/rooms/maintenance-tickets/${ticketId}/complete/`, data);
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Hoàn tất bảo trì thất bại.'
+            };
+        }
+    },
+
+    /**
+     * Lấy danh sách phiếu bảo trì phòng
+     */
+    async getMaintenanceTickets(params = {}) {
+        try {
+            const response = await api.get('/rooms/maintenance-tickets/', { params });
+            const list = Array.isArray(response.data) ? response.data : (response.data?.results || []);
+            return {
+                success: true,
+                data: list
+            };
+        } catch (error) {
+            return {
+                success: false,
+                data: [],
+                message: error.response?.data?.message || 'Không thể tải phiếu bảo trì.'
+            };
+        }
     }
 };
 

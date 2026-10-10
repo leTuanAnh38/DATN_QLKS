@@ -1,5 +1,41 @@
 from rest_framework import serializers
-from .models import Room, RoomCategory, Amenity, RoomImage
+from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket
+
+
+class MaintenanceTicketSerializer(serializers.ModelSerializer):
+    room_number = serializers.CharField(source='room.room_number', read_only=True)
+    technician_name = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+    booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
+    guest_name = serializers.SerializerMethodField()
+    issue_type_display = serializers.CharField(source='get_issue_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = MaintenanceTicket
+        fields = [
+            'id', 'ticket_code', 'room', 'room_number', 'equipment_name',
+            'issue_type', 'issue_type_display', 'description', 'start_date', 'completed_date',
+            'parts_replaced', 'cost', 'is_guest_fault', 'booking', 'booking_code',
+            'guest_name', 'technician', 'technician_name', 'created_by', 'created_by_name',
+            'status', 'status_display', 'note'
+        ]
+        read_only_fields = ['id', 'ticket_code', 'start_date']
+
+    def get_technician_name(self, obj):
+        if obj.technician:
+            return obj.technician.get_full_name() or obj.technician.username
+        return None
+
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.get_full_name() or obj.created_by.username
+        return None
+
+    def get_guest_name(self, obj):
+        if obj.booking and obj.booking.guest:
+            return obj.booking.guest.get_full_name() or obj.booking.guest.username
+        return None
 
 
 class AmenitySerializer(serializers.ModelSerializer):
@@ -153,6 +189,7 @@ class RoomSerializer(serializers.ModelSerializer):
     category_bed_type = serializers.CharField(source='category.bed_type', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     current_booking = serializers.SerializerMethodField()
+    active_maintenance = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
@@ -160,8 +197,17 @@ class RoomSerializer(serializers.ModelSerializer):
             'id', 'room_number', 'floor', 'status', 'status_display',
             'category', 'category_id', 'category_name',
             'category_base_price', 'category_bed_type',
-            'current_booking'
+            'current_booking', 'active_maintenance'
         ]
+
+    def get_active_maintenance(self, obj):
+        try:
+            ticket = obj.maintenance_tickets.filter(status='fixing').first()
+            if ticket:
+                return MaintenanceTicketSerializer(ticket).data
+            return None
+        except Exception:
+            return None
 
     def get_current_booking(self, obj):
         try:

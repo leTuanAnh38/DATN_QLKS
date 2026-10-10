@@ -533,24 +533,26 @@ class BookingViewSet(viewsets.ModelViewSet):
         """
         booking = self.get_object()
         category = booking.category or (booking.room.category if booking.room else None)
-        category_id = category.id if category else None
-        if not category_id:
-            param_cat = request.query_params.get('category_id')
-            if param_cat and str(param_cat).isdigit():
-                category_id = int(param_cat)
+        param_cat = request.query_params.get('category_id')
+        if param_cat and str(param_cat).isdigit():
+            category_id = int(param_cat)
+        else:
+            category_id = category.id if category else None
 
         available_rooms_qs = Room.objects.filter(status='available').select_related('category')
-        if category_id:
+        all_categories = request.query_params.get('all_categories', 'false').lower() in ['true', '1', 'yes']
+        if category_id and not all_categories:
             available_rooms_qs = available_rooms_qs.filter(category_id=category_id)
 
         from ..rooms.serializers import RoomSerializer
         serializer = RoomSerializer(available_rooms_qs.order_by('floor', 'room_number'), many=True)
 
+        cat_display = 'Tất cả các hạng phòng' if all_categories else (category.name if category else 'Phòng tiêu chuẩn')
         return Response({
             'success': True,
             'count': available_rooms_qs.count(),
-            'category_id': category_id,
-            'category_name': category.name if category else 'Phòng tiêu chuẩn',
+            'category_id': None if all_categories else category_id,
+            'category_name': cat_display,
             'rooms': serializer.data
         }, status=status.HTTP_200_OK)
 
@@ -820,6 +822,188 @@ class BookingViewSet(viewsets.ModelViewSet):
             'booking': serializer.data,
             'room': room_data,
             **serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+    @action(detail=True, methods=['post'], url_path='change-room')
+    def change_room(self, request, pk=None):
+        """
+        API Đổi phòng (Room Move) cho khách đang lưu trú (status='checked_in'):
+        - POST /api/bookings/<id>/change-room/
+        - Payload:
+            {
+                "new_room_id": 105,
+                "reason": "Hỏng điều hòa, nước rò rỉ",
+                "old_room_status": "maintenance" | "cleaning",  # default 'maintenance'
+                "maintenance_equipment": "Điều hòa Daikin",      # optional
+                "maintenance_issue_type": "ac",                 # optional
+                "maintenance_description": "Chảy nước nhiều, không lạnh" # optional
+            }
+        """
+        booking = self.get_object()
+        user = request.user
+
+        # 1. Kiểm tra quyền
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện đổi phòng cho khách.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2. Kiểm tra trạng thái đơn: Phải là 'checked_in'
+        if booking.status != 'checked_in':
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} hiện ở trạng thái "{booking.get_status_display()}". Chỉ có thể đổi phòng cho khách đang lưu trú (Checked-in).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        old_room = booking.room
+        if not old_room:
+            return Response({
+                'success': False,
+                'message': 'Đơn đặt phòng này hiện chưa được gán phòng cụ thể.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3. Lấy phòng mới
+        new_room_id = request.data.get('new_room_id')
+        if not new_room_id:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn phòng mới cần chuyển khách tới.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            new_room = Room.objects.select_related('category').get(pk=int(new_room_id))
+        except (Room.DoesNotExist, ValueError):
+            return Response({
+                'success': False,
+                'message': f'Không tìm thấy phòng mới với mã ID {new_room_id}.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if new_room.id == old_room.id:
+            return Response({
+                'success': False,
+                'message': f'Phòng mới trùng với phòng hiện tại (Phòng {old_room.room_number}). Vui lòng chọn phòng khác.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_room.status != 'available':
+            return Response({
+                'success': False,
+                'message': f'Phòng {new_room.room_number} hiện không ở trạng thái sẵn sàng đón khách (Hiện tại: "{new_room.get_status_display()}"). Vui lòng chọn phòng trống khác.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = request.data.get('reason', '').strip() or 'Thiết bị phòng bị sự cố hư hỏng'
+        old_room_status = request.data.get('old_room_status', 'maintenance')
+        if old_room_status not in ['maintenance', 'cleaning']:
+            old_room_status = 'maintenance'
+
+        now = timezone.now()
+        time_str = now.strftime('%H:%M • %d/%m/%Y')
+        staff_name = (user.get_full_name() or user.username) if user.is_authenticated else "Lễ tân"
+        guest_display = (booking.guest.get_full_name() or booking.guest.username) if booking.guest else booking.guest_name
+
+        with transaction.atomic():
+            # 1. Cập nhật phòng mới sang 'occupied'
+            new_room.status = 'occupied'
+            new_room.save(update_fields=['status'])
+
+            # 2. Cập nhật booking trỏ sang new_room
+            log_entry = f"[Đổi phòng lúc {time_str} bởi {staff_name}]: Chuyển khách {guest_display} từ P.{old_room.room_number} sang P.{new_room.room_number}. Lý do: {reason}."
+            if booking.internal_note:
+                booking.internal_note = f"{booking.internal_note}\n{log_entry}".strip()
+            else:
+                booking.internal_note = log_entry
+
+            booking.room = new_room
+            booking.save(update_fields=['room', 'internal_note', 'updated_at'])
+
+            # 3. Cập nhật phòng cũ sang 'maintenance' hoặc 'cleaning'
+            old_room.status = old_room_status
+            old_room.save(update_fields=['status'])
+
+            # 4. Nếu chuyển phòng cũ sang maintenance: Tự động lập phiếu bảo trì nếu có thông tin thiết bị
+            created_ticket = None
+            if old_room_status == 'maintenance':
+                from ..rooms.models import MaintenanceTicket
+                from ..bookings.models import BookingExtraService
+                import uuid
+                eq_name = request.data.get('maintenance_equipment', '').strip() or 'Thiết bị phòng (Sự cố cần kiểm tra)'
+                issue_type = request.data.get('maintenance_issue_type', 'other')
+                desc = request.data.get('maintenance_description', '').strip() or reason
+                parts_replaced = request.data.get('parts_replaced', '').strip()
+                try:
+                    raw_cost = str(request.data.get('cost', 0)).replace(',', '').replace('.', '').replace(' ', '')
+                    cost = int(raw_cost) if raw_cost.isdigit() else 0
+                except (ValueError, TypeError):
+                    cost = 0
+                is_guest_fault = bool(request.data.get('is_guest_fault', False))
+
+                ticket_code = f"MT-{uuid.uuid4().hex[:6].upper()}"
+                created_ticket = MaintenanceTicket.objects.create(
+                    room=old_room,
+                    ticket_code=ticket_code,
+                    equipment_name=eq_name,
+                    issue_type=issue_type,
+                    description=f"[Đổi phòng] Khách {guest_display} chuyển phòng do: {desc}",
+                    parts_replaced=parts_replaced,
+                    cost=cost,
+                    is_guest_fault=is_guest_fault,
+                    booking=booking if is_guest_fault else None,
+                    status='fixing',
+                    created_by=user if user.is_authenticated else None
+                )
+
+                # NẾU DO KHÁCH LÀM HỎNG: Tự động cộng mục bồi thường vào đơn đặt phòng của khách!
+                if is_guest_fault and cost > 0:
+                    BookingExtraService.objects.create(
+                        booking=booking,
+                        service_name=f"Bồi thường hỏng thiết bị: {eq_name}",
+                        quantity=1,
+                        price=cost
+                    )
+
+            # 5. Ghi log kiểm toán (Audit log)
+            log_action(
+                user=user,
+                action='UPDATE',
+                module='BOOKING',
+                description=f"Đổi phòng đơn #{booking.booking_code}: Chuyển khách {guest_display} từ P.{old_room.room_number} sang P.{new_room.room_number}. Lý do: {reason}",
+                request=request
+            )
+
+        # 6. Gửi thông báo đến Lễ tân, Kỹ thuật và Buồng phòng
+        try:
+            from ..notifications.models import Notification
+            notify_users = User.objects.filter(
+                Q(role__in=['receptionist', 'manager', 'admin', 'technician', 'housekeeper']) | Q(is_superuser=True)
+            ).distinct()
+
+            old_status_text = "Đang bảo trì" if old_room_status == 'maintenance' else "Cần dọn dẹp"
+            notif_title = f"🔄 [ĐỔI PHÒNG] Khách P.{old_room.room_number} chuyển sang P.{new_room.room_number}!"
+            notif_msg = (
+                f"Lễ tân ({staff_name}) đã thực hiện Đổi phòng cho khách lưu trú:\n"
+                f"• Khách hàng: {guest_display} (#{booking.booking_code})\n"
+                f"• Phòng cũ: P.{old_room.room_number} ➔ Trạng thái mới: {old_status_text}\n"
+                f"• Phòng mới: P.{new_room.room_number} (Tầng {new_room.floor})\n"
+                f"• Lý do: {reason}"
+            )
+            for r in notify_users:
+                Notification.objects.create(
+                    recipient=r,
+                    title=notif_title,
+                    message=notif_msg
+                )
+        except Exception:
+            pass
+
+        from ..rooms.serializers import RoomSerializer
+        return Response({
+            'success': True,
+            'message': f'Đã đổi phòng thành công cho khách {guest_display}! Khách đã nhận phòng mới {new_room.room_number}. Phòng cũ {old_room.room_number} đã chuyển sang "{old_room.get_status_display()}".',
+            'booking': self.get_serializer(booking).data,
+            'new_room': RoomSerializer(new_room).data,
+            'old_room': RoomSerializer(old_room).data,
         }, status=status.HTTP_200_OK)
 
 

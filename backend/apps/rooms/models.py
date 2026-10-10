@@ -73,3 +73,80 @@ class Room(models.Model):
     class Meta:
         verbose_name = "Phòng thực tế"
         verbose_name_plural = "3. Danh sách Phòng thực tế"
+
+
+# 5. BẢNG PHIẾU BẢO TRÌ & SỬA CHỮA THIẾT BỊ PHÒNG
+class MaintenanceTicket(models.Model):
+    ROOM_ISSUE_TYPE = (
+        ('electric', 'Hệ thống điện / Chiếu sáng'),
+        ('ac', 'Điều hòa / Thông gió'),
+        ('plumbing', 'Hệ thống nước / Thiết bị vệ sinh'),
+        ('furniture', 'Nội thất / Bàn ghế / Khóa cửa'),
+        ('electronics', 'Tivi / Tủ lạnh / Két sắt'),
+        ('other', 'Khác'),
+    )
+
+    STATUS_CHOICES = (
+        ('fixing', 'Đang bảo trì / Sửa chữa'),
+        ('completed', 'Đã sửa xong & Bàn giao dọn dẹp'),
+        ('cancelled', 'Đã hủy phiếu'),
+    )
+
+    ticket_code = models.CharField(max_length=20, unique=True, blank=True, verbose_name="Mã phiếu bảo trì")
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='maintenance_tickets', verbose_name="Phòng bảo trì")
+    equipment_name = models.CharField(max_length=150, verbose_name="Tên thiết bị hư hỏng")
+    issue_type = models.CharField(max_length=30, choices=ROOM_ISSUE_TYPE, default='ac', verbose_name="Phân loại sự cố")
+    description = models.TextField(blank=True, default='', verbose_name="Mô tả sự cố chi tiết")
+
+    # Thời gian
+    start_date = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tiếp nhận & Bắt đầu sửa")
+    completed_date = models.DateTimeField(null=True, blank=True, verbose_name="Ngày hoàn tất sửa chữa")
+
+    # Vật tư & Chi phí
+    parts_replaced = models.CharField(max_length=255, blank=True, default='', verbose_name="Vật tư thay thế (VD: 1 Củ sen Inax, Tụ quạt 35uF)")
+    cost = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Chi phí thay thế / sửa chữa (VND)")
+
+    # Trách nhiệm chi trả
+    is_guest_fault = models.BooleanField(default=False, verbose_name="Do khách làm hỏng (Khách bồi thường)?")
+    booking = models.ForeignKey(
+        'bookings.Booking',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='maintenance_tickets',
+        verbose_name="Đơn đặt phòng bồi thường (nếu có)"
+    )
+
+    technician = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_maintenance_tickets',
+        verbose_name="Kỹ thuật viên thực hiện"
+    )
+    created_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_maintenance_tickets',
+        verbose_name="Người lập phiếu"
+    )
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='fixing', verbose_name="Trạng thái")
+    note = models.TextField(blank=True, default='', verbose_name="Ghi chú hoàn tất")
+
+    def save(self, *args, **kwargs):
+        if not self.ticket_code:
+            import uuid
+            self.ticket_code = f"MT-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.ticket_code} - P.{self.room.room_number}: {self.equipment_name} ({self.get_status_display()})"
+
+    class Meta:
+        verbose_name = "Phiếu Bảo Trì & Sửa Chữa"
+        verbose_name_plural = "4. Phiếu Bảo Trì Thiết Bị"
+        ordering = ['-start_date']

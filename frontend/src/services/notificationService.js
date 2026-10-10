@@ -28,10 +28,19 @@ export const notificationService = {
                     : list.filter((n) => !n.is_read).length;
             }
 
+            const totalCount = rawData?.total_count !== undefined
+                ? rawData.total_count
+                : (rawData?.count !== undefined ? rawData.count : list.length);
+            const allCount = rawData?.all_count !== undefined ? rawData.all_count : totalCount;
+            const hasNext = Boolean(rawData?.next || rawData?.has_next);
+
             return {
                 success: true,
                 data: list,
                 unread_count: unreadCount,
+                total_count: totalCount,
+                all_count: allCount,
+                has_next: hasNext,
                 raw: rawData
             };
         } catch (error) {
@@ -40,6 +49,8 @@ export const notificationService = {
                 success: false,
                 data: [],
                 unread_count: 0,
+                total_count: 0,
+                has_next: false,
                 message: error.response?.data?.detail || error.message
             };
         }
@@ -79,6 +90,27 @@ export const notificationService = {
             };
         } catch (error) {
             console.error('Lỗi khi đánh dấu đọc tất cả thông báo:', error);
+            return {
+                success: false,
+                message: error.response?.data?.detail || error.message
+            };
+        }
+    },
+
+    /**
+     * Xóa tất cả thông báo đã đọc của người dùng
+     */
+    clearRead: async () => {
+        try {
+            const response = await api.delete('/notifications/clear-read/');
+            return {
+                success: true,
+                data: response.data,
+                deleted_count: response.data?.deleted_count || 0,
+                unread_count: response.data?.unread_count || 0
+            };
+        } catch (error) {
+            console.error('Lỗi khi dọn dẹp thông báo đã đọc:', error);
             return {
                 success: false,
                 message: error.response?.data?.detail || error.message

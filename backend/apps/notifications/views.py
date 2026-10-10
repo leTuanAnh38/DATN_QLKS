@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from core_project.pagination import StandardResultsSetPagination
 from .models import Notification
 from .serializers import NotificationSerializer
 from .services import (
@@ -11,16 +12,24 @@ from .services import (
 )
 
 
+class NotificationPagination(StandardResultsSetPagination):
+    page_size = 15
+    page_size_query_param = 'page_size'
+    max_page_size = 50
+
+
 class NotificationViewSet(viewsets.ModelViewSet):
     """
     API ViewSet quản lý Thông báo (Notification)
-    - GET /api/notifications/: Lấy danh sách thông báo của người dùng hiện tại
+    - GET /api/notifications/: Lấy danh sách thông báo của người dùng hiện tại (hỗ trợ phân trang ?page=1&page_size=15)
     - PATCH /api/notifications/{id}/read/: Đánh dấu 1 thông báo đã đọc
     - PATCH /api/notifications/read-all/: Đánh dấu tất cả thông báo đã đọc
+    - DELETE /api/notifications/clear-read/: Xóa tất cả thông báo đã đọc
     - GET /api/notifications/unread-count/: Đếm số lượng thông báo chưa đọc
     """
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = NotificationPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -49,6 +58,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
         queryset = self.filter_queryset(self.get_queryset())
         unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        all_count = Notification.objects.filter(recipient=request.user).count()
+        filtered_count = queryset.count()
 
         # Nếu có sử dụng pagination
         page = self.paginate_queryset(queryset)
@@ -56,6 +67,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             res = self.get_paginated_response(serializer.data)
             res.data['unread_count'] = unread_count
+            res.data['all_count'] = all_count
+            res.data['total_count'] = all_count
+            res.data['filtered_count'] = filtered_count
+            res.data['data'] = serializer.data
+            res.data['has_next'] = bool(self.paginator.get_next_link())
             res.data['success'] = True
             return res
 
@@ -63,9 +79,30 @@ class NotificationViewSet(viewsets.ModelViewSet):
         return Response({
             'success': True,
             'unread_count': unread_count,
-            'total_count': queryset.count(),
+            'all_count': all_count,
+            'total_count': all_count,
+            'filtered_count': filtered_count,
             'data': serializer.data,
-            'results': serializer.data
+            'results': serializer.data,
+            'has_next': False
+        })
+
+    @action(detail=False, methods=['delete', 'post'], url_path='clear-read')
+    def clear_read(self, request):
+        """
+        DELETE /api/notifications/clear-read/
+        Xóa tất cả thông báo đã đọc của người dùng hiện tại
+        """
+        deleted_count, _ = Notification.objects.filter(
+            recipient=request.user,
+            is_read=True
+        ).delete()
+        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        return Response({
+            'success': True,
+            'message': f'Đã dọn dẹp {deleted_count} thông báo đã đọc',
+            'deleted_count': deleted_count,
+            'unread_count': unread_count
         })
 
     @action(detail=True, methods=['patch', 'post'], url_path='read')

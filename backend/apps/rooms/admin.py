@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Amenity, RoomCategory, RoomImage, Room
+from .models import Amenity, RoomCategory, RoomImage, Room, MaintenanceTicket
 
 # Khối hỗ trợ up nhiều ảnh cùng lúc
 class RoomImageInline(admin.TabularInline):
@@ -18,7 +18,14 @@ class RoomAdmin(admin.ModelAdmin):
     search_fields = ('room_number',)
     list_editable = ('status',) # Cho phép Lễ tân đổi trạng thái nhanh ngoài danh sách mà không cần bấm vào trong
 
+class MaintenanceTicketAdmin(admin.ModelAdmin):
+    list_display = ('ticket_code', 'room', 'equipment_name', 'issue_type', 'status', 'cost', 'is_guest_fault', 'start_date', 'completed_date')
+    list_filter = ('status', 'issue_type', 'is_guest_fault', 'room__floor')
+    search_fields = ('ticket_code', 'room__room_number', 'equipment_name', 'parts_replaced', 'description')
+    readonly_fields = ('ticket_code', 'start_date')
+
 # Đăng ký lên Admin
 admin.site.register(Amenity)
 admin.site.register(RoomCategory, RoomCategoryAdmin)
 admin.site.register(Room, RoomAdmin)
+admin.site.register(MaintenanceTicket, MaintenanceTicketAdmin)

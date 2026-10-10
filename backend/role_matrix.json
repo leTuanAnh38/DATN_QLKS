@@ -1,0 +1,138 @@
+{
+  "technician": {
+    "overview": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "rooms": {
+      "read": true,
+      "create": false,
+      "update": true,
+      "delete": false
+    },
+    "categories": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "bookings": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "guests": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "services": {
+      "read": true,
+      "create": false,
+      "update": true,
+      "delete": false
+    },
+    "finance": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "reports": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "employees": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "marketing": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "settings": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    }
+  },
+  "service_staff": {
+    "overview": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "rooms": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "categories": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "bookings": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "guests": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "services": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "delete": false
+    },
+    "finance": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "reports": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "employees": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "marketing": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "settings": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    }
+  }
+}

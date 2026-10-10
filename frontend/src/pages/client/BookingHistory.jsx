@@ -1002,10 +1002,10 @@ export default function BookingHistory() {
                                                     <div className="flex items-center justify-between gap-2 mb-2">
                                                         <div className="flex items-center gap-2">
                                                             <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider">
-                                                                Dịch vụ tại phòng
+                                                                {extraServices.some(s => (s.service_name || '').toLowerCase().includes('bồi thường')) ? 'Dịch vụ & Phụ phí' : 'Dịch vụ tại phòng'}
                                                             </span>
                                                             <span className="text-xs font-bold text-slate-800">
-                                                                Đã hoàn thành ({extraServices.length} món)
+                                                                Đã ghi nhận ({extraServices.length} mục)
                                                             </span>
                                                         </div>
                                                         <span className="text-xs font-black text-amber-900">
@@ -1018,14 +1018,20 @@ export default function BookingHistory() {
                                                                 .replace(/\[Yêu cầu #\d+\]/gi, '')
                                                                 .replace(/\(x\d+\)/gi, '')
                                                                 .trim();
+                                                            const isDamage = cleanName.toLowerCase().includes('bồi thường');
                                                             return (
-                                                                <div key={srv.id || idx} className="py-1.5 flex items-center justify-between text-slate-700">
+                                                                <div key={srv.id || idx} className={`py-1.5 flex items-center justify-between ${isDamage ? 'text-rose-900 font-medium' : 'text-slate-700'}`}>
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                                        <span className="font-semibold text-slate-900">{cleanName}</span>
+                                                                        <span className={`w-1.5 h-1.5 rounded-full ${isDamage ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
+                                                                        {isDamage && (
+                                                                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                                                                ⚠️ Bồi thường
+                                                                            </span>
+                                                                        )}
+                                                                        <span className={`font-semibold ${isDamage ? 'text-rose-900' : 'text-slate-900'}`}>{cleanName}</span>
                                                                         <span className="text-slate-400 text-[11px]">(x{srv.quantity || 1})</span>
                                                                     </div>
-                                                                    <span className="font-bold text-slate-800">
+                                                                    <span className={`font-bold ${isDamage ? 'text-rose-700' : 'text-slate-800'}`}>
                                                                         {Number(srv.total_price || (srv.price * (srv.quantity || 1))).toLocaleString('vi-VN')} VND
                                                                     </span>
                                                                 </div>

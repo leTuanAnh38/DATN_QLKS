@@ -451,11 +451,15 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         {/* 2. DỊCH VỤ PHÁT SINH */}
                                         {summary?.extra_services && summary.extra_services.length > 0 ? (
                                             summary.extra_services.map((svc, idx) => (
-                                                <tr key={svc.id || idx} className="bg-amber-50/20 hover:bg-amber-50/40">
+                                                <tr key={svc.id || idx} className={`${svc.service_name?.includes('Bồi thường') ? 'bg-rose-50/40 hover:bg-rose-50/70 border-l-2 border-rose-500' : 'bg-amber-50/20 hover:bg-amber-50/40'}`}>
                                                     <td className="py-2.5 px-4">
                                                         <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                                            <span className="text-amber-600">🍽️</span>
-                                                            <span>{svc.service_name}</span>
+                                                            <span className={svc.service_name?.includes('Bồi thường') ? 'text-rose-600' : 'text-amber-600'}>
+                                                                {svc.service_name?.includes('Bồi thường') ? '⚠️' : '🍽️'}
+                                                            </span>
+                                                            <span className={svc.service_name?.includes('Bồi thường') ? 'text-rose-900 font-bold' : ''}>
+                                                                {svc.service_name}
+                                                            </span>
                                                         </div>
                                                         {svc.created_at && (
                                                             <div className="text-[10px] text-slate-400">

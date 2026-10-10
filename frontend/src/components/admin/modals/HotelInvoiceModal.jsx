@@ -480,15 +480,17 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                             .replace(/\[Yêu cầu #\d+\]/gi, '')
                                             .replace(/\(x\d+\)/gi, '')
                                             .trim();
+                                        const isDamageCompensation = cleanName.toLowerCase().includes('bồi thường');
                                         const serviceIsPaid = Boolean(service.is_paid || (booking.status === 'completed' && booking.invoice?.status === 'paid'));
                                         return (
-                                            <tr key={service.id || idx} className="border-b border-slate-200">
+                                            <tr key={service.id || idx} className={`border-b border-slate-200 ${isDamageCompensation ? 'bg-rose-50/20' : ''}`}>
                                                 <td className="py-2.5 text-left">
-                                                    <div className="font-bold text-slate-900 text-xs">
-                                                        {cleanName}
+                                                    <div className={`font-bold text-xs ${isDamageCompensation ? 'text-rose-900 flex items-center gap-1.5' : 'text-slate-900'}`}>
+                                                        {isDamageCompensation && <span className="text-rose-600"></span>}
+                                                        <span>{cleanName}</span>
                                                     </div>
-                                                    <div className="text-[10px] text-slate-500">
-                                                        Dịch vụ phát sinh / Gọi món tại phòng
+                                                    <div className={`text-[10px] ${isDamageCompensation ? 'text-rose-600 font-medium' : 'text-slate-500'}`}>
+                                                        {isDamageCompensation ? 'Bồi thường thiệt hại / hư hỏng thiết bị phòng' : 'Dịch vụ phát sinh / Gọi món tại phòng'}
                                                     </div>
                                                 </td>
                                                 <td className="py-2.5 text-center">
@@ -497,8 +499,12 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                             ✓ Đã thanh toán
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                                                            Chưa thanh toán (Thu khi Check-out)
+                                                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                                            isDamageCompensation 
+                                                                ? 'text-rose-700 bg-rose-50 border-rose-200' 
+                                                                : 'text-amber-700 bg-amber-50 border-amber-200'
+                                                        }`}>
+                                                            {isDamageCompensation ? 'Chưa thanh toán (Thu bồi thường)' : 'Chưa thanh toán (Thu khi Check-out)'}
                                                         </span>
                                                     )}
                                                 </td>

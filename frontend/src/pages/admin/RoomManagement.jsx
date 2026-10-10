@@ -4,6 +4,9 @@ import roomService from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import CheckOutModal from '../../components/admin/modals/CheckOutModal';
 import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
+import MaintenanceModal from '../../components/admin/modals/MaintenanceModal';
+import MaintenanceHistoryModal from '../../components/admin/modals/MaintenanceHistoryModal';
+import ChangeRoomModal from '../../components/admin/modals/ChangeRoomModal';
 import { useAuth } from '../../store/authStore';
 import { useHasPermission } from '../../utils/permission';
 
@@ -140,6 +143,48 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     const [checkOutBooking, setCheckOutBooking] = useState(null);
     const [invoiceModalBooking, setInvoiceModalBooking] = useState(null);
     const [selectedOccupiedRoom, setSelectedOccupiedRoom] = useState(null);
+
+    // Modal Bảo trì & Báo hỏng thiết bị phòng
+    const [maintenanceModalData, setMaintenanceModalData] = useState({
+        isOpen: false,
+        room: null,
+        mode: 'create', // 'create' | 'complete'
+        ticket: null,
+    });
+
+    // Modal Xem Nhật ký & Lịch sử bảo trì toàn khách sạn / từng phòng
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [historyModalRoom, setHistoryModalRoom] = useState(null);
+
+    // Modal Đổi phòng cho khách đang lưu trú (Room Move)
+    const [changeRoomModalData, setChangeRoomModalData] = useState({
+        isOpen: false,
+        room: null,
+        booking: null,
+        reason: '',
+        equipment: '',
+        issueType: 'ac',
+    });
+
+    const handleOpenChangeRoom = ({ room, booking, reason = '', equipment = '', issueType = 'ac' }) => {
+        setChangeRoomModalData({
+            isOpen: true,
+            room: room || null,
+            booking: booking || room?.current_booking || null,
+            reason: reason || '',
+            equipment: equipment || '',
+            issueType: issueType || 'ac',
+        });
+    };
+
+    const handleChangeRoomSuccess = async (res) => {
+        setAlertMessage({
+            type: 'success',
+            text: res.message || 'Đổi phòng cho khách thành công!',
+        });
+        await fetchRooms(true);
+        setTimeout(() => setAlertMessage(null), 4000);
+    };
 
     // Modal Gán phòng & Check-in đón khách
     const [assignModalRoom, setAssignModalRoom] = useState(null);
@@ -406,12 +451,97 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     };
 
     // =========================================================================
-    // 2. THAO TÁC ĐỔI NHANH TRẠNG THÁI PHÒNG (Cho Lễ tân / Buồng phòng)
+    // 2. THAO TÁC ĐỔI NHANH TRẠNG THÁI PHÒNG (Cho Lễ tân / Buồng phòng / Kỹ thuật)
     // =========================================================================
+    // Mở modal Báo hỏng thiết bị & Bắt đầu bảo trì
+    const handleOpenReportMaintenance = (room) => {
+        setMaintenanceModalData({
+            isOpen: true,
+            room: room,
+            mode: 'create',
+            ticket: null,
+        });
+    };
+
+    // Mở modal Hoàn tất sửa chữa & Bàn giao buồng phòng dọn dẹp
+    const handleOpenCompleteMaintenance = (room) => {
+        setMaintenanceModalData({
+            isOpen: true,
+            room: room,
+            mode: 'complete',
+            ticket: room.active_maintenance || null,
+        });
+    };
+
+    // Callback khi submit form modal bảo trì
+    const handleMaintenanceSuccess = async (payload, mode) => {
+        if (mode === 'create') {
+            const res = await roomService.createMaintenanceTicket(payload);
+            if (res && res.success) {
+                setAlertMessage({
+                    type: 'success',
+                    text: res.message || `Đã chuyển phòng ${maintenanceModalData.room?.room_number} sang "Đang bảo trì".`,
+                });
+                await fetchRooms(true);
+                setTimeout(() => setAlertMessage(null), 3500);
+            } else {
+                throw new Error(res?.message || 'Không thể lập phiếu bảo trì.');
+            }
+        } else {
+            const ticketId = payload.ticket_id || maintenanceModalData.ticket?.id;
+            if (!ticketId) {
+                await handleDirectStatusChange(maintenanceModalData.room.id, 'cleaning', maintenanceModalData.room.room_number);
+                return;
+            }
+            const res = await roomService.completeMaintenanceTicket(ticketId, payload);
+            if (res && res.success) {
+                setAlertMessage({
+                    type: 'success',
+                    text: res.message || `Đã hoàn tất sửa chữa phòng ${maintenanceModalData.room?.room_number}! Bàn giao Buồng phòng dọn dẹp.`,
+                });
+                await fetchRooms(true);
+                setTimeout(() => setAlertMessage(null), 3500);
+            } else {
+                throw new Error(res?.message || 'Không thể hoàn tất bảo trì.');
+            }
+        }
+    };
+
+    const handleDirectStatusChange = async (roomId, newStatus, roomNumber) => {
+        setQuickStatusLoadingId(roomId);
+        try {
+            const res = await roomService.updateRoomStatus(roomId, newStatus);
+            if (res && res.success) {
+                setAlertMessage({
+                    type: 'success',
+                    text: `Phòng ${roomNumber} đã được chuyển sang "${ROOM_STATUSES[newStatus]?.label || newStatus}".`,
+                });
+                await fetchRooms(true);
+                setTimeout(() => setAlertMessage(null), 3000);
+            }
+        } catch (err) {
+            console.error('Lỗi đổi trạng thái:', err);
+        } finally {
+            setQuickStatusLoadingId(null);
+        }
+    };
+
     const handleQuickStatusChange = async (roomId, newStatus, roomNumber) => {
         const currentRoom = rooms.find((r) => r.id === roomId);
         const oldStatus = currentRoom ? currentRoom.status : null;
         if (oldStatus === newStatus) return;
+
+        // Nếu chuyển sang Bảo trì: Mở Modal Báo hỏng thiết bị để lưu thông tin chi tiết
+        if (newStatus === 'maintenance') {
+            handleOpenReportMaintenance(currentRoom);
+            return;
+        }
+
+        // Nếu phòng đang là bảo trì mà chuyển sang dọn dẹp: Mở Modal Hoàn tất sửa chữa để nhập vật tư/chi phí
+        if (oldStatus === 'maintenance' && newStatus === 'cleaning') {
+            handleOpenCompleteMaintenance(currentRoom);
+            return;
+        }
 
         setQuickStatusLoadingId(roomId);
 
@@ -653,6 +783,18 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                     >
                         <span className={isLoading ? "animate-spin inline-block" : "inline-block"}>🔄</span>
                         <span className="hidden sm:inline">Làm Mới</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setHistoryModalRoom(null);
+                            setIsHistoryModalOpen(true);
+                        }}
+                        className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        title="Xem lịch sử hỏng hóc, sửa chữa thiết bị, vật tư thay thế & chi phí"
+                    >
+                        <span>📋</span>
+                        <span className="hidden sm:inline">Nhật Ký Bảo Trì</span>
                     </button>
                     {canCreateRoom && (
                         <button
@@ -1036,6 +1178,12 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             onOpenCheckOut={handleOpenCheckOut}
                                             onOpenAssign={handleOpenAssignModal}
                                             onViewOccupied={handleViewOccupied}
+                                            onReportMaintenance={handleOpenReportMaintenance}
+                                            onCompleteMaintenance={handleOpenCompleteMaintenance}
+                                            onViewHistory={(r) => {
+                                                setHistoryModalRoom(r);
+                                                setIsHistoryModalOpen(true);
+                                            }}
                                             formatCurrency={formatCurrency}
                                             formatDate={formatDate}
                                             isLoading={quickStatusLoadingId === room.id}
@@ -1065,6 +1213,12 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onOpenCheckOut={handleOpenCheckOut}
                                 onOpenAssign={handleOpenAssignModal}
                                 onViewOccupied={handleViewOccupied}
+                                onReportMaintenance={handleOpenReportMaintenance}
+                                onCompleteMaintenance={handleOpenCompleteMaintenance}
+                                onViewHistory={(r) => {
+                                    setHistoryModalRoom(r);
+                                    setIsHistoryModalOpen(true);
+                                }}
                                 formatCurrency={formatCurrency}
                                 formatDate={formatDate}
                                 isLoading={quickStatusLoadingId === room.id}
@@ -1599,18 +1753,38 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     Đóng
                                 </button>
                                 {canManageBookings && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const b = selectedOccupiedRoom.current_booking;
-                                            setSelectedOccupiedRoom(null);
-                                            setCheckOutBooking(b);
-                                        }}
-                                        className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer"
-                                    >
-                                        <span>🧾</span>
-                                        <span>Thực hiện Check-out & Quyết toán</span>
-                                    </button>
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const currentRoom = selectedOccupiedRoom;
+                                                const b = selectedOccupiedRoom.current_booking;
+                                                setSelectedOccupiedRoom(null);
+                                                handleOpenChangeRoom({
+                                                    room: currentRoom,
+                                                    booking: b,
+                                                    reason: '',
+                                                });
+                                            }}
+                                            className="px-3.5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            title="Chuyển khách sang phòng trống mới"
+                                        >
+                                            <span>🔄</span>
+                                            <span>Đổi phòng</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const b = selectedOccupiedRoom.current_booking;
+                                                setSelectedOccupiedRoom(null);
+                                                setCheckOutBooking(b);
+                                            }}
+                                            className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>🧾</span>
+                                            <span>Thực hiện Check-out & Quyết toán</span>
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -1873,6 +2047,50 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                     </div>
                 </div>
             )}
+
+            {/* ========================================================================= */}
+            {/* MODAL 5: BÁO HỎNG & NGHIỆM THU BẢO TRÌ THIẾT BỊ PHÒNG */}
+            {/* ========================================================================= */}
+            <MaintenanceModal
+                isOpen={maintenanceModalData.isOpen}
+                onClose={() => setMaintenanceModalData((prev) => ({ ...prev, isOpen: false }))}
+                room={maintenanceModalData.room}
+                mode={maintenanceModalData.mode}
+                ticket={maintenanceModalData.ticket}
+                onSuccess={handleMaintenanceSuccess}
+                onOpenChangeRoom={handleOpenChangeRoom}
+            />
+
+            {/* ========================================================================= */}
+            {/* MODAL 6: ĐỔI PHÒNG CHO KHÁCH LƯU TRÚ (ROOM MOVE) */}
+            {/* ========================================================================= */}
+            {changeRoomModalData.isOpen && (
+                <ChangeRoomModal
+                    isOpen={changeRoomModalData.isOpen}
+                    onClose={() => setChangeRoomModalData((prev) => ({ ...prev, isOpen: false }))}
+                    room={changeRoomModalData.room}
+                    booking={changeRoomModalData.booking}
+                    initialReason={changeRoomModalData.reason}
+                    initialEquipment={changeRoomModalData.equipment}
+                    initialIssueType={changeRoomModalData.issueType}
+                    onSuccess={handleChangeRoomSuccess}
+                />
+            )}
+
+            {/* ========================================================================= */}
+            {/* MODAL 7: LỊCH SỬ BẢO TRÌ & SỬA CHỮA THIẾT BỊ TOÀN KHÁCH SẠN */}
+            {/* ========================================================================= */}
+            <MaintenanceHistoryModal
+                isOpen={isHistoryModalOpen}
+                onClose={() => {
+                    setIsHistoryModalOpen(false);
+                    setHistoryModalRoom(null);
+                }}
+                filterRoomId={historyModalRoom?.id || null}
+                filterRoomNumber={historyModalRoom?.room_number || null}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
+            />
         </div>
     );
 }
@@ -1888,6 +2106,9 @@ function RoomCard({
     onOpenCheckOut,
     onOpenAssign,
     onViewOccupied,
+    onReportMaintenance,
+    onCompleteMaintenance,
+    onViewHistory,
     formatCurrency,
     formatDate,
     isLoading,
@@ -1922,11 +2143,22 @@ function RoomCard({
                         </span>
                     </div>
 
-                    {/* Badge tầng & Menu Sửa */}
+                    {/* Badge tầng & Menu Sửa / Báo hỏng */}
                     <div className="flex items-center gap-1">
                         <span className="px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/80 text-[10px] font-bold text-slate-600 shadow-2xs">
                             {room.floor}F
                         </span>
+                        {/* Nút Báo hỏng thiết bị (khi phòng chưa ở trạng thái bảo trì) */}
+                        {room.status !== 'maintenance' && userRole !== 'cashier' && onReportMaintenance && (
+                            <button
+                                type="button"
+                                onClick={() => onReportMaintenance(room)}
+                                className="w-6 h-6 rounded-md hover:bg-amber-100 text-slate-400 hover:text-amber-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
+                                title="Báo hỏng thiết bị & Đưa vào bảo trì"
+                            >
+                                🛠️
+                            </button>
+                        )}
                         {canUpdateRoom && (
                             <button
                                 type="button"
@@ -2000,7 +2232,46 @@ function RoomCard({
             )}
 
             {/* ========================================================================= */}
-            {/* CÁC NÚT THAO TÁC NGHIỆP VỤ PMS (CHECK-IN / CHECK-OUT / DỌN DẸP) */}
+            {/* THÔNG TIN BẢO TRÌ THIẾT BỊ (DÀNH CHO PHÒNG MAINTENANCE) */}
+            {/* ========================================================================= */}
+            {room.status === 'maintenance' && (
+                <div className="mt-2 p-2 rounded-xl bg-amber-50/80 border border-amber-200 shadow-2xs space-y-1">
+                    <div className="flex items-center justify-between gap-1">
+                        <span className="font-bold text-[11px] text-amber-900 truncate flex items-center gap-1" title={room.active_maintenance?.equipment_name || 'Đang bảo trì'}>
+                            <span>🛠️</span>
+                            <span className="truncate">{room.active_maintenance?.equipment_name || 'Đang bảo trì'}</span>
+                        </span>
+                        {room.active_maintenance?.ticket_code && (
+                            <span className="text-[9px] font-mono font-bold text-amber-800 bg-white px-1 rounded border border-amber-300 shrink-0">
+                                #{room.active_maintenance.ticket_code}
+                            </span>
+                        )}
+                    </div>
+                    {room.active_maintenance?.issue_type && (
+                        <div className="text-[10px] text-slate-600 line-clamp-1">
+                            Lỗi: {room.active_maintenance.issue_type}
+                        </div>
+                    )}
+                    {room.active_maintenance?.is_guest_fault && (
+                        <div className="inline-block text-[9px] font-bold text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded border border-rose-300">
+                            ⚠️ Khách làm hỏng
+                        </div>
+                    )}
+                    {onViewHistory && (
+                        <button
+                            type="button"
+                            onClick={() => onViewHistory(room)}
+                            className="w-full text-center text-[10px] text-amber-800 hover:text-amber-950 font-bold underline pt-1 cursor-pointer block"
+                            title={`Xem toàn bộ lịch sử sửa chữa phòng ${room.room_number}`}
+                        >
+                            📋 Xem nhật ký sửa phòng {room.room_number}
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* CÁC NÚT THAO TÁC NGHIỆP VỤ PMS (CHECK-IN / CHECK-OUT / DỌN DẸP / BẢO TRÌ) */}
             {/* ========================================================================= */}
             <div className="mt-2.5 space-y-1.5">
                 {/* 1. Nút cho phòng Occupied: Check-out trực tiếp & Xem chi tiết */}
@@ -2057,16 +2328,16 @@ function RoomCard({
                     </button>
                 )}
 
-                {/* 4. Nút cho phòng Maintenance: Báo sửa xong */}
+                {/* 4. Nút cho phòng Maintenance: Nghiệm thu & Bàn giao dọn */}
                 {room.status === 'maintenance' && (
                     <button
                         type="button"
-                        onClick={() => onStatusChange(room.id, 'cleaning', room.room_number)}
-                        className="w-full py-1.5 px-2 bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
-                        title="Bảo trì xong, chuyển buồng phòng dọn dẹp"
+                        onClick={() => onCompleteMaintenance ? onCompleteMaintenance(room) : onStatusChange(room.id, 'cleaning', room.room_number)}
+                        className="w-full py-2 px-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer shadow-amber-500/20"
+                        title="Nghiệm thu sửa chữa, nhập vật tư thay thế, chi phí & bàn giao buồng phòng dọn dẹp"
                     >
-                        <span>🧹</span>
-                        <span>Sửa xong → Báo dọn</span>
+                        <span>🛠️</span>
+                        <span>Sửa xong → Nghiệm thu & Dọn</span>
                     </button>
                 )}
 

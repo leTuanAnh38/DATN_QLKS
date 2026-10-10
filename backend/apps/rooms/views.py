@@ -6,15 +6,19 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
 from django.db.models import Q, Count
+from django.utils import timezone
 from django.utils.text import slugify
-from ..users.models import log_action
-from .models import Room, RoomCategory, Amenity, RoomImage
+from ..users.models import log_action, User
+from ..bookings.models import Booking, BookingExtraService
+from ..notifications.models import Notification
+from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket
 from .serializers import (
     AmenitySerializer,
     RoomSerializer,
     RoomCategorySerializer,
     RoomImageSerializer,
-    RoomStatusUpdateSerializer
+    RoomStatusUpdateSerializer,
+    MaintenanceTicketSerializer
 )
 
 
@@ -638,9 +642,27 @@ class AdminRoomStatusUpdateView(APIView):
         except Room.DoesNotExist:
             return Response({'success': False, 'message': 'Không tìm thấy phòng.'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = RoomStatusUpdateSerializer(room, data=request.data, partial=True)
+        old_status = room.status
+        active_booking = room.bookings.filter(status='checked_in').select_related('guest').first()
+
+        update_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        requested_status = update_data.get('status')
+
+        # CHẶN LỖI NGHIỆP VỤ: Không cho phép đổi trực tiếp từ 'occupied' sang 'available' khi khách chưa check-out hoặc đổi phòng
+        if active_booking and old_status == 'occupied' and requested_status == 'available':
+            return Response({
+                'success': False,
+                'message': f'Phòng {room.room_number} hiện đang có khách lưu trú (#{active_booking.booking_code}). Không thể chuyển trực tiếp sang "Phòng trống" khi khách chưa làm thủ tục Check-out hoặc Đổi phòng.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # BẢO VỆ PHÒNG CÓ KHÁCH: Khi dọn dẹp xong phòng (từ cleaning) mà phòng đang có khách ở, tự động về 'occupied'
+        if active_booking and requested_status == 'available':
+            update_data['status'] = 'occupied'
+
+        serializer = RoomStatusUpdateSerializer(room, data=update_data, partial=True)
         if serializer.is_valid():
             updated_room = serializer.save()
+            new_status = updated_room.status
             all_rooms = Room.objects.all()
             available_count = all_rooms.filter(status='available').count()
             occupied_count = all_rooms.filter(status='occupied').count()
@@ -665,6 +687,62 @@ class AdminRoomStatusUpdateView(APIView):
                 description=f"Cập nhật phòng {updated_room.room_number} sang trạng thái \"{updated_room.get_status_display()}\"",
                 request=request
             )
+
+            # 1. KHI BUỒNG PHÒNG DỌN XONG (cleaning -> available hoặc occupied khi có khách ở)
+            if old_status == 'cleaning' and new_status in ['available', 'occupied']:
+                try:
+                    staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên Buồng phòng"
+                    recipients = User.objects.filter(
+                        Q(role__in=['receptionist', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+                    ).distinct()
+                    cat_name = updated_room.category.name if updated_room.category else 'Tiêu chuẩn'
+                    
+                    if active_booking:
+                        guest_name = active_booking.guest.get_full_name() if active_booking.guest else active_booking.guest_name
+                        notif_title = f"✨ [DỌN PHÒNG HOÀN TẤT] Phòng {updated_room.room_number} đã dọn xong!"
+                        notif_message = (
+                            f"Nhân viên ({staff_name}) đã hoàn tất dọn dẹp phòng {updated_room.room_number} ({cat_name}).\n"
+                            f"• Phòng đang có khách lưu trú: {guest_name} (#{active_booking.booking_code})\n"
+                            f"• Trạng thái hiện tại: Có khách (Occupied) - Tiếp tục phục vụ khách."
+                        )
+                    else:
+                        notif_title = f"✨ [PHÒNG SẴN SÀNG] Phòng {updated_room.room_number} đã dọn xong!"
+                        notif_message = (
+                            f"Nhân viên ({staff_name}) đã hoàn tất dọn dẹp phòng {updated_room.room_number} ({cat_name}).\n"
+                            f"• Trạng thái hiện tại: Trống (Sẵn sàng mở bán)\n"
+                            f"Lễ tân có thể tiến hành Gán phòng hoặc Check-in đón khách ngay."
+                        )
+                    for r in recipients:
+                        Notification.objects.create(
+                            recipient=r,
+                            title=notif_title,
+                            message=notif_message
+                        )
+                except Exception:
+                    pass
+
+            # 2. KHI YÊU CẦU DỌN DẸP (trạng thái khác -> cleaning): Gửi thông báo đến Buồng phòng
+            elif old_status != 'cleaning' and new_status == 'cleaning':
+                try:
+                    staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
+                    recipients = User.objects.filter(
+                        Q(role__in=['housekeeper', 'manager', 'admin']) | Q(is_superuser=True)
+                    ).distinct()
+                    cat_name = updated_room.category.name if updated_room.category else 'Tiêu chuẩn'
+                    notif_title = f"🧹 [YÊU CẦU DỌN PHÒNG] Phòng {updated_room.room_number} cần dọn dẹp!"
+                    notif_message = (
+                        f"Phòng {updated_room.room_number} ({cat_name}) vừa được chuyển sang 'Đang dọn dẹp' (Cleaning).\n"
+                        f"• Người yêu cầu: {staff_name}\n"
+                        f"Kính mời bộ phận Buồng phòng tiến hành vệ sinh và thay ga gối."
+                    )
+                    for r in recipients:
+                        Notification.objects.create(
+                            recipient=r,
+                            title=notif_title,
+                            message=notif_message
+                        )
+                except Exception:
+                    pass
 
             return Response({
                 'success': True,
@@ -691,4 +769,259 @@ class AmenityViewSet(viewsets.ModelViewSet):
     queryset = Amenity.objects.all().order_by('id')
     serializer_class = AmenitySerializer
     permission_classes = [AllowAny]
+
+
+# =========================================================================
+# 5. API QUẢN LÝ PHIẾU BẢO TRÌ & THIẾT BỊ HỎNG
+# =========================================================================
+
+class MaintenanceTicketViewSet(viewsets.ModelViewSet):
+    """
+    API Quản lý Phiếu Bảo Trì & Sửa Chữa Thiết Bị Phòng:
+    - GET /api/rooms/maintenance-tickets/: Danh sách phiếu bảo trì
+    - POST /api/rooms/maintenance-tickets/: Báo hỏng thiết bị (Tự động chuyển phòng sang 'maintenance')
+    - POST /api/rooms/maintenance-tickets/{id}/complete/: Hoàn thành sửa chữa (Tự động chuyển phòng sang 'cleaning' để buồng phòng dọn dẹp)
+    """
+    queryset = MaintenanceTicket.objects.select_related('room', 'booking', 'technician', 'created_by').order_by('-start_date')
+    serializer_class = MaintenanceTicketSerializer
+    permission_classes = [IsHotelStaffOrAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        room_id = self.request.query_params.get('room_id')
+        status_param = self.request.query_params.get('status')
+        if room_id:
+            qs = qs.filter(room_id=room_id)
+        if status_param:
+            qs = qs.filter(status=status_param)
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        room_id = request.data.get('room') or request.data.get('room_id')
+        if not room_id:
+            return Response({'success': False, 'message': 'Thiếu thông tin phòng cần bảo trì.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            room = Room.objects.get(pk=room_id)
+        except Room.DoesNotExist:
+            return Response({'success': False, 'message': 'Không tìm thấy phòng.'}, status=status.HTTP_404_NOT_FOUND)
+
+        equipment_name = request.data.get('equipment_name', '').strip()
+        if not equipment_name:
+            return Response({'success': False, 'message': 'Vui lòng nhập tên thiết bị bị hư hỏng.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        issue_type = request.data.get('issue_type', 'ac')
+        description = request.data.get('description', '')
+        parts_replaced = request.data.get('parts_replaced', '')
+        cost = int(request.data.get('cost') or 0)
+        is_guest_fault = bool(request.data.get('is_guest_fault', False))
+        booking_id = request.data.get('booking') or request.data.get('booking_id')
+        technician_id = request.data.get('technician') or request.data.get('technician_id')
+
+        booking = None
+        if booking_id:
+            booking = Booking.objects.filter(pk=booking_id).first()
+        elif room.status == 'occupied':
+            booking = room.bookings.filter(status='checked_in').first()
+
+        technician = None
+        if technician_id:
+            technician = User.objects.filter(pk=technician_id).first()
+
+        ticket = MaintenanceTicket.objects.create(
+            room=room,
+            equipment_name=equipment_name,
+            issue_type=issue_type,
+            description=description,
+            parts_replaced=parts_replaced,
+            cost=cost,
+            is_guest_fault=is_guest_fault,
+            booking=booking,
+            technician=technician,
+            created_by=request.user if request.user.is_authenticated else None,
+            status='fixing'
+        )
+
+        # 1. CÁCH LY PHÒNG: Tự động chuyển phòng sang 'maintenance'
+        room.status = 'maintenance'
+        room.save(update_fields=['status'])
+
+        # 2. XỬ LÝ TIỀN ĐỀN BÙ: Nếu khách làm hỏng và có đơn đặt phòng + chi phí > 0
+        if is_guest_fault and booking and cost > 0:
+            BookingExtraService.objects.create(
+                booking=booking,
+                service_name=f"Bồi thường hỏng thiết bị: {equipment_name}",
+                quantity=1,
+                price=cost
+            )
+
+        # 3. Ghi nhận Nhật ký thao tác
+        fault_text = f" (Khách bồi thường {cost:,.0f} đ)" if (is_guest_fault and cost > 0) else " (Bảo dưỡng khách sạn)"
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='ROOM',
+            description=f"Lập phiếu bảo trì #{ticket.ticket_code} cho phòng {room.room_number}: {equipment_name}{fault_text}",
+            request=request
+        )
+
+        # 4. GỬI THÔNG BÁO TỰ ĐỘNG ĐẾN KỸ THUẬT VIÊN VÀ QUẢN LÝ
+        try:
+            reporter_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên"
+            tech_users = User.objects.filter(
+                Q(role__in=['technician', 'admin', 'owner', 'manager']) | Q(is_superuser=True)
+            ).distinct()
+            fault_note = "Do khách làm hỏng (Bồi thường)" if is_guest_fault else "Bảo dưỡng khách sạn"
+            issue_labels = {
+                'ac': 'Điều hòa / Máy lạnh',
+                'electric': 'Điện / Đèn / Ổ cắm',
+                'water': 'Nước / Vòi / Cống / Toilet',
+                'lock': 'Khóa từ / Cửa phòng',
+                'tv': 'Tivi / Remote / Mạng',
+                'furniture': 'Nội thất / Giường / Tủ / Ghế',
+                'broken_item': 'Vật dụng bể vỡ',
+                'other': 'Khác'
+            }
+            issue_display = issue_labels.get(issue_type, issue_type)
+            notif_title = f"🛠️ [BẢO TRÌ] P.{room.room_number} báo hỏng: {equipment_name}"
+            notif_message = (
+                f"Phòng {room.room_number} vừa được chuyển sang 'Bảo trì' cần kiểm tra gấp:\n"
+                f"• Thiết bị: {equipment_name} ({issue_display})\n"
+                f"• Chi tiết: {description or 'Cần kỹ thuật đến kiểm tra'}\n"
+                f"• Phân loại: {fault_note}\n"
+                f"• Người báo: {reporter_name}\n"
+                f"• Mã phiếu: #{ticket.ticket_code}"
+            )
+            for recipient in tech_users:
+                Notification.objects.create(
+                    recipient=recipient,
+                    title=notif_title,
+                    message=notif_message
+                )
+        except Exception as e:
+            pass
+
+        all_rooms = Room.objects.all()
+        stats_data = {
+            'total': all_rooms.count(),
+            'available': all_rooms.filter(status='available').count(),
+            'occupied': all_rooms.filter(status='occupied').count(),
+            'cleaning': all_rooms.filter(status='cleaning').count(),
+            'maintenance': all_rooms.filter(status='maintenance').count(),
+        }
+
+        return Response({
+            'success': True,
+            'message': f'Đã lập phiếu bảo trì #{ticket.ticket_code} và chuyển phòng {room.room_number} sang "Đang bảo trì".',
+            'ticket': MaintenanceTicketSerializer(ticket).data,
+            'room': RoomSerializer(room).data,
+            'stats': stats_data
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post', 'patch'], url_path='complete')
+    def complete_maintenance(self, request, pk=None):
+        ticket = self.get_object()
+        if ticket.status == 'completed':
+            return Response({'success': False, 'message': 'Phiếu bảo trì này đã hoàn tất trước đó.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        parts_replaced = request.data.get('parts_replaced', ticket.parts_replaced)
+        cost = int(request.data.get('cost') or ticket.cost or 0)
+        note = request.data.get('note', '')
+        is_guest_fault = request.data.get('is_guest_fault')
+        if is_guest_fault is not None:
+            ticket.is_guest_fault = bool(is_guest_fault)
+
+        ticket.parts_replaced = parts_replaced
+        ticket.cost = cost
+        ticket.note = note
+        ticket.completed_date = timezone.now()
+        ticket.status = 'completed'
+        if request.user.is_authenticated and not ticket.technician:
+            ticket.technician = request.user
+        ticket.save()
+
+        # Cập nhật chi phí bồi thường nếu có
+        if ticket.is_guest_fault and ticket.booking and cost > 0:
+            bes = BookingExtraService.objects.filter(
+                booking=ticket.booking,
+                service_name__contains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}"
+            ).first()
+            if bes:
+                bes.price = cost
+                bes.save(update_fields=['price'])
+            else:
+                BookingExtraService.objects.create(
+                    booking=ticket.booking,
+                    service_name=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}",
+                    quantity=1,
+                    price=cost
+                )
+        elif ticket.booking:
+            # Nếu nghiệm thu xác nhận không phải lỗi khách hoặc chi phí = 0: Gỡ phụ phí khỏi hóa đơn
+            BookingExtraService.objects.filter(
+                booking=ticket.booking,
+                service_name__contains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}"
+            ).delete()
+
+        # 4. QUY TRÌNH BÀN GIAO: Chuyển phòng từ 'maintenance' sang 'cleaning' (Đang dọn dẹp)
+        room = ticket.room
+        room.status = 'cleaning'
+        room.save(update_fields=['status'])
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='ROOM',
+            description=f"Hoàn tất bảo trì #{ticket.ticket_code} phòng {room.room_number} ({ticket.equipment_name}). Bàn giao Buồng phòng vệ sinh.",
+            request=request
+        )
+
+        # 5. GỬI THÔNG BÁO TỰ ĐỘNG ĐẾN BUỒNG PHÒNG VÀ LỄ TÂN/QUẢN LÝ
+        try:
+            tech_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Kỹ thuật viên"
+            housekeeping_users = User.objects.filter(
+                Q(role__in=['housekeeper', 'receptionist', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+            ).distinct()
+            active_booking = room.bookings.filter(status='checked_in').select_related('guest').first()
+            guest_display = (active_booking.guest.get_full_name() or active_booking.guest.username) if (active_booking and active_booking.guest) else "Khách lưu trú"
+            guest_stay_note = f"\n• Lưu ý: Phòng đang có khách lưu trú ({guest_display} - #{active_booking.booking_code})." if active_booking else ""
+            action_instruction = "Kính mời bộ phận Buồng phòng hỗ trợ lau dọn sạch sẽ để khách tiếp tục sinh hoạt!" if active_booking else "Kính mời bộ phận Buồng phòng tiến hành vệ sinh, thay ga gối để sẵn sàng đón khách!"
+
+            parts_info = ticket.parts_replaced or "Không có (Sửa chữa/Bảo dưỡng)"
+            cost_info = f"{int(ticket.cost):,} VNĐ" if ticket.cost else "0 VNĐ (Không phát sinh)"
+
+            notif_title = f"🧹 [BÀN GIAO DỌN DẸP] Phòng {room.room_number} đã sửa xong!"
+            notif_message = (
+                f"Kỹ thuật viên ({tech_name}) đã hoàn tất sửa chữa thiết bị tại phòng {room.room_number}:\n"
+                f"• Thiết bị: {ticket.equipment_name}\n"
+                f"• Vật tư thay thế: {parts_info}\n"
+                f"• Chi phí: {cost_info}\n"
+                f"• Trạng thái mới: Đang dọn dẹp (Cleaning){guest_stay_note}\n"
+                f"{action_instruction}"
+            )
+            for recipient in housekeeping_users:
+                Notification.objects.create(
+                    recipient=recipient,
+                    title=notif_title,
+                    message=notif_message
+                )
+        except Exception as e:
+            pass
+
+        all_rooms = Room.objects.all()
+        stats_data = {
+            'total': all_rooms.count(),
+            'available': all_rooms.filter(status='available').count(),
+            'occupied': all_rooms.filter(status='occupied').count(),
+            'cleaning': all_rooms.filter(status='cleaning').count(),
+            'maintenance': all_rooms.filter(status='maintenance').count(),
+        }
+
+        return Response({
+            'success': True,
+            'message': f'Đã hoàn tất sửa chữa phòng {room.room_number}! Phòng đã được chuyển giao cho bộ phận Buồng phòng dọn dẹp.',
+            'ticket': MaintenanceTicketSerializer(ticket).data,
+            'room': RoomSerializer(room).data,
+            'stats': stats_data
+        }, status=status.HTTP_200_OK)
 
