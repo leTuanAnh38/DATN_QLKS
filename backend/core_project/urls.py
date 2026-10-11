@@ -23,6 +23,7 @@ from apps.services.views import ServiceRequestViewSet
 from apps.posts.views import ImageUploadView
 from apps.bookings.views import PromotionViewSet
 from apps.users.views import AuditLogViewSet
+from apps.payments.views import SepayWebhookView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -43,6 +44,7 @@ urlpatterns = [
     path('api/contacts/', include('apps.contacts.urls')),
     path('api/reports/', include('apps.reports.urls')),
     path('api/payments/', include('apps.payments.urls')),
+    path('api/webhooks/sepay/', SepayWebhookView.as_view(), name='sepay-webhook-direct'),
     path('api/upload-image/', ImageUploadView.as_view(), name='upload-image'),
 ]
 

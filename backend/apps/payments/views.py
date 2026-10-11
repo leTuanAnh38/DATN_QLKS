@@ -1,3 +1,5 @@
+import os
+import re
 from decimal import Decimal
 from django.db import models, transaction
 from django.utils import timezone
@@ -346,3 +348,161 @@ class PaymentConfigView(APIView):
             "message": "Dữ liệu cấu hình không hợp lệ.",
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PaymentStatusView(APIView):
+    """
+    API endpoint: GET /api/payments/<booking_id>/status/
+    Kiểm tra trạng thái thanh toán của đơn đặt phòng phục vụ Long Polling từ Frontend.
+    Hỗ trợ booking_id là ID (số) hoặc booking_code (chuỗi).
+    Trả về {"status": "COMPLETED"} hoặc {"status": "PENDING"}.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, booking_id):
+        # 1. Tra cứu booking theo ID số hoặc booking_code
+        try:
+            if str(booking_id).isdigit():
+                booking = Booking.objects.get(id=int(booking_id))
+            else:
+                booking = Booking.objects.get(booking_code=str(booking_id))
+        except Booking.DoesNotExist:
+            return Response(
+                {
+                    "status": "NOT_FOUND",
+                    "message": f"Không tìm thấy đơn đặt phòng với ID '{booking_id}'."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 2. Kiểm tra trạng thái thanh toán:
+        has_completed_payment = Payment.objects.filter(booking=booking, payment_status='COMPLETED').exists()
+        is_invoice_paid = hasattr(booking, 'invoice') and booking.invoice.status == 'paid'
+        is_booking_paid = booking.status in ['paid', 'confirmed', 'completed', 'checked_in']
+
+        if has_completed_payment or is_invoice_paid or is_booking_paid:
+            return Response({
+                "status": "COMPLETED",
+                "booking_code": booking.booking_code,
+                "booking_id": booking.id
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "status": "PENDING",
+            "booking_code": booking.booking_code,
+            "booking_id": booking.id
+        }, status=status.HTTP_200_OK)
+
+
+class SepayWebhookView(APIView):
+    """
+    API endpoint: POST /api/payments/webhook/sepay/
+    Nhận Webhook từ SePay khi có biến động số dư chuyển khoản VietQR thành công.
+    Tự động cập nhật trạng thái đơn đặt phòng sang COMPLETED.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # 1. Xác thực API Key từ SePay (nếu có cấu hình SEPAY_WEBHOOK_SECRET)
+        secret = os.getenv('SEPAY_WEBHOOK_SECRET', '').strip().strip('"').strip("'")
+        auth_header = request.headers.get('Authorization', '')
+        
+        if secret and auth_header:
+            token = auth_header.replace('Apikey', '').strip()
+            if token != secret:
+                return Response(
+                    {"success": False, "message": "Sai API Key xác thực SePay."},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+        data = request.data
+        transfer_type = data.get('transferType', 'in')
+        if transfer_type and str(transfer_type).lower() != 'in':
+            return Response({"success": True, "message": "Bỏ qua giao dịch không phải tiền vào."}, status=status.HTTP_200_OK)
+
+        content = str(data.get('content', '') or data.get('description', ''))
+        amount_val = data.get('transferAmount') or data.get('amount')
+        sepay_id = data.get('id', '')
+        reference_code = data.get('referenceCode', '')
+
+        # 2. Tìm mã đơn booking_code trong nội dung chuyển khoản bằng Regex
+        # Hỗ trợ mọi biến thể ngân hàng: có gạch ngang (BK-DA5F79) hoặc bị nuốt gạch ngang (BKDA5F79, BKDA5F79-)
+        booking = None
+        match = re.search(r'BK-?([A-Za-z0-9]{4,10})', content, re.IGNORECASE)
+        if match:
+            clean_suffix = match.group(1).upper()
+            # 2.1 Thử tìm theo định dạng chuẩn BK-XXXXXX
+            booking = Booking.objects.filter(booking_code__iexact=f"BK-{clean_suffix}").first()
+            if not booking:
+                # 2.2 Thử tìm theo chuỗi con suffix
+                booking = Booking.objects.filter(booking_code__icontains=clean_suffix).first()
+
+        # Fallback: nếu không thấy BK-xxx, thử tìm theo ID số trong content
+        if not booking:
+            id_match = re.search(r'\b(\d{1,6})\b', content)
+            if id_match:
+                booking = Booking.objects.filter(id=int(id_match.group(1))).first()
+
+        if not booking:
+            return Response(
+                {"success": False, "message": f"Không tìm thấy đơn đặt phòng từ nội dung: '{content}'"},
+                status=status.HTTP_200_OK
+            )
+
+        # 3. Chuyển đổi số tiền
+        try:
+            transfer_amount = Decimal(str(amount_val or 0))
+        except (ValueError, TypeError):
+            transfer_amount = Decimal('0')
+
+        # 4. Cập nhật thanh toán và trạng thái Booking trong Database
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+            txn_id = f"SEPAY-{sepay_id}" if sepay_id else (f"SEPAY-{reference_code}" if reference_code else None)
+            defaults = {
+                'booking': booking,
+                'amount': transfer_amount or booking.total_amount,
+                'payment_method': 'TRANSFER',
+                'payment_status': 'COMPLETED'
+            }
+
+            if txn_id:
+                payment, _ = Payment.objects.update_or_create(
+                    transaction_id=txn_id,
+                    defaults=defaults
+                )
+            else:
+                payment = Payment.objects.create(**defaults)
+
+            # Cập nhật hóa đơn
+            if hasattr(booking, 'invoice') and booking.invoice:
+                invoice = booking.invoice
+                invoice.status = 'paid'
+                invoice.payment_method = 'bank_transfer'
+                invoice.paid_at = timezone.now()
+                invoice.save()
+
+            # Cập nhật đơn đặt phòng sang paid
+            if booking.status in ['pending', 'unconfirmed']:
+                booking.status = 'paid'
+            note_str = (booking.note or '').strip()
+            if 'SePay VietQR' not in note_str:
+                booking.note = f"{note_str} | SePay VietQR Auto ({transfer_amount:,.0f} VND)" if note_str else f"SePay VietQR Auto ({transfer_amount:,.0f} VND)"
+            booking.save(update_fields=['status', 'note'])
+
+        log_action(
+            user=getattr(booking, 'guest', None),
+            action='UPDATE',
+            module='PAYMENT',
+            description=f"SePay Webhook tự động xác nhận thanh toán {transfer_amount:,.0f} VND cho đơn {booking.booking_code}",
+            request=request
+        )
+
+        return Response({
+            "success": True,
+            "message": f"Đã cập nhật trạng thái COMPLETED cho đơn {booking.booking_code} thành công!",
+            "booking_code": booking.booking_code
+        }, status=status.HTTP_200_OK)
+
+

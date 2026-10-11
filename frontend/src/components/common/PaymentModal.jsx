@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     CheckCircle2,
     X,
@@ -135,6 +136,82 @@ export default function PaymentModal({
         }, 1000);
         return () => clearInterval(timer);
     }, [isOpen, timeLeft]);
+
+    const navigate = useNavigate();
+    const pollIntervalRef = useRef(null);
+    const [isPollingCompleted, setIsPollingCompleted] = useState(false);
+
+    // =========================================================================
+    // LONG POLLING: TỰ ĐỘNG KIỂM TRA TRẠNG THÁI THANH TOÁN (SEPAY / VIETQR)
+    // =========================================================================
+    useEffect(() => {
+        const targetId = bookingId || code;
+        if (!isOpen || !targetId || isPollingCompleted) return;
+
+        let isMounted = true;
+        let isFetching = false; // Flag ngăn chặn request chồng chéo khi mạng lag
+
+        // 1. Hàm checkPaymentStatus gọi API Backend GET /api/payments/{booking_id}/status/
+        const checkPaymentStatus = async () => {
+            if (isFetching || !isMounted) return;
+            isFetching = true;
+
+            try {
+                const response = await api.get(`/payments/${targetId}/status/`);
+                const paymentStatus = response.data?.status || response.data?.payment_status;
+
+                if (!isMounted) return;
+
+                // 3. Logic xử lý trạng thái
+                if (paymentStatus === 'COMPLETED') {
+                    // Lập tức clearInterval
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
+                    setIsPollingCompleted(true);
+
+                    // Ưu tiên kích hoạt callback cha để hiển thị màn hình chúc mừng của Checkout
+                    if (onSuccess) {
+                        onSuccess({ status: 'COMPLETED', booking_id: targetId, booking_code: code });
+                    } else if (onConfirm) {
+                        onConfirm({ status: 'COMPLETED', booking_id: targetId, booking_code: code });
+                    } else if (onClose) {
+                        onClose({ completed: true, bookingCode: code });
+                    } else {
+                        navigate('/booking-success', {
+                            state: {
+                                bookingId: targetId,
+                                bookingCode: code,
+                                status: 'COMPLETED'
+                            }
+                        });
+                    }
+                }
+                // Nếu status === "PENDING": Không làm gì cả, chờ lần polling tiếp theo
+            } catch (err) {
+                // Nuốt lỗi polling mạng tạm thời để không ngắt trải nghiệm người dùng
+                console.warn('Đang chờ giao dịch VietQR:', err?.message || err);
+            } finally {
+                isFetching = false;
+            }
+        };
+
+        // Gọi ngay 1 lần đầu khi mở modal
+        checkPaymentStatus();
+
+        // Kích hoạt setInterval gọi lặp lại mỗi 3000ms (3 giây)
+        pollIntervalRef.current = setInterval(checkPaymentStatus, 3000);
+
+        // Cleanup: Xóa bộ đếm interval khi unmount hoặc đóng modal để chống rò rỉ bộ nhớ
+        return () => {
+            isMounted = false;
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
+        };
+    }, [isOpen, bookingId, code, isPollingCompleted, navigate, onSuccess, onConfirm, onClose]);
 
     const formatTimer = (seconds) => {
         const m = Math.floor(seconds / 60);
@@ -506,27 +583,18 @@ export default function PaymentModal({
                             </p>
                         </div>
 
-                        {/* Nút Call API chiếm 100% width */}
-                        <div className="w-full mt-6 space-y-2.5">
-                            <button
-                                type="button"
-                                onClick={handleConfirmPayment}
-                                disabled={isLoading || timeLeft <= 0}
-                                className="w-full py-3.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-60"
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                        <span>Đang xác nhận với hệ thống...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle2 className="w-4 h-4 text-white" />
-                                        <span>Xác nhận đã chuyển khoản</span>
-                                        <ArrowRight className="w-4 h-4 text-blue-200" />
-                                    </>
-                                )}
-                            </button>
+                        {/* KHU VỰC TRẠNG THÁI TỰ ĐỘNG CHỜ NHẬN TIỀN (AUTO POLLING) */}
+                        <div className="w-full mt-6 space-y-3">
+                            <div className="p-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-center gap-3 text-blue-700 shadow-xs">
+                                <span className="relative flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+                                </span>
+                                <RefreshCw className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
+                                <span className="text-xs sm:text-sm font-semibold text-blue-900 animate-pulse tracking-wide">
+                                    Hệ thống đang tự động chờ nhận tiền...
+                                </span>
+                            </div>
 
                             <button
                                 type="button"
