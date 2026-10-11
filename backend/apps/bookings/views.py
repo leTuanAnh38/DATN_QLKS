@@ -101,6 +101,14 @@ class BookingViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = serializer.instance
         old_status = instance.status
+        pending_status = serializer.validated_data.get('status', old_status)
+        if pending_status == 'no_show' and old_status != 'no_show':
+            today = timezone.localdate()
+            if instance.check_in_date and today < instance.check_in_date:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({
+                    'status': f"Chưa tới ngày nhận phòng ({instance.check_in_date.strftime('%d/%m/%Y')}). Không thể chuyển sang trạng thái No-show."
+                })
         updated_booking = serializer.save()
         new_status = updated_booking.status
 
@@ -2089,6 +2097,19 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({
                 'success': False,
                 'message': f"Đơn đặt phòng {booking.booking_code} đã bị hủy bỏ trước đó."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3. Kiểm tra ngày nhận phòng: Chưa tới ngày check-in không được phép đánh dấu No-show
+        today = timezone.localdate()
+        if booking.check_in_date and today < booking.check_in_date:
+            formatted_date = booking.check_in_date.strftime('%d/%m/%Y')
+            return Response({
+                'success': False,
+                'message': (
+                    f"Chưa tới ngày nhận phòng ({formatted_date}). Theo quy định khách sạn, "
+                    f"chỉ được đánh dấu No-show từ ngày nhận phòng trở đi. "
+                    f"Nếu khách báo trước không đến, vui lòng thực hiện thao tác 'Hủy đơn'."
+                )
             }, status=status.HTTP_400_BAD_REQUEST)
 
         reason = request.data.get('reason', '').strip()

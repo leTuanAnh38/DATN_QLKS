@@ -23,6 +23,24 @@ const formatDateDisplay = (dateStr) => {
     return dateStr;
 };
 
+// Kiểm tra xem đã tới hoặc qua ngày check-in hay chưa (Chỉ cho phép No-show từ ngày check-in)
+const isCheckInDateReached = (dateStr) => {
+    if (!dateStr) return false;
+    try {
+        const parts = String(dateStr).split('T')[0].split('-');
+        if (parts.length === 3) {
+            const checkInDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            checkInDate.setHours(0, 0, 0, 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return today >= checkInDate;
+        }
+    } catch {
+        return false;
+    }
+    return false;
+};
+
 // Format thời gian chi tiết HH:MM • DD/MM/YYYY
 const formatDateTimeDisplay = (isoStr) => {
     if (!isoStr) return '—';
@@ -990,6 +1008,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     // Xử lý xác nhận đánh dấu No-show (Khách không đến nhận phòng)
     const handleConfirmNoShow = async () => {
         if (!noShowModalBooking) return;
+        if (!isCheckInDateReached(noShowModalBooking.check_in_date)) {
+            showToast('error', `Chưa tới ngày nhận phòng (${formatDateDisplay(noShowModalBooking.check_in_date)}). Không thể đánh dấu No-show. Vui lòng chọn Hủy đơn nếu khách báo hủy.`);
+            return;
+        }
         const finalReason = noShowReason === 'Khác' ? (customNoShowReason.trim() || 'Lý do khác') : noShowReason;
         try {
             setIsSubmittingNoShow(true);
@@ -1686,14 +1708,25 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                                         <span>🔑</span>
                                                                         <span>Check-in</span>
                                                                     </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setNoShowModalBooking(booking)}
-                                                                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95"
-                                                                        title="Đánh dấu Khách không đến (No-show)"
-                                                                    >
-                                                                        🚫
-                                                                    </button>
+                                                                    {isCheckInDateReached(booking.check_in_date) ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setNoShowModalBooking(booking)}
+                                                                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-500 text-xs font-bold border border-slate-200 transition inline-flex items-center justify-center cursor-pointer active:scale-95"
+                                                                            title="Đánh dấu Khách không đến (No-show)"
+                                                                        >
+                                                                            🚫
+                                                                        </button>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled
+                                                                            className="w-7 h-7 rounded-lg bg-slate-50 text-slate-300 text-xs font-bold border border-slate-200/60 cursor-not-allowed opacity-50 inline-flex items-center justify-center"
+                                                                            title={`Chưa tới ngày nhận phòng (${formatDateDisplay(booking.check_in_date)}). Không thể đánh dấu No-show. Nếu khách báo hủy trước, vui lòng chọn Hủy đơn.`}
+                                                                        >
+                                                                            🚫
+                                                                        </button>
+                                                                    )}
                                                                 </>
                                                             )}
                                                             {booking.status === 'checked_in' && (
@@ -2249,42 +2282,103 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         </div>
 
                         {/* Nút hành động Modal */}
-                        <div className="pt-5 mt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                                {canManageBookings && selectedBooking.status === 'confirmed' && (
+                        {canManageBookings && ['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(selectedBooking.status) && (
+                            <div className="pt-5 mt-6 border-t border-slate-100 flex items-center justify-center gap-2.5 flex-wrap">
+                                {selectedBooking.status === 'confirmed' && (
                                     <>
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 handleOpenCheckInModal(selectedBooking);
                                             }}
-                                            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
                                         >
                                             <span>🔑</span>
-                                            <span>Thực hiện Check-in ngay</span>
+                                            <span>Check-in</span>
                                         </button>
+                                        {isCheckInDateReached(selectedBooking.check_in_date) ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setNoShowModalBooking(selectedBooking);
+                                                }}
+                                                className="px-3.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            >
+                                                <span>🚫</span>
+                                                <span>No-show</span>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                disabled
+                                                className="px-3.5 py-1.5 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl shadow-xs cursor-not-allowed inline-flex items-center gap-1.5 opacity-60 border border-slate-200"
+                                                title={`Chưa tới ngày nhận phòng (${formatDateDisplay(selectedBooking.check_in_date)}). Không thể đánh dấu No-show.`}
+                                            >
+                                                <span>🚫</span>
+                                                <span>No-show (Chưa tới ngày)</span>
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
+                                            disabled={updatingId === selectedBooking.id}
                                             onClick={() => {
-                                                setNoShowModalBooking(selectedBooking);
+                                                if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt phòng #${selectedBooking.booking_code}? Hành động này sẽ giải phóng phòng và chuyển trạng thái sang Đã hủy.`)) {
+                                                    handleQuickStatusChange(selectedBooking.id, 'cancelled');
+                                                }
                                             }}
-                                            className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                            title="Hủy đơn đặt phòng này"
                                         >
-                                            <span>🚫</span>
-                                            <span>Đánh dấu No-show</span>
+                                            <span>✕</span>
+                                            <span>Hủy đơn</span>
                                         </button>
                                     </>
                                 )}
-                            </div>
 
-                            <button
-                                type="button"
-                                onClick={() => setSelectedBooking(null)}
-                                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer ml-auto"
-                            >
-                                Đóng cửa sổ
-                            </button>
-                        </div>
+                                {['pending', 'paid', 'PAID'].includes(selectedBooking.status) && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            disabled={updatingId === selectedBooking.id}
+                                            onClick={() => handleQuickStatusChange(selectedBooking.id, 'confirmed')}
+                                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                        >
+                                            <span>✓</span>
+                                            <span>Duyệt đơn</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={updatingId === selectedBooking.id}
+                                            onClick={() => {
+                                                if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt phòng #${selectedBooking.booking_code}?`)) {
+                                                    handleQuickStatusChange(selectedBooking.id, 'cancelled');
+                                                }
+                                            }}
+                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                            title="Hủy đơn đặt phòng này"
+                                        >
+                                            <span>✕</span>
+                                            <span>Hủy đơn</span>
+                                        </button>
+                                    </>
+                                )}
+
+                                {selectedBooking.status === 'checked_in' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const b = selectedBooking;
+                                            setSelectedBooking(null);
+                                            setCheckOutModalBooking(b);
+                                        }}
+                                        className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                    >
+                                        <span>🧾</span>
+                                        <span>Check-out trả phòng</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -3183,15 +3277,26 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             </div>
                         </div>
 
-                        {/* Cảnh báo chính theo yêu cầu */}
-                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl mb-4 text-xs text-amber-900 leading-relaxed space-y-1.5">
-                            <div className="font-bold flex items-center gap-1.5 text-amber-800">
-                                <span>⚠️ CẢNH BÁO QUAN TRỌNG:</span>
+                        {/* Cảnh báo kiểm tra ngày nhận phòng */}
+                        {!isCheckInDateReached(noShowModalBooking.check_in_date) ? (
+                            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl mb-4 text-xs text-rose-900 leading-relaxed space-y-1.5">
+                                <div className="font-bold flex items-center gap-1.5 text-rose-800">
+                                    <span>⛔ CHƯA TỚI NGÀY NHẬN PHÒNG (KHÔNG THỂ NO-SHOW):</span>
+                                </div>
+                                <p className="font-medium">
+                                    Đơn đặt phòng này có ngày check-in là <strong>{formatDateDisplay(noShowModalBooking.check_in_date)}</strong>. Theo quy chuẩn khách sạn, trạng thái No-show chỉ được ghi nhận từ ngày nhận phòng trở đi. Nếu khách chủ động báo trước là không đến, vui lòng đóng cửa sổ này và chọn thao tác <strong>Từ chối / Hủy đơn</strong>.
+                                </p>
                             </div>
-                            <p className="font-medium">
-                                Bạn có chắc chắn muốn đánh dấu đơn này là <strong>Khách không đến (No-show)</strong>? Hành động này sẽ hủy giữ chỗ và giải phóng phòng để bán cho khách khác. Tiền cọc (nếu có) sẽ không được hoàn lại.
-                            </p>
-                        </div>
+                        ) : (
+                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl mb-4 text-xs text-amber-900 leading-relaxed space-y-1.5">
+                                <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                                    <span>⚠️ CẢNH BÁO QUAN TRỌNG:</span>
+                                </div>
+                                <p className="font-medium">
+                                    Bạn có chắc chắn muốn đánh dấu đơn này là <strong>Khách không đến (No-show)</strong>? Hành động này sẽ hủy giữ chỗ và giải phóng phòng để bán cho khách khác. Tiền cọc (nếu có) sẽ không được hoàn lại.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Tóm tắt thông tin đơn đặt phòng */}
                         <div className="bg-slate-50 rounded-2xl p-4 text-xs space-y-2 mb-4 border border-slate-200/80">
@@ -3255,9 +3360,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
-                                disabled={isSubmittingNoShow}
+                                disabled={isSubmittingNoShow || !isCheckInDateReached(noShowModalBooking.check_in_date)}
                                 onClick={handleConfirmNoShow}
-                                className="w-1/2 py-3 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                                className="w-1/2 py-3 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                             >
                                 {isSubmittingNoShow ? (
                                     <>
