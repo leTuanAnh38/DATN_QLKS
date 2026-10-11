@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Mail, MailOpen, Trash2, Eye, Check, X, Inbox, AlertTriangle, RefreshCw, Filter } from 'lucide-react';
+import { Search, Mail, MailOpen, Trash2, Check, X, Inbox, AlertTriangle, RefreshCw, Filter } from 'lucide-react';
 import { contactService } from '../../services/contactService';
 import Pagination from '../../components/common/Pagination';
 
@@ -303,40 +303,36 @@ export default function ContactManagement() {
                                         </td>
                                         <td className="px-6 py-4 text-right whitespace-nowrap">
                                             <div className="flex items-center justify-end gap-1.5">
-                                                {!c.is_read ? (
+                                                {!c.is_read && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleMarkRead(c)}
                                                         disabled={markingId === c.id}
-                                                        className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 font-bold text-[11px] transition shadow-2xs inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                                        className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs disabled:opacity-50"
                                                         title="Đánh dấu đã đọc"
                                                     >
-                                                        <Check className="w-3.5 h-3.5" />
-                                                        <span>{markingId === c.id ? 'Đang lưu...' : 'Đã đọc'}</span>
+                                                        {markingId === c.id ? (
+                                                            <div className="w-3 h-3 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                                                        ) : (
+                                                            '✓'
+                                                        )}
                                                     </button>
-                                                ) : (
-                                                    <span className="px-2 py-1 text-[11px] text-slate-400 font-medium italic inline-flex items-center gap-1">
-                                                        <Check className="w-3 h-3 text-slate-300" />
-                                                        <span>Đã đọc</span>
-                                                    </span>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleView(c)}
-                                                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                                                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
                                                     title="Xem chi tiết nội dung liên hệ"
                                                 >
-                                                    <Eye className="w-3.5 h-3.5" />
-                                                    <span>Xem</span>
+                                                    👁️
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setDeleteTarget(c)}
-                                                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                                                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
                                                     title="Xóa yêu cầu liên hệ"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                    <span>Xóa</span>
+                                                    🗑️
                                                 </button>
                                             </div>
                                         </td>

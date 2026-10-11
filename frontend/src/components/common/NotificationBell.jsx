@@ -226,7 +226,7 @@ export default function NotificationBell({ theme = 'light' }) {
             {/* Dropdown Menu / Popover hiển thị danh sách */}
             {isOpen && (
                 <div
-                    className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-50 overflow-hidden animate-fadeIn"
+                    className="absolute right-0 mt-2 w-[340px] sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-50 overflow-hidden animate-fadeIn"
                     style={{ transformOrigin: 'top right' }}
                 >
                     {/* Header Popover */}
@@ -301,7 +301,7 @@ export default function NotificationBell({ theme = 'light' }) {
                     </div>
 
                     {/* Danh sách thông báo */}
-                    <div className="max-h-96 overflow-y-auto divide-y divide-slate-100 divide-opacity-60">
+                    <div className="max-h-[480px] md:max-h-[520px] overflow-y-auto divide-y divide-slate-100 divide-opacity-60">
                         {isLoading && notifications.length === 0 ? (
                             <div className="p-8 text-center text-slate-400 text-xs">
                                 <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-500" />
@@ -355,18 +355,18 @@ export default function NotificationBell({ theme = 'light' }) {
                                                             </span>
                                                         ) : null}
                                                         <h4
-                                                            className={`text-xs truncate ${
+                                                            className={`text-xs leading-snug break-words flex-1 ${
                                                                 isUnread
                                                                     ? 'font-bold text-slate-900'
-                                                                    : 'font-medium text-slate-700'
+                                                                    : 'font-semibold text-slate-700'
                                                             }`}
                                                         >
                                                             {notif.title}
                                                         </h4>
                                                     </div>
                                                     <p
-                                                        className={`text-[11px] mt-1 line-clamp-3 leading-relaxed ${
-                                                            isUnread ? 'text-slate-800' : 'text-slate-500'
+                                                        className={`text-xs mt-1.5 leading-relaxed break-words whitespace-pre-line ${
+                                                            isUnread ? 'text-slate-800' : 'text-slate-600'
                                                         }`}
                                                     >
                                                         {notif.message}

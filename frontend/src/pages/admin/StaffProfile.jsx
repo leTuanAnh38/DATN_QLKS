@@ -14,7 +14,9 @@ import {
     Lock,
     CheckCircle2,
     AlertCircle,
-    RotateCcw
+    RotateCcw,
+    Edit3,
+    X
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../store/authStore';
@@ -42,6 +44,10 @@ export default function StaffProfile() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [initialAvatarUrl, setInitialAvatarUrl] = useState(null);
 
+    // Chế độ chỉnh sửa (mặc định chỉ xem, bấm Cập nhật mới mở khóa)
+    const [isEditing, setIsEditing] = useState(false);
+    const originalValuesRef = useRef({ firstName: '', lastName: '', phoneNumber: '', avatar: null });
+
     // Request status
     const [isFetching, setIsFetching] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
@@ -54,9 +60,12 @@ export default function StaffProfile() {
             const res = await api.get('/users/me/');
             if (res.data?.success && res.data.user) {
                 const u = res.data.user;
-                setFirstName(u.first_name || '');
-                setLastName(u.last_name || '');
-                setPhoneNumber(u.phone_number || '');
+                const fName = u.first_name || '';
+                const lName = u.last_name || '';
+                const phone = u.phone_number || '';
+                setFirstName(fName);
+                setLastName(lName);
+                setPhoneNumber(phone);
                 setEmail(u.email || '');
                 setRole(u.role || '');
                 setRoleDisplay(u.role_display || (u.role ? u.role.toUpperCase() : 'NHÂN VIÊN'));
@@ -69,6 +78,13 @@ export default function StaffProfile() {
                 const resolvedAvatar = getFullAvatarUrl(u.avatar);
                 setPreviewAvatar(resolvedAvatar);
                 setInitialAvatarUrl(resolvedAvatar);
+
+                originalValuesRef.current = {
+                    firstName: fName,
+                    lastName: lName,
+                    phoneNumber: phone,
+                    avatar: resolvedAvatar
+                };
             }
         } catch (err) {
             console.error('Lỗi khi tải hồ sơ cá nhân:', err);
@@ -85,8 +101,35 @@ export default function StaffProfile() {
         fetchProfile();
     }, []);
 
+    // Bắt đầu chỉnh sửa
+    const handleStartEdit = () => {
+        originalValuesRef.current = {
+            firstName,
+            lastName,
+            phoneNumber,
+            avatar: previewAvatar
+        };
+        setIsEditing(true);
+        setFeedback({ type: null, message: '' });
+    };
+
+    // Hủy bỏ chỉnh sửa, khôi phục dữ liệu ban đầu
+    const handleCancelEdit = () => {
+        setFirstName(originalValuesRef.current.firstName);
+        setLastName(originalValuesRef.current.lastName);
+        setPhoneNumber(originalValuesRef.current.phoneNumber);
+        setPreviewAvatar(originalValuesRef.current.avatar);
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+        setIsEditing(false);
+        setFeedback({ type: null, message: '' });
+    };
+
     // Xử lý khi người dùng chọn file ảnh mới
     const handleFileChange = (e) => {
+        if (!isEditing) return;
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -178,6 +221,15 @@ export default function StaffProfile() {
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
+
+                // Cập nhật giá trị gốc mới và tắt chế độ chỉnh sửa
+                originalValuesRef.current = {
+                    firstName: updatedUser.first_name || '',
+                    lastName: updatedUser.last_name || '',
+                    phoneNumber: updatedUser.phone_number || '',
+                    avatar: newAvatarUrl
+                };
+                setIsEditing(false);
 
                 setFeedback({
                     type: 'success',
@@ -304,21 +356,28 @@ export default function StaffProfile() {
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/gif"
                         className="hidden"
+                        disabled={!isEditing}
                         onChange={handleFileChange}
                     />
 
                     {/* Vùng ảnh đại diện Avatar tròn to */}
-                    <div className="relative group cursor-pointer">
+                    <div className={`relative ${isEditing ? 'group cursor-pointer' : ''}`}>
                         <div
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-40 h-40 sm:w-44 sm:h-44 rounded-full overflow-hidden border-4 border-white shadow-xl shadow-slate-200/80 ring-4 ring-slate-100 group-hover:ring-blue-400 transition-all duration-300 relative bg-slate-100"
-                            title="Bấm để thay đổi ảnh đại diện"
+                            onClick={() => isEditing && fileInputRef.current?.click()}
+                            className={`w-40 h-40 sm:w-44 sm:h-44 rounded-full overflow-hidden border-4 border-white shadow-xl shadow-slate-200/80 ring-4 transition-all duration-300 relative bg-slate-100 ${
+                                isEditing
+                                    ? 'ring-blue-200 group-hover:ring-blue-400 cursor-pointer'
+                                    : 'ring-slate-100'
+                            }`}
+                            title={isEditing ? 'Bấm để thay đổi ảnh đại diện' : 'Ảnh đại diện hiện tại'}
                         >
                             {previewAvatar ? (
                                 <img
                                     src={previewAvatar}
                                     alt={fullNameDisplay}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    className={`w-full h-full object-cover transition-transform duration-500 ${
+                                        isEditing ? 'group-hover:scale-105' : ''
+                                    }`}
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-blue-700 via-indigo-600 to-blue-500 text-white font-serif font-black text-4xl shadow-inner">
@@ -326,28 +385,32 @@ export default function StaffProfile() {
                                 </div>
                             )}
 
-                            {/* Lớp phủ mờ (Overlay) & Icon Camera khi Hover */}
-                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center text-white gap-2">
-                                <div className="p-2.5 rounded-full bg-white/20 backdrop-blur-md">
-                                    <Camera className="w-6 h-6 text-white drop-shadow" />
+                            {/* Lớp phủ mờ (Overlay) & Icon Camera khi Hover (chỉ khi đang ở chế độ sửa) */}
+                            {isEditing && (
+                                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center text-white gap-2">
+                                    <div className="p-2.5 rounded-full bg-white/20 backdrop-blur-md">
+                                        <Camera className="w-6 h-6 text-white drop-shadow" />
+                                    </div>
+                                    <span className="text-xs font-semibold tracking-wide">Thay đổi ảnh</span>
                                 </div>
-                                <span className="text-xs font-semibold tracking-wide">Thay đổi ảnh</span>
-                            </div>
+                            )}
                         </div>
 
-                        {/* Nút bấm Camera ở góc dưới ảnh */}
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="absolute bottom-2 right-2 p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition transform hover:scale-110 active:scale-95 cursor-pointer border-2 border-white"
-                            title="Tải ảnh mới từ máy tính"
-                        >
-                            <Camera className="w-4 h-4" />
-                        </button>
+                        {/* Nút bấm Camera ở góc dưới ảnh (chỉ hiển thị khi đang ở chế độ sửa) */}
+                        {isEditing && (
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute bottom-2 right-2 p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition transform hover:scale-110 active:scale-95 cursor-pointer border-2 border-white"
+                                title="Tải ảnh mới từ máy tính"
+                            >
+                                <Camera className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
-                    {/* Nút hủy ảnh đã chọn (chỉ hiện khi có chọn ảnh mới mà chưa lưu) */}
-                    {selectedFile && (
+                    {/* Nút hủy ảnh đã chọn (chỉ hiện khi có chọn ảnh mới mà chưa lưu và đang ở chế độ sửa) */}
+                    {isEditing && selectedFile && (
                         <div className="mt-4 flex items-center gap-2">
                             <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
                                 Đã chọn ảnh mới
@@ -435,7 +498,7 @@ export default function StaffProfile() {
                             </p>
                         </div>
 
-                        {/* Nhóm Input: Họ và Tên (Được phép sửa) */}
+                        {/* Nhóm Input: Họ và Tên (Được phép sửa khi isEditing = true) */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
                                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -448,9 +511,14 @@ export default function StaffProfile() {
                                     <input
                                         type="text"
                                         value={firstName}
+                                        disabled={!isEditing}
                                         onChange={(e) => setFirstName(e.target.value)}
                                         placeholder="Ví dụ: Nguyễn Văn"
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
+                                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition ${
+                                            isEditing
+                                                ? 'border-slate-200 text-slate-800 bg-white placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100'
+                                                : 'border-slate-200 bg-slate-50/80 text-slate-600 cursor-not-allowed select-none'
+                                        }`}
                                         required
                                     />
                                 </div>
@@ -467,16 +535,21 @@ export default function StaffProfile() {
                                     <input
                                         type="text"
                                         value={lastName}
+                                        disabled={!isEditing}
                                         onChange={(e) => setLastName(e.target.value)}
                                         placeholder="Ví dụ: An"
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
+                                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition ${
+                                            isEditing
+                                                ? 'border-slate-200 text-slate-800 bg-white placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100'
+                                                : 'border-slate-200 bg-slate-50/80 text-slate-600 cursor-not-allowed select-none'
+                                        }`}
                                         required
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Input: Số điện thoại (Được phép sửa) */}
+                        {/* Input: Số điện thoại (Được phép sửa khi isEditing = true) */}
                         <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                                 Số điện thoại di động
@@ -488,9 +561,14 @@ export default function StaffProfile() {
                                 <input
                                     type="tel"
                                     value={phoneNumber}
+                                    disabled={!isEditing}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     placeholder="Ví dụ: 0912345678"
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
+                                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition ${
+                                        isEditing
+                                            ? 'border-slate-200 text-slate-800 bg-white placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100'
+                                            : 'border-slate-200 bg-slate-50/80 text-slate-600 cursor-not-allowed select-none'
+                                    }`}
                                 />
                             </div>
                             <p className="text-[11px] text-slate-400 mt-1">
@@ -576,30 +654,54 @@ export default function StaffProfile() {
                             </div>
                         </div>
 
-                        {/* Nút hành động Lưu thay đổi */}
+                        {/* Nút hành động */}
                         <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <p className="text-xs text-slate-400 text-center sm:text-left">
-                                Dữ liệu sẽ được lưu an toàn vào hệ thống máy chủ khách sạn.
+                                {isEditing
+                                    ? 'Dữ liệu sẽ được lưu an toàn vào hệ thống máy chủ khách sạn.'
+                                    : 'Nhấn "Cập nhật" để mở chế độ chỉnh sửa thông tin hồ sơ.'}
                             </p>
 
                             <div className="flex items-center gap-3 w-full sm:w-auto">
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm shadow-md shadow-blue-500/20 hover:shadow-lg transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span>Đang lưu thay đổi...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="w-4 h-4" />
-                                            <span>Lưu thay đổi</span>
-                                        </>
-                                    )}
-                                </button>
+                                {!isEditing ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleStartEdit}
+                                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm shadow-md shadow-blue-500/20 hover:shadow-lg transition cursor-pointer"
+                                    >
+                                        <Edit3 className="w-4 h-4" />
+                                        <span>Cập nhật</span>
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelEdit}
+                                            disabled={isLoading}
+                                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm transition cursor-pointer disabled:opacity-60"
+                                        >
+                                            <X className="w-4 h-4" />
+                                            <span>Hủy bỏ</span>
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={isLoading}
+                                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm shadow-md shadow-blue-500/20 hover:shadow-lg transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                            {isLoading ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <span>Đang lưu thay đổi...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="w-4 h-4" />
+                                                    <span>Lưu thay đổi</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </form>
