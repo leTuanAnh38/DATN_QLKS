@@ -45,7 +45,29 @@ class ReviewViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         if self.action in ['reply', 'toggle_visibility', 'destroy']:
             return [IsStaffOrAdminUser()]
+        if self.action in ['update', 'partial_update']:
+            return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    def perform_update(self, serializer):
+        from rest_framework.exceptions import PermissionDenied
+        user = self.request.user
+        instance = serializer.instance
+        is_staff = (
+            user.is_staff or
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'staff']
+        )
+        if not is_staff and instance.guest != user:
+            raise PermissionDenied("Bạn chỉ có quyền chỉnh sửa đánh giá do chính mình viết.")
+
+        if not is_staff:
+            serializer.save(
+                admin_reply=instance.admin_reply,
+                is_visible=instance.is_visible
+            )
+        else:
+            serializer.save()
 
     def get_queryset(self):
         user = self.request.user

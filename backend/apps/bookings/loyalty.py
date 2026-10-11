@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 from django.db import transaction
 from ..users.models import MembershipTier, log_action
+from .models import Booking
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ def award_booking_loyalty_points(booking):
         if points_to_award <= 0:
             # Vẫn đánh dấu để tránh tính lại
             booking.is_points_awarded = True
-            booking.save(update_fields=['is_points_awarded'])
+            Booking.objects.filter(pk=booking.pk).update(is_points_awarded=True)
             return 0, False
 
         # 1. Cộng điểm tích lũy
@@ -90,9 +91,9 @@ def award_booking_loyalty_points(booking):
         # 2. Kiểm tra thăng hạng thẻ
         new_tier, is_upgraded = upgrade_user_membership_tier(user)
 
-        # 3. Đánh dấu booking đã cộng điểm
+        # 3. Đánh dấu booking đã cộng điểm (dùng update để không kích hoạt đệ quy signal post_save)
         booking.is_points_awarded = True
-        booking.save(update_fields=['is_points_awarded'])
+        Booking.objects.filter(pk=booking.pk).update(is_points_awarded=True)
 
         # 4. Gửi thông báo đến người dùng
         try:
@@ -104,8 +105,7 @@ def award_booking_loyalty_points(booking):
             Notification.objects.create(
                 recipient=user,
                 title="Tích lũy điểm thưởng thành viên",
-                message=notify_content,
-                type="general"
+                message=notify_content
             )
         except Exception as e:
             logger.warning(f"Không thể gửi thông báo tích điểm: {e}")
@@ -132,7 +132,6 @@ def recalculate_customer_loyalty_points(user):
     if not user:
         return 0, None, Decimal('0')
 
-    from .models import Booking
     from ..payments.models import Payment
 
     with transaction.atomic():

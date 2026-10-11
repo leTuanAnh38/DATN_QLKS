@@ -7,7 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.decorators import action
 from django.utils import timezone
 from datetime import datetime, timedelta
-from django.db.models import Q
+from django.db.models import Q, F
 from django.db import transaction
 from .models import Booking, Promotion, BookingExtraService
 from ..rooms.models import Room, RoomCategory
@@ -165,6 +165,13 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'message': 'Định dạng ngày tháng không đúng (chuẩn YYYY-MM-DD).'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        today = timezone.localdate()
+        if check_in < today:
+            return Response({
+                'success': False,
+                'message': f'Ngày nhận phòng không hợp lệ. Ngày nhận phòng ({check_in.strftime("%d/%m/%Y")}) không thể ở trong quá khứ (Hôm nay là {today.strftime("%d/%m/%Y")}).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         if check_out <= check_in:
             return Response({
                 'success': False,
@@ -197,158 +204,171 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'message': f'Không tìm thấy thông tin phòng với mã "{room_identifier}".'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # 2.1 Kiểm tra tình trạng phòng trống (Chống Overbooking)
-        total_rooms = category_instance.rooms.exclude(status='maintenance').count()
-        booked_rooms = Booking.objects.filter(
-            category=category_instance,
-            status__in=['pending', 'confirmed', 'checked_in'],
-            check_in_date__lt=check_out,
-            check_out_date__gt=check_in
-        ).count()
-        available_rooms = max(0, total_rooms - booked_rooms)
+        # 2.1 Kiểm tra tình trạng phòng trống và tạo đơn trong transaction.atomic với Pessimistic Lock
+        with transaction.atomic():
+            # Khóa bi quan hạng phòng để chống overbooking khi nhiều khách cùng đặt tại một thời điểm
+            category_instance = RoomCategory.objects.select_for_update().get(pk=category_instance.pk)
 
-        if available_rooms <= 0:
-            suggested = []
-            for other_cat in RoomCategory.objects.exclude(id=category_instance.id):
-                other_total = other_cat.rooms.exclude(status='maintenance').count()
-                other_booked = Booking.objects.filter(
-                    category=other_cat,
-                    status__in=['pending', 'confirmed', 'checked_in'],
-                    check_in_date__lt=check_out,
-                    check_out_date__gt=check_in
-                ).count()
-                other_avail = max(0, other_total - other_booked)
-                if other_avail > 0:
-                    feat_img = other_cat.images.filter(is_feature=True).first() or other_cat.images.first()
-                    feat_url = request.build_absolute_uri(feat_img.image.url) if (feat_img and feat_img.image) else ''
-                    suggested.append({
-                        'id': other_cat.id,
-                        'name': other_cat.name,
-                        'base_price': float(other_cat.base_price),
-                        'promo_price': float(other_cat.promo_price) if other_cat.promo_price else None,
-                        'available_rooms': other_avail,
-                        'image': feat_url,
-                        'size': other_cat.size,
-                        'bed_type': other_cat.bed_type,
-                        'capacity': other_cat.capacity
-                    })
+            # Chỉ tính các đơn pending được tạo trong vòng 15 phút gần nhất (chờ thanh toán QR)
+            pending_timeout = timezone.now() - timedelta(minutes=15)
+            total_rooms = category_instance.rooms.exclude(status='maintenance').count()
+            booked_rooms = Booking.objects.filter(
+                category=category_instance,
+                check_in_date__lt=check_out,
+                check_out_date__gt=check_in
+            ).filter(
+                Q(status__in=['confirmed', 'checked_in']) |
+                Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
+            ).count()
+            available_rooms = max(0, total_rooms - booked_rooms)
 
-            return Response({
-                'success': False,
-                'code': 'ROOM_SOLD_OUT',
-                'message': f'Rất tiếc, tất cả các phòng thuộc hạng "{category_instance.name}" đã được đặt kín từ {check_in.strftime("%d/%m/%Y")} đến {check_out.strftime("%d/%m/%Y")}. Quý khách vui lòng chọn ngày khác hoặc tham khảo các hạng phòng còn trống bên dưới.',
-                'total_rooms': total_rooms,
-                'booked_rooms': booked_rooms,
-                'available_rooms': 0,
-                'suggested_categories': suggested
-            }, status=status.HTTP_400_BAD_REQUEST)
+            if available_rooms <= 0:
+                suggested = []
+                for other_cat in RoomCategory.objects.exclude(id=category_instance.id):
+                    other_total = other_cat.rooms.exclude(status='maintenance').count()
+                    other_booked = Booking.objects.filter(
+                        category=other_cat,
+                        check_in_date__lt=check_out,
+                        check_out_date__gt=check_in
+                    ).filter(
+                        Q(status__in=['confirmed', 'checked_in']) |
+                        Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
+                    ).count()
+                    other_avail = max(0, other_total - other_booked)
+                    if other_avail > 0:
+                        feat_img = other_cat.images.filter(is_feature=True).first() or other_cat.images.first()
+                        feat_url = request.build_absolute_uri(feat_img.image.url) if (feat_img and feat_img.image) else ''
+                        suggested.append({
+                            'id': other_cat.id,
+                            'name': other_cat.name,
+                            'base_price': float(other_cat.base_price),
+                            'promo_price': float(other_cat.promo_price) if other_cat.promo_price else None,
+                            'available_rooms': other_avail,
+                            'image': feat_url,
+                            'size': other_cat.size,
+                            'bed_type': other_cat.bed_type,
+                            'capacity': other_cat.capacity
+                        })
 
-        # Nếu chưa có room_instance cụ thể, gán phòng trống thuộc hạng phòng đó
-        if not room_instance and category_instance:
-            available_room = category_instance.rooms.filter(status='available').first()
-            room_instance = available_room or category_instance.rooms.first()
+                return Response({
+                    'success': False,
+                    'code': 'ROOM_SOLD_OUT',
+                    'message': f'Rất tiếc, tất cả các phòng thuộc hạng "{category_instance.name}" đã được đặt kín từ {check_in.strftime("%d/%m/%Y")} đến {check_out.strftime("%d/%m/%Y")}. Quý khách vui lòng chọn ngày khác hoặc tham khảo các hạng phòng còn trống bên dưới.',
+                    'total_rooms': total_rooms,
+                    'booked_rooms': booked_rooms,
+                    'available_rooms': 0,
+                    'suggested_categories': suggested
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 3. Tính toán tiền phòng
-        price_per_night = category_instance.promo_price or category_instance.base_price
-        subtotal = Decimal(str(price_per_night * nights))
+            # Nếu chưa có room_instance cụ thể, gán phòng trống thuộc hạng phòng đó
+            if not room_instance and category_instance:
+                available_room = category_instance.rooms.filter(status='available').first()
+                room_instance = available_room or category_instance.rooms.first()
 
-        # 4. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách)
-        if request.user and request.user.is_authenticated:
-            guest_user = request.user
-        else:
-            # Tìm hoặc gán tài khoản khách
-            guest_user = None
-            if guest_email:
-                guest_user = User.objects.filter(email=guest_email).first()
-            if not guest_user:
-                # Gán vào tài khoản khách mặc định
-                guest_user = User.objects.filter(role='guest').first() or User.objects.first()
+            # 3. Tính toán tiền phòng
+            price_per_night = category_instance.promo_price or category_instance.base_price
+            subtotal = Decimal(str(price_per_night * nights))
 
-        # 5. Xử lý Giảm giá Hạng thành viên (Loyalty & Membership Program)
-        membership_discount = Decimal('0')
-        tier_percent = Decimal('0')
-        tier_name = None
-        if guest_user and getattr(guest_user, 'current_tier', None):
-            tier = guest_user.current_tier
-            tier_percent = Decimal(str(tier.discount_percent or 0))
-            if tier_percent > 0:
-                membership_discount = (subtotal * tier_percent) / Decimal('100')
-                tier_name = tier.name
+            # 4. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách)
+            if request.user and request.user.is_authenticated:
+                guest_user = request.user
+            else:
+                # Tìm hoặc gán tài khoản khách
+                guest_user = None
+                if guest_email:
+                    guest_user = User.objects.filter(email=guest_email).first()
+                if not guest_user:
+                    # Gán vào tài khoản khách mặc định
+                    guest_user = User.objects.filter(role='guest').first() or User.objects.first()
 
-        # 6. Xử lý Mã khuyến mãi (nếu có)
-        promotion_obj = None
-        discount_amount = Decimal('0')
-        if promo_code:
-            now = timezone.now()
-            promo = Promotion.objects.filter(
-                code=promo_code,
-                is_active=True,
-                valid_from__lte=now,
-                valid_to__gte=now
-            ).first()
+            # 5. Xử lý Giảm giá Hạng thành viên (Loyalty & Membership Program)
+            membership_discount = Decimal('0')
+            tier_percent = Decimal('0')
+            tier_name = None
+            if guest_user and getattr(guest_user, 'current_tier', None):
+                tier = guest_user.current_tier
+                tier_percent = Decimal(str(tier.discount_percent or 0))
+                if tier_percent > 0:
+                    membership_discount = (subtotal * tier_percent) / Decimal('100')
+                    tier_name = tier.name
 
-            # Tự động tạo bản ghi Promotion nếu là mã hệ thống mặc định (đồng bộ ValidatePromoCodeView)
-            if not promo and promo_code in ['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG']:
-                promo, _ = Promotion.objects.get_or_create(
+            # 6. Xử lý Mã khuyến mãi (nếu có)
+            promotion_obj = None
+            discount_amount = Decimal('0')
+            if promo_code:
+                now = timezone.now()
+                promo = Promotion.objects.filter(
                     code=promo_code,
-                    defaults={
-                        'discount_type': 'percentage',
-                        'discount_value': 10,
-                        'valid_from': now - timedelta(days=30),
-                        'valid_to': now + timedelta(days=365),
-                        'usage_limit': 1000,
-                        'is_active': True
-                    }
-                )
+                    is_active=True,
+                    valid_from__lte=now,
+                    valid_to__gte=now
+                ).first()
 
-            if promo and promo.used_count < promo.usage_limit and subtotal >= Decimal(str(promo.min_order_value or 0)):
-                promotion_obj = promo
-                if promo.discount_type == 'percentage':
-                    calc_discount = (subtotal * Decimal(str(promo.discount_value))) / Decimal('100')
-                    if promo.max_discount_amount:
-                        calc_discount = min(calc_discount, Decimal(str(promo.max_discount_amount)))
-                    discount_amount = calc_discount
-                else:
-                    discount_amount = min(subtotal, Decimal(str(promo.discount_value)))
+                # Tự động tạo bản ghi Promotion nếu là mã hệ thống mặc định (đồng bộ ValidatePromoCodeView)
+                if not promo and promo_code in ['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG']:
+                    promo, _ = Promotion.objects.get_or_create(
+                        code=promo_code,
+                        defaults={
+                            'discount_type': 'percentage',
+                            'discount_value': 10,
+                            'valid_from': now - timedelta(days=30),
+                            'valid_to': now + timedelta(days=365),
+                            'usage_limit': 1000,
+                            'is_active': True
+                        }
+                    )
 
-                # Tăng lượt dùng khuyến mãi
-                promo.used_count += 1
-                promo.save(update_fields=['used_count'])
-            elif data.get('discount_amount'):
+                if promo and promo.used_count < promo.usage_limit and subtotal >= Decimal(str(promo.min_order_value or 0)):
+                    # Atomic update lượt dùng khuyến mãi với F('used_count') + 1 để chống race condition
+                    promo_updated = Promotion.objects.filter(
+                        id=promo.id,
+                        used_count__lt=promo.usage_limit
+                    ).update(used_count=F('used_count') + 1)
+
+                    if promo_updated > 0:
+                        promotion_obj = promo
+                        if promo.discount_type == 'percentage':
+                            calc_discount = (subtotal * Decimal(str(promo.discount_value))) / Decimal('100')
+                            if promo.max_discount_amount:
+                                calc_discount = min(calc_discount, Decimal(str(promo.max_discount_amount)))
+                            discount_amount = calc_discount
+                        else:
+                            discount_amount = min(subtotal, Decimal(str(promo.discount_value)))
+                elif data.get('discount_amount'):
+                    try:
+                        discount_amount = Decimal(str(data.get('discount_amount')))
+                    except (ValueError, TypeError):
+                        pass
+
+            # 7. Tính tổng tiền thanh toán cuối cùng
+            total_amount = max(Decimal('0'), subtotal - membership_discount - discount_amount)
+
+            # 8. Tạo Đơn đặt phòng mới:
+            # Khách hàng đặt phòng theo Hạng phòng (RoomCategory).
+            # Số phòng thực tế (Room) để trống (None) để Lễ tân chọn và gán phòng trống khi làm thủ tục Check-in.
+            booking = Booking.objects.create(
+                guest=guest_user,
+                category=category_instance,
+                room=None,
+                identity_card=identity_card,
+                check_in_date=check_in,
+                check_out_date=check_out,
+                total_amount=total_amount,
+                membership_discount=membership_discount,
+                applied_promotion=promotion_obj,
+                status='pending',
+                note=note
+            )
+
+            # Cập nhật số CCCD vào hồ sơ khách hàng nếu hồ sơ chưa có
+            if guest_user:
                 try:
-                    discount_amount = Decimal(str(data.get('discount_amount')))
-                except (ValueError, TypeError):
+                    profile, _ = GuestProfile.objects.get_or_create(user=guest_user)
+                    if not profile.id_card_number:
+                        profile.id_card_number = identity_card
+                        profile.save(update_fields=['id_card_number'])
+                except Exception:
                     pass
-
-        # 7. Tính tổng tiền thanh toán cuối cùng
-        total_amount = max(Decimal('0'), subtotal - membership_discount - discount_amount)
-
-        # 8. Tạo Đơn đặt phòng mới:
-        # Khách hàng đặt phòng theo Hạng phòng (RoomCategory).
-        # Số phòng thực tế (Room) để trống (None) để Lễ tân chọn và gán phòng trống khi làm thủ tục Check-in.
-        booking = Booking.objects.create(
-            guest=guest_user,
-            category=category_instance,
-            room=None,
-            identity_card=identity_card,
-            check_in_date=check_in,
-            check_out_date=check_out,
-            total_amount=total_amount,
-            membership_discount=membership_discount,
-            applied_promotion=promotion_obj,
-            status='pending',
-            note=note
-        )
-
-        # Cập nhật số CCCD vào hồ sơ khách hàng nếu hồ sơ chưa có
-        if guest_user:
-            try:
-                profile, _ = GuestProfile.objects.get_or_create(user=guest_user)
-                if not profile.id_card_number:
-                    profile.id_card_number = identity_card
-                    profile.save(update_fields=['id_card_number'])
-            except Exception:
-                pass
 
         serializer = BookingSerializer(booking, context={'request': request})
         return Response({
@@ -371,8 +391,11 @@ class BookingViewSet(viewsets.ModelViewSet):
     def cancel_booking(self, request):
         """
         API POST /api/bookings/cancel-booking/
-        Hủy đơn đặt phòng linh hoạt theo booking_id hoặc booking_code
-        Payload: { "booking_id": 123 | "BK-XXXXXX", "reason": "Lý do hủy" }
+        Hủy đơn đặt phòng linh hoạt theo booking_id hoặc booking_code.
+        Bảo mật chống BOLA / IDOR:
+        - Quản trị viên / Lễ tân: Có quyền hủy mọi đơn.
+        - Khách hàng đã đăng nhập: CHỈ được phép hủy đơn của chính mình.
+        - Khách chưa đăng nhập: CHỈ được hủy đơn đang ở trạng thái 'pending' (chưa thanh toán) và phải xác thực thông tin.
         """
         booking_identifier = request.data.get('booking_id') or request.data.get('id') or request.data.get('booking_code')
         reason = request.data.get('reason', 'Khách hàng hủy tại bước quét mã VietQR').strip()
@@ -388,12 +411,45 @@ class BookingViewSet(viewsets.ModelViewSet):
         except Booking.DoesNotExist:
             return Response({'success': False, 'message': f'Không tìm thấy đơn đặt phòng "{booking_identifier}".'}, status=status.HTTP_404_NOT_FOUND)
 
+        user = request.user
+        is_authenticated = user and user.is_authenticated
+        user_role = getattr(user, 'role', '') if is_authenticated else ''
+        is_staff_or_admin = is_authenticated and (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist'])
+
+        # Phân quyền bảo mật chống IDOR:
+        if not is_staff_or_admin:
+            if is_authenticated:
+                if booking.guest != user:
+                    return Response({
+                        'success': False,
+                        'message': 'Bạn không có quyền hủy đơn đặt phòng của khách hàng khác.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                # Khách chưa đăng nhập: Tuyệt đối không được hủy đơn đã thanh toán hoặc đã duyệt
+                if booking.status not in ['pending']:
+                    return Response({
+                        'success': False,
+                        'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}". Vui lòng đăng nhập hoặc liên hệ trực tiếp Lễ tân để được hỗ trợ hủy đơn.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+
+                # Xác thực mã booking_code hoặc số CCCD
+                provided_code = str(request.data.get('booking_code', '')).strip().upper()
+                provided_id = str(request.data.get('identity_card', '')).strip()
+                code_matches = provided_code and provided_code == booking.booking_code.upper()
+                id_matches = provided_id and booking.identity_card and provided_id == booking.identity_card
+                if not (code_matches or id_matches):
+                    return Response({
+                        'success': False,
+                        'message': 'Xác thực không thành công. Vui lòng cung cấp đúng mã đơn (booking_code) hoặc số CCCD khi đặt phòng.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+
         if booking.status not in ['pending', 'confirmed', 'paid', 'PAID']:
             return Response({'success': False, 'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể hủy.'}, status=status.HTTP_400_BAD_REQUEST)
 
         booking.status = 'cancelled'
         now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
-        booking.note = f"{booking.note or ''}\n[Khách hủy {now_str}]: {reason}".strip()
+        acting_name = user.get_full_name() or user.username if is_authenticated else "Khách vãng lai"
+        booking.note = f"{booking.note or ''}\n[Hủy bởi {acting_name} lúc {now_str}]: {reason}".strip()
         booking.save(update_fields=['status', 'note', 'updated_at'])
 
         if booking.room and booking.room.status == 'occupied':
@@ -402,7 +458,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
         log_action(
-            user=request.user,
+            user=user if is_authenticated else None,
             action='DELETE',
             module='BOOKING',
             description=f"Hủy đơn đặt phòng #{booking.booking_code}. Lý do: {reason}",
@@ -655,6 +711,22 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'message': f'Phòng {target_room.room_number} hiện không ở trạng thái sẵn sàng đón khách (Hiện tại: "{status_display}"). Vui lòng chọn phòng đang trống khác.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # 4.1 Kiểm tra xung đột lịch: Phòng này có bị trùng với bất kỳ đơn nào khác từ hôm nay đến ngày check-out không
+        stay_end_date = booking.check_out_date
+        conflict_booking = Booking.objects.filter(
+            room=target_room,
+            status__in=['confirmed', 'checked_in']
+        ).exclude(id=booking.id).filter(
+            check_in_date__lt=stay_end_date,
+            check_out_date__gt=today
+        ).first()
+
+        if conflict_booking:
+            return Response({
+                'success': False,
+                'message': f'Không thể gán phòng {target_room.room_number}. Phòng này đã có khách (#{conflict_booking.booking_code}) đặt trước trong khoảng thời gian {conflict_booking.check_in_date.strftime("%d/%m/%Y")} - {conflict_booking.check_out_date.strftime("%d/%m/%Y")}. Vui lòng chọn phòng trống khác.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # 5. Kiểm tra hạng phòng tương ứng
         booking_category_id = booking.category_id or (booking.room.category_id if booking.room else None)
         booking_cat_name = booking.category.name if booking.category else (booking.room.category.name if booking.room and booking.room.category else 'Khác')
@@ -748,8 +820,24 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'message': f'Khách đến trễ {late_days} ngày so với ngày nhận phòng ban đầu ({old_check_in_date.strftime("%d/%m/%Y")}). Vui lòng xác nhận thực hiện Check-in trễ cho khách lưu trú {remaining_nights} đêm còn lại đến {booking.check_out_date.strftime("%d/%m/%Y")}.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 6. THỰC HIỆN ĐỒNG THỜI DÙNG TRANSACTION.ATOMIC ĐẢM BẢO AN TOÀN DỮ LIỆU
+        # 6. THỰC HIỆN ĐỒNG THỜI DÙNG TRANSACTION.ATOMIC VÀ PESSIMISTIC LOCKING ĐẢM BẢO AN TOÀN DỮ LIỆU
         with transaction.atomic():
+            # Khóa bi quan Booking để chống spam double check-in
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+            if booking.status == 'checked_in':
+                return Response({
+                    'success': False,
+                    'message': f'Đơn đặt phòng {booking.booking_code} đã hoàn tất Check-in trước đó. Không thể Check-in lại.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Khóa bi quan target_room và kiểm tra trạng thái khả dụng tức thời
+            target_room = Room.objects.select_for_update().get(pk=target_room.pk)
+            if target_room.status != 'available':
+                return Response({
+                    'success': False,
+                    'message': f'Phòng {target_room.room_number} hiện không ở trạng thái sẵn sàng (vừa được gán cho đơn khác hoặc chuyển bảo trì).'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # Nếu đơn đặt phòng trước đó có phòng cũ đang bị occupied, giải phóng phòng cũ về available
             old_room = booking.room
             if old_room and old_room.id != target_room.id and old_room.status == 'occupied':
@@ -909,6 +997,22 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'message': f'Phòng {new_room.room_number} hiện không ở trạng thái sẵn sàng đón khách (Hiện tại: "{new_room.get_status_display()}"). Vui lòng chọn phòng trống khác.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Kiểm tra xung đột lịch: Phòng mới có bị khách khác đặt trước trong khoảng từ hôm nay đến check-out không
+        today = timezone.localdate()
+        conflict_move = Booking.objects.filter(
+            room=new_room,
+            status__in=['confirmed', 'checked_in']
+        ).exclude(id=booking.id).filter(
+            check_in_date__lt=booking.check_out_date,
+            check_out_date__gt=today
+        ).first()
+
+        if conflict_move:
+            return Response({
+                'success': False,
+                'message': f'Không thể chuyển sang phòng {new_room.room_number}. Phòng này đã có đơn #{conflict_move.booking_code} đặt trước từ {conflict_move.check_in_date.strftime("%d/%m/%Y")} đến {conflict_move.check_out_date.strftime("%d/%m/%Y")}.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         reason = request.data.get('reason', '').strip() or 'Thiết bị phòng bị sự cố hư hỏng'
         old_room_status = request.data.get('old_room_status', 'maintenance')
         if old_room_status not in ['maintenance', 'cleaning']:
@@ -920,6 +1024,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         guest_display = (booking.guest.get_full_name() or booking.guest.username) if booking.guest else booking.guest_name
 
         with transaction.atomic():
+            # Khóa bi quan Booking và Phòng mới
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+            new_room = Room.objects.select_for_update().get(pk=new_room.pk)
+            if new_room.status != 'available':
+                return Response({
+                    'success': False,
+                    'message': f'Phòng mới {new_room.room_number} không còn ở trạng thái sẵn sàng (vừa được gán cho đơn khác).'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # 1. Cập nhật phòng mới sang 'occupied'
             new_room.status = 'occupied'
             new_room.save(update_fields=['status'])
@@ -1123,6 +1236,20 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         nights = max(1, (check_out_date - check_in_date).days)
 
+        # Kiểm tra xung đột lịch: Phòng này có đơn nào đã đặt trước trong khoảng thời gian khách Walk-in lưu trú không
+        conflict_walkin = Booking.objects.filter(
+            room=target_room,
+            status__in=['confirmed', 'checked_in'],
+            check_in_date__lt=check_out_date,
+            check_out_date__gt=check_in_date
+        ).first()
+
+        if conflict_walkin:
+            return Response({
+                'success': False,
+                'message': f'Phòng {target_room.room_number} đã có đơn #{conflict_walkin.booking_code} đặt trước trong khoảng thời gian {conflict_walkin.check_in_date.strftime("%d/%m/%Y")} - {conflict_walkin.check_out_date.strftime("%d/%m/%Y")}. Vui lòng chọn phòng trống khác.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # Tính toán tiền phòng dự kiến (Số đêm * Giá phòng)
         category_instance = target_room.category
         price_per_night = (category_instance.promo_price or category_instance.base_price) if category_instance else 0
@@ -1131,10 +1258,26 @@ class BookingViewSet(viewsets.ModelViewSet):
         provided_total = data.get('total_amount')
         total_amount = calculated_total
         if provided_total is not None and str(provided_total).isdigit() and int(provided_total) > 0:
-            total_amount = int(provided_total)
+            prov_val = int(provided_total)
+            min_floor = int(calculated_total * 0.5)
+            is_manager = user.is_superuser or getattr(user, 'role', '') in ['admin', 'owner', 'manager']
+            if prov_val < min_floor and not is_manager:
+                return Response({
+                    'success': False,
+                    'message': f'Giá phòng điều chỉnh ({prov_val:,.0f}đ) thấp hơn 50% giá niêm yết ({calculated_total:,.0f}đ). Cần cấp Quản lý (Manager/Admin) phê duyệt.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            total_amount = prov_val
 
-        # THỰC THI TRANSACTION ĐỒNG THỜI
+        # THỰC THI TRANSACTION ĐỒNG THỜI VỚI PESSIMISTIC LOCKING
         with transaction.atomic():
+            # Khóa bi quan phòng mục tiêu chống 2 lễ tân cùng gán 1 phòng cho 2 khách walk-in đồng thời
+            target_room = Room.objects.select_for_update().get(pk=target_room.pk)
+            if target_room.status != 'available':
+                return Response({
+                    'success': False,
+                    'message': f'Phòng {target_room.room_number} không còn ở trạng thái sẵn sàng đón khách (vừa được gán cho khách khác).'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # 1. Tìm hoặc Tạo mới User và GuestProfile theo số điện thoại
             clean_phone = ''.join(c for c in str(guest_phone) if c.isdigit())
             guest_user = User.objects.filter(phone_number=guest_phone).first()
@@ -1268,14 +1411,17 @@ class BookingViewSet(viewsets.ModelViewSet):
             check_out = check_in + timezone.timedelta(days=1)
 
         def get_category_availability(cat, c_in, c_out):
+            pending_timeout = timezone.now() - timedelta(minutes=15)
             # Nếu khoảng ngày bao gồm ngày hôm nay: tính cả các phòng vật lý đang bận (occupied, maintenance)
             if c_in <= now < c_out:
                 busy_physical_ids = set(cat.rooms.filter(status__in=['occupied', 'maintenance']).values_list('id', flat=True))
                 active_bookings = Booking.objects.filter(
                     category=cat,
-                    status__in=['pending', 'confirmed', 'checked_in'],
                     check_in_date__lt=c_out,
                     check_out_date__gt=c_in
+                ).filter(
+                    Q(status__in=['confirmed', 'checked_in']) |
+                    Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
                 )
                 unassigned_or_clean_bookings = active_bookings.filter(
                     Q(room__isnull=True) | ~Q(room_id__in=busy_physical_ids)
@@ -1287,9 +1433,11 @@ class BookingViewSet(viewsets.ModelViewSet):
                 total = cat.rooms.exclude(status='maintenance').count()
                 booked = Booking.objects.filter(
                     category=cat,
-                    status__in=['pending', 'confirmed', 'checked_in'],
                     check_in_date__lt=c_out,
                     check_out_date__gt=c_in
+                ).filter(
+                    Q(status__in=['confirmed', 'checked_in']) |
+                    Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
                 ).count()
                 avail = max(0, total - booked)
                 return total, booked, avail
@@ -1361,8 +1509,11 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         try:
             quantity = int(request.data.get('quantity', 1))
-            if quantity < 1:
-                quantity = 1
+            if quantity < 1 or quantity > 99:
+                return Response({
+                    'success': False,
+                    'message': 'Số lượng dịch vụ phải nằm trong khoảng từ 1 đến 99.'
+                }, status=status.HTTP_400_BAD_REQUEST)
         except (ValueError, TypeError):
             quantity = 1
 
@@ -1390,7 +1541,15 @@ class BookingViewSet(viewsets.ModelViewSet):
                         'message': 'Dịch vụ được chọn không tồn tại trong hệ thống.'
                     }, status=status.HTTP_404_NOT_FOUND)
 
-                unit_price = float(price_input) if price_input is not None and str(price_input).strip() != '' else float(service_item.price)
+                try:
+                    unit_price = float(price_input) if price_input is not None and str(price_input).strip() != '' else float(service_item.price)
+                    if unit_price < 0:
+                        raise ValueError()
+                except (ValueError, TypeError):
+                    return Response({
+                        'success': False,
+                        'message': 'Đơn giá dịch vụ không hợp lệ hoặc không được là số âm.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 total_price = unit_price * quantity
                 clean_name = service_item.name.strip()
 
@@ -1788,11 +1947,23 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             # 3. Cập nhật bảng Booking: Đổi trạng thái thành completed
             booking.status = 'completed'
-            booking.actual_check_out = timezone.now()
+            now_dt = timezone.now()
+            booking.actual_check_out = now_dt
+
+            # Đồng bộ nếu Trả phòng sớm (Early Check-out)
+            today_date = now_dt.date()
+            if booking.check_out_date and today_date < booking.check_out_date:
+                old_co = booking.check_out_date
+                # Chỉ cập nhật check_out_date về today nếu today > check_in_date
+                if today_date > booking.check_in_date:
+                    booking.check_out_date = today_date
+                early_log = f"[Trả phòng sớm {today_date.strftime('%d/%m/%Y')} (lịch cũ {old_co.strftime('%d/%m/%Y')} - {timezone.now().strftime('%H:%M')}]: Hoàn tất trả phòng sớm."
+                booking.internal_note = f"{booking.internal_note}\n{early_log}".strip() if booking.internal_note else early_log
+
             if note:
                 checkout_note = f"[Check-out: {invoice.get_payment_method_display() or payment_method} - {timezone.now().strftime('%d/%m/%Y %H:%M')}]: {note}"
                 booking.internal_note = f"{booking.internal_note}\n{checkout_note}".strip() if booking.internal_note else checkout_note
-            booking.save(update_fields=['status', 'actual_check_out', 'internal_note', 'updated_at'])
+            booking.save(update_fields=['status', 'actual_check_out', 'check_out_date', 'internal_note', 'updated_at'])
 
             # 4. Cập nhật bảng Room: Đổi trạng thái phòng thành cleaning (Đang dọn dẹp)
             room_info = None
@@ -1814,6 +1985,53 @@ class BookingViewSet(viewsets.ModelViewSet):
             description=f"Thực hiện Check-out đơn #{booking.booking_code} (Phòng {booking.room.room_number if booking.room else 'N/A'}). Tổng thu Folio: {grand_total:,.0f} VND",
             request=request
         )
+
+        # Đảm bảo gửi thông báo Check-out cho Khách hàng & Nhân viên (Lễ tân, Buồng phòng, Quản lý)
+        try:
+            room_label = (booking.room.room_number if booking.room else None) or \
+                         (booking.category.name if booking.category else "Chưa gán phòng")
+            guest_name = (booking.guest.get_full_name() or booking.guest.username) if booking.guest else (booking.guest_name or "Khách hàng")
+
+            # 1. Thông báo cho Khách hàng
+            if booking.guest:
+                guest_co_exists = Notification.objects.filter(
+                    recipient=booking.guest,
+                    title__icontains="trả phòng thành công",
+                    message__icontains=booking.booking_code
+                ).exists()
+                if not guest_co_exists:
+                    Notification.objects.create(
+                        recipient=booking.guest,
+                        title="Khách hàng trả phòng thành công!",
+                        message=(
+                            f"Quý khách đã trả phòng thành công cho {room_label} (Mã đơn: #{booking.booking_code}). "
+                            f"Quý khách có thể đánh giá phòng và dịch vụ khách sạn để chia sẻ trải nghiệm kỳ nghỉ của mình nhé!"
+                        )
+                    )
+
+            # 2. Thông báo cho Quản lý, Lễ tân & Buồng phòng
+            staff_users = get_staff_and_admin_users(exclude_user_id=booking.guest_id if booking.guest else None)
+            staff_co_exists = Notification.objects.filter(
+                title__icontains="Khách đã Check-out",
+                message__icontains=booking.booking_code
+            ).exists()
+            if not staff_co_exists:
+                staff_notifications = [
+                    Notification(
+                        recipient=staff,
+                        title=f"Khách đã Check-out: Phòng {room_label}",
+                        message=(
+                            f"Khách hàng {guest_name} đã làm thủ tục trả phòng {room_label} (Mã đơn: #{booking.booking_code}). "
+                            f"Bộ phận buồng phòng chuẩn bị kiểm tra và làm sạch phòng."
+                        )
+                    )
+                    for staff in staff_users
+                ]
+                if staff_notifications:
+                    Notification.objects.bulk_create(staff_notifications)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Lỗi gửi thông báo check-out: {e}")
 
         serializer = self.get_serializer(booking, context={'request': request})
         return Response({

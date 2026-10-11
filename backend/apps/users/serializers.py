@@ -122,6 +122,21 @@ class UserSerializer(serializers.ModelSerializer):
         profile = getattr(instance, 'guest_profile', None)
         id_card = profile.id_card_number if profile and profile.id_card_number else ''
         prefs = profile.preferences if profile and profile.preferences else ''
+
+        # Bảo mật PII: Làm mờ CCCD đối với các vai trò không cần thiết (buồng phòng, kỹ thuật...)
+        request = self.context.get('request')
+        viewer = getattr(request, 'user', None) if request else None
+        if viewer and viewer.is_authenticated:
+            is_privileged = (
+                viewer.is_superuser or 
+                getattr(viewer, 'role', '') in ['admin', 'owner', 'manager', 'receptionist'] or
+                viewer.id == instance.id
+            )
+            if not is_privileged and id_card and len(id_card) > 6:
+                id_card = f"{id_card[:4]}****{id_card[-2:]}"
+        elif id_card and len(id_card) > 6:
+            id_card = f"{id_card[:4]}****{id_card[-2:]}"
+
         data['id_card_number'] = id_card
         data['identity_card'] = id_card
         data['preferences'] = prefs

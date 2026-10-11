@@ -96,8 +96,31 @@ class ConfirmPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Chống Bypass: Số tiền chuyển khoản phải bằng hoặc lớn hơn tổng tiền đơn đặt phòng
+        if amount_dec < booking_total:
+            return Response(
+                {
+                    "success": False,
+                    "message": f"Số tiền thanh toán ({amount_dec:,.0f} VND) không đủ so với tổng giá trị đơn đặt phòng ({booking_total:,.0f} VND)."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Kiểm tra trạng thái đơn: Không cho phép thanh toán đơn đã hủy hoặc khách không đến
+        if booking.status in ['cancelled', 'no_show']:
+            return Response(
+                {
+                    "success": False,
+                    "message": f"Đơn đặt phòng {booking.booking_code} đang ở trạng thái '{booking.get_status_display()}', không thể thực hiện thanh toán."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # 4. Bọc trong Transaction Atomic: Đảm bảo Payment được lưu thành công thì mới update Booking
         with transaction.atomic():
+            # Khóa bi quan (Pessimistic Lock) bản ghi booking để tuần tự hóa các request thanh toán spam click cùng 1 đơn
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
             # 4.1 Kiểm tra chống trùng giao dịch kép trong 30 giây (Idempotency check)
             thirty_seconds_ago = timezone.now() - timezone.timedelta(seconds=30)
             recent_duplicate = Payment.objects.filter(
@@ -181,49 +204,59 @@ class ConfirmPaymentView(APIView):
 class PaymentListView(APIView):
     """
     API endpoint: GET /api/payments/
-    Lấy danh sách tất cả các giao dịch thanh toán cho Admin.
-    Hỗ trợ query params:
-    - search: tìm theo booking_code, guest username/full_name, transaction_id
-    - status: lọc theo payment_status (COMPLETED, PENDING, FAILED)
+    Lấy danh sách các giao dịch thanh toán:
+    - Quản lý / Lễ tân / Thu ngân: xem toàn bộ giao dịch
+    - Khách hàng: chỉ xem giao dịch của chính mình
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # 1. Tự động đồng bộ các Hóa đơn (Invoices) hoặc đơn đã check-out vào bảng Payment nếu chưa có
-        invoices = Invoice.objects.select_related('booking').all()
-        for inv in invoices:
-            booking = inv.booking
-            if booking and not Payment.objects.filter(booking=booking).exists():
-                method_code = 'TRANSFER' if str(inv.payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
-                status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if inv.status == 'cancelled' else 'PENDING')
+        user = request.user
+        is_staff_or_admin = (
+            user.is_staff or 
+            user.is_superuser or 
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier']
+        )
+
+        # 1. Tự động đồng bộ các Hóa đơn (Invoices) nếu là nhân viên
+        if is_staff_or_admin:
+            invoices = Invoice.objects.select_related('booking').all()
+            for inv in invoices:
+                booking = inv.booking
+                if booking and not Payment.objects.filter(booking=booking).exists():
+                    method_code = 'TRANSFER' if str(inv.payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+                    status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if inv.status == 'cancelled' else 'PENDING')
+                    Payment.objects.create(
+                        booking=booking,
+                        amount=inv.total_amount,
+                        payment_method=method_code,
+                        payment_status=status_code,
+                        transaction_id=f"TXN-{inv.invoice_code.replace('INV-', '')}"
+                    )
+
+            # 2. Đồng bộ thêm các booking đã thanh toán hợp lệ mà chưa có payment
+            paid_bookings = Booking.objects.filter(
+                models.Q(status__in=['completed', 'checked_out', 'paid', 'PAID']) |
+                models.Q(note__icontains='VietQR: Đã thanh toán') |
+                models.Q(note__icontains='đã thanh toán thành công')
+            ).exclude(status__in=['cancelled', 'no_show']).exclude(payments__isnull=False)
+
+            for b in paid_bookings:
+                note_lower = (b.note or '').lower()
+                method_code = 'TRANSFER' if ('vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower) else 'CASH'
                 Payment.objects.create(
-                    booking=booking,
-                    amount=inv.total_amount,
+                    booking=b,
+                    amount=b.total_amount or 0,
                     payment_method=method_code,
-                    payment_status=status_code,
-                    transaction_id=f"TXN-{inv.invoice_code.replace('INV-', '')}"
+                    payment_status='COMPLETED',
+                    transaction_id=f"TXN-{b.booking_code.replace('BK-', '')}"
                 )
 
-        # 2. Đồng bộ thêm các booking đã thanh toán hợp lệ mà chưa có payment
-        # TUYỆT ĐỐI LOẠI TRỪ các đơn đã hủy (cancelled) hoặc vắng mặt (no_show)
-        paid_bookings = Booking.objects.filter(
-            models.Q(status__in=['completed', 'checked_out', 'paid', 'PAID']) |
-            models.Q(note__icontains='VietQR: Đã thanh toán') |
-            models.Q(note__icontains='đã thanh toán thành công')
-        ).exclude(status__in=['cancelled', 'no_show']).exclude(payments__isnull=False)
-
-        for b in paid_bookings:
-            note_lower = (b.note or '').lower()
-            method_code = 'TRANSFER' if ('vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower) else 'CASH'
-            Payment.objects.create(
-                booking=b,
-                amount=b.total_amount or 0,
-                payment_method=method_code,
-                payment_status='COMPLETED',
-                transaction_id=f"TXN-{b.booking_code.replace('BK-', '')}"
-            )
-
         queryset = Payment.objects.select_related('booking', 'booking__guest', 'booking__room', 'booking__category').all().order_by('-created_at')
+
+        # Khách hàng chỉ xem giao dịch của chính mình
+        if not is_staff_or_admin:
+            queryset = queryset.filter(booking__guest=user)
 
         # Lọc trạng thái
         payment_status = request.query_params.get('status')

@@ -34,6 +34,12 @@ def track_booking_previous_status(sender, instance, **kwargs):
     """
     Lưu lại status cũ trước khi lưu để phát hiện thay đổi trạng thái Check-in, Check-out...
     """
+    update_fields = kwargs.get('update_fields')
+    # Nếu lần lưu này chỉ cập nhật các trường cụ thể mà không cập nhật status,
+    # và instance đã có sẵn _previous_status, giữ nguyên _previous_status đó
+    if update_fields is not None and 'status' not in update_fields and hasattr(instance, '_previous_status'):
+        return
+
     if instance.pk:
         try:
             old_obj = Booking.objects.get(pk=instance.pk)
