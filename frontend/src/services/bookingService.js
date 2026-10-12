@@ -339,6 +339,32 @@ export const bookingService = {
     },
 
     /**
+     * Tạo đơn đặt phòng trước cho khách qua điện thoại / Zalo (Advance Reservation)
+     * POST /api/bookings/advance-reservation/
+     * @param {Object} payload - { guest_name, guest_phone, identity_card, guest_email, category_id, check_in_date, check_out_date, status, note, internal_note }
+     */
+    async createAdvanceReservation(payload) {
+        try {
+            const response = await api.post('/bookings/advance-reservation/', payload);
+            const data = response.data?.booking || response.data?.data || response.data;
+            return {
+                success: true,
+                message: response.data?.message || 'Tạo đơn đặt trước thành công!',
+                data
+            };
+        } catch (error) {
+            console.error('Lỗi khi tạo đơn đặt phòng trước:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể tạo đơn đặt phòng trước. Vui lòng kiểm tra lại thông tin.'
+            };
+        }
+    },
+
+    /**
      * Gia hạn thời gian lưu trú (POST /api/bookings/:id/extend-stay/)
      * @param {number|string} bookingId
      * @param {string} newCheckOutDate - Định dạng YYYY-MM-DD

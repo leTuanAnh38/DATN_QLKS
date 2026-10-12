@@ -29,10 +29,16 @@ export default function GuestManagement() {
     const [vipFilter, setVipFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
 
-    // Phân trang
+    // Phân trang & Thống kê toàn hệ thống
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [stats, setStats] = useState({
+        total_guests: 0,
+        active_guests: 0,
+        diamond_guests: 0,
+        gold_silver_guests: 0,
+    });
     const currentPageRef = useRef(currentPage);
     useEffect(() => {
         currentPageRef.current = currentPage;
@@ -56,7 +62,9 @@ export default function GuestManagement() {
         loyalty_points: 0,
         preferences: '',
         is_active: true,
+        new_password: '',
     });
+    const [showEditPassword, setShowEditPassword] = useState(false);
 
     // Form data for Create
     const [createFormData, setCreateFormData] = useState({
@@ -87,6 +95,9 @@ export default function GuestManagement() {
             setGuests(list);
             setTotalCount(res.count !== undefined ? res.count : list.length);
             setTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
+            if (res.stats) {
+                setStats(res.stats);
+            }
         } else {
             setGuests([]);
             setTotalCount(0);
@@ -117,16 +128,18 @@ export default function GuestManagement() {
     // Mở modal sửa
     const handleOpenEdit = (guest) => {
         setSelectedGuest(guest);
+        setShowEditPassword(false);
         setEditFormData({
             full_name: guest.full_name || '',
             email: guest.email || '',
             phone_number: guest.phone_number || '',
             address: guest.address || '',
-            id_card_number: guest.guest_profile?.id_card_number || '',
+            id_card_number: guest.guest_profile?.id_card_number || guest.id_card_number || '',
             vip_tier: mapTierCode(guest.current_tier?.name || guest.guest_profile?.vip_tier),
             loyalty_points: guest.total_points ?? guest.guest_profile?.loyalty_points ?? 0,
             preferences: guest.guest_profile?.preferences || '',
             is_active: guest.is_active,
+            new_password: '',
         });
         setIsEditModalOpen(true);
     };
@@ -141,7 +154,13 @@ export default function GuestManagement() {
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        const res = await adminUserService.updateGuest(selectedGuest.id, editFormData);
+        const payload = { ...editFormData };
+        if (!payload.new_password || !payload.new_password.trim()) {
+            delete payload.new_password;
+        } else {
+            payload.new_password = payload.new_password.trim();
+        }
+        const res = await adminUserService.updateGuest(selectedGuest.id, payload);
         setIsSubmitting(false);
 
         if (res.success) {
@@ -238,12 +257,16 @@ export default function GuestManagement() {
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     };
 
-    // Stats calculations
-    const totalGuests = totalCount !== undefined && totalCount > 0 ? totalCount : guests.length;
-    const vipDiamondCount = guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Diamond').length;
-    const vipGoldCount = guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Gold').length;
-    const vipSilverCount = guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Silver').length;
-    const activeCount = guests.filter(g => g.is_active).length;
+    // Stats calculations (Ưu tiên lấy thống kê tổng thể từ API để không bị giới hạn bởi trang hiện tại)
+    const totalGuests = stats.total_guests || (totalCount !== undefined && totalCount > 0 ? totalCount : guests.length);
+    const activeCount = stats.total_guests > 0 ? stats.active_guests : guests.filter(g => g.is_active).length;
+    const vipDiamondCount = stats.total_guests > 0
+        ? stats.diamond_guests
+        : guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Diamond').length;
+    const vipGoldSilverCount = stats.total_guests > 0
+        ? stats.gold_silver_guests
+        : (guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Gold').length +
+           guests.filter(g => mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier) === 'Silver').length);
 
     return (
         <div className="space-y-6">
@@ -316,7 +339,7 @@ export default function GuestManagement() {
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
                     <div>
                         <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Khách VIP Gold / Silver</span>
-                        <strong className="text-2xl font-bold text-slate-900 mt-1 block">{vipGoldCount + vipSilverCount}</strong>
+                        <strong className="text-2xl font-bold text-slate-900 mt-1 block">{vipGoldSilverCount}</strong>
                         <span className="text-[11px] text-amber-600 font-medium">Hội viên hạng Vàng & Bạc</span>
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
@@ -685,6 +708,75 @@ export default function GuestManagement() {
                                 />
                             </div>
 
+                            {/* KHỐI CẬP NHẬT MẬT KHẨU (ĐẶC BIỆT CHO KHÁCH TẠO TỰ ĐỘNG / CHƯA ĐĂNG KÝ QUA WEB) */}
+                            {(() => {
+                                const isNotWebRegistered = Boolean(
+                                    selectedGuest?.is_auto_created ||
+                                    selectedGuest?.username?.startsWith('guest_') ||
+                                    selectedGuest?.username?.startsWith('walkin_') ||
+                                    selectedGuest?.email?.includes('@walkin.') ||
+                                    selectedGuest?.has_usable_password === false
+                                );
+
+                                return (
+                                    <div className={`p-4 rounded-2xl border transition ${isNotWebRegistered ? 'bg-amber-50/70 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-base">{isNotWebRegistered ? '🔑' : '🔒'}</span>
+                                                <div>
+                                                    <label className="font-bold text-slate-800 text-xs">
+                                                        {isNotWebRegistered ? 'Thiết lập mật khẩu đăng nhập web' : 'Cập nhật mật khẩu mới'}
+                                                    </label>
+                                                    {isNotWebRegistered && (
+                                                        <span className="ml-2 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-[10px] border border-amber-300">
+                                                            Chưa đăng ký qua web
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditFormData({ ...editFormData, new_password: 'Password123' })}
+                                                className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold hover:underline cursor-pointer"
+                                            >
+                                                Gợi ý: Password123
+                                            </button>
+                                        </div>
+
+                                        {isNotWebRegistered && (
+                                            <p className="text-[11px] text-amber-700 mb-2.5 leading-relaxed">
+                                                Khách hàng này được tạo qua đơn đặt phòng / tại quầy (chưa có tài khoản web). Bạn có thể thiết lập mật khẩu tại đây để cấp tài khoản đăng nhập website cho khách (khách có thể dùng Số điện thoại hoặc Email để đăng nhập).
+                                            </p>
+                                        )}
+
+                                        <div className="relative">
+                                            <input
+                                                type={showEditPassword ? 'text' : 'password'}
+                                                placeholder={isNotWebRegistered ? 'Nhập mật khẩu mới để cấp cho khách (VD: Password123)...' : 'Để trống nếu không muốn đổi mật khẩu khách hàng...'}
+                                                value={editFormData.new_password}
+                                                onChange={(e) => setEditFormData({ ...editFormData, new_password: e.target.value })}
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 pr-10 font-mono text-xs"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEditPassword(!showEditPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm cursor-pointer"
+                                                title={showEditPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                                            >
+                                                {showEditPassword ? '🙈' : '👁️'}
+                                            </button>
+                                        </div>
+
+                                        {editFormData.new_password && (
+                                            <p className="text-[11px] text-emerald-600 font-semibold mt-1.5 flex items-center gap-1">
+                                                <span>✓</span>
+                                                <span>Mật khẩu sẽ được lưu khi bấm &ldquo;Lưu Thay Đổi&rdquo;. Khách có thể dùng SĐT/Email và mật khẩu này để đăng nhập web.</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
                             <div className="pt-2 flex items-center gap-2">
                                 <input
                                     type="checkbox"
@@ -812,16 +904,7 @@ export default function GuestManagement() {
 
                             {/* Footer Modal Actions */}
                             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsDetailModalOpen(false);
-                                        handleOpenEdit(selectedGuest);
-                                    }}
-                                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
-                                >
-                                    <span>✏️</span> Chỉnh sửa hồ sơ này
-                                </button>
+                               
                                 <button
                                     type="button"
                                     onClick={() => setIsDetailModalOpen(false)}

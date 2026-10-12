@@ -1377,6 +1377,217 @@ class BookingViewSet(viewsets.ModelViewSet):
             **serializer.data
         }, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['post'], url_path='advance-reservation')
+    def advance_reservation(self, request):
+        """
+        API tạo đơn Đặt phòng trước (Advance Reservation qua Điện thoại / Zalo / Trực tiếp)
+        dành cho nhân viên Lễ tân / Quản trị viên:
+        - POST /api/bookings/advance-reservation/
+        - Nhận phòng vào một ngày trong tương lai (check_in_date >= today).
+        - Gán hạng phòng (RoomCategory), chưa gán phòng vật lý (room=None).
+        - Trạng thái mặc định là 'confirmed' (hoặc 'pending').
+        """
+        user = request.user
+
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền tạo đơn đặt phòng trước.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data
+        guest_name = str(data.get('guest_name') or '').strip()
+        guest_phone = str(data.get('guest_phone') or '').strip()
+        identity_card = str(data.get('identity_card') or '').strip()
+        guest_email = str(data.get('guest_email') or '').strip()
+        category_id = data.get('category_id') or data.get('category') or data.get('room_id')
+        check_in_str = data.get('check_in_date')
+        check_out_str = data.get('check_out_date')
+        initial_status = str(data.get('status') or 'confirmed').strip()
+        if initial_status not in ['confirmed', 'pending']:
+            initial_status = 'confirmed'
+        note = str(data.get('note') or '').strip()
+        internal_note_input = str(data.get('internal_note') or '').strip()
+
+        # Validate dữ liệu đầu vào bắt buộc
+        if not guest_name:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng nhập Họ và tên khách hàng.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not guest_phone:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng cung cấp Số điện thoại khách hàng để quản lý hồ sơ lưu trú.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not identity_card:
+            return Response({
+                'success': False,
+                'message': 'Số CCCD / Hộ chiếu (Passport) là bắt buộc theo quy định pháp lý lưu trú.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(identity_card) < 8 or len(identity_card) > 20:
+            return Response({
+                'success': False,
+                'message': 'Số CCCD / Hộ chiếu phải có độ dài từ 8 đến 20 ký tự.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not category_id:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn Hạng phòng khách muốn đặt.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            category_instance = RoomCategory.objects.get(pk=int(category_id))
+        except (RoomCategory.DoesNotExist, ValueError):
+            return Response({
+                'success': False,
+                'message': f'Không tìm thấy thông tin hạng phòng với ID {category_id}.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if not check_in_str or not check_out_str:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn ngày Check-in và Check-out hợp lệ.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            check_in_date = datetime.strptime(str(check_in_str)[:10], '%Y-%m-%d').date()
+            check_out_date = datetime.strptime(str(check_out_str)[:10], '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'success': False,
+                'message': 'Định dạng ngày tháng không hợp lệ (chuẩn YYYY-MM-DD).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        today = timezone.localdate()
+        if check_in_date < today:
+            return Response({
+                'success': False,
+                'message': f'Ngày Check-in không thể ở trong quá khứ (Hôm nay là {today.strftime("%d/%m/%Y")}).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if check_out_date <= check_in_date:
+            return Response({
+                'success': False,
+                'message': 'Ngày Check-out bắt buộc phải sau ngày Check-in.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        nights = (check_out_date - check_in_date).days
+        if nights < 1:
+            nights = 1
+
+        with transaction.atomic():
+            # Khóa bi quan hạng phòng
+            category_instance = RoomCategory.objects.select_for_update().get(pk=category_instance.pk)
+
+            total_rooms = category_instance.rooms.exclude(status='maintenance').count()
+            booked_rooms = Booking.objects.filter(
+                category=category_instance,
+                check_in_date__lt=check_out_date,
+                check_out_date__gt=check_in_date
+            ).filter(
+                Q(status__in=['confirmed', 'checked_in']) |
+                Q(status__in=['pending', 'paid', 'PAID'])
+            ).count()
+            available_rooms = max(0, total_rooms - booked_rooms)
+
+            if available_rooms <= 0:
+                return Response({
+                    'success': False,
+                    'code': 'ROOM_SOLD_OUT',
+                    'message': f'Hạng phòng "{category_instance.name}" đã hết phòng trống trong khoảng thời gian từ {check_in_date.strftime("%d/%m/%Y")} đến {check_out_date.strftime("%d/%m/%Y")}. Vui lòng chọn hạng phòng khác.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Tìm hoặc tạo User khách hàng theo SĐT
+            clean_phone = ''.join(c for c in str(guest_phone) if c.isdigit())
+            guest_user = User.objects.filter(phone_number=guest_phone).first()
+            if not guest_user and clean_phone:
+                guest_user = User.objects.filter(phone_number=clean_phone).first()
+            if not guest_user and guest_email:
+                guest_user = User.objects.filter(email=guest_email).first()
+
+            if not guest_user:
+                base_username = f"guest_{clean_phone[-6:]}" if len(clean_phone) >= 6 else f"guest_{uuid.uuid4().hex[:6]}"
+                username = base_username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}_{counter}"
+                    counter += 1
+
+                name_parts = guest_name.split()
+                first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
+                last_name = name_parts[-1] if len(name_parts) > 1 else ''
+                email_to_use = guest_email or f"{username}@guest.hotel.local"
+
+                guest_user = User.objects.create_user(
+                    username=username,
+                    email=email_to_use,
+                    phone_number=guest_phone,
+                    first_name=first_name,
+                    last_name=last_name,
+                    role='guest'
+                )
+            else:
+                if guest_name and not (guest_user.first_name or guest_user.last_name):
+                    name_parts = guest_name.split()
+                    guest_user.first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
+                    guest_user.last_name = name_parts[-1] if len(name_parts) > 1 else ''
+                    guest_user.save(update_fields=['first_name', 'last_name'])
+
+            # Cập nhật hoặc tạo GuestProfile
+            profile, _ = GuestProfile.objects.get_or_create(user=guest_user)
+            if identity_card and profile.id_card_number != identity_card:
+                profile.id_card_number = identity_card
+                profile.save(update_fields=['id_card_number'])
+
+            # Tính toán tiền phòng
+            price_per_night = Decimal(str(category_instance.promo_price or category_instance.base_price))
+            total_amount = price_per_night * Decimal(str(nights))
+
+            receptionist_name = user.get_full_name() or user.username
+            now = timezone.now()
+            time_str = now.strftime('%H:%M • %d/%m/%Y')
+            auto_internal_log = f"[Đặt trước qua Lễ tân {receptionist_name} lúc {time_str}]: Hạng {category_instance.name} ({nights} đêm)."
+            if internal_note_input:
+                auto_internal_log += f" Ghi chú: {internal_note_input}"
+
+            booking = Booking.objects.create(
+                guest=guest_user,
+                category=category_instance,
+                room=None,
+                identity_card=identity_card,
+                check_in_date=check_in_date,
+                check_out_date=check_out_date,
+                total_amount=total_amount,
+                status=initial_status,
+                note=note or 'Đặt trước qua điện thoại/Zalo',
+                internal_note=auto_internal_log
+            )
+
+        serializer = BookingSerializer(booking, context={'request': request})
+
+        # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='BOOKING',
+            description=f"Tạo đơn đặt phòng trước #{booking.booking_code} ({initial_status}) cho khách {guest_name} - Hạng {category_instance.name} ({check_in_date.strftime('%d/%m/%Y')} -> {check_out_date.strftime('%d/%m/%Y')})",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f'Tạo đơn đặt giữ chỗ thành công! Mã đơn: #{booking.booking_code} (Hạng {category_instance.name}).',
+            'booking': serializer.data,
+            'data': serializer.data,
+            **serializer.data
+        }, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=['get'], url_path='check-availability', permission_classes=[AllowAny])
     def check_availability(self, request):
         """
@@ -2451,6 +2662,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         # Loại bỏ các đơn đã hủy (cancelled) hoặc vắng mặt (no_show) vì không chiếm dụng phòng trên sơ đồ
         month_bookings = Booking.objects.select_related(
             'guest', 'category', 'room', 'room__category'
+        ).prefetch_related(
+            'service_requests__service', 'extra_services'
         ).filter(
             check_in_date__lte=month_end,
             check_out_date__gte=month_start
@@ -2462,12 +2675,42 @@ class BookingViewSet(viewsets.ModelViewSet):
         bookings_by_room = defaultdict(list)
         unassigned_bookings = []
 
+        import re
         for b in month_bookings:
             guest_name = ''
             if b.guest:
                 guest_name = b.guest.get_full_name() or b.guest.username
             if not guest_name:
                 guest_name = 'Khách vãng lai'
+
+            # Tính tiền dịch vụ phát sinh (ServiceRequest completed + BookingExtraService)
+            service_total = 0.0
+            seen_services = set()
+            for req in b.service_requests.all():
+                if req.status == 'completed':
+                    clean_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
+                    price = float(req.service.price if req.service else 0)
+                    qty = req.quantity or 1
+                    tot = float(req.total_price or (price * qty))
+                    seen_services.add((clean_name.lower(), qty, tot))
+                    service_total += tot
+
+            for bes in b.extra_services.all():
+                raw_name = (bes.service_name or '').strip()
+                if re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
+                    continue
+                clean_name = re.sub(r'\(x\d+\)', '', raw_name)
+                clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()
+                qty = bes.quantity or 1
+                price = float(bes.price or 0)
+                tot = float(price * qty)
+                sig = (clean_name.lower(), qty, tot)
+                if sig in seen_services:
+                    continue
+                service_total += tot
+
+            room_amount = float(b.total_amount or 0)
+            grand_total = room_amount + service_total
 
             booking_item = {
                 'id': b.id,
@@ -2486,7 +2729,10 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'actual_check_out': b.actual_check_out.isoformat() if b.actual_check_out else None,
                 'status': b.status,
                 'status_display': b.get_status_display(),
-                'total_amount': float(b.total_amount or 0),
+                'room_amount': room_amount,
+                'service_amount': service_total,
+                'total_amount': grand_total,
+                'grand_total_amount': grand_total,
                 'nights': (b.check_out_date - b.check_in_date).days,
                 'note': b.note or '',
                 'internal_note': b.internal_note or ''

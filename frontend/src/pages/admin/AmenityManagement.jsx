@@ -396,29 +396,27 @@ export default function AmenityManagement() {
                                             )}
                                         </td>
 
-                                        {/* CỘT 5: HÀNH ĐỘNG (NÚT SỬA MÀU VÀNG, NÚT XÓA MÀU ĐỎ) */}
+                                        {/* CỘT 5: HÀNH ĐỘNG (NÚT SỬA ✏️ VÀ NÚT XÓA 🗑️ ĐỒNG BỘ TOÀN HỆ THỐNG) */}
                                         <td className="py-4 px-6 text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {/* Nút Sửa màu vàng */}
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                {/* Nút Sửa */}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEditModal(item)}
-                                                    className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
                                                     title="Chỉnh sửa tiện nghi"
                                                 >
-                                                    <Edit2 className="w-3.5 h-3.5 text-amber-600" />
-                                                    <span>Sửa</span>
+                                                    ✏️
                                                 </button>
 
-                                                {/* Nút Xóa màu đỏ */}
+                                                {/* Nút Xóa */}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenDeleteModal(item)}
-                                                    className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
                                                     title="Xóa tiện nghi"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                                    <span>Xóa</span>
+                                                    🗑️
                                                 </button>
                                             </div>
                                         </td>

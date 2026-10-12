@@ -675,19 +675,19 @@ export default function ServicesMenu() {
                             {/* Modal Header */}
                             <div className="px-6 py-4 bg-gradient-to-r from-blue-600 via-blue-500 to-sky-500 text-white flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm border border-blue-500/30">
+                                    <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center text-sm border border-white/20">
                                         🛎️
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-sm text-white">Yêu Cầu Dịch Vụ Tại Phòng</h3>
-                                        <span className="text-[10px] text-slate-400">In-Room Dining & Concierge</span>
+                                        <span className="text-[10px] text-blue-100 font-medium tracking-wide">In-Room Dining & Concierge</span>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={handleCloseOrderModal}
                                     disabled={isSubmitting}
-                                    className="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition"
+                                    className="w-8 h-8 rounded-full hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition cursor-pointer"
                                 >
                                     ✕
                                 </button>

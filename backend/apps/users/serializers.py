@@ -564,10 +564,14 @@ class AdminGuestSerializer(serializers.ModelSerializer):
     current_tier = MembershipTierSerializer(read_only=True)
     total_bookings = serializers.SerializerMethodField()
     total_spent = serializers.SerializerMethodField()
+    has_usable_password = serializers.SerializerMethodField()
+    is_auto_created = serializers.SerializerMethodField()
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
     vip_tier = serializers.CharField(write_only=True, required=False, allow_blank=True)
     loyalty_points = serializers.IntegerField(write_only=True, required=False)
     preferences = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    new_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
@@ -590,12 +594,24 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             'guest_profile',
             'total_bookings',
             'total_spent',
+            'has_usable_password',
+            'is_auto_created',
             'id_card_number',
             'vip_tier',
             'loyalty_points',
             'preferences',
+            'new_password',
+            'password',
         )
         read_only_fields = ('id', 'role', 'date_joined', 'last_login')
+
+    def get_has_usable_password(self, obj):
+        return obj.has_usable_password()
+
+    def get_is_auto_created(self, obj):
+        uname = (obj.username or '').lower()
+        email = (obj.email or '').lower()
+        return uname.startswith('guest_') or uname.startswith('walkin_') or email.endswith('.local') or not obj.has_usable_password()
 
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
@@ -629,6 +645,7 @@ class AdminGuestSerializer(serializers.ModelSerializer):
         vip_tier = validated_data.pop('vip_tier', None)
         points = validated_data.pop('loyalty_points', None)
         prefs = validated_data.pop('preferences', None)
+        new_pwd = validated_data.pop('new_password', None) or validated_data.pop('password', None)
 
         full_name = validated_data.pop('full_name', None)
         if full_name:
@@ -639,6 +656,13 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             else:
                 instance.first_name = parts[0]
                 instance.last_name = ""
+
+        # Cập nhật mật khẩu mới nếu được cung cấp
+        if new_pwd and str(new_pwd).strip():
+            pwd_clean = str(new_pwd).strip()
+            if len(pwd_clean) < 6:
+                raise serializers.ValidationError({'new_password': 'Mật khẩu phải có ít nhất 6 ký tự.'})
+            instance.set_password(pwd_clean)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

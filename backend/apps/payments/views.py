@@ -76,10 +76,9 @@ class ConfirmPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 3. Kiểm tra số tiền amount có bằng total_amount của Booking không
+        # 3. Tính toán chi phí lưu trú và số tiền còn lại cần thanh toán
         try:
             amount_dec = Decimal(str(amount))
-            booking_total = Decimal(str(booking.total_amount))
         except (ValueError, TypeError):
             return Response(
                 {
@@ -98,15 +97,60 @@ class ConfirmPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Chống Bypass: Số tiền chuyển khoản phải bằng hoặc lớn hơn tổng tiền đơn đặt phòng
-        if amount_dec < booking_total:
-            return Response(
-                {
-                    "success": False,
-                    "message": f"Số tiền thanh toán ({amount_dec:,.0f} VND) không đủ so với tổng giá trị đơn đặt phòng ({booking_total:,.0f} VND)."
-                },
-                status=status.HTTP_400_BAD_REQUEST
+        # Tính toán tiền phòng
+        room_charge = Decimal(str(booking.total_amount or 0))
+
+        # Tính toán tiền dịch vụ hoàn thành phát sinh
+        completed_requests = booking.service_requests.filter(status='completed').select_related('service')
+        service_charge = Decimal(str(sum(
+            (req.total_price or ((req.service.price if req.service else 0) * req.quantity))
+            for req in completed_requests
+        )))
+
+        for bes in booking.extra_services.all():
+            raw_name = (bes.service_name or '').strip()
+            if not re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
+                service_charge += Decimal(str((bes.price or 0) * (bes.quantity or 1)))
+
+        grand_total = room_charge + service_charge
+
+        # Số tiền đã thanh toán trước đó (COMPLETED payments)
+        paid_amount = Decimal('0')
+        if hasattr(booking, 'payments'):
+            completed_payments = booking.payments.filter(payment_status='COMPLETED')
+            if completed_payments.exists():
+                paid_amount = sum(Decimal(str(p.amount)) for p in completed_payments)
+        if paid_amount <= Decimal('0'):
+            if booking.status in ['paid', 'PAID'] or (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid'):
+                paid_amount = room_charge
+            elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
+                paid_amount = room_charge
+
+        remaining_balance = max(Decimal('0'), grand_total - paid_amount)
+
+        # Kiểm tra vai trò: Nhân viên Lễ tân / Quản lý / Thu ngân hoặc thanh toán tiền mặt tại quầy
+        is_staff = bool(
+            request.user and request.user.is_authenticated and (
+                request.user.is_staff or 
+                request.user.is_superuser or 
+                getattr(request.user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier']
             )
+        )
+        is_cash_payment = str(payment_method).upper() == 'CASH'
+
+        # Nếu là khách hàng tự thanh toán trực tuyến:
+        # Số tiền thanh toán không được nhỏ hơn số tiền còn lại cần thanh toán (remaining_balance)
+        # Dung sai 1,000 VND để tránh lỗi làm tròn số học
+        if not is_staff and not is_cash_payment:
+            target_required = remaining_balance if remaining_balance > Decimal('0') else room_charge
+            if amount_dec < (target_required - Decimal('1000')):
+                return Response(
+                    {
+                        "success": False,
+                        "message": f"Số tiền thanh toán ({amount_dec:,.0f} VND) không đủ so với số tiền cần thanh toán ({target_required:,.0f} VND)."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         # Kiểm tra trạng thái đơn: Không cho phép thanh toán đơn đã hủy hoặc khách không đến
         if booking.status in ['cancelled', 'no_show']:
@@ -178,8 +222,10 @@ class ConfirmPaymentView(APIView):
             if booking.status == 'pending':
                 booking.status = 'paid'
             note_str = (booking.note or '').strip()
-            if 'VietQR: Đã thanh toán' not in note_str:
-                booking.note = f"{note_str} | VietQR: Đã thanh toán ({amount_dec:,.0f} VND)" if note_str else f"VietQR: Đã thanh toán ({amount_dec:,.0f} VND)"
+            method_label = 'Tiền mặt' if str(payment_method).upper() == 'CASH' else 'VietQR'
+            pay_note = f"{method_label}: Đã thanh toán ({amount_dec:,.0f} VND)"
+            if pay_note not in note_str:
+                booking.note = f"{note_str} | {pay_note}" if note_str else pay_note
             booking.save(update_fields=['status', 'note'])
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)

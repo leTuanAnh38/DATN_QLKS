@@ -1834,9 +1834,9 @@ export default function HotelAdminDashboard({ initialTab }) {
                             </div>
 
                             {/* BẢNG DỮ LIỆU ĐẶT PHÒNG MỚI NHẤT */}
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                                    <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                                <div className="xl:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                                    <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div>
                                             <h3 className="text-base font-bold text-slate-900"> Danh sách Đặt phòng mới nhất </h3>
                                             <p className="text-xs text-slate-500 mt-0.5"> Dữ liệu đặt phòng thời gian thực đồng bộ tự động </p>
@@ -1872,17 +1872,17 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     </div>
 
                                     {/* Table */}
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse text-xs">
+                                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                                        <table className="w-full text-left border-collapse text-xs min-w-[700px]">
                                             <thead>
                                                 <tr className="bg-slate-50/70 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                                    <th className="py-3 px-5">MÃ BOOKING</th>
-                                                    <th className="py-3 px-5">KHÁCH HÀNG</th>
-                                                    <th className="py-3 px-5">HẠNG PHÒNG & SỐ PHÒNG</th>
-                                                    <th className="py-3 px-5">LỊCH TRÌNH</th>
-                                                    <th className="py-3 px-5">TỔNG TIỀN</th>
-                                                    <th className="py-3 px-5">TRẠNG THÁI</th>
-                                                    <th className="py-3 px-5 text-right">THAO TÁC</th>
+                                                    <th className="py-3 px-3 pl-4 sm:pl-5 whitespace-nowrap">MÃ BOOKING</th>
+                                                    <th className="py-3 px-3 whitespace-nowrap">KHÁCH HÀNG</th>
+                                                    <th className="py-3 px-3 whitespace-nowrap">HẠNG PHÒNG & SỐ PHÒNG</th>
+                                                    <th className="py-3 px-3 whitespace-nowrap">LỊCH TRÌNH</th>
+                                                    <th className="py-3 px-3 whitespace-nowrap">TỔNG TIỀN</th>
+                                                    <th className="py-3 px-3 whitespace-nowrap">TRẠNG THÁI</th>
+                                                    <th className="py-3 px-3 pr-4 sm:pr-5 text-right whitespace-nowrap">THAO TÁC</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100">
@@ -1910,23 +1910,23 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                                                         return (
                                                             <tr key={b.id} className="hover:bg-blue-50/20 transition cursor-pointer" onClick={() => setActiveTab('bookings')}>
-                                                                <td className="py-3.5 px-5 font-mono font-bold text-blue-600 whitespace-nowrap">
+                                                                <td className="py-3 px-3 pl-4 sm:pl-5 font-mono font-bold text-blue-600 whitespace-nowrap">
                                                                     <div>#{b.booking_code}</div>
                                                                     <span className="text-[10px] text-slate-400 font-normal">{formatDateTimeDisplay(b.created_at)}</span>
                                                                 </td>
-                                                                <td className="py-3.5 px-5">
+                                                                <td className="py-3 px-3">
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[10px] shrink-0">
                                                                             {avatarInitial}
                                                                         </div>
-                                                                        <div>
-                                                                            <div className="font-semibold text-slate-900">{guestName}</div>
-                                                                            <span className="text-[10px] text-slate-400 block">{b.guest_phone || b.guest_email || '—'}</span>
+                                                                        <div className="min-w-0">
+                                                                            <div className="font-semibold text-slate-900 truncate max-w-[130px]">{guestName}</div>
+                                                                            <span className="text-[10px] text-slate-400 block truncate max-w-[130px]">{b.guest_phone || b.guest_email || '—'}</span>
                                                                         </div>
                                                                     </div>
                                                                 </td>
-                                                                <td className="py-3.5 px-5">
-                                                                    <strong className="text-slate-800 block font-medium">{b.room_name || 'Hạng phòng'}</strong>
+                                                                <td className="py-3 px-3">
+                                                                    <strong className="text-slate-800 block font-medium truncate max-w-[160px]" title={b.room_name}>{b.room_name || 'Hạng phòng'}</strong>
                                                                     <span className="text-[10px] text-slate-500">
                                                                         {b.room_number ? (
                                                                             <span className="text-emerald-700 font-bold">Phòng {b.room_number}</span>
@@ -1935,22 +1935,22 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                                         )}
                                                                     </span>
                                                                 </td>
-                                                                <td className="py-3.5 px-5 whitespace-nowrap">
-                                                                    <span className="font-semibold text-slate-800 block">
+                                                                <td className="py-3 px-3 whitespace-nowrap">
+                                                                    <span className="font-semibold text-slate-800 block text-[11px]">
                                                                         {formatDateDisplay(b.check_in_date)} → {formatDateDisplay(b.check_out_date)}
                                                                     </span>
                                                                     <span className="text-[10px] text-blue-600 font-bold">🌙 {b.nights || 1} đêm</span>
                                                                 </td>
-                                                                <td className="py-3.5 px-5 whitespace-nowrap">
+                                                                <td className="py-3 px-3 whitespace-nowrap">
                                                                     <span className="font-bold text-rose-600 block">{totalAmountNum.toLocaleString('vi-VN')} VND</span>
                                                                 </td>
-                                                                <td className="py-3.5 px-5 whitespace-nowrap">
+                                                                <td className="py-3 px-3 whitespace-nowrap">
                                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusCfg.color}`}>
                                                                         {['pending', 'paid', 'PAID'].includes(b.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping mr-1"></span>}
                                                                         {statusCfg.label}
                                                                     </span>
                                                                 </td>
-                                                                <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                                                                <td className="py-3 px-3 pr-4 sm:pr-5 text-right whitespace-nowrap">
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
@@ -1959,9 +1959,10 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                                             setBookingSubFilter('all');
                                                                             setIsBookingMenuOpen(true);
                                                                         }}
-                                                                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
+                                                                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs cursor-pointer inline-flex items-center gap-1"
                                                                     >
-                                                                        Xử lý →
+                                                                        <span>Xử lý</span>
+                                                                        <span>→</span>
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -1971,7 +1972,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 px-5">
+                                    <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 px-4 sm:px-5">
                                         <span>Đang hiển thị <strong>{filteredBookings.length}</strong> / <strong>{actualBookingsCount}</strong> đơn thực tế từ CSDL</span>
                                         <button
                                             type="button"
@@ -1980,7 +1981,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 setBookingSubFilter('all');
                                                 setIsBookingMenuOpen(true);
                                             }}
-                                            className="text-blue-600 hover:text-blue-700 font-bold text-xs hover:underline flex items-center gap-1"
+                                            className="text-blue-600 hover:text-blue-700 font-bold text-xs hover:underline flex items-center gap-1 cursor-pointer"
                                         >
                                             <span>Quản lý toàn bộ đơn đặt phòng</span>
                                             <span>→</span>
@@ -1989,7 +1990,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </div>
 
                                 {/* Concierge & Dịch Vụ Nóng */}
-                                <div className="lg:col-span-4 space-y-6">
+                                <div className="xl:col-span-4 space-y-6">
                                     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between h-full">
                                         <div>
                                             <div className="flex items-center justify-between mb-4">

@@ -856,10 +856,19 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             </div>
                         )}
 
+                        {hoveredBooking.service_amount > 0 && (
+                            <div className="flex items-center justify-between text-slate-300 text-[11px]">
+                                <span className="text-slate-400">🛎️ Tiền dịch vụ:</span>
+                                <span className="font-semibold text-amber-400">
+                                    +{Number(hoveredBooking.service_amount).toLocaleString('vi-VN')} VND
+                                </span>
+                            </div>
+                        )}
+
                         <div className="flex items-center justify-between text-slate-300 pt-1 border-t border-slate-800">
                             <span className="text-slate-400">💰 Tổng tiền:</span>
                             <span className="font-bold text-rose-400">
-                                {Number(hoveredBooking.total_amount || 0).toLocaleString('vi-VN')} VND
+                                {Number(hoveredBooking.grand_total_amount || hoveredBooking.total_amount || 0).toLocaleString('vi-VN')} VND
                             </span>
                         </div>
                     </div>
@@ -942,10 +951,19 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                 </div>
                             </div>
 
+                            {selectedBookingModal.service_amount > 0 && (
+                                <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-100 flex items-center justify-between">
+                                    <span className="text-slate-600 font-medium">🛎️ Phụ phí & Dịch vụ phòng:</span>
+                                    <strong className="text-xs text-amber-700 font-bold">
+                                        +{Number(selectedBookingModal.service_amount).toLocaleString('vi-VN')} VND
+                                    </strong>
+                                </div>
+                            )}
+
                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
                                 <span className="font-medium text-slate-600">Tổng tiền thanh toán:</span>
                                 <strong className="text-base text-rose-600 font-bold">
-                                    {Number(selectedBookingModal.total_amount || 0).toLocaleString('vi-VN')} VND
+                                    {Number(selectedBookingModal.grand_total_amount || selectedBookingModal.total_amount || 0).toLocaleString('vi-VN')} VND
                                 </strong>
                             </div>
 

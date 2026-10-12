@@ -372,6 +372,26 @@ class AdminGuestListCreateView(APIView):
             is_active_bool = is_active.lower() in ['true', '1']
             queryset = queryset.filter(is_active=is_active_bool)
 
+        # Tính toán thống kê trên toàn bộ tập dữ liệu (không bị giới hạn bởi phân trang)
+        total_guests = queryset.count()
+        active_guests = queryset.filter(is_active=True).count()
+        diamond_guests = queryset.filter(
+            Q(current_tier__name__icontains='Diamond') | Q(guest_profile__vip_tier__icontains='Diamond')
+        ).count()
+        gold_silver_guests = queryset.filter(
+            Q(current_tier__name__icontains='Gold') | Q(guest_profile__vip_tier__icontains='Gold') |
+            Q(current_tier__name__icontains='Silver') | Q(guest_profile__vip_tier__icontains='Silver') |
+            Q(current_tier__name__icontains='Vàng') | Q(guest_profile__vip_tier__icontains='Vàng') |
+            Q(current_tier__name__icontains='Bạc') | Q(guest_profile__vip_tier__icontains='Bạc')
+        ).count()
+
+        stats = {
+            'total_guests': total_guests,
+            'active_guests': active_guests,
+            'diamond_guests': diamond_guests,
+            'gold_silver_guests': gold_silver_guests,
+        }
+
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
         if page is not None:
@@ -385,7 +405,8 @@ class AdminGuestListCreateView(APIView):
                 'next': paginator.get_next_link(),
                 'previous': paginator.get_previous_link(),
                 'results': serializer.data,
-                'guests': serializer.data
+                'guests': serializer.data,
+                'stats': stats,
             }, status=status.HTTP_200_OK)
 
         serializer = AdminGuestSerializer(queryset, many=True, context={'request': request})
@@ -393,7 +414,8 @@ class AdminGuestListCreateView(APIView):
             'success': True,
             'count': queryset.count(),
             'results': serializer.data,
-            'guests': serializer.data
+            'guests': serializer.data,
+            'stats': stats,
         }, status=status.HTTP_200_OK)
 
     def post(self, request):
