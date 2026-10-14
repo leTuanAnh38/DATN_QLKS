@@ -15,15 +15,17 @@ import {
 export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuccess }) {
     const { user: currentUser } = useAuth();
     const currentUserRole = currentUser?.role || '';
-    const isManager = currentUserRole === 'manager';
+    const canManageRoleMatrix = Boolean(
+        currentUser?.is_superuser || ['admin', 'owner'].includes(currentUserRole)
+    );
 
     // Ưu tiên nạp danh sách roles từ backend hoặc dùng danh sách mẫu
     const roleOptions = useMemo(() => {
         const rawList = Array.isArray(roles) && roles.length > 0 ? roles : DEFAULT_ROLE_MATRIX;
         let filtered = rawList;
-        // Nếu người đang đăng nhập là Quản lý: Chỉ được điều chỉnh vai trò cấp dưới, KHÔNG được phân quyền cho Chủ khách sạn, Admin hay Quản lý
-        if (isManager) {
-            filtered = filtered.filter((r) => !['admin', 'owner', 'manager'].includes(r.role || r.code));
+        // Chủ khách sạn (Owner) không được sửa quyền của Admin Hệ Thống
+        if (currentUserRole === 'owner') {
+            filtered = filtered.filter((r) => !['admin'].includes(r.role || r.code));
         }
         return filtered.map((r) => ({
             ...r,
@@ -38,7 +40,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
             description: r.description || '',
             permissions: r.permissions || {}
         }));
-    }, [roles, isManager]);
+    }, [roles, currentUserRole]);
 
     // Role đang được chọn để cấu hình quyền
     const [selectedRole, setSelectedRole] = useState('receptionist');
@@ -101,9 +103,9 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
     const totalPossible = SYSTEM_MODULES.length * CRUD_ACTIONS.length;
 
     // Kiểm tra xem phân hệ này có bị hạn chế/khóa đối với người đang thao tác hay không
-    // Quản lý (Manager) tuyệt đối không có thẩm quyền cấp phát hoặc thay đổi phân hệ "Cài đặt hệ thống" cho nhân viên
+    // Cài đặt hệ thống (settings) chỉ Quản trị viên tối cao (Admin) mới có quyền cấp phát
     const isModuleRestricted = (moduleKey) => {
-        if (isManager && moduleKey === 'settings') {
+        if (currentUserRole !== 'admin' && !currentUser?.is_superuser && moduleKey === 'settings') {
             return true;
         }
         return false;
@@ -275,6 +277,8 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
             setIsSaving(false);
         }
     };
+
+    if (!isOpen || !canManageRoleMatrix) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">

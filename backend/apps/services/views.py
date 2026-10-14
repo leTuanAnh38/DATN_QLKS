@@ -15,19 +15,28 @@ from .serializers import (
 )
 from ..bookings.models import Booking, BookingExtraService
 from ..users.models import log_action
+from ..users.views import check_role_permission
 from core_project.pagination import StandardResultsSetPagination
 
 
 class IsManagerOrAdminOnly(BasePermission):
     """
-    Chỉ cho phép cấp Quản lý trở lên (admin, owner, manager) cấu hình thực đơn và danh mục dịch vụ.
+    Kiểm tra phân quyền động theo ma trận quyền cho phân hệ Dịch vụ & Nhà hàng (services).
     """
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
         if request.user.is_superuser:
             return True
-        return getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']
+        action_map = {
+            'GET': 'read',
+            'POST': 'create',
+            'PUT': 'update',
+            'PATCH': 'update',
+            'DELETE': 'delete'
+        }
+        action = action_map.get(request.method, 'read')
+        return check_role_permission(request.user, 'services', action)
 
 
 class ServiceCategoryListView(APIView):

@@ -88,8 +88,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     const canCreateRoom = useHasPermission('rooms', 'create');
     const canUpdateRoom = useHasPermission('rooms', 'update');
     const canDeleteRoom = useHasPermission('rooms', 'delete');
-    const isManagerOrAdmin = Boolean(user && (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser));
-    const canManageBookings = Boolean(user && (['admin', 'owner', 'manager', 'receptionist'].includes(user.role) || user.is_superuser));
+    const isManagerOrAdmin = canUpdateRoom;
+    const canManageBookings = useHasPermission('bookings', 'update');
 
     const [rooms, setRooms] = useState([]);
     const [categories, setCategories] = useState([]);

@@ -9,6 +9,7 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from django.utils.text import slugify
 from ..users.models import log_action, User
+from ..users.views import check_role_permission
 from ..bookings.models import Booking, BookingExtraService
 from ..notifications.models import Notification
 from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket
@@ -57,14 +58,22 @@ class IsHotelStaffOrAdmin(BasePermission):
 
 class IsManagerOrAdminOnly(BasePermission):
     """
-    Chỉ cho phép cấp Quản lý trở lên (admin, owner, manager) tạo mới hoặc xóa phòng / hạng phòng.
+    Kiểm tra phân quyền động theo ma trận quyền cho Hạng phòng (categories).
     """
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
         if request.user.is_superuser:
             return True
-        return getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']
+        action_map = {
+            'GET': 'read',
+            'POST': 'create',
+            'PUT': 'update',
+            'PATCH': 'update',
+            'DELETE': 'delete'
+        }
+        action = action_map.get(request.method, 'read')
+        return check_role_permission(request.user, 'categories', action)
 
 
 # =========================================================================
@@ -412,6 +421,12 @@ class AdminRoomListCreateView(APIView):
     permission_classes = [IsHotelStaffOrAdmin]
 
     def get(self, request):
+        if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'read')):
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền xem sơ đồ phòng.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         queryset = Room.objects.select_related('category').all()
 
         # 1. Tìm kiếm theo số phòng hoặc tên loại phòng
@@ -485,10 +500,10 @@ class AdminRoomListCreateView(APIView):
         }, status=status.HTTP_200_OK)
 
     def post(self, request):
-        if not (request.user.is_superuser or getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']):
+        if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'create')):
             return Response({
                 'success': False,
-                'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền thêm phòng mới vào sơ đồ.'
+                'message': 'Bạn không có quyền thêm phòng mới vào sơ đồ (Yêu cầu quyền Thêm mới).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         serializer = RoomSerializer(data=request.data)
@@ -532,26 +547,20 @@ class AdminRoomDetailView(APIView):
             return None
 
     def get(self, request, pk):
+        if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'read')):
+            return Response({'success': False, 'message': 'Bạn không có quyền xem thông tin phòng.'}, status=status.HTTP_403_FORBIDDEN)
+
         room = self.get_object(pk)
         if not room:
             return Response({'success': False, 'message': 'Không tìm thấy phòng.'}, status=status.HTTP_404_NOT_FOUND)
         return Response({'success': True, 'room': RoomSerializer(room).data}, status=status.HTTP_200_OK)
 
     def patch(self, request, pk):
-        user_role = getattr(request.user, 'role', '')
-        if user_role == 'cashier':
+        if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'update')):
             return Response({
                 'success': False,
-                'message': 'Thu ngân không có quyền chỉnh sửa phòng.'
+                'message': 'Bạn không có quyền chỉnh sửa thông tin phòng (Yêu cầu quyền Cập nhật).'
             }, status=status.HTTP_403_FORBIDDEN)
-
-        if user_role not in ['admin', 'owner', 'manager'] and not request.user.is_superuser:
-            allowed_keys = {'status'}
-            if not set(request.data.keys()).issubset(allowed_keys):
-                return Response({
-                    'success': False,
-                    'message': 'Bạn chỉ có quyền cập nhật trạng thái phòng, không được thay đổi thông tin số phòng, tầng hoặc hạng phòng.'
-                }, status=status.HTTP_403_FORBIDDEN)
 
         room = self.get_object(pk)
         if not room:
@@ -584,10 +593,10 @@ class AdminRoomDetailView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        if not (request.user.is_superuser or getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']):
+        if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'delete')):
             return Response({
                 'success': False,
-                'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền xóa phòng khỏi sơ đồ.'
+                'message': 'Bạn không có quyền xóa phòng khỏi sơ đồ (Yêu cầu quyền Xóa).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         room = self.get_object(pk)
@@ -623,12 +632,13 @@ class AdminRoomStatusUpdateView(APIView):
     permission_classes = [IsHotelStaffOrAdmin]
 
     def patch(self, request, pk):
-        user_role = getattr(request.user, 'role', '')
-        if user_role == 'cashier':
+        if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'update')):
             return Response({
                 'success': False,
-                'message': 'Thu ngân không có quyền cập nhật trạng thái phòng.'
+                'message': 'Bạn không có quyền cập nhật trạng thái phòng (Yêu cầu quyền Cập nhật).'
             }, status=status.HTTP_403_FORBIDDEN)
+
+        user_role = getattr(request.user, 'role', '')
         if user_role == 'housekeeper':
             new_status = request.data.get('status')
             if new_status not in ['available', 'cleaning']:

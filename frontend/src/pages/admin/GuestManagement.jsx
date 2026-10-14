@@ -21,7 +21,7 @@ export default function GuestManagement() {
     const canCreateGuest = useHasPermission('guests', 'create');
     const canUpdateGuest = useHasPermission('guests', 'update');
     const canDeleteGuest = useHasPermission('guests', 'delete');
-    const isManagerOrAdmin = Boolean(user && (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser));
+    const isManagerOrAdmin = canUpdateGuest;
 
     const [guests, setGuests] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -552,7 +552,7 @@ export default function GuestManagement() {
                                                             ✏️
                                                         </button>
                                                     )}
-                                                    {isManagerOrAdmin && canUpdateGuest && (
+                                                    {canUpdateGuest && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleToggleStatus(g)}

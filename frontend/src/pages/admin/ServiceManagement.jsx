@@ -8,7 +8,7 @@ export default function ServiceManagement() {
     const canCreateService = useHasPermission('services', 'create');
     const canUpdateService = useHasPermission('services', 'update');
     const canDeleteService = useHasPermission('services', 'delete');
-    const isManagerOrAdmin = Boolean(user && (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser));
+    const isManagerOrAdmin = canUpdateService;
 
     const [services, setServices] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -421,7 +421,7 @@ export default function ServiceManagement() {
                         <span className="text-[10px] text-slate-400">↗</span>
                     </a>
 
-                    {canCreateService && isManagerOrAdmin && (
+                    {canCreateService && (
                         <>
                             <button
                                 type="button"
@@ -784,10 +784,10 @@ export default function ServiceManagement() {
                                         <td className="py-3 px-4 text-center whitespace-nowrap">
                                             <button
                                                 type="button"
-                                                disabled={!(canUpdateService && isManagerOrAdmin)}
-                                                onClick={() => (canUpdateService && isManagerOrAdmin) && handleToggleActive(service)}
+                                                disabled={!canUpdateService}
+                                                onClick={() => canUpdateService && handleToggleActive(service)}
                                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
-                                                    !(canUpdateService && isManagerOrAdmin) ? 'cursor-default opacity-85' : 'cursor-pointer'
+                                                    !canUpdateService ? 'cursor-default opacity-85' : 'cursor-pointer'
                                                 } ${
                                                     service.is_active
                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
@@ -803,7 +803,7 @@ export default function ServiceManagement() {
                                             </button>
                                         </td>
                                         <td className="py-3 px-4 text-right whitespace-nowrap">
-                                            {isManagerOrAdmin ? (
+                                            {(canUpdateService || canDeleteService) ? (
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     {canUpdateService && (
                                                         <button

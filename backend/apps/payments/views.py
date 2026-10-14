@@ -10,6 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 
 from ..bookings.models import Booking
 from ..users.models import log_action
+from ..users.views import check_role_permission
 from .models import Payment, Invoice, PaymentConfig
 from .serializers import PaymentSerializer, PaymentConfigSerializer
 
@@ -128,12 +129,12 @@ class ConfirmPaymentView(APIView):
 
         remaining_balance = max(Decimal('0'), grand_total - paid_amount)
 
-        # Kiểm tra vai trò: Nhân viên Lễ tân / Quản lý / Thu ngân hoặc thanh toán tiền mặt tại quầy
+        # Kiểm tra vai trò theo ma trận quyền cho phân hệ tài chính (finance)
         is_staff = bool(
             request.user and request.user.is_authenticated and (
-                request.user.is_staff or 
                 request.user.is_superuser or 
-                getattr(request.user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier']
+                check_role_permission(request.user, 'finance', 'create') or
+                check_role_permission(request.user, 'bookings', 'update')
             )
         )
         is_cash_payment = str(payment_method).upper() == 'CASH'
@@ -261,9 +262,8 @@ class PaymentListView(APIView):
     def get(self, request):
         user = request.user
         is_staff_or_admin = (
-            user.is_staff or 
             user.is_superuser or 
-            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier']
+            check_role_permission(user, 'finance', 'read')
         )
 
         # 1. Tự động đồng bộ các Hóa đơn (Invoices) nếu là nhân viên

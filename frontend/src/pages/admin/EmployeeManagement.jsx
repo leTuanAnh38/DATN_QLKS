@@ -5,6 +5,7 @@ import { DEFAULT_ROLE_MATRIX } from '../../data/roleMatrixData';
 import UserAvatar from '../../components/common/UserAvatar';
 import Pagination from '../../components/common/Pagination';
 import { useAuth } from '../../store/authStore';
+import { useHasPermission } from '../../utils/permission';
 
 // =========================================================================
 // DANH MỤC PHÒNG BAN, CHỨC DANH & CA LÀM VIỆC CHUẨN KHÁCH SẠN 5 SAO
@@ -120,6 +121,13 @@ export default function EmployeeManagement() {
     const { user: currentUser } = useAuth();
     const currentUserRole = currentUser?.role || '';
     const isManager = currentUserRole === 'manager';
+    const canCreateEmployee = useHasPermission('employees', 'create');
+    const canUpdateEmployee = useHasPermission('employees', 'update');
+    const canDeleteEmployee = useHasPermission('employees', 'delete');
+    // Chỉ Admin và Chủ khách sạn (Owner) mới được phép cấu hình Ma Trận Phân Quyền (RBAC)
+    const canManageRoleMatrix = Boolean(
+        currentUser?.is_superuser || ['admin', 'owner'].includes(currentUserRole)
+    );
 
     const [employees, setEmployees] = useState([]);
     const [roles, setRoles] = useState(DEFAULT_ROLE_MATRIX);
@@ -764,22 +772,26 @@ export default function EmployeeManagement() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={() => setIsRoleMatrixOpen(true)}
-                        className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer"
-                    >
-                        <span>🛡️</span>
-                        <span>Ma Trận Phân Quyền</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleOpenCreate}
-                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
-                    >
-                        <span>＋</span>
-                        <span>Thêm Nhân Viên Mới</span>
-                    </button>
+                    {canManageRoleMatrix && (
+                        <button
+                            type="button"
+                            onClick={() => setIsRoleMatrixOpen(true)}
+                            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer"
+                        >
+                            <span>🛡️</span>
+                            <span>Ma Trận Phân Quyền</span>
+                        </button>
+                    )}
+                    {canCreateEmployee && (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreate}
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                        >
+                            <span>＋</span>
+                            <span>Thêm Nhân Viên Mới</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1102,43 +1114,49 @@ export default function EmployeeManagement() {
                                                     </span>
                                                 ) : (
                                                     <>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleOpenAssignRole(emp)}
-                                                            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer"
-                                                            title="Phân quyền vai trò chi tiết"
-                                                        >
-                                                            <span>🛡️</span>
-                                                            <span>Phân quyền</span>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleOpenEdit(emp)}
-                                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] transition cursor-pointer"
-                                                            title="Chỉnh sửa hồ sơ"
-                                                        >
-                                                            ✏️ Sửa
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleToggleStatus(emp)}
-                                                            className={`px-2 py-1 rounded-lg font-medium text-[11px] transition cursor-pointer ${
-                                                                emp.is_active
-                                                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
-                                                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-                                                            }`}
-                                                            title={emp.is_active ? 'Khóa tài khoản' : 'Mở khóa'}
-                                                        >
-                                                            {emp.is_active ? '🔒 Khóa' : '🔓 Mở'}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleOpenDelete(emp)}
-                                                            className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium text-[11px] transition cursor-pointer"
-                                                            title="Xóa tài khoản nhân viên"
-                                                        >
-                                                            🗑️
-                                                        </button>
+                                                        {canUpdateEmployee && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleOpenAssignRole(emp)}
+                                                                    className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer"
+                                                                    title="Phân quyền vai trò chi tiết"
+                                                                >
+                                                                    <span>🛡️</span>
+                                                                    <span>Phân quyền</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleOpenEdit(emp)}
+                                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] transition cursor-pointer"
+                                                                    title="Chỉnh sửa hồ sơ"
+                                                                >
+                                                                    ✏️ Sửa
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleToggleStatus(emp)}
+                                                                    className={`px-2 py-1 rounded-lg font-medium text-[11px] transition cursor-pointer ${
+                                                                        emp.is_active
+                                                                            ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                                                                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                                                                    }`}
+                                                                    title={emp.is_active ? 'Khóa tài khoản' : 'Mở khóa'}
+                                                                >
+                                                                    {emp.is_active ? '🔒 Khóa' : '🔓 Mở'}
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {canDeleteEmployee && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenDelete(emp)}
+                                                                className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium text-[11px] transition cursor-pointer"
+                                                                title="Xóa tài khoản nhân viên"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        )}
                                                     </>
                                                 )}
                                             </div>
@@ -2136,12 +2154,14 @@ export default function EmployeeManagement() {
                 </div>
             )}
 
-            {/* Modal Ma Trận Phân Quyền */}
-            <RoleMatrixModal
-                isOpen={isRoleMatrixOpen}
-                onClose={() => setIsRoleMatrixOpen(false)}
-                roles={roles}
-            />
+            {/* Modal Ma Trận Phân Quyền (Chỉ dành cho Admin & Chủ khách sạn) */}
+            {canManageRoleMatrix && (
+                <RoleMatrixModal
+                    isOpen={isRoleMatrixOpen}
+                    onClose={() => setIsRoleMatrixOpen(false)}
+                    roles={roles}
+                />
+            )}
         </div>
     );
 }

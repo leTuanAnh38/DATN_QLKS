@@ -124,6 +124,20 @@ class IsManagerOrAdmin(BasePermission):
         return getattr(request.user, 'role', '') in allowed_roles
 
 
+class IsOwnerOrAdminOnly(BasePermission):
+    """
+    Chỉ cho phép Chủ khách sạn (Owner) hoặc Quản trị viên (Admin / superuser)
+    được xem và cấu hình Ma trận phân quyền vai trò (Role-Based Access Control Matrix).
+    Quản lý (Manager) và nhân viên cấp dưới tuyệt đối không có quyền truy cập endpoint này.
+    """
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_superuser:
+            return True
+        return getattr(request.user, 'role', '') in ['admin', 'owner']
+
+
 class IsFrontDeskOrManager(BasePermission):
     """
     Cho phép Lễ tân, Quản lý, Chủ, Admin hoặc nhân viên đã được phân quyền
@@ -146,6 +160,29 @@ class IsFrontDeskOrManager(BasePermission):
         }
         action = action_map.get(request.method, 'read')
         return check_role_permission(request.user, 'guests', action)
+
+
+class IsEmployeeManagementPermission(BasePermission):
+    """
+    Kiểm tra phân quyền động theo ma trận quyền cho phân hệ Nhân sự (employees).
+    """
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_superuser:
+            return True
+
+        action_map = {
+            'GET': 'read',
+            'HEAD': 'read',
+            'OPTIONS': 'read',
+            'POST': 'create',
+            'PUT': 'update',
+            'PATCH': 'update',
+            'DELETE': 'delete'
+        }
+        action = action_map.get(request.method, 'read')
+        return check_role_permission(request.user, 'employees', action)
 
 
 class RegisterView(APIView):
@@ -567,7 +604,7 @@ class AdminGuestDetailView(APIView):
 # =========================================================================
 
 class AdminEmployeeListCreateView(APIView):
-    permission_classes = [IsManagerOrAdmin]
+    permission_classes = [IsEmployeeManagementPermission]
     pagination_class = StandardResultsSetPagination
 
     def get(self, request):
@@ -669,7 +706,7 @@ class AdminEmployeeListCreateView(APIView):
 
 
 class AdminEmployeeDetailView(APIView):
-    permission_classes = [IsManagerOrAdmin]
+    permission_classes = [IsEmployeeManagementPermission]
 
     def get(self, request, pk):
         try:
@@ -918,7 +955,7 @@ class AdminRoleListView(APIView):
 
 
 class AdminRolePermissionsView(APIView):
-    permission_classes = [IsManagerOrAdmin]
+    permission_classes = [IsOwnerOrAdminOnly]
 
     def get(self, request, role=None):
         matrix = load_role_matrix()
@@ -941,17 +978,10 @@ class AdminRolePermissionsView(APIView):
                 'message': 'Không được phép chỉnh sửa ma trận phân quyền của Quản trị viên tối cao (Admin Hệ Thống).'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        # 2. Quản lý (Manager) chỉ được sửa quyền cho nhân viên cấp dưới (không được sửa quyền Quản lý, Chủ khách sạn, Admin)
+        # 2. Phân quyền cho Chủ khách sạn (Owner) chỉ dành riêng cho Admin Hệ Thống
         requester_role = getattr(request.user, 'role', '')
         is_admin_or_super = request.user.is_superuser or requester_role == 'admin'
 
-        if requester_role == 'manager' and role in ['manager', 'owner', 'admin']:
-            return Response({
-                'success': False,
-                'message': 'Quản lý (Manager) chỉ có quyền điều chỉnh phân quyền cho nhân viên cấp dưới (Lễ tân, Thu ngân, Buồng phòng, Phục vụ, Kỹ thuật).'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        # 3. Phân quyền cho Chủ khách sạn (Owner) chỉ dành riêng cho Admin Hệ Thống
         if role == 'owner' and not is_admin_or_super:
             return Response({
                 'success': False,
@@ -961,14 +991,7 @@ class AdminRolePermissionsView(APIView):
         permissions = request.data.get('permissions', {})
         permission_codes = request.data.get('permission_codes', [])
 
-        # 4. Quản lý (Manager) tuyệt đối không có quyền cấp phát hoặc thay đổi quyền phân hệ Cài đặt hệ thống (settings)
-        if requester_role == 'manager':
-            if isinstance(permissions, dict) and 'settings' in permissions:
-                permissions['settings'] = {'read': False, 'create': False, 'update': False, 'delete': False}
-            if isinstance(permission_codes, list):
-                permission_codes = [code for code in permission_codes if not str(code).startswith('settings.')]
-
-        # 5. Lưu bền vững vào file JSON cấu hình phân quyền hệ thống
+        # 3. Lưu bền vững vào file JSON cấu hình phân quyền hệ thống
         if isinstance(permissions, dict):
             matrix = load_role_matrix()
             matrix[role] = permissions

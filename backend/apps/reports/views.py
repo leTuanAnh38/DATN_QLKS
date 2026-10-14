@@ -13,21 +13,21 @@ from ..bookings.models import Booking
 from ..payments.models import Invoice
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User
+from ..users.views import check_role_permission
 
 
 class IsHotelStaffOrManager(BasePermission):
     """
     Quyền truy cập API Báo cáo & Thống kê:
-    Dành cho Admin, Quản lý, Chủ khách sạn, Thu ngân và Lễ tân.
+    Kiểm tra động theo ma trận quyền cho phân hệ Báo cáo (reports).
     """
     def has_permission(self, request, view):
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
-        allowed_roles = ['admin', 'owner', 'manager', 'cashier', 'receptionist']
-        return getattr(user, 'role', '') in allowed_roles
+        return check_role_permission(user, 'reports', 'read')
 
 
 class ReportsAnalyticsView(APIView):

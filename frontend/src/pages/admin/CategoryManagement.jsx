@@ -27,7 +27,7 @@ export default function CategoryManagement() {
     const canCreateCat = useHasPermission('categories', 'create');
     const canUpdateCat = useHasPermission('categories', 'update');
     const canDeleteCat = useHasPermission('categories', 'delete');
-    const isManagerOrAdmin = Boolean(user && (['admin', 'owner', 'manager'].includes(user.role) || user.is_superuser));
+    const isManagerOrAdmin = canUpdateCat;
 
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -436,7 +436,7 @@ export default function CategoryManagement() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {canCreateCat && isManagerOrAdmin && (
+                    {canCreateCat && (
                         <button
                             type="button"
                             onClick={handleOpenCreateModal}
@@ -749,7 +749,7 @@ export default function CategoryManagement() {
                                             Slug: {cat.slug}
                                         </span>
                                         <div className="flex items-center gap-2">
-                                            {canUpdateCat && isManagerOrAdmin ? (
+                                            {canUpdateCat ? (
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEditModal(cat)}
