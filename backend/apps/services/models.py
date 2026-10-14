@@ -48,8 +48,11 @@ class ServiceRequest(models.Model):
     service = models.ForeignKey(ServiceItem, on_delete=models.CASCADE, related_name='requests', verbose_name="Dịch vụ yêu cầu")
     
     quantity = models.IntegerField(default=1, verbose_name="Số lượng")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=0, default=0, verbose_name="Đơn giá (VND)")
     request_time = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian khách cần phục vụ")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Trạng thái")
+    is_paid = models.BooleanField(default=False, verbose_name="Đã thanh toán trước")
+    is_scheduled = models.BooleanField(default=False, verbose_name="Lễ tân đã hẹn giờ phục vụ")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú (VD: Ít đường, Không hành...)")
     total_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tổng tiền (VND)")
     
@@ -57,10 +60,12 @@ class ServiceRequest(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Giờ cập nhật")
 
     def save(self, *args, **kwargs):
-        if self.service and self.quantity:
+        if self.service and (not self.unit_price or self.unit_price == 0):
+            self.unit_price = self.service.price
+        if self.unit_price and self.quantity:
+            self.total_price = self.unit_price * self.quantity
+        elif self.service and self.quantity:
             self.total_price = self.service.price * self.quantity
-        if not self.request_time:
-            self.request_time = timezone.now()
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -2179,7 +2179,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                                                 <span>Đang chuẩn bị / Chờ phục vụ ({selectedBooking.pending_services.length} yêu cầu):</span>
                                             </span>
-                                            <span className="text-[10px] text-amber-700 font-medium">Chưa tính vào hóa đơn</span>
+                                            <span className="text-[10px] text-amber-700 font-medium">Chờ giao phục vụ</span>
                                         </div>
                                         <div className="divide-y divide-amber-200/60">
                                             {selectedBooking.pending_services.map((req, idx) => (
@@ -2232,73 +2232,94 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     </div>
                                 )}
 
-                                {/* Danh sách dịch vụ đã hoàn thành & tính vào hóa đơn */}
-                                {selectedBooking.extra_services && selectedBooking.extra_services.length > 0 ? (
-                                    <div className="space-y-2">
-                                        <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
-                                            {selectedBooking.extra_services.map((item, idx) => {
-                                                const cleanName = (item.service_name || '')
-                                                    .replace(/\[Yêu cầu #\d+\]/gi, '')
-                                                    .replace(/\(x\d+\)/gi, '')
-                                                    .trim();
-                                                return (
-                                                    <div key={item.id || idx} className="p-2.5 bg-slate-50/60 flex items-center justify-between text-xs hover:bg-slate-100/60 transition group">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[10px]">
-                                                                {idx + 1}
-                                                            </span>
-                                                            <div>
-                                                                <strong className="text-slate-900 font-semibold block text-xs">
-                                                                    {cleanName}
-                                                                </strong>
-                                                                <span className="text-[10px] text-slate-400">
-                                                                    {item.quantity} x {Number(item.price || 0).toLocaleString('vi-VN')} VND
-                                                                </span>
+                                {/* Danh sách dịch vụ đã hoàn thành phục vụ */}
+                                {(() => {
+                                    const pendingIds = new Set(
+                                        (selectedBooking.pending_services || []).map((p) => String(p.id))
+                                    );
+                                    const completedServices = (selectedBooking.extra_services || []).filter(
+                                        (item) => !pendingIds.has(String(item.id))
+                                    );
+
+                                    if (completedServices.length > 0) {
+                                        return (
+                                            <div className="space-y-2">
+                                                <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+                                                    {completedServices.map((item, idx) => {
+                                                        const cleanName = (item.service_name || '')
+                                                            .replace(/\[Yêu cầu #\d+\]/gi, '')
+                                                            .replace(/\(x\d+\)/gi, '')
+                                                            .trim();
+                                                        return (
+                                                            <div key={item.id || idx} className="p-2.5 bg-slate-50/60 flex items-center justify-between text-xs hover:bg-slate-100/60 transition group">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[10px]">
+                                                                        {idx + 1}
+                                                                    </span>
+                                                                    <div>
+                                                                        <strong className="text-slate-900 font-semibold block text-xs">
+                                                                            {cleanName}
+                                                                        </strong>
+                                                                        <span className="text-[10px] text-slate-400">
+                                                                            {item.quantity} x {Number(item.price || 0).toLocaleString('vi-VN')} VND
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-slate-900">
+                                                                        {Number(item.total_price || (item.price * item.quantity)).toLocaleString('vi-VN')} VND
+                                                                    </span>
+                                                                    {/* Quy tắc: Chỉ hiển thị nút xóa (thùng rác) khi khách ĐANG LƯU TRÚ (in-house), ẩn hoàn toàn khi đơn đã khóa sổ (Check-out/Hủy/Hoàn tất) */}
+                                                                    {(canManageBookings || currentUserRole === 'service_staff') && 
+                                                                     (selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveExtraService(item.id, cleanName)}
+                                                                            className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                                                            title="Xóa phụ phí này khỏi đơn đặt phòng"
+                                                                        >
+                                                                            🗑️
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-bold text-slate-900">
-                                                                {Number(item.total_price || (item.price * item.quantity)).toLocaleString('vi-VN')} VND
-                                                            </span>
-                                                            {/* Quy tắc: Chỉ hiển thị nút xóa (thùng rác) khi khách ĐANG LƯU TRÚ (in-house), ẩn hoàn toàn khi đơn đã khóa sổ (Check-out/Hủy/Hoàn tất) */}
-                                                            {(canManageBookings || currentUserRole === 'service_staff') && 
-                                                             (selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleRemoveExtraService(item.id, cleanName)}
-                                                                    className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
-                                                                    title="Xóa phụ phí này khỏi đơn đặt phòng"
-                                                                >
-                                                                    🗑️
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                        );
+                                                    })}
+                                                </div>
+                                                <div className="flex items-center justify-between pt-1 text-xs">
+                                                    <span className="text-slate-500 font-medium">Tổng tiền dịch vụ phát sinh:</span>
+                                                    <strong className="text-purple-700 font-bold">
+                                                        +{Number(selectedBooking.extra_services_total || 0).toLocaleString('vi-VN')} VND
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    if (selectedBooking.pending_services && selectedBooking.pending_services.length > 0) {
+                                        return (
+                                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center text-slate-400 text-xs">
+                                                <p>Các món đang chuẩn bị ở trên sẽ chuyển xuống danh sách hoàn tất sau khi bấm <strong>"✓ Đã giao"</strong>.</p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="p-4 bg-slate-50 rounded-xl text-center text-slate-400 text-xs">
+                                            <p>Chưa có phụ phí phát sinh nào được ghi nhận cho phòng này.</p>
+                                            {(canManageBookings || currentUserRole === 'service_staff') && 
+                                             (selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
+                                                <button
+                                                    type="button"
+                                                    onClick={openAddServiceModal}
+                                                    className="inline-block mt-1.5 text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline text-[11px]"
+                                                >
+                                                    + Bấm vào đây để thêm dịch vụ hoặc món ăn
+                                                </button>
+                                            )}
                                         </div>
-                                        <div className="flex items-center justify-between pt-1 text-xs">
-                                            <span className="text-slate-500 font-medium">Tổng tiền dịch vụ phát sinh:</span>
-                                            <strong className="text-purple-700 font-bold">
-                                                +{Number(selectedBooking.extra_services_total || 0).toLocaleString('vi-VN')} VND
-                                            </strong>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="p-4 bg-slate-50 rounded-xl text-center text-slate-400 text-xs">
-                                        <p>Chưa có phụ phí phát sinh nào được ghi nhận cho phòng này.</p>
-                                        {(canManageBookings || currentUserRole === 'service_staff') && 
-                                         (selectedBooking.status === 'checked_in' || selectedBooking.status === 'IN_HOUSE') && (
-                                            <button
-                                                type="button"
-                                                onClick={openAddServiceModal}
-                                                className="inline-block mt-1.5 text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline text-[11px]"
-                                            >
-                                                + Bấm vào đây để thêm dịch vụ hoặc món ăn
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
+                                    );
+                                })()}
                             </div>
 
                             {/* KHỐI 4: TÀI CHÍNH & THANH TOÁN (CHI TIẾT ĐỦ TIỀN PHÒNG + DỊCH VỤ) */}

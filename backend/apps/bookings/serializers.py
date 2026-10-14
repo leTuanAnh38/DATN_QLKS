@@ -92,6 +92,7 @@ class BookingSerializer(serializers.ModelSerializer):
     extra_services = serializers.SerializerMethodField()
     extra_services_total = serializers.SerializerMethodField()
     pending_services = serializers.SerializerMethodField()
+    selected_services = serializers.SerializerMethodField()
     room_amount = serializers.SerializerMethodField()
     grand_total_amount = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
@@ -140,6 +141,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'extra_services',
             'extra_services_total',
             'pending_services',
+            'selected_services',
             'grand_total_amount',
             'status',
             'status_display',
@@ -168,7 +170,7 @@ class BookingSerializer(serializers.ModelSerializer):
             obj.invoice.status == 'paid'
         )
 
-        for req in obj.service_requests.filter(status='completed').select_related('service').order_by('created_at'):
+        for req in obj.service_requests.exclude(status='cancelled').select_related('service').order_by('created_at'):
             clean_item_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
             total = float(req.total_price or ((req.service.price if req.service else 0) * req.quantity))
             
@@ -183,7 +185,9 @@ class BookingSerializer(serializers.ModelSerializer):
                 'quantity': req.quantity,
                 'price': float(req.service.price if req.service else 0),
                 'total_price': total,
-                'is_paid': services_is_paid,
+                'status': req.status,
+                'status_display': req.get_status_display(),
+                'is_paid': bool(getattr(req, 'is_paid', False) or services_is_paid),
                 'added_time': req.updated_at.isoformat() if req.updated_at else (req.created_at.isoformat() if req.created_at else None)
             })
 
@@ -219,7 +223,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 'quantity': bes.quantity,
                 'price': float(bes.price or 0),
                 'total_price': total,
-                'is_paid': services_is_paid,
+                'is_paid': bool(getattr(bes, 'is_paid', False) or services_is_paid),
                 'added_time': bes.added_time.isoformat() if bes.added_time else None
             })
 
@@ -243,54 +247,98 @@ class BookingSerializer(serializers.ModelSerializer):
                 'total_price': float(req.total_price or ((req.service.price if req.service else 0) * req.quantity)),
                 'status': req.status,
                 'status_display': req.get_status_display(),
+                'is_paid': getattr(req, 'is_paid', False),
                 'note': req.note,
                 'request_time': req.request_time.isoformat() if req.request_time else (req.created_at.isoformat() if req.created_at else None)
             })
         return pending_list
+
+    def get_selected_services(self, obj):
+        """
+        Danh sách tất cả dịch vụ đi kèm / đặt kèm của đơn đặt phòng.
+        Bao gồm cả các dịch vụ được khách chọn trong lúc booking trực tuyến.
+        """
+        services_list = []
+        request = self.context.get('request')
+        for req in obj.service_requests.select_related('service', 'service__category').all().order_by('created_at'):
+            svc = req.service
+            if not svc:
+                continue
+            img_url = ''
+            if svc.image:
+                try:
+                    img_url = request.build_absolute_uri(svc.image.url) if request else svc.image.url
+                except Exception:
+                    img_url = ''
+            if not img_url:
+                img_url = svc.image_url or ''
+            
+            unit_price = float(getattr(req, 'unit_price', 0) or (svc.price if svc else 0) or 0)
+            total = float(req.total_price or (unit_price * req.quantity))
+            services_list.append({
+                'id': req.id,
+                'service_id': svc.id,
+                'service_name': svc.name,
+                'category_name': svc.category.name if svc.category else '',
+                'category_icon': svc.category.icon if svc.category else '',
+                'unit_price': unit_price,
+                'quantity': req.quantity,
+                'total_price': total,
+                'status': req.status,
+                'status_display': req.get_status_display(),
+                'is_paid': getattr(req, 'is_paid', False),
+                'request_time': req.request_time.isoformat() if req.request_time else None,
+                'image': img_url,
+                'note': req.note or ''
+            })
+        return services_list
 
     # =========================================================================
     # FOLIO BALANCE & FINANCIAL CALCULATIONS (THANH TOÁN LẤP ĐẦY PMS)
     # =========================================================================
     def get_room_charge(self, obj):
         """
-        room_charge: Tiền phòng (Giá phòng * Số đêm).
-        Ưu tiên lấy total_amount đã lưu ở booking nếu có, hoặc tính động (daily_rate * nights).
+        room_charge: Tiền phòng (Giá phòng * Số đêm - Giảm giá nếu có).
         """
-        # Nếu model booking đã lưu trường total_amount gốc cho tiền phòng
-        raw_val = getattr(obj, '_state', None)
-        # Sử dụng giá trị booking.total_amount từ database nếu hợp lệ
-        try:
-            from django.db import connection
-            # Lấy trường total_amount trực tiếp từ DB model Booking
-            db_total = obj._total_amount if hasattr(obj, '_total_amount') else None
-        except Exception:
-            db_total = None
-
-        # Kiểm tra tiền phòng trong model Booking (obj.total_amount)
-        # Lưu ý: Vì ta override serializer field total_amount, cần đọc trực tiếp thuộc tính model:
+        pre_ordered_total = float(sum(
+            float(r.total_price or ((getattr(r, 'unit_price', 0) or (r.service.price if r.service else 0)) * r.quantity))
+            for r in obj.service_requests.filter(is_paid=True)
+        ))
         model_total = None
         try:
-            # Truy cập giá trị ban đầu từ database instance
             model_total = obj.__dict__.get('total_amount', None)
         except Exception:
             pass
 
         if model_total is not None and float(model_total) > 0:
-            return float(model_total)
+            val = float(model_total)
+            if pre_ordered_total > 0 and val >= pre_ordered_total:
+                return float(val - pre_ordered_total)
+            elif pre_ordered_total == 0:
+                return val
 
         nights = self.get_nights(obj)
         daily_rate = self.get_daily_rate(obj)
-        return float(daily_rate * nights)
+        subtotal = float(daily_rate * nights)
+        membership_disc = float(obj.membership_discount or 0)
+        return max(0.0, float(subtotal - membership_disc))
 
     def get_service_charge(self, obj):
         """
-        service_charge: Tổng tiền dịch vụ phát sinh (Room service, giặt ủi...).
+        service_charge: Tổng tiền dịch vụ phát sinh & dịch vụ đặt kèm.
         """
+        # Ưu tiên tính từ tất cả ServiceRequest hợp lệ (trừ cancelled)
+        valid_requests = obj.service_requests.exclude(status='cancelled').select_related('service')
+        if valid_requests.exists():
+            return float(sum(
+                float(req.total_price or ((getattr(req, 'unit_price', 0) or (req.service.price if req.service else 0)) * req.quantity))
+                for req in valid_requests
+            ))
         return float(self.get_extra_services_total(obj))
 
     def get_total_amount(self, obj):
         """
-        total_amount: room_charge + service_charge.
+        total_amount: room_charge + service_charge (tổng tiền cuối cùng bao gồm tiền phòng và dịch vụ).
         """
         return float(self.get_room_charge(obj) + self.get_service_charge(obj))
 

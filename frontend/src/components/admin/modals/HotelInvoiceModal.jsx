@@ -200,7 +200,13 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         booking.paid_amount ?? 
         (isRoomPaid ? roomAmount : 0)
     );
-    const balanceDue = isCancelled ? 0 : Number(booking.remaining_amount != null ? booking.remaining_amount : Math.max(0, grandTotal - paidAmount));
+    const balanceDue = isCancelled ? 0 : Number(
+        booking.remaining_balance != null
+            ? booking.remaining_balance
+            : (booking.remaining_amount != null
+                ? booking.remaining_amount
+                : Math.max(0, grandTotal - paidAmount))
+    );
     const bookingCodeDisplay = `#${String(booking.booking_code || '').replace('-', '')}`;
     const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
 

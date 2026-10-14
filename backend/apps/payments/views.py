@@ -98,22 +98,51 @@ class ConfirmPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Tính toán tiền phòng
-        room_charge = Decimal(str(booking.total_amount or 0))
+        # Tính toán tiền phòng chuẩn xác (pure_room_charge)
+        check_in = booking.check_in_date
+        check_out = booking.check_out_date
+        nights = max(1, (check_out - check_in).days) if (check_in and check_out) else 1
 
-        # Tính toán tiền dịch vụ hoàn thành phát sinh
-        completed_requests = booking.service_requests.filter(status='completed').select_related('service')
+        daily_rate = Decimal('0')
+        if booking.category and booking.category.base_price:
+            daily_rate = Decimal(str(booking.category.promo_price or booking.category.base_price))
+        elif booking.room and booking.room.category and booking.room.category.base_price:
+            daily_rate = Decimal(str(booking.room.category.promo_price or booking.room.category.base_price))
+
+        room_subtotal = daily_rate * Decimal(str(nights))
+        mem_discount = Decimal(str(booking.membership_discount or 0))
+        promo_discount = Decimal('0')
+        if booking.applied_promotion:
+            if booking.applied_promotion.discount_type == 'percentage':
+                promo_discount = (room_subtotal * Decimal(str(booking.applied_promotion.discount_value))) / Decimal('100')
+                if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                    promo_discount = min(promo_discount, Decimal(str(booking.applied_promotion.max_discount_amount)))
+            else:
+                promo_discount = min(room_subtotal, Decimal(str(booking.applied_promotion.discount_value)))
+        elif getattr(booking, 'promotion_discount', None):
+            promo_discount = Decimal(str(booking.promotion_discount))
+
+        pure_room_charge = max(Decimal('0'), room_subtotal - mem_discount - promo_discount)
+        if pure_room_charge <= Decimal('0') and booking.total_amount:
+            pre_ordered_total = sum(Decimal(str(r.total_price or 0)) for r in booking.service_requests.filter(is_paid=True))
+            pure_room_charge = max(Decimal('0'), Decimal(str(booking.total_amount)) - pre_ordered_total)
+        room_charge = pure_room_charge
+
+        # Tính toán tiền dịch vụ phát sinh & đặt trước
+        valid_requests = booking.service_requests.exclude(status='cancelled').select_related('service')
         service_charge = Decimal(str(sum(
             (req.total_price or ((req.service.price if req.service else 0) * req.quantity))
-            for req in completed_requests
+            for req in valid_requests
         )))
 
         for bes in booking.extra_services.all():
             raw_name = (bes.service_name or '').strip()
             if not re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
-                service_charge += Decimal(str((bes.price or 0) * (bes.quantity or 1)))
+                clean_name = re.sub(r'\[.*?\]', '', raw_name).strip()
+                if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() for r in valid_requests):
+                    service_charge += Decimal(str((bes.price or 0) * (bes.quantity or 1)))
 
-        grand_total = room_charge + service_charge
+        grand_total = pure_room_charge + service_charge
 
         # Số tiền đã thanh toán trước đó (COMPLETED payments)
         paid_amount = Decimal('0')
@@ -123,9 +152,9 @@ class ConfirmPaymentView(APIView):
                 paid_amount = sum(Decimal(str(p.amount)) for p in completed_payments)
         if paid_amount <= Decimal('0'):
             if booking.status in ['paid', 'PAID'] or (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid'):
-                paid_amount = room_charge
+                paid_amount = Decimal(str(booking.total_amount or pure_room_charge))
             elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
-                paid_amount = room_charge
+                paid_amount = Decimal(str(booking.total_amount or pure_room_charge))
 
         remaining_balance = max(Decimal('0'), grand_total - paid_amount)
 
@@ -229,6 +258,10 @@ class ConfirmPaymentView(APIView):
                 booking.note = f"{note_str} | {pay_note}" if note_str else pay_note
             booking.save(update_fields=['status', 'note'])
 
+            # 4.5 Cập nhật tất cả dịch vụ đi kèm của đơn sang is_paid = True
+            booking.service_requests.filter(is_paid=False).update(is_paid=True)
+            booking.extra_services.filter(is_paid=False).update(is_paid=True)
+
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
         acting_user = request.user if (request.user and request.user.is_authenticated) else getattr(booking, 'guest', None)
         log_action(
@@ -299,6 +332,12 @@ class PaymentListView(APIView):
                     payment_status='COMPLETED',
                     transaction_id=f"TXN-{b.booking_code.replace('BK-', '')}"
                 )
+
+            # 3. Tự động dọn dẹp các bản ghi PENDING thừa của các đơn đã có giao dịch COMPLETED
+            Payment.objects.filter(
+                payment_status='PENDING',
+                booking__payments__payment_status='COMPLETED'
+            ).delete()
 
         queryset = Payment.objects.select_related('booking', 'booking__guest', 'booking__room', 'booking__category').all().order_by('-created_at')
 
@@ -513,13 +552,30 @@ class SepayWebhookView(APIView):
                 'payment_status': 'COMPLETED'
             }
 
-            if txn_id:
-                payment, _ = Payment.objects.update_or_create(
-                    transaction_id=txn_id,
-                    defaults=defaults
-                )
+            # Tìm và cập nhật bản ghi PENDING trước đó của booking này (được tạo lúc khách bấm Đặt phòng)
+            pending_payment = Payment.objects.filter(
+                booking=booking,
+                payment_status='PENDING'
+            ).order_by('-created_at').first()
+
+            if pending_payment:
+                pending_payment.transaction_id = txn_id or pending_payment.transaction_id
+                pending_payment.amount = transfer_amount or pending_payment.amount
+                pending_payment.payment_method = 'TRANSFER'
+                pending_payment.payment_status = 'COMPLETED'
+                pending_payment.save(update_fields=['transaction_id', 'amount', 'payment_method', 'payment_status'])
+                payment = pending_payment
             else:
-                payment = Payment.objects.create(**defaults)
+                if txn_id:
+                    payment, _ = Payment.objects.update_or_create(
+                        transaction_id=txn_id,
+                        defaults=defaults
+                    )
+                else:
+                    payment = Payment.objects.create(**defaults)
+
+            # Dọn dẹp các bản ghi PENDING thừa khác nếu có của booking này (tránh bị trùng 2 dòng trên màn hình Hóa đơn)
+            Payment.objects.filter(booking=booking, payment_status='PENDING').delete()
 
             # Cập nhật hóa đơn
             if hasattr(booking, 'invoice') and booking.invoice:
@@ -536,6 +592,10 @@ class SepayWebhookView(APIView):
             if 'SePay VietQR' not in note_str:
                 booking.note = f"{note_str} | SePay VietQR Auto ({transfer_amount:,.0f} VND)" if note_str else f"SePay VietQR Auto ({transfer_amount:,.0f} VND)"
             booking.save(update_fields=['status', 'note'])
+
+            # Tự động cập nhật tất cả các dịch vụ đặt kèm sang is_paid = True
+            booking.service_requests.filter(is_paid=False).update(is_paid=True)
+            booking.extra_services.filter(is_paid=False).update(is_paid=True)
 
         log_action(
             user=getattr(booking, 'guest', None),

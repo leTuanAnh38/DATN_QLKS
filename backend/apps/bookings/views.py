@@ -349,10 +349,46 @@ class BookingViewSet(viewsets.ModelViewSet):
                     except (ValueError, TypeError):
                         pass
 
-            # 7. Tính tổng tiền thanh toán cuối cùng
-            total_amount = max(Decimal('0'), subtotal - membership_discount - discount_amount)
+            # 7. Xử lý Dịch vụ đi kèm (Add-on Services Upselling)
+            selected_services = data.get('selected_services', [])
+            services_to_create = []
+            total_services_amount = Decimal('0')
+            selected_services_summary = []
 
-            # 8. Tạo Đơn đặt phòng mới:
+            if isinstance(selected_services, list) and len(selected_services) > 0:
+                for item in selected_services:
+                    if not isinstance(item, dict):
+                        continue
+                    svc_id = item.get('service_id') or item.get('id')
+                    qty = item.get('quantity', 1)
+                    try:
+                        qty = int(qty)
+                        if qty <= 0:
+                            continue
+                    except (ValueError, TypeError):
+                        continue
+
+                    # Truy vấn trực tiếp từ bảng ServiceItem trong DB để lấy đơn giá chuẩn
+                    svc_obj = ServiceItem.objects.filter(id=svc_id, is_active=True).first()
+                    if not svc_obj:
+                        continue
+
+                    unit_price = Decimal(str(svc_obj.price or 0))
+                    item_total = unit_price * Decimal(str(qty))
+                    total_services_amount += item_total
+
+                    services_to_create.append({
+                        'service': svc_obj,
+                        'quantity': qty,
+                        'unit_price': unit_price,
+                        'total_price': item_total
+                    })
+
+            # 8. Tính tổng tiền thanh toán cuối cùng (Tiền phòng + Tiền dịch vụ - Giảm giá)
+            room_net_amount = max(Decimal('0'), subtotal - membership_discount - discount_amount)
+            grand_total_amount = room_net_amount + total_services_amount
+
+            # 9. Tạo Đơn đặt phòng mới:
             # Khách hàng đặt phòng theo Hạng phòng (RoomCategory).
             # Số phòng thực tế (Room) để trống (None) để Lễ tân chọn và gán phòng trống khi làm thủ tục Check-in.
             booking = Booking.objects.create(
@@ -362,11 +398,62 @@ class BookingViewSet(viewsets.ModelViewSet):
                 identity_card=identity_card,
                 check_in_date=check_in,
                 check_out_date=check_out,
-                total_amount=total_amount,
+                total_amount=grand_total_amount,
                 membership_discount=membership_discount,
                 applied_promotion=promotion_obj,
                 status='pending',
                 note=note
+            )
+
+            # 10. Tạo các bản ghi ServiceRequest và BookingExtraService gắn vào Booking
+            now_dt = timezone.now()
+            for s_info in services_to_create:
+                svc = s_info['service']
+                req = ServiceRequest.objects.create(
+                    booking=booking,
+                    service=svc,
+                    quantity=s_info['quantity'],
+                    unit_price=s_info['unit_price'],
+                    total_price=s_info['total_price'],
+                    status='pending',
+                    note='Dịch vụ tiện ích đặt kèm khi đặt phòng (Add-on Upsell)',
+                    request_time=now_dt
+                )
+                # Đồng bộ vào BookingExtraService cho hệ thống kế toán / PMS
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name=f"{svc.name} [Đặt kèm]",
+                    quantity=s_info['quantity'],
+                    price=s_info['unit_price']
+                )
+
+                feat_img = ''
+                if svc.image:
+                    try:
+                        feat_img = request.build_absolute_uri(svc.image.url)
+                    except Exception:
+                        feat_img = ''
+                if not feat_img:
+                    feat_img = svc.image_url or ''
+
+                selected_services_summary.append({
+                    'id': req.id,
+                    'service_id': svc.id,
+                    'service_name': svc.name,
+                    'category_name': svc.category.name if svc.category else '',
+                    'unit_price': float(s_info['unit_price']),
+                    'quantity': s_info['quantity'],
+                    'total_price': float(s_info['total_price']),
+                    'image': feat_img
+                })
+
+            # 11. Tạo bản ghi Payment ở trạng thái PENDING với tổng tiền cuối cùng (phục vụ thanh toán VietQR)
+            Payment.objects.create(
+                booking=booking,
+                amount=grand_total_amount,
+                payment_method='TRANSFER',
+                payment_status='PENDING',
+                transaction_id=f"TXN-{booking.booking_code}"
             )
 
             # Cập nhật số CCCD vào hồ sơ khách hàng nếu hồ sơ chưa có
@@ -385,14 +472,19 @@ class BookingViewSet(viewsets.ModelViewSet):
             'message': f'Chúc mừng quý khách đã đặt phòng thành công! Mã đơn: {booking.booking_code}',
             'booking_code': booking.booking_code,
             'booking': serializer.data,
+            'selected_services': selected_services_summary,
             'summary': {
                 'nights': nights,
-                'subtotal': float(subtotal),
+                'room_price_per_night': float(price_per_night),
+                'room_subtotal': float(subtotal),
                 'membership_discount': float(membership_discount),
                 'tier_name': tier_name,
                 'tier_percent': float(tier_percent),
                 'discount_amount': float(discount_amount),
-                'total_amount': float(total_amount),
+                'room_total': float(room_net_amount),
+                'services_total': float(total_services_amount),
+                'services_count': len(selected_services_summary),
+                'total_amount': float(grand_total_amount),
             }
         }, status=status.HTTP_201_CREATED)
 
@@ -2063,27 +2155,40 @@ class BookingViewSet(viewsets.ModelViewSet):
         # Xác định đơn giá theo đêm (daily_rate)
         daily_rate = 0.0
         if booking.category and booking.category.base_price:
-            daily_rate = float(booking.category.base_price)
+            daily_rate = float(booking.category.promo_price or booking.category.base_price)
         elif booking.room and booking.room.category and booking.room.category.base_price:
-            daily_rate = float(booking.room.category.base_price)
+            daily_rate = float(booking.room.category.promo_price or booking.room.category.base_price)
 
-        if booking.total_amount and float(booking.total_amount) > 0:
-            room_charge = float(booking.total_amount)
-            if daily_rate <= 0:
-                daily_rate = round(room_charge / nights)
-        else:
-            room_charge = float(daily_rate * nights)
+        room_subtotal = daily_rate * nights
+        mem_discount = float(booking.membership_discount or 0)
+        promo_discount = 0.0
+        if booking.applied_promotion:
+            if booking.applied_promotion.discount_type == 'percentage':
+                promo_discount = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
+                if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                    promo_discount = min(promo_discount, float(booking.applied_promotion.max_discount_amount))
+            else:
+                promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
+        elif getattr(booking, 'promotion_discount', None):
+            promo_discount = float(booking.promotion_discount)
+
+        pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
+        if pure_room_charge <= 0 and booking.total_amount:
+            pre_ordered_total = sum(float(r.total_price or 0) for r in booking.service_requests.all())
+            pure_room_charge = max(0.0, float(booking.total_amount) - pre_ordered_total)
+
+        room_charge = pure_room_charge
 
         # 2. Lấy extra_services (các ServiceRequest liên kết có status='completed')
         import re
         extra_services = []
 
         # 2.1. Từ ServiceRequest (Yêu cầu gọi món & dịch vụ tại phòng)
-        completed_requests = booking.service_requests.filter(
-            status='completed'
+        valid_requests = booking.service_requests.exclude(
+            status='cancelled'
         ).select_related('service').order_by('created_at')
 
-        for req in completed_requests:
+        for req in valid_requests:
             s_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
             price = float(req.service.price if req.service else 0)
             total = float(req.total_price or (price * req.quantity))
@@ -2097,6 +2202,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'total_price': total,
                 'status': req.status,
                 'status_display': req.get_status_display(),
+                'is_paid': getattr(req, 'is_paid', False),
                 'note': req.note or '',
                 'created_at': req.created_at.isoformat() if req.created_at else None
             })
@@ -2124,14 +2230,17 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'total_price': total,
                 'status': 'completed',
                 'status_display': 'Đã hoàn thành',
+                'is_paid': getattr(bes, 'is_paid', False),
                 'note': '',
                 'created_at': bes.added_time.isoformat() if bes.added_time else None
             })
 
-        # 3. Tổng tiền dịch vụ (total_service_charge)
+        # 3. Phân tách Dịch vụ đặt trước đã thanh toán vs Dịch vụ phát sinh chưa thanh toán
+        prepaid_services_total = float(sum(item['total_price'] for item in extra_services if item['is_paid']))
+        unpaid_services_total = float(sum(item['total_price'] for item in extra_services if not item['is_paid']))
         total_service_charge = float(sum(item['total_price'] for item in extra_services))
 
-        # 4. Tổng thanh toán cuối cùng (grand_total)
+        # 4. Tổng thanh toán cuối cùng (grand_total = pure_room_charge + total_service_charge)
         grand_total = float(room_charge + total_service_charge)
 
         # 4.1. Xác định số tiền khách đã thanh toán trước (paid_amount)
@@ -2143,9 +2252,9 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         if paid_amount <= 0:
             if booking.status in ['paid', 'PAID'] or (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid'):
-                paid_amount = float(room_charge)
+                paid_amount = float(booking.total_amount or (room_charge + prepaid_services_total))
             elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
-                paid_amount = float(room_charge)
+                paid_amount = float(booking.total_amount or (room_charge + prepaid_services_total))
 
         # Số tiền còn lại cần thanh toán khi check-out (remaining_amount)
         remaining_amount = max(0.0, float(grand_total - paid_amount))
@@ -2186,6 +2295,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             'daily_rate': daily_rate,
             'room_charge': room_charge,
             'extra_services': extra_services,
+            'prepaid_services_total': prepaid_services_total,
+            'unpaid_services_total': unpaid_services_total,
             'service_charge': total_service_charge,
             'total_service_charge': total_service_charge,
             'total_amount': grand_total,
@@ -2235,27 +2346,44 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             daily_rate = 0.0
             if booking.category and booking.category.base_price:
-                daily_rate = float(booking.category.base_price)
+                daily_rate = float(booking.category.promo_price or booking.category.base_price)
             elif booking.room and booking.room.category and booking.room.category.base_price:
-                daily_rate = float(booking.room.category.base_price)
+                daily_rate = float(booking.room.category.promo_price or booking.room.category.base_price)
 
-            if booking.total_amount and float(booking.total_amount) > 0:
-                room_charge = float(booking.total_amount)
-            else:
-                room_charge = float(daily_rate * nights)
+            room_subtotal = daily_rate * nights
+            mem_discount = float(booking.membership_discount or 0)
+            promo_discount = 0.0
+            if booking.applied_promotion:
+                if booking.applied_promotion.discount_type == 'percentage':
+                    promo_discount = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
+                    if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                        promo_discount = min(promo_discount, float(booking.applied_promotion.max_discount_amount))
+                else:
+                    promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
+            elif getattr(booking, 'promotion_discount', None):
+                promo_discount = float(booking.promotion_discount)
 
-            # Tính phí dịch vụ hoàn thành
-            completed_requests = booking.service_requests.filter(status='completed').select_related('service')
+            pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
+            if pure_room_charge <= 0 and booking.total_amount:
+                pre_ordered_total = sum(float(r.total_price or 0) for r in booking.service_requests.all())
+                pure_room_charge = max(0.0, float(booking.total_amount) - pre_ordered_total)
+
+            room_charge = pure_room_charge
+
+            # Tính phí dịch vụ phát sinh & đặt trước
+            valid_requests = booking.service_requests.exclude(status='cancelled').select_related('service')
             total_service_charge = float(sum(
                 (req.total_price or ((req.service.price if req.service else 0) * req.quantity))
-                for req in completed_requests
+                for req in valid_requests
             ))
 
             import re
             for bes in booking.extra_services.all():
                 raw_name = (bes.service_name or '').strip()
                 if not re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
-                    total_service_charge += float((bes.price or 0) * (bes.quantity or 1))
+                    clean_name = re.sub(r'\[.*?\]', '', raw_name).strip()
+                    if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() for r in valid_requests):
+                        total_service_charge += float((bes.price or 0) * (bes.quantity or 1))
 
             grand_total = float(room_charge + total_service_charge)
 
@@ -2267,9 +2395,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                     paid_amount = float(sum(p.amount for p in completed_payments))
             if paid_amount <= 0:
                 if booking.status in ['paid', 'PAID'] or (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid'):
-                    paid_amount = float(room_charge)
+                    paid_amount = float(booking.total_amount or room_charge)
                 elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
-                    paid_amount = float(room_charge)
+                    paid_amount = float(booking.total_amount or room_charge)
 
             remaining_amount = max(0.0, float(grand_total - paid_amount))
 
@@ -2324,6 +2452,10 @@ class BookingViewSet(viewsets.ModelViewSet):
                 checkout_note = f"[Check-out: {invoice.get_payment_method_display() or payment_method} - {timezone.now().strftime('%d/%m/%Y %H:%M')}]: {note}"
                 booking.internal_note = f"{booking.internal_note}\n{checkout_note}".strip() if booking.internal_note else checkout_note
             booking.save(update_fields=['status', 'actual_check_out', 'check_out_date', 'internal_note', 'updated_at'])
+
+            # Đánh dấu toàn bộ dịch vụ của đơn sang is_paid = True khi check-out hoàn tất
+            booking.service_requests.filter(is_paid=False).update(is_paid=True)
+            booking.extra_services.filter(is_paid=False).update(is_paid=True)
 
             # 4. Cập nhật bảng Room: Đổi trạng thái phòng thành cleaning (Đang dọn dẹp)
             room_info = None

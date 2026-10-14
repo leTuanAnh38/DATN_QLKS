@@ -101,6 +101,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'service_id',
             'service_name',
             'service_price',
+            'unit_price',
             'service_image',
             'category_name',
             'category_icon',
@@ -109,11 +110,13 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'request_time',
             'status',
             'status_display',
+            'is_paid',
+            'is_scheduled',
             'note',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'total_price', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'unit_price', 'total_price', 'created_at', 'updated_at']
 
     def get_room_number(self, obj):
         if obj.booking and obj.booking.room:

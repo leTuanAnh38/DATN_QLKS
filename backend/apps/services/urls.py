@@ -10,6 +10,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'items', ServiceItemViewSet, basename='service-item')
 router.register(r'requests', ServiceRequestViewSet, basename='service-request')
+router.register(r'', ServiceItemViewSet, basename='service')
 
 urlpatterns = [
     path('categories/', ServiceCategoryListView.as_view(), name='service-categories'),

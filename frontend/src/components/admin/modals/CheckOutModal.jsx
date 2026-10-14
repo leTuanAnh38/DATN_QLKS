@@ -449,35 +449,59 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         </tr>
 
                                         {/* 2. DỊCH VỤ PHÁT SINH */}
+                                        {/* 2. DỊCH VỤ ĐẶT KÈM & PHÁT SINH */}
                                         {summary?.extra_services && summary.extra_services.length > 0 ? (
-                                            summary.extra_services.map((svc, idx) => (
-                                                <tr key={svc.id || idx} className={`${svc.service_name?.includes('Bồi thường') ? 'bg-rose-50/40 hover:bg-rose-50/70 border-l-2 border-rose-500' : 'bg-amber-50/20 hover:bg-amber-50/40'}`}>
-                                                    <td className="py-2.5 px-4">
-                                                        <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                                            <span className={svc.service_name?.includes('Bồi thường') ? 'text-rose-600' : 'text-amber-600'}>
-                                                                {svc.service_name?.includes('Bồi thường') ? '⚠️' : '🍽️'}
-                                                            </span>
-                                                            <span className={svc.service_name?.includes('Bồi thường') ? 'text-rose-900 font-bold' : ''}>
-                                                                {svc.service_name}
-                                                            </span>
-                                                        </div>
-                                                        {svc.created_at && (
-                                                            <div className="text-[10px] text-slate-400">
-                                                                Gọi lúc: {formatDateTime(svc.created_at)}
+                                            summary.extra_services.map((svc, idx) => {
+                                                const isDamage = svc.service_name?.includes('Bồi thường');
+                                                const isPaid = Boolean(svc.is_paid);
+
+                                                return (
+                                                    <tr
+                                                        key={svc.id || idx}
+                                                        className={`${
+                                                            isDamage
+                                                                ? 'bg-rose-50/40 hover:bg-rose-50/70 border-l-2 border-rose-500'
+                                                                : isPaid
+                                                                ? 'bg-emerald-50/15 hover:bg-emerald-50/30'
+                                                                : 'bg-amber-50/20 hover:bg-amber-50/40'
+                                                        }`}
+                                                    >
+                                                        <td className="py-2.5 px-4">
+                                                            <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                                                <span className={isDamage ? 'text-rose-600' : isPaid ? 'text-emerald-600' : 'text-amber-600'}>
+                                                                    {isDamage ? '⚠️' : isPaid ? '🧺' : '🍽️'}
+                                                                </span>
+                                                                <span className={isDamage ? 'text-rose-900 font-bold' : ''}>
+                                                                    {svc.service_name}
+                                                                </span>
+                                                                {isPaid ? (
+                                                                    <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold">
+                                                                        🟢 Đã trả trước
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold">
+                                                                        🟠 Thu tại quầy
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2.5 px-3 text-center text-slate-700 font-semibold">
-                                                        x{svc.quantity}
-                                                    </td>
-                                                    <td className="py-2.5 px-3 text-right text-slate-600">
-                                                        {formatCurrency(svc.price)}
-                                                    </td>
-                                                    <td className="py-2.5 px-4 text-right font-semibold text-slate-900">
-                                                        {formatCurrency(svc.total_price)}
-                                                    </td>
-                                                </tr>
-                                            ))
+                                                            {svc.created_at && (
+                                                                <div className="text-[10px] text-slate-400">
+                                                                    Thời gian: {formatDateTime(svc.created_at)}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-2.5 px-3 text-center text-slate-700 font-semibold">
+                                                            x{svc.quantity}
+                                                        </td>
+                                                        <td className="py-2.5 px-3 text-right text-slate-600">
+                                                            {formatCurrency(svc.price)}
+                                                        </td>
+                                                        <td className="py-2.5 px-4 text-right font-semibold text-slate-900">
+                                                            {formatCurrency(svc.total_price)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
                                         ) : (
                                             <tr className="bg-white">
                                                 <td colSpan={4} className="py-3 px-4 text-center text-slate-400 italic text-[11px]">
@@ -492,17 +516,41 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         {/* Tổng tiền phòng */}
                                         <tr>
                                             <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-600">
-                                                Tổng tiền phòng (Room Charge):
+                                                Tiền phòng thuần (Room Charge):
                                             </td>
                                             <td className="py-2 px-4 text-right font-bold text-slate-800">
                                                 {formatCurrency(roomCharge)}
                                             </td>
                                         </tr>
 
+                                        {/* Dịch vụ đặt trước */}
+                                        {Number(summary?.prepaid_services_total || 0) > 0 && (
+                                            <tr className="bg-emerald-50/30">
+                                                <td colSpan={3} className="py-1.5 px-4 text-right text-emerald-800 font-medium text-[11px]">
+                                                    + Dịch vụ đặt kèm trước (Đã thanh toán Online):
+                                                </td>
+                                                <td className="py-1.5 px-4 text-right font-bold text-emerald-700 text-[11px]">
+                                                    {formatCurrency(summary.prepaid_services_total)}
+                                                </td>
+                                            </tr>
+                                        )}
+
+                                        {/* Dịch vụ phát sinh */}
+                                        {Number(summary?.unpaid_services_total || 0) > 0 && (
+                                            <tr className="bg-amber-50/30">
+                                                <td colSpan={3} className="py-1.5 px-4 text-right text-amber-800 font-medium text-[11px]">
+                                                    + Dịch vụ phát sinh trong kỳ nghỉ (Cần thu):
+                                                </td>
+                                                <td className="py-1.5 px-4 text-right font-bold text-amber-700 text-[11px]">
+                                                    {formatCurrency(summary.unpaid_services_total)}
+                                                </td>
+                                            </tr>
+                                        )}
+
                                         {/* Tổng dịch vụ */}
                                         <tr>
                                             <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-600">
-                                                Tổng dịch vụ (Service Charge):
+                                                Tổng toàn bộ dịch vụ (Service Charge):
                                             </td>
                                             <td className="py-2 px-4 text-right font-bold text-slate-800">
                                                 {formatCurrency(serviceCharge)}

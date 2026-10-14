@@ -315,14 +315,56 @@ export default function ServicesMenu() {
         return { total, pending, inProgress, delivering, completed, cancelled };
     }, [orderHistory]);
 
-    // Danh sách lọc lịch sử
-    const filteredHistory = useMemo(() => {
-        if (historyFilter === 'all') return orderHistory;
-        if (historyFilter === 'active') {
-            return orderHistory.filter((o) => o.status === 'pending' || o.status === 'in_progress' || o.status === 'delivering');
+    // 5.1 Phân trang Lịch sử đặt món trong Modal
+    const [historyPage, setHistoryPage] = useState(1);
+    const HISTORY_ITEMS_PER_PAGE = 2; // Hiển thị 2 đơn mỗi trang để không phải cuộn quá dài
+
+    // Tự động về trang 1 khi bấm chuyển tab bộ lọc
+    useEffect(() => {
+        setHistoryPage(1);
+    }, [historyFilter]);
+
+    // Sắp xếp Lịch sử: Các đơn CHƯA HOÀN THÀNH lên TRÊN, các đơn ĐÃ HOÀN THÀNH/HỦY xuống DƯỚI
+    const sortedHistory = useMemo(() => {
+        let list = [];
+        if (historyFilter === 'all') {
+            list = [...orderHistory];
+        } else if (historyFilter === 'active') {
+            list = orderHistory.filter((o) => ['pending', 'in_progress', 'delivering'].includes(o.status));
+        } else {
+            list = orderHistory.filter((o) => o.status === historyFilter);
         }
-        return orderHistory.filter((o) => o.status === historyFilter);
+
+        // Độ ưu tiên: Chưa hoàn thành (1, 2, 3) lên đầu; Đã xong/Hủy (4, 5) xuống dưới
+        const getStatusPriority = (status) => {
+            switch (status) {
+                case 'pending': return 1;     // Chờ xác nhận lên đầu
+                case 'in_progress': return 2; // Đang chế biến
+                case 'delivering': return 3;  // Đang giao tận phòng
+                case 'completed': return 4;   // Đã phục vụ xuống dưới
+                case 'cancelled': return 5;   // Đã hủy xuống cuối
+                default: return 6;
+            }
+        };
+
+        return list.sort((a, b) => {
+            const pA = getStatusPriority(a.status);
+            const pB = getStatusPriority(b.status);
+            if (pA !== pB) return pA - pB;
+            // Cùng nhóm trạng thái thì đơn mới nhất xếp trước
+            const timeA = new Date(a.created_at || a.request_time || 0).getTime();
+            const timeB = new Date(b.created_at || b.request_time || 0).getTime();
+            return timeB - timeA || (b.id || 0) - (a.id || 0);
+        });
     }, [orderHistory, historyFilter]);
+
+    const totalHistoryPages = Math.max(1, Math.ceil(sortedHistory.length / HISTORY_ITEMS_PER_PAGE));
+
+    // Danh sách đơn hiển thị trên trang hiện tại
+    const paginatedHistory = useMemo(() => {
+        const start = (historyPage - 1) * HISTORY_ITEMS_PER_PAGE;
+        return sortedHistory.slice(start, start + HISTORY_ITEMS_PER_PAGE);
+    }, [sortedHistory, historyPage]);
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white flex flex-col justify-between">
@@ -978,7 +1020,7 @@ export default function ServicesMenu() {
                                         <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
                                         <p className="text-xs font-semibold text-slate-500">Đang tải lịch sử đơn món...</p>
                                     </div>
-                                ) : filteredHistory.length === 0 ? (
+                                ) : sortedHistory.length === 0 ? (
                                     <div className="py-16 text-center space-y-3 max-w-sm mx-auto">
                                         <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
                                             🍽️
@@ -1010,7 +1052,7 @@ export default function ServicesMenu() {
                                         </button>
                                     </div>
                                 ) : (
-                                    filteredHistory.map((item) => {
+                                    paginatedHistory.map((item) => {
                                         const isPending = item.status === 'pending';
                                         const isInProgress = item.status === 'in_progress';
                                         const isDelivering = item.status === 'delivering';
@@ -1207,6 +1249,47 @@ export default function ServicesMenu() {
                                     })
                                 )}
                             </div>
+
+                            {/* Phân trang lịch sử đơn đặt món */}
+                            {totalHistoryPages > 1 && (
+                                <div className="px-6 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
+                                    <div className="text-slate-500 font-medium text-[11px]">
+                                        Hiển thị trang <strong className="text-slate-800">{historyPage}</strong> / {totalHistoryPages} ({sortedHistory.length} đơn)
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            disabled={historyPage <= 1}
+                                            onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                                            className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                                        >
+                                            ← Trước
+                                        </button>
+                                        {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                type="button"
+                                                onClick={() => setHistoryPage(p)}
+                                                className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                    historyPage === p
+                                                        ? 'bg-blue-600 text-white shadow-xs'
+                                                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            disabled={historyPage >= totalHistoryPages}
+                                            onClick={() => setHistoryPage((prev) => Math.min(totalHistoryPages, prev + 1))}
+                                            className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                                        >
+                                            Sau →
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Modal Footer */}
                             <div className="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex items-center justify-between text-xs">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
+import { hotelService } from '../../services/hotelService';
 import { authService } from '../../services/autheService';
 import { useAuth } from '../../store/authStore';
 import Navbar from '../../components/layout/Navbar';
@@ -72,15 +73,73 @@ export default function Checkout() {
     const [promoError, setPromoError] = useState('');
     const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
-    // 5. State Gửi đơn & Xử lý thành công
+    // 5. State Dịch vụ tiện ích gợi ý đi kèm (Upselling Add-on Services)
+    const [servicesList, setServicesList] = useState([]);
+    const [loadingServices, setLoadingServices] = useState(false);
+    const [selectedServices, setSelectedServices] = useState({}); // { [serviceId]: quantity }
+    const [serviceFilter, setServiceFilter] = useState('all');
+
+    // 6. State Gửi đơn & Xử lý thành công
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [bookingError, setBookingError] = useState('');
     const [createdBooking, setCreatedBooking] = useState(null);
     const [copiedCode, setCopiedCode] = useState(false);
 
-    // 6. Quản lý kiểm tra tình trạng phòng trống (Chống Overbooking)
+    // 7. Quản lý kiểm tra tình trạng phòng trống (Chống Overbooking)
     const [availability, setAvailability] = useState(null);
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+
+    // Tải danh sách Dịch vụ đang hoạt động từ Backend (API GET /api/services/)
+    useEffect(() => {
+        let isMounted = true;
+        setLoadingServices(true);
+        hotelService
+            .getServices({ status: 'active' })
+            .then((res) => {
+                if (isMounted && res && res.success) {
+                    const activeList = (res.items || []).filter((item) => item.is_active !== false);
+                    setServicesList(activeList);
+                }
+            })
+            .catch((err) => {
+                console.error('Lỗi khi tải danh sách dịch vụ gợi ý:', err);
+            })
+            .finally(() => {
+                if (isMounted) setLoadingServices(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // Toggle chọn / bỏ chọn dịch vụ
+    const handleToggleService = (svcId) => {
+        setSelectedServices((prev) => {
+            const next = { ...prev };
+            if (next[svcId]) {
+                delete next[svcId];
+            } else {
+                next[svcId] = 1;
+            }
+            return next;
+        });
+    };
+
+    // Tăng / giảm số lượng dịch vụ
+    const handleUpdateServiceQty = (svcId, delta) => {
+        setSelectedServices((prev) => {
+            const current = prev[svcId] || 0;
+            const nextVal = current + delta;
+            const next = { ...prev };
+            if (nextVal <= 0) {
+                delete next[svcId];
+            } else {
+                next[svcId] = Math.min(20, nextVal);
+            }
+            return next;
+        });
+    };
 
     // Xác định số CCCD/Hộ chiếu đã có sẵn trong hồ sơ người dùng hay chưa
     const savedProfileIdCard = (user?.guest_profile?.id_card_number || user?.id_card_number || user?.identity_card || '').trim();
@@ -226,7 +285,7 @@ export default function Checkout() {
     };
 
     // =========================================================================
-    // TÍNH TOÁN TIỀN PHÒNG & GIẢM GIÁ
+    // TÍNH TOÁN TIỀN PHÒNG, DỊCH VỤ ĐI KÈM & TỔNG THANH TOÁN
     // =========================================================================
     const pricePerNight = Number(room?.promo_price || room?.base_price || 0);
     const subtotal = pricePerNight * nights;
@@ -238,9 +297,42 @@ export default function Checkout() {
 
     // Tính số tiền giảm giá từ Promo Code (nếu có)
     const discountAmount = appliedPromo ? Number(appliedPromo.discount_amount || 0) : 0;
-    const finalTotal = Math.max(0, subtotal - tierDiscountAmount - discountAmount);
+    const roomNetTotal = Math.max(0, subtotal - tierDiscountAmount - discountAmount);
+
+    // Danh sách chi tiết các dịch vụ tiện ích đã chọn
+    const selectedServicesArray = Object.entries(selectedServices)
+        .map(([svcId, qty]) => {
+            const svc = servicesList.find((s) => String(s.id) === String(svcId));
+            if (!svc) return null;
+            const unitPrice = Number(svc.price || 0);
+            return {
+                service_id: svc.id,
+                name: svc.name,
+                category_name: svc.category_name,
+                category_icon: svc.category_icon,
+                unit_price: unitPrice,
+                quantity: qty,
+                total_price: unitPrice * qty,
+                image: svc.display_image || svc.image_url || ''
+            };
+        })
+        .filter(Boolean);
+
+    // Tổng tiền toàn bộ dịch vụ đã tick chọn
+    const totalServicesAmount = selectedServicesArray.reduce((acc, item) => acc + item.total_price, 0);
+
+    // Tổng thanh toán cuối cùng (Tiền phòng + Tiền dịch vụ - Giảm giá)
+    const finalTotal = roomNetTotal + totalServicesAmount;
+
     // Quy tắc: 100.000 VNĐ thanh toán thành công = 1 điểm tích lũy
     const earnedPoints = Math.floor(finalTotal / 100000);
+
+    // Danh sách các nhóm dịch vụ để lọc tabs
+    const serviceCategories = ['all', ...Array.from(new Set(servicesList.map((s) => s.category_name).filter(Boolean)))];
+
+    const filteredServices = serviceFilter === 'all'
+        ? servicesList
+        : servicesList.filter((s) => s.category_name === serviceFilter);
 
     // =========================================================================
     // LOGIC XỬ LÝ MÃ GIẢM GIÁ (PROMO CODE)
@@ -329,6 +421,12 @@ export default function Checkout() {
 
         setIsSubmitting(true);
 
+        // Chuẩn bị mảng dịch vụ đi kèm theo định dạng chuẩn của Backend
+        const servicesPayload = selectedServicesArray.map((item) => ({
+            service_id: item.service_id,
+            quantity: item.quantity
+        }));
+
         const payload = {
             room: room?.id || id,
             check_in_date: checkInDate,
@@ -339,6 +437,7 @@ export default function Checkout() {
             identity_card: cleanIdCard,
             promo_code: appliedPromo ? appliedPromo.code : '',
             discount_amount: appliedPromo ? discountAmount : 0,
+            selected_services: servicesPayload,
             note: `${note ? note + ' | ' : ''}Khách: ${guestCount} người. CCCD: ${cleanIdCard}. Thanh toán: ${paymentMethod}`
         };
 
@@ -347,6 +446,8 @@ export default function Checkout() {
 
             if (res && (res.success || res.booking_code || res.booking)) {
                 const bookingData = res.booking || res.data || res;
+                const serverTotal = bookingData.total_amount ? Number(bookingData.total_amount) : (res.summary?.total_amount ? Number(res.summary.total_amount) : finalTotal);
+
                 setCreatedBooking({
                     id: bookingData.id || res.id,
                     booking_code: res.booking_code || bookingData.booking_code || `BK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
@@ -358,7 +459,8 @@ export default function Checkout() {
                     guest_phone: guestPhone,
                     guest_email: guestEmail,
                     identity_card: cleanIdCard,
-                    total_amount: bookingData.total_amount ? Number(bookingData.total_amount) : finalTotal,
+                    total_amount: serverTotal,
+                    selected_services: res.selected_services || selectedServicesArray,
                     payment_method: paymentMethod
                 });
 
@@ -435,14 +537,7 @@ export default function Checkout() {
             <header className="bg-white py-6 border-b border-slate-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
-                                Bước 1: Xác nhận thông tin
-                            </span>
-                            <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                                🔒 Đặt phòng an toàn & bảo mật
-                            </span>
-                        </div>
+                       
                         <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                             Hoàn tất đơn đặt phòng nghỉ
                         </h1>
@@ -803,6 +898,209 @@ export default function Checkout() {
                                 </div>
                             </div>
 
+                            {/* THẺ: NÂNG TẦM KỲ NGHỈ - DỊCH VỤ GỢI Ý ĐI KÈM (UPSELLING ADD-ON SERVICES) */}
+                            <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-100">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center text-lg shadow-md shadow-orange-500/20 shrink-0">
+                                            ✨
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="font-serif font-bold text-lg sm:text-xl text-slate-900 tracking-tight truncate">
+                                                    Nâng tầm kỳ nghỉ - Dịch vụ gợi ý đi kèm
+                                                </h2>
+                                                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
+                                                    Gợi ý HOT
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
+                                                Đặt kèm tiện ích cao cấp ngay hôm nay để thanh toán gộp 1 lần qua VietQR và được khách sạn phục vụ chu đáo nhất
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {selectedServicesArray.length > 0 && (
+                                        <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/80 border border-amber-200 text-xs font-bold shadow-xs whitespace-nowrap self-start sm:self-center">
+                                            <span className="text-amber-900 flex items-center gap-1">
+                                                <span>🧺</span> Đã chọn:
+                                            </span>
+                                            <span className="px-2 py-0.5 rounded-lg bg-orange-100/90 text-orange-700 font-extrabold text-xs">
+                                                {selectedServicesArray.length} dịch vụ
+                                            </span>
+                                            <span className="text-amber-300">•</span>
+                                            <span className="text-emerald-700 font-black tracking-tight">
+                                                +{totalServicesAmount.toLocaleString('vi-VN')} ₫
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* BỘ LỌC DANH MỤC NHANH (TABS) */}
+                                {serviceCategories.length > 2 && (
+                                    <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none text-xs">
+                                        {serviceCategories.map((catName) => {
+                                            const isActive = serviceFilter === catName;
+                                            return (
+                                                <button
+                                                    key={catName}
+                                                    type="button"
+                                                    onClick={() => setServiceFilter(catName)}
+                                                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer ${isActive
+                                                        ? 'bg-slate-900 text-white shadow-sm'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                        }`}
+                                                >
+                                                    {catName === 'all' ? 'Tất cả dịch vụ' : catName}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* DANH SÁCH CÁC DỊCH VỤ CARD */}
+                                {loadingServices ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {[1, 2, 3, 4].map((i) => (
+                                            <div key={i} className="h-28 bg-slate-100 rounded-2xl animate-pulse"></div>
+                                        ))}
+                                    </div>
+                                ) : filteredServices.length === 0 ? (
+                                    <div className="py-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                        Chưa có dịch vụ nào trong danh mục này.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {filteredServices.map((svc) => {
+                                            const isSelected = Boolean(selectedServices[svc.id]);
+                                            const currentQty = selectedServices[svc.id] || 1;
+                                            const svcImg = svc.display_image || svc.image_url || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
+                                            const priceNum = Number(svc.price || 0);
+
+                                            return (
+                                                <div
+                                                    key={svc.id}
+                                                    className={`group relative rounded-2xl border p-4 transition-all duration-200 flex flex-col justify-between ${isSelected
+                                                        ? 'border-amber-400 bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30 shadow-md shadow-amber-500/10 ring-1 ring-amber-400'
+                                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
+                                                        }`}
+                                                >
+                                                    <div className="flex gap-3.5 items-start">
+                                                        {/* Checkbox chọn dịch vụ */}
+                                                        <div className="pt-0.5">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`svc-check-${svc.id}`}
+                                                                checked={isSelected}
+                                                                onChange={() => handleToggleService(svc.id)}
+                                                                className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300 cursor-pointer"
+                                                            />
+                                                        </div>
+
+                                                        {/* Ảnh đại diện dịch vụ */}
+                                                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden shrink-0 relative border border-slate-100 bg-slate-50">
+                                                            <img
+                                                                src={svcImg}
+                                                                alt={svc.name}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                onError={(e) => {
+                                                                    e.target.src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
+                                                                }}
+                                                            />
+                                                        </div>
+
+                                                        {/* Thông tin dịch vụ */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                {svc.category_name && (
+                                                                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                                                        {svc.category_icon ? `${svc.category_icon} ` : ''}{svc.category_name}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            <h4
+                                                                onClick={() => handleToggleService(svc.id)}
+                                                                className="font-bold text-xs sm:text-sm text-slate-900 mt-1 cursor-pointer hover:text-orange-600 transition truncate"
+                                                                title={svc.name}
+                                                            >
+                                                                {svc.name}
+                                                            </h4>
+
+                                                            {svc.description && (
+                                                                <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                                                                    {svc.description}
+                                                                </p>
+                                                            )}
+
+                                                            <div className="mt-1.5 font-bold text-xs text-orange-600">
+                                                                {priceNum.toLocaleString('vi-VN')} <span className="text-[10px] font-semibold text-slate-500">VNĐ</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Khu vực Tùy chỉnh số lượng khi đã chọn */}
+                                                    {isSelected && (
+                                                        <div className="mt-3 pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs animate-in fade-in duration-200">
+                                                            <span className="text-[11px] font-semibold text-slate-600">
+                                                                Số lượng sử dụng:
+                                                            </span>
+
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="inline-flex items-center bg-white border border-amber-300 rounded-xl shadow-xs overflow-hidden">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleUpdateServiceQty(svc.id, -1)}
+                                                                        className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition"
+                                                                        title="Giảm số lượng"
+                                                                    >
+                                                                        -
+                                                                    </button>
+                                                                    <span className="w-8 text-center font-bold text-slate-900 text-xs">
+                                                                        {currentQty}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleUpdateServiceQty(svc.id, 1)}
+                                                                        className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition"
+                                                                        title="Tăng số lượng"
+                                                                    >
+                                                                        +
+                                                                    </button>
+                                                                </div>
+
+                                                                <span className="text-[11px] font-extrabold text-slate-900 ml-1">
+                                                                    = {(priceNum * currentQty).toLocaleString('vi-VN')} ₫
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Footer tóm tắt dịch vụ tiện ích */}
+                                {selectedServicesArray.length > 0 && (
+                                    <div className="mt-4 p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                        <div className="flex items-center gap-2 text-amber-900 font-medium">
+                                            <span>✓</span>
+                                            <span>
+                                                Đã thêm <strong>{selectedServicesArray.length} tiện ích</strong> vào đơn đặt phòng. Tiền dịch vụ sẽ được cộng gộp vào mã QR thanh toán.
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedServices({})}
+                                            className="text-[11px] font-bold text-rose-600 hover:underline self-end sm:self-auto"
+                                        >
+                                            Xóa toàn bộ dịch vụ đã chọn
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
                             {/* THẺ 3: MÃ GIẢM GIÁ (PROMO CODE) */}
                             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs">
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
@@ -1078,18 +1376,46 @@ export default function Checkout() {
                                     </div>
                                 </div>
 
-                                {/* BẢNG KÊ CHI TIẾT TỔNG TIỀN */}
+                                {/* BẢNG KÊ CHI TIẾT TỔNG TIỀN (ORDER SUMMARY) */}
                                 <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
-                                    <div className="flex justify-between text-slate-600">
+                                    {/* 1. Tiền phòng gốc */}
+                                    <div className="flex justify-between text-slate-700">
                                         <span>
-                                            Giá mỗi đêm ({pricePerNight.toLocaleString('vi-VN')} VND x {nights} đêm)
+                                            Tiền phòng ({pricePerNight.toLocaleString('vi-VN')} ₫ × {nights} đêm)
                                         </span>
-                                        <span className="font-semibold text-slate-900">
+                                        <span className="font-bold text-slate-900">
                                             {subtotal.toLocaleString('vi-VN')} VND
                                         </span>
                                     </div>
 
+                                    {/* 2. Dịch vụ tiện ích gợi ý đi kèm (Liệt kê chi tiết từng món x số lượng) */}
+                                    {selectedServicesArray.length > 0 && (
+                                        <div className="pt-2 pb-1 border-t border-dashed border-amber-200/80 space-y-1.5 bg-amber-50/50 p-2.5 rounded-xl border">
+                                            <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
+                                                <span className="flex items-center gap-1">
+                                                    <span></span> Dịch vụ đi kèm ({selectedServicesArray.length}):
+                                                </span>
+                                                <span className="text-orange-600 font-extrabold">
+                                                    +{totalServicesAmount.toLocaleString('vi-VN')} VND
+                                                </span>
+                                            </div>
 
+                                            <div className="space-y-1 pl-2 text-[11px] text-slate-600">
+                                                {selectedServicesArray.map((item) => (
+                                                    <div key={item.service_id} className="flex justify-between items-center">
+                                                        <span className="truncate max-w-[170px]" title={item.name}>
+                                                            • {item.name} <strong className="text-slate-800">×{item.quantity}</strong>
+                                                        </span>
+                                                        <span className="font-semibold text-slate-800 shrink-0">
+                                                            {item.total_price.toLocaleString('vi-VN')} ₫
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 3. Chiết khấu hạng thành viên */}
                                     {tierDiscountAmount > 0 && (
                                         <div className="flex justify-between text-emerald-600 font-semibold">
                                             <span>Chiết khấu hạng {userTier?.name} ({tierDiscountPercent}%)</span>
@@ -1097,6 +1423,7 @@ export default function Checkout() {
                                         </div>
                                     )}
 
+                                    {/* 4. Mã khuyến mãi (Promo Code) */}
                                     {discountAmount > 0 && (
                                         <div className="flex justify-between text-blue-600 font-semibold">
                                             <span>Mã khuyến mãi ({appliedPromo?.code})</span>
@@ -1114,14 +1441,14 @@ export default function Checkout() {
                                         <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                                     </div>
 
-                                    {/* Tổng tiền thanh toán */}
+                                    {/* Tổng cộng cần thanh toán */}
                                     <div className="flex justify-between items-baseline pt-3 border-t border-slate-200">
                                         <div>
                                             <span className="font-bold text-slate-900 text-sm block">
-                                                Tổng tiền thanh toán
+                                                Tổng cộng cần thanh toán
                                             </span>
                                             <span className="text-[10px] text-slate-400">
-                                                (Đã bao gồm toàn bộ thuế & phí)
+                                                (Phòng + Dịch vụ đi kèm)
                                             </span>
                                         </div>
                                         <div className="text-right">
@@ -1326,6 +1653,18 @@ export default function Checkout() {
                                     {formatDateDisplay(createdBooking.check_in_date)} → {formatDateDisplay(createdBooking.check_out_date)} ({createdBooking.nights} đêm)
                                 </strong>
                             </div>
+                            {createdBooking.selected_services?.length > 0 && (
+                                <div className="flex justify-between items-start pt-1 border-t border-slate-200">
+                                    <span className="text-amber-800 font-semibold">✨ Dịch vụ đặt kèm ({createdBooking.selected_services.length}):</span>
+                                    <div className="text-right space-y-0.5">
+                                        {createdBooking.selected_services.map((s, idx) => (
+                                            <div key={idx} className="font-semibold text-slate-900 text-[11px]">
+                                                {s.service_name || s.name} <strong className="text-orange-600">×{s.quantity}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex justify-between">
                                 <span>Tổng tiền thanh toán:</span>
                                 <strong className="text-rose-600 font-bold">

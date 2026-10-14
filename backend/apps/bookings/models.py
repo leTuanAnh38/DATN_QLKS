@@ -62,6 +62,7 @@ class BookingExtraService(models.Model):
     service_name = models.CharField(max_length=100, verbose_name="Tên dịch vụ / Phụ phí (VD: Giặt ủi, Mini Bar, Đền bù)")
     quantity = models.IntegerField(default=1, verbose_name="Số lượng")
     price = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Đơn giá (VND)")
+    is_paid = models.BooleanField(default=False, verbose_name="Đã thanh toán")
     added_time = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian thêm")
 
     def __str__(self):

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Bell, CheckCircle2, AlertTriangle, XCircle, X } from 'lucide-react';
 import { bookingService } from '../../../services/bookingService';
 import { paymentService } from '../../../services/paymentService';
 import api from '../../../services/api';
@@ -23,6 +24,20 @@ const formatDateDisplay = (dateStr) => {
     return dateStr;
 };
 
+// Helper format ngày giờ hiển thị chi tiết (VD: 16:30 14/10/2026)
+const formatDateTimeDisplay = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const timePart = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const datePart = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return `${timePart} ngày ${datePart}`;
+    } catch {
+        return dateStr;
+    }
+};
+
 export default function CheckInModal({ booking, isOpen = true, onClose, onSuccess }) {
     // 1. STATE DỮ LIỆU PHÒNG & THỦ TỤC
     const [availableRooms, setAvailableRooms] = useState([]);
@@ -30,6 +45,23 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
     const [checkInNote, setCheckInNote] = useState('');
     const [isLoadingRooms, setIsLoadingRooms] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Danh sách dịch vụ đặt kèm trước (Add-on Services)
+    const [servicesList, setServicesList] = useState(() => {
+        if (booking?.selected_services && Array.isArray(booking.selected_services) && booking.selected_services.length > 0) {
+            return booking.selected_services;
+        }
+        if (booking?.service_requests && Array.isArray(booking.service_requests) && booking.service_requests.length > 0) {
+            return booking.service_requests;
+        }
+        return [];
+    });
+    const [isUpdatingServiceId, setIsUpdatingServiceId] = useState(null);
+    const [notifiedServiceIds, setNotifiedServiceIds] = useState(new Set());
+    // Lưu lựa chọn hẹn giờ giao cho từng dịch vụ: { [serviceId]: 'now' | '30m' | '1h' | '2h' | 'custom' }
+    const [serviceScheduleTimes, setServiceScheduleTimes] = useState({});
+    // Lưu giờ cụ thể tùy chọn (VD: '20:00'): { [serviceId]: '20:00' }
+    const [serviceCustomTimes, setServiceCustomTimes] = useState({});
 
     // Xử lý Early Check-in (Đến sớm) / Late Check-in (Đến trễ)
     const [confirmEarlyCheckIn, setConfirmEarlyCheckIn] = useState(false);
@@ -47,6 +79,22 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
         account_no: '123456789',
         account_name: 'KHACH SAN TA DA NANG'
     });
+
+    // Thông báo màu trắng giữa màn hình (thay thế browser alert mặc định)
+    const [centerModalNotice, setCenterModalNotice] = useState(null);
+
+    const showCenterNotice = ({ title = 'Thông Báo', message, type = 'info', icon = null }) => {
+        setCenterModalNotice({ title, message, type, icon });
+    };
+
+    // Tự động tắt thông báo giữa màn hình sau 4 giây
+    useEffect(() => {
+        if (!centerModalNotice) return;
+        const timer = setTimeout(() => {
+            setCenterModalNotice(null);
+        }, 4000);
+        return () => clearTimeout(timer);
+    }, [centerModalNotice]);
 
     // Sức chứa tiêu chuẩn của phòng/hạng phòng
     const roomCapacity = useMemo(() => {
@@ -112,7 +160,11 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
 
     const validateGuests = () => {
         if (!guests || guests.length === 0) {
-            alert('Vui lòng khai báo ít nhất thông tin 1 khách lưu trú.');
+            showCenterNotice({
+                title: 'Chưa Đủ Thông Tin Khách',
+                message: 'Vui lòng khai báo ít nhất thông tin 1 khách lưu trú.',
+                type: 'warning'
+            });
             return false;
         }
 
@@ -121,14 +173,22 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
             const title = g.is_primary ? 'Người đại diện đặt phòng' : `Khách đi cùng #${i}`;
 
             if (!g.full_name || !g.full_name.trim()) {
-                alert(`Vui lòng nhập đầy đủ Họ và tên cho ${title}.`);
+                showCenterNotice({
+                    title: 'Thiếu Họ Và Tên',
+                    message: `Vui lòng nhập đầy đủ Họ và tên cho ${title}.`,
+                    type: 'warning'
+                });
                 return false;
             }
 
             // Bắt buộc nhập số CCCD/Hộ chiếu trừ khi chọn OTHER (Trẻ em / Khác)
             if (g.id_type !== 'OTHER') {
                 if (!g.id_number || !g.id_number.trim()) {
-                    alert(`Vui lòng nhập Số ${g.id_type === 'PASSPORT' ? 'Hộ chiếu' : 'CCCD/CMND'} cho ${title}.`);
+                    showCenterNotice({
+                        title: 'Thiếu Giấy Tờ Tùy Thân',
+                        message: `Vui lòng nhập Số ${g.id_type === 'PASSPORT' ? 'Hộ chiếu' : 'CCCD/CMND'} cho ${title}.`,
+                        type: 'warning'
+                    });
                     return false;
                 }
             }
@@ -254,6 +314,16 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                         account_name: (cData.account_name || '').toUpperCase()
                     });
                 }
+                // Tải chi tiết đơn đặt phòng để lấy danh sách dịch vụ đặt trước mới nhất
+                const bookingDetailRes = await api.get(`/bookings/${booking.id}/`);
+                const bDetail = bookingDetailRes.data?.data || bookingDetailRes.data;
+                if (isMounted && bDetail) {
+                    if (Array.isArray(bDetail.selected_services) && bDetail.selected_services.length > 0) {
+                        setServicesList(bDetail.selected_services);
+                    } else if (Array.isArray(bDetail.service_requests) && bDetail.service_requests.length > 0) {
+                        setServicesList(bDetail.service_requests);
+                    }
+                }
             } catch (err) {
                 console.error('Lỗi khi tải dữ liệu phục vụ Check-in:', err);
             } finally {
@@ -266,7 +336,85 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
         return () => {
             isMounted = false;
         };
-    }, [booking?.id, booking?.category_id, isOpen]);
+    }, [booking?.id, isOpen]);
+
+    // Xử lý gửi báo chuẩn bị cho bộ phận F&B / Spa (Cách 2: Bắn chuông thông báo, giữ nguyên status 'pending' để F&B tự nhận)
+    const handleNotifyService = async (serviceReqId) => {
+        try {
+            setIsUpdatingServiceId(serviceReqId);
+
+            // Tính toán thời gian hẹn phục vụ dựa trên lựa chọn hẹn giờ
+            const preset = serviceScheduleTimes[serviceReqId] || 'now';
+            let targetIso = null;
+            let label = 'Khách cần phục vụ ngay khi nhận phòng';
+            if (preset === 'now') {
+                targetIso = new Date().toISOString();
+                label = 'Khách cần phục vụ ngay khi nhận phòng';
+            } else if (preset === '30m') {
+                targetIso = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+                label = 'Khách hẹn giao sau 30 phút';
+            } else if (preset === '1h') {
+                targetIso = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+                label = 'Khách hẹn giao sau 1 tiếng';
+            } else if (preset === '2h') {
+                targetIso = new Date(Date.now() + 120 * 60 * 1000).toISOString();
+                label = 'Khách hẹn giao sau 2 tiếng';
+            } else if (preset === 'custom') {
+                const customTime = serviceCustomTimes[serviceReqId] || '20:00';
+                const [hrs, mins] = customTime.split(':').map(Number);
+                const targetDate = new Date();
+                targetDate.setHours(hrs || 0, mins || 0, 0, 0);
+                // Nếu giờ chọn nhỏ hơn giờ hiện tại (ví dụ hiện tại 21:00 mà chọn 08:00 sáng hôm sau)
+                if (targetDate.getTime() < Date.now() - 5 * 60 * 1000) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+                targetIso = targetDate.toISOString();
+                label = `Khách hẹn giao lúc ${customTime}`;
+            }
+
+            const isScheduledChoice = preset !== 'now';
+            const res = await api.post(`/services/requests/${serviceReqId}/notify-staff/`, {
+                request_time: targetIso,
+                schedule_label: label,
+                is_scheduled: isScheduledChoice
+            });
+
+            setNotifiedServiceIds(prev => new Set([...prev, serviceReqId]));
+
+            // Cập nhật lại request_time và is_scheduled trong danh sách dịch vụ trên giao diện
+            setServicesList(prev => prev.map(s => s.id === serviceReqId ? {
+                ...s,
+                request_time: isScheduledChoice ? targetIso : null,
+                is_scheduled: isScheduledChoice,
+                note: s.note ? `${s.note} [${label}]` : label
+            } : s));
+
+            try {
+                localStorage.setItem('pms_last_service_event', Date.now().toString());
+            } catch (e) {}
+
+            const timeFormatted = targetIso ? new Date(targetIso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+            const popupMsg = preset === 'now'
+                ? 'Đã gửi chuông báo cho bộ phận F&B / Spa chuẩn bị phục vụ ngay! Đơn ở trạng thái "Chờ xử lý" để nhân viên tiếp nhận.'
+                : `Đã gửi chuông báo cho bộ phận F&B / Spa. Giờ hẹn phục vụ: ${timeFormatted} (${label}). Đơn ở trạng thái "Chờ xử lý" để nhân viên chủ động chuẩn bị đúng giờ!`;
+
+            showCenterNotice({
+                title: 'Đã Báo F&B / Spa Chuẩn Bị',
+                message: popupMsg,
+                type: 'success',
+                icon: 'bell'
+            });
+        } catch (err) {
+            console.error('Lỗi khi gửi thông báo dịch vụ:', err);
+            showCenterNotice({
+                title: 'Không Thể Gửi Thông Báo',
+                message: err.response?.data?.message || 'Không thể gửi thông báo tới bộ phận dịch vụ. Vui lòng thử lại sau.',
+                type: 'error'
+            });
+        } finally {
+            setIsUpdatingServiceId(null);
+        }
+    };
 
     // VietQR URL động cho số tiền còn thiếu (effectiveRemainingBalance)
     const qrUrl = useMemo(() => {
@@ -279,17 +427,29 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
     // 5. THỰC HIỆN CHECK-IN (GỌI API GÁN PHÒNG & ĐỔI TRẠNG THÁI SANG CHECKED_IN)
     const executeCheckIn = async (extraNote = '') => {
         if (!selectedRoomId) {
-            alert('Vui lòng chọn phòng thực tế trước khi hoàn tất Check-in.');
+            showCenterNotice({
+                title: 'Chưa Chọn Phòng',
+                message: 'Vui lòng chọn phòng thực tế trước khi hoàn tất Check-in.',
+                type: 'warning'
+            });
             return;
         }
 
         if (isEarlyCheckIn && !confirmEarlyCheckIn) {
-            alert(`Vui lòng tích xác nhận đồng ý cho khách nhận phòng sớm ${earlyDaysCount} ngày.`);
+            showCenterNotice({
+                title: 'Xác Nhận Check-in Sớm',
+                message: `Vui lòng tích xác nhận đồng ý cho khách nhận phòng sớm ${earlyDaysCount} ngày.`,
+                type: 'warning'
+            });
             return;
         }
 
         if (isLateCheckIn && !confirmLateCheckIn) {
-            alert(`Vui lòng tích xác nhận đồng ý cho khách nhận phòng trễ ${lateDaysCount} ngày.`);
+            showCenterNotice({
+                title: 'Xác Nhận Check-in Trễ',
+                message: `Vui lòng tích xác nhận đồng ý cho khách nhận phòng trễ ${lateDaysCount} ngày.`,
+                type: 'warning'
+            });
             return;
         }
 
@@ -330,11 +490,19 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                     }
                 }
             } else {
-                alert(res?.message || 'Check-in thất bại. Vui lòng kiểm tra lại.');
+                showCenterNotice({
+                    title: 'Check-in Thất Bại',
+                    message: res?.message || 'Check-in thất bại. Vui lòng kiểm tra lại.',
+                    type: 'error'
+                });
             }
         } catch (err) {
             console.error('Lỗi khi thực hiện Check-in:', err);
-            alert(err.response?.data?.message || err.message || 'Lỗi kết nối máy chủ khi Check-in.');
+            showCenterNotice({
+                title: 'Lỗi Kết Nối',
+                message: err.response?.data?.message || err.message || 'Lỗi kết nối máy chủ khi Check-in.',
+                type: 'error'
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -370,7 +538,11 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
             await executeCheckIn(`[Đã thu đủ ${formatCurrency(effectiveRemainingBalance)} qua ${methodLabel} lúc Check-in]`);
         } catch (err) {
             console.error('Lỗi khi ghi nhận thanh toán Check-in:', err);
-            alert(err.response?.data?.message || 'Ghi nhận thanh toán thất bại. Vui lòng thử lại.');
+            showCenterNotice({
+                title: 'Thanh Toán Thất Bại',
+                message: err.response?.data?.message || 'Ghi nhận thanh toán thất bại. Vui lòng thử lại.',
+                type: 'error'
+            });
         } finally {
             setIsProcessingPayment(false);
         }
@@ -663,6 +835,204 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                             )}
                         </div>
                     </div>
+
+                    {/* ===================================================================== */}
+                    {/* 3.5 NHẮC NHỞ DỊCH VỤ TIỆN ÍCH ĐÃ ĐẶT TRƯỚC (ADD-ON SERVICES)           */}
+                    {/* ===================================================================== */}
+                    {servicesList && servicesList.length > 0 && (
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/70 via-amber-50/40 to-orange-50/30 border-2 border-amber-300 shadow-xs space-y-3">
+                            <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl">🧺</span>
+                                    <div>
+                                        <h4 className="font-bold text-amber-950 text-xs uppercase tracking-wider flex items-center gap-2">
+                                            <span>Dịch vụ khách đã đặt kèm trước</span>
+                                            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black">
+                                                {servicesList.length} dịch vụ
+                                            </span>
+                                        </h4>
+                                        <p className="text-[10px] text-amber-800">
+                                            Vui lòng xác nhận thời gian phục vụ với khách và thông báo cho bộ phận F&B / Spa / Lễ tân chuẩn bị.
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300 flex items-center gap-1">
+                                    <span>🟢</span>
+                                    <span>Đã thanh toán trước</span>
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                {servicesList.map((svc, idx) => {
+                                    const total = Number(svc.total_price || ((svc.unit_price || svc.service_price || svc.price || 0) * (svc.quantity || 1)));
+                                    const isUpdatingThis = isUpdatingServiceId === svc.id;
+                                    const isCompleted = svc.status === 'completed';
+                                    const isInProgress = svc.status === 'in_progress' || svc.status === 'delivering';
+
+                                    return (
+                                        <div
+                                            key={svc.id || idx}
+                                            className="p-3 bg-white/95 rounded-xl border border-amber-200/90 shadow-2xs flex flex-col justify-between hover:border-amber-400 transition"
+                                        >
+                                            <div>
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {svc.image ? (
+                                                            <img
+                                                                src={svc.image}
+                                                                alt={svc.service_name}
+                                                                className="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-lg shrink-0">
+                                                                🛎️
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <strong className="text-xs font-bold text-slate-900 block leading-tight">
+                                                                {svc.service_name}
+                                                            </strong>
+                                                            <span className="text-[10px] text-slate-500 block mt-0.5">
+                                                                Số lượng: <strong className="text-amber-700">x{svc.quantity || 1}</strong> • {formatCurrency(total)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 border ${
+                                                        isCompleted
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                            : isInProgress
+                                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                            : notifiedServiceIds.has(svc.id)
+                                                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                    }`}>
+                                                        {isCompleted ? 'Đã phục vụ' : isInProgress ? 'Đang thực hiện' : notifiedServiceIds.has(svc.id) ? 'Đã báo (Chờ làm)' : 'Chờ xử lý'}
+                                                    </span>
+                                                </div>
+
+                                                {(svc.note || (svc.is_scheduled && svc.request_time)) && (
+                                                    <div className="mt-2 p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[10px] text-slate-600 space-y-0.5">
+                                                        {svc.is_scheduled && svc.request_time && (
+                                                            <div className="font-semibold text-slate-700 flex items-center gap-1">
+                                                                <span>⏱️ Giờ hẹn phục vụ:</span>
+                                                                <span className="text-amber-800 font-bold bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-300">
+                                                                    {formatDateTimeDisplay(svc.request_time)}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {svc.note && (
+                                                            <div className="italic text-amber-800 truncate" title={svc.note}>
+                                                                💬 Ghi chú: "{svc.note}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* THANH CHỌN NHANH THỜI GIAN GIAO (KHI KHÁCH HẸN GIỜ) */}
+                                                {!isCompleted && !isInProgress && (
+                                                    <div className="mt-2 pt-2 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-1.5">
+                                                        <span className="text-[10px] font-bold text-amber-950 flex items-center gap-1">
+                                                            <span>⏰</span>
+                                                            <span>Hẹn giờ giao:</span>
+                                                        </span>
+                                                        <div className="flex flex-wrap items-center gap-1 bg-amber-100/60 p-1 rounded-xl border border-amber-300/80">
+                                                            {[
+                                                                { id: 'now', label: '⚡ Giao ngay' },
+                                                                { id: '30m', label: '+30p' },
+                                                                { id: '1h', label: '+1h' },
+                                                                { id: '2h', label: '+2h' }
+                                                            ].map((opt) => {
+                                                                const isSelected = (serviceScheduleTimes[svc.id] || 'now') === opt.id;
+                                                                return (
+                                                                    <button
+                                                                        key={opt.id}
+                                                                        type="button"
+                                                                        onClick={() => setServiceScheduleTimes(prev => ({ ...prev, [svc.id]: opt.id }))}
+                                                                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                                                                            isSelected
+                                                                                ? 'bg-amber-600 text-white shadow-2xs'
+                                                                                : 'text-amber-900 hover:bg-white hover:text-slate-900'
+                                                                        }`}
+                                                                    >
+                                                                        {opt.label}
+                                                                    </button>
+                                                                );
+                                                            })}
+
+                                                            {/* Ô nhập giờ tùy chọn (Ví dụ: 20:00 tối) */}
+                                                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border transition ${
+                                                                serviceScheduleTimes[svc.id] === 'custom'
+                                                                    ? 'bg-white border-amber-500 shadow-2xs text-amber-950 ring-1 ring-amber-400'
+                                                                    : 'bg-white/70 border-amber-200 text-slate-600 hover:bg-white'
+                                                            }`}>
+                                                                <span className="text-[10px] font-bold">🕒 Đặt giờ:</span>
+                                                                <input
+                                                                    type="time"
+                                                                    value={serviceCustomTimes[svc.id] || '20:00'}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setServiceCustomTimes(prev => ({ ...prev, [svc.id]: val }));
+                                                                        setServiceScheduleTimes(prev => ({ ...prev, [svc.id]: 'custom' }));
+                                                                    }}
+                                                                    onClick={() => setServiceScheduleTimes(prev => ({ ...prev, [svc.id]: 'custom' }))}
+                                                                    className="bg-transparent text-[11px] font-black text-slate-800 outline-none cursor-pointer w-[62px]"
+                                                                    title="Chọn giờ cụ thể muốn giao (ví dụ 20:00)"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                <span className="text-[10px] text-slate-400">
+                                                    Mã phiếu: #{svc.id}
+                                                </span>
+                                                {isCompleted ? (
+                                                    <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                                                        <span>✓</span>
+                                                        <span>Đã hoàn tất</span>
+                                                    </span>
+                                                ) : isInProgress ? (
+                                                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 flex items-center gap-1">
+                                                        <span>👨‍🍳</span>
+                                                        <span>F&B/Spa đang làm...</span>
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        disabled={isUpdatingThis}
+                                                        onClick={() => handleNotifyService(svc.id)}
+                                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 ${
+                                                            notifiedServiceIds.has(svc.id)
+                                                                ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                                                                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-xs'
+                                                        }`}
+                                                        title={notifiedServiceIds.has(svc.id) ? 'Đã gửi chuông báo. Nhấn để gửi nhắc lại.' : 'Bắn tín hiệu chuông báo bộ phận F&B/Spa chuẩn bị'}
+                                                    >
+                                                        {isUpdatingThis ? (
+                                                            <span>Đang gửi...</span>
+                                                        ) : notifiedServiceIds.has(svc.id) ? (
+                                                            <>
+                                                                <span>✓</span>
+                                                                <span>Đã báo F&B/Spa (Bấm để nhắc lại)</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span>🔔</span>
+                                                                <span>Báo F&B/Spa chuẩn bị</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* ===================================================================== */}
                     {/* 4. KHAI BÁO THÔNG TIN KHÁCH LƯU TRÚ (DYNAMIC FORM)                    */}
@@ -1087,6 +1457,62 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                 </div>
 
             </div>
+
+            {/* MODAL THÔNG BÁO MÀU TRẮNG Ở GIỮA MÀN HÌNH */}
+            {centerModalNotice && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-sm w-full border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in zoom-in-95 duration-200 relative">
+                        {/* Nút X đóng góc trên bên phải */}
+                        <button
+                            type="button"
+                            onClick={() => setCenterModalNotice(null)}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        {/* Icon nhận diện thương hiệu/thông báo */}
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner ${
+                            centerModalNotice.type === 'error'
+                                ? 'bg-rose-50 border-2 border-rose-200/80 text-rose-600'
+                                : centerModalNotice.type === 'warning'
+                                ? 'bg-amber-50 border-2 border-amber-200/80 text-amber-600'
+                                : centerModalNotice.icon === 'bell'
+                                ? 'bg-amber-50 border-2 border-amber-200/80 text-amber-600'
+                                : 'bg-emerald-50 border-2 border-emerald-200/80 text-emerald-600'
+                        }`}>
+                            {centerModalNotice.type === 'error' ? (
+                                <XCircle className="w-8 h-8" />
+                            ) : centerModalNotice.type === 'warning' ? (
+                                <AlertTriangle className="w-8 h-8" />
+                            ) : centerModalNotice.icon === 'bell' ? (
+                                <Bell className="w-8 h-8 animate-bounce" />
+                            ) : (
+                                <CheckCircle2 className="w-8 h-8" />
+                            )}
+                        </div>
+
+                        {/* Tiêu đề & nội dung thông báo */}
+                        <div className="space-y-1.5">
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                                {centerModalNotice.title || 'Thông Báo'}
+                            </h3>
+                            <p className="text-sm font-medium text-slate-600 leading-relaxed px-2">
+                                {centerModalNotice.message}
+                            </p>
+                        </div>
+
+                        {/* Nút xác nhận Đã hiểu */}
+                        <button
+                            type="button"
+                            onClick={() => setCenterModalNotice(null)}
+                            className="w-full py-3 px-5 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-black hover:to-slate-900 text-white font-bold text-sm rounded-2xl shadow-lg shadow-slate-900/20 transition-all cursor-pointer active:scale-95"
+                        >
+                            Đã hiểu
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

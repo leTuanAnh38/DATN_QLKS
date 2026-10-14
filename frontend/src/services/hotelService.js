@@ -22,6 +22,22 @@ export const hotelService = {
     },
 
     /**
+     * Lấy danh sách món / dịch vụ Menu (GET /api/services/ hoặc /api/services/items/)
+     * @param {Object} params - { category_id, q, status: 'active' }
+     */
+    async getServices(params = { status: 'active' }) {
+        try {
+            const res = await api.get('/services/', { params });
+            return {
+                success: true,
+                items: res.data?.items || res.data?.data || []
+            };
+        } catch (error) {
+            return this.getServiceItems(params);
+        }
+    },
+
+    /**
      * Lấy danh sách món / dịch vụ Menu (GET /api/services/items/)
      * @param {Object} params - { category_id, q }
      */

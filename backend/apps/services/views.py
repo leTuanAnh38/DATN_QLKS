@@ -603,16 +603,23 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 try:
                     clean_name = service_req.service.name if service_req.service else "Dịch vụ phòng"
                     service_name_bill = f"{clean_name} [Yêu cầu #{service_req.id}]"
-                    exists = BookingExtraService.objects.filter(
-                        booking=service_req.booking,
-                        service_name__contains=f"[Yêu cầu #{service_req.id}]"
-                    ).exists()
-                    if not exists:
+                    existing_bes = BookingExtraService.objects.filter(
+                        booking=service_req.booking
+                    ).filter(
+                        Q(service_name__contains=f"[Yêu cầu #{service_req.id}]") |
+                        Q(service_name__icontains=clean_name)
+                    ).first()
+
+                    if existing_bes:
+                        existing_bes.is_paid = service_req.is_paid
+                        existing_bes.save(update_fields=['is_paid'])
+                    else:
                         BookingExtraService.objects.create(
                             booking=service_req.booking,
                             service_name=service_name_bill,
                             quantity=service_req.quantity,
-                            price=service_req.service.price
+                            price=service_req.service.price if service_req.service else service_req.unit_price,
+                            is_paid=service_req.is_paid
                         )
                 except Exception as e:
                     print(f"Lỗi khi đồng bộ phụ phí BookingExtraService: {e}")
@@ -680,4 +687,100 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'success': True,
             'kanban': kanban_data,
             'data': kanban_data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='notify-staff')
+    def notify_staff(self, request, pk=None):
+        """
+        Lễ tân phát tín hiệu chuông báo bộ phận F&B / Spa chuẩn bị phục vụ khi khách Check-in.
+        GIỮ NGUYÊN trạng thái 'pending' để nhân viên F&B/Spa tự tiếp nhận trên Kanban.
+        Có thể cập nhật thời gian hẹn phục vụ (request_time) nếu khách hẹn giờ (ví dụ: 1 tiếng nữa).
+        """
+        service_req = self.get_object()
+        booking = service_req.booking
+        guest_name = (booking.guest.get_full_name() or booking.guest.username) if booking and booking.guest else "Khách lưu trú"
+        room_label = (booking.room.room_number if booking and booking.room else None) or \
+                     (booking.category.name if booking and booking.category else "Chưa xếp phòng")
+        service_name = service_req.service.name if service_req.service else "Dịch vụ"
+
+        # Cập nhật thời gian hẹn phục vụ nếu Lễ tân truyền lên
+        req_time_str = request.data.get('request_time')
+        is_scheduled_param = request.data.get('is_scheduled', False)
+        update_fields = []
+        if req_time_str:
+            try:
+                from django.utils.dateparse import parse_datetime
+                parsed_dt = parse_datetime(req_time_str)
+                if parsed_dt:
+                    if timezone.is_naive(parsed_dt):
+                        parsed_dt = timezone.make_aware(parsed_dt)
+                    service_req.request_time = parsed_dt
+                    update_fields.append('request_time')
+            except Exception as e:
+                print(f"Lỗi parse request_time: {e}")
+
+        service_req.is_scheduled = bool(is_scheduled_param)
+        update_fields.append('is_scheduled')
+
+        schedule_label = request.data.get('schedule_label', '')
+        if schedule_label and 'note' not in update_fields:
+            existing_note = service_req.note or ''
+            if schedule_label not in existing_note:
+                service_req.note = f"{existing_note} [{schedule_label}]".strip()
+                update_fields.append('note')
+
+        if update_fields:
+            update_fields.append('updated_at')
+            service_req.save(update_fields=list(set(update_fields)))
+            service_req.refresh_from_db()
+
+        # Soạn nội dung thông báo kèm thời gian hẹn (chỉ khi có hẹn giờ)
+        if service_req.is_scheduled and service_req.request_time:
+            local_time = timezone.localtime(service_req.request_time)
+            time_display = local_time.strftime('%H:%M %d/%m/%Y')
+            time_notice = f" ⏰ Khách hẹn phục vụ lúc: {time_display}."
+        else:
+            time_notice = " ⚡ Khách cần phục vụ ngay."
+
+        try:
+            from ..notifications.signals import get_staff_and_admin_users
+            from ..notifications.models import Notification
+
+            staff_users = get_staff_and_admin_users()
+            notifs = [
+                Notification(
+                    recipient=staff,
+                    title=f"🔔 Yêu cầu chuẩn bị: Phòng {room_label}",
+                    message=(
+                        f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
+                        f"Dịch vụ: \"{service_name}\" (SL: {service_req.quantity})."
+                        f"{time_notice} "
+                        f"Vui lòng tiếp nhận đơn trên bảng Kanban!"
+                    )
+                )
+                for staff in staff_users
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
+        except Exception as e:
+            print(f"Lỗi gửi thông báo cho nhân viên: {e}")
+
+        # Ghi log thao tác
+        user = request.user
+        log_action(
+            user=user if user.is_authenticated else None,
+            action='NOTIFY',
+            module='SERVICE',
+            description=f"Lễ tân gửi thông báo nhắc chuẩn bị dịch vụ #{service_req.id} ({service_name}) cho Phòng {room_label}. {time_notice}",
+            request=request
+        )
+
+        serializer = self.get_serializer(service_req, context={'request': request})
+        return Response({
+            'success': True,
+            'message': f'Đã gửi thông báo nhắc chuẩn bị dịch vụ "{service_name}" cho bộ phận F&B / Spa thành công!',
+            'service_request_id': service_req.id,
+            'status': service_req.status,
+            'request_time': service_req.request_time,
+            'data': serializer.data
         }, status=status.HTTP_200_OK)

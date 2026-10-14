@@ -608,9 +608,27 @@ export default function ServiceRequestKanban() {
                                                         <div className="font-bold text-slate-900 truncate" title={item.service_name}>
                                                             {item.service_name}
                                                         </div>
-                                                        <span className="inline-block px-1.5 rounded bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold mt-0.5">
-                                                            {item.category_name || 'Dịch vụ'}
-                                                        </span>
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                            <span className="inline-block px-1.5 rounded bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold">
+                                                                {item.category_name || 'Dịch vụ'}
+                                                            </span>
+                                                            {item.is_paid ? (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold whitespace-nowrap shadow-2xs">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                                    <span> Đã thanh toán (Đặt trước)</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold whitespace-nowrap shadow-2xs">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                    <span> Phát sinh (Thu lúc Check-out)</span>
+                                                                </span>
+                                                            )}
+                                                            {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold whitespace-nowrap shadow-2xs">
+                                                                    <span>⏰ Hẹn: {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {item.note && (
                                                             <div className="text-[11px] text-amber-700 italic truncate mt-0.5" title={item.note}>
                                                                 💬 {item.note}
@@ -896,10 +914,21 @@ export default function ServiceRequestKanban() {
                                                             </span>
                                                         </div>
 
-                                                        {/* Badge nhóm dịch vụ */}
-                                                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100 shrink-0">
-                                                            {item.category_name || 'Dịch vụ'}
-                                                        </span>
+                                                        {/* Badge nhóm dịch vụ & Trạng thái thanh toán */}
+                                                        <div className="flex flex-col items-end gap-1 shrink-0">
+                                                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
+                                                                {item.category_name || 'Dịch vụ'}
+                                                            </span>
+                                                            {item.is_paid ? (
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold whitespace-nowrap shadow-2xs" title="Khách đã thanh toán trước khi đặt phòng">
+                                                                    <span>🟢 Đã trả trước</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold whitespace-nowrap shadow-2xs" title="Dịch vụ phát sinh thu khi check-out">
+                                                                    <span>🟠 Thu lúc Check-out</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
 
                                                     {/* Card Body: Tên dịch vụ & Số lượng */}
@@ -931,9 +960,17 @@ export default function ServiceRequestKanban() {
                                                         </div>
                                                     </div>
 
+                                                    {/* Thời gian hẹn phục vụ cụ thể (chỉ hiển thị khi lễ tân có hẹn giờ và đơn chưa hoàn thành) */}
+                                                    {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
+                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-200 text-[10px] font-bold my-2 shadow-2xs">
+                                                            <span>⏰ Hẹn phục vụ:</span>
+                                                            <span>{new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        </div>
+                                                    )}
+
                                                     {/* Ghi chú riêng của khách (nếu có) */}
                                                     {item.note && (
-                                                        <div className="p-2.5 bg-amber-50/70 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 my-2.5 flex items-start gap-1.5">
+                                                        <div className="p-2.5 bg-amber-50/70 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 my-2 flex items-start gap-1.5">
                                                             <span className="shrink-0">💬</span>
                                                             <span className="font-medium italic leading-relaxed">
                                                                 "{item.note}"
