@@ -39,6 +39,7 @@ class ServiceRequest(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Chờ xử lý (Pending)'),
         ('in_progress', 'Đang thực hiện (In Progress)'),
+        ('delivering', 'Đang giao (Delivering)'),
         ('completed', 'Đã hoàn thành (Completed)'),
         ('cancelled', 'Đã hủy (Cancelled)'),
     )

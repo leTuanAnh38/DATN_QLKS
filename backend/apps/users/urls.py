@@ -33,6 +33,7 @@ urlpatterns = [
     path('admin/employees/', AdminEmployeeListCreateView.as_view(), name='admin-employee-list'),
     path('admin/employees/<int:pk>/', AdminEmployeeDetailView.as_view(), name='admin-employee-detail'),
     path('admin/roles/', AdminRoleListView.as_view(), name='admin-role-list'),
+    path('admin/roles/permissions/', AdminRolePermissionsView.as_view(), name='admin-role-permissions-all'),
     path('admin/roles/<str:role>/permissions/', AdminRolePermissionsView.as_view(), name='admin-role-permissions'),
 
     # Chi tiết người dùng / Khách hàng: GET /api/users/{id}/

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import api from '../../../services/api';
 import { useAuth } from '../../../store/authStore';
 import {
@@ -15,6 +15,7 @@ import {
 export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuccess }) {
     const { user: currentUser } = useAuth();
     const currentUserRole = currentUser?.role || '';
+    const isManager = currentUserRole === 'manager';
     const canManageRoleMatrix = Boolean(
         currentUser?.is_superuser || ['admin', 'owner'].includes(currentUserRole)
     );
@@ -64,6 +65,48 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
         }
         return INITIAL_CRUD_MATRIX;
     });
+
+    // Đồng bộ lại ma trận phân quyền từ localStorage và API backend khi mở modal
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // 1. Nạp từ localStorage
+        try {
+            const saved = localStorage.getItem('hotel_role_matrix');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                setMatrixState((prev) => ({ ...INITIAL_CRUD_MATRIX, ...prev, ...parsed }));
+            }
+        } catch (e) {
+            console.warn('[RBAC] Lỗi khi nạp ma trận từ localStorage:', e);
+        }
+
+        // 2. Fetch ma trận mới nhất từ Backend API
+        let isMounted = true;
+        const fetchRemoteMatrix = async () => {
+            try {
+                const response = await api.get('/auth/admin/roles/permissions/');
+                if (response.data?.success && response.data?.matrix) {
+                    if (isMounted) {
+                        setMatrixState((prev) => {
+                            const updated = { ...INITIAL_CRUD_MATRIX, ...prev, ...response.data.matrix };
+                            try {
+                                localStorage.setItem('hotel_role_matrix', JSON.stringify(updated));
+                            } catch (_) {}
+                            return updated;
+                        });
+                    }
+                }
+            } catch (err) {
+                console.warn('[RBAC] Không thể tải ma trận từ server, dùng cache local:', err?.message);
+            }
+        };
+
+        fetchRemoteMatrix();
+        return () => {
+            isMounted = false;
+        };
+    }, [isOpen]);
 
     // Trạng thái gửi API PUT
     const [isSaving, setIsSaving] = useState(false);

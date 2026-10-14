@@ -951,11 +951,20 @@ class AdminRoleListView(APIView):
 
     def get(self, request):
         roles_data = get_all_roles_matrix()
-        return Response({'success': True, 'count': len(roles_data), 'roles': roles_data}, status=status.HTTP_200_OK)
+        matrix = load_role_matrix()
+        return Response({
+            'success': True,
+            'count': len(roles_data),
+            'roles': roles_data,
+            'matrix': matrix
+        }, status=status.HTTP_200_OK)
 
 
 class AdminRolePermissionsView(APIView):
-    permission_classes = [IsOwnerOrAdminOnly]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsManagerOrAdmin()]
+        return [IsOwnerOrAdminOnly()]
 
     def get(self, request, role=None):
         matrix = load_role_matrix()

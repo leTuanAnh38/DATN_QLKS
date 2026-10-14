@@ -90,13 +90,16 @@ export default function NotificationBell({ theme = 'light' }) {
             fetchNotifications(true, 1, false, filter);
         }, 30000);
 
-        // Lắng nghe sự kiện realtime khi có đơn duyệt hoặc Check-in thành công
+        // Lắng nghe sự kiện realtime khi có đơn phòng hoặc đơn dịch vụ thay đổi trạng thái
         const handleSyncEvent = () => {
             fetchNotifications(true, 1, false, filter);
         };
         window.addEventListener('pms_booking_created', handleSyncEvent);
+        window.addEventListener('pms_service_created', handleSyncEvent);
+        window.addEventListener('pms_service_updated', handleSyncEvent);
+
         const handleStorage = (e) => {
-            if (e.key === 'pms_last_booking_event') {
+            if (e.key === 'pms_last_booking_event' || e.key === 'pms_last_service_event') {
                 fetchNotifications(true, 1, false, filter);
             }
         };
@@ -105,6 +108,8 @@ export default function NotificationBell({ theme = 'light' }) {
         return () => {
             clearInterval(intervalId);
             window.removeEventListener('pms_booking_created', handleSyncEvent);
+            window.removeEventListener('pms_service_created', handleSyncEvent);
+            window.removeEventListener('pms_service_updated', handleSyncEvent);
             window.removeEventListener('storage', handleStorage);
         };
     }, [isAuthenticated, filter]);

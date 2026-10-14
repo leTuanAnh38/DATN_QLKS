@@ -25,10 +25,11 @@ const formatTimeAgo = (dateStr) => {
 const STATUS_META = {
     pending: { label: 'Chờ xử lý', icon: '⏳', pill: 'bg-amber-50 text-amber-700 border-amber-200', tab: 'bg-amber-500 text-white' },
     in_progress: { label: 'Đang làm', icon: '👨‍🍳', pill: 'bg-blue-50 text-blue-700 border-blue-200', tab: 'bg-blue-600 text-white' },
+    delivering: { label: 'Đang giao', icon: '🛵', pill: 'bg-purple-50 text-purple-700 border-purple-200', tab: 'bg-purple-600 text-white' },
     completed: { label: 'Hoàn thành', icon: '✓', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', tab: 'bg-emerald-600 text-white' },
     cancelled: { label: 'Đã hủy', icon: '✕', pill: 'bg-rose-50 text-rose-700 border-rose-200', tab: 'bg-rose-600 text-white' }
 };
-const STATUS_ORDER = ['pending', 'in_progress', 'completed', 'cancelled'];
+const STATUS_ORDER = ['pending', 'in_progress', 'delivering', 'completed', 'cancelled'];
 const LIST_PAGE_SIZE = 10;
 
 export default function ServiceRequestKanban() {
@@ -36,9 +37,10 @@ export default function ServiceRequestKanban() {
     const [kanbanData, setKanbanData] = useState({
         pending: [],
         in_progress: [],
+        delivering: [],
         completed: [],
         cancelled: [],
-        stats: { total: 0, pending_count: 0, in_progress_count: 0, completed_count: 0, total_revenue: 0 }
+        stats: { total: 0, pending_count: 0, in_progress_count: 0, delivering_count: 0, completed_count: 0, total_revenue: 0 }
     });
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdatingId, setIsUpdatingId] = useState(null);
@@ -118,7 +120,7 @@ export default function ServiceRequestKanban() {
         // Tìm thẻ hiện tại trong state
         let currentItem = null;
         let sourceColumn = null;
-        for (const col of ['pending', 'in_progress', 'completed', 'cancelled']) {
+        for (const col of ['pending', 'in_progress', 'delivering', 'completed', 'cancelled']) {
             const found = kanbanData[col]?.find((item) => item.id === itemId);
             if (found) {
                 currentItem = found;
@@ -152,6 +154,7 @@ export default function ServiceRequestKanban() {
                     ...prev.stats,
                     pending_count: newStatus === 'pending' ? prev.stats.pending_count + 1 : (sourceColumn === 'pending' ? prev.stats.pending_count - 1 : prev.stats.pending_count),
                     in_progress_count: newStatus === 'in_progress' ? prev.stats.in_progress_count + 1 : (sourceColumn === 'in_progress' ? prev.stats.in_progress_count - 1 : prev.stats.in_progress_count),
+                    delivering_count: newStatus === 'delivering' ? (prev.stats.delivering_count || 0) + 1 : (sourceColumn === 'delivering' ? Math.max(0, (prev.stats.delivering_count || 1) - 1) : (prev.stats.delivering_count || 0)),
                     completed_count: newStatus === 'completed' ? prev.stats.completed_count + 1 : (sourceColumn === 'completed' ? prev.stats.completed_count - 1 : prev.stats.completed_count)
                 }
             };
@@ -162,13 +165,20 @@ export default function ServiceRequestKanban() {
             const res = await hotelService.updateServiceRequestStatus(itemId, newStatus);
 
             if (res && res.success) {
-                const statusLabels = {
-                    pending: 'Chờ xử lý',
-                    in_progress: 'Đang thực hiện',
-                    completed: 'Hoàn thành (Đã ghi nhận vào hóa đơn phòng)',
-                    cancelled: 'Đã hủy'
-                };
-                showToast('success', `Đã chuyển yêu cầu phòng ${currentItem.room_number} sang "${statusLabels[newStatus]}".`);
+                if (newStatus === 'completed') {
+                    showToast('success', `Đã giao thành công cho khách hàng phòng ${currentItem.room_number || ''}! (Đã ghi nhận vào hóa đơn phòng)`);
+                } else if (newStatus === 'delivering') {
+                    showToast('success', `Đã chuyển yêu cầu phòng ${currentItem.room_number || ''} sang "Đang giao". Nhân viên đang đưa lên phòng!`);
+                } else {
+                    const statusLabels = {
+                        pending: 'Chờ xử lý',
+                        in_progress: 'Đang làm',
+                        delivering: 'Đang giao',
+                        completed: 'Hoàn thành (Đã ghi nhận vào hóa đơn phòng)',
+                        cancelled: 'Đã hủy'
+                    };
+                    showToast('success', `Đã chuyển yêu cầu phòng ${currentItem.room_number || ''} sang "${statusLabels[newStatus]}".`);
+                }
                 fetchKanbanData(true);
             } else {
                 setKanbanData(previousState);
@@ -255,7 +265,7 @@ export default function ServiceRequestKanban() {
         });
     };
 
-    // Cấu hình hiển thị 3 cột chính
+    // Cấu hình hiển thị 4 cột chính
     const columns = [
         {
             key: 'pending',
@@ -276,6 +286,16 @@ export default function ServiceRequestKanban() {
             borderColor: 'border-blue-200',
             accentHover: 'hover:border-blue-400',
             dropHighlight: 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-400/30'
+        },
+        {
+            key: 'delivering',
+            title: 'Đang giao (Delivering)',
+            icon: '🛵',
+            headerBg: 'bg-purple-500/10 text-purple-800 border-purple-300',
+            badgeBg: 'bg-purple-600 text-white',
+            borderColor: 'border-purple-200',
+            accentHover: 'hover:border-purple-400',
+            dropHighlight: 'bg-purple-50/80 border-purple-400 ring-2 ring-purple-400/30'
         },
         {
             key: 'completed',
@@ -376,8 +396,8 @@ export default function ServiceRequestKanban() {
                     </p>
                 </div>
 
-                {/* 4 Mini Stat Badges */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* 5 Mini Stat Badges */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                     <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-center">
                         <span className="text-[10px] text-slate-400 block font-bold uppercase">Tổng yêu cầu</span>
                         <strong className="text-base font-black text-slate-900">{stats.total || 0}</strong>
@@ -390,8 +410,12 @@ export default function ServiceRequestKanban() {
                         <span className="text-[10px] text-blue-700 block font-bold uppercase">Đang làm</span>
                         <strong className="text-base font-black text-blue-600">{stats.in_progress_count || 0}</strong>
                     </div>
-                    <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
-                        <span className="text-[10px] text-emerald-700 block font-bold uppercase">Doanh thu dịch vụ</span>
+                    <div className="p-3 bg-purple-50 rounded-2xl border border-purple-100 text-center">
+                        <span className="text-[10px] text-purple-700 block font-bold uppercase">Đang giao</span>
+                        <strong className="text-base font-black text-purple-600">{stats.delivering_count || 0}</strong>
+                    </div>
+                    <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center col-span-2 sm:col-span-1">
+                        <span className="text-[10px] text-emerald-700 block font-bold uppercase">Doanh thu</span>
                         <strong className="text-xs font-black text-emerald-600 block truncate">
                             {Number(stats.total_revenue || 0).toLocaleString('vi-VN')} đ
                         </strong>
@@ -663,14 +687,44 @@ export default function ServiceRequestKanban() {
                                                         </>
                                                     )}
                                                     {item.status === 'in_progress' && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleUpdateStatus(item.id, 'completed')}
-                                                            disabled={isUpdatingThis}
-                                                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer"
-                                                        >
-                                                            ✓ Đã giao
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'pending')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                                            >
+                                                                ↩ Chờ
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'delivering')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                                                            >
+                                                                <span>🛵 Giao</span>
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {item.status === 'delivering' && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'in_progress')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                                            >
+                                                                ↩ Làm
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'completed')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                                                            >
+                                                                <span>✓ Hoàn thành</span>
+                                                            </button>
+                                                        </>
                                                     )}
                                                     {item.status === 'completed' && (
                                                         <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
@@ -755,10 +809,10 @@ export default function ServiceRequestKanban() {
                 </div>
             )}
 
-            {/* BẢNG KANBAN BOARD 3 CỘT (DRAG AND DROP) */}
+            {/* BẢNG KANBAN BOARD 4 CỘT (DRAG AND DROP) */}
             {viewMode === 'board' && (
             <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
                 {columns.map((col) => {
                     const columnItems = filterColumnItems(kanbanData[col.key] || []);
                     const isDropTarget = activeDropZone === col.key;
@@ -931,11 +985,33 @@ export default function ServiceRequestKanban() {
                                                                 </button>
                                                                 <button
                                                                     type="button"
+                                                                    onClick={() => handleUpdateStatus(item.id, 'delivering')}
+                                                                    title="Bắt đầu giao món lên phòng"
+                                                                    className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                                                                >
+                                                                    <span>🛵 Giao</span>
+                                                                    <span>➔</span>
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {col.key === 'delivering' && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleUpdateStatus(item.id, 'in_progress')}
+                                                                    title="Trả về Đang làm"
+                                                                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                                                >
+                                                                    ↩ Làm
+                                                                </button>
+                                                                <button
+                                                                    type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'completed')}
-                                                                    title="Đã phục vụ xong tận phòng"
+                                                                    title="Đã giao thành công cho khách hàng"
                                                                     className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
                                                                 >
-                                                                    <span>✓ Đã giao</span>
+                                                                    <span>✓ Hoàn thành</span>
                                                                 </button>
                                                             </>
                                                         )}

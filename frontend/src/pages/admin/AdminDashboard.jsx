@@ -898,7 +898,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                             )}
 
                             {/* 8. Quản lý Danh mục Dịch vụ & Thực đơn (CRUD) */}
-                            {canViewServices && isHighLevelManager && (
+                            {canViewServices && (
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('service-items')}
@@ -1393,7 +1393,7 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                     {/* TAB 7: QUẢN LÝ THỰC ĐƠN & DANH MỤC DỊCH VỤ (CRUD) */}
                     {activeTab === 'service-items' && (
-                        (canViewServices && isHighLevelManager) ? <ServiceManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền quản lý Danh mục thực đơn & Dịch vụ.')
+                        canViewServices ? <ServiceManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Danh mục thực đơn & Dịch vụ.')
                     )}
 
                     {/* TAB 8: QUẢN LÝ ĐÁNH GIÁ & PHẢN HỒI (REVIEW & RATING) */}
@@ -1546,7 +1546,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                             <span>Kanban Dịch Vụ</span>
                                         </button>
                                     )}
-                                    {canViewServices && isHighLevelManager && (
+                                    {canViewServices && (
                                         <button
                                             type="button"
                                             onClick={() => setActiveTab('service-items')}

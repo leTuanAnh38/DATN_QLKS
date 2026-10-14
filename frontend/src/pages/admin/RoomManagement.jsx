@@ -837,9 +837,18 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* ========================================================================= */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
                 {/* 1. Tổng số phòng */}
-                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
+                <div
+                    onClick={() => setStatusFilter('all')}
+                    className={`rounded-2xl p-4 border transition cursor-pointer flex items-center justify-between ${
+                        statusFilter === 'all'
+                            ? 'bg-blue-50/80 border-blue-400 shadow-md ring-2 ring-blue-500/20'
+                            : 'bg-white border-slate-200 hover:border-blue-300 shadow-xs'
+                    }`}
+                >
                     <div>
-                        <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">
+                        <span className={`text-[10px] font-bold uppercase block tracking-wider ${
+                            statusFilter === 'all' ? 'text-blue-700' : 'text-slate-400'
+                        }`}>
                             Tổng số phòng
                         </span>
                         <div className="flex items-baseline gap-1.5 mt-1">

@@ -663,12 +663,14 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         kanban_data = {
             'pending': [item for item in all_items if item['status'] == 'pending'],
             'in_progress': [item for item in all_items if item['status'] == 'in_progress'],
+            'delivering': [item for item in all_items if item['status'] == 'delivering'],
             'completed': [item for item in all_items if item['status'] == 'completed'],
             'cancelled': [item for item in all_items if item['status'] == 'cancelled'],
             'stats': {
                 'total': len(all_items),
                 'pending_count': len([i for i in all_items if i['status'] == 'pending']),
                 'in_progress_count': len([i for i in all_items if i['status'] == 'in_progress']),
+                'delivering_count': len([i for i in all_items if i['status'] == 'delivering']),
                 'completed_count': len([i for i in all_items if i['status'] == 'completed']),
                 'total_revenue': sum(float(i['total_price'] or 0) for i in all_items if i['status'] == 'completed')
             }

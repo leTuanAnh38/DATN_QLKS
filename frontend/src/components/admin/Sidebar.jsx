@@ -390,8 +390,8 @@ export default function Sidebar({
                             </button>
                         )}
 
-                        {/* Danh mục Thực đơn & Dịch vụ (Chỉ dành cho Admin, Owner, Manager) */}
-                        {canViewServices && isHighLevelManager && (
+                        {/* Danh mục Thực đơn & Dịch vụ */}
+                        {canViewServices && (
                             <button
                                 type="button"
                                 onClick={() => handleSelectTab('service-items')}

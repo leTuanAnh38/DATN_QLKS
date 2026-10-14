@@ -161,9 +161,10 @@ export const hotelService = {
             const kanban = res.data?.kanban || res.data?.data || {
                 pending: [],
                 in_progress: [],
+                delivering: [],
                 completed: [],
                 cancelled: [],
-                stats: { total: 0, pending_count: 0, in_progress_count: 0, completed_count: 0, total_revenue: 0 }
+                stats: { total: 0, pending_count: 0, in_progress_count: 0, delivering_count: 0, completed_count: 0, total_revenue: 0 }
             };
             return {
                 success: true,
@@ -176,9 +177,10 @@ export const hotelService = {
                 kanban: {
                     pending: [],
                     in_progress: [],
+                    delivering: [],
                     completed: [],
                     cancelled: [],
-                    stats: { total: 0, pending_count: 0, in_progress_count: 0, completed_count: 0, total_revenue: 0 }
+                    stats: { total: 0, pending_count: 0, in_progress_count: 0, delivering_count: 0, completed_count: 0, total_revenue: 0 }
                 },
                 message: error.response?.data?.message || 'Không thể tải bảng Kanban dịch vụ.'
             };

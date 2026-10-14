@@ -3156,12 +3156,13 @@ class BookingViewSet(viewsets.ModelViewSet):
         cancelled_requests_count = all_service_requests.filter(status='cancelled').count()
         total_service_sales = float(sum(float(sr.total_price or 0) for sr in all_service_requests.filter(status='completed')))
 
-        # Danh sách dịch vụ nóng (ưu tiên pending & in_progress)
+        # Danh sách dịch vụ nóng (ưu tiên pending, in_progress & delivering)
         status_order = Case(
             When(status='pending', then=Value(1)),
             When(status='in_progress', then=Value(2)),
-            When(status='completed', then=Value(3)),
-            default=Value(4),
+            When(status='delivering', then=Value(3)),
+            When(status='completed', then=Value(4)),
+            default=Value(5),
             output_field=IntegerField()
         )
         recent_requests_qs = all_service_requests.order_by(status_order, '-created_at')[:6]

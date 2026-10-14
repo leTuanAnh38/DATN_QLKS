@@ -111,8 +111,13 @@ export default function ServicesMenu() {
             loadData();
         };
 
-        const handleServiceEvent = () => {
+        const handleServiceEvent = (e) => {
             fetchOrderHistory(true);
+            if (e?.detail?.status === 'delivering') {
+                showToast('success', '🛵 Đơn dịch vụ của bạn đang được nhân viên giao lên phòng!');
+            } else if (e?.detail?.status === 'completed') {
+                showToast('success', '✅ Đơn dịch vụ của bạn đã được giao thành công tới phòng!');
+            }
         };
 
         const handleStorage = (e) => {
@@ -121,6 +126,16 @@ export default function ServicesMenu() {
             }
             if (e.key === 'pms_last_service_event') {
                 fetchOrderHistory(true);
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data?.status === 'delivering') {
+                        showToast('success', '🛵 Đơn dịch vụ của bạn đang được nhân viên giao lên phòng!');
+                    } else if (data?.status === 'completed') {
+                        showToast('success', '✅ Đơn dịch vụ của bạn đã được giao thành công tới phòng!');
+                    }
+                } catch {
+                    // Ignore parse error
+                }
             }
         };
 
@@ -287,23 +302,24 @@ export default function ServicesMenu() {
 
     // Thống kê nhanh đơn đặt món
     const activeOrdersCount = useMemo(() => {
-        return orderHistory.filter((o) => o.status === 'pending' || o.status === 'in_progress').length;
+        return orderHistory.filter((o) => o.status === 'pending' || o.status === 'in_progress' || o.status === 'delivering').length;
     }, [orderHistory]);
 
     const historyStats = useMemo(() => {
         const total = orderHistory.length;
         const pending = orderHistory.filter((o) => o.status === 'pending').length;
         const inProgress = orderHistory.filter((o) => o.status === 'in_progress').length;
+        const delivering = orderHistory.filter((o) => o.status === 'delivering').length;
         const completed = orderHistory.filter((o) => o.status === 'completed').length;
         const cancelled = orderHistory.filter((o) => o.status === 'cancelled').length;
-        return { total, pending, inProgress, completed, cancelled };
+        return { total, pending, inProgress, delivering, completed, cancelled };
     }, [orderHistory]);
 
     // Danh sách lọc lịch sử
     const filteredHistory = useMemo(() => {
         if (historyFilter === 'all') return orderHistory;
         if (historyFilter === 'active') {
-            return orderHistory.filter((o) => o.status === 'pending' || o.status === 'in_progress');
+            return orderHistory.filter((o) => o.status === 'pending' || o.status === 'in_progress' || o.status === 'delivering');
         }
         return orderHistory.filter((o) => o.status === historyFilter);
     }, [orderHistory, historyFilter]);
@@ -927,6 +943,7 @@ export default function ServicesMenu() {
                                     { key: 'all', label: 'Tất cả', count: historyStats.total },
                                     { key: 'pending', label: '⏳ Chờ xác nhận', count: historyStats.pending },
                                     { key: 'in_progress', label: '👨‍🍳 Đang chế biến', count: historyStats.inProgress },
+                                    { key: 'delivering', label: '🛵 Đang giao', count: historyStats.delivering },
                                     { key: 'completed', label: '✓ Đã phục vụ', count: historyStats.completed },
                                     { key: 'cancelled', label: '✕ Đã hủy', count: historyStats.cancelled }
                                 ].map((tab) => (
@@ -974,6 +991,8 @@ export default function ServicesMenu() {
                                                           ? 'Chờ xác nhận'
                                                           : historyFilter === 'in_progress'
                                                           ? 'Đang chế biến'
+                                                          : historyFilter === 'delivering'
+                                                          ? 'Đang giao'
                                                           : historyFilter === 'completed'
                                                           ? 'Đã phục vụ'
                                                           : 'Đã hủy'
@@ -994,6 +1013,7 @@ export default function ServicesMenu() {
                                     filteredHistory.map((item) => {
                                         const isPending = item.status === 'pending';
                                         const isInProgress = item.status === 'in_progress';
+                                        const isDelivering = item.status === 'delivering';
                                         const isCompleted = item.status === 'completed';
                                         const isCancelled = item.status === 'cancelled';
                                         const priceNum = Number(item.total_price || (item.service_price * item.quantity)) || 0;
@@ -1035,6 +1055,12 @@ export default function ServicesMenu() {
                                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
                                                                 👨‍🍳 Đang chế biến
+                                                            </span>
+                                                        )}
+                                                        {isDelivering && (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
+                                                                🛵 Đang giao tận phòng
                                                             </span>
                                                         )}
                                                         {isCompleted && (
@@ -1115,19 +1141,22 @@ export default function ServicesMenu() {
                                                         </div>
                                                     </div>
 
-                                                    {/* THANH TIẾN ĐỘ TRẠNG THÁI XỬ LÝ (LIVE PROCESS TRACKER) */}
+                                                    {/* THANH TIẾN ĐỘ TRẠNG THÁI XỬ LÝ (LIVE PROCESS TRACKER - 4 BƯỚC) */}
                                                     <div className="mt-4 pt-4 border-t border-slate-100">
                                                         {!isCancelled ? (
                                                             <div className="space-y-2">
                                                                 <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
-                                                                    <span className={isPending || isInProgress || isCompleted ? 'text-amber-600 font-bold' : ''}>
+                                                                    <span className={isPending || isInProgress || isDelivering || isCompleted ? 'text-amber-600 font-bold' : ''}>
                                                                         1. Tiếp nhận
                                                                     </span>
-                                                                    <span className={isInProgress || isCompleted ? 'text-blue-600 font-bold' : ''}>
+                                                                    <span className={isInProgress || isDelivering || isCompleted ? 'text-blue-600 font-bold' : ''}>
                                                                         2. Đang chế biến
                                                                     </span>
+                                                                    <span className={isDelivering || isCompleted ? 'text-purple-600 font-bold' : ''}>
+                                                                        3. Đang giao
+                                                                    </span>
                                                                     <span className={isCompleted ? 'text-emerald-600 font-bold' : ''}>
-                                                                        3. Giao tận phòng
+                                                                        4. Hoàn thành
                                                                     </span>
                                                                 </div>
 
@@ -1136,17 +1165,20 @@ export default function ServicesMenu() {
                                                                         className={`h-full transition-all duration-500 ${
                                                                             isCompleted
                                                                                 ? 'w-full bg-emerald-500'
+                                                                                : isDelivering
+                                                                                ? 'w-3/4 bg-purple-600 animate-pulse'
                                                                                 : isInProgress
-                                                                                ? 'w-2/3 bg-blue-600 animate-pulse'
-                                                                                : 'w-1/3 bg-amber-400'
+                                                                                ? 'w-2/4 bg-blue-600 animate-pulse'
+                                                                                : 'w-1/4 bg-amber-400'
                                                                         }`}
                                                                     ></div>
                                                                 </div>
 
                                                                 <div className="flex items-center justify-between text-[11px]">
-                                                                    <span className="text-slate-500">
+                                                                    <span className="text-slate-500 font-medium">
                                                                         {isPending && '⏳ Bếp & Lễ tân đã nhận được yêu cầu, đang kiểm tra.'}
-                                                                        {isInProgress && '👨‍🍳 Đầu bếp đang nấu. Món sẽ được đưa lên phòng trong 15-20 phút.'}
+                                                                        {isInProgress && '👨‍🍳 Đầu bếp đang nấu. Món sẽ được chuẩn bị cẩn thận cho quý khách.'}
+                                                                        {isDelivering && '🛵 Nhân viên đang đưa món lên tận phòng cho quý khách!'}
                                                                         {isCompleted && '✅ Đã phục vụ tới phòng. Chúc quý khách dùng ngon miệng!'}
                                                                     </span>
 

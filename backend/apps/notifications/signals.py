@@ -325,22 +325,51 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
             if guest:
                 Notification.objects.create(
                     recipient=guest,
-                    title="Dịch vụ đang được chuẩn bị",
+                    title="👨‍🍳 Dịch vụ đang được chế biến",
                     message=(
                         f"Yêu cầu dịch vụ \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
                         f"đang được nhân viên bộ phận chuẩn bị và thực hiện."
                     )
                 )
 
-        elif instance.status == 'completed':
-            # 1. Báo cho khách hàng
+        elif instance.status == 'delivering':
+            # 1. Thông báo cho khách hàng khi nhân viên bắt đầu giao lên phòng
             if guest:
                 Notification.objects.create(
                     recipient=guest,
-                    title="Dịch vụ đã sẵn sàng / Đang giao",
+                    title="🛵 Đơn dịch vụ đang được giao tới phòng của bạn!",
                     message=(
-                        f"Dịch vụ \"{service_name}\" cho phòng {room_label} đã được hoàn tất / đang trên đường giao tới quý khách. "
-                        f"Chúc quý khách trải nghiệm dịch vụ trọn vẹn!"
+                        f"Yêu cầu \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
+                        f"đang được nhân viên mang lên tận phòng cho quý khách. Quý khách vui lòng chú ý nhận món nhé!"
+                    )
+                )
+
+            # 2. Thông báo cho Nhân viên phục vụ (service_staff) & Quản trị / Lễ tân
+            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None)
+            staff_notifications = [
+                Notification(
+                    recipient=staff,
+                    title=f"🍽️ Món ăn đã làm xong - Sẵn sàng giao: Phòng {room_label}",
+                    message=(
+                        f"Món ăn / Dịch vụ \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
+                        f"(Khách: {guest_name}) đã được chế biến xong và sẵn sàng được giao. "
+                        f"Nhân viên phục vụ vui lòng nhận món tại bếp và giao lên phòng cho khách!"
+                    )
+                )
+                for staff in staff_users
+            ]
+            if staff_notifications:
+                Notification.objects.bulk_create(staff_notifications)
+
+        elif instance.status == 'completed':
+            # 1. Báo cho khách hàng khi giao hoàn tất
+            if guest:
+                Notification.objects.create(
+                    recipient=guest,
+                    title="✅ Dịch vụ đã giao thành công!",
+                    message=(
+                        f"Yêu cầu \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
+                        f"đã được phục vụ thành công tới phòng quý khách. Chúc quý khách trải nghiệm dịch vụ ngon miệng và trọn vẹn!"
                     )
                 )
 
@@ -359,6 +388,16 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
             ]
             if staff_notifications:
                 Notification.objects.bulk_create(staff_notifications)
+
+        elif instance.status == 'cancelled' and prev_status != 'cancelled':
+            if guest:
+                Notification.objects.create(
+                    recipient=guest,
+                    title="✕ Yêu cầu dịch vụ đã bị hủy",
+                    message=(
+                        f"Yêu cầu dịch vụ \"{service_name}\" cho phòng {room_label} đã bị hủy."
+                    )
+                )
 
     except Exception as e:
         logger.error(f"Lỗi khi tạo thông báo cho ServiceRequest #{getattr(instance, 'pk', 'N/A')}: {e}")
