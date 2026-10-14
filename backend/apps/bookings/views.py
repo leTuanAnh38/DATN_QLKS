@@ -12,6 +12,7 @@ from django.db import transaction
 from .models import Booking, Promotion, BookingExtraService, BookingGuest
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile, log_action
+from ..users.views import check_role_permission
 from ..services.models import ServiceItem, ServiceRequest
 from ..payments.models import Invoice, Payment
 from ..notifications.models import Notification
@@ -422,7 +423,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
         is_authenticated = user and user.is_authenticated
         user_role = getattr(user, 'role', '') if is_authenticated else ''
-        is_staff_or_admin = is_authenticated and (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist'])
+        is_staff_or_admin = is_authenticated and (user.is_superuser or check_role_permission(user, 'bookings', 'update'))
 
         # Phân quyền bảo mật chống IDOR:
         if not is_staff_or_admin:
@@ -489,20 +490,20 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
         user_role = getattr(user, 'role', '')
-        is_front_desk_or_manager = user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']
         is_guest = not user.is_authenticated or user_role == 'guest'
+        has_update_permission = user.is_superuser or check_role_permission(user, 'bookings', 'update')
 
         new_status = request.data.get('status')
 
-        # Nhân viên buồng phòng, thu ngân, kỹ thuật, phục vụ: CHỈ ĐƯỢC XEM, không được sửa
-        if user_role in ['housekeeper', 'cashier', 'service_staff', 'technician']:
+        # Nhân viên nội bộ nếu không có quyền Cập nhật (update) trong ma trận quyền
+        if not is_guest and not has_update_permission:
             return Response({
                 'success': False,
-                'message': 'Bộ phận của bạn chỉ có quyền xem thông tin đơn đặt phòng, không được phép chỉnh sửa.'
+                'message': 'Bạn không có quyền chỉnh sửa đơn đặt phòng (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # Xử lý trường hợp tài khoản là khách hàng
-        if is_guest or not is_front_desk_or_manager:
+        if is_guest:
             if new_status == 'cancelled':
                 if booking.status not in ['pending', 'paid', 'PAID']:
                     return Response({
@@ -597,11 +598,10 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         user = request.user
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager']):
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'delete')):
             return Response({
                 'success': False,
-                'message': 'Chỉ cấp quản lý hoặc quản trị viên mới có quyền xóa đơn đặt phòng.'
+                'message': 'Bạn không có quyền xóa đơn đặt phòng (Yêu cầu quyền Xóa đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
@@ -649,12 +649,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra phân quyền nhân sự khách sạn (Chỉ Lễ tân hoặc Quản lý)
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+        # 1. Kiểm tra phân quyền theo ma trận quyền (Yêu cầu quyền bookings.update)
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện thủ tục Check-in nhận phòng.'
+                'message': 'Bạn không có quyền thực hiện thủ tục Check-in nhận phòng (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 2. Kiểm tra trạng thái hợp lệ của đơn đặt phòng
@@ -1102,12 +1101,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra quyền
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+        # 1. Kiểm tra quyền theo ma trận RBAC
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện đổi phòng cho khách.'
+                'message': 'Bạn không có quyền thực hiện đổi phòng cho khách (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 2. Kiểm tra trạng thái đơn: Phải là 'checked_in'
@@ -1303,11 +1301,10 @@ class BookingViewSet(viewsets.ModelViewSet):
         """
         user = request.user
 
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'create')):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện tiếp đón khách Walk-in tại quầy.'
+                'message': 'Bạn không có quyền thực hiện tiếp đón khách Walk-in tại quầy (Yêu cầu quyền Tạo đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         data = request.data
@@ -1536,11 +1533,10 @@ class BookingViewSet(viewsets.ModelViewSet):
         """
         user = request.user
 
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'create')):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền tạo đơn đặt phòng trước.'
+                'message': 'Bạn không có quyền tạo đơn đặt phòng trước (Yêu cầu quyền Tạo đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         data = request.data
@@ -1856,12 +1852,12 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra phân quyền nhân viên lễ tân / phục vụ / quản lý
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist', 'service_staff']):
+        # 1. Kiểm tra phân quyền: Yêu cầu quyền cập nhật đơn đặt phòng hoặc tạo yêu cầu dịch vụ
+        can_add = user.is_superuser or check_role_permission(user, 'bookings', 'update') or check_role_permission(user, 'services', 'create')
+        if not can_add:
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân, phục vụ hoặc cấp quản lý mới có quyền thêm dịch vụ vào đơn đặt phòng.'
+                'message': 'Bạn không có quyền thêm dịch vụ vào đơn đặt phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
 
         if booking.status == 'cancelled':
@@ -2003,11 +1999,10 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc quản lý mới có quyền xóa phụ phí.'
+                'message': 'Bạn không có quyền xóa phụ phí dịch vụ của đơn đặt phòng (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         item_id = str(request.data.get('item_id', '')).strip()
@@ -2215,12 +2210,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # Kiểm tra phân quyền: Chỉ Lễ tân hoặc cấp Quản lý mới được Check-out
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+        # Kiểm tra phân quyền: Yêu cầu quyền bookings.update theo ma trận RBAC
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền thực hiện thủ tục Check-out trả phòng.'
+                'message': 'Bạn không có quyền thực hiện thủ tục Check-out trả phòng (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # Kiểm tra trạng thái hợp lệ để Check-out (chỉ khi đang checked_in hoặc confirmed)
@@ -2430,12 +2424,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra phân quyền Lễ tân / Quản trị viên
-        user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist']):
+        # 1. Kiểm tra phân quyền: Yêu cầu quyền bookings.update theo ma trận RBAC
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền đánh dấu đơn đặt phòng No-show.'
+                'message': 'Bạn không có quyền đánh dấu đơn đặt phòng No-show (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 2. Kiểm tra trạng thái đơn: Không cho phép no-show nếu đã checked_in, checked_out, completed
@@ -2544,21 +2537,20 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
 
         # 1. Kiểm tra phân quyền truy cập
-        user_role = getattr(user, 'role', '')
         is_staff_or_admin = bool(
             user.is_authenticated and (
-                user.is_staff or 
                 user.is_superuser or 
-                user_role in ['admin', 'owner', 'manager', 'receptionist']
+                user.is_staff or
+                check_role_permission(user, 'bookings', 'update')
             )
         )
         can_extend_staff = is_staff_or_admin
-        is_owner_guest = user.is_authenticated and (booking.guest_id == user.id)
+        is_owner_guest = bool(user.is_authenticated and (booking.guest_id == user.id))
 
-        if not (can_extend_staff or is_owner_guest):
+        if not (is_staff_or_admin or is_owner_guest):
             return Response({
                 'success': False,
-                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền gia hạn lưu trú cho đơn đặt phòng này.'
+                'message': 'Bạn không có quyền gia hạn lưu trú cho đơn đặt phòng này (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 2. Kiểm tra trạng thái: Bắt buộc phải là 'checked_in'

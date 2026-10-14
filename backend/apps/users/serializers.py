@@ -83,6 +83,7 @@ class UserSerializer(serializers.ModelSerializer):
     employee_profile = EmployeeProfileSerializer(read_only=True)
     current_tier = MembershipTierSerializer(read_only=True)
     next_tier_info = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -103,10 +104,23 @@ class UserSerializer(serializers.ModelSerializer):
             'next_tier_info',
             'guest_profile',
             'employee_profile',
+            'permissions',
             'is_staff',
             'is_superuser',
         )
         read_only_fields = ('id', 'role', 'is_staff', 'is_superuser', 'total_points')
+
+    def get_permissions(self, obj):
+        if obj.is_superuser or obj.role == 'admin':
+            return {'*': {'read': True, 'create': True, 'update': True, 'delete': True}}
+        try:
+            from .views import load_role_matrix
+            matrix = load_role_matrix()
+            if obj.role in matrix:
+                return matrix[obj.role]
+        except Exception:
+            pass
+        return None
 
     def get_next_tier_info(self, obj):
         return get_user_next_tier_info(obj)
@@ -174,6 +188,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     employee_profile = EmployeeProfileSerializer(read_only=True)
     current_tier = MembershipTierSerializer(read_only=True)
     next_tier_info = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
     id_type = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     identity_card = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
@@ -206,6 +221,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'next_tier_info',
             'guest_profile',
             'employee_profile',
+            'permissions',
             'is_staff',
             'is_superuser',
             'id_type',
@@ -237,6 +253,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
+
+    def get_permissions(self, obj):
+        if obj.is_superuser or obj.role == 'admin':
+            return {'*': {'read': True, 'create': True, 'update': True, 'delete': True}}
+        try:
+            from .views import load_role_matrix
+            matrix = load_role_matrix()
+            if obj.role in matrix:
+                return matrix[obj.role]
+        except Exception:
+            pass
+        return None
 
     def get_next_tier_info(self, obj):
         return get_user_next_tier_info(obj)

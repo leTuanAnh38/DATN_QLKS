@@ -9,6 +9,7 @@ import CheckOutModal from '../../components/admin/modals/CheckOutModal';
 import CheckInModal from '../../components/admin/modals/CheckInModal';
 import StayingGuestsModal from '../../components/admin/modals/StayingGuestsModal';
 import Pagination from '../../components/common/Pagination';
+import { useHasPermission } from '../../utils/permission';
 
 // Format ngày tháng DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -69,10 +70,14 @@ const STATUS_OPTIONS = [
 ];
 
 export default function BookingManagement({ onBookingChanged, initialFilter = 'all' }) {
-    // Phân quyền theo vai trò người dùng (Housekeeper, Thu ngân... chỉ được xem, không được duyệt/check-in/check-out/sửa)
+    // Phân quyền chi tiết theo Ma trận phân quyền RBAC
     const { user: currentUser } = useAuth();
     const currentUserRole = currentUser?.role || '';
-    const canManageBookings = Boolean(currentUser?.is_superuser || ['admin', 'owner', 'manager', 'receptionist'].includes(currentUserRole));
+    const canCreateBookings = useHasPermission('bookings', 'create');
+    const canUpdateBookings = useHasPermission('bookings', 'update');
+    const canDeleteBookings = useHasPermission('bookings', 'delete');
+    // canManageBookings phục vụ các thao tác cập nhật đơn: Duyệt, Check-in, Check-out, No-show, Sửa
+    const canManageBookings = canUpdateBookings;
 
     // 1. Quản lý State Dữ liệu
     const [bookings, setBookings] = useState([]);
@@ -235,6 +240,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
     const handleAdminExtendStay = async () => {
         if (!selectedBooking || !adminExtendNewDate) return;
+        if (!canManageBookings) {
+            showToast('error', 'Bạn không có quyền gia hạn lưu trú (Yêu cầu quyền Cập nhật đơn đặt phòng).');
+            return;
+        }
         if (!adminExtendCalc.isValid) {
             showToast('error', 'Ngày trả phòng mới phải sau ngày trả phòng hiện tại.');
             return;
@@ -510,6 +519,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     // Lưu ghi chú nội bộ lễ tân
     const handleSaveInternalNote = async () => {
         if (!selectedBooking) return;
+        if (!canManageBookings) {
+            showToast('error', 'Bạn không có quyền chỉnh sửa ghi chú nội bộ.');
+            return;
+        }
         try {
             setIsSavingInternalNote(true);
             const res = await bookingService.updateBooking(selectedBooking.id, {
@@ -744,8 +757,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
     // Mở Modal Tiếp Đón Khách (Walk-in hoặc Đặt trước qua điện thoại)
     const handleOpenWalkInModal = async (initialTab = 'walk_in') => {
-        if (!canManageBookings) {
-            showToast('error', 'Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền tạo đơn đặt phòng tại quầy.');
+        if (!canCreateBookings) {
+            showToast('error', 'Bạn không có quyền tạo đơn đặt phòng mới (Yêu cầu quyền Thêm mới).');
             return;
         }
 
@@ -805,8 +818,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const handleConfirmWalkIn = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
 
-        if (!canManageBookings) {
-            showToast('error', 'Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền tạo đơn đặt phòng trực tiếp.');
+        if (!canCreateBookings) {
+            showToast('error', 'Bạn không có quyền tạo đơn đặt phòng mới (Yêu cầu quyền Thêm mới).');
             return;
         }
 
@@ -1247,7 +1260,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         <span>Xuất DS Khai báo lưu trú</span>
                     </button>
 
-                    {canManageBookings && (
+                    {canCreateBookings && (
                         <button
                             type="button"
                             onClick={() => handleOpenWalkInModal('walk_in')}
