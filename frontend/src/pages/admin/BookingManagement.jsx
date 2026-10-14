@@ -7,6 +7,7 @@ import { notificationService } from '../../services/notificationService';
 import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
 import CheckOutModal from '../../components/admin/modals/CheckOutModal';
 import CheckInModal from '../../components/admin/modals/CheckInModal';
+import StayingGuestsModal from '../../components/admin/modals/StayingGuestsModal';
 import Pagination from '../../components/common/Pagination';
 
 // Format ngày tháng DD/MM/YYYY
@@ -127,6 +128,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
     // 5. State Modal Tiếp Đón Khách (Walk-in & Đặt phòng trước qua điện thoại)
     const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
+    const [isStayingGuestsModalOpen, setIsStayingGuestsModalOpen] = useState(false);
     const [bookingTab, setBookingTab] = useState('walk_in'); // 'walk_in' | 'advance'
     const [walkInAvailableRooms, setWalkInAvailableRooms] = useState([]);
     const [advanceCategories, setAdvanceCategories] = useState([]);
@@ -1234,6 +1236,17 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* NÚT XUẤT DS KHAI BÁO LƯU TRÚ CHO CÔNG AN */}
+                    <button
+                        type="button"
+                        onClick={() => setIsStayingGuestsModalOpen(true)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/25 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                        title="Xem và xuất danh sách toàn bộ khách đang lưu trú thực tế tại khách sạn để nộp Công an phường"
+                    >
+                        <span>📋</span>
+                        <span>Xuất DS Khai báo lưu trú</span>
+                    </button>
+
                     {canManageBookings && (
                         <button
                             type="button"
@@ -2492,6 +2505,14 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     }}
                 />
             )}
+
+            {/* ========================================================================= */}
+            {/* MODAL XUẤT DANH SÁCH KHAI BÁO LƯU TRÚ (CHO CÔNG AN PHƯỜNG)                */}
+            {/* ========================================================================= */}
+            <StayingGuestsModal
+                isOpen={isStayingGuestsModalOpen}
+                onClose={() => setIsStayingGuestsModalOpen(false)}
+            />
 
             {/* ========================================================================= */}
             {/* MODAL KHÁCH VÃNG LAI (WALK-IN GUEST - ĐẶT & NHẬN PHÒNG ĐỒNG THỜI TẠI QUẦY) */}

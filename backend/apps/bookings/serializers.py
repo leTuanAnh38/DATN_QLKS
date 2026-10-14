@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Booking, BookingExtraService, Promotion
+from .models import Booking, BookingExtraService, Promotion, BookingGuest
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User
 import datetime
@@ -49,16 +49,32 @@ class BookingExtraServiceSerializer(serializers.ModelSerializer):
         return float((obj.price or 0) * (obj.quantity or 1))
 
 
+class BookingGuestSerializer(serializers.ModelSerializer):
+    id_type_display = serializers.CharField(source='get_id_type_display', read_only=True)
+
+    class Meta:
+        model = BookingGuest
+        fields = [
+            'id', 'booking', 'full_name', 'id_type', 'id_type_display',
+            'id_number', 'date_of_birth', 'gender', 'nationality',
+            'is_primary', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
 class BookingSerializer(serializers.ModelSerializer):
     room_name = serializers.SerializerMethodField()
     room_number = serializers.SerializerMethodField()
     room_image = serializers.SerializerMethodField()
     category_id = serializers.SerializerMethodField()
     nights = serializers.SerializerMethodField()
+    capacity = serializers.SerializerMethodField()
+    guests = BookingGuestSerializer(many=True, read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     guest_name = serializers.SerializerMethodField()
     guest_phone = serializers.CharField(source='guest.phone_number', read_only=True)
     guest_email = serializers.CharField(source='guest.email', read_only=True)
+    guest_details = serializers.SerializerMethodField()
     promotion_code = serializers.CharField(source='applied_promotion.code', read_only=True, default=None)
     promotion_discount = serializers.SerializerMethodField()
     guest_tier_name = serializers.SerializerMethodField()
@@ -100,13 +116,16 @@ class BookingSerializer(serializers.ModelSerializer):
             'guest_name',
             'guest_phone',
             'guest_email',
+            'guest_details',
             'identity_card',
             'check_in_date',
             'check_out_date',
             'actual_check_in',
             'actual_check_out',
             'nights',
+            'capacity',
             'daily_rate',
+            'guests',
             'promotion_code',
             'promotion_discount',
             'membership_discount',
@@ -395,6 +414,12 @@ class BookingSerializer(serializers.ModelSerializer):
                 return 1
         return 1
 
+    def get_capacity(self, obj):
+        cat = obj.category or (obj.room.category if obj.room else None)
+        if cat and cat.capacity:
+            return cat.capacity
+        return 2
+
     def get_guest_name(self, obj):
         if obj.guest:
             full_name = obj.guest.get_full_name().strip()
@@ -402,6 +427,23 @@ class BookingSerializer(serializers.ModelSerializer):
                 full_name = f"{obj.guest.first_name or ''} {obj.guest.last_name or ''}".strip()
             return full_name or obj.guest.username
         return "Khách vãng lai"
+
+    def get_guest_details(self, obj):
+        if not obj.guest:
+            return None
+        profile = getattr(obj.guest, 'guest_profile', None)
+        return {
+            'id': obj.guest.id,
+            'full_name': self.get_guest_name(obj),
+            'phone_number': obj.guest.phone_number or '',
+            'email': obj.guest.email or '',
+            'id_type': (profile.id_type if profile and profile.id_type else 'CCCD'),
+            'id_number': (profile.id_card_number if profile and profile.id_card_number else obj.identity_card) or '',
+            'date_of_birth': (profile.date_of_birth.strftime('%Y-%m-%d') if profile and profile.date_of_birth else ''),
+            'gender': (profile.gender if profile and profile.gender else 'Nam'),
+            'nationality': (profile.nationality if profile and profile.nationality else 'Việt Nam'),
+            'preferences': (profile.preferences if profile and profile.preferences else ''),
+        }
 
     def get_daily_rate(self, obj):
         cat = obj.category or (obj.room.category if obj.room else None)

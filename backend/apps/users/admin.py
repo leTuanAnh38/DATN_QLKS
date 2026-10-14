@@ -30,8 +30,13 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+class GuestProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'id_type', 'id_card_number', 'date_of_birth', 'gender', 'nationality', 'vip_tier', 'loyalty_points')
+    list_filter = ('id_type', 'gender', 'nationality', 'vip_tier')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'id_card_number')
+
 admin.site.register(User, CustomUserAdmin)
-admin.site.register(GuestProfile)
+admin.site.register(GuestProfile, GuestProfileAdmin)
 admin.site.register(EmployeeProfile)
 admin.site.register(AuditLog, AuditLogAdmin)
 admin.site.register(MembershipTier, MembershipTierAdmin)

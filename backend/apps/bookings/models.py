@@ -103,3 +103,31 @@ class Promotion(models.Model):
     class Meta:
         verbose_name = "Mã Khuyến Mãi"
         verbose_name_plural = "2. Quản lý Khuyến Mãi"
+
+
+# BẢNG QUẢN LÝ KHÁCH LƯU TRÚ (KHAI BÁO LƯU TRÚ KHI CHECK-IN)
+class BookingGuest(models.Model):
+    ID_TYPE_CHOICES = (
+        ('CCCD', 'Căn cước công dân / CMND'),
+        ('PASSPORT', 'Hộ chiếu (Passport)'),
+        ('OTHER', 'Khác / Giấy khai sinh'),
+    )
+
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='guests', verbose_name="Thuộc Đơn đặt phòng")
+    full_name = models.CharField(max_length=100, verbose_name="Họ và tên")
+    id_type = models.CharField(max_length=20, choices=ID_TYPE_CHOICES, default='CCCD', verbose_name="Loại giấy tờ")
+    id_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Số CCCD / Hộ chiếu")
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name="Ngày sinh")
+    gender = models.CharField(max_length=20, null=True, blank=True, verbose_name="Giới tính")
+    nationality = models.CharField(max_length=50, default='Việt Nam', verbose_name="Quốc tịch")
+    is_primary = models.BooleanField(default=False, verbose_name="Là người đại diện đặt phòng")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian khai báo")
+
+    def __str__(self):
+        primary_label = " (Đại diện)" if self.is_primary else ""
+        return f"{self.full_name}{primary_label} - #{self.booking.booking_code}"
+
+    class Meta:
+        verbose_name = "Khách lưu trú"
+        verbose_name_plural = "3. Khai báo Lưu trú (Guests)"
+        ordering = ['-is_primary', 'created_at']

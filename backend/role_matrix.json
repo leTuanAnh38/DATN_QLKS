@@ -31,9 +31,9 @@
       "delete": false
     },
     "services": {
-      "read": true,
+      "read": false,
       "create": false,
-      "update": true,
+      "update": false,
       "delete": false
     },
     "finance": {
@@ -193,6 +193,142 @@
     "marketing": {
       "read": true,
       "create": false,
+      "update": false,
+      "delete": false
+    },
+    "settings": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    }
+  },
+  "manager": {
+    "overview": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "delete": false
+    },
+    "rooms": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "delete": false
+    },
+    "categories": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "delete": false
+    },
+    "bookings": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "guests": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "services": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "finance": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "reports": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "employees": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "delete": false
+    },
+    "marketing": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "delete": false
+    },
+    "settings": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    }
+  },
+  "cashier": {
+    "overview": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "rooms": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "categories": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "bookings": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "guests": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "services": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "finance": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "delete": false
+    },
+    "reports": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "employees": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "marketing": {
+      "read": true,
+      "create": true,
       "update": false,
       "delete": false
     },

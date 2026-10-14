@@ -1,10 +1,16 @@
 from django.contrib import admin
-from .models import Booking, BookingExtraService, Promotion
+from .models import Booking, BookingExtraService, Promotion, BookingGuest
 
 # Tạo khối nhập Dịch vụ phát sinh ngay bên trong form Đặt phòng
 class BookingExtraServiceInline(admin.TabularInline):
     model = BookingExtraService
     extra = 1
+
+# Tạo khối quản lý Khách lưu trú ngay bên trong form Đặt phòng
+class BookingGuestInline(admin.TabularInline):
+    model = BookingGuest
+    extra = 0
+    fields = ('full_name', 'id_type', 'id_number', 'date_of_birth', 'gender', 'nationality', 'is_primary')
 
 class BookingAdmin(admin.ModelAdmin):
     # 1. Xem toàn bộ danh sách & Cập nhật trạng thái nhanh
@@ -18,7 +24,7 @@ class BookingAdmin(admin.ModelAdmin):
     list_filter = ('status', 'check_in_date', 'created_at')
     
     readonly_fields = ('booking_code', 'created_at', 'updated_at')
-    inlines = [BookingExtraServiceInline] # Nhúng khối dịch vụ phát sinh vào
+    inlines = [BookingGuestInline, BookingExtraServiceInline] # Nhúng khối khách lưu trú & dịch vụ phát sinh vào
     
     # Nhóm các trường lại cho Lễ tân dễ nhìn
     fieldsets = (

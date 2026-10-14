@@ -88,8 +88,23 @@ class User(AbstractUser):
 # BẢNG MỞ RỘNG: HỒ SƠ KHÁCH HÀNG
 # ==========================================
 class GuestProfile(models.Model):
+    ID_TYPE_CHOICES = (
+        ('CCCD', 'Căn cước công dân / CMND'),
+        ('PASSPORT', 'Hộ chiếu (Passport)'),
+        ('OTHER', 'Khác / Giấy khai sinh'),
+    )
+    GENDER_CHOICES = (
+        ('Nam', 'Nam'),
+        ('Nữ', 'Nữ'),
+        ('Khác', 'Khác'),
+    )
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='guest_profile', verbose_name='Tài khoản')
+    id_type = models.CharField(max_length=20, choices=ID_TYPE_CHOICES, default='CCCD', verbose_name='Loại giấy tờ')
     id_card_number = models.CharField(max_length=20, null=True, blank=True, verbose_name='CCCD / Passport')
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name='Ngày sinh')
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='Nam', null=True, blank=True, verbose_name='Giới tính')
+    nationality = models.CharField(max_length=50, default='Việt Nam', verbose_name='Quốc tịch')
     loyalty_points = models.IntegerField(default=0, verbose_name='Điểm tích lũy (TA Club)')
     vip_tier = models.CharField(max_length=50, default='Đồng (Bronze)', verbose_name='Hạng Thành viên')
     preferences = models.TextField(null=True, blank=True, verbose_name='Ghi chú sở thích (Dị ứng, gối nệm...)')

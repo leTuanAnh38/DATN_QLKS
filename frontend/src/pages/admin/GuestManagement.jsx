@@ -134,10 +134,14 @@ export default function GuestManagement() {
             email: guest.email || '',
             phone_number: guest.phone_number || '',
             address: guest.address || '',
-            id_card_number: guest.guest_profile?.id_card_number || guest.id_card_number || '',
-            vip_tier: mapTierCode(guest.current_tier?.name || guest.guest_profile?.vip_tier),
+            id_type: guest.id_type || guest.guest_profile?.id_type || 'CCCD',
+            id_card_number: guest.id_card_number || guest.guest_profile?.id_card_number || '',
+            date_of_birth: guest.date_of_birth || guest.guest_profile?.date_of_birth || '',
+            gender: guest.gender || guest.guest_profile?.gender || 'Nam',
+            nationality: guest.nationality || guest.guest_profile?.nationality || 'Việt Nam',
+            vip_tier: mapTierCode(guest.current_tier?.name || guest.guest_profile?.vip_tier || guest.vip_tier),
             loyalty_points: guest.total_points ?? guest.guest_profile?.loyalty_points ?? 0,
-            preferences: guest.guest_profile?.preferences || '',
+            preferences: guest.preferences || guest.guest_profile?.preferences || '',
             is_active: guest.is_active,
             new_password: '',
         });
@@ -655,11 +659,54 @@ export default function GuestManagement() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block font-bold text-slate-700 mb-1">Số CCCD / Hộ chiếu (Passport)</label>
+                                    <label className="block font-bold text-slate-700 mb-1">Giấy tờ định danh</label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={editFormData.id_type}
+                                            onChange={(e) => setEditFormData({ ...editFormData, id_type: e.target.value })}
+                                            className="w-28 px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white text-xs font-semibold cursor-pointer"
+                                        >
+                                            <option value="CCCD">CCCD</option>
+                                            <option value="PASSPORT">Hộ chiếu</option>
+                                            <option value="OTHER">Khác</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={editFormData.id_card_number}
+                                            onChange={(e) => setEditFormData({ ...editFormData, id_card_number: e.target.value })}
+                                            placeholder="Số CCCD / Hộ chiếu"
+                                            className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block font-bold text-slate-700 mb-1">Ngày sinh</label>
+                                    <input
+                                        type="date"
+                                        value={editFormData.date_of_birth}
+                                        onChange={(e) => setEditFormData({ ...editFormData, date_of_birth: e.target.value })}
+                                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block font-bold text-slate-700 mb-1">Giới tính</label>
+                                    <select
+                                        value={editFormData.gender}
+                                        onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
+                                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white font-medium cursor-pointer"
+                                    >
+                                        <option value="Nam">Nam</option>
+                                        <option value="Nữ">Nữ</option>
+                                        <option value="Khác">Khác</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block font-bold text-slate-700 mb-1">Quốc tịch</label>
                                     <input
                                         type="text"
-                                        value={editFormData.id_card_number}
-                                        onChange={(e) => setEditFormData({ ...editFormData, id_card_number: e.target.value })}
+                                        value={editFormData.nationality}
+                                        onChange={(e) => setEditFormData({ ...editFormData, nationality: e.target.value })}
+                                        placeholder="Ví dụ: Việt Nam"
                                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white"
                                     />
                                 </div>

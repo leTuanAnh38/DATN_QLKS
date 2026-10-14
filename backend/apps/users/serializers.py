@@ -39,7 +39,16 @@ class GuestProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GuestProfile
-        fields = ('id_card_number', 'loyalty_points', 'vip_tier', 'preferences')
+        fields = (
+            'id_type',
+            'id_card_number',
+            'date_of_birth',
+            'gender',
+            'nationality',
+            'loyalty_points',
+            'vip_tier',
+            'preferences'
+        )
 
     def get_vip_tier(self, obj):
         if obj.user and getattr(obj.user, 'current_tier', None):
@@ -137,8 +146,12 @@ class UserSerializer(serializers.ModelSerializer):
         elif id_card and len(id_card) > 6:
             id_card = f"{id_card[:4]}****{id_card[-2:]}"
 
+        data['id_type'] = profile.id_type if profile and profile.id_type else 'CCCD'
         data['id_card_number'] = id_card
         data['identity_card'] = id_card
+        data['date_of_birth'] = profile.date_of_birth.strftime('%Y-%m-%d') if (profile and profile.date_of_birth) else None
+        data['gender'] = profile.gender if profile and profile.gender else 'Nam'
+        data['nationality'] = profile.nationality if profile and profile.nationality else 'Việt Nam'
         data['preferences'] = prefs
         return data
 
@@ -161,8 +174,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
     employee_profile = EmployeeProfileSerializer(read_only=True)
     current_tier = MembershipTierSerializer(read_only=True)
     next_tier_info = serializers.SerializerMethodField()
+    id_type = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     identity_card = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+    date_of_birth = serializers.DateField(write_only=True, required=False, allow_null=True)
+    gender = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+    nationality = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     preferences = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
 
     class Meta:
@@ -191,8 +208,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'employee_profile',
             'is_staff',
             'is_superuser',
+            'id_type',
             'id_card_number',
             'identity_card',
+            'date_of_birth',
+            'gender',
+            'nationality',
             'preferences',
         )
         read_only_fields = (
@@ -250,8 +271,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         profile = getattr(instance, 'guest_profile', None)
         id_card = profile.id_card_number if profile and profile.id_card_number else ''
         prefs = profile.preferences if profile and profile.preferences else ''
+        data['id_type'] = profile.id_type if profile and profile.id_type else 'CCCD'
         data['id_card_number'] = id_card
         data['identity_card'] = id_card
+        data['date_of_birth'] = profile.date_of_birth.strftime('%Y-%m-%d') if (profile and profile.date_of_birth) else None
+        data['gender'] = profile.gender if profile and profile.gender else 'Nam'
+        data['nationality'] = profile.nationality if profile and profile.nationality else 'Việt Nam'
         data['preferences'] = prefs
         return data
 
@@ -315,24 +340,46 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         instance.save()
 
-        # Cập nhật thông tin GuestProfile (CCCD / Passport, sở thích)
+        # Cập nhật thông tin GuestProfile (CCCD / Passport, sở thích, ngày sinh, giới tính, quốc tịch)
+        id_type = validated_data.pop('id_type', None)
         id_card = validated_data.pop('id_card_number', None)
         if id_card is None:
             id_card = validated_data.pop('identity_card', None)
-        if id_card is None and request:
-            if 'id_card_number' in request.data:
-                id_card = request.data.get('id_card_number')
-            elif 'identity_card' in request.data:
-                id_card = request.data.get('identity_card')
-
+        dob = validated_data.pop('date_of_birth', None)
+        gender = validated_data.pop('gender', None)
+        nationality = validated_data.pop('nationality', None)
         prefs = validated_data.pop('preferences', None)
-        if prefs is None and request and 'preferences' in request.data:
-            prefs = request.data.get('preferences')
 
-        if id_card is not None or prefs is not None:
+        if request:
+            if id_type is None and 'id_type' in request.data:
+                id_type = request.data.get('id_type')
+            if id_card is None:
+                if 'id_card_number' in request.data:
+                    id_card = request.data.get('id_card_number')
+                elif 'identity_card' in request.data:
+                    id_card = request.data.get('identity_card')
+            if dob is None and 'date_of_birth' in request.data:
+                dob = request.data.get('date_of_birth')
+            if gender is None and 'gender' in request.data:
+                gender = request.data.get('gender')
+            if nationality is None and 'nationality' in request.data:
+                nationality = request.data.get('nationality')
+            if prefs is None and 'preferences' in request.data:
+                prefs = request.data.get('preferences')
+
+        has_guest_updates = any(x is not None for x in [id_type, id_card, dob, gender, nationality, prefs])
+        if has_guest_updates:
             guest_profile, _ = GuestProfile.objects.get_or_create(user=instance)
+            if id_type is not None:
+                guest_profile.id_type = str(id_type).strip() or 'CCCD'
             if id_card is not None:
                 guest_profile.id_card_number = str(id_card).strip()
+            if dob is not None:
+                guest_profile.date_of_birth = dob or None
+            if gender is not None:
+                guest_profile.gender = str(gender).strip() or 'Nam'
+            if nationality is not None:
+                guest_profile.nationality = str(nationality).strip() or 'Việt Nam'
             if prefs is not None:
                 guest_profile.preferences = str(prefs).strip()
             guest_profile.save()
@@ -566,7 +613,11 @@ class AdminGuestSerializer(serializers.ModelSerializer):
     total_spent = serializers.SerializerMethodField()
     has_usable_password = serializers.SerializerMethodField()
     is_auto_created = serializers.SerializerMethodField()
+    id_type = serializers.CharField(write_only=True, required=False, allow_blank=True)
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    date_of_birth = serializers.DateField(write_only=True, required=False, allow_null=True)
+    gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    nationality = serializers.CharField(write_only=True, required=False, allow_blank=True)
     vip_tier = serializers.CharField(write_only=True, required=False, allow_blank=True)
     loyalty_points = serializers.IntegerField(write_only=True, required=False)
     preferences = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -596,7 +647,11 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             'total_spent',
             'has_usable_password',
             'is_auto_created',
+            'id_type',
             'id_card_number',
+            'date_of_birth',
+            'gender',
+            'nationality',
             'vip_tier',
             'loyalty_points',
             'preferences',
@@ -641,7 +696,11 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             return 0.0
 
     def update(self, instance, validated_data):
+        id_type = validated_data.pop('id_type', None)
         id_card = validated_data.pop('id_card_number', None)
+        dob = validated_data.pop('date_of_birth', None)
+        gender = validated_data.pop('gender', None)
+        nationality = validated_data.pop('nationality', None)
         vip_tier = validated_data.pop('vip_tier', None)
         points = validated_data.pop('loyalty_points', None)
         prefs = validated_data.pop('preferences', None)
@@ -669,8 +728,16 @@ class AdminGuestSerializer(serializers.ModelSerializer):
         instance.save()
 
         profile, _ = GuestProfile.objects.get_or_create(user=instance)
+        if id_type is not None:
+            profile.id_type = id_type
         if id_card is not None:
             profile.id_card_number = id_card
+        if dob is not None:
+            profile.date_of_birth = dob or None
+        if gender is not None:
+            profile.gender = gender
+        if nationality is not None:
+            profile.nationality = nationality
         if vip_tier is not None:
             clean_tier = str(vip_tier).strip()
             tier_obj = MembershipTier.objects.filter(
@@ -691,6 +758,23 @@ class AdminGuestSerializer(serializers.ModelSerializer):
         profile.save()
 
         return instance
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        profile = getattr(instance, 'guest_profile', None)
+        id_card = profile.id_card_number if profile and profile.id_card_number else ''
+        prefs = profile.preferences if profile and profile.preferences else ''
+
+        data['id_type'] = profile.id_type if profile and profile.id_type else 'CCCD'
+        data['id_card_number'] = id_card
+        data['identity_card'] = id_card
+        data['date_of_birth'] = profile.date_of_birth.strftime('%Y-%m-%d') if (profile and profile.date_of_birth) else None
+        data['gender'] = profile.gender if profile and profile.gender else 'Nam'
+        data['nationality'] = profile.nationality if profile and profile.nationality else 'Việt Nam'
+        data['preferences'] = prefs
+        data['vip_tier'] = profile.vip_tier if profile else 'Bronze'
+        data['loyalty_points'] = getattr(instance, 'total_points', 0)
+        return data
 
 
 class AdminEmployeeSerializer(serializers.ModelSerializer):

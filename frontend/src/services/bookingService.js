@@ -260,6 +260,20 @@ export const bookingService = {
     },
 
     /**
+     * Lấy danh sách toàn bộ khách đang lưu trú thực tế tại khách sạn (status=checked_in)
+     * Phục vụ xuất báo cáo khai báo tạm trú nộp Công an phường
+     */
+    async getStayingGuests() {
+        try {
+            const response = await api.get('/bookings/staying-guests/');
+            return response.data;
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách khách lưu trú:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Thực hiện Đổi phòng (Room Move) cho khách đang lưu trú
      * POST /api/bookings/:id/change-room/
      * @param {number|string} bookingId

@@ -48,6 +48,94 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
         account_name: 'KHACH SAN TA DA NANG'
     });
 
+    // Sức chứa tiêu chuẩn của phòng/hạng phòng
+    const roomCapacity = useMemo(() => {
+        return Number(booking?.capacity || booking?.category?.capacity || 2);
+    }, [booking]);
+
+    // DANH SÁCH KHÁCH LƯU TRÚ (KHAI BÁO LƯU TRÚ KHI CHECK-IN)
+    const [guests, setGuests] = useState(() => {
+        if (booking?.guests && Array.isArray(booking.guests) && booking.guests.length > 0) {
+            return booking.guests.map((g, idx) => ({
+                id: g.id || `guest_${idx}_${Date.now()}`,
+                full_name: g.full_name || '',
+                id_type: g.id_type || 'CCCD',
+                id_number: g.id_number || '',
+                date_of_birth: g.date_of_birth || '',
+                gender: g.gender || 'Nam',
+                nationality: g.nationality || 'Việt Nam',
+                is_primary: Boolean(g.is_primary ?? idx === 0)
+            }));
+        }
+        const details = booking?.guest_details || {};
+        return [
+            {
+                id: 'primary',
+                full_name: details.full_name || booking?.guest_name || '',
+                id_type: details.id_type || 'CCCD',
+                id_number: details.id_number || booking?.identity_card || '',
+                date_of_birth: details.date_of_birth || '',
+                gender: details.gender || 'Nam',
+                nationality: details.nationality || 'Việt Nam',
+                is_primary: true
+            }
+        ];
+    });
+
+    const isOverCapacity = guests.length > roomCapacity;
+
+    const handleAddGuest = () => {
+        setGuests((prev) => [
+            ...prev,
+            {
+                id: `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+                full_name: '',
+                id_type: 'CCCD',
+                id_number: '',
+                date_of_birth: '',
+                gender: 'Nam',
+                nationality: 'Việt Nam',
+                is_primary: false
+            }
+        ]);
+    };
+
+    const handleRemoveGuest = (indexToRemove) => {
+        setGuests((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    };
+
+    const handleGuestChange = (index, field, value) => {
+        setGuests((prev) =>
+            prev.map((g, idx) => (idx === index ? { ...g, [field]: value } : g))
+        );
+    };
+
+    const validateGuests = () => {
+        if (!guests || guests.length === 0) {
+            alert('Vui lòng khai báo ít nhất thông tin 1 khách lưu trú.');
+            return false;
+        }
+
+        for (let i = 0; i < guests.length; i++) {
+            const g = guests[i];
+            const title = g.is_primary ? 'Người đại diện đặt phòng' : `Khách đi cùng #${i}`;
+
+            if (!g.full_name || !g.full_name.trim()) {
+                alert(`Vui lòng nhập đầy đủ Họ và tên cho ${title}.`);
+                return false;
+            }
+
+            // Bắt buộc nhập số CCCD/Hộ chiếu trừ khi chọn OTHER (Trẻ em / Khác)
+            if (g.id_type !== 'OTHER') {
+                if (!g.id_number || !g.id_number.trim()) {
+                    alert(`Vui lòng nhập Số ${g.id_type === 'PASSPORT' ? 'Hộ chiếu' : 'CCCD/CMND'} cho ${title}.`);
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
     const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
     // 2. TÍNH TOÁN ĐẾN SỚM (EARLY) / ĐẾN TRỄ (LATE) / QUÁ HẠN LƯU TRÚ
@@ -205,16 +293,31 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
             return;
         }
 
+        if (!validateGuests()) {
+            return;
+        }
+
         try {
             setIsSubmitting(true);
             const finalNote = [checkInNote.trim(), extraNote.trim()].filter(Boolean).join(' | ');
+
+            const guestsPayload = guests.map((g) => ({
+                full_name: g.full_name.trim(),
+                id_type: g.id_type,
+                id_number: g.id_number ? g.id_number.trim() : '',
+                date_of_birth: g.date_of_birth || null,
+                gender: g.gender || null,
+                nationality: g.nationality ? g.nationality.trim() : 'Việt Nam',
+                is_primary: Boolean(g.is_primary)
+            }));
 
             const res = await bookingService.checkInBooking(booking.id, {
                 room_id: selectedRoomId,
                 internal_note: finalNote,
                 confirm_early_check_in: confirmEarlyCheckIn,
                 apply_early_charge: applyEarlyCharge,
-                confirm_late_check_in: confirmLateCheckIn
+                confirm_late_check_in: confirmLateCheckIn,
+                guests: guestsPayload
             });
 
             if (res && res.success) {
@@ -277,7 +380,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
 
     return (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full p-6 sm:p-7 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-4xl w-full p-6 sm:p-7 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
                 
                 {/* ========================================================================= */}
                 {/* 1. HEADER MODAL                                                           */}
@@ -298,7 +401,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                 </span>
                             </div>
                             <h3 className="font-serif text-xl font-bold text-slate-900 mt-1">
-                                Thủ Tục Check-in & Thanh Toán Nhận Phòng
+                                Thủ Tục Check-in & Khai Báo Lưu Trú
                             </h3>
                         </div>
                     </div>
@@ -486,12 +589,13 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                     )}
 
                     {/* ===================================================================== */}
-                    {/* 3. THÔNG TIN KHÁCH HÀNG & GÁN PHÒNG THỰC TẾ                            */}
                     {/* ===================================================================== */}
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-3">
-                        <div className="grid grid-cols-2 gap-3 text-slate-700">
+                    {/* 3. TÓM TẮT THÔNG TIN PHÒNG & GÁN PHÒNG THỰC TẾ                        */}
+                    {/* ===================================================================== */}
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-3 shadow-2xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-700">
                             <div>
-                                <span className="text-slate-400 block text-[11px]">Khách hàng lưu trú:</span>
+                                <span className="text-slate-400 block text-[11px]">Người đặt phòng:</span>
                                 <strong className="text-slate-900 text-xs block truncate mt-0.5">
                                     👤 {booking.guest_name}
                                 </strong>
@@ -501,12 +605,22 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                             </div>
 
                             <div>
-                                <span className="text-slate-400 block text-[11px]">Hạng phòng đã đặt:</span>
+                                <span className="text-slate-400 block text-[11px]">Hạng phòng & Tiêu chuẩn:</span>
                                 <strong className="text-slate-900 text-xs block text-emerald-800 font-bold mt-0.5">
                                     🏨 {booking.room_name}
                                 </strong>
-                                <span className="text-[10px] text-slate-500 block">
+                                <span className="text-[10px] text-emerald-700 font-semibold block">
+                                    👥 Tiêu chuẩn: {roomCapacity} người lớn
+                                </span>
+                            </div>
+
+                            <div>
+                                <span className="text-slate-400 block text-[11px]">Lịch trình lưu trú:</span>
+                                <strong className="text-slate-900 text-xs block mt-0.5">
                                     🗓️ {formatDateDisplay(booking.check_in_date)} → {formatDateDisplay(booking.check_out_date)}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 block">
+                                    Thời gian: {booking.nights || 1} đêm
                                 </span>
                             </div>
                         </div>
@@ -547,6 +661,186 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                     ))}
                                 </select>
                             )}
+                        </div>
+                    </div>
+
+                    {/* ===================================================================== */}
+                    {/* 4. KHAI BÁO THÔNG TIN KHÁCH LƯU TRÚ (DYNAMIC FORM)                    */}
+                    {/* ===================================================================== */}
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-3 shadow-2xs">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                            <div className="flex items-center gap-2">
+                                <span className="text-base">📋</span>
+                                <div>
+                                    <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                                        Danh sách khách lưu trú ({guests.length} người)
+                                    </h4>
+                                    <p className="text-[10px] text-slate-500">
+                                        Khai báo CCCD/Hộ chiếu phục vụ thủ tục đăng ký tạm trú
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleAddGuest}
+                                disabled={isSubmitting || isProcessingPayment}
+                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                            >
+                                <span>➕</span>
+                                <span>Thêm người ở cùng</span>
+                            </button>
+                        </div>
+
+                        {/* CẢNH BÁO THÔNG MINH KHI VƯỢT QUÁ TIÊU CHUẨN SỨC CHỨA */}
+                        {isOverCapacity && (
+                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-center gap-2.5 animate-in fade-in">
+                                <span className="text-xl shrink-0">⚠️</span>
+                                <div className="leading-tight">
+                                    <strong className="font-bold text-amber-950">Số lượng khách vượt quá tiêu chuẩn phòng!</strong>
+                                    <div className="text-[11px] text-amber-800 mt-0.5">
+                                        Phòng có tiêu chuẩn <strong>{roomCapacity} người lớn</strong> nhưng danh sách đang có <strong>{guests.length} khách</strong>. Lưu ý kiểm tra phụ thu thêm người!
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* DANH SÁCH FORM KHÁCH HÀNG */}
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                            {guests.map((guest, idx) => (
+                                <div
+                                    key={guest.id || idx}
+                                    className={`p-3 rounded-xl border transition ${
+                                        guest.is_primary
+                                            ? 'bg-blue-50/40 border-blue-200 ring-1 ring-blue-300/40'
+                                            : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-xs text-slate-800">
+                                                {idx + 1}. {guest.is_primary ? 'Người đại diện đặt phòng' : `Khách đi cùng #${idx}`}
+                                            </span>
+                                            {guest.is_primary ? (
+                                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold rounded-md border border-blue-200">
+                                                    ⭐ Đại diện chính
+                                                </span>
+                                            ) : (
+                                                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-medium rounded-md">
+                                                    Đi cùng
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {!guest.is_primary && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveGuest(idx)}
+                                                disabled={isSubmitting || isProcessingPayment}
+                                                className="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-1 cursor-pointer transition p-1 hover:bg-rose-50 rounded-lg active:scale-95"
+                                                title="Xóa người này"
+                                            >
+                                                <span>🗑️</span>
+                                                <span className="text-[11px]">Xóa</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-[11px]">
+                                        {/* Họ và tên */}
+                                        <div className="sm:col-span-2 space-y-0.5">
+                                            <label className="text-[10px] font-semibold text-slate-600">
+                                                Họ và tên <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Nguyễn Văn A"
+                                                value={guest.full_name}
+                                                onChange={(e) => handleGuestChange(idx, 'full_name', e.target.value)}
+                                                disabled={isSubmitting || isProcessingPayment}
+                                                className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                            />
+                                        </div>
+
+                                        {/* Loại giấy tờ */}
+                                        <div className="space-y-0.5">
+                                            <label className="text-[10px] font-semibold text-slate-600">
+                                                Loại giấy tờ
+                                            </label>
+                                            <select
+                                                value={guest.id_type}
+                                                onChange={(e) => handleGuestChange(idx, 'id_type', e.target.value)}
+                                                disabled={isSubmitting || isProcessingPayment}
+                                                className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                            >
+                                                <option value="CCCD">CCCD / CMND</option>
+                                                <option value="PASSPORT">Hộ chiếu</option>
+                                                <option value="OTHER">Trẻ em / Khác</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Số giấy tờ */}
+                                        <div className="sm:col-span-2 space-y-0.5">
+                                            <label className="text-[10px] font-semibold text-slate-600">
+                                                Số CCCD / Hộ chiếu {guest.id_type !== 'OTHER' && <span className="text-rose-500">*</span>}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder={guest.id_type === 'OTHER' ? 'Không bắt buộc' : 'Số định danh...'}
+                                                value={guest.id_number}
+                                                onChange={(e) => handleGuestChange(idx, 'id_number', e.target.value)}
+                                                disabled={isSubmitting || isProcessingPayment}
+                                                className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                                            />
+                                        </div>
+
+                                        {/* Giới tính */}
+                                        <div className="space-y-0.5">
+                                            <label className="text-[10px] font-semibold text-slate-600">
+                                                Giới tính
+                                            </label>
+                                            <select
+                                                value={guest.gender || 'Nam'}
+                                                onChange={(e) => handleGuestChange(idx, 'gender', e.target.value)}
+                                                disabled={isSubmitting || isProcessingPayment}
+                                                className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                            >
+                                                <option value="Nam">Nam</option>
+                                                <option value="Nữ">Nữ</option>
+                                                <option value="Khác">Khác</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Ngày sinh */}
+                                        <div className="sm:col-span-2 space-y-0.5">
+                                            <label className="text-[10px] font-semibold text-slate-600">
+                                                Ngày sinh
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={guest.date_of_birth || ''}
+                                                onChange={(e) => handleGuestChange(idx, 'date_of_birth', e.target.value)}
+                                                disabled={isSubmitting || isProcessingPayment}
+                                                className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {/* Quốc tịch */}
+                                        <div className="sm:col-span-2 space-y-0.5">
+                                            <label className="text-[10px] font-semibold text-slate-600">
+                                                Quốc tịch
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Việt Nam"
+                                                value={guest.nationality || 'Việt Nam'}
+                                                onChange={(e) => handleGuestChange(idx, 'nationality', e.target.value)}
+                                                disabled={isSubmitting || isProcessingPayment}
+                                                className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -632,27 +926,10 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                 </div>
                             )}
 
-                            {/* Nút xác nhận thanh toán & check-in */}
-                            <div className="flex justify-end pt-1">
-                                <button
-                                    type="button"
-                                    disabled={isProcessingPayment || isSubmitting}
-                                    onClick={handleConfirmPaymentAndCheckIn}
-                                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
-                                >
-                                    {isProcessingPayment ? (
-                                        <>
-                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            <span>Đang xử lý thanh toán & Check-in...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>✓</span>
-                                            <span>Xác nhận Đã thu {formatCurrency(effectiveRemainingBalance)} & Check-in</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                            {/* Hướng dẫn thanh toán nhanh */}
+                            <p className="text-[11px] text-slate-500 italic">
+                                * Lễ tân vui lòng nhận tiền mặt hoặc đợi khách quét mã VietQR thành công, sau đó bấm nút <strong>"Xác nhận Đã thu & Check-in"</strong> ở góc dưới để hoàn tất.
+                            </p>
                         </div>
                     )}
 
@@ -709,12 +986,63 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                             ) : (
                                 <>
                                     <span>🔑</span>
-                                    <span>Hoàn tất Check-in</span>
+                                    <span>Hoàn tất Check-in & Lưu thông tin</span>
                                 </>
                             )}
                         </button>
+                    ) : showPaymentForm ? (
+                        /* TRƯỜNG HỢP 1B: ĐÃ MỞ FORM THU TIỀN -> Hiện nút Xác nhận thu tiền & Check-in ở footer */
+                        <>
+                            {/* Nút Cho nợ & Check-in (Vẫn cho phép nếu khách đổi ý) */}
+                            <button
+                                type="button"
+                                disabled={
+                                    isSubmitting ||
+                                    isProcessingPayment ||
+                                    availableRooms.length === 0 ||
+                                    !selectedRoomId ||
+                                    isExpiredCheckIn ||
+                                    (isEarlyCheckIn && !confirmEarlyCheckIn) ||
+                                    (isLateCheckIn && !confirmLateCheckIn)
+                                }
+                                onClick={handleDebtAndCheckIn}
+                                className="px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                title="Cho khách nhận phòng trước, ghi nhận nợ tiền phòng vào Folio và thu khi check-out"
+                            >
+                                <span>📋</span>
+                                <span>Cho nợ & Check-in</span>
+                            </button>
+
+                            {/* Nút Xác nhận đã thu tiền & Check-in (Thực thi chính thức) */}
+                            <button
+                                type="button"
+                                disabled={
+                                    isSubmitting ||
+                                    isProcessingPayment ||
+                                    availableRooms.length === 0 ||
+                                    !selectedRoomId ||
+                                    isExpiredCheckIn ||
+                                    (isEarlyCheckIn && !confirmEarlyCheckIn) ||
+                                    (isLateCheckIn && !confirmLateCheckIn)
+                                }
+                                onClick={handleConfirmPaymentAndCheckIn}
+                                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                                {isProcessingPayment ? (
+                                    <>
+                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Đang xử lý thanh toán & Check-in...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>✓</span>
+                                        <span>Xác nhận Đã thu {formatCurrency(effectiveRemainingBalance)} & Check-in</span>
+                                    </>
+                                )}
+                            </button>
+                        </>
                     ) : (
-                        /* TRƯỜNG HỢP 1 (POST-PAID): Hiện 2 nút "Thu tiền & Check-in" HOẶC "Cho nợ & Check-in" */
+                        /* TRƯỜNG HỢP 1A: CHƯA MỞ FORM THU TIỀN -> Hiện "Cho nợ & Check-in" hoặc "Thu tiền & Check-in" (để mở form) */
                         <>
                             {/* Nút 1: Cho nợ & Check-in */}
                             <button
@@ -736,7 +1064,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                 <span>Cho nợ & Check-in</span>
                             </button>
 
-                            {/* Nút 2: Thu tiền & Check-in */}
+                            {/* Nút 2: Mở form thu tiền */}
                             <button
                                 type="button"
                                 disabled={

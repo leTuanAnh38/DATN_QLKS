@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Q, F
 from django.db import transaction
-from .models import Booking, Promotion, BookingExtraService
+from .models import Booking, Promotion, BookingExtraService, BookingGuest
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile, log_action
 from ..services.models import ServiceItem, ServiceRequest
@@ -659,7 +659,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         # 2. Kiểm tra trạng thái hợp lệ của đơn đặt phòng
         if booking.status == 'checked_in':
-            actual_str = booking.actual_check_in.strftime('%H:%M %d/%m/%Y') if booking.actual_check_in else ''
+            actual_str = timezone.localtime(booking.actual_check_in).strftime('%H:%M %d/%m/%Y') if booking.actual_check_in else ''
             return Response({
                 'success': False,
                 'message': f'Đơn đặt phòng {booking.booking_code} đã hoàn tất Check-in trước đó ({actual_str}). Không thể Check-in lại.'
@@ -897,6 +897,56 @@ class BookingViewSet(viewsets.ModelViewSet):
             target_room.status = 'occupied'
             target_room.save(update_fields=['status'])
 
+            # Việc 3: Khai báo lưu trú - Lưu danh sách khách ở cùng phòng (BookingGuest)
+            guests_data = request.data.get('guests', None)
+            saved_guests_count = 0
+            if guests_data is not None and isinstance(guests_data, list):
+                # Xóa danh sách khách cũ của booking này (nếu có) và lưu mới
+                BookingGuest.objects.filter(booking=booking).delete()
+                guests_to_create = []
+                for g in guests_data:
+                    full_name = (g.get('full_name') or '').strip()
+                    if not full_name:
+                        continue
+                    dob_val = g.get('date_of_birth')
+                    if not dob_val or str(dob_val).strip() == '':
+                        dob_val = None
+                    guests_to_create.append(BookingGuest(
+                        booking=booking,
+                        full_name=full_name,
+                        id_type=g.get('id_type', 'CCCD'),
+                        id_number=(g.get('id_number') or '').strip() or None,
+                        date_of_birth=dob_val,
+                        gender=(g.get('gender') or '').strip() or None,
+                        nationality=(g.get('nationality') or '').strip() or 'Việt Nam',
+                        is_primary=bool(g.get('is_primary', False))
+                    ))
+                if guests_to_create:
+                    BookingGuest.objects.bulk_create(guests_to_create)
+                    saved_guests_count = len(guests_to_create)
+                    # Cập nhật số CCCD của booking nếu người đại diện có CCCD
+                    primary_guest = next((g for g in guests_to_create if g.is_primary and g.id_number), None)
+                    if primary_guest and primary_guest.id_number and booking.identity_card != primary_guest.id_number:
+                        booking.identity_card = primary_guest.id_number
+                        booking.save(update_fields=['identity_card'])
+            elif not booking.guests.exists() and booking.guest:
+                # Nếu không gửi mảng guests và chưa có khai báo nào, tự động tạo 1 guest đại diện từ GuestProfile
+                primary_name = booking.guest.get_full_name() or booking.guest.username
+                profile = getattr(booking.guest, 'guest_profile', None)
+                BookingGuest.objects.create(
+                    booking=booking,
+                    full_name=primary_name,
+                    id_type=(profile.id_type if profile and profile.id_type else 'CCCD'),
+                    id_number=(profile.id_card_number if profile and profile.id_card_number else booking.identity_card) or None,
+                    date_of_birth=(profile.date_of_birth if profile else None),
+                    gender=(profile.gender if profile and profile.gender else 'Nam'),
+                    nationality=(profile.nationality if profile and profile.nationality else 'Việt Nam'),
+                    is_primary=True
+                )
+                saved_guests_count = 1
+            else:
+                saved_guests_count = booking.guests.count()
+
         # Lấy thông tin serialize đầy đủ
         serializer = self.get_serializer(booking, context={'request': request})
         from ..rooms.serializers import RoomSerializer
@@ -905,11 +955,12 @@ class BookingViewSet(viewsets.ModelViewSet):
         guest_display = booking.guest.get_full_name() or booking.guest.username if booking.guest else "Khách hàng"
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        guest_log_suffix = f" (Khai báo lưu trú: {saved_guests_count} khách)" if saved_guests_count > 0 else ""
         log_action(
             user=request.user,
             action='UPDATE',
             module='BOOKING',
-            description=f"Thực hiện Check-in đơn #{booking.booking_code} cho khách {guest_display} vào phòng {target_room.room_number}",
+            description=f"Thực hiện Check-in đơn #{booking.booking_code} cho khách {guest_display} vào phòng {target_room.room_number}{guest_log_suffix}",
             request=request
         )
 
@@ -934,6 +985,102 @@ class BookingViewSet(viewsets.ModelViewSet):
             'booking': serializer.data,
             'room': room_data,
             **serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='staying-guests')
+    def staying_guests(self, request):
+        """
+        API trả về danh sách toàn bộ khách hàng (BookingGuest) của các đơn đặt phòng
+        đang có trạng thái 'checked_in' (đang lưu trú thực tế tại khách sạn).
+        Phục vụ việc xuất báo cáo khai báo tạm trú nộp Công an phường.
+        - GET /api/bookings/staying-guests/
+        """
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        if not (user.is_superuser or user.is_staff or user_role in ['admin', 'owner', 'manager', 'receptionist', 'staff', 'cashier']):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền xem và xuất danh sách khách lưu trú.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Lấy tất cả các đơn đặt phòng đang lưu trú (status='checked_in')
+        active_bookings = Booking.objects.filter(
+            status='checked_in'
+        ).select_related(
+            'room', 'room__category', 'category', 'guest'
+        ).prefetch_related('guests').order_by('room__room_number', '-actual_check_in')
+
+        results = []
+        for booking in active_bookings:
+            room_num = booking.room.room_number if booking.room else 'Chưa gán'
+            room_name = (
+                booking.category.name if booking.category
+                else (booking.room.category.name if (booking.room and booking.room.category) else 'Tiêu chuẩn')
+            )
+            check_in_str = (
+                timezone.localtime(booking.actual_check_in).strftime('%H:%M %d/%m/%Y')
+                if booking.actual_check_in
+                else (booking.check_in_date.strftime('%d/%m/%Y') if booking.check_in_date else '')
+            )
+            check_out_str = booking.check_out_date.strftime('%d/%m/%Y') if booking.check_out_date else ''
+            guest_phone = getattr(booking.guest, 'phone_number', '') or ''
+
+            booking_guests = list(booking.guests.all())
+            if booking_guests:
+                for bg in booking_guests:
+                    results.append({
+                        'id': bg.id,
+                        'booking_id': booking.id,
+                        'booking_code': booking.booking_code,
+                        'room_number': room_num,
+                        'room_name': room_name,
+                        'full_name': bg.full_name,
+                        'id_type': bg.id_type,
+                        'id_type_display': bg.get_id_type_display() if hasattr(bg, 'get_id_type_display') else bg.id_type,
+                        'id_number': bg.id_number or '',
+                        'date_of_birth': bg.date_of_birth.strftime('%d/%m/%Y') if bg.date_of_birth else '',
+                        'gender': bg.gender or '',
+                        'nationality': bg.nationality or 'Việt Nam',
+                        'is_primary': bg.is_primary,
+                        'check_in_date': booking.check_in_date.strftime('%d/%m/%Y') if booking.check_in_date else '',
+                        'actual_check_in': check_in_str,
+                        'check_out_date': check_out_str,
+                        'guest_phone': guest_phone
+                    })
+            else:
+                # Fallback an toàn cho đơn check-in cũ chưa có bản ghi BookingGuest
+                primary_name = (
+                    booking.guest.get_full_name().strip()
+                    if (booking.guest and booking.guest.get_full_name())
+                    else (booking.guest.username if booking.guest else 'Khách lưu trú')
+                )
+                results.append({
+                    'id': f"bkg_{booking.id}",
+                    'booking_id': booking.id,
+                    'booking_code': booking.booking_code,
+                    'room_number': room_num,
+                    'room_name': room_name,
+                    'full_name': primary_name,
+                    'id_type': 'CCCD',
+                    'id_type_display': 'Căn cước công dân / CMND',
+                    'id_number': booking.identity_card or '',
+                    'date_of_birth': '',
+                    'gender': '',
+                    'nationality': 'Việt Nam',
+                    'is_primary': True,
+                    'check_in_date': booking.check_in_date.strftime('%d/%m/%Y') if booking.check_in_date else '',
+                    'actual_check_in': check_in_str,
+                    'check_out_date': check_out_str,
+                    'guest_phone': guest_phone
+                })
+
+        unique_rooms = set(g['room_number'] for g in results if g['room_number'] != 'Chưa gán')
+
+        return Response({
+            'success': True,
+            'total_guests': len(results),
+            'total_rooms': len(unique_rooms),
+            'data': results
         }, status=status.HTTP_200_OK)
 
 

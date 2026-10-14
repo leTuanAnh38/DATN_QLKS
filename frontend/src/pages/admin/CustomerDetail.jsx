@@ -196,8 +196,13 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
         fetchServiceRequests(1, newSize);
     };
 
-    // Trích xuất số CCCD/Passport an toàn
+    // Trích xuất thông tin định danh & lưu trú an toàn
+    const idType = customer?.id_type || customer?.guest_profile?.id_type || 'CCCD';
     const idCardNumber = customer?.id_card_number || customer?.guest_profile?.id_card_number || 'Chưa cập nhật';
+    const dateOfBirth = customer?.date_of_birth || customer?.guest_profile?.date_of_birth || null;
+    const gender = customer?.gender || customer?.guest_profile?.gender || 'Chưa cập nhật';
+    const nationality = customer?.nationality || customer?.guest_profile?.nationality || 'Việt Nam';
+    const preferences = customer?.preferences || customer?.guest_profile?.preferences || '';
     const rawTier = customer?.current_tier?.name || customer?.guest_profile?.vip_tier || customer?.vip_tier || 'Bronze';
     const tierCode = mapTierCode(rawTier);
     const vipConfig = VIP_TIER_CONFIG[tierCode] || VIP_TIER_CONFIG.Bronze;
@@ -308,38 +313,72 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                     )}
                                 </p>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 text-xs">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 text-xs">
                                     <div className="flex items-center gap-2 text-slate-700">
                                         <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">📞</span>
-                                        <span className="font-semibold">{customer.phone_number || 'Chưa cung cấp SĐT'}</span>
+                                        <div>
+                                            <span className="text-slate-400 text-[10px] block">Số điện thoại:</span>
+                                            <span className="font-semibold">{customer.phone_number || 'Chưa cung cấp SĐT'}</span>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-700 truncate">
                                         <span className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">✉️</span>
-                                        <span className="truncate">{customer.email || 'Chưa có Email'}</span>
+                                        <div className="truncate">
+                                            <span className="text-slate-400 text-[10px] block">Email:</span>
+                                            <span className="truncate font-semibold">{customer.email || 'Chưa có Email'}</span>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-700">
                                         <span className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">🪪</span>
                                         <div>
-                                            <span className="text-slate-400 text-[10px] block">Số CCCD / Hộ chiếu:</span>
+                                            <span className="text-slate-400 text-[10px] block">
+                                                {idType === 'PASSPORT' ? 'Hộ chiếu (Passport):' : 'Số CCCD / CMND:'}
+                                            </span>
                                             <span className="font-mono font-bold text-slate-900">{idCardNumber}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-700">
-                                        <span className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">⭐</span>
+                                        <span className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">🎂</span>
                                         <div>
-                                            <span className="text-slate-400 text-[10px] block">Điểm thưởng tích lũy:</span>
-                                            <span className="font-bold text-purple-700">
-                                                {(customer.guest_profile?.loyalty_points || customer.loyalty_points || 0).toLocaleString('vi-VN')} điểm
+                                            <span className="text-slate-400 text-[10px] block">Ngày sinh:</span>
+                                            <span className="font-medium text-slate-900">
+                                                {dateOfBirth ? formatDateDisplay(dateOfBirth) : 'Chưa cập nhật'}
                                             </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-slate-700">
+                                        <span className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">👤</span>
+                                        <div>
+                                            <span className="text-slate-400 text-[10px] block">Giới tính:</span>
+                                            <span className="font-medium text-slate-900">{gender || 'Nam'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-slate-700">
+                                        <span className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">🌐</span>
+                                        <div>
+                                            <span className="text-slate-400 text-[10px] block">Quốc tịch:</span>
+                                            <span className="font-medium text-slate-900">{nationality || 'Việt Nam'}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {customer.address && (
-                                    <p className="text-xs text-slate-500 pt-1 flex items-start gap-1.5">
+                                    <p className="text-xs text-slate-600 pt-2 flex items-start gap-1.5">
                                         <span className="text-slate-400">📍</span>
-                                        <span>{customer.address}</span>
+                                        <span><strong>Địa chỉ:</strong> {customer.address}</span>
                                     </p>
+                                )}
+
+                                {preferences && (
+                                    <div className="mt-2.5 p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2">
+                                        <span className="text-base shrink-0">💡</span>
+                                        <div className="flex-1">
+                                            <strong className="block font-bold text-amber-950 text-[11px] uppercase tracking-wide">
+                                                Sở thích & Yêu cầu lưu trú:
+                                            </strong>
+                                            <span className="mt-0.5 block leading-relaxed">{preferences}</span>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>

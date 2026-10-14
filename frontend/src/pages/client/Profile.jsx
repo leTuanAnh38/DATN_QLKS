@@ -35,7 +35,11 @@ export default function Profile() {
         phoneNumber: '',
         email: '',
         address: '',
+        idType: 'CCCD',
         idCardNumber: '',
+        dateOfBirth: '',
+        gender: 'Nam',
+        nationality: 'Việt Nam',
         preferences: '',
     });
 
@@ -64,7 +68,11 @@ export default function Profile() {
                 phoneNumber: user.phone_number || '',
                 email: user.email || '',
                 address: user.address || '',
+                idType: user.guest_profile?.id_type || user.id_type || 'CCCD',
                 idCardNumber: user.guest_profile?.id_card_number || user.id_card_number || user.identity_card || '',
+                dateOfBirth: user.guest_profile?.date_of_birth || user.date_of_birth || '',
+                gender: user.guest_profile?.gender || user.gender || 'Nam',
+                nationality: user.guest_profile?.nationality || user.nationality || 'Việt Nam',
                 preferences: user.guest_profile?.preferences || user.preferences || '',
             });
             setAvatarPreview(getAvatarUrl(user.avatar));
@@ -83,7 +91,11 @@ export default function Profile() {
                 phoneNumber: user.phone_number || '',
                 email: user.email || '',
                 address: user.address || '',
+                idType: user.guest_profile?.id_type || user.id_type || 'CCCD',
                 idCardNumber: user.guest_profile?.id_card_number || user.id_card_number || user.identity_card || '',
+                dateOfBirth: user.guest_profile?.date_of_birth || user.date_of_birth || '',
+                gender: user.guest_profile?.gender || user.gender || 'Nam',
+                nationality: user.guest_profile?.nationality || user.nationality || 'Việt Nam',
                 preferences: user.guest_profile?.preferences || user.preferences || '',
             });
             setAvatarPreview(getAvatarUrl(user.avatar));
@@ -159,8 +171,12 @@ export default function Profile() {
             payload.append('phone_number', formData.phoneNumber);
             payload.append('email', formData.email);
             payload.append('address', formData.address);
+            payload.append('id_type', formData.idType || 'CCCD');
             payload.append('id_card_number', formData.idCardNumber || '');
             payload.append('identity_card', formData.idCardNumber || '');
+            payload.append('date_of_birth', formData.dateOfBirth || '');
+            payload.append('gender', formData.gender || 'Nam');
+            payload.append('nationality', formData.nationality || 'Việt Nam');
             payload.append('preferences', formData.preferences || '');
 
             if (avatarFile) {
@@ -183,7 +199,11 @@ export default function Profile() {
                         phoneNumber: result.user.phone_number || '',
                         email: result.user.email || '',
                         address: result.user.address || '',
+                        idType: result.user.guest_profile?.id_type || result.user.id_type || 'CCCD',
                         idCardNumber: result.user.guest_profile?.id_card_number || result.user.id_card_number || result.user.identity_card || '',
+                        dateOfBirth: result.user.guest_profile?.date_of_birth || result.user.date_of_birth || '',
+                        gender: result.user.guest_profile?.gender || result.user.gender || 'Nam',
+                        nationality: result.user.guest_profile?.nationality || result.user.nationality || 'Việt Nam',
                         preferences: result.user.guest_profile?.preferences || result.user.preferences || '',
                     });
                 }
@@ -537,17 +557,91 @@ export default function Profile() {
                                     />
                                 </div>
 
-                                {/* Số CCCD / Passport */}
+                                {/* Loại giấy tờ & Số CCCD / Passport */}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Số CCCD / Hộ chiếu (Passport)
+                                        Giấy tờ định danh
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            disabled={!isEditing}
+                                            value={formData.idType}
+                                            onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
+                                            className={`w-32 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${
+                                                !isEditing
+                                                    ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed'
+                                                    : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                            }`}
+                                        >
+                                            <option value="CCCD">CCCD / CMND</option>
+                                            <option value="PASSPORT">Hộ chiếu</option>
+                                            <option value="OTHER">Khác</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            disabled={!isEditing}
+                                            value={formData.idCardNumber}
+                                            onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
+                                            placeholder={isEditing ? "Nhập số CCCD/Passport" : "Chưa cập nhật"}
+                                            className={`flex-1 px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                                !isEditing
+                                                    ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                                    : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                            }`}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Ngày sinh */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                        Ngày sinh
+                                    </label>
+                                    <input
+                                        type="date"
+                                        disabled={!isEditing}
+                                        value={formData.dateOfBirth}
+                                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                            !isEditing
+                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
+                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                        }`}
+                                    />
+                                </div>
+
+                                {/* Giới tính */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                        Giới tính
+                                    </label>
+                                    <select
+                                        disabled={!isEditing}
+                                        value={formData.gender}
+                                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
+                                            !isEditing
+                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed'
+                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
+                                        }`}
+                                    >
+                                        <option value="Nam">Nam</option>
+                                        <option value="Nữ">Nữ</option>
+                                        <option value="Khác">Khác</option>
+                                    </select>
+                                </div>
+
+                                {/* Quốc tịch */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                        Quốc tịch
                                     </label>
                                     <input
                                         type="text"
                                         disabled={!isEditing}
-                                        value={formData.idCardNumber}
-                                        onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
-                                        placeholder={isEditing ? "Nhập số CCCD/Passport để check-in nhanh" : "Chưa cập nhật số CCCD/Passport"}
+                                        value={formData.nationality}
+                                        onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                                        placeholder="Ví dụ: Việt Nam"
                                         className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
                                             !isEditing
                                                 ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
