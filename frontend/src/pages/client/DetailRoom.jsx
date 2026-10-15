@@ -723,28 +723,28 @@ export default function DetailRoom() {
             <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                     {/* CỘT TRÁI: THÔNG TIN CHI TIẾT (8 COLS) */}
-                    <div className="lg:col-span-8 space-y-12">
+                    <div className="lg:col-span-8 space-y-12 min-w-0">
                         {/* THÔNG SỐ CƠ BẢN: Map Diện tích (size), Sức chứa (capacity), Giường ngủ (bed_type) */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
                                     📐
                                 </div>
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Diện tích</span>
-                                    <strong className="text-sm text-slate-900">
+                                    <strong className="text-sm text-slate-900 block truncate" title={room.size ? `${room.size} m²` : '45 m²'}>
                                         {room.size ? `${room.size} m²` : '45 m²'}
                                     </strong>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
                                     🌊
                                 </div>
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Tầm nhìn</span>
-                                    <strong className="text-sm text-slate-900">
+                                    <strong className="text-sm text-slate-900 block truncate" title={room.name.toLowerCase().includes('ocean') || room.name.toLowerCase().includes('biển') ? 'Trực diện biển' : 'View thành phố'}>
                                         {room.name.toLowerCase().includes('ocean') || room.name.toLowerCase().includes('biển')
                                             ? 'Trực diện biển'
                                             : 'View thành phố'}
@@ -752,25 +752,28 @@ export default function DetailRoom() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
                                     👥
                                 </div>
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Sức chứa</span>
-                                    <strong className="text-sm text-slate-900">
+                                    <strong className="text-sm text-slate-900 block truncate" title={room.capacity ? `${room.capacity} Người lớn` : '2 Người lớn'}>
                                         {room.capacity ? `${room.capacity} Người lớn` : '2 Người lớn'}
                                     </strong>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
                                     🛏️
                                 </div>
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Giường ngủ</span>
-                                    <strong className="text-sm text-slate-900 truncate max-w-[130px]" title={room.bed_type}>
+                                    <strong
+                                        className="text-xs sm:text-[13px] font-bold text-slate-900 block leading-tight break-words"
+                                        title={room.bed_type || '1 Giường Đôi King'}
+                                    >
                                         {room.bed_type || '1 Giường Đôi King'}
                                     </strong>
                                 </div>
@@ -790,14 +793,14 @@ export default function DetailRoom() {
 
                             {/* Mô tả ngắn (Short Description) được đóng khung nổi bật */}
                             {room.short_description && (
-                                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs">
+                                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
                                     <span className="text-lg select-none">✨</span>
-                                    <div>
+                                    <div className="min-w-0">
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block mb-0.5">
                                             Tổng quan nổi bật
                                         </span>
-                                        <p className="text-slate-800 leading-relaxed font-normal">
-                                            {room.short_description}
+                                        <p className="text-slate-800 leading-relaxed font-normal break-words">
+                                            {room.short_description.replace(/&nbsp;/g, ' ')}
                                         </p>
                                     </div>
                                 </div>
@@ -806,8 +809,10 @@ export default function DetailRoom() {
                             {/* Mô tả chi tiết (Rich Text Editor HTML) */}
                             {room.description ? (
                                 <div
-                                    className="text-slate-600 text-xs sm:text-sm leading-relaxed font-light space-y-3 pt-2 border-t border-slate-100 [&>p]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:space-y-2 [&>ul>li]:text-slate-600 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:space-y-2 [&>strong]:font-semibold [&>strong]:text-slate-900"
-                                    dangerouslySetInnerHTML={{ __html: room.description }}
+                                    className="text-slate-600 text-xs sm:text-sm leading-relaxed font-light space-y-3 pt-2 border-t border-slate-100 break-words overflow-hidden [&>p]:mb-3 [&>p]:break-words [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:space-y-2 [&>ul>li]:text-slate-600 [&>ul>li]:break-words [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:space-y-2 [&>strong]:font-semibold [&>strong]:text-slate-900"
+                                    dangerouslySetInnerHTML={{
+                                        __html: room.description.replace(/&nbsp;/g, ' ')
+                                    }}
                                 />
                             ) : (
                                 <div className="text-slate-600 text-xs sm:text-sm leading-relaxed font-light space-y-3 pt-2 border-t border-slate-100">
