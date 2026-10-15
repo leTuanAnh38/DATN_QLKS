@@ -1828,27 +1828,12 @@ class BookingViewSet(viewsets.ModelViewSet):
         """
         API kiểm tra tình trạng còn phòng theo Hạng phòng và khoảng ngày Check-in/Check-out.
         GET /api/bookings/check-availability/?category_id=1&check_in_date=2026-10-01&check_out_date=2026-10-03
+        Hoặc nếu category_id không truyền hoặc category_id='all', trả về tình trạng phòng của TẤT CẢ các hạng phòng:
+        GET /api/bookings/check-availability/?check_in_date=2026-10-01&check_out_date=2026-10-03
         """
         category_id = request.query_params.get('category_id') or request.query_params.get('room_id')
         check_in_str = request.query_params.get('check_in_date')
         check_out_str = request.query_params.get('check_out_date')
-
-        if not category_id:
-            return Response({'success': False, 'message': 'Vui lòng cung cấp category_id.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Tìm hạng phòng
-        category = None
-        if str(category_id).isdigit():
-            category = RoomCategory.objects.filter(pk=int(category_id)).first()
-            if not category:
-                room = Room.objects.filter(pk=int(category_id)).first()
-                if room:
-                    category = room.category
-        else:
-            category = RoomCategory.objects.filter(slug=str(category_id)).first()
-
-        if not category:
-            return Response({'success': False, 'message': 'Không tìm thấy thông tin hạng phòng.'}, status=status.HTTP_404_NOT_FOUND)
 
         now = timezone.now().date()
         try:
@@ -1895,6 +1880,40 @@ class BookingViewSet(viewsets.ModelViewSet):
                 ).count()
                 avail = max(0, total - booked)
                 return total, booked, avail
+
+        # Nếu không truyền category_id hoặc category_id='all', trả về tất cả
+        if not category_id or str(category_id).lower() == 'all':
+            availabilities = {}
+            for cat in RoomCategory.objects.all():
+                tot, bkd, avl = get_category_availability(cat, check_in, check_out)
+                availabilities[cat.id] = {
+                    'category_id': cat.id,
+                    'category_name': cat.name,
+                    'total_rooms': tot,
+                    'booked_rooms': bkd,
+                    'available_rooms': avl,
+                    'is_sold_out': avl <= 0
+                }
+            return Response({
+                'success': True,
+                'check_in_date': str(check_in),
+                'check_out_date': str(check_out),
+                'availabilities': availabilities
+            })
+
+        # Tìm hạng phòng
+        category = None
+        if str(category_id).isdigit():
+            category = RoomCategory.objects.filter(pk=int(category_id)).first()
+            if not category:
+                room = Room.objects.filter(pk=int(category_id)).first()
+                if room:
+                    category = room.category
+        else:
+            category = RoomCategory.objects.filter(slug=str(category_id)).first()
+
+        if not category:
+            return Response({'success': False, 'message': 'Không tìm thấy thông tin hạng phòng.'}, status=status.HTTP_404_NOT_FOUND)
 
         total_rooms, booked_rooms, available_rooms = get_category_availability(category, check_in, check_out)
         is_sold_out = (available_rooms <= 0)
@@ -2406,17 +2425,33 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             remaining_amount = max(0.0, float(grand_total - paid_amount))
 
-            # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền
+            # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền & thông tin VAT công ty
+            is_company_invoice = bool(request.data.get('is_company_invoice', False))
+            company_name = str(request.data.get('company_name') or '').strip() or None
+            company_tax_code = str(request.data.get('company_tax_code') or '').strip() or None
+            company_address = str(request.data.get('company_address') or '').strip() or None
+            invoice_recipient_email = str(request.data.get('invoice_recipient_email') or '').strip() or None
+
+            inv_defaults = {
+                'room_charge': room_charge,
+                'service_charge': total_service_charge,
+                'total_amount': grand_total,
+                'payment_method': payment_method,
+                'status': 'paid',
+                'paid_at': timezone.now()
+            }
+            if is_company_invoice or company_name or company_tax_code:
+                inv_defaults.update({
+                    'is_company_invoice': True,
+                    'company_name': company_name,
+                    'company_tax_code': company_tax_code,
+                    'company_address': company_address,
+                    'invoice_recipient_email': invoice_recipient_email
+                })
+
             invoice, created = Invoice.objects.update_or_create(
                 booking=booking,
-                defaults={
-                    'room_charge': room_charge,
-                    'service_charge': total_service_charge,
-                    'total_amount': grand_total,
-                    'payment_method': payment_method,
-                    'status': 'paid',
-                    'paid_at': timezone.now()
-                }
+                defaults=inv_defaults
             )
 
             # 2.1 Đồng bộ bản ghi Payment

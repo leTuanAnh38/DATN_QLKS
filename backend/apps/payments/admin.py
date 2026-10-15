@@ -2,15 +2,18 @@ from django.contrib import admin
 from .models import Invoice, Payment, PaymentConfig
 
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('invoice_code', 'booking', 'total_amount', 'payment_method', 'status', 'created_at')
-    list_filter = ('status', 'payment_method', 'created_at')
-    search_fields = ('invoice_code', 'booking__booking_code', 'booking__guest__username')
+    list_display = ('invoice_code', 'booking', 'group_booking', 'is_company_invoice', 'company_name', 'company_tax_code', 'total_amount', 'payment_method', 'status', 'created_at')
+    list_filter = ('status', 'is_company_invoice', 'payment_method', 'created_at')
+    search_fields = ('invoice_code', 'company_name', 'company_tax_code', 'booking__booking_code', 'group_booking__group_code')
     list_editable = ('status',) # Thu ngân đổi trạng thái "Đã thanh toán" trực tiếp ngoài danh sách
     readonly_fields = ('invoice_code', 'created_at')
     
     fieldsets = (
         ('Thông tin chung', {
-            'fields': ('invoice_code', 'booking', 'status', 'payment_method', 'paid_at')
+            'fields': ('invoice_code', 'booking', 'group_booking', 'status', 'payment_method', 'paid_at')
+        }),
+        ('Hóa đơn Doanh nghiệp (VAT)', {
+            'fields': ('is_company_invoice', 'company_name', 'company_tax_code', 'company_address', 'invoice_recipient_email')
         }),
         ('Chi tiết tài chính', {
             'fields': ('room_charge', 'service_charge', 'discount', 'tax', 'total_amount')

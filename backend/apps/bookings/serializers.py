@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Booking, BookingExtraService, Promotion, BookingGuest
+from .models import Booking, BookingExtraService, Promotion, BookingGuest, CorporatePartner, GroupBooking
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User
 import datetime
@@ -100,12 +100,18 @@ class BookingSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     payment_method = serializers.SerializerMethodField()
     payment_method_display = serializers.SerializerMethodField()
+    group_booking_code = serializers.CharField(source='group_booking.group_code', read_only=True, default=None)
+    group_booking_name = serializers.CharField(source='group_booking.group_name', read_only=True, default=None)
 
     class Meta:
         model = Booking
         fields = [
             'id',
             'booking_code',
+            'group_booking',
+            'group_booking_code',
+            'group_booking_name',
+            'is_master_billed',
             'review',
             'category',
             'room',
@@ -620,4 +626,80 @@ class BookingSerializer(serializers.ModelSerializer):
         if method == 'CREDIT_CARD':
             return 'Thẻ tín dụng'
         return 'Chưa xác định'
+
+
+# ========================================================
+# SERIALIZERS CHO ĐỐI TÁC DOANH NGHIỆP & ĐƠN ĐẶT ĐOÀN
+# ========================================================
+class CorporatePartnerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CorporatePartner
+        fields = [
+            'id', 'company_name', 'tax_code', 'company_address',
+            'corporate_code', 'contact_person', 'contact_phone',
+            'contact_email', 'contract_number', 'discount_percent',
+            'payment_terms_days', 'is_active', 'note',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class GroupBookingSerializer(serializers.ModelSerializer):
+    corporate_partner_details = CorporatePartnerSerializer(source='corporate_partner', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    total_rooms = serializers.SerializerMethodField()
+    sub_bookings = serializers.SerializerMethodField()
+    rooms_summary = serializers.SerializerMethodField()
+    nights = serializers.SerializerMethodField()
+    deposit_status = serializers.SerializerMethodField()
+    remaining_balance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GroupBooking
+        fields = [
+            'id', 'group_code', 'group_name', 'corporate_partner',
+            'corporate_partner_details', 'leader_name', 'leader_phone',
+            'leader_email', 'check_in_date', 'check_out_date', 'nights',
+            'total_amount', 'deposit_amount', 'is_deposit_paid',
+            'deposit_status', 'remaining_balance',
+            'status', 'status_display', 'note', 'internal_note',
+            'total_rooms', 'sub_bookings', 'rooms_summary',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'group_code', 'created_at', 'updated_at']
+
+    def get_nights(self, obj):
+        if obj.check_in_date and obj.check_out_date:
+            return max(1, (obj.check_out_date - obj.check_in_date).days)
+        return 1
+
+    def get_total_rooms(self, obj):
+        return obj.sub_bookings.count()
+
+    def get_deposit_status(self, obj):
+        if obj.is_deposit_paid:
+            return 'Đã thanh toán cọc'
+        if obj.deposit_amount and obj.deposit_amount > 0:
+            return 'Chờ thanh toán cọc'
+        return 'Chưa yêu cầu cọc'
+
+    def get_remaining_balance(self, obj):
+        deposit = float(obj.deposit_amount or 0) if obj.is_deposit_paid else 0.0
+        return max(0.0, float(obj.total_amount or 0) - deposit)
+
+    def get_sub_bookings(self, obj):
+        bookings = obj.sub_bookings.select_related('category', 'room', 'guest').prefetch_related('guests').all()
+        return BookingSerializer(bookings, many=True, context=self.context).data
+
+    def get_rooms_summary(self, obj):
+        summary = {}
+        for b in obj.sub_bookings.select_related('category', 'room').all():
+            cat_name = b.category.name if b.category else "Chưa phân loại"
+            if cat_name not in summary:
+                summary[cat_name] = {'category_name': cat_name, 'count': 0, 'assigned_rooms': []}
+            summary[cat_name]['count'] += 1
+            if b.room:
+                summary[cat_name]['assigned_rooms'].append(b.room.room_number)
+        return list(summary.values())
+
 

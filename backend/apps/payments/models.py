@@ -18,8 +18,23 @@ class Invoice(models.Model):
     )
 
     invoice_code = models.CharField(max_length=20, unique=True, blank=True, verbose_name="Mã Hóa Đơn")
-    # Liên kết 1-1 với Đơn đặt phòng (Mỗi booking có 1 hóa đơn tổng)
-    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='invoice', verbose_name="Đơn đặt phòng")
+    # Liên kết 1-1 với Đơn đặt phòng lẻ HOẶC Đơn đặt đoàn
+    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='invoice', null=True, blank=True, verbose_name="Đơn đặt phòng lẻ")
+    group_booking = models.OneToOneField(
+        'bookings.GroupBooking',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='master_invoice',
+        verbose_name="Hóa đơn tổng cho Đơn đoàn (Master Invoice)"
+    )
+
+    # Thông tin Hóa đơn VAT Doanh nghiệp
+    is_company_invoice = models.BooleanField(default=False, verbose_name="Yêu cầu xuất hóa đơn công ty (VAT)")
+    company_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Tên công ty xuất hóa đơn")
+    company_tax_code = models.CharField(max_length=30, blank=True, null=True, verbose_name="Mã số thuế (MST)")
+    company_address = models.CharField(max_length=255, blank=True, null=True, verbose_name="Địa chỉ công ty")
+    invoice_recipient_email = models.EmailField(blank=True, null=True, verbose_name="Email nhận hóa đơn điện tử")
     
     # Chi tiết dòng tiền
     room_charge = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tổng tiền phòng")
@@ -35,7 +50,8 @@ class Invoice(models.Model):
     paid_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian thanh toán thành công")
 
     def __str__(self):
-        return f"{self.invoice_code} - {self.booking.booking_code}"
+        code_ref = self.booking.booking_code if self.booking else (self.group_booking.group_code if self.group_booking else "N/A")
+        return f"{self.invoice_code} - {code_ref}"
 
     # Tự động sinh mã hóa đơn (VD: INV-9A8B7C)
     def save(self, *args, **kwargs):
@@ -59,7 +75,17 @@ class Payment(models.Model):
         Booking,
         on_delete=models.CASCADE,
         related_name='payments',
-        verbose_name="Đơn đặt phòng"
+        null=True,
+        blank=True,
+        verbose_name="Đơn đặt phòng lẻ"
+    )
+    group_booking = models.ForeignKey(
+        'bookings.GroupBooking',
+        on_delete=models.CASCADE,
+        related_name='payments',
+        null=True,
+        blank=True,
+        verbose_name="Đơn đặt đoàn"
     )
     amount = models.DecimalField(
         max_digits=12,

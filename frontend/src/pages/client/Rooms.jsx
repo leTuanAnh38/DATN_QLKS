@@ -164,7 +164,16 @@ export default function RoomsAndSuitesPage() {
                             </p>
                         </div>
 
-                    
+                        <div className="mt-2 lg:mt-0 shrink-0">
+                            <Link
+                                to="/corporate-booking"
+                                className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white hover:text-amber-300 font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 group"
+                            >
+                                <span className="text-base">🏢</span>
+                                <span>Đặt Phòng Đoàn & công ty Hợp Đồng B2B</span>
+                                <span className="text-amber-400 group-hover:translate-x-1 transition-transform font-bold text-base">→</span>
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </header>

@@ -635,6 +635,192 @@ export const bookingService = {
                 rooms: []
             };
         }
+    },
+
+    /**
+     * Xác thực Mã Doanh Nghiệp (Corporate Code) dành cho B2B / Khách đoàn
+     * POST /api/bookings/validate-corporate-code/
+     * @param {string} code
+     */
+    async validateCorporateCode(code) {
+        try {
+            const response = await api.post('/bookings/validate-corporate-code/', { code });
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Mã doanh nghiệp không hợp lệ hoặc đã hết hạn.'
+            };
+        }
+    },
+
+    /**
+     * Lấy danh sách đối tác doanh nghiệp (B2B Partners)
+     * GET /api/bookings/corporate-partners/
+     */
+    async getCorporatePartners(params = {}) {
+        try {
+            const response = await api.get('/bookings/corporate-partners/', { params });
+            const list = Array.isArray(response.data)
+                ? response.data
+                : response.data?.results || [];
+            return {
+                success: true,
+                count: response.data?.count || list.length,
+                data: list
+            };
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách đối tác doanh nghiệp:', error);
+            return { success: false, message: 'Không thể tải danh sách đối tác.', data: [] };
+        }
+    },
+
+    /**
+     * Lấy danh sách các đơn đặt đoàn (Group Bookings)
+     * GET /api/bookings/groups/
+     */
+    async getGroupBookings(params = {}) {
+        try {
+            const response = await api.get('/bookings/groups/', { params });
+            const list = Array.isArray(response.data)
+                ? response.data
+                : response.data?.results || [];
+            return {
+                success: true,
+                count: response.data?.count || list.length,
+                data: list
+            };
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách đơn đoàn:', error);
+            return { success: false, message: 'Không thể tải danh sách đơn đoàn.', data: [] };
+        }
+    },
+
+    /**
+     * Lấy chi tiết đơn đặt đoàn
+     * GET /api/bookings/groups/:id/
+     */
+    async getGroupBookingDetail(id) {
+        try {
+            const response = await api.get(`/bookings/groups/${id}/`);
+            return {
+                success: true,
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi tải chi tiết đơn đoàn:', error);
+            return { success: false, message: 'Không tìm thấy thông tin đơn đoàn.' };
+        }
+    },
+
+    /**
+     * Tạo Đơn Đặt Đoàn Master (Multi-room Booking)
+     * POST /api/bookings/groups/
+     * @param {Object} payload
+     */
+    async createGroupBooking(payload) {
+        try {
+            const response = await api.post('/bookings/groups/', payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Tạo đơn đặt đoàn thành công!',
+                data: response.data?.group_booking || response.data,
+                group_code: response.data?.group_code,
+                deposit_amount: response.data?.deposit_amount,
+                total_amount: response.data?.total_amount,
+                total_rooms: response.data?.total_rooms
+            };
+        } catch (error) {
+            console.error('Lỗi khi tạo đơn đặt đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể tạo đơn đặt đoàn. Vui lòng kiểm tra lại thông tin.'
+            };
+        }
+    },
+
+    /**
+     * Check-in đồng loạt toàn bộ các phòng trong đoàn
+     * POST /api/bookings/groups/:id/check-in/
+     */
+    async groupCheckIn(id) {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/check-in/`);
+            return {
+                success: true,
+                message: response.data?.message || 'Check-in đoàn thành công!',
+                data: response.data?.group_booking
+            };
+        } catch (error) {
+            console.error('Lỗi khi check-in đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể thực hiện Check-in đoàn.'
+            };
+        }
+    },
+
+    /**
+     * Check-out đồng loạt toàn bộ đoàn
+     * POST /api/bookings/groups/:id/check-out/
+     */
+    async groupCheckOut(id, payload = {}) {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/check-out/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Check-out đoàn thành công!',
+                data: response.data?.group_booking
+            };
+        } catch (error) {
+            console.error('Lỗi khi check-out đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể thực hiện Check-out đoàn.'
+            };
+        }
+    },
+
+    /**
+     * Cập nhật danh sách lưu trú Rooming List cho đoàn
+     * POST /api/bookings/groups/:id/rooming-list/
+     */
+    async updateRoomingList(id, payload) {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/rooming-list/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Cập nhật Rooming List thành công!',
+                data: response.data?.group_booking
+            };
+        } catch (error) {
+            console.error('Lỗi khi cập nhật Rooming List:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể cập nhật Rooming List.'
+            };
+        }
+    },
+
+    /**
+     * Xác nhận nhận tiền cọc của đoàn
+     * POST /api/bookings/groups/:id/confirm-deposit/
+     */
+    async confirmGroupDeposit(id) {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/confirm-deposit/`);
+            return {
+                success: true,
+                message: response.data?.message || 'Xác nhận tiền cọc thành công!',
+                data: response.data?.group_booking
+            };
+        } catch (error) {
+            console.error('Lỗi khi xác nhận tiền cọc:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể xác nhận tiền cọc.'
+            };
+        }
     }
 };
 

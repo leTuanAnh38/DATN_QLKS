@@ -645,10 +645,10 @@ export default function AuthBookingPage() {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => alert('Yêu cầu tư vấn doanh nghiệp đã được gửi đến bộ phận kinh doanh.')}
-                                className="w-full py-3 bg-white text-blue-950 hover:bg-slate-100 font-bold text-xs rounded-xl shadow-md transition"
+                                onClick={() => navigate('/corporate-booking')}
+                                className="w-full py-3 bg-white text-blue-950 hover:bg-slate-100 font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                             >
-                                Đăng Ký Tư Vấn Doanh Nghiệp →
+                                Đặt Phòng Doanh Nghiệp & Đoàn M.I.C.E →
                             </button>
                         </div>
                     </div>

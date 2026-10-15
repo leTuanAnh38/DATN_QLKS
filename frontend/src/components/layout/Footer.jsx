@@ -61,7 +61,7 @@ export default function Footer() {
                             <li><Link to="/rooms" className="hover:text-blue-600 transition">Phòng nghỉ & Suites Cao Cấp</Link></li>
                             <li><Link to="/services" className="hover:text-blue-600 transition">Menu Dịch Vụ & Ẩm Thực Tại Phòng</Link></li>
                             <li><Link to="/promotions" className="hover:text-blue-600 transition">Ưu đãi & Gói nghỉ dưỡng</Link></li>
-                            <li><Link to="/contact" className="hover:text-blue-600 transition">Liên hệ & Hướng dẫn đường đi</Link></li>
+                            <li><Link to="/corporate-booking" className="hover:text-blue-600 transition font-medium text-blue-700">Khách đoàn & Doanh nghiệp (B2B)</Link></li>
                             <li><Link to="/login" className="hover:text-blue-600 transition text-amber-600 font-semibold">Hội viên TA Club: Đăng nhập / Đăng ký</Link></li>
                         </ul>
                     </div>

@@ -12,6 +12,7 @@ import BookingHistory from './pages/client/BookingHistory';
 import ServicesMenu from './pages/client/ServicesMenu';
 import NewsList from './pages/client/NewsList';
 import NewsDetail from './pages/client/NewsDetail';
+import CorporateBooking from './pages/client/CorporateBooking';
 import Login from './pages/auth/login';
 
 function ScrollToTop() {
@@ -44,6 +45,10 @@ function App() {
         <Route path="/checkout/:id" element={<Checkout />} />
         <Route path="/booking/:id" element={<Checkout />} />
         <Route path="/checkout" element={<Checkout />} />
+
+        {/* Trang Đặt phòng Khách đoàn & Doanh nghiệp B2B */}
+        <Route path="/corporate-booking" element={<CorporateBooking />} />
+        <Route path="/group-booking" element={<CorporateBooking />} />
 
         {/* Trang Lịch sử đặt phòng khách hàng */}
         <Route path="/booking-history" element={<BookingHistory />} />

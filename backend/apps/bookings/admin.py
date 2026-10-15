@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Booking, BookingExtraService, Promotion, BookingGuest
+from .models import Booking, BookingExtraService, Promotion, BookingGuest, GroupBooking, CorporatePartner
 
 # Tạo khối nhập Dịch vụ phát sinh ngay bên trong form Đặt phòng
 class BookingExtraServiceInline(admin.TabularInline):
@@ -70,3 +70,33 @@ class PromotionAdmin(admin.ModelAdmin):
     )
 
 admin.site.register(Promotion, PromotionAdmin)
+
+
+# ========================================================
+# ĐỐI TÁC DOANH NGHIỆP & ĐƠN ĐẶT ĐOÀN
+# ========================================================
+class SubBookingInline(admin.TabularInline):
+    model = Booking
+    extra = 0
+    fields = ('booking_code', 'category', 'room', 'check_in_date', 'check_out_date', 'total_amount', 'status')
+    readonly_fields = ('booking_code',)
+    show_change_link = True
+
+
+class GroupBookingAdmin(admin.ModelAdmin):
+    list_display = ('group_code', 'group_name', 'corporate_partner', 'leader_name', 'leader_phone', 'check_in_date', 'check_out_date', 'status', 'total_amount', 'deposit_amount', 'is_deposit_paid')
+    list_filter = ('status', 'check_in_date', 'is_deposit_paid')
+    search_fields = ('group_code', 'group_name', 'leader_name', 'leader_phone')
+    readonly_fields = ('group_code', 'created_at', 'updated_at')
+    inlines = [SubBookingInline]
+
+
+class CorporatePartnerAdmin(admin.ModelAdmin):
+    list_display = ('company_name', 'corporate_code', 'tax_code', 'contact_person', 'contact_phone', 'discount_percent', 'payment_terms_days', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('company_name', 'corporate_code', 'tax_code', 'contact_person')
+    list_editable = ('discount_percent', 'is_active')
+
+
+admin.site.register(GroupBooking, GroupBookingAdmin)
+admin.site.register(CorporatePartner, CorporatePartnerAdmin)

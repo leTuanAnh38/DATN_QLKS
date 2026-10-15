@@ -8,6 +8,7 @@ import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
 import CheckOutModal from '../../components/admin/modals/CheckOutModal';
 import CheckInModal from '../../components/admin/modals/CheckInModal';
 import StayingGuestsModal from '../../components/admin/modals/StayingGuestsModal';
+import GroupBookingSection from '../../components/admin/groups/GroupBookingSection';
 import Pagination from '../../components/common/Pagination';
 import { useHasPermission } from '../../utils/permission';
 
@@ -92,6 +93,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
     const [copiedCode, setCopiedCode] = useState(null);
+    const [bookingSegment, setBookingSegment] = useState('individual'); // 'individual' | 'group'
 
     // Phân trang
     const [currentPage, setCurrentPage] = useState(1);
@@ -1284,7 +1286,40 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 </div>
             </div>
 
-            {/* HÀNG THỐNG KÊ NHANH (QUICK STATS CARDS) */}
+            {/* SEGMENTED CONTROL: KHÁCH LẺ VS KHÁCH ĐOÀN */}
+            <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 w-fit">
+                <button
+                    type="button"
+                    onClick={() => setBookingSegment('individual')}
+                    className={`px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 cursor-pointer ${
+                        bookingSegment === 'individual'
+                            ? 'bg-white text-blue-700 shadow-md shadow-slate-200'
+                            : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                >
+                    <span>👤</span>
+                    <span>Khách Lẻ & Vãng Lai</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setBookingSegment('group')}
+                    className={`px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 cursor-pointer ${
+                        bookingSegment === 'group'
+                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25'
+                            : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                >
+                    <span>🏢</span>
+                    <span>Khách Đoàn & Doanh Nghiệp (B2B / Groups)</span>
+                </button>
+            </div>
+
+            {bookingSegment === 'group' ? (
+                <GroupBookingSection />
+            ) : (
+                <>
+                    {/* HÀNG THỐNG KÊ NHANH (QUICK STATS CARDS) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                 {/* 1. Tổng đơn */}
                 <div
@@ -2469,6 +2504,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     </div>
                 </div>
             )}
+        </>
+    )}
 
             {/* ========================================================================= */}
             {/* MODAL CHECK-IN (THỦ TỤC NHẬN PHÒNG & GÁN PHÒNG THỰC TẾ) */}

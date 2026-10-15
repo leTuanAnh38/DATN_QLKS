@@ -261,6 +261,21 @@ export default function TADaNangHotelLanding() {
                             </button>
                         </div>
                     </form>
+
+                    {/* Quick banner: Khách đoàn & Doanh nghiệp */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-slate-600">
+                            <span className="text-base">🏢</span>
+                            <span>Quý khách đặt phòng cho <strong>Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
+                        </div>
+                        <Link
+                            to="/corporate-booking"
+                            className="font-bold text-blue-600 hover:text-blue-800 transition inline-flex items-center gap-1 cursor-pointer"
+                        >
+                            <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
+                            <span>→</span>
+                        </Link>
+                    </div>
                 </div>
             </div>
 

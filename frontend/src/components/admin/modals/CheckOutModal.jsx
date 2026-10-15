@@ -47,6 +47,13 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [completedInvoice, setCompletedInvoice] = useState(null);
 
+    // Hóa đơn Giá trị gia tăng (VAT) Doanh nghiệp
+    const [isCompanyInvoice, setIsCompanyInvoice] = useState(false);
+    const [companyName, setCompanyName] = useState('');
+    const [companyTaxCode, setCompanyTaxCode] = useState('');
+    const [companyAddress, setCompanyAddress] = useState('');
+    const [invoiceRecipientEmail, setInvoiceRecipientEmail] = useState('');
+
     // Trạng thái xử lý thanh toán phần nợ remaining_balance
     const [isProcessingDebtPayment, setIsProcessingDebtPayment] = useState(false);
     const [isDebtPaid, setIsDebtPaid] = useState(false); // Đã giải quyết xong phần nợ chưa
@@ -236,7 +243,12 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             setIsSubmitting(true);
             const res = await bookingService.checkOut(booking.id, {
                 payment_method: paymentMethod,
-                note: checkoutNote.trim()
+                note: checkoutNote.trim(),
+                is_company_invoice: isCompanyInvoice,
+                company_name: isCompanyInvoice ? companyName.trim() : null,
+                company_tax_code: isCompanyInvoice ? companyTaxCode.trim() : null,
+                company_address: isCompanyInvoice ? companyAddress.trim() : null,
+                invoice_recipient_email: isCompanyInvoice ? invoiceRecipientEmail.trim() : null
             });
 
             if (res.success && res.data) {
@@ -857,6 +869,70 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 </span>
                             </div>
                         )}
+
+                        {/* KHỐI HÓA ĐƠN VAT DOANH NGHIỆP / CÔNG TY */}
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-base">🏢</span>
+                                    <div>
+                                        <span className="text-xs font-bold text-slate-900 block">Yêu cầu xuất Hóa đơn GTGT (VAT) Doanh nghiệp</span>
+                                        <span className="text-[10px] text-slate-500">Dành cho khách đi công tác, đoàn công ty cần hóa đơn đỏ hợp lệ</span>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={isCompanyInvoice}
+                                    onChange={(e) => setIsCompanyInvoice(e.target.checked)}
+                                    className="w-4 h-4 text-amber-600 rounded-md focus:ring-amber-500 cursor-pointer"
+                                />
+                            </label>
+
+                            {isCompanyInvoice && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-200 animate-in fade-in duration-200">
+                                    <div className="space-y-1 sm:col-span-2">
+                                        <label className="text-[10px] font-bold text-slate-600 uppercase">Tên Doanh Nghiệp / Công ty *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="VD: Công ty Cổ phần FPT"
+                                            value={companyName}
+                                            onChange={(e) => setCompanyName(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-600 uppercase">Mã số thuế (MST) *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="VD: 0101248141"
+                                            value={companyTaxCode}
+                                            onChange={(e) => setCompanyTaxCode(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-600 uppercase">Email nhận HĐĐT</label>
+                                        <input
+                                            type="email"
+                                            placeholder="ketoan@company.com"
+                                            value={invoiceRecipientEmail}
+                                            onChange={(e) => setInvoiceRecipientEmail(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                        />
+                                    </div>
+                                    <div className="space-y-1 sm:col-span-2">
+                                        <label className="text-[10px] font-bold text-slate-600 uppercase">Địa chỉ đăng ký kinh doanh</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Địa chỉ ghi trên giấy phép ĐKKD"
+                                            value={companyAddress}
+                                            onChange={(e) => setCompanyAddress(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {/* GHI CHÚ NỘI BỘ KHI CHECK-OUT */}
                         <div className="space-y-1.5">

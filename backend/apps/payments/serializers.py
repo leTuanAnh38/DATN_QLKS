@@ -55,8 +55,15 @@ class PaymentSerializer(serializers.ModelSerializer):
                 'room_charge': float(invoice.room_charge),
                 'service_charge': float(invoice.service_charge),
                 'total_amount': float(invoice.total_amount),
+                'tax': float(invoice.tax),
+                'discount': float(invoice.discount),
                 'payment_method': invoice.payment_method,
-                'status': invoice.status
+                'status': invoice.status,
+                'is_company_invoice': invoice.is_company_invoice,
+                'company_name': invoice.company_name,
+                'company_tax_code': invoice.company_tax_code,
+                'company_address': invoice.company_address,
+                'invoice_recipient_email': invoice.invoice_recipient_email,
             }
         if not data.get('payment_method'):
             data['payment_method'] = obj.payment_method
