@@ -117,6 +117,41 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         return Number(summary?.room_charge ?? booking?.room_charge ?? booking?.total_amount ?? 0);
     }, [summary, booking]);
 
+    const dailyRate = useMemo(() => {
+        return Number(summary?.daily_rate ?? booking?.price_per_night ?? booking?.category?.promo_price ?? booking?.category?.base_price ?? (roomCharge / (summary?.nights || booking?.nights || 1)));
+    }, [summary, booking, roomCharge]);
+
+    const nightsCount = useMemo(() => {
+        return Number(summary?.nights ?? booking?.nights ?? 1);
+    }, [summary, booking]);
+
+    const roomSubtotal = useMemo(() => {
+        if (summary?.room_subtotal !== undefined && summary?.room_subtotal !== null) {
+            return Number(summary.room_subtotal);
+        }
+        return dailyRate * nightsCount;
+    }, [summary, dailyRate, nightsCount]);
+
+    const promoDiscount = useMemo(() => {
+        return Number(summary?.promotion_discount ?? booking?.promotion_discount ?? 0);
+    }, [summary, booking]);
+
+    const membershipDiscount = useMemo(() => {
+        return Number(summary?.membership_discount ?? booking?.membership_discount ?? 0);
+    }, [summary, booking]);
+
+    const totalDiscount = useMemo(() => {
+        if (summary?.total_discount !== undefined && summary?.total_discount !== null) {
+            return Number(summary.total_discount);
+        }
+        const diff = Math.max(0, roomSubtotal - roomCharge);
+        return diff > 0 ? diff : (promoDiscount + membershipDiscount);
+    }, [summary, roomSubtotal, roomCharge, promoDiscount, membershipDiscount]);
+
+    const promoCode = useMemo(() => {
+        return summary?.promotion_code || booking?.promotion_code || booking?.applied_promotion?.code || '';
+    }, [summary, booking]);
+
     const serviceCharge = useMemo(() => {
         return Number(summary?.service_charge ?? summary?.total_service_charge ?? booking?.service_charge ?? booking?.extra_services_total ?? 0);
     }, [summary, booking]);
@@ -438,15 +473,46 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 </div>
                                             </td>
                                             <td className="py-3 px-3 text-center font-bold text-slate-700">
-                                                {summary?.nights || booking.nights || 1} đêm
+                                                {nightsCount} đêm
                                             </td>
                                             <td className="py-3 px-3 text-right text-slate-600">
-                                                {formatCurrency(summary?.daily_rate || (roomCharge / (summary?.nights || 1)))}
+                                                {formatCurrency(dailyRate)}
                                             </td>
                                             <td className="py-3 px-4 text-right font-bold text-slate-900">
-                                                {formatCurrency(roomCharge)}
+                                                {formatCurrency(roomSubtotal)}
                                             </td>
                                         </tr>
+
+                                        {/* 1.1 CHIẾT KHẤU / ƯU ĐÃI KHUYẾN MÃI (NẾU CÓ) */}
+                                        {totalDiscount > 0 && (
+                                            <tr className="bg-emerald-50/25 hover:bg-emerald-50/40 border-l-2 border-emerald-500">
+                                                <td className="py-2.5 px-4">
+                                                    <div className="font-semibold text-emerald-900 flex items-center gap-1.5">
+                                                        <span>🎁</span>
+                                                        <span>
+                                                            Ưu đãi giảm giá {promoCode ? `(${promoCode})` : ''}
+                                                        </span>
+                                                        <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                                                            Khấu trừ
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-[10px] text-emerald-600 mt-0.5">
+                                                        {promoDiscount > 0 && `Mã ưu đãi: -${formatCurrency(promoDiscount)}`}
+                                                        {promoDiscount > 0 && membershipDiscount > 0 && ' • '}
+                                                        {membershipDiscount > 0 && `Hạng thành viên: -${formatCurrency(membershipDiscount)}`}
+                                                    </div>
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center text-emerald-700 font-semibold">
+                                                    1
+                                                </td>
+                                                <td className="py-2.5 px-3 text-right text-emerald-700 font-semibold">
+                                                    -{formatCurrency(totalDiscount)}
+                                                </td>
+                                                <td className="py-2.5 px-4 text-right font-bold text-emerald-700">
+                                                    -{formatCurrency(totalDiscount)}
+                                                </td>
+                                            </tr>
+                                        )}
 
                                         {/* 2. DỊCH VỤ PHÁT SINH */}
                                         {/* 2. DỊCH VỤ ĐẶT KÈM & PHÁT SINH */}
@@ -516,12 +582,35 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         {/* Tổng tiền phòng */}
                                         <tr>
                                             <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-600">
-                                                Tiền phòng thuần (Room Charge):
+                                                {totalDiscount > 0 ? 'Cộng tiền phòng (Room Subtotal):' : 'Tiền phòng thuần (Room Charge):'}
                                             </td>
                                             <td className="py-2 px-4 text-right font-bold text-slate-800">
-                                                {formatCurrency(roomCharge)}
+                                                {formatCurrency(totalDiscount > 0 ? roomSubtotal : roomCharge)}
                                             </td>
                                         </tr>
+
+                                        {/* Khấu trừ khuyến mãi / ưu đãi (nếu có) */}
+                                        {totalDiscount > 0 && (
+                                            <tr className="bg-emerald-50/40">
+                                                <td colSpan={3} className="py-1.5 px-4 text-right text-emerald-800 font-medium text-[11px]">
+                                                    - Khấu trừ ưu đãi {promoCode ? `(${promoCode})` : ''}:
+                                                </td>
+                                                <td className="py-1.5 px-4 text-right font-bold text-emerald-700 text-[11px]">
+                                                    -{formatCurrency(totalDiscount)}
+                                                </td>
+                                            </tr>
+                                        )}
+
+                                        {totalDiscount > 0 && (
+                                            <tr>
+                                                <td colSpan={3} className="py-1.5 px-4 text-right font-semibold text-slate-700 text-[11px]">
+                                                    Tiền phòng sau ưu đãi:
+                                                </td>
+                                                <td className="py-1.5 px-4 text-right font-bold text-slate-900 text-[11px]">
+                                                    {formatCurrency(roomCharge)}
+                                                </td>
+                                            </tr>
+                                        )}
 
                                         {/* Dịch vụ đặt trước */}
                                         {Number(summary?.prepaid_services_total || 0) > 0 && (

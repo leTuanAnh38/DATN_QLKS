@@ -38,6 +38,45 @@ const formatDateTimeDisplay = (dateStr) => {
     }
 };
 
+// Helper phân loại nhóm dịch vụ để tùy biến thông báo nhân viên
+const getServiceDeptMeta = (serviceName = '', categoryName = '') => {
+    const text = `${categoryName || ''} ${serviceName || ''}`.trim().toLowerCase();
+    if (['sân bay', 'xe', 'đưa đón', 'transfer', 'airport', 'taxi', 'shuttle', 'đón tiễn'].some(k => text.includes(k))) {
+        return {
+            dept: 'Điều vận / Đội xe',
+            icon: '🚗',
+            action: 'sắp xếp xe & tài xế',
+            inProgressLabel: 'Điều vận đang điều xe...',
+            timePrompt: 'Hẹn giờ đón:'
+        };
+    }
+    if (['spa', 'massage', 'trị liệu', 'xông hơi', 'sauna', 'thư giãn', 'wellness', 'chăm sóc da'].some(k => text.includes(k))) {
+        return {
+            dept: 'Spa & Trị liệu',
+            icon: '💆',
+            action: 'chuẩn bị phòng trị liệu & KTV',
+            inProgressLabel: 'Spa đang trị liệu...',
+            timePrompt: 'Hẹn giờ liệu trình:'
+        };
+    }
+    if (['gối', 'khăn', 'tắm', 'giặt', 'ủi', 'buồng phòng', 'tiện ích', 'bàn chải', 'kem đánh răng', 'dép', 'dọn phòng', 'housekeeping', 'laundry', 'amenities', 'chăn', 'nệm'].some(k => text.includes(k))) {
+        return {
+            dept: 'Buồng phòng',
+            icon: '🛎️',
+            action: 'chuẩn bị tiện ích buồng phòng',
+            inProgressLabel: 'Buồng phòng đang làm...',
+            timePrompt: 'Hẹn giờ mang lên:'
+        };
+    }
+    return {
+        dept: 'Bếp / F&B',
+        icon: '🍽️',
+        action: 'chuẩn bị và chế biến món ăn',
+        inProgressLabel: 'Bếp đang nấu...',
+        timePrompt: 'Hẹn giờ phục vụ:'
+    };
+};
+
 export default function CheckInModal({ booking, isOpen = true, onClose, onSuccess }) {
     // 1. STATE DỮ LIỆU PHÒNG & THỦ TỤC
     const [availableRooms, setAvailableRooms] = useState([]);
@@ -393,14 +432,16 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                 localStorage.setItem('pms_last_service_event', Date.now().toString());
             } catch (e) {}
 
+            const targetSvc = servicesList.find(s => s.id === serviceReqId);
+            const deptMeta = getServiceDeptMeta(targetSvc?.service_name, targetSvc?.category_name);
             const timeFormatted = targetIso ? new Date(targetIso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
             const popupMsg = preset === 'now'
-                ? 'Đã gửi chuông báo cho bộ phận F&B / Spa chuẩn bị phục vụ ngay! Đơn ở trạng thái "Chờ xử lý" để nhân viên tiếp nhận.'
-                : `Đã gửi chuông báo cho bộ phận F&B / Spa. Giờ hẹn phục vụ: ${timeFormatted} (${label}). Đơn ở trạng thái "Chờ xử lý" để nhân viên chủ động chuẩn bị đúng giờ!`;
+                ? `Đã gửi chuông báo cho bộ phận ${deptMeta.dept} ${deptMeta.action} phục vụ ngay! Đơn ở trạng thái "Chờ xử lý" để nhân viên tiếp nhận.`
+                : `Đã gửi chuông báo cho bộ phận ${deptMeta.dept}. Giờ hẹn phục vụ: ${timeFormatted} (${label}). Đơn ở trạng thái "Chờ xử lý" để nhân viên chủ động chuẩn bị đúng giờ!`;
 
             showCenterNotice({
-                title: 'Đã Báo F&B / Spa Chuẩn Bị',
-                message: popupMsg,
+                title: `Đã Báo ${deptMeta.dept} Chuẩn Bị`,
+                message: res.data?.message || popupMsg,
                 type: 'success',
                 icon: 'bell'
             });
@@ -852,7 +893,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                             </span>
                                         </h4>
                                         <p className="text-[10px] text-amber-800">
-                                            Vui lòng xác nhận thời gian phục vụ với khách và thông báo cho bộ phận F&B / Spa / Lễ tân chuẩn bị.
+                                            Vui lòng xác nhận thời gian phục vụ với khách và thông báo cho bộ phận liên quan (Bếp / F&B, Xe, Spa, Buồng phòng) chuẩn bị.
                                         </p>
                                     </div>
                                 </div>
@@ -868,6 +909,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                     const isUpdatingThis = isUpdatingServiceId === svc.id;
                                     const isCompleted = svc.status === 'completed';
                                     const isInProgress = svc.status === 'in_progress' || svc.status === 'delivering';
+                                    const deptMeta = getServiceDeptMeta(svc.service_name, svc.category_name);
 
                                     return (
                                         <div
@@ -885,7 +927,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                                             />
                                                         ) : (
                                                             <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-lg shrink-0">
-                                                                🛎️
+                                                                {deptMeta.icon || '🛎️'}
                                                             </div>
                                                         )}
                                                         <div>
@@ -929,16 +971,16 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                                     </div>
                                                 )}
 
-                                                {/* THANH CHỌN NHANH THỜI GIAN GIAO (KHI KHÁCH HẸN GIỜ) */}
+                                                {/* THANH CHỌN NHANH THỜI GIAN PHỤC VỤ (KHI KHÁCH HẸN GIỜ) */}
                                                 {!isCompleted && !isInProgress && (
                                                     <div className="mt-2 pt-2 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-1.5">
                                                         <span className="text-[10px] font-bold text-amber-950 flex items-center gap-1">
                                                             <span>⏰</span>
-                                                            <span>Hẹn giờ giao:</span>
+                                                            <span>{deptMeta.timePrompt || 'Hẹn giờ phục vụ:'}</span>
                                                         </span>
                                                         <div className="flex flex-wrap items-center gap-1 bg-amber-100/60 p-1 rounded-xl border border-amber-300/80">
                                                             {[
-                                                                { id: 'now', label: '⚡ Giao ngay' },
+                                                                { id: 'now', label: '⚡ Phục vụ ngay' },
                                                                 { id: '30m', label: '+30p' },
                                                                 { id: '1h', label: '+1h' },
                                                                 { id: '2h', label: '+2h' }
@@ -996,8 +1038,8 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                                     </span>
                                                 ) : isInProgress ? (
                                                     <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 flex items-center gap-1">
-                                                        <span>👨‍🍳</span>
-                                                        <span>F&B/Spa đang làm...</span>
+                                                        <span>{deptMeta.icon}</span>
+                                                        <span>{deptMeta.inProgressLabel}</span>
                                                     </span>
                                                 ) : (
                                                     <button
@@ -1009,19 +1051,19 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                                                 ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
                                                                 : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-xs'
                                                         }`}
-                                                        title={notifiedServiceIds.has(svc.id) ? 'Đã gửi chuông báo. Nhấn để gửi nhắc lại.' : 'Bắn tín hiệu chuông báo bộ phận F&B/Spa chuẩn bị'}
+                                                        title={notifiedServiceIds.has(svc.id) ? 'Đã gửi chuông báo. Nhấn để gửi nhắc lại.' : `Bắn tín hiệu chuông báo bộ phận ${deptMeta.dept} chuẩn bị`}
                                                     >
                                                         {isUpdatingThis ? (
                                                             <span>Đang gửi...</span>
                                                         ) : notifiedServiceIds.has(svc.id) ? (
                                                             <>
                                                                 <span>✓</span>
-                                                                <span>Đã báo F&B/Spa (Bấm để nhắc lại)</span>
+                                                                <span>Đã báo {deptMeta.dept} (Bấm để nhắc lại)</span>
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <span>🔔</span>
-                                                                <span>Báo F&B/Spa chuẩn bị</span>
+                                                                <span>Báo {deptMeta.dept} chuẩn bị</span>
                                                             </>
                                                         )}
                                                     </button>

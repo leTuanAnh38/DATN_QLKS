@@ -743,20 +743,55 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             time_notice = " ⚡ Khách cần phục vụ ngay."
 
         try:
-            from ..notifications.signals import get_staff_and_admin_users
+            from ..notifications.signals import get_staff_and_admin_users, get_service_category_type
             from ..notifications.models import Notification
 
-            staff_users = get_staff_and_admin_users()
+            category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
+            cat_type = get_service_category_type(service_name, category_name)
+
+            if cat_type == 'fnb':
+                dept_name = "Bếp / F&B"
+                dept_title = f"🍽️ Báo Bếp/F&B chuẩn bị món: Phòng {room_label}"
+                dept_message = (
+                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
+                    f"Món ăn / Đồ uống: \"{service_name}\" (SL: {service_req.quantity})."
+                    f"{time_notice} "
+                    f"Vui lòng tiếp nhận và chế biến đúng giờ trên Kanban!"
+                )
+            elif cat_type == 'transport':
+                dept_name = "Điều vận / Đội xe"
+                dept_title = f"🚗 Báo Điều vận sắp xếp xe: Phòng {room_label}"
+                dept_message = (
+                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
+                    f"Dịch vụ đưa đón: \"{service_name}\" (SL: {service_req.quantity})."
+                    f"{time_notice} "
+                    f"Vui lòng điều phối phương tiện và tài xế sẵn sàng!"
+                )
+            elif cat_type == 'spa':
+                dept_name = "Spa & Trị liệu"
+                dept_title = f"💆 Báo Spa chuẩn bị liệu trình: Phòng {room_label}"
+                dept_message = (
+                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
+                    f"Liệu trình Spa: \"{service_name}\" (SL: {service_req.quantity})."
+                    f"{time_notice} "
+                    f"Vui lòng chuẩn bị phòng trị liệu và kỹ thuật viên!"
+                )
+            else:  # amenities / other
+                dept_name = "Buồng phòng"
+                dept_title = f"🛎️ Báo Buồng phòng chuẩn bị tiện ích: Phòng {room_label}"
+                dept_message = (
+                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
+                    f"Yêu cầu tiện ích: \"{service_name}\" (SL: {service_req.quantity})."
+                    f"{time_notice} "
+                    f"Vui lòng chuẩn bị và chuyển lên phòng cho khách!"
+                )
+
+            staff_users = get_staff_and_admin_users(category_type=cat_type)
             notifs = [
                 Notification(
                     recipient=staff,
-                    title=f"🔔 Yêu cầu chuẩn bị: Phòng {room_label}",
-                    message=(
-                        f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
-                        f"Dịch vụ: \"{service_name}\" (SL: {service_req.quantity})."
-                        f"{time_notice} "
-                        f"Vui lòng tiếp nhận đơn trên bảng Kanban!"
-                    )
+                    title=dept_title,
+                    message=dept_message
                 )
                 for staff in staff_users
             ]
@@ -764,6 +799,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 Notification.objects.bulk_create(notifs)
         except Exception as e:
             print(f"Lỗi gửi thông báo cho nhân viên: {e}")
+            dept_name = "phục vụ"
 
         # Ghi log thao tác
         user = request.user
@@ -771,14 +807,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             user=user if user.is_authenticated else None,
             action='NOTIFY',
             module='SERVICE',
-            description=f"Lễ tân gửi thông báo nhắc chuẩn bị dịch vụ #{service_req.id} ({service_name}) cho Phòng {room_label}. {time_notice}",
+            description=f"Lễ tân gửi thông báo nhắc chuẩn bị dịch vụ #{service_req.id} ({service_name}) cho bộ phận {dept_name} (Phòng {room_label}). {time_notice}",
             request=request
         )
 
         serializer = self.get_serializer(service_req, context={'request': request})
         return Response({
             'success': True,
-            'message': f'Đã gửi thông báo nhắc chuẩn bị dịch vụ "{service_name}" cho bộ phận F&B / Spa thành công!',
+            'message': f'Đã gửi thông báo nhắc chuẩn bị dịch vụ "{service_name}" cho bộ phận {dept_name} thành công!',
+            'department': dept_name,
             'service_request_id': service_req.id,
             'status': service_req.status,
             'request_time': service_req.request_time,

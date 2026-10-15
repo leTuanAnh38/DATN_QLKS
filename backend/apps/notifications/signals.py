@@ -12,14 +12,30 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-def get_staff_and_admin_users(exclude_user_id=None):
+def get_staff_and_admin_users(exclude_user_id=None, category_type=None):
     """
-    Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên để gửi thông báo
+    Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên để gửi thông báo.
+    Hỗ trợ lọc chính xác theo nhóm nghiệp vụ:
+    - 'fnb': Quản lý, Lễ tân và Nhân viên phục vụ (service_staff)
+    - 'transport': Quản lý, Lễ tân và Nhân viên phục vụ/điều vận (service_staff)
+    - 'spa': Quản lý, Lễ tân, Nhân viên phục vụ (service_staff) và Kỹ thuật viên (technician)
+    - 'amenities': Quản lý, Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
+    - None: Toàn bộ nhân viên khách sạn
     """
+    base_roles = ['admin', 'owner', 'manager', 'receptionist']
+    if category_type == 'amenities':
+        target_roles = base_roles + ['housekeeper', 'service_staff', 'staff']
+    elif category_type == 'spa':
+        target_roles = base_roles + ['service_staff', 'technician', 'staff']
+    elif category_type in ['fnb', 'transport']:
+        target_roles = base_roles + ['service_staff', 'staff']
+    else:
+        target_roles = base_roles + ['service_staff', 'housekeeper', 'technician', 'staff']
+
     qs = User.objects.filter(
         models.Q(is_staff=True) |
         models.Q(is_superuser=True) |
-        models.Q(role__in=['admin', 'owner', 'manager', 'receptionist', 'service_staff', 'staff'])
+        models.Q(role__in=target_roles)
     )
     if exclude_user_id:
         qs = qs.exclude(id=exclude_user_id)
@@ -249,6 +265,132 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
 # ==============================================================================
 # 2. SIGNAL CHO SERVICEREQUEST: ĐẶT DỊCH VỤ MỚI & THAY ĐỔI STATUS
 # ==============================================================================
+def get_service_category_type(service_name="", category_name=""):
+    """
+    Phân loại nhóm dịch vụ để tùy biến thông báo chuẩn mực ngành khách sạn:
+    1. 'transport': Đưa đón sân bay, xe đưa đón, thuê xe
+    2. 'spa': Spa, massage, trị liệu, chăm sóc sức khỏe
+    3. 'amenities': Tiện ích & buồng phòng (khăn, gối, giặt ủi...)
+    4. 'fnb': Ẩm thực & đồ uống (F&B)
+    """
+    text = f"{category_name} {service_name}".strip().lower()
+
+    # Nhóm 1: Vận chuyển / Đưa đón sân bay (Có chữ "Sân bay", "Xe", "Đưa đón")
+    if any(k in text for k in ['sân bay', 'xe', 'đưa đón', 'transfer', 'airport', 'taxi', 'shuttle', 'đón tiễn']):
+        return 'transport'
+
+    # Nhóm 2: Spa / Chăm sóc sức khỏe (Có chữ "Spa", "Massage", "Trị liệu")
+    if any(k in text for k in ['spa', 'massage', 'trị liệu', 'xông hơi', 'sauna', 'thư giãn', 'wellness', 'chăm sóc da']):
+        return 'spa'
+
+    # Nhóm 3: Tiện ích & buồng phòng khác (Gối, khăn tắm, giặt ủi...)
+    if any(k in text for k in ['gối', 'khăn', 'tắm', 'giặt', 'ủi', 'buồng phòng', 'tiện ích', 'bàn chải', 'kem đánh răng', 'dép', 'dọn phòng', 'housekeeping', 'laundry', 'amenities', 'chăn', 'nệm']):
+        return 'amenities'
+
+    # Nhóm 4: Ẩm thực / Đồ uống (F&B)
+    if any(k in text for k in ['ẩm thực', 'đồ ăn', 'món ăn', 'thức ăn', 'bữa ăn', 'ăn uống', 'đồ uống', 'món', 'f&b', 'dining', 'food', 'drink', 'beverage', 'thực đơn', 'bếp', 'nhà hàng', 'bar', 'cà phê', 'coffee', 'trà', 'bánh', 'buffet', 'nước', 'rượu', 'bia', 'hải sản']):
+        return 'fnb'
+
+    # Mặc định thuộc nhóm Tiện ích & Buồng phòng khác nếu không xác định
+    return 'amenities'
+
+
+def get_service_notification_data(service_name, category_name, room_label, status_key, quantity=1, guest_name=""):
+    """
+    Sinh tiêu đề và nội dung thông báo chuẩn mực theo loại dịch vụ và bước trạng thái
+    """
+    cat_type = get_service_category_type(service_name, category_name)
+
+    if status_key == 'in_progress':
+        # BƯỚC 2: PREPARING (Đang chuẩn bị / Đang chế biến)
+        if cat_type == 'fnb':
+            guest_title = "👨‍🍳 Bếp đang chế biến món ăn"
+            guest_msg = f"Bếp đang chế biến món {service_name} cho phòng {room_label}."
+        elif cat_type == 'transport':
+            guest_title = "🚗 Đang sắp xếp phương tiện"
+            guest_msg = f"Bộ phận điều vận đang sắp xếp xe cho dịch vụ {service_name} của phòng {room_label}."
+        elif cat_type == 'spa':
+            guest_title = "💆 Đang chuẩn bị phòng trị liệu Spa"
+            guest_msg = f"Bộ phận Spa đang chuẩn bị phòng trị liệu và kỹ thuật viên cho yêu cầu {service_name} (Phòng {room_label})."
+        else:  # amenities / other
+            guest_title = "⚙️ Buồng phòng đang chuẩn bị yêu cầu"
+            guest_msg = f"Bộ phận Buồng phòng đang chuẩn bị yêu cầu {service_name} cho phòng {room_label}."
+
+        return {
+            'guest_title': guest_title,
+            'guest_msg': guest_msg,
+            'staff_title': None,
+            'staff_msg': None
+        }
+
+    elif status_key == 'delivering':
+        # BƯỚC 3: DELIVERING / SERVING (Đang phục vụ / Đang giao)
+        if cat_type == 'fnb':
+            guest_title = "🛵 Món ăn đang mang lên phòng"
+            guest_msg = f"Nhân viên đang mang món {service_name} lên phòng {room_label}. Quý khách vui lòng chú ý nhận món nhé!"
+            staff_title = f"🍽️ Món ăn đã làm xong - Sẵn sàng giao: Phòng {room_label}"
+            staff_msg = (
+                f"Món ăn / Đồ uống \"{service_name}\" (Số lượng: {quantity}) cho phòng {room_label} "
+                f"(Khách: {guest_name}) đã được chế biến xong và sẵn sàng được giao. "
+                f"Nhân viên phục vụ vui lòng nhận món tại bếp và giao lên phòng cho khách!"
+            )
+        elif cat_type == 'transport':
+            guest_title = "🚖 Xe đã sẵn sàng đón quý khách"
+            guest_msg = f"Tài xế và xe cho dịch vụ {service_name} đã sẵn sàng phục vụ quý khách tại sảnh / điểm hẹn!"
+            staff_title = f"🚗 Phương tiện đã sẵn sàng: Phòng {room_label}"
+            staff_msg = (
+                f"Tài xế và xe cho dịch vụ \"{service_name}\" của phòng {room_label} "
+                f"(Khách: {guest_name}) đã sẵn sàng phục vụ tại sảnh / điểm hẹn."
+            )
+        elif cat_type == 'spa':
+            guest_title = "🌿 Liệu trình Spa đã sẵn sàng"
+            guest_msg = f"Kỹ thuật viên và liệu trình {service_name} đã sẵn sàng phục vụ quý khách!"
+            staff_title = f"💆 Phòng Spa & KTV đã sẵn sàng: Phòng {room_label}"
+            staff_msg = (
+                f"Kỹ thuật viên và liệu trình \"{service_name}\" cho khách phòng {room_label} "
+                f"({guest_name}) đã sẵn sàng đón tiếp quý khách."
+            )
+        else:  # amenities / other
+            guest_title = "🛎️ Tiện ích đang chuyển tới phòng"
+            guest_msg = f"Nhân viên đang thực hiện / chuyển {service_name} đến phòng {room_label} của quý khách."
+            staff_title = f"🛎️ Tiện ích buồng phòng sẵn sàng chuyển: Phòng {room_label}"
+            staff_msg = (
+                f"Yêu cầu tiện ích \"{service_name}\" (Số lượng: {quantity}) cho phòng {room_label} "
+                f"(Khách: {guest_name}) đã chuẩn bị xong. Nhân viên vui lòng chuyển đến phòng cho khách!"
+            )
+
+        return {
+            'guest_title': guest_title,
+            'guest_msg': guest_msg,
+            'staff_title': staff_title,
+            'staff_msg': staff_msg
+        }
+
+    elif status_key == 'completed':
+        # BƯỚC 4: COMPLETED (Đã hoàn thành)
+        if cat_type == 'fnb':
+            guest_title = "✅ Món ăn đã phục vụ thành công"
+            guest_msg = f"Món {service_name} đã được phục vụ tại phòng {room_label}. Chúc quý khách dùng bữa ngon miệng!"
+        elif cat_type == 'transport':
+            guest_title = "✅ Chuyến xe đã hoàn tất"
+            guest_msg = f"Dịch vụ {service_name} cho phòng {room_label} đã hoàn tất. Chúc quý khách một hành trình thượng lộ bình an!"
+        elif cat_type == 'spa':
+            guest_title = "✅ Liệu trình Spa đã hoàn tất"
+            guest_msg = f"Liệu trình {service_name} đã hoàn tất. Chúc quý khách có những giây phút thư giãn tuyệt vời!"
+        else:  # amenities / other
+            guest_title = "✅ Yêu cầu dịch vụ đã hoàn tất"
+            guest_msg = f"Yêu cầu dịch vụ {service_name} cho phòng {room_label} đã hoàn tất. Chúc quý khách kỳ nghỉ trọn vẹn tại TA Đà Nẵng!"
+
+        return {
+            'guest_title': guest_title,
+            'guest_msg': guest_msg,
+            'staff_title': f"Dịch vụ phòng {room_label} đã xong",
+            'staff_msg': f"Yêu cầu dịch vụ \"{service_name}\" tại phòng {room_label} đã được hoàn thành."
+        }
+
+    return None
+
+
 @receiver(pre_save, sender=ServiceRequest)
 def track_service_request_previous_status(sender, instance, **kwargs):
     """
@@ -269,8 +411,9 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
     """
     Xử lý thông báo cho Phiếu Yêu Cầu Dịch Vụ (ServiceRequest):
     1. Khi khách ĐẶT DỊCH VỤ MỚI (created == True): Báo Admin / Lễ tân & Báo Khách ("Đã nhận yêu cầu")
-    2. Khi đổi sang in_progress: Báo Khách ("Dịch vụ đang được chuẩn bị")
-    3. Khi đổi sang completed: Báo Khách ("Dịch vụ đã sẵn sàng/đang giao") & Báo Lễ tân ("Dịch vụ phòng X đã xong")
+    2. Khi đổi sang in_progress (Bước 2): Thông báo theo nhóm dịch vụ (F&B, Xe, Spa, Buồng phòng)
+    3. Khi đổi sang delivering (Bước 3): Báo Khách & Báo Nhân viên theo loại dịch vụ
+    4. Khi đổi sang completed (Bước 4): Báo Khách lời chúc phù hợp & Báo Lễ tân
     """
     try:
         booking = instance.booking
@@ -279,22 +422,53 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
         room_label = (booking.room.room_number if booking and booking.room else None) or \
                      (booking.category.name if booking and booking.category else "Chưa xếp phòng")
         service_name = instance.service.name if instance.service else "Dịch vụ"
+        category_name = instance.service.category.name if (instance.service and instance.service.category) else ""
+        cat_type = get_service_category_type(service_name, category_name)
 
         # ----------------------------------------------------------------------
         # TRƯỜNG HỢP 1: KHÁCH ĐẶT DỊCH VỤ MỚI (created == True)
         # ----------------------------------------------------------------------
         if created:
-            # 1. Báo cho Quản lý & Lễ tân / Nhân viên phục vụ
-            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None)
+            # 1. Báo cho Quản lý & Lễ tân / Nhân viên phục vụ theo đúng nhóm nghiệp vụ
+            staff_users = get_staff_and_admin_users(
+                exclude_user_id=guest.id if guest else None,
+                category_type=cat_type
+            )
+
+            if cat_type == 'fnb':
+                staff_title = f"🍽️ Đơn gọi món mới: Phòng {room_label}"
+                staff_message = (
+                    f"Phòng {room_label} (Khách: {guest_name}) vừa đặt món: \"{service_name}\" "
+                    f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
+                    f"Bộ phận Bếp / F&B vui lòng tiếp nhận và chế biến."
+                )
+            elif cat_type == 'transport':
+                staff_title = f"🚗 Yêu cầu đặt xe mới: Phòng {room_label}"
+                staff_message = (
+                    f"Phòng {room_label} (Khách: {guest_name}) vừa đặt dịch vụ xe: \"{service_name}\" "
+                    f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
+                    f"Bộ phận Điều vận vui lòng tiếp nhận và sắp xếp phương tiện."
+                )
+            elif cat_type == 'spa':
+                staff_title = f"💆 Đặt lịch Spa mới: Phòng {room_label}"
+                staff_message = (
+                    f"Phòng {room_label} (Khách: {guest_name}) vừa đặt liệu trình: \"{service_name}\" "
+                    f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
+                    f"Bộ phận Spa vui lòng tiếp nhận và chuẩn bị kỹ thuật viên."
+                )
+            else:  # amenities / other
+                staff_title = f"🛎️ Yêu cầu tiện ích mới: Phòng {room_label}"
+                staff_message = (
+                    f"Phòng {room_label} (Khách: {guest_name}) vừa yêu cầu tiện ích: \"{service_name}\" "
+                    f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
+                    f"Bộ phận Buồng phòng vui lòng kiểm tra và hỗ trợ."
+                )
+
             staff_notifications = [
                 Notification(
                     recipient=staff,
-                    title=f"Yêu cầu dịch vụ mới: Phòng {room_label}",
-                    message=(
-                        f"Phòng {room_label} (Khách: {guest_name}) vừa đặt dịch vụ: \"{service_name}\" "
-                        f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
-                        f"Vui lòng tiếp nhận và xử lý."
-                    )
+                    title=staff_title,
+                    message=staff_message
                 )
                 for staff in staff_users
             ]
@@ -320,61 +494,64 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
         if prev_status == instance.status:
             return
 
+        notif_data = get_service_notification_data(
+            service_name=service_name,
+            category_name=category_name,
+            room_label=room_label,
+            status_key=instance.status,
+            quantity=instance.quantity,
+            guest_name=guest_name
+        )
+
         if instance.status == 'in_progress':
             # Thông báo cho khách hàng
-            if guest:
+            if guest and notif_data:
                 Notification.objects.create(
                     recipient=guest,
-                    title="👨‍🍳 Dịch vụ đang được chế biến",
-                    message=(
-                        f"Yêu cầu dịch vụ \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
-                        f"đang được nhân viên bộ phận chuẩn bị và thực hiện."
-                    )
+                    title=notif_data['guest_title'],
+                    message=notif_data['guest_msg']
                 )
 
         elif instance.status == 'delivering':
-            # 1. Thông báo cho khách hàng khi nhân viên bắt đầu giao lên phòng
-            if guest:
+            # 1. Thông báo cho khách hàng
+            if guest and notif_data:
                 Notification.objects.create(
                     recipient=guest,
-                    title="🛵 Đơn dịch vụ đang được giao tới phòng của bạn!",
-                    message=(
-                        f"Yêu cầu \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
-                        f"đang được nhân viên mang lên tận phòng cho quý khách. Quý khách vui lòng chú ý nhận món nhé!"
-                    )
+                    title=notif_data['guest_title'],
+                    message=notif_data['guest_msg']
                 )
 
-            # 2. Thông báo cho Nhân viên phục vụ (service_staff) & Quản trị / Lễ tân
-            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None)
-            staff_notifications = [
-                Notification(
-                    recipient=staff,
-                    title=f"🍽️ Món ăn đã làm xong - Sẵn sàng giao: Phòng {room_label}",
-                    message=(
-                        f"Món ăn / Dịch vụ \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
-                        f"(Khách: {guest_name}) đã được chế biến xong và sẵn sàng được giao. "
-                        f"Nhân viên phục vụ vui lòng nhận món tại bếp và giao lên phòng cho khách!"
-                    )
+            # 2. Thông báo cho Nhân viên phục vụ theo bộ phận & Quản trị / Lễ tân
+            if notif_data and notif_data.get('staff_title'):
+                staff_users = get_staff_and_admin_users(
+                    exclude_user_id=guest.id if guest else None,
+                    category_type=cat_type
                 )
-                for staff in staff_users
-            ]
-            if staff_notifications:
-                Notification.objects.bulk_create(staff_notifications)
+                staff_notifications = [
+                    Notification(
+                        recipient=staff,
+                        title=notif_data['staff_title'],
+                        message=notif_data['staff_msg']
+                    )
+                    for staff in staff_users
+                ]
+                if staff_notifications:
+                    Notification.objects.bulk_create(staff_notifications)
 
         elif instance.status == 'completed':
-            # 1. Báo cho khách hàng khi giao hoàn tất
-            if guest:
+            # 1. Báo cho khách hàng kèm lời chúc phù hợp từng loại dịch vụ
+            if guest and notif_data:
                 Notification.objects.create(
                     recipient=guest,
-                    title="✅ Dịch vụ đã giao thành công!",
-                    message=(
-                        f"Yêu cầu \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
-                        f"đã được phục vụ thành công tới phòng quý khách. Chúc quý khách trải nghiệm dịch vụ ngon miệng và trọn vẹn!"
-                    )
+                    title=notif_data['guest_title'],
+                    message=notif_data['guest_msg']
                 )
 
-            # 2. Báo cho Quản trị viên / Lễ tân
-            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None)
+            # 2. Báo cho Quản trị viên / Lễ tân & Bộ phận phụ trách
+            staff_users = get_staff_and_admin_users(
+                exclude_user_id=guest.id if guest else None,
+                category_type=cat_type
+            )
             staff_notifications = [
                 Notification(
                     recipient=staff,

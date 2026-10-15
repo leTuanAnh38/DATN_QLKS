@@ -267,6 +267,37 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                     .no-print {
                         display: none !important;
                     }
+
+                    /* Xóa triệt để khung viền, nền xám/bạc và padding quanh các nhãn trạng thái (badge) */
+                    #hotel-invoice-printable td span,
+                    #hotel-invoice-printable th span,
+                    #hotel-invoice-printable span[class*="rounded"],
+                    #hotel-invoice-printable span[class*="border"],
+                    #hotel-invoice-printable .status-badge,
+                    #hotel-invoice-printable td [class*="rounded"],
+                    #hotel-invoice-printable td [class*="border"] {
+                        border: none !important;
+                        border-width: 0 !important;
+                        background: transparent !important;
+                        background-color: transparent !important;
+                        box-shadow: none !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        outline: none !important;
+                    }
+
+                    /* Đảm bảo hàng bảng không bị in bóng nền màu xám */
+                    #hotel-invoice-printable tr,
+                    #hotel-invoice-printable td {
+                        background: transparent !important;
+                        background-color: transparent !important;
+                    }
+
+                    /* Chữ trạng thái hiển thị màu đen rõ nét trên giấy in */
+                    #hotel-invoice-printable td span {
+                        color: #111827 !important;
+                        font-weight: 600 !important;
+                    }
                 }
             `}</style>
 
@@ -338,7 +369,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                 HÓA ĐƠN ĐẶT PHÒNG
                             </h2>
                             {isCancelled && (
-                                <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded">
+                                <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                     ✕ ĐƠN ĐÃ HỦY
                                 </span>
                             )}
@@ -450,15 +481,15 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                         </td>
                                         <td className="py-3 text-center">
                                             {isCancelled ? (
-                                                <span className="inline-block text-[10.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                                <span className="inline-block text-[10.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                                     ✕ Đơn đã hủy
                                                 </span>
                                             ) : isRoomPaid ? (
-                                                <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                                     ✓ {getPaidMethodLabel()}
                                                 </span>
                                             ) : (
-                                                <span className="inline-block text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                                <span className="inline-block text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                                     Chưa thanh toán
                                                 </span>
                                             )}
@@ -486,7 +517,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 </div>
                                             </td>
                                             <td className="py-2.5 text-center">
-                                                <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                                     Chưa thanh toán (Thu khi Check-out)
                                                 </span>
                                             </td>
@@ -510,7 +541,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                         const isDamageCompensation = cleanName.toLowerCase().includes('bồi thường');
                                         const serviceIsPaid = Boolean(service.is_paid || (booking.status === 'completed' && booking.invoice?.status === 'paid'));
                                         return (
-                                            <tr key={service.id || idx} className={`border-b border-slate-200 ${isDamageCompensation ? 'bg-rose-50/20' : ''}`}>
+                                            <tr key={service.id || idx} className={`border-b border-slate-200 ${isDamageCompensation ? 'bg-rose-50/20 print:bg-transparent' : ''}`}>
                                                 <td className="py-2.5 text-left">
                                                     <div className={`font-bold text-xs ${isDamageCompensation ? 'text-rose-900 flex items-center gap-1.5' : 'text-slate-900'}`}>
                                                         {isDamageCompensation && <span className="text-rose-600"></span>}
@@ -522,11 +553,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 </td>
                                                 <td className="py-2.5 text-center">
                                                     {serviceIsPaid ? (
-                                                        <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                        <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                                             ✓ Đã thanh toán
                                                         </span>
                                                     ) : (
-                                                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black ${
                                                             isDamageCompensation 
                                                                 ? 'text-rose-700 bg-rose-50 border-rose-200' 
                                                                 : 'text-amber-700 bg-amber-50 border-amber-200'

@@ -19,6 +19,97 @@ const formatDateTimeDisplay = (isoStr) => {
     }
 };
 
+/**
+ * Hàm helper phân loại và trả về nhãn trạng thái, câu chúc theo loại dịch vụ:
+ * 1. Đồ ăn / Đồ uống (F&B)
+ * 2. Đưa đón / Xe
+ * 3. Spa / Massage
+ * 4. Tiện ích buồng phòng (Khăn, gối, giặt ủi...)
+ */
+export const getServiceLabels = (serviceName = '', categoryName = '') => {
+    const text = `${categoryName || ''} ${serviceName || ''}`.trim().toLowerCase();
+
+    // 1. Nhóm Đưa đón / Xe (Có chữ "Sân bay", "Xe", "Đưa đón"...)
+    const transportKeywords = ['sân bay', 'xe', 'đưa đón', 'transfer', 'airport', 'taxi', 'shuttle', 'đón tiễn'];
+    if (transportKeywords.some((k) => text.includes(k))) {
+        return {
+            type: 'transport',
+            step1: '1. Tiếp nhận',
+            step2: '2. Đang điều phối xe',
+            step3: '3. Xe đang đón/di chuyển',
+            step4: '4. Hoàn thành',
+            badgePending: '⏳ Chờ xác nhận',
+            badgeInProgress: '🚗 Đang điều phối xe',
+            badgeDelivering: '🚖 Xe đang đón/di chuyển',
+            badgeCompleted: '✓ Hoàn thành',
+            pendingMessage: '⏳ Bộ phận điều vận đã tiếp nhận thông tin và đang kiểm tra lộ trình.',
+            inProgressMessage: '🚗 Bộ phận điều vận đang sắp xếp xe cho dịch vụ của phòng.',
+            deliveringMessage: '🚖 Tài xế và xe đã sẵn sàng phục vụ quý khách tại sảnh / điểm hẹn!',
+            completedMessage: '✅ Chuyến xe đã hoàn thành. Cảm ơn quý khách đã sử dụng dịch vụ!'
+        };
+    }
+
+    // 2. Nhóm Spa / Massage (Có chữ "Spa", "Massage", "Trị liệu"...)
+    const spaKeywords = ['spa', 'massage', 'trị liệu', 'xông hơi', 'sauna', 'thư giãn', 'wellness', 'chăm sóc da'];
+    if (spaKeywords.some((k) => text.includes(k))) {
+        return {
+            type: 'spa',
+            step1: '1. Tiếp nhận',
+            step2: '2. Chuẩn bị liệu trình',
+            step3: '3. Đang trị liệu',
+            step4: '4. Hoàn thành',
+            badgePending: '⏳ Chờ xác nhận',
+            badgeInProgress: '💆 Chuẩn bị liệu trình',
+            badgeDelivering: '🌿 Đang trị liệu',
+            badgeCompleted: '✓ Hoàn thành',
+            pendingMessage: '⏳ Lễ tân Spa đã nhận yêu cầu và đang kiểm tra phòng trị liệu.',
+            inProgressMessage: '💆 Bộ phận Spa đang chuẩn bị phòng trị liệu và kỹ thuật viên.',
+            deliveringMessage: '🌿 Kỹ thuật viên và liệu trình đã sẵn sàng phục vụ quý khách!',
+            completedMessage: '✅ Liệu trình đã hoàn tất. Chúc quý khách thư giãn trọn vẹn!'
+        };
+    }
+
+    // 3. Nhóm Tiện ích buồng phòng (Khăn, gối, giặt ủi...)
+    const amenitiesKeywords = [
+        'gối', 'khăn', 'tắm', 'giặt', 'ủi', 'buồng phòng', 'tiện ích', 'bàn chải',
+        'kem đánh răng', 'dép', 'dọn phòng', 'housekeeping', 'laundry', 'amenities', 'chăn', 'nệm'
+    ];
+    if (amenitiesKeywords.some((k) => text.includes(k))) {
+        return {
+            type: 'amenities',
+            step1: '1. Tiếp nhận',
+            step2: '2. Đang chuẩn bị',
+            step3: '3. Đang mang lên phòng',
+            step4: '4. Hoàn thành',
+            badgePending: '⏳ Chờ xác nhận',
+            badgeInProgress: '⚙️ Đang chuẩn bị',
+            badgeDelivering: '🛎️ Đang mang lên phòng',
+            badgeCompleted: '✓ Hoàn thành',
+            pendingMessage: '⏳ Bộ phận buồng phòng đã tiếp nhận yêu cầu tiện ích của bạn.',
+            inProgressMessage: '⚙️ Bộ phận Buồng phòng đang chuẩn bị yêu cầu cho phòng.',
+            deliveringMessage: '🛎️ Nhân viên đang mang tiện ích lên phòng của quý khách.',
+            completedMessage: '✅ Đã bàn giao tiện ích tới phòng. Chúc quý khách kỳ nghỉ vui vẻ!'
+        };
+    }
+
+    // 4. Mặc định: Đồ ăn / Đồ uống (F&B)
+    return {
+        type: 'fnb',
+        step1: '1. Tiếp nhận',
+        step2: '2. Đang chế biến',
+        step3: '3. Đang giao tới phòng',
+        step4: '4. Hoàn thành',
+        badgePending: '⏳ Chờ xác nhận',
+        badgeInProgress: '👨‍🍳 Đang chế biến',
+        badgeDelivering: '🛵 Đang giao tới phòng',
+        badgeCompleted: '✓ Hoàn thành',
+        pendingMessage: '⏳ Bếp & Lễ tân đã nhận được yêu cầu, đang kiểm tra.',
+        inProgressMessage: '👨‍🍳 Bếp đang chế biến món ăn cẩn thận cho phòng của bạn.',
+        deliveringMessage: '🛵 Nhân viên đang mang món lên phòng. Quý khách vui lòng chú ý nhận món nhé!',
+        completedMessage: '✅ Đã phục vụ tới phòng. Chúc quý khách dùng ngon miệng!'
+    };
+};
+
 export default function ServicesMenu() {
     const { user, isAuthenticated } = useAuth();
 
@@ -114,9 +205,9 @@ export default function ServicesMenu() {
         const handleServiceEvent = (e) => {
             fetchOrderHistory(true);
             if (e?.detail?.status === 'delivering') {
-                showToast('success', '🛵 Đơn dịch vụ của bạn đang được nhân viên giao lên phòng!');
+                showToast('success', '🛎️ Đơn dịch vụ của bạn đang được phục vụ / chuyển tới phòng!');
             } else if (e?.detail?.status === 'completed') {
-                showToast('success', '✅ Đơn dịch vụ của bạn đã được giao thành công tới phòng!');
+                showToast('success', '✅ Đơn dịch vụ của bạn đã hoàn thành!');
             }
         };
 
@@ -129,9 +220,9 @@ export default function ServicesMenu() {
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data?.status === 'delivering') {
-                        showToast('success', '🛵 Đơn dịch vụ của bạn đang được nhân viên giao lên phòng!');
+                        showToast('success', '🛎️ Đơn dịch vụ của bạn đang được phục vụ / chuyển tới phòng!');
                     } else if (data?.status === 'completed') {
-                        showToast('success', '✅ Đơn dịch vụ của bạn đã được giao thành công tới phòng!');
+                        showToast('success', '✅ Đơn dịch vụ của bạn đã hoàn thành!');
                     }
                 } catch {
                     // Ignore parse error
@@ -317,7 +408,7 @@ export default function ServicesMenu() {
 
     // 5.1 Phân trang Lịch sử đặt món trong Modal
     const [historyPage, setHistoryPage] = useState(1);
-    const HISTORY_ITEMS_PER_PAGE = 2; // Hiển thị 2 đơn mỗi trang để không phải cuộn quá dài
+    const HISTORY_ITEMS_PER_PAGE = 5; // Hiển thị 5 đơn mỗi trang theo yêu cầu
 
     // Tự động về trang 1 khi bấm chuyển tab bộ lọc
     useEffect(() => {
@@ -909,7 +1000,7 @@ export default function ServicesMenu() {
                         </div>
                     </div>
                 )}
-                {/* FLOATING ACTION BUTTON XEM LỊCH SỬ ĐẶT MÓN */}
+                {/* FLOATING ACTION BUTTON XEM LỊCH SỬ ĐẶT MÓN & DỊCH VỤ */}
                 <button
                     type="button"
                     onClick={() => {
@@ -917,13 +1008,13 @@ export default function ServicesMenu() {
                         setIsHistoryModalOpen(true);
                     }}
                     className="fixed bottom-6 left-6 z-40 px-4 py-3 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-2xl border border-slate-700/60 font-bold text-xs flex items-center gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
-                    title="Xem lịch sử đặt món & tiến độ xử lý"
+                    title="Xem lịch sử dịch vụ & tiến độ xử lý"
                 >
                     <span className="text-base">🛎️</span>
-                    <span>Lịch Sử Đặt Món</span>
+                    <span>Lịch Sử Dịch Vụ</span>
                     {activeOrdersCount > 0 ? (
                         <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-bounce">
-                            {activeOrdersCount} đang làm
+                            {activeOrdersCount} đang xử lý
                         </span>
                     ) : orderHistory.length > 0 ? (
                         <span className="px-2 py-0.5 rounded-full bg-slate-700 text-white text-[10px] font-bold">
@@ -952,7 +1043,7 @@ export default function ServicesMenu() {
                                             )}
                                         </h3>
                                         <p className="text-[11px] text-slate-500 mt-0.5">
-                                            Theo dõi thời gian thực tiến độ tiếp nhận, chế biến và phục vụ tận phòng của bạn.
+                                            Theo dõi thời gian thực tiến độ tiếp nhận, chuẩn bị và phục vụ dịch vụ tận phòng của bạn.
                                         </p>
                                     </div>
                                 </div>
@@ -984,9 +1075,9 @@ export default function ServicesMenu() {
                                 {[
                                     { key: 'all', label: 'Tất cả', count: historyStats.total },
                                     { key: 'pending', label: '⏳ Chờ xác nhận', count: historyStats.pending },
-                                    { key: 'in_progress', label: '👨‍🍳 Đang chế biến', count: historyStats.inProgress },
-                                    { key: 'delivering', label: '🛵 Đang giao', count: historyStats.delivering },
-                                    { key: 'completed', label: '✓ Đã phục vụ', count: historyStats.completed },
+                                    { key: 'in_progress', label: '⚙️ Đang chuẩn bị', count: historyStats.inProgress },
+                                    { key: 'delivering', label: '🛎️ Đang phục vụ', count: historyStats.delivering },
+                                    { key: 'completed', label: '✓ Hoàn thành', count: historyStats.completed },
                                     { key: 'cancelled', label: '✕ Đã hủy', count: historyStats.cancelled }
                                 ].map((tab) => (
                                     <button
@@ -1018,7 +1109,7 @@ export default function ServicesMenu() {
                                 {isLoadingHistory && orderHistory.length === 0 ? (
                                     <div className="py-16 text-center space-y-3">
                                         <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                                        <p className="text-xs font-semibold text-slate-500">Đang tải lịch sử đơn món...</p>
+                                        <p className="text-xs font-semibold text-slate-500">Đang tải lịch sử dịch vụ...</p>
                                     </div>
                                 ) : sortedHistory.length === 0 ? (
                                     <div className="py-16 text-center space-y-3 max-w-sm mx-auto">
@@ -1027,21 +1118,21 @@ export default function ServicesMenu() {
                                         </div>
                                         <h4 className="font-serif text-base font-bold text-slate-900">
                                             {historyFilter === 'all'
-                                                ? 'Bạn chưa có yêu cầu gọi món nào'
-                                                : `Không có món nào ở mục "${
+                                                ? 'Bạn chưa có yêu cầu dịch vụ nào'
+                                                : `Không có yêu cầu nào ở mục "${
                                                       historyFilter === 'pending'
                                                           ? 'Chờ xác nhận'
                                                           : historyFilter === 'in_progress'
-                                                          ? 'Đang chế biến'
+                                                          ? 'Đang chuẩn bị'
                                                           : historyFilter === 'delivering'
-                                                          ? 'Đang giao'
+                                                          ? 'Đang phục vụ'
                                                           : historyFilter === 'completed'
-                                                          ? 'Đã phục vụ'
+                                                          ? 'Hoàn thành'
                                                           : 'Đã hủy'
                                                   }"`}
                                         </h4>
                                         <p className="text-xs text-slate-500">
-                                            Khám phá thực đơn phong phú của chúng tôi và chọn những món ăn hấp dẫn để được phục vụ tận phòng nghỉ.
+                                            Khám phá danh mục dịch vụ & tiện ích phong phú của chúng tôi để được phục vụ tận phòng nghỉ.
                                         </p>
                                         <button
                                             type="button"
@@ -1059,6 +1150,7 @@ export default function ServicesMenu() {
                                         const isCompleted = item.status === 'completed';
                                         const isCancelled = item.status === 'cancelled';
                                         const priceNum = Number(item.total_price || (item.service_price * item.quantity)) || 0;
+                                        const labels = getServiceLabels(item.service_name, item.category_name);
 
                                         return (
                                             <div
@@ -1090,25 +1182,25 @@ export default function ServicesMenu() {
                                                         {isPending && (
                                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                                ⏳ Chờ xác nhận
+                                                                {labels.badgePending}
                                                             </span>
                                                         )}
                                                         {isInProgress && (
                                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
-                                                                👨‍🍳 Đang chế biến
+                                                                {labels.badgeInProgress}
                                                             </span>
                                                         )}
                                                         {isDelivering && (
                                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
-                                                                🛵 Đang giao tận phòng
+                                                                {labels.badgeDelivering}
                                                             </span>
                                                         )}
                                                         {isCompleted && (
                                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                ✓ Đã phục vụ phòng
+                                                                {labels.badgeCompleted}
                                                             </span>
                                                         )}
                                                         {isCancelled && (
@@ -1120,7 +1212,7 @@ export default function ServicesMenu() {
                                                     </div>
                                                 </div>
 
-                                                {/* Body thẻ: Món ăn + Chi tiết */}
+                                                {/* Body thẻ: Dịch vụ + Chi tiết */}
                                                 <div className="p-4 sm:p-5">
                                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                                         <div className="flex items-center gap-3.5 flex-1">
@@ -1136,7 +1228,7 @@ export default function ServicesMenu() {
                                                                 />
                                                             ) : (
                                                                 <div className="w-16 h-16 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl shrink-0 border border-amber-200/60">
-                                                                    {item.category_icon || '🍽️'}
+                                                                    {item.category_icon || '🛎️'}
                                                                 </div>
                                                             )}
 
@@ -1156,7 +1248,7 @@ export default function ServicesMenu() {
                                                                         <>
                                                                             <span>•</span>
                                                                             <span className="text-slate-400 text-[11px]">
-                                                                                ({Number(item.service_price).toLocaleString('vi-VN')} đ/phần)
+                                                                                ({Number(item.service_price).toLocaleString('vi-VN')} đ/lần)
                                                                             </span>
                                                                         </>
                                                                     )}
@@ -1189,16 +1281,16 @@ export default function ServicesMenu() {
                                                             <div className="space-y-2">
                                                                 <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
                                                                     <span className={isPending || isInProgress || isDelivering || isCompleted ? 'text-amber-600 font-bold' : ''}>
-                                                                        1. Tiếp nhận
+                                                                        {labels.step1}
                                                                     </span>
                                                                     <span className={isInProgress || isDelivering || isCompleted ? 'text-blue-600 font-bold' : ''}>
-                                                                        2. Đang chế biến
+                                                                        {labels.step2}
                                                                     </span>
                                                                     <span className={isDelivering || isCompleted ? 'text-purple-600 font-bold' : ''}>
-                                                                        3. Đang giao
+                                                                        {labels.step3}
                                                                     </span>
                                                                     <span className={isCompleted ? 'text-emerald-600 font-bold' : ''}>
-                                                                        4. Hoàn thành
+                                                                        {labels.step4}
                                                                     </span>
                                                                 </div>
 
@@ -1218,10 +1310,10 @@ export default function ServicesMenu() {
 
                                                                 <div className="flex items-center justify-between text-[11px]">
                                                                     <span className="text-slate-500 font-medium">
-                                                                        {isPending && '⏳ Bếp & Lễ tân đã nhận được yêu cầu, đang kiểm tra.'}
-                                                                        {isInProgress && '👨‍🍳 Đầu bếp đang nấu. Món sẽ được chuẩn bị cẩn thận cho quý khách.'}
-                                                                        {isDelivering && '🛵 Nhân viên đang đưa món lên tận phòng cho quý khách!'}
-                                                                        {isCompleted && '✅ Đã phục vụ tới phòng. Chúc quý khách dùng ngon miệng!'}
+                                                                        {isPending && labels.pendingMessage}
+                                                                        {isInProgress && labels.inProgressMessage}
+                                                                        {isDelivering && labels.deliveringMessage}
+                                                                        {isCompleted && labels.completedMessage}
                                                                     </span>
 
                                                                     {/* Nút Hủy nếu đang Pending */}
@@ -1239,7 +1331,7 @@ export default function ServicesMenu() {
                                                             </div>
                                                         ) : (
                                                             <div className="flex items-center justify-between text-xs text-rose-600 bg-rose-50/60 p-2 rounded-xl border border-rose-100">
-                                                                <span>✕ Yêu cầu đã hủy. Món ăn không được chuẩn bị và không tính phí.</span>
+                                                                <span>✕ Yêu cầu đã hủy. Dịch vụ không thực hiện và không tính phí.</span>
                                                             </div>
                                                         )}
                                                     </div>

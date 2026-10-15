@@ -24,8 +24,8 @@ const formatTimeAgo = (dateStr) => {
 // Cấu hình hiển thị trạng thái dùng cho chế độ xem Danh sách
 const STATUS_META = {
     pending: { label: 'Chờ xử lý', icon: '⏳', pill: 'bg-amber-50 text-amber-700 border-amber-200', tab: 'bg-amber-500 text-white' },
-    in_progress: { label: 'Đang làm', icon: '👨‍🍳', pill: 'bg-blue-50 text-blue-700 border-blue-200', tab: 'bg-blue-600 text-white' },
-    delivering: { label: 'Đang giao', icon: '🛵', pill: 'bg-purple-50 text-purple-700 border-purple-200', tab: 'bg-purple-600 text-white' },
+    in_progress: { label: 'Đang chuẩn bị', icon: '⚙️', pill: 'bg-blue-50 text-blue-700 border-blue-200', tab: 'bg-blue-600 text-white' },
+    delivering: { label: 'Đang phục vụ', icon: '🛎️', pill: 'bg-purple-50 text-purple-700 border-purple-200', tab: 'bg-purple-600 text-white' },
     completed: { label: 'Hoàn thành', icon: '✓', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', tab: 'bg-emerald-600 text-white' },
     cancelled: { label: 'Đã hủy', icon: '✕', pill: 'bg-rose-50 text-rose-700 border-rose-200', tab: 'bg-rose-600 text-white' }
 };
@@ -279,8 +279,8 @@ export default function ServiceRequestKanban() {
         },
         {
             key: 'in_progress',
-            title: 'Đang làm (In Progress)',
-            icon: '👨‍🍳',
+            title: 'Đang chuẩn bị (In Progress)',
+            icon: '⚙️',
             headerBg: 'bg-blue-500/10 text-blue-800 border-blue-300',
             badgeBg: 'bg-blue-600 text-white',
             borderColor: 'border-blue-200',
@@ -289,8 +289,8 @@ export default function ServiceRequestKanban() {
         },
         {
             key: 'delivering',
-            title: 'Đang giao (Delivering)',
-            icon: '🛵',
+            title: 'Đang phục vụ (Delivering / Serving)',
+            icon: '🛎️',
             headerBg: 'bg-purple-500/10 text-purple-800 border-purple-300',
             badgeBg: 'bg-purple-600 text-white',
             borderColor: 'border-purple-200',
@@ -720,7 +720,7 @@ export default function ServiceRequestKanban() {
                                                                 disabled={isUpdatingThis}
                                                                 className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
                                                             >
-                                                                <span>🛵 Giao</span>
+                                                                <span>🛎️ Phục vụ</span>
                                                             </button>
                                                         </>
                                                     )}
@@ -732,7 +732,7 @@ export default function ServiceRequestKanban() {
                                                                 disabled={isUpdatingThis}
                                                                 className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
                                                             >
-                                                                ↩ Làm
+                                                                ↩ Chuẩn bị
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -1023,10 +1023,10 @@ export default function ServiceRequestKanban() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'delivering')}
-                                                                    title="Bắt đầu giao món lên phòng"
+                                                                    title="Bắt đầu phục vụ / mang lên phòng / đón khách"
                                                                     className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
                                                                 >
-                                                                    <span>🛵 Giao</span>
+                                                                    <span>🛎️ Phục vụ</span>
                                                                     <span>➔</span>
                                                                 </button>
                                                             </>
@@ -1037,15 +1037,15 @@ export default function ServiceRequestKanban() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'in_progress')}
-                                                                    title="Trả về Đang làm"
+                                                                    title="Trả về Đang chuẩn bị"
                                                                     className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold transition cursor-pointer"
                                                                 >
-                                                                    ↩ Làm
+                                                                    ↩ Chuẩn bị
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'completed')}
-                                                                    title="Đã giao thành công cho khách hàng"
+                                                                    title="Đã phục vụ hoàn thành cho khách hàng"
                                                                     className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
                                                                 >
                                                                     <span>✓ Hoàn thành</span>

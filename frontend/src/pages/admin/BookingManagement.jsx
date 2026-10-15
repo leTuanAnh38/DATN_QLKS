@@ -1942,33 +1942,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                    <label className="text-xs font-semibold text-slate-600">Đổi trạng thái:</label>
-                                    {['completed', 'checked_out', 'cancelled', 'no_show'].includes(selectedBooking.status?.toLowerCase()) ? (
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-500 font-semibold rounded-xl text-xs border border-slate-200" title="Đơn đã đóng sổ (Check-out hoặc Hủy), không thể thay đổi trạng thái">
-                                            🔒 Đã khóa sổ (Không thể đổi trạng thái)
-                                        </span>
-                                    ) : canManageBookings ? (
-                                        <select
-                                            value={selectedBooking.status}
-                                            disabled={updatingId === selectedBooking.id}
-                                            onChange={(e) =>
-                                                handleQuickStatusChange(selectedBooking.id, e.target.value)
-                                            }
-                                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/30 cursor-pointer"
-                                        >
-                                            {STATUS_OPTIONS.map((opt) => (
-                                                <option key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200">
-                                            Chỉ xem (Không có quyền sửa)
-                                        </span>
-                                    )}
-                                </div>
+                                
                             </div>
 
                             {/* KHỐI 2: THÔNG TIN KHÁCH HÀNG & PHÁP LÝ CCCD */}
