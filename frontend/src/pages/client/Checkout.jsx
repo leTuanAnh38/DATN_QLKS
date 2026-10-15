@@ -583,7 +583,7 @@ export default function Checkout() {
 
                 {/* Form Đặt phòng & Tóm tắt đơn */}
                 {!loadingRoom && room && (
-                    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                         {/* ========================================================================= */}
                         {/* CỘT TRÁI: FORM NHẬP LIỆU (8 COLS) */}
                         {/* ========================================================================= */}
@@ -1325,8 +1325,8 @@ export default function Checkout() {
                         {/* ========================================================================= */}
                         {/* CỘT PHẢI: TÓM TẮT ĐƠN HÀNG (ORDER SUMMARY - 4 COLS STICKY) */}
                         {/* ========================================================================= */}
-                        <div className="lg:col-span-4">
-                            <div className="sticky top-24 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/5 p-6 space-y-6">
+                        <div className="lg:col-span-4 h-full">
+                            <div className="lg:sticky lg:top-24 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/5 p-5 sm:p-6 space-y-4 sm:space-y-5 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
                                 {/* Thẻ phòng thu nhỏ */}
                                 <div>
                                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-3">
