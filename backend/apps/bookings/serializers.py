@@ -100,18 +100,28 @@ class BookingSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     payment_method = serializers.SerializerMethodField()
     payment_method_display = serializers.SerializerMethodField()
+    customer_type_display = serializers.CharField(source='get_customer_type_display', read_only=True)
     group_booking_code = serializers.CharField(source='group_booking.group_code', read_only=True, default=None)
     group_booking_name = serializers.CharField(source='group_booking.group_name', read_only=True, default=None)
+    is_group_deposit_paid = serializers.BooleanField(source='group_booking.is_deposit_paid', read_only=True, default=False)
+    group_status = serializers.CharField(source='group_booking.status', read_only=True, default=None)
 
     class Meta:
         model = Booking
         fields = [
             'id',
             'booking_code',
+            'customer_type',
+            'customer_type_display',
+            'company_name',
+            'company_tax_code',
+            'company_address',
             'group_booking',
             'group_booking_code',
             'group_booking_name',
             'is_master_billed',
+            'is_group_deposit_paid',
+            'group_status',
             'review',
             'category',
             'room',
@@ -381,7 +391,14 @@ class BookingSerializer(serializers.ModelSerializer):
         """
         remaining_balance: total_amount - paid_amount.
         Số tiền dương là khách nợ cần thu thêm, số 0 là hòa, số âm là phải thối lại.
+        Đối với phòng thuộc đoàn có tính tiền vào hóa đơn tổng (is_master_billed=True hoặc group_booking),
+        tiền phòng do đoàn/công ty thanh toán tập trung, khách lẻ tại phòng chỉ phải trả dịch vụ cá nhân phát sinh (nếu có).
         """
+        if obj.group_booking_id and getattr(obj, 'is_master_billed', True):
+            service_charge = self.get_service_charge(obj)
+            direct_paid = self.get_paid_amount(obj)
+            return float(max(0.0, service_charge - direct_paid))
+
         total = self.get_total_amount(obj)
         paid = self.get_paid_amount(obj)
         return float(total - paid)
@@ -475,6 +492,15 @@ class BookingSerializer(serializers.ModelSerializer):
         return 2
 
     def get_guest_name(self, obj):
+        # 1. Ưu tiên lấy tên khách đại diện phòng từ danh sách BookingGuest
+        try:
+            primary_guest = obj.guests.filter(is_primary=True).first() or obj.guests.first()
+            if primary_guest and primary_guest.full_name:
+                return primary_guest.full_name
+        except Exception:
+            pass
+
+        # 2. Lấy tên từ User tài khoản đặt phòng
         if obj.guest:
             full_name = obj.guest.get_full_name().strip()
             if not full_name:

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { bookingService } from '../../../services/bookingService';
 import CreateGroupModal from '../modals/CreateGroupModal';
 import GroupDetailModal from '../modals/GroupDetailModal';
+import HotelInvoiceModal from '../modals/HotelInvoiceModal';
+import Pagination from '../../common/Pagination';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -27,9 +29,15 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(5);
+
     // Modals
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedGroup, setSelectedGroup] = useState(null);
+    const [invoiceBooking, setInvoiceBooking] = useState(null);
+    const [isPreparingInvoice, setIsPreparingInvoice] = useState(false);
 
     // Fetch list of group bookings
     const fetchGroups = async () => {
@@ -65,6 +73,86 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
             (g.corporate_partner_details?.company_name || '').toLowerCase().includes(kw)
         );
     }, [groups, searchKeyword]);
+
+    // Pagination calculations
+    const totalCount = filteredGroups.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+    const paginatedGroups = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredGroups.slice(start, start + pageSize);
+    }, [filteredGroups, currentPage, pageSize]);
+
+    // Reset current page when filters or search change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchKeyword, statusFilter]);
+
+    // Ensure currentPage is valid if totalPages shrinks
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [totalPages, currentPage]);
+
+    // Handler mở hóa đơn đoàn dùng chung HotelInvoiceModal
+    const handleOpenInvoice = async (group) => {
+        try {
+            setIsPreparingInvoice(true);
+            let detailGroup = group;
+            try {
+                const res = await bookingService.getGroupBookingDetail(group.id);
+                if (res.success && res.data) {
+                    detailGroup = res.data;
+                }
+            } catch (err) {
+                console.warn('Dùng dữ liệu danh sách cho hóa đơn:', err);
+            }
+
+            const partner = detailGroup.corporate_partner_details || detailGroup.corporate_partner;
+            const isCompleted = ['checked_out', 'completed'].includes(detailGroup.status);
+            const totalAmount = Number(detailGroup.total_amount) || 0;
+            const depositAmount = Number(detailGroup.deposit_amount) || 0;
+
+            const mappedBooking = {
+                ...detailGroup,
+                id: detailGroup.id,
+                is_group_master: true,
+                booking_code: detailGroup.group_code,
+                group_code: detailGroup.group_code,
+                group_name: detailGroup.group_name,
+                guest_name: detailGroup.leader_name,
+                customer_name: detailGroup.leader_name,
+                guest_phone: detailGroup.leader_phone,
+                guest_email: detailGroup.leader_email,
+                customer_type: 'CORPORATE',
+                company_name: partner?.company_name || detailGroup.company_name || detailGroup.group_name,
+                company_tax_code: partner?.tax_code || detailGroup.company_tax_code || '—',
+                company_address: partner?.address || detailGroup.company_address || '—',
+                room_name: detailGroup.group_name,
+                room_number: `Đoàn ${detailGroup.total_rooms || (detailGroup.sub_bookings ? detailGroup.sub_bookings.length : 0)} phòng`,
+                check_in_date: detailGroup.check_in_date,
+                check_out_date: detailGroup.check_out_date,
+                nights: detailGroup.nights || 1,
+                total_amount: totalAmount,
+                room_amount: totalAmount,
+                grand_total_amount: totalAmount,
+                deposit_amount: depositAmount,
+                is_deposit_paid: Boolean(detailGroup.is_deposit_paid || isCompleted),
+                status: detailGroup.status,
+                is_paid: isCompleted,
+                sub_bookings: detailGroup.sub_bookings || [],
+                payment_method: 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)',
+                note: detailGroup.note || ''
+            };
+
+            setInvoiceBooking(mappedBooking);
+        } catch (error) {
+            console.error('Lỗi khi mở hóa đơn đoàn:', error);
+        } finally {
+            setIsPreparingInvoice(false);
+        }
+    };
 
     // Quick stats
     const stats = useMemo(() => {
@@ -116,7 +204,7 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
             </div>
 
             {/* QUICK STATS */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div
                     onClick={() => setStatusFilter('all')}
                     className={`p-3.5 rounded-2xl border transition cursor-pointer ${
@@ -156,6 +244,16 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">CHỜ ĐẶT CỌC</span>
                     <div className="text-xl font-black mt-1 text-amber-700">{stats.tentative}</div>
                 </div>
+
+                <div
+                    onClick={() => setStatusFilter('completed')}
+                    className={`p-3.5 rounded-2xl border transition cursor-pointer ${
+                        statusFilter === 'completed' ? 'bg-purple-50 text-purple-900 border-purple-300 ring-1 ring-purple-200 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                >
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600">ĐÃ HOÀN THÀNH</span>
+                    <div className="text-xl font-black mt-1 text-purple-700">{stats.completed}</div>
+                </div>
             </div>
 
             {/* SEARCH BAR */}
@@ -194,94 +292,132 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-4">
-                    {filteredGroups.map((group) => {
-                        const partner = group.corporate_partner_details;
-                        const isCheckedIn = group.status === 'checked_in';
-                        const isCompleted = ['checked_out', 'completed'].includes(group.status);
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+                        {paginatedGroups.map((group) => {
+                            const partner = group.corporate_partner_details;
+                            const isCheckedIn = group.status === 'checked_in';
+                            const isCompleted = ['checked_out', 'completed'].includes(group.status);
 
-                        return (
-                            <div
-                                key={group.id}
-                                className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition space-y-4"
-                            >
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div className="flex items-start sm:items-center gap-3">
-                                        <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-xl shrink-0 font-bold text-indigo-700">
-                                            🏢
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200">
-                                                    #{group.group_code}
-                                                </span>
-                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                                    isCheckedIn
-                                                        ? 'bg-emerald-100 text-emerald-800'
-                                                        : isCompleted
-                                                        ? 'bg-slate-100 text-slate-600'
-                                                        : 'bg-blue-100 text-blue-800'
-                                                }`}>
-                                                    {group.status_display || group.status}
-                                                </span>
-                                                {partner && (
-                                                    <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 text-[11px] font-bold border border-purple-200">
-                                                        🏢 {partner.company_name} (-{partner.discount_percent}%)
-                                                    </span>
-                                                )}
+                            return (
+                                <div
+                                    key={group.id}
+                                    className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition space-y-4"
+                                >
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div className="flex items-start sm:items-center gap-3">
+                                            <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-xl shrink-0 font-bold text-indigo-700">
+                                                🏢
                                             </div>
-                                            <h4 className="font-bold text-slate-900 text-base mt-1">
-                                                {group.group_name}
-                                            </h4>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200">
+                                                        #{group.group_code}
+                                                    </span>
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                                                        isCheckedIn
+                                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                                            : isCompleted
+                                                            ? 'bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs'
+                                                            : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                                    }`}>
+                                                        <span>{isCompleted ? '✓' : isCheckedIn ? '🔑' : '📋'}</span>
+                                                        <span>{isCompleted ? 'ĐÃ HOÀN THÀNH & QUYẾT TOÁN' : (group.status_display || group.status)}</span>
+                                                    </span>
+                                                    {partner && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 text-[11px] font-bold border border-purple-200">
+                                                            🏢 {partner.company_name} (-{partner.discount_percent}%)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h4 className="font-bold text-slate-900 text-base mt-1">
+                                                    {group.group_name}
+                                                </h4>
+                                            </div>
+                                        </div>
+
+                                        {/* Action buttons */}
+                                        <div className="flex items-center gap-2 self-end sm:self-center flex-wrap">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenInvoice(group)}
+                                                disabled={isPreparingInvoice}
+                                                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                                title="In hóa đơn thanh toán cho toàn bộ đoàn"
+                                            >
+                                                <span>🖨️ In Hóa Đơn</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedGroup(group)}
+                                                className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition cursor-pointer"
+                                            >
+                                                Chi tiết & Phân phòng →
+                                            </button>
                                         </div>
                                     </div>
 
-                                    {/* Action buttons */}
-                                    <div className="flex items-center gap-2 self-end sm:self-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedGroup(group)}
-                                            className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition cursor-pointer"
-                                        >
-                                            Chi tiết & Phân phòng →
-                                        </button>
+                                    {/* Details bar */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
+                                        <div>
+                                            <span className="text-slate-400 block text-[10px] uppercase font-bold">Người phụ trách / Trưởng đoàn</span>
+                                            <strong className="text-slate-800 block truncate">{group.leader_name}</strong>
+                                            <span className="text-slate-500 text-[11px]">📞 {group.leader_phone}</span>
+                                        </div>
+
+                                        <div>
+                                            <span className="text-slate-400 block text-[10px] uppercase font-bold">Quy mô lưu trú</span>
+                                            <strong className="text-slate-800">{group.total_rooms} phòng • {group.nights} đêm</strong>
+                                            <span className="text-slate-500 block text-[11px]">
+                                                {formatDate(group.check_in_date)} - {formatDate(group.check_out_date)}
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <span className="text-slate-400 block text-[10px] uppercase font-bold">Tổng tiền hợp đồng</span>
+                                            <strong className="text-indigo-700 font-black text-sm block">{formatCurrency(group.total_amount)}</strong>
+                                            <span className="text-slate-500 text-[11px]">Cọc: {formatCurrency(group.deposit_amount)}</span>
+                                        </div>
+
+                                        <div>
+                                            <span className="text-slate-400 block text-[10px] uppercase font-bold">
+                                                {isCompleted ? 'Quyết toán hợp đồng' : 'Tình trạng cọc'}
+                                            </span>
+                                            {isCompleted ? (
+                                                <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                                    ✓ Đã quyết toán 100%
+                                                </span>
+                                            ) : (
+                                                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-bold ${
+                                                    group.is_deposit_paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                                }`}>
+                                                    {group.is_deposit_paid ? '✓ Đã thanh toán cọc' : '⏳ Chờ thanh toán cọc'}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
+                            );
+                        })}
+                    </div>
 
-                                {/* Details bar */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
-                                    <div>
-                                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Người phụ trách / Trưởng đoàn</span>
-                                        <strong className="text-slate-800 block truncate">{group.leader_name}</strong>
-                                        <span className="text-slate-500 text-[11px]">📞 {group.leader_phone}</span>
-                                    </div>
-
-                                    <div>
-                                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Quy mô lưu trú</span>
-                                        <strong className="text-slate-800">{group.total_rooms} phòng • {group.nights} đêm</strong>
-                                        <span className="text-slate-500 block text-[11px]">
-                                            {formatDate(group.check_in_date)} - {formatDate(group.check_out_date)}
-                                        </span>
-                                    </div>
-
-                                    <div>
-                                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Tổng tiền hợp đồng</span>
-                                        <strong className="text-indigo-700 font-black text-sm block">{formatCurrency(group.total_amount)}</strong>
-                                        <span className="text-slate-500 text-[11px]">Cọc: {formatCurrency(group.deposit_amount)}</span>
-                                    </div>
-
-                                    <div>
-                                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Tình trạng cọc</span>
-                                        <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-bold ${
-                                            group.is_deposit_paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                                        }`}>
-                                            {group.is_deposit_paid ? '✓ Đã thanh toán cọc' : '⏳ Chờ thanh toán cọc'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {/* Phân trang */}
+                    {filteredGroups.length > 0 && (
+                        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalCount={totalCount}
+                                pageSize={pageSize}
+                                pageSizeOptions={[5, 10, 15, 20]}
+                                onPageChange={(page) => setCurrentPage(page)}
+                                onPageSizeChange={(newSize) => {
+                                    setPageSize(newSize);
+                                    setCurrentPage(1);
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -301,10 +437,22 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
                     group={selectedGroup}
                     isOpen={Boolean(selectedGroup)}
                     onClose={() => setSelectedGroup(null)}
-                    onRefresh={() => {
+                    onRefresh={(updatedGroup, shouldClose = false) => {
                         fetchGroups();
-                        setSelectedGroup(null);
+                        if (shouldClose) {
+                            setSelectedGroup(null);
+                        } else if (updatedGroup) {
+                            setSelectedGroup(updatedGroup);
+                        }
                     }}
+                />
+            )}
+
+            {/* HOTEL INVOICE MODAL (DÙNG CHUNG CHO CẢ ĐOÀN KHÁCH B2B) */}
+            {invoiceBooking && (
+                <HotelInvoiceModal
+                    booking={invoiceBooking}
+                    onClose={() => setInvoiceBooking(null)}
                 />
             )}
         </div>

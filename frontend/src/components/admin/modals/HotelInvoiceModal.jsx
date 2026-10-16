@@ -117,8 +117,21 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         return '✓ Đã thanh toán:';
     };
 
+    const isGroupMaster = Boolean(booking.is_group_master || booking.is_group_booking);
+    const isGroupRoom = !isGroupMaster && Boolean(
+        booking.group_booking || 
+        booking.group_booking_code || 
+        booking.group_booking_id
+    );
+
     // Trích xuất phương thức thanh toán hiển thị trên thông tin đặt phòng
     const getPaymentMethod = () => {
+        if (isGroupMaster) {
+            return booking.payment_method || 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)';
+        }
+        if (isGroupRoom) {
+            return `Gộp HĐ đoàn #${booking.group_booking_code || ''} (Master-Billing)`;
+        }
         const code = resolvePaymentMethodCode();
         if (code === 'CASH') return 'Tiền mặt (Tại quầy lễ tân)';
         if (code === 'TRANSFER') return 'Chuyển khoản VietQR';
@@ -179,10 +192,13 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         extraServices.reduce((sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)), 0);
 
     // Tổng thanh toán thực tế (Grand Total bao gồm cả tiền phòng và toàn bộ dịch vụ phát sinh)
-    const grandTotal = Number(booking.grand_total_amount) || (roomAmount + extraServicesTotal);
+    const grandTotal = isGroupMaster 
+        ? Number(booking.total_amount || booking.grand_total_amount || 0)
+        : (Number(booking.grand_total_amount) || (roomAmount + extraServicesTotal));
 
     // Xác định đơn đã hủy hay không
     const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
+    const isCompleted = ['completed', 'checked_out'].includes(booking.status);
 
     // Xác định tiền phòng đã được thanh toán trước hay chưa
     const isRoomPaid = !isCancelled && Boolean(
@@ -196,18 +212,25 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         ))
     );
 
-    const paidAmount = isCancelled ? 0 : Number(
-        booking.paid_amount ?? 
-        (isRoomPaid ? roomAmount : 0)
+    const paidAmount = isCancelled ? 0 : (
+        isGroupMaster
+            ? (isCompleted ? grandTotal : (booking.is_deposit_paid ? Number(booking.deposit_amount || 0) : 0))
+            : Number(booking.paid_amount ?? (isRoomPaid ? roomAmount : 0))
     );
-    const balanceDue = isCancelled ? 0 : Number(
-        booking.remaining_balance != null
-            ? booking.remaining_balance
-            : (booking.remaining_amount != null
-                ? booking.remaining_amount
-                : Math.max(0, grandTotal - paidAmount))
+    const balanceDue = isCancelled ? 0 : (
+        isGroupMaster
+            ? (isCompleted ? 0 : Math.max(0, grandTotal - paidAmount))
+            : Number(
+                booking.remaining_balance != null
+                    ? booking.remaining_balance
+                    : (booking.remaining_amount != null
+                        ? booking.remaining_amount
+                        : (isGroupRoom
+                            ? Math.max(0, extraServicesTotal - paidAmount)
+                            : Math.max(0, grandTotal - paidAmount)))
+            )
     );
-    const bookingCodeDisplay = `#${String(booking.booking_code || '').replace('-', '')}`;
+    const bookingCodeDisplay = `#${String(booking.booking_code || booking.group_code || '').replace('-', '')}`;
     const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
 
     // Lắng nghe phím Escape để đóng nhanh modal
@@ -366,15 +389,19 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         {/* Cột phải: Tiêu đề Hóa Đơn & Mã đơn */}
                         <div className="text-left sm:text-right">
                             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
-                                HÓA ĐƠN ĐẶT PHÒNG
+                                {isGroupMaster ? 'HÓA ĐƠN THANH TOÁN ĐOÀN LƯU TRÚ & HỢP ĐỒNG B2B' : 'HÓA ĐƠN ĐẶT PHÒNG'}
                             </h2>
-                            {isCancelled && (
+                            {isCancelled ? (
                                 <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                     ✕ ĐƠN ĐÃ HỦY
                                 </span>
-                            )}
+                            ) : isCompleted ? (
+                                <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                    ✓ ĐÃ QUYẾT TOÁN & HOÀN THÀNH
+                                </span>
+                            ) : null}
                             <p className="text-xs text-slate-700 mt-1.5 font-medium">
-                                Mã đặt phòng: <strong className="font-bold text-slate-900">{bookingCodeDisplay}</strong>
+                                {isGroupMaster ? 'Mã hợp đồng đoàn:' : 'Mã đặt phòng:'} <strong className="font-bold text-slate-900">{bookingCodeDisplay}</strong>
                             </p>
                             <p className="text-[11px] text-slate-500 mt-0.5">
                                 Ngày lập: {printDate}
@@ -387,10 +414,53 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
                     {/* 2. KHỐI THÔNG TIN: THÔNG TIN KHÁCH HÀNG & THÔNG TIN ĐẶT PHÒNG (2 CỘT) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs py-2">
+                        {/* 2.0 KHỐI PHÁP NHÂN DOANH NGHIỆP XUẤT HÓA ĐƠN VAT */}
+                        {(booking.customer_type === 'CORPORATE' || booking.company_name || booking.invoice?.company_name) && (
+                            <div className="sm:col-span-2 p-3.5 bg-slate-50 border border-slate-300 rounded-lg text-xs space-y-2 print:bg-transparent print:border-slate-400">
+                                <div className="font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex items-center justify-between">
+                                    <span>ĐƠN VỊ CÔNG TY / TỔ CHỨC (HÓA ĐƠN DOANH NGHIỆP):</span>
+                                    <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-200 text-slate-800 rounded font-bold print:border print:border-slate-300">
+                                        VAT CORPORATE
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-slate-800">
+                                    <div>
+                                        <span className="text-slate-500 block text-[11px]">Tên đơn vị (Công ty):</span>
+                                        <strong className="text-slate-900 block mt-0.5">{booking.company_name || booking.invoice?.company_name || '—'}</strong>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-500 block text-[11px]">Mã số thuế (MST):</span>
+                                        <strong className="font-mono text-slate-900 block mt-0.5">{booking.company_tax_code || booking.invoice?.tax_code || '—'}</strong>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-500 block text-[11px]">Địa chỉ trụ sở công ty:</span>
+                                        <span className="text-slate-900 block mt-0.5 leading-snug">{booking.company_address || booking.invoice?.company_address || '—'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2.0.1 KHỐI THÔNG TIN ĐOÀN KHÁCH & MASTER-BILLING */}
+                        {isGroupRoom && (
+                            <div className="sm:col-span-2 p-3.5 bg-indigo-50 border border-indigo-200 rounded-lg text-xs space-y-1.5 print:bg-transparent print:border-slate-400">
+                                <div className="font-bold uppercase tracking-wider text-indigo-900 border-b border-indigo-200/60 pb-1 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <span>🏢</span> PHÒNG THUỘC ĐOÀN KHÁCH: {booking.group_booking_name || booking.company_name || 'Khách đoàn Doanh nghiệp'}
+                                    </span>
+                                    <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold print:border print:border-slate-300">
+                                        MÃ ĐOÀN: #{booking.group_booking_code || ''}
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-indigo-800 leading-snug">
+                                    * <strong>Chính sách thanh toán Master-Billing:</strong> Tiền phòng được kết chuyển và quyết toán trên Hóa đơn tổng của Doanh nghiệp ({booking.is_group_deposit_paid ? 'Công ty đã đặt cọc 50%' : 'Công ty thanh toán tập trung'}). Khách lưu trú tại phòng chỉ thanh toán các khoản dịch vụ phát sinh cá nhân (nếu có).
+                                </p>
+                            </div>
+                        )}
+
                         {/* 2.1 CỘT TRÁI: THÔNG TIN KHÁCH HÀNG */}
                         <div>
                             <h3 className="font-bold text-[11px] uppercase tracking-wider text-slate-900 pb-1.5 border-b border-slate-200 mb-3">
-                                THÔNG TIN KHÁCH HÀNG:
+                                {booking.customer_type === 'CORPORATE' ? 'NGƯỜI ĐẠI DIỆN LƯU TRÚ / NHẬN PHÒNG:' : 'THÔNG TIN KHÁCH HÀNG:'}
                             </h3>
                             <div className="space-y-2 text-slate-700">
                                 <div className="flex">
@@ -419,13 +489,16 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             </h3>
                             <div className="space-y-2 text-slate-700">
                                 <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">Mã đặt phòng:</span>
+                                    <span className="w-28 shrink-0 text-slate-500">{isGroupMaster ? 'Mã hợp đồng đoàn:' : 'Mã đặt phòng:'}</span>
                                     <strong className="text-slate-900 font-bold">{bookingCodeDisplay}</strong>
                                 </div>
                                 <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">Phòng lưu trú:</span>
+                                    <span className="w-28 shrink-0 text-slate-500">{isGroupMaster ? 'Quy mô lưu trú:' : 'Phòng lưu trú:'}</span>
                                     <strong className="text-slate-900 font-bold">
-                                        {(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : 'Chưa xếp số'} ({booking.room_name || booking.category?.name || booking.room?.room_type_name || 'Tiêu chuẩn'})
+                                        {isGroupMaster
+                                            ? `${booking.total_rooms || booking.sub_bookings?.length || 1} phòng • ${booking.room_name || booking.group_name || 'Khách đoàn'}`
+                                            : `${(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : 'Chưa xếp số'} (${booking.room_name || booking.category?.name || booking.room?.room_type_name || 'Tiêu chuẩn'})`
+                                        }
                                     </strong>
                                 </div>
                                 <div className="flex">
@@ -442,10 +515,10 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         </div>
                     </div>
 
-                    {/* 3. BẢNG CHI TIẾT THANH TOÁN PHÒNG NGHỈ */}
+                    {/* 3. BẢNG CHI TIẾT THANH TOÁN PHÒNG NGHỈ HOẶC DANH SÁCH PHÒNG ĐOÀN */}
                     <div className="mt-6">
                         <h4 className="font-bold text-xs text-slate-900 mb-2">
-                            Chi tiết thanh toán phòng nghỉ:
+                            {isGroupMaster ? 'Bảng kê chi tiết các phòng thuộc hợp đồng đoàn lưu trú:' : 'Chi tiết thanh toán phòng nghỉ:'}
                         </h4>
 
                         <div className="w-full overflow-x-auto">
@@ -453,7 +526,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                 <thead>
                                     <tr className="border-b border-slate-300 text-slate-700">
                                         <th className="py-2.5 text-left font-bold uppercase text-[11px] tracking-wider w-[38%]">
-                                            NỘI DUNG THANH TOÁN
+                                            {isGroupMaster ? 'DANH MỤC PHÒNG & KHÁCH LƯU TRÚ' : 'NỘI DUNG THANH TOÁN'}
                                         </th>
                                         <th className="py-2.5 text-center font-bold uppercase text-[11px] tracking-wider w-[22%]">
                                             TRẠNG THÁI
@@ -470,40 +543,99 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr className="border-b border-slate-200">
-                                        <td className="py-3 text-left">
-                                            <div className="font-bold text-slate-900 text-xs">
-                                                Tiền phòng nghỉ - Room Charge
-                                            </div>
-                                            <div className="text-[11px] text-slate-500 mt-0.5">
-                                                {(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : (booking.room_name || booking.category?.name || 'Phòng tiêu chuẩn')} ({nights} đêm x {formatCurrency(pricePerNight)})
-                                            </div>
-                                        </td>
-                                        <td className="py-3 text-center">
-                                            {isCancelled ? (
-                                                <span className="inline-block text-[10.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                    ✕ Đơn đã hủy
-                                                </span>
-                                            ) : isRoomPaid ? (
-                                                <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                    ✓ {getPaidMethodLabel()}
-                                                </span>
-                                            ) : (
-                                                <span className="inline-block text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                    Chưa thanh toán
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-3 text-right text-slate-800 font-medium">
-                                            {formatCurrency(pricePerNight)}
-                                        </td>
-                                        <td className="py-3 text-center text-slate-800 font-medium">
-                                            {nights} đêm
-                                        </td>
-                                        <td className="py-3 text-right font-bold text-slate-900">
-                                            {formatCurrency(roomSubtotal)}
-                                        </td>
-                                    </tr>
+                                    {isGroupMaster && Array.isArray(booking.sub_bookings) && booking.sub_bookings.length > 0 ? (
+                                        booking.sub_bookings.map((sub, idx) => {
+                                            const subRoomNum = sub.room?.room_number || sub.room_number;
+                                            const subCatName = sub.category?.name || sub.room_name || 'Phòng tiêu chuẩn';
+                                            const subGuest = sub.guest_name || sub.customer_name || 'Theo danh sách đoàn';
+                                            const subNights = Math.max(1, Number(sub.nights || nights));
+                                            const subTotal = Number(sub.total_amount || sub.room_amount || 0);
+                                            const subPricePerNight = Number(sub.daily_rate || (subNights > 0 ? Math.round(subTotal / subNights) : subTotal));
+
+                                            return (
+                                                <tr key={sub.id || idx} className="border-b border-slate-200">
+                                                    <td className="py-3 text-left">
+                                                        <div className="font-bold text-slate-900 text-xs">
+                                                            {subRoomNum ? `Phòng ${subRoomNum}` : `Phòng ${idx + 1}`} - {subCatName}
+                                                        </div>
+                                                        <div className="text-[11px] text-slate-500 mt-0.5">
+                                                            Mã: #{sub.booking_code} | Khách ở: {subGuest} ({subNights} đêm x {formatCurrency(subPricePerNight)})
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-center">
+                                                        {isCompleted ? (
+                                                            <span className="inline-block text-[10.5px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                                ✓ Đã quyết toán
+                                                            </span>
+                                                        ) : sub.status === 'checked_in' ? (
+                                                            <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                                🔑 Đang ở (In-house)
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-block text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                                {sub.status_display || 'Đã xếp phòng'}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 text-right text-slate-800 font-medium">
+                                                        {formatCurrency(subPricePerNight)}
+                                                    </td>
+                                                    <td className="py-3 text-center text-slate-800 font-medium">
+                                                        {subNights} đêm
+                                                    </td>
+                                                    <td className="py-3 text-right font-bold text-slate-900">
+                                                        {formatCurrency(subTotal)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr className="border-b border-slate-200">
+                                            <td className="py-3 text-left">
+                                                <div className="font-bold text-slate-900 text-xs">
+                                                    {isGroupMaster ? `Hợp đồng đoàn: ${booking.group_name || booking.room_name || 'Khách đoàn'}` : 'Tiền phòng nghỉ - Room Charge'}
+                                                </div>
+                                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                                    {isGroupMaster 
+                                                        ? `Gói lưu trú đoàn ${booking.total_rooms || 1} phòng (${nights} đêm)`
+                                                        : `${(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : (booking.room_name || booking.category?.name || 'Phòng tiêu chuẩn')} (${nights} đêm x ${formatCurrency(pricePerNight)})`
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td className="py-3 text-center">
+                                                {isCancelled ? (
+                                                    <span className="inline-block text-[10.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                        ✕ Đơn đã hủy
+                                                    </span>
+                                                ) : isCompleted ? (
+                                                    <span className="inline-block text-[10.5px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                        ✓ Đã quyết toán
+                                                    </span>
+                                                ) : isGroupRoom ? (
+                                                    <span className="inline-block text-[10.5px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black" title="Chi phí tính vào Hóa đơn đoàn">
+                                                        🏢 Gộp HĐ đoàn #{booking.group_booking_code || ''}
+                                                    </span>
+                                                ) : isRoomPaid ? (
+                                                    <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                        ✓ {getPaidMethodLabel()}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-block text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                        Chưa thanh toán
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 text-right text-slate-800 font-medium">
+                                                {formatCurrency(pricePerNight)}
+                                            </td>
+                                            <td className="py-3 text-center text-slate-800 font-medium">
+                                                {nights} đêm
+                                            </td>
+                                            <td className="py-3 text-right font-bold text-slate-900">
+                                                {formatCurrency(roomSubtotal)}
+                                            </td>
+                                        </tr>
+                                    )}
 
                                     {/* CÁC DÒNG DỊCH VỤ PHÁT SINH / GỌI MÓN TẠI PHÒNG */}
                                     {extraServices.length === 0 && extraServicesTotal > 0 && (
@@ -656,30 +788,102 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
                             <div className="pt-2 border-t border-slate-300 flex justify-between sm:justify-end items-baseline gap-6">
                                 <span className="font-bold text-xs text-slate-800 uppercase">
-                                    Tổng giá trị hóa đơn:
+                                    Tổng giá trị phòng & dịch vụ:
                                 </span>
                                 <span className="font-bold text-sm text-slate-900 w-36 text-right">
                                     {formatCurrency(grandTotal)}
                                 </span>
                             </div>
 
-                            {paidAmount > 0 && (
-                                <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
-                                    <span>{getPaidAdvanceLabel()}</span>
-                                    <span className="w-36 text-right font-bold">
-                                        -{formatCurrency(paidAmount)}
-                                    </span>
-                                </div>
-                            )}
+                            {isGroupMaster ? (
+                                <>
+                                    <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                                        <span className="text-slate-500">Tổng giá trị hợp đồng ({booking.total_rooms || booking.sub_bookings?.length || 1} phòng):</span>
+                                        <span className="font-bold text-slate-900 w-36 text-right">
+                                            {formatCurrency(grandTotal)}
+                                        </span>
+                                    </div>
+                                    {Number(booking.deposit_amount) > 0 && (
+                                        <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                            <span>✓ Tiền cọc đã thanh toán ({booking.is_deposit_paid || isCompleted ? 'Đã nhận' : 'Chờ xác nhận'}):</span>
+                                            <span className="w-36 text-right font-bold">
+                                                -{formatCurrency(booking.deposit_amount)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {isCompleted && (
+                                        <div className="flex justify-between sm:justify-end gap-6 text-purple-700 font-semibold text-[11px]">
+                                            <span>✓ Quyết toán thanh toán đợt cuối khi check-out:</span>
+                                            <span className="w-36 text-right font-bold">
+                                                -{formatCurrency(Math.max(0, grandTotal - Number(booking.deposit_amount || 0)))}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
+                                        <div>
+                                            <span className="font-black text-xs sm:text-sm text-slate-900 uppercase block">
+                                                {isCompleted ? 'Trạng thái thanh toán:' : 'Còn lại cần quyết toán:'}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 italic block font-normal">
+                                                {isCompleted ? '(Hợp đồng đã quyết toán toàn bộ 100%)' : '(Thu khi đoàn trả phòng / thanh lý HĐ)'}
+                                            </span>
+                                        </div>
+                                        <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">
+                                            {isCompleted ? '0đ (Đã thanh toán 100%)' : formatCurrency(balanceDue)}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : isGroupRoom ? (
+                                <>
+                                    <div className="flex justify-between sm:justify-end gap-6 text-indigo-700 font-semibold text-[11px] bg-indigo-50/60 p-1.5 rounded border border-indigo-100">
+                                        <span>🏢 Chuyển thanh toán vào Hóa đơn đoàn #{booking.group_booking_code || ''}:</span>
+                                        <span className="w-36 text-right font-bold text-indigo-800">
+                                            -{formatCurrency(roomAmount)}
+                                        </span>
+                                    </div>
+                                    {paidAmount > 0 && (
+                                        <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                            <span>{getPaidAdvanceLabel()}</span>
+                                            <span className="w-36 text-right font-bold">
+                                                -{formatCurrency(paidAmount)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
+                                        <div>
+                                            <span className="font-black text-xs sm:text-sm text-slate-900 uppercase block">
+                                                Thực thu khách tại quầy:
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 italic block font-normal">
+                                                (Tiền phòng quyết toán tập trung qua HĐ đoàn)
+                                            </span>
+                                        </div>
+                                        <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">
+                                            {formatCurrency(balanceDue)}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {paidAmount > 0 && (
+                                        <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                            <span>{getPaidAdvanceLabel()}</span>
+                                            <span className="w-36 text-right font-bold">
+                                                -{formatCurrency(paidAmount)}
+                                            </span>
+                                        </div>
+                                    )}
 
-                            <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
-                                <span className="font-black text-xs sm:text-sm text-slate-900 uppercase">
-                                    {paidAmount > 0 ? 'Thực thu khi trả phòng:' : 'Tổng thanh toán:'}
-                                </span>
-                                <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">
-                                    {formatCurrency(paidAmount > 0 ? balanceDue : grandTotal)}
-                                </span>
-                            </div>
+                                    <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
+                                        <span className="font-black text-xs sm:text-sm text-slate-900 uppercase">
+                                            {paidAmount > 0 ? 'Thực thu khi trả phòng:' : 'Tổng thanh toán:'}
+                                        </span>
+                                        <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">
+                                            {formatCurrency(paidAmount > 0 ? balanceDue : grandTotal)}
+                                        </span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -687,14 +891,16 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                     <div className="mt-14 pt-4 grid grid-cols-2 gap-8 text-center text-xs">
                         <div>
                             <p className="font-bold text-slate-900">
-                                Khách hàng ký nhận
+                                {isGroupMaster 
+                                    ? 'Đại diện Doanh nghiệp / Trưởng đoàn' 
+                                    : (booking.customer_type === 'CORPORATE' ? 'Đại diện Doanh nghiệp / Khách ký nhận' : 'Khách hàng ký nhận')}
                             </p>
                             <p className="text-[11px] text-slate-500 italic mt-0.5">
-                                (Ký, ghi rõ họ tên)
+                                {isGroupMaster || booking.customer_type === 'CORPORATE' ? '(Ký, ghi rõ họ tên & đóng dấu)' : '(Ký, ghi rõ họ tên)'}
                             </p>
                             <div className="h-20 sm:h-24"></div>
                             <p className="font-semibold text-slate-800 text-xs">
-                                {booking.guest_name || ''}
+                                {booking.guest_name || booking.leader_name || ''}
                             </p>
                         </div>
 

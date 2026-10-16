@@ -115,6 +115,34 @@ class Booking(models.Model):
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings', verbose_name="Phòng thực tế (Gán khi Check-in)")
 
     # Liên kết Khách đoàn / Doanh nghiệp
+    CUSTOMER_TYPE_CHOICES = (
+        ('MEMBER', 'Cá nhân / Gia đình'),
+        ('CORPORATE', 'Doanh nghiệp / Đoàn thể'),
+    )
+    customer_type = models.CharField(
+        max_length=20, 
+        choices=CUSTOMER_TYPE_CHOICES, 
+        default='MEMBER', 
+        verbose_name="Phân loại đối tượng khách hàng"
+    )
+    company_name = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="Tên công ty / Doanh nghiệp"
+    )
+    company_tax_code = models.CharField(
+        max_length=30, 
+        blank=True, 
+        null=True, 
+        verbose_name="Mã số thuế (MST)"
+    )
+    company_address = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="Địa chỉ xuất hóa đơn GTGT"
+    )
     group_booking = models.ForeignKey(
         GroupBooking, 
         on_delete=models.SET_NULL, 

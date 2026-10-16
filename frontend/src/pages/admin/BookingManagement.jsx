@@ -143,6 +143,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [isLoadingCategories, setIsLoadingCategories] = useState(false);
     const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
     const [walkInForm, setWalkInForm] = useState({
+        customer_type: 'MEMBER', // 'MEMBER' | 'CORPORATE'
+        company_name: '',
+        company_tax_code: '',
+        company_address: '',
         guest_name: '',
         guest_phone: '',
         identity_card: '',
@@ -771,6 +775,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
         setBookingTab(initialTab);
         setWalkInForm({
+            customer_type: 'MEMBER',
+            company_name: '',
+            company_tax_code: '',
+            company_address: '',
             guest_name: '',
             guest_phone: '',
             identity_card: '',
@@ -1630,6 +1638,20 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         Chưa có CCCD
                                                     </span>
                                                 )}
+
+                                                {/* BADGE DOANH NGHIỆP / CÔNG TY (CORPORATE) */}
+                                                {(booking.customer_type === 'CORPORATE' || booking.company_name) && (
+                                                    <div
+                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 font-sans text-[10px] font-bold text-indigo-700 mt-1 border border-indigo-200 max-w-full truncate"
+                                                        title={`${booking.company_name || 'Khách Doanh nghiệp'} ${booking.company_tax_code ? `(MST: ${booking.company_tax_code})` : ''}`}
+                                                    >
+                                                        <span>🏢</span>
+                                                        <span className="truncate">{booking.company_name || 'Doanh nghiệp'}</span>
+                                                        {booking.company_tax_code && (
+                                                            <span className="text-indigo-500 font-mono text-[9px] shrink-0">({booking.company_tax_code})</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </td>
 
                                             {/* CỘT 3: PHÒNG */}
@@ -1713,6 +1735,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 )}
                                                 {/* Phương thức & trạng thái thanh toán */}
                                                 {(() => {
+                                                    const isGroupRoom = Boolean(booking.group_booking || booking.group_booking_code || booking.group_booking_id);
                                                     const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
                                                     if (isCancelled) {
                                                         return (
@@ -1729,7 +1752,28 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                             booking.note.toLowerCase().includes('đã thanh toán thành công')
                                                         ));
 
-                                                    // Phân loại phương thức thanh toán thực tế
+                                                    // Nếu là phòng thuộc đoàn công ty / doanh nghiệp (Master-Billing)
+                                                    if (isGroupRoom) {
+                                                        if (isPaid) {
+                                                            return (
+                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 mt-1" title={`Chi phí đã quyết toán qua Hóa đơn đoàn #${booking.group_booking_code || ''}`}>
+                                                                    <span>🏢</span> Đoàn đã quyết toán
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <div className="mt-1 space-y-0.5">
+                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200" title={`Chi phí tiền phòng được kết chuyển vào Hóa đơn đoàn #${booking.group_booking_code || ''}`}>
+                                                                    <span>🏢</span> Gộp đoàn {booking.group_booking_code ? `#${booking.group_booking_code}` : ''}
+                                                                </span>
+                                                                <span className="text-[9px] text-emerald-600 font-bold block">
+                                                                    {booking.is_group_deposit_paid ? '✓ Đã cọc 50% đoàn' : 'Chờ cọc đoàn'}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    // Phân loại phương thức thanh toán thực tế cho khách lẻ
                                                     const rawMethod = (
                                                         booking.payment_method ||
                                                         (booking.payments && Array.isArray(booking.payments) && (
@@ -2647,10 +2691,87 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                         <span className="text-[10px] text-rose-500 font-semibold">* Bắt buộc</span>
                                     </div>
 
+                                    {/* 1.0 Phân loại khách hàng: Cá nhân vs Doanh nghiệp */}
+                                    <div className="flex items-center gap-1.5 p-1 bg-slate-200/70 rounded-xl text-xs">
+                                        <button
+                                            type="button"
+                                            onClick={() => setWalkInForm(prev => ({ ...prev, customer_type: 'MEMBER', company_name: '', company_tax_code: '', company_address: '' }))}
+                                            className={`flex-1 py-1.5 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                                                walkInForm.customer_type === 'MEMBER'
+                                                    ? 'bg-white text-slate-900 shadow-2xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            <span>👤</span>
+                                            <span>Cá nhân / Gia đình</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setWalkInForm(prev => ({ ...prev, customer_type: 'CORPORATE' }))}
+                                            className={`flex-1 py-1.5 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                                                walkInForm.customer_type === 'CORPORATE'
+                                                    ? 'bg-indigo-600 text-white shadow-2xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            <span>🏢</span>
+                                            <span>Doanh nghiệp / Đoàn</span>
+                                        </button>
+                                    </div>
+
+                                    {/* THÔNG TIN DOANH NGHIỆP NẾU CHỌN CORPORATE */}
+                                    {walkInForm.customer_type === 'CORPORATE' && (
+                                        <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2.5 animate-in fade-in">
+                                            <div className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1">
+                                                <span>🏢</span>
+                                                <span>Thông tin Công ty / Đoàn thể</span>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                                    Tên công ty / Tổ chức <span className="text-rose-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    required={walkInForm.customer_type === 'CORPORATE'}
+                                                    placeholder="VD: CÔNG TY TNHH CÔNG NGHỆ FPT"
+                                                    value={walkInForm.company_name}
+                                                    onChange={(e) => setWalkInForm(prev => ({ ...prev, company_name: e.target.value }))}
+                                                    className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                                                        Mã số thuế (MST)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="VD: 0101234567"
+                                                        value={walkInForm.company_tax_code}
+                                                        onChange={(e) => setWalkInForm(prev => ({ ...prev, company_tax_code: e.target.value.trim() }))}
+                                                        className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                                                        Địa chỉ trụ sở công ty
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Địa chỉ xuất hóa đơn..."
+                                                        value={walkInForm.company_address}
+                                                        onChange={(e) => setWalkInForm(prev => ({ ...prev, company_address: e.target.value }))}
+                                                        className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* 1.1 Tên khách hàng */}
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 mb-1">
-                                            Họ và tên khách hàng <span className="text-rose-500">*</span>
+                                            {walkInForm.customer_type === 'CORPORATE' ? 'Họ tên Người đại diện / Trưởng đoàn' : 'Họ và tên khách hàng'} <span className="text-rose-500">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -3246,10 +3367,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             {/* MODAL THÊM DỊCH VỤ / GỌI MÓN CHO ĐƠN ĐẶT PHÒNG (TẠI QUẦY / QUA ĐIỆN THOẠI) */}
             {/* ========================================================================= */}
             {isAddServiceModalOpen && selectedBooking && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
-                    <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8">
-                        {/* Header Modal - Nền trắng trang nhã */}
-                        <div className="p-5 bg-white border-b border-slate-100 text-slate-900 flex items-start justify-between">
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+                    <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+                        {/* Header Modal - Cố định ở trên */}
+                        <div className="p-4 sm:p-5 bg-white border-b border-slate-100 text-slate-900 flex items-start justify-between shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center text-xl shrink-0 shadow-xs">
                                     🛎️
@@ -3281,8 +3402,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             </button>
                         </div>
 
-                        {/* Thanh chuyển chế độ: Từ Menu vs Tùy Chỉnh */}
-                        <div className="p-3 bg-slate-50 border-b border-slate-200 flex gap-2">
+                        {/* Thanh chuyển chế độ: Từ Menu vs Tùy Chỉnh - Cố định */}
+                        <div className="p-3 bg-slate-50 border-b border-slate-200 flex gap-2 shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setServiceMode('menu')}
@@ -3307,305 +3428,307 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             </button>
                         </div>
 
-                        {/* Form Body */}
-                        <form onSubmit={handleAddExtraServiceSubmit} className="p-6 space-y-4 text-xs">
-                            {serviceMode === 'menu' ? (
-                                <div className="space-y-4">
-                                    {/* Tìm kiếm và Lọc theo Danh mục */}
-                                    <div className="space-y-2">
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    type="text"
-                                                    value={serviceSearchKeyword}
-                                                    onChange={(e) => setServiceSearchKeyword(e.target.value)}
-                                                    placeholder="Tìm kiếm món ăn, thức uống, spa..."
-                                                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
-                                                />
-                                                <span className="absolute left-2.5 top-2.5 text-slate-400">🔍</span>
+                        {/* Form Body - Tách riêng phần cuộn và footer */}
+                        <form onSubmit={handleAddExtraServiceSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
+                                {serviceMode === 'menu' ? (
+                                    <div className="space-y-4">
+                                        {/* Tìm kiếm và Lọc theo Danh mục */}
+                                        <div className="space-y-2">
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={serviceSearchKeyword}
+                                                        onChange={(e) => setServiceSearchKeyword(e.target.value)}
+                                                        placeholder="Tìm kiếm món ăn, thức uống, spa..."
+                                                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                                    />
+                                                    <span className="absolute left-2.5 top-2.5 text-slate-400">🔍</span>
+                                                </div>
+                                                {serviceCategories.length > 0 && (
+                                                    <select
+                                                        value={serviceCategoryFilter}
+                                                        onChange={(e) => setServiceCategoryFilter(e.target.value)}
+                                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                                    >
+                                                        <option value="all">Tất cả nhóm</option>
+                                                        {serviceCategories.map((c) => (
+                                                            <option key={c.id} value={c.id}>
+                                                                {c.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
                                             </div>
-                                            {serviceCategories.length > 0 && (
-                                                <select
-                                                    value={serviceCategoryFilter}
-                                                    onChange={(e) => setServiceCategoryFilter(e.target.value)}
-                                                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
-                                                >
-                                                    <option value="all">Tất cả nhóm</option>
-                                                    {serviceCategories.map((c) => (
-                                                        <option key={c.id} value={c.id}>
-                                                            {c.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                        </div>
+
+                                        {/* Dropdown / Danh sách chọn Dịch vụ */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                                                Chọn món hoặc dịch vụ <span className="text-rose-500">*</span>
+                                            </label>
+                                            {isLoadingCatalog ? (
+                                                <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                                                    <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
+                                                    Đang tải danh mục thực đơn...
+                                                </div>
+                                            ) : filteredCatalog.length === 0 ? (
+                                                <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                                                    Không tìm thấy dịch vụ nào phù hợp với từ khóa.
+                                                </div>
+                                            ) : (
+                                                <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl bg-white shadow-inner">
+                                                    {filteredCatalog.map((item) => {
+                                                        const isSelected = String(serviceForm.service_id) === String(item.id);
+                                                        return (
+                                                            <div
+                                                                key={item.id}
+                                                                onClick={() => handleServiceSelect(item.id)}
+                                                                className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition ${isSelected
+                                                                    ? 'bg-purple-50 text-purple-950 font-semibold'
+                                                                    : 'hover:bg-slate-50 text-slate-700'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="service_selection"
+                                                                        checked={isSelected}
+                                                                        onChange={() => handleServiceSelect(item.id)}
+                                                                        className="w-4 h-4 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                                                    />
+                                                                    <div className="truncate">
+                                                                        <span className="block truncate font-bold text-slate-900 text-xs">
+                                                                            {item.name}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-slate-400 block truncate">
+                                                                            {item.category?.name || item.category_name || 'Dịch vụ'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <span className="font-bold text-purple-700 shrink-0 text-xs">
+                                                                    {Number(item.price).toLocaleString('vi-VN')} VND
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {/* Gợi ý nhanh các khoản phụ thu */}
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                                                Gợi ý nhanh phụ phí:
+                                            </label>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {QUICK_SURCHARGES.map((sug, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => setServiceForm((prev) => ({ ...prev, custom_name: sug }))}
+                                                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-slate-200 text-slate-600 text-[11px] font-medium transition cursor-pointer"
+                                                    >
+                                                        {sug}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
 
-                                    {/* Dropdown / Danh sách chọn Dịch vụ */}
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                                            Chọn món hoặc dịch vụ <span className="text-rose-500">*</span>
-                                        </label>
-                                        {isLoadingCatalog ? (
-                                            <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
-                                                <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
-                                                Đang tải danh mục thực đơn...
-                                            </div>
-                                        ) : filteredCatalog.length === 0 ? (
-                                            <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
-                                                Không tìm thấy dịch vụ nào phù hợp với từ khóa.
-                                            </div>
-                                        ) : (
-                                            <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl bg-white shadow-inner">
-                                                {filteredCatalog.map((item) => {
-                                                    const isSelected = String(serviceForm.service_id) === String(item.id);
-                                                    return (
-                                                        <div
-                                                            key={item.id}
-                                                            onClick={() => handleServiceSelect(item.id)}
-                                                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition ${isSelected
-                                                                ? 'bg-purple-50 text-purple-950 font-semibold'
-                                                                : 'hover:bg-slate-50 text-slate-700'
-                                                                }`}
-                                                        >
-                                                            <div className="flex items-center gap-2.5 min-w-0">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="service_selection"
-                                                                    checked={isSelected}
-                                                                    onChange={() => handleServiceSelect(item.id)}
-                                                                    className="w-4 h-4 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                                                                />
-                                                                <div className="truncate">
-                                                                    <span className="block truncate font-bold text-slate-900 text-xs">
-                                                                        {item.name}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-slate-400 block truncate">
-                                                                        {item.category?.name || item.category_name || 'Dịch vụ'}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <span className="font-bold text-purple-700 shrink-0 text-xs">
-                                                                {Number(item.price).toLocaleString('vi-VN')} VND
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
+                                        {/* Tên dịch vụ tùy chỉnh */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-800 mb-1">
+                                                Tên dịch vụ / Phụ phí tùy chỉnh <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={serviceForm.custom_name}
+                                                onChange={(e) => setServiceForm((prev) => ({ ...prev, custom_name: e.target.value }))}
+                                                placeholder="VD: 2 Lon nước ngọt Coca, Phụ thu check-in sớm..."
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                            />
+                                        </div>
+
+                                        {/* Đơn giá tùy chỉnh */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-800 mb-1">
+                                                Đơn giá (VND) <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                required
+                                                min="0"
+                                                step="1000"
+                                                value={serviceForm.price}
+                                                onChange={(e) => setServiceForm((prev) => ({ ...prev, price: e.target.value }))}
+                                                placeholder="VD: 40000"
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {/* Gợi ý nhanh các khoản phụ thu */}
+                                )}
+
+                                {/* Cụm Số lượng & Đơn giá xem trước */}
+                                <div className="grid grid-cols-2 gap-3 pt-2">
                                     <div>
-                                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                            Gợi ý nhanh phụ phí:
+                                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                                            Số lượng
                                         </label>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {QUICK_SURCHARGES.map((sug, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    type="button"
-                                                    onClick={() => setServiceForm((prev) => ({ ...prev, custom_name: sug }))}
-                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-slate-200 text-slate-600 text-[11px] font-medium transition cursor-pointer"
-                                                >
-                                                    {sug}
-                                                </button>
-                                            ))}
+                                        <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setServiceForm((prev) => ({
+                                                        ...prev,
+                                                        quantity: Math.max(1, (Number(prev.quantity) || 1) - 1)
+                                                    }))
+                                                }
+                                                className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
+                                            >
+                                                -
+                                            </button>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="99"
+                                                value={serviceForm.quantity}
+                                                onChange={(e) =>
+                                                    setServiceForm((prev) => ({
+                                                        ...prev,
+                                                        quantity: Math.max(1, parseInt(e.target.value) || 1)
+                                                    }))
+                                                }
+                                                className="flex-1 text-center font-bold text-slate-900 text-xs focus:outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setServiceForm((prev) => ({
+                                                        ...prev,
+                                                        quantity: (Number(prev.quantity) || 1) + 1
+                                                    }))
+                                                }
+                                                className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
+                                            >
+                                                +
+                                            </button>
                                         </div>
                                     </div>
 
-                                    {/* Tên dịch vụ tùy chỉnh */}
                                     <div>
                                         <label className="block text-xs font-bold text-slate-800 mb-1">
-                                            Tên dịch vụ / Phụ phí tùy chỉnh <span className="text-rose-500">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={serviceForm.custom_name}
-                                            onChange={(e) => setServiceForm((prev) => ({ ...prev, custom_name: e.target.value }))}
-                                            placeholder="VD: 2 Lon nước ngọt Coca, Phụ thu check-in sớm..."
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
-                                        />
-                                    </div>
-
-                                    {/* Đơn giá tùy chỉnh */}
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-800 mb-1">
-                                            Đơn giá (VND) <span className="text-rose-500">*</span>
+                                            Đơn giá áp dụng (VND)
                                         </label>
                                         <input
                                             type="number"
-                                            required
                                             min="0"
                                             step="1000"
                                             value={serviceForm.price}
                                             onChange={(e) => setServiceForm((prev) => ({ ...prev, price: e.target.value }))}
-                                            placeholder="VD: 40000"
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                            placeholder="0"
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
                                         />
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Cụm Số lượng & Đơn giá xem trước */}
-                            <div className="grid grid-cols-2 gap-3 pt-2">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                                        Số lượng
-                                    </label>
-                                    <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setServiceForm((prev) => ({
-                                                    ...prev,
-                                                    quantity: Math.max(1, (Number(prev.quantity) || 1) - 1)
-                                                }))
-                                            }
-                                            className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
-                                        >
-                                            -
-                                        </button>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="99"
-                                            value={serviceForm.quantity}
-                                            onChange={(e) =>
-                                                setServiceForm((prev) => ({
-                                                    ...prev,
-                                                    quantity: Math.max(1, parseInt(e.target.value) || 1)
-                                                }))
-                                            }
-                                            className="flex-1 text-center font-bold text-slate-900 text-xs focus:outline-none"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setServiceForm((prev) => ({
-                                                    ...prev,
-                                                    quantity: (Number(prev.quantity) || 1) + 1
-                                                }))
-                                            }
-                                            className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
-                                        >
-                                            +
-                                        </button>
+                                {/* Tùy chọn trạng thái dịch vụ */}
+                                {serviceMode === 'menu' && (
+                                    <div className="space-y-1.5 pt-1">
+                                        <label className="block text-xs font-bold text-slate-800">
+                                            Trạng thái phục vụ:
+                                        </label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'completed'
+                                                ? 'bg-purple-50/80 border-purple-400 text-purple-950 font-semibold shadow-xs'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                }`}>
+                                                <input
+                                                    type="radio"
+                                                    name="service_status"
+                                                    value="completed"
+                                                    checked={serviceForm.service_status === 'completed'}
+                                                    onChange={() => setServiceForm((prev) => ({ ...prev, service_status: 'completed' }))}
+                                                    className="mt-0.5 text-purple-600 focus:ring-purple-500"
+                                                />
+                                                <div>
+                                                    <span className="block text-xs font-bold text-slate-900">
+                                                        ✓ Đã phục vụ xong
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 leading-tight block">
+                                                        Tính ngay vào hóa đơn thanh toán
+                                                    </span>
+                                                </div>
+                                            </label>
+
+                                            <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'pending'
+                                                ? 'bg-amber-50/80 border-amber-400 text-amber-950 font-semibold shadow-xs'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                }`}>
+                                                <input
+                                                    type="radio"
+                                                    name="service_status"
+                                                    value="pending"
+                                                    checked={serviceForm.service_status === 'pending'}
+                                                    onChange={() => setServiceForm((prev) => ({ ...prev, service_status: 'pending' }))}
+                                                    className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                                                />
+                                                <div>
+                                                    <span className="block text-xs font-bold text-slate-900">
+                                                        ⏳ Chờ chuẩn bị
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 leading-tight block">
+                                                        Chuyển bếp / buồng phòng làm
+                                                    </span>
+                                                </div>
+                                            </label>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
+                                {/* Ghi chú phục vụ */}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-800 mb-1">
-                                        Đơn giá áp dụng (VND)
+                                        Ghi chú tiếp nhận (tùy chọn)
                                     </label>
                                     <input
-                                        type="number"
-                                        min="0"
-                                        step="1000"
-                                        value={serviceForm.price}
-                                        onChange={(e) => setServiceForm((prev) => ({ ...prev, price: e.target.value }))}
-                                        placeholder="0"
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                                        type="text"
+                                        value={serviceForm.note}
+                                        onChange={(e) => setServiceForm((prev) => ({ ...prev, note: e.target.value }))}
+                                        placeholder="VD: Khách gọi hotline lúc 11:20, giao tận phòng 304, ít cay..."
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
                                     />
                                 </div>
-                            </div>
 
-                            {/* Tùy chọn trạng thái dịch vụ */}
-                            {serviceMode === 'menu' && (
-                                <div className="space-y-1.5 pt-1">
-                                    <label className="block text-xs font-bold text-slate-800">
-                                        Trạng thái phục vụ:
-                                    </label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'completed'
-                                            ? 'bg-purple-50/80 border-purple-400 text-purple-950 font-semibold shadow-xs'
-                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                            }`}>
-                                            <input
-                                                type="radio"
-                                                name="service_status"
-                                                value="completed"
-                                                checked={serviceForm.service_status === 'completed'}
-                                                onChange={() => setServiceForm((prev) => ({ ...prev, service_status: 'completed' }))}
-                                                className="mt-0.5 text-purple-600 focus:ring-purple-500"
-                                            />
-                                            <div>
-                                                <span className="block text-xs font-bold text-slate-900">
-                                                    ✓ Đã phục vụ xong
-                                                </span>
-                                                <span className="text-[10px] text-slate-500 leading-tight block">
-                                                    Tính ngay vào hóa đơn thanh toán
-                                                </span>
-                                            </div>
-                                        </label>
-
-                                        <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'pending'
-                                            ? 'bg-amber-50/80 border-amber-400 text-amber-950 font-semibold shadow-xs'
-                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                            }`}>
-                                            <input
-                                                type="radio"
-                                                name="service_status"
-                                                value="pending"
-                                                checked={serviceForm.service_status === 'pending'}
-                                                onChange={() => setServiceForm((prev) => ({ ...prev, service_status: 'pending' }))}
-                                                className="mt-0.5 text-amber-600 focus:ring-amber-500"
-                                            />
-                                            <div>
-                                                <span className="block text-xs font-bold text-slate-900">
-                                                    ⏳ Chờ chuẩn bị
-                                                </span>
-                                                <span className="text-[10px] text-slate-500 leading-tight block">
-                                                    Chuyển bếp / buồng phòng làm
-                                                </span>
-                                            </div>
-                                        </label>
+                                {/* Banner Xem Trước Tổng Tiền */}
+                                <div className="p-3.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-slate-50 border border-purple-200 rounded-2xl flex items-center justify-between">
+                                    <div>
+                                        <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">
+                                            Thành tiền phụ phí dự kiến
+                                        </span>
+                                        <span className="text-[11px] text-slate-500">
+                                            {serviceForm.quantity || 1} x {Number(serviceForm.price || 0).toLocaleString('vi-VN')} VND
+                                        </span>
+                                    </div>
+                                    <div className="text-right">
+                                        <strong className="text-lg font-black text-purple-900">
+                                            {Number((serviceForm.quantity || 1) * (serviceForm.price || 0)).toLocaleString('vi-VN')}
+                                        </strong>
+                                        <span className="text-xs font-bold text-purple-700 ml-1">VND</span>
                                     </div>
                                 </div>
-                            )}
-
-                            {/* Ghi chú phục vụ */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-800 mb-1">
-                                    Ghi chú tiếp nhận (tùy chọn)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={serviceForm.note}
-                                    onChange={(e) => setServiceForm((prev) => ({ ...prev, note: e.target.value }))}
-                                    placeholder="VD: Khách gọi hotline lúc 11:20, giao tận phòng 304, ít cay..."
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
-                                />
                             </div>
 
-                            {/* Banner Xem Trước Tổng Tiền */}
-                            <div className="p-3.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-slate-50 border border-purple-200 rounded-2xl flex items-center justify-between">
-                                <div>
-                                    <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">
-                                        Thành tiền phụ phí dự kiến
-                                    </span>
-                                    <span className="text-[11px] text-slate-500">
-                                        {serviceForm.quantity || 1} x {Number(serviceForm.price || 0).toLocaleString('vi-VN')} VND
-                                    </span>
-                                </div>
-                                <div className="text-right">
-                                    <strong className="text-lg font-black text-purple-900">
-                                        {Number((serviceForm.quantity || 1) * (serviceForm.price || 0)).toLocaleString('vi-VN')}
-                                    </strong>
-                                    <span className="text-xs font-bold text-purple-700 ml-1">VND</span>
-                                </div>
-                            </div>
-
-                            {/* Nút hành động */}
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                            {/* Footer nút hành động - Cố định ở dưới */}
+                            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
                                     disabled={isSubmittingService}
                                     onClick={() => setIsAddServiceModalOpen(false)}
-                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                                    className="px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                                 >
                                     Đóng
                                 </button>

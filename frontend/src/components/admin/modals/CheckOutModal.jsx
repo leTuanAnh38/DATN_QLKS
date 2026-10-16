@@ -62,7 +62,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     // Cấu hình ngân hàng VietQR động
     const [bankConfig, setBankConfig] = useState({
         bank_bin: '970422',
-        account_no: '123456789',
+        account_no: '0344997778',
         account_name: 'KHACH SAN TA DA NANG'
     });
 
@@ -183,8 +183,27 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         return 0;
     }, [summary, booking]);
 
+    const isGroupRoom = Boolean(
+        booking?.group_booking || 
+        booking?.group_booking_code || 
+        booking?.group_booking_id
+    );
+
+    // Dịch vụ phát sinh tại phòng (chưa thanh toán)
+    const unpaidServiceCharge = useMemo(() => {
+        if (summary?.unpaid_services_total !== undefined && summary?.unpaid_services_total !== null) {
+            return Number(summary.unpaid_services_total);
+        }
+        return Number(summary?.service_charge ?? booking?.extra_services_total ?? 0);
+    }, [summary, booking]);
+
     // Số tiền còn thiếu ban đầu từ backend (Folio Balance Due)
     const initialRemainingBalance = useMemo(() => {
+        if (isGroupRoom) {
+            // Đối với phòng thuộc đoàn công ty (Master-Billing), tiền phòng chuyển HĐ đoàn,
+            // khách lẻ chỉ thanh toán phần dịch vụ phát sinh cá nhân tại phòng (nếu có)
+            return Math.max(0, unpaidServiceCharge - paidAmount);
+        }
         if (summary?.remaining_balance !== undefined && summary?.remaining_balance !== null) {
             return Number(summary.remaining_balance);
         }
@@ -192,7 +211,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             return Number(summary.remaining_amount);
         }
         return Math.max(0, totalAmount - paidAmount);
-    }, [summary, totalAmount, paidAmount]);
+    }, [isGroupRoom, unpaidServiceCharge, summary, totalAmount, paidAmount]);
 
     // Số tiền còn thiếu thực tế (sau khi lễ tân vừa bấm xác nhận thanh toán nợ)
     const currentRemainingBalance = useMemo(() => {
@@ -415,6 +434,23 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                 ) : (
                     /* 2B. BẢNG KÊ CHI TIẾT TRƯỚC THANH TOÁN (FOLIO ITEMIZED TABLE) */
                     <div className="space-y-6">
+                        {/* THÔNG BÁO GỘP ĐOÀN MASTER-BILLING */}
+                        {isGroupRoom && (
+                            <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs space-y-1">
+                                <div className="flex items-center justify-between font-bold text-indigo-900">
+                                    <span className="flex items-center gap-1.5">
+                                        <span>🏢</span> ĐƠN PHÒNG THUỘC ĐOÀN KHÁCH: {booking.group_booking_name || 'Khách đoàn Doanh nghiệp'}
+                                    </span>
+                                    <span className="font-mono text-[10px] px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold">
+                                        MÃ ĐOÀN: #{booking.group_booking_code || ''}
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-indigo-800">
+                                    * <strong>Chính sách Master-Billing:</strong> Tiền phòng ({formatCurrency(roomCharge)}) được kết chuyển vào Hóa đơn tổng của Doanh nghiệp. Khách lưu trú chỉ thanh toán dịch vụ cá nhân phát sinh tại phòng (nếu có).
+                                </p>
+                            </div>
+                        )}
+
                         {/* THÔNG TIN KHÁCH VÀ PHÒNG */}
                         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-200 text-xs">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -661,35 +697,49 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         {/* Tổng chi phí */}
                                         <tr className="border-t border-slate-200">
                                             <td colSpan={3} className="py-2 px-4 text-right font-semibold text-slate-700">
-                                                Tổng chi phí lưu trú (Total Amount):
+                                                Tổng chi phí phòng & dịch vụ:
                                             </td>
                                             <td className="py-2 px-4 text-right font-bold text-slate-900">
                                                 {formatCurrency(totalAmount)}
                                             </td>
                                         </tr>
 
-                                        {/* Số tiền Đã thanh toán trước đó (chữ xanh lá) */}
-                                        <tr className="bg-emerald-50/70 border-t border-emerald-200">
-                                            <td colSpan={3} className="py-2.5 px-4 text-right font-bold text-emerald-800">
-                                                ✓ Số tiền Đã thanh toán trước đó:
-                                            </td>
-                                            <td className="py-2.5 px-4 text-right font-black text-emerald-600 text-sm">
-                                                -{formatCurrency(paidAmount + (isDebtPaid ? initialRemainingBalance : 0))}
-                                            </td>
-                                        </tr>
+                                        {/* Khấu trừ tiền phòng gộp đoàn nếu là phòng thuộc đoàn */}
+                                        {isGroupRoom && (
+                                            <tr className="bg-indigo-50/70 border-t border-indigo-200">
+                                                <td colSpan={3} className="py-2 px-4 text-right font-bold text-indigo-900 text-xs">
+                                                    🏢 Chuyển thanh toán vào Hóa đơn đoàn #{booking.group_booking_code || ''}:
+                                                </td>
+                                                <td className="py-2 px-4 text-right font-bold text-indigo-700 text-sm">
+                                                    -{formatCurrency(roomCharge)}
+                                                </td>
+                                            </tr>
+                                        )}
 
-                                        {/* SỐ TIỀN CẦN THANH TOÁN THÊM: remaining_balance (chữ đỏ, in đậm) */}
+                                        {/* Số tiền Đã thanh toán trước đó (chữ xanh lá) */}
+                                        {paidAmount > 0 && (
+                                            <tr className="bg-emerald-50/70 border-t border-emerald-200">
+                                                <td colSpan={3} className="py-2.5 px-4 text-right font-bold text-emerald-800">
+                                                    ✓ Số tiền Đã thanh toán trước đó:
+                                                </td>
+                                                <td className="py-2.5 px-4 text-right font-black text-emerald-600 text-sm">
+                                                    -{formatCurrency(paidAmount + (isDebtPaid ? initialRemainingBalance : 0))}
+                                                </td>
+                                            </tr>
+                                        )}
+
+                                        {/* SỐ TIỀN CẦN THANH TOÁN THÊM: remaining_balance */}
                                         <tr className={`border-t-2 ${currentRemainingBalance > 0 ? 'bg-rose-50/80 border-rose-300' : 'bg-emerald-50 border-emerald-300'}`}>
                                             <td colSpan={3} className="py-3 px-4 text-right font-extrabold text-sm uppercase tracking-wide">
                                                 <span className={currentRemainingBalance > 0 ? 'text-rose-900' : 'text-emerald-900'}>
-                                                    {currentRemainingBalance > 0 ? 'SỐ TIỀN CẦN THANH TOÁN THÊM (Remaining Balance):' : 'CÔNG NỢ CÒN LẠI (Folio Balance):'}
+                                                    {isGroupRoom ? 'SỐ TIỀN THỰC THU KHÁCH TẠI QUẦY (Guest Balance Due):' : (currentRemainingBalance > 0 ? 'SỐ TIỀN CẦN THANH TOÁN THÊM (Remaining Balance):' : 'CÔNG NỢ CÒN LẠI (Folio Balance):')}
                                                 </span>
                                             </td>
                                             <td className="py-3 px-4 text-right">
                                                 <span className={`text-xl font-black ${
                                                     currentRemainingBalance > 0 ? 'text-rose-600 font-extrabold' : 'text-emerald-700 font-black'
                                                 }`}>
-                                                    {currentRemainingBalance > 0 ? formatCurrency(currentRemainingBalance) : '0đ (ĐÃ THANH TOÁN ĐỦ)'}
+                                                    {currentRemainingBalance > 0 ? formatCurrency(currentRemainingBalance) : (isGroupRoom ? '0đ (HĐ ĐOÀN ĐÃ BẢO LÃNH)' : '0đ (ĐÃ THANH TOÁN ĐỦ)')}
                                                 </span>
                                             </td>
                                         </tr>
@@ -850,24 +900,43 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 )}
                             </div>
                         ) : (
-                            /* TRƯỜNG HỢP B: remaining_balance <= 0 (Đã thanh toán đủ 100%, không gọi dịch vụ hoặc đã trả xong nợ) */
+                            /* TRƯỜNG HỢP B: remaining_balance <= 0 */
                             /* ẨN TOÀN BỘ KHU VỰC QUÉT QR */
-                            <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900 flex items-center justify-between animate-in fade-in duration-200">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-emerald-500/20">
-                                        ✓
+                            isGroupRoom ? (
+                                <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl text-xs text-indigo-900 flex items-center justify-between animate-in fade-in duration-200">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-indigo-600/20">
+                                            🏢
+                                        </div>
+                                        <div>
+                                            <strong className="text-sm text-indigo-950 block">Quy chế Master-Billing: Tiền phòng chuyển HĐ Đoàn</strong>
+                                            <span className="text-[11px] text-indigo-700">
+                                                Tiền phòng đã được kết chuyển vào Hóa đơn tổng của Doanh nghiệp (#{booking.group_booking_code || ''}). Khách không nợ dịch vụ phát sinh tại phòng.
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <strong className="text-sm text-emerald-950 block">Folio Đã Cân Bằng (Đã Thanh Toán Đủ 100%)</strong>
-                                        <span className="text-[11px] text-emerald-700">
-                                            Toàn bộ tiền phòng và phụ phí dịch vụ đã được tất toán thành công. Không phát sinh công nợ tại quầy.
-                                        </span>
-                                    </div>
+                                    <span className="px-3 py-1 rounded-full bg-indigo-600 text-white font-black text-xs shadow-xs">
+                                        0đ CẦN THU
+                                    </span>
                                 </div>
-                                <span className="px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs shadow-xs">
-                                    0đ CẦN THU
-                                </span>
-                            </div>
+                            ) : (
+                                <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900 flex items-center justify-between animate-in fade-in duration-200">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-emerald-500/20">
+                                            ✓
+                                        </div>
+                                        <div>
+                                            <strong className="text-sm text-emerald-950 block">Folio Đã Cân Bằng (Đã Thanh Toán Đủ 100%)</strong>
+                                            <span className="text-[11px] text-emerald-700">
+                                                Toàn bộ tiền phòng và phụ phí dịch vụ đã được tất toán thành công. Không phát sinh công nợ tại quầy.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className="px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs shadow-xs">
+                                        0đ CẦN THU
+                                    </span>
+                                </div>
+                            )
                         )}
 
                         {/* KHỐI HÓA ĐƠN VAT DOANH NGHIỆP / CÔNG TY */}

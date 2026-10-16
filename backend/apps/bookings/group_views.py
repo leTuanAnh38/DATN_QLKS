@@ -145,7 +145,10 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
 
         status_param = self.request.query_params.get('status')
         if status_param and status_param != 'all':
-            qs = qs.filter(status=status_param)
+            if status_param == 'completed':
+                qs = qs.filter(status__in=['completed', 'checked_out'])
+            else:
+                qs = qs.filter(status=status_param)
 
         return qs
 
@@ -265,6 +268,20 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             total_group_amount = Decimal('0')
             sub_bookings_to_create = []
 
+            # Phân tách danh sách khách lưu trú (Rooming List) gửi lên theo từng hạng phòng (nếu có)
+            rooming_list = data.get('rooming_list', [])
+            rooming_by_cat = {}
+            if isinstance(rooming_list, list):
+                for item in rooming_list:
+                    c_id = item.get('category_id')
+                    try:
+                        c_id = int(c_id)
+                    except (ValueError, TypeError):
+                        pass
+                    if c_id not in rooming_by_cat:
+                        rooming_by_cat[c_id] = []
+                    rooming_by_cat[c_id].append(item.get('guests', []))
+
             for r_item in rooms_data:
                 cat_id = r_item.get('category_id') or r_item.get('id')
                 qty = int(r_item.get('quantity', 1))
@@ -312,11 +329,18 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
 
                 for idx in range(qty):
                     assigned_room = available_physical_rooms[idx] if idx < len(available_physical_rooms) else None
+                    
+                    # Lấy danh sách khách đã khai báo trước cho phòng này (nếu có)
+                    declared_guests = []
+                    if cat_id in rooming_by_cat and len(rooming_by_cat[cat_id]) > 0:
+                        declared_guests = rooming_by_cat[cat_id].pop(0)
+
                     sub_bookings_to_create.append({
                         'category': category_obj,
                         'room': assigned_room,
                         'total_amount': net_price_per_room,
-                        'membership_discount': corp_discount_per_room
+                        'membership_discount': corp_discount_per_room,
+                        'guests': declared_guests
                     })
                     total_group_amount += net_price_per_room
                     total_rooms_count += 1
@@ -331,6 +355,13 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             else:
                 deposit_amount = total_group_amount * Decimal('0.5') # 50% tổng đơn đoàn
 
+            is_deposit_paid = bool(data.get('is_deposit_paid', False))
+            deposit_payment_method = str(data.get('deposit_payment_method') or 'TRANSFER').upper()
+            if deposit_payment_method not in ['TRANSFER', 'CASH', 'POS', 'CREDIT']:
+                deposit_payment_method = 'TRANSFER'
+
+            initial_group_status = 'confirmed' if is_deposit_paid else 'tentative'
+
             # 5. Tạo Master GroupBooking
             group_booking = GroupBooking.objects.create(
                 group_name=group_name,
@@ -342,40 +373,79 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                 check_out_date=check_out,
                 total_amount=total_group_amount,
                 deposit_amount=deposit_amount,
-                is_deposit_paid=False,
-                status='tentative',
+                is_deposit_paid=is_deposit_paid,
+                status=initial_group_status,
                 note=note,
                 internal_note=internal_note
             )
 
             # 6. Tạo các đơn phòng con (Sub-Bookings)
             created_sub_bookings = []
+            sub_booking_status = 'confirmed' if is_deposit_paid else 'pending'
             for b_info in sub_bookings_to_create:
                 cat_obj = b_info['category']
                 assigned_r = b_info['room']
+                raw_guests = b_info.get('guests', [])
+                valid_guests = [g for g in raw_guests if (g.get('full_name') or '').strip()] if isinstance(raw_guests, list) else []
+
+                # Giới hạn số lượng khách theo sức chứa tối đa của phòng
+                room_cap = cat_obj.capacity if (cat_obj and cat_obj.capacity) else 2
+                if len(valid_guests) > room_cap:
+                    valid_guests = valid_guests[:room_cap]
+
+                primary_guest = next((g for g in valid_guests if g.get('is_primary')), None)
+                if not primary_guest and len(valid_guests) > 0:
+                    primary_guest = valid_guests[0]
+
+                room_guest_id_card = (primary_guest.get('id_number') or identity_card) if primary_guest else identity_card
+
                 single_booking = Booking.objects.create(
                     guest=leader_user,
                     category=cat_obj,
                     room=assigned_r,
                     group_booking=group_booking,
                     is_master_billed=True,
-                    identity_card=identity_card,
+                    identity_card=room_guest_id_card or '',
                     check_in_date=check_in,
                     check_out_date=check_out,
                     total_amount=b_info['total_amount'],
                     membership_discount=b_info['membership_discount'],
-                    status='pending',
+                    status=sub_booking_status,
                     note=f"[Đơn thuộc Đoàn #{group_booking.group_code} - {group_booking.group_name}]"
                 )
 
-                # Tự động tạo 1 đại diện lưu trú cho phòng
-                BookingGuest.objects.create(
-                    booking=single_booking,
-                    full_name=f"{leader_name} (Thành viên đoàn)",
-                    id_type='CCCD',
-                    id_number=identity_card or None,
-                    is_primary=True
-                )
+                if valid_guests:
+                    # Lưu danh sách khách do người đặt phòng đã khai báo
+                    for g_idx, g_data in enumerate(valid_guests):
+                        is_primary_flag = bool(g_data.get('is_primary') if g_data.get('is_primary') is not None else (g_idx == 0))
+                        dob_val = None
+                        dob_raw = g_data.get('date_of_birth')
+                        if dob_raw:
+                            try:
+                                dob_val = datetime.strptime(str(dob_raw)[:10], '%Y-%m-%d').date()
+                            except ValueError:
+                                dob_val = None
+
+                        BookingGuest.objects.create(
+                            booking=single_booking,
+                            full_name=(g_data.get('full_name') or '').strip(),
+                            id_type=g_data.get('id_type') or 'CCCD',
+                            id_number=g_data.get('id_number') or None,
+                            date_of_birth=dob_val,
+                            gender=g_data.get('gender') or 'Nam',
+                            nationality=g_data.get('nationality') or 'Việt Nam',
+                            is_primary=is_primary_flag
+                        )
+                else:
+                    # Mặc định tạo 1 đại diện lưu trú theo Trưởng đoàn
+                    BookingGuest.objects.create(
+                        booking=single_booking,
+                        full_name=f"{leader_name} (Thành viên đoàn)",
+                        id_type='CCCD',
+                        id_number=identity_card or None,
+                        is_primary=True
+                    )
+
                 created_sub_bookings.append(single_booking)
 
             # 7. Tạo Master Invoice cho toàn đoàn
@@ -395,15 +465,16 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                 invoice_recipient_email=invoice_recipient_email or None
             )
 
-            # 8. Tạo bản ghi Payment đặt cọc (phục vụ thanh toán VietQR)
+            # 8. Tạo bản ghi Payment đặt cọc (phục vụ thanh toán VietQR / Tiền mặt / POS)
             payment_amount = deposit_amount if deposit_amount > 0 else total_group_amount
             Payment.objects.create(
                 group_booking=group_booking,
                 booking=None,
                 amount=payment_amount,
-                payment_method='TRANSFER',
-                payment_status='PENDING',
-                transaction_id=f"TXN-{group_booking.group_code}"
+                payment_method=deposit_payment_method,
+                payment_status='COMPLETED' if is_deposit_paid else 'PENDING',
+                transaction_id=f"TXN-{group_booking.group_code}",
+                paid_at=timezone.now() if is_deposit_paid else None
             )
 
         log_action(
@@ -485,7 +556,7 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'message': 'Bạn không có quyền thực hiện Check-out đoàn.'}, status=status.HTTP_403_FORBIDDEN)
 
         now = timezone.now()
-        sub_bookings = group.sub_bookings.filter(status='checked_in')
+        sub_bookings = group.sub_bookings.exclude(status__in=['cancelled', 'completed', 'checked_out'])
 
         with transaction.atomic():
             checked_out_count = 0
@@ -494,23 +565,72 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                     b.room.status = 'cleaning'
                     b.room.save(update_fields=['status'])
 
-                b.status = 'checked_out'
+                b.status = 'completed'
+                b.is_paid = True
                 b.actual_check_out = now
-                b.save(update_fields=['status', 'actual_check_out'])
+                b.save(update_fields=['status', 'is_paid', 'actual_check_out'])
                 checked_out_count += 1
 
-            group.status = 'checked_out'
+            group.status = 'completed'
             group.save(update_fields=['status'])
 
-            # Cập nhật Master Invoice sang paid nếu có yêu cầu
-            if request.data.get('mark_invoice_paid', False):
-                master_inv = getattr(group, 'master_invoice', None)
-                if master_inv:
-                    master_inv.status = 'paid'
-                    master_inv.paid_at = now
-                    master_inv.save(update_fields=['status', 'paid_at'])
+            # Cập nhật hoặc tạo Master Invoice thanh toán toàn bộ cho đoàn
+            from ..payments.models import Invoice, Payment
+            payment_method = request.data.get('payment_method', 'transfer')
+            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+            
+            deposit_paid = float(group.deposit_amount or 0) if group.is_deposit_paid else 0.0
+            total_contract = float(group.total_amount or 0)
+            remaining_balance = max(0.0, total_contract - deposit_paid)
 
-        log_action(user, 'UPDATE', 'BOOKING', f"Check-out đoàn #{group.group_code} ({checked_out_count} phòng).", request=request)
+            master_inv = getattr(group, 'master_invoice', None)
+            if not master_inv:
+                master_inv = Invoice.objects.filter(group_booking=group).first()
+
+            corp = group.corporate_partner
+            is_company_invoice = bool(request.data.get('is_company_invoice', True))
+            comp_name = request.data.get('company_name') or (corp.company_name if corp else group.group_name)
+            tax_code = request.data.get('company_tax_code') or (corp.tax_code if corp else '')
+            addr = request.data.get('company_address') or (corp.company_address if corp else '')
+            email = request.data.get('invoice_recipient_email') or (corp.contact_email if corp else group.leader_email)
+
+            if not master_inv:
+                master_inv = Invoice.objects.create(
+                    group_booking=group,
+                    room_charge=total_contract,
+                    service_charge=0,
+                    total_amount=total_contract,
+                    status='paid',
+                    payment_method=payment_method,
+                    paid_at=now,
+                    is_company_invoice=is_company_invoice,
+                    company_name=comp_name,
+                    company_tax_code=tax_code,
+                    company_address=addr,
+                    invoice_recipient_email=email
+                )
+            else:
+                master_inv.status = 'paid'
+                master_inv.paid_at = now
+                master_inv.payment_method = payment_method
+                if is_company_invoice:
+                    master_inv.is_company_invoice = True
+                    master_inv.company_name = comp_name
+                    master_inv.company_tax_code = tax_code
+                    master_inv.company_address = addr
+                    master_inv.invoice_recipient_email = email
+                master_inv.save()
+
+            # Ghi nhận Payment cho số tiền còn lại (nếu có)
+            if remaining_balance > 0 and request.data.get('mark_invoice_paid', True):
+                Payment.objects.create(
+                    group_booking=group,
+                    amount=remaining_balance,
+                    payment_method=method_code,
+                    payment_status='COMPLETED'
+                )
+
+        log_action(user, 'UPDATE', 'BOOKING', f"Check-out đoàn #{group.group_code} ({checked_out_count} phòng). Quyết toán Master Invoice {total_contract:,.0f} đ.", request=request)
 
         return Response({
             'success': True,
@@ -559,26 +679,64 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                         sub_b.room = rm
                         sub_b.save(update_fields=['room'])
 
-                # Cập nhật danh sách khách
+                # Cập nhật trực tiếp CCCD của phòng nếu có gửi kèm
+                direct_id_number = (r_item.get('identity_card') or r_item.get('id_number') or '').strip()
+                booking_update_fields = []
+                if direct_id_number:
+                    sub_b.identity_card = direct_id_number
+                    booking_update_fields.append('identity_card')
+
+                # Cập nhật danh sách khách lưu trú chi tiết (BookingGuest)
                 guests_list = r_item.get('guests', [])
                 if isinstance(guests_list, list) and len(guests_list) > 0:
+                    cat = sub_b.category or (sub_b.room.category if sub_b.room else None)
+                    room_cap = cat.capacity if (cat and cat.capacity) else 2
+                    valid_guests = [g for g in guests_list if (g.get('full_name') or '').strip()]
+                    if len(valid_guests) > room_cap:
+                        return Response({
+                            'success': False,
+                            'message': f"Phòng #{sub_b.booking_code} ({sub_b.room_name or 'Phòng'}) chỉ có sức chứa tối đa {room_cap} người lớn. Bạn đang khai báo {len(valid_guests)} khách vượt quá sức chứa cho phép!"
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
                     BookingGuest.objects.filter(booking=sub_b).delete()
                     to_create = []
                     for g in guests_list:
                         fn = (g.get('full_name') or '').strip()
                         if not fn:
                             continue
+
+                        # Parse ngày sinh an toàn hỗ trợ các định dạng phổ biến
+                        dob_raw = g.get('date_of_birth')
+                        dob_val = None
+                        if dob_raw:
+                            dob_str = str(dob_raw).strip()[:10]
+                            for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y'):
+                                try:
+                                    dob_val = datetime.strptime(dob_str, fmt).date()
+                                    break
+                                except ValueError:
+                                    pass
+
                         to_create.append(BookingGuest(
                             booking=sub_b,
                             full_name=fn,
                             id_type=g.get('id_type', 'CCCD'),
-                            id_number=(g.get('id_number') or '').strip() or None,
+                            id_number=(g.get('id_number') or g.get('identity_card') or '').strip() or None,
+                            date_of_birth=dob_val,
                             gender=(g.get('gender') or '').strip() or None,
                             nationality=(g.get('nationality') or '').strip() or 'Việt Nam',
                             is_primary=bool(g.get('is_primary', False))
                         ))
                     if to_create:
                         BookingGuest.objects.bulk_create(to_create)
+                        primary_guest = next((g for g in to_create if g.is_primary), to_create[0])
+                        if primary_guest and primary_guest.id_number:
+                            sub_b.identity_card = primary_guest.id_number
+                            booking_update_fields.append('identity_card')
+
+                if booking_update_fields:
+                    sub_b.save(update_fields=list(set(booking_update_fields)))
+
                 updated_count += 1
 
         return Response({

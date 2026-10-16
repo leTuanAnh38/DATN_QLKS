@@ -18,7 +18,9 @@ import {
     AlertCircle,
     SlidersHorizontal,
     QrCode,
-    Banknote
+    Banknote,
+    Building2,
+    Users
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -178,12 +180,15 @@ export default function InvoiceManagement() {
     // =========================================================================
     const filteredPayments = useMemo(() => {
         return payments.filter((item) => {
-            // Lọc theo từ khóa (Mã đặt phòng, Tên khách hàng, Mã giao dịch)
+            // Lọc theo từ khóa (Mã đặt phòng, Mã đoàn, Tên khách hàng, Tên công ty, SĐT, Mã giao dịch)
             const keyword = searchTerm.trim().toLowerCase();
             const matchSearch =
                 !keyword ||
                 (item.booking_code && item.booking_code.toLowerCase().includes(keyword)) ||
+                (item.group_booking_code && item.group_booking_code.toLowerCase().includes(keyword)) ||
                 (item.guest_name && item.guest_name.toLowerCase().includes(keyword)) ||
+                (item.company_name && item.company_name.toLowerCase().includes(keyword)) ||
+                (item.guest_phone && item.guest_phone.toLowerCase().includes(keyword)) ||
                 (item.transaction_id && item.transaction_id.toLowerCase().includes(keyword));
 
             // Lọc theo Trạng thái (Thành công, Chờ xử lý, Thất bại)
@@ -224,19 +229,18 @@ export default function InvoiceManagement() {
         return new Intl.NumberFormat('vi-VN').format(num) + ' đ';
     };
 
-    // Format thời gian
+    // Format thời gian chuẩn HH:mm DD/MM/YYYY
     const formatDateTime = (isoStr) => {
         if (!isoStr) return '—';
         try {
             const d = new Date(isoStr);
             if (isNaN(d.getTime())) return isoStr;
-            return d.toLocaleString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${hours}:${minutes} ${day}/${month}/${year}`;
         } catch {
             return isoStr;
         }
@@ -395,9 +399,9 @@ export default function InvoiceManagement() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs sm:text-sm border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+                            <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
                                 <th className="py-4 px-4 sm:px-6">Mã Giao dịch</th>
-                                <th className="py-4 px-4">Khách hàng</th>
+                                <th className="py-4 px-4 min-w-[200px]">Khách hàng</th>
                                 <th className="py-4 px-4">Mã Phòng / Đơn</th>
                                 <th className="py-4 px-4">Số tiền (VND)</th>
                                 <th className="py-4 px-4">Hình thức</th>
@@ -444,7 +448,7 @@ export default function InvoiceManagement() {
                                             className="hover:bg-blue-50/30 transition duration-150"
                                         >
                                             {/* 1. Mã Giao dịch */}
-                                            <td className="py-3.5 px-4 sm:px-6 font-mono text-xs">
+                                            <td className="py-3.5 px-4 sm:px-6 font-mono text-xs whitespace-nowrap">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-bold text-slate-800">
                                                         {payment.transaction_id || `TXN-${payment.id}`}
@@ -452,7 +456,7 @@ export default function InvoiceManagement() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleCopyTxn(payment.transaction_id || `TXN-${payment.id}`)}
-                                                        className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition"
+                                                        className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition shrink-0"
                                                         title="Sao chép mã giao dịch"
                                                     >
                                                         {copiedTxn === (payment.transaction_id || `TXN-${payment.id}`) ? (
@@ -465,93 +469,150 @@ export default function InvoiceManagement() {
                                             </td>
 
                                             {/* 2. Khách hàng */}
-                                            <td className="py-3.5 px-4">
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                                                        {payment.guest_name ? payment.guest_name[0] : 'K'}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-slate-900">
-                                                            {payment.guest_name || 'Khách vãng lai'}
-                                                        </div>
-                                                        {payment.booking?.guest?.phone && (
-                                                            <div className="text-[11px] text-slate-400">
-                                                                {payment.booking.guest.phone}
+                                            <td className="py-3.5 px-4 min-w-[200px]">
+                                                {(() => {
+                                                    const isGroupOrCorp = Boolean(
+                                                        payment.is_group || 
+                                                        payment.group_booking_code || 
+                                                        payment.company_name || 
+                                                        (payment.transaction_id && payment.transaction_id.includes('GRP-'))
+                                                    );
+                                                    const phoneDisplay = payment.guest_phone || payment.booking?.guest?.phone;
+
+                                                    return (
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
+                                                                isGroupOrCorp 
+                                                                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs' 
+                                                                    : 'bg-slate-100 text-slate-600'
+                                                            }`}>
+                                                                {isGroupOrCorp ? (
+                                                                    <Building2 className="w-4 h-4 text-indigo-600" />
+                                                                ) : (
+                                                                    payment.guest_name ? payment.guest_name[0] : 'K'
+                                                                )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                            <div>
+                                                                {isGroupOrCorp && (
+                                                                    <div className="mb-0.5">
+                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider whitespace-nowrap">
+                                                                            🏢 Doanh nghiệp / Đoàn
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="font-bold text-slate-900 leading-snug">
+                                                                    {payment.guest_name || payment.company_name || 'Khách vãng lai'}
+                                                                </div>
+                                                                {phoneDisplay && (
+                                                                    <div className="text-[11px] text-slate-400 mt-0.5">
+                                                                        {phoneDisplay}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
 
                                             {/* 3. Mã Phòng (Booking Code) */}
-                                            <td className="py-3.5 px-4">
-                                                <div className="space-y-0.5">
-                                                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-xs inline-block">
-                                                        {payment.booking_code || `BK-${payment.booking_id}`}
-                                                    </span>
-                                                    {payment.room_number && (
-                                                        <div className="text-[11px] text-slate-500 flex items-center gap-1">
-                                                            <DoorOpen className="w-3 h-3 text-slate-400" />
-                                                            <span>{payment.room_number}</span>
+                                            <td className="py-3.5 px-4 whitespace-nowrap">
+                                                {(() => {
+                                                    const isGroupOrCorp = Boolean(
+                                                        payment.is_group || 
+                                                        payment.group_booking_code || 
+                                                        payment.company_name || 
+                                                        (payment.transaction_id && payment.transaction_id.includes('GRP-'))
+                                                    );
+                                                    const codeDisplay = payment.group_booking_code || payment.booking_code || (
+                                                        payment.transaction_id && payment.transaction_id.includes('GRP-')
+                                                            ? payment.transaction_id.replace('TXN-', '')
+                                                            : (payment.booking_id ? `BK-${payment.booking_id}` : '—')
+                                                    );
+
+                                                    return (
+                                                        <div className="space-y-1">
+                                                            {isGroupOrCorp ? (
+                                                                <>
+                                                                    <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 text-xs inline-block shadow-2xs whitespace-nowrap">
+                                                                        #{codeDisplay}
+                                                                    </span>
+                                                                    <div className="text-[11px] text-slate-600 flex items-center gap-1 font-medium whitespace-nowrap">
+                                                                        <Users className="w-3 h-3 text-indigo-600 shrink-0" />
+                                                                        <span>{payment.room_number || 'Đơn đặt đoàn'}</span>
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-xs inline-block whitespace-nowrap">
+                                                                        #{codeDisplay}
+                                                                    </span>
+                                                                    {payment.room_number && (
+                                                                        <div className="text-[11px] text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                                                                            <DoorOpen className="w-3 h-3 text-slate-400 shrink-0" />
+                                                                            <span>Phòng {payment.room_number}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
+                                                    );
+                                                })()}
                                             </td>
 
                                             {/* 4. Số tiền (VND) */}
-                                            <td className="py-3.5 px-4">
-                                                <span className="font-mono font-black text-slate-900 text-sm">
+                                            <td className="py-3.5 px-4 whitespace-nowrap">
+                                                <span className="font-mono font-black text-slate-900 text-sm whitespace-nowrap">
                                                     {formatVND(payment.amount)}
                                                 </span>
                                             </td>
 
                                             {/* 5. Hình thức (VietQR / Tiền mặt) */}
-                                            <td className="py-3.5 px-4">
+                                            <td className="py-3.5 px-4 whitespace-nowrap">
                                                 {isVietQR ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                        <QrCode className="w-3 h-3 text-blue-600" />
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap shrink-0">
+                                                        <QrCode className="w-3 h-3 text-blue-600 shrink-0" />
                                                         <span>VietQR</span>
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                        <Banknote className="w-3 h-3 text-amber-600" />
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap shrink-0">
+                                                        <Banknote className="w-3 h-3 text-amber-600 shrink-0" />
                                                         <span>Tiền mặt</span>
                                                     </span>
                                                 )}
                                             </td>
 
                                             {/* 6. Trạng thái */}
-                                            <td className="py-3.5 px-4">
+                                            <td className="py-3.5 px-4 whitespace-nowrap">
                                                 {isCompleted && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        <CheckCircle2 className="w-3 h-3" />
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap shrink-0">
+                                                        <CheckCircle2 className="w-3 h-3 shrink-0" />
                                                         <span>Thành công</span>
                                                     </span>
                                                 )}
                                                 {isPending && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                        <Clock className="w-3 h-3" />
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap shrink-0">
+                                                        <Clock className="w-3 h-3 shrink-0" />
                                                         <span>Chờ xử lý</span>
                                                     </span>
                                                 )}
                                                 {isFailed && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                        <XCircle className="w-3 h-3" />
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap shrink-0">
+                                                        <XCircle className="w-3 h-3 shrink-0" />
                                                         <span>Thất bại</span>
                                                     </span>
                                                 )}
                                             </td>
 
                                             {/* 7. Ngày tạo */}
-                                            <td className="py-3.5 px-4 text-xs text-slate-500">
-                                                <div className="flex items-center gap-1.5">
+                                            <td className="py-3.5 px-4 text-xs text-slate-500 whitespace-nowrap">
+                                                <div className="flex items-center gap-1.5 whitespace-nowrap">
                                                     <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                                    <span>{formatDateTime(payment.created_at)}</span>
+                                                    <span className="whitespace-nowrap">{formatDateTime(payment.created_at)}</span>
                                                 </div>
                                             </td>
 
                                             {/* 8. Cột Hành động: Nút "Xem / In Hóa đơn" */}
-                                            <td className="py-3.5 px-4 sm:px-6 text-center">
+                                            <td className="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -619,13 +680,18 @@ export default function InvoiceManagement() {
                  */
                 <HotelInvoiceModal
                     booking={selectedPayment.booking_details || selectedPayment.booking || {
-                        id: selectedPayment.booking_id,
-                        booking_code: selectedPayment.booking_code,
+                        id: selectedPayment.group_booking_id || selectedPayment.booking_id,
+                        booking_code: selectedPayment.group_booking_code || selectedPayment.booking_code || (selectedPayment.transaction_id ? selectedPayment.transaction_id.replace('TXN-', '') : ''),
                         customer_name: selectedPayment.guest_name,
+                        guest_name: selectedPayment.guest_name,
+                        guest_phone: selectedPayment.guest_phone,
+                        customer_type: selectedPayment.is_group ? 'CORPORATE' : 'MEMBER',
+                        company_name: selectedPayment.company_name,
+                        room_number: selectedPayment.room_number,
                         guest: { get_full_name: selectedPayment.guest_name },
                         total_amount: selectedPayment.amount,
                         room_amount: selectedPayment.amount,
-                        status: 'paid',
+                        status: selectedPayment.payment_status === 'COMPLETED' ? 'paid' : 'pending',
                         payment_method: selectedPayment.payment_method
                     }}
                     payment={selectedPayment}

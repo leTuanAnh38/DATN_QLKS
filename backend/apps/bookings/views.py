@@ -140,6 +140,39 @@ class BookingViewSet(viewsets.ModelViewSet):
         identity_card = data.get('identity_card', '').strip()
         promo_code = data.get('promo_code', '').strip().upper()
 
+        customer_type = str(data.get('customer_type') or 'MEMBER').strip().upper()
+        company_name = str(data.get('company_name') or '').strip() or None
+        company_tax_code = str(data.get('company_tax_code') or '').strip() or None
+        company_address = str(data.get('company_address') or '').strip() or None
+
+        if customer_type == 'CORPORATE':
+            if not company_name:
+                return Response({
+                    'success': False,
+                    'message': 'Vui lòng nhập Tên công ty / Doanh nghiệp khi chọn loại đặt phòng Doanh nghiệp.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            if not company_tax_code:
+                return Response({
+                    'success': False,
+                    'message': 'Vui lòng nhập Mã số thuế của công ty.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            if not company_address:
+                return Response({
+                    'success': False,
+                    'message': 'Vui lòng nhập Địa chỉ xuất hóa đơn GTGT của công ty.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            import re
+            if not re.match(r'^(\d{10}|\d{13}|\d{10}-\d{3})$', company_tax_code):
+                return Response({
+                    'success': False,
+                    'message': 'Mã số thuế không đúng chuẩn Việt Nam. MST phải gồm 10 số (VD: 0101234567) hoặc 13 số (VD: 0101234567-001 hoặc 0101234567001).'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            customer_type = 'MEMBER'
+            company_name = None
+            company_tax_code = None
+            company_address = None
+
         if not room_identifier:
             return Response({
                 'success': False,
@@ -393,6 +426,10 @@ class BookingViewSet(viewsets.ModelViewSet):
             # Số phòng thực tế (Room) để trống (None) để Lễ tân chọn và gán phòng trống khi làm thủ tục Check-in.
             booking = Booking.objects.create(
                 guest=guest_user,
+                customer_type=customer_type,
+                company_name=company_name,
+                company_tax_code=company_tax_code,
+                company_address=company_address,
                 category=category_instance,
                 room=None,
                 identity_card=identity_card,
@@ -446,6 +483,65 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'total_price': float(s_info['total_price']),
                     'image': feat_img
                 })
+
+            # 10.1 Khởi tạo Danh sách Khách lưu trú (BookingGuest) - TRẠM 2
+            guests_data = data.get('guests', None)
+            if guests_data and isinstance(guests_data, list) and len(guests_data) > 0:
+                guests_to_create = []
+                has_primary = False
+                for idx, g in enumerate(guests_data):
+                    if not isinstance(g, dict):
+                        continue
+                    g_name = (g.get('full_name') or '').strip()
+                    if not g_name:
+                        continue
+                    is_p = bool(g.get('is_primary', idx == 0))
+                    if is_p:
+                        has_primary = True
+                    dob = g.get('date_of_birth')
+                    if not dob or str(dob).strip() == '':
+                        dob = None
+                    guests_to_create.append(BookingGuest(
+                        booking=booking,
+                        full_name=g_name,
+                        id_type=g.get('id_type', 'CCCD'),
+                        id_number=(g.get('id_number') or '').strip() or None,
+                        date_of_birth=dob,
+                        gender=(g.get('gender') or '').strip() or 'Nam',
+                        nationality=(g.get('nationality') or '').strip() or 'Việt Nam',
+                        is_primary=is_p
+                    ))
+                if guests_to_create:
+                    if not has_primary:
+                        guests_to_create[0].is_primary = True
+                    BookingGuest.objects.bulk_create(guests_to_create)
+            else:
+                primary_name = guest_name or (guest_user.get_full_name() if guest_user else 'Khách hàng')
+                BookingGuest.objects.create(
+                    booking=booking,
+                    full_name=primary_name,
+                    id_type='CCCD',
+                    id_number=identity_card or None,
+                    nationality='Việt Nam',
+                    is_primary=True
+                )
+
+            # 10.2 Tự động khởi tạo Hóa đơn (Invoice) lưu trữ thông tin doanh nghiệp (VAT) - TRẠM 5
+            is_corp_invoice = (customer_type == 'CORPORATE') or bool(company_name)
+            Invoice.objects.update_or_create(
+                booking=booking,
+                defaults={
+                    'room_charge': room_net_amount,
+                    'service_charge': total_services_amount,
+                    'total_amount': grand_total_amount,
+                    'status': 'pending',
+                    'is_company_invoice': is_corp_invoice,
+                    'company_name': company_name,
+                    'company_tax_code': company_tax_code,
+                    'company_address': company_address,
+                    'invoice_recipient_email': data.get('invoice_recipient_email') or guest_email or None
+                }
+            )
 
             # 11. Tạo bản ghi Payment ở trạng thái PENDING với tổng tiền cuối cùng (phục vụ thanh toán VietQR)
             Payment.objects.create(
@@ -702,6 +798,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         """
         API lấy danh sách các phòng thực tế (Room) đang 'available' (Sẵn sàng)
         thuộc đúng Hạng phòng mà khách đã đặt để Lễ tân chọn trong Modal Check-in.
+        Bắt buộc loại trừ các phòng đã được gán cho đơn đặt khác (cả đơn lẻ và đơn đoàn) trong khoảng thời gian lưu trú.
         """
         booking = self.get_object()
         category = booking.category or (booking.room.category if booking.room else None)
@@ -711,10 +808,41 @@ class BookingViewSet(viewsets.ModelViewSet):
         else:
             category_id = category.id if category else None
 
-        available_rooms_qs = Room.objects.filter(status='available').select_related('category')
         all_categories = request.query_params.get('all_categories', 'false').lower() in ['true', '1', 'yes']
+
+        # 1. Cơ bản: Lấy danh sách phòng không bảo trì
+        available_rooms_qs = Room.objects.exclude(status='maintenance').select_related('category')
         if category_id and not all_categories:
             available_rooms_qs = available_rooms_qs.filter(category_id=category_id)
+
+        # 2. Loại trừ các phòng ĐÃ ĐƯỢC GÁN cho đơn đặt khác trong khoảng thời gian lưu trú trùng lặp
+        check_in = booking.check_in_date
+        check_out = booking.check_out_date
+
+        conflicting_status_filter = (
+            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+            Q(group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in']) |
+            Q(status='pending', created_at__gte=timezone.now() - timezone.timedelta(minutes=15))
+        )
+
+        conflicting_room_ids = Booking.objects.filter(
+            room__isnull=False,
+            check_in_date__lt=check_out,
+            check_out_date__gt=check_in
+        ).exclude(
+            pk=booking.pk
+        ).filter(
+            conflicting_status_filter
+        ).values_list('room_id', flat=True)
+
+        available_rooms_qs = available_rooms_qs.exclude(id__in=conflicting_room_ids)
+
+        # 3. Với các phòng còn lại: phòng phải đang 'available' (trống & sạch)
+        # Hoặc nếu phòng đó chính là phòng đã gán từ trước của đơn này (booking.room_id) thì vẫn giữ lại
+        if booking.room_id:
+            available_rooms_qs = available_rooms_qs.filter(Q(status='available') | Q(id=booking.room_id))
+        else:
+            available_rooms_qs = available_rooms_qs.filter(status='available')
 
         from ..rooms.serializers import RoomSerializer
         serializer = RoomSerializer(available_rooms_qs.order_by('floor', 'room_number'), many=True)
@@ -814,16 +942,18 @@ class BookingViewSet(viewsets.ModelViewSet):
         stay_end_date = booking.check_out_date
         conflict_booking = Booking.objects.filter(
             room=target_room,
-            status__in=['confirmed', 'checked_in']
-        ).exclude(id=booking.id).filter(
             check_in_date__lt=stay_end_date,
             check_out_date__gt=today
+        ).exclude(id=booking.id).filter(
+            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+            Q(group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in']) |
+            Q(status='pending', created_at__gte=timezone.now() - timezone.timedelta(minutes=15))
         ).first()
 
         if conflict_booking:
             return Response({
                 'success': False,
-                'message': f'Không thể gán phòng {target_room.room_number}. Phòng này đã có khách (#{conflict_booking.booking_code}) đặt trước trong khoảng thời gian {conflict_booking.check_in_date.strftime("%d/%m/%Y")} - {conflict_booking.check_out_date.strftime("%d/%m/%Y")}. Vui lòng chọn phòng trống khác.'
+                'message': f'Không thể gán phòng {target_room.room_number}. Phòng này đã có đơn #{conflict_booking.booking_code} đặt trước trong khoảng thời gian {conflict_booking.check_in_date.strftime("%d/%m/%Y")} - {conflict_booking.check_out_date.strftime("%d/%m/%Y")}. Vui lòng chọn phòng trống khác.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # 5. Kiểm tra hạng phòng tương ứng
@@ -1409,6 +1539,19 @@ class BookingViewSet(viewsets.ModelViewSet):
         note = str(data.get('note') or '').strip()
         internal_note_input = str(data.get('internal_note') or '').strip()
 
+        customer_type = str(data.get('customer_type') or 'MEMBER').strip().upper()
+        company_name = str(data.get('company_name') or '').strip() or None
+        company_tax_code = str(data.get('company_tax_code') or '').strip() or None
+        company_address = str(data.get('company_address') or '').strip() or None
+
+        if customer_type != 'CORPORATE' and not company_name:
+            customer_type = 'MEMBER'
+            company_name = None
+            company_tax_code = None
+            company_address = None
+        else:
+            customer_type = 'CORPORATE'
+
         # Validate dữ liệu đầu vào bắt buộc
         if not guest_name:
             return Response({
@@ -1575,6 +1718,10 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             booking = Booking.objects.create(
                 guest=guest_user,
+                customer_type=customer_type,
+                company_name=company_name,
+                company_tax_code=company_tax_code,
+                company_address=company_address,
                 category=category_instance,
                 room=target_room,
                 identity_card=identity_card,
@@ -1585,6 +1732,33 @@ class BookingViewSet(viewsets.ModelViewSet):
                 total_amount=total_amount,
                 note=note or 'Khách đặt trực tiếp tại quầy Lễ tân (Walk-in)',
                 internal_note=auto_log
+            )
+
+            # Tạo khách lưu trú đại diện
+            BookingGuest.objects.create(
+                booking=booking,
+                full_name=guest_name,
+                id_type='CCCD',
+                id_number=identity_card or None,
+                nationality='Việt Nam',
+                is_primary=True
+            )
+
+            # Tự động lập Hóa đơn
+            is_corp_inv = (customer_type == 'CORPORATE') or bool(company_name)
+            Invoice.objects.update_or_create(
+                booking=booking,
+                defaults={
+                    'room_charge': total_amount,
+                    'service_charge': 0,
+                    'total_amount': total_amount,
+                    'status': 'paid' if data.get('is_paid') else 'pending',
+                    'is_company_invoice': is_corp_inv,
+                    'company_name': company_name,
+                    'company_tax_code': company_tax_code,
+                    'company_address': company_address,
+                    'invoice_recipient_email': data.get('invoice_recipient_email') or guest_email or None
+                }
             )
 
             # 3. Cập nhật bảng Room sang occupied
@@ -1644,6 +1818,19 @@ class BookingViewSet(viewsets.ModelViewSet):
             initial_status = 'confirmed'
         note = str(data.get('note') or '').strip()
         internal_note_input = str(data.get('internal_note') or '').strip()
+
+        customer_type = str(data.get('customer_type') or 'MEMBER').strip().upper()
+        company_name = str(data.get('company_name') or '').strip() or None
+        company_tax_code = str(data.get('company_tax_code') or '').strip() or None
+        company_address = str(data.get('company_address') or '').strip() or None
+
+        if customer_type != 'CORPORATE' and not company_name:
+            customer_type = 'MEMBER'
+            company_name = None
+            company_tax_code = None
+            company_address = None
+        else:
+            customer_type = 'CORPORATE'
 
         # Validate dữ liệu đầu vào bắt buộc
         if not guest_name:
@@ -1793,6 +1980,10 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             booking = Booking.objects.create(
                 guest=guest_user,
+                customer_type=customer_type,
+                company_name=company_name,
+                company_tax_code=company_tax_code,
+                company_address=company_address,
                 category=category_instance,
                 room=None,
                 identity_card=identity_card,
@@ -1802,6 +1993,33 @@ class BookingViewSet(viewsets.ModelViewSet):
                 status=initial_status,
                 note=note or 'Đặt trước qua điện thoại/Zalo',
                 internal_note=auto_internal_log
+            )
+
+            # Tạo khách lưu trú đại diện
+            BookingGuest.objects.create(
+                booking=booking,
+                full_name=guest_name,
+                id_type='CCCD',
+                id_number=identity_card or None,
+                nationality='Việt Nam',
+                is_primary=True
+            )
+
+            # Tự động lập Hóa đơn
+            is_corp_inv = (customer_type == 'CORPORATE') or bool(company_name)
+            Invoice.objects.update_or_create(
+                booking=booking,
+                defaults={
+                    'room_charge': total_amount,
+                    'service_charge': 0,
+                    'total_amount': total_amount,
+                    'status': 'pending',
+                    'is_company_invoice': is_corp_inv,
+                    'company_name': company_name,
+                    'company_tax_code': company_tax_code,
+                    'company_address': company_address,
+                    'invoice_recipient_email': data.get('invoice_recipient_email') or guest_email or None
+                }
             )
 
         serializer = BookingSerializer(booking, context={'request': request})
@@ -2423,7 +2641,16 @@ class BookingViewSet(viewsets.ModelViewSet):
                 elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
                     paid_amount = float(booking.total_amount or room_charge)
 
-            remaining_amount = max(0.0, float(grand_total - paid_amount))
+            is_group_sub_room = bool(booking.group_booking_id and getattr(booking, 'is_master_billed', True))
+            if is_group_sub_room:
+                # Tiền phòng chuyển vào Master Folio của đoàn, số tiền khách lẻ tại quầy phải trả chỉ là dịch vụ phát sinh
+                remaining_amount = max(0.0, float(total_service_charge - paid_amount))
+                sub_room_charge = 0.0
+                sub_invoice_total = float(total_service_charge)
+            else:
+                remaining_amount = max(0.0, float(grand_total - paid_amount))
+                sub_room_charge = float(room_charge)
+                sub_invoice_total = float(grand_total)
 
             # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền & thông tin VAT công ty
             is_company_invoice = bool(request.data.get('is_company_invoice', False))
@@ -2433,9 +2660,9 @@ class BookingViewSet(viewsets.ModelViewSet):
             invoice_recipient_email = str(request.data.get('invoice_recipient_email') or '').strip() or None
 
             inv_defaults = {
-                'room_charge': room_charge,
+                'room_charge': sub_room_charge,
                 'service_charge': total_service_charge,
-                'total_amount': grand_total,
+                'total_amount': sub_invoice_total,
                 'payment_method': payment_method,
                 'status': 'paid',
                 'paid_at': timezone.now()
@@ -2464,7 +2691,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     payment_status='COMPLETED',
                     transaction_id=f"TXN-CHECKOUT-{invoice.invoice_code.replace('INV-', '')}"
                 )
-            elif not hasattr(booking, 'payments') or not booking.payments.filter(payment_status='COMPLETED').exists():
+            elif not is_group_sub_room and (not hasattr(booking, 'payments') or not booking.payments.filter(payment_status='COMPLETED').exists()):
                 Payment.objects.create(
                     booking=booking,
                     amount=grand_total,

@@ -30,6 +30,14 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     const [note, setNote] = useState('');
     const [internalNote, setInternalNote] = useState('');
 
+    // Estimated Arrival & Guests
+    const [estimatedArrivalTime, setEstimatedArrivalTime] = useState('14:00');
+    const [estimatedGuests, setEstimatedGuests] = useState('');
+
+    // Deposit Payment Method & Paid Status
+    const [depositPaymentMethod, setDepositPaymentMethod] = useState('TRANSFER'); // 'TRANSFER' | 'CASH' | 'POS' | 'CREDIT'
+    const [isDepositPaidNow, setIsDepositPaidNow] = useState(false);
+
     // Multi-room selection: { [categoryId]: quantity }
     const [selectedRooms, setSelectedRooms] = useState({});
 
@@ -215,6 +223,15 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             }
         });
 
+        let combinedNote = note.trim();
+        const prefixParts = [];
+        if (estimatedArrivalTime) prefixParts.push(`Giờ đến dự kiến: ${estimatedArrivalTime}`);
+        if (estimatedGuests) prefixParts.push(`Quy mô đoàn: ${estimatedGuests} khách`);
+        if (prefixParts.length > 0) {
+            const prefixStr = `[${prefixParts.join(' | ')}]`;
+            combinedNote = combinedNote ? `${prefixStr} ${combinedNote}` : prefixStr;
+        }
+
         const depositVal = customDeposit !== '' ? Number(customDeposit) : Math.round(grandTotal * 0.5);
 
         const payload = {
@@ -226,9 +243,13 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             identity_card: identityCard.trim() || '',
             check_in_date: checkInDate,
             check_out_date: checkOutDate,
+            estimated_arrival_time: estimatedArrivalTime || null,
+            total_guests_estimated: estimatedGuests ? Number(estimatedGuests) : null,
             rooms: roomsPayload,
             deposit_amount: depositVal,
-            note: note.trim() || null,
+            deposit_payment_method: depositPaymentMethod,
+            is_deposit_paid: isDepositPaidNow,
+            note: combinedNote || null,
             internal_note: internalNote.trim() || null,
             is_company_invoice: isCompanyInvoice,
             company_name: isCompanyInvoice ? companyName.trim() : null,
@@ -405,11 +426,11 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             </div>
                         </div>
 
-                        {/* KHỐI 2: THỜI GIAN LƯU TRÚ */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl items-center">
+                        {/* KHỐI 2: THỜI GIAN LƯU TRÚ & QUY MÔ ĐOÀN */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 p-4 bg-slate-50 border border-slate-200 rounded-2xl items-center">
                             <div>
                                 <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                                    🗓️ Ngày Check-in (Nhận phòng):
+                                    🗓️ Ngày Check-in:
                                 </label>
                                 <input
                                     type="date"
@@ -422,7 +443,27 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
 
                             <div>
                                 <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                                    🗓️ Ngày Check-out (Trả phòng):
+                                    ⏰ Giờ đến dự kiến (ETA):
+                                </label>
+                                <select
+                                    value={estimatedArrivalTime}
+                                    onChange={(e) => setEstimatedArrivalTime(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 cursor-pointer"
+                                >
+                                    <option value="08:00">08:00 (Sáng sớm)</option>
+                                    <option value="10:00">10:00 (Sáng)</option>
+                                    <option value="11:30">11:30 (Trưa)</option>
+                                    <option value="12:00">12:00 (Trưa)</option>
+                                    <option value="14:00">14:00 (Giờ chuẩn)</option>
+                                    <option value="15:30">15:30 (Chiều)</option>
+                                    <option value="18:00">18:00 (Tối)</option>
+                                    <option value="20:00">20:00 (Tối muộn)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                                    🗓️ Ngày Check-out:
                                 </label>
                                 <input
                                     type="date"
@@ -433,9 +474,23 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                 />
                             </div>
 
-                            <div className="text-center sm:text-right pt-2 sm:pt-0">
-                                <span className="text-[11px] text-slate-500 font-semibold block">Thời gian lưu trú:</span>
-                                <span className="text-lg font-black text-indigo-700">{nights} đêm</span>
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                                    👥 Số khách dự kiến:
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        placeholder="VD: 15"
+                                        value={estimatedGuests}
+                                        onChange={(e) => setEstimatedGuests(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                                    />
+                                    <span className="text-xs font-black text-indigo-700 shrink-0 whitespace-nowrap bg-indigo-50 px-2.5 py-2 rounded-xl border border-indigo-100">
+                                        {nights} đêm
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -529,7 +584,43 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             </div>
                         </div>
 
-                        {/* KHỐI 4: HÓA ĐƠN VAT DOANH NGHIỆP */}
+                        {/* KHỐI 4: GHI CHÚ YÊU CẦU CỦA ĐOÀN & GHI CHÚ NỘI BỘ LỄ TÂN */}
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                <span>📝</span>
+                                <span>Ghi Chú & Yêu Cầu Phục Vụ Đoàn</span>
+                            </h3>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                                        Yêu cầu đặc biệt của đoàn (Special Requests):
+                                    </label>
+                                    <textarea
+                                        rows={2}
+                                        placeholder="VD: Bố trí các phòng gần nhau, tầng cao, nôi em bé, ăn sáng buffet chay, xe đón sân bay..."
+                                        value={note}
+                                        onChange={(e) => setNote(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                                        Ghi chú nội bộ Lễ tân / Kinh doanh (Staff only):
+                                    </label>
+                                    <textarea
+                                        rows={2}
+                                        placeholder="VD: Khách VIP của Ban Giám đốc, đoàn hẹn nộp danh sách trước ngày 15, cho check-in sớm nếu có phòng..."
+                                        value={internalNote}
+                                        onChange={(e) => setInternalNote(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* KHỐI 5: HÓA ĐƠN VAT DOANH NGHIỆP */}
                         <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                             <label className="flex items-center justify-between cursor-pointer">
                                 <div className="flex items-center gap-2">
@@ -595,41 +686,75 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             )}
                         </div>
 
-                        {/* TỔNG KẾT TÀI CHÍNH & TIỀN CỌC */}
-                        <div className="p-4 bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl space-y-3">
-                            <div className="flex justify-between items-center text-xs text-slate-300">
+                        {/* TỔNG KẾT TÀI CHÍNH, TIỀN CỌC & PHƯƠNG THỨC THANH TOÁN */}
+                        <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl space-y-4">
+                            <div className="flex justify-between items-center text-xs text-slate-600">
                                 <span>Tổng tiền phòng gốc ({totalRoomsCount} phòng • {nights} đêm):</span>
-                                <span className="font-semibold">{formatCurrency(subtotalAmount)}</span>
+                                <span className="font-semibold text-slate-800">{formatCurrency(subtotalAmount)}</span>
                             </div>
 
                             {totalDiscount > 0 && (
-                                <div className="flex justify-between items-center text-xs text-emerald-300 font-semibold">
+                                <div className="flex justify-between items-center text-xs text-emerald-600 font-semibold">
                                     <span>Chiết khấu Doanh nghiệp ({discountPercent}%):</span>
                                     <span>-{formatCurrency(totalDiscount)}</span>
                                 </div>
                             )}
 
-                            <div className="pt-2 border-t border-slate-700/80 flex justify-between items-baseline">
-                                <span className="text-sm font-bold">Tổng Giá Trị Hợp Đồng Đoàn:</span>
-                                <span className="text-2xl font-black text-amber-400">{formatCurrency(grandTotal)}</span>
+                            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex justify-between items-baseline">
+                                <span className="text-sm font-bold text-slate-800">Tổng Giá Trị Hợp Đồng Đoàn:</span>
+                                <span className="text-2xl font-black text-indigo-600">{formatCurrency(grandTotal)}</span>
                             </div>
 
-                            <div className="pt-2 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                                <div>
-                                    <label className="text-[11px] text-slate-300 font-semibold block mb-1">
-                                        Tiền đặt cọc giữ chỗ (Mặc định 50%):
-                                    </label>
+                            {/* CỌC & PHƯƠNG THỨC THANH TOÁN */}
+                            <div className="pt-2 border-t border-slate-100 space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                                    <div>
+                                        <label className="text-[11px] text-slate-600 font-semibold block mb-1">
+                                            Tiền đặt cọc giữ chỗ (Mặc định 50%):
+                                        </label>
+                                        <input
+                                            type="number"
+                                            placeholder={String(Math.round(grandTotal * 0.5))}
+                                            value={customDeposit}
+                                            onChange={(e) => setCustomDeposit(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[11px] text-slate-600 font-semibold block mb-1">
+                                            Phương thức thanh toán cọc:
+                                        </label>
+                                        <select
+                                            value={depositPaymentMethod}
+                                            onChange={(e) => setDepositPaymentMethod(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
+                                        >
+                                            <option value="TRANSFER">📱 Chuyển khoản VietQR</option>
+                                            <option value="CASH">💵 Tiền mặt tại quầy lễ tân</option>
+                                            <option value="POS">💳 Quẹt thẻ máy POS</option>
+                                            <option value="CREDIT">🏢 Bảo lãnh công nợ B2B (Thanh toán sau)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* CHECKBOX XÁC NHẬN ĐÃ THU CỌC TẠI QUẦY */}
+                                <label className="flex items-center gap-3 p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl cursor-pointer hover:bg-emerald-50 transition">
                                     <input
-                                        type="number"
-                                        placeholder={String(Math.round(grandTotal * 0.5))}
-                                        value={customDeposit}
-                                        onChange={(e) => setCustomDeposit(e.target.value)}
-                                        className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-mono"
+                                        type="checkbox"
+                                        checked={isDepositPaidNow}
+                                        onChange={(e) => setIsDepositPaidNow(e.target.checked)}
+                                        className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-400 cursor-pointer"
                                     />
-                                </div>
-                                <div className="text-[11px] text-slate-400 text-right">
-                                    Sau khi tạo đơn, hệ thống sẽ mở mã VietQR để Doanh nghiệp chuyển khoản cọc.
-                                </div>
+                                    <div className="text-xs">
+                                        <span className="font-bold text-emerald-700 block">
+                                            ✓ Xác nhận đã thu đủ tiền cọc ngay tại quầy
+                                        </span>
+                                        <span className="text-[11px] text-slate-500">
+                                            Đơn đoàn sẽ được duyệt sang trạng thái <strong>ĐÃ XÁC NHẬN (Confirmed)</strong> ngay lập tức.
+                                        </span>
+                                    </div>
+                                </label>
                             </div>
                         </div>
 

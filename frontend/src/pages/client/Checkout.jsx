@@ -58,7 +58,17 @@ export default function Checkout() {
     const [checkOutDate, setCheckOutDate] = useState(defaultCheckOut);
     const [nights, setNights] = useState(1);
 
-    // 3. State Thông tin khách đặt phòng
+    // 3. State Thông tin khách đặt phòng & Doanh nghiệp
+    const [customerType, setCustomerType] = useState('MEMBER'); // 'MEMBER' | 'CORPORATE'
+    const [companyName, setCompanyName] = useState('');
+    const [companyTaxCode, setCompanyTaxCode] = useState('');
+    const [companyAddress, setCompanyAddress] = useState('');
+    const [taxCodeError, setTaxCodeError] = useState('');
+    const [isBookerTheGuest, setIsBookerTheGuest] = useState(true);
+    const [actualGuests, setActualGuests] = useState([
+        { full_name: '', identity_card: '', phone_number: '', is_primary: true }
+    ]);
+
     const [guestName, setGuestName] = useState('');
     const [guestPhone, setGuestPhone] = useState('');
     const [guestEmail, setGuestEmail] = useState('');
@@ -66,6 +76,35 @@ export default function Checkout() {
     const [guestCount, setGuestCount] = useState(location.state?.guestCount || 2);
     const [note, setNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('reception'); // 'reception' | 'vietqr' | 'card'
+
+    // Helper kiểm tra định dạng Mã số thuế Việt Nam (10 số doanh nghiệp hoặc 13 số chi nhánh)
+    const validateTaxCode = (code) => {
+        const clean = (code || '').trim();
+        if (!clean) return 'Vui lòng nhập mã số thuế';
+        const mstRegex = /^(\d{10}|\d{13}|\d{10}-\d{3})$/;
+        if (!mstRegex.test(clean)) {
+            return 'MST không hợp lệ. Chuẩn MST Việt Nam gồm 10 số (công ty mẹ) hoặc 13 số / 10-3 số (chi nhánh).';
+        }
+        return '';
+    };
+
+    // Chuyển đổi tab Khách cá nhân / Doanh nghiệp & tự động dọn sạch dữ liệu thừa
+    const handleSwitchCustomerType = (type) => {
+        if (type === 'CORPORATE' && !isAuthenticated) {
+            setBookingError('Quý khách vui lòng đăng nhập tài khoản để đặt phòng theo diện Doanh nghiệp / Tổ chức.');
+            return;
+        }
+        setCustomerType(type);
+        setBookingError('');
+        if (type === 'MEMBER') {
+            // Tự động xóa/reset các trường company_* về rỗng để tránh gửi nhầm dữ liệu rác lên Backend
+            setCompanyName('');
+            setCompanyTaxCode('');
+            setCompanyAddress('');
+            setTaxCodeError('');
+            setIsBookerTheGuest(true);
+        }
+    };
 
     // 4. State Mã khuyến mãi (Promo Code)
     const [promoInput, setPromoInput] = useState('');
@@ -419,6 +458,73 @@ export default function Checkout() {
             return;
         }
 
+        // Validate dữ liệu Doanh nghiệp (CORPORATE)
+        if (customerType === 'CORPORATE') {
+            if (!isAuthenticated) {
+                setBookingError('Quý khách vui lòng đăng nhập tài khoản để đặt phòng cho Doanh nghiệp.');
+                return;
+            }
+            if (!companyName.trim()) {
+                setBookingError('Vui lòng nhập đầy đủ tên công ty / doanh nghiệp.');
+                return;
+            }
+            const cleanTax = companyTaxCode.trim();
+            if (!cleanTax) {
+                setBookingError('Vui lòng nhập mã số thuế doanh nghiệp.');
+                return;
+            }
+            const taxErr = validateTaxCode(cleanTax);
+            if (taxErr) {
+                setBookingError(taxErr);
+                return;
+            }
+            if (!companyAddress.trim()) {
+                setBookingError('Vui lòng nhập địa chỉ trụ sở / xuất hóa đơn của công ty.');
+                return;
+            }
+        }
+
+        // Chuẩn bị danh sách khách lưu trú thực tế (BookingGuest)
+        let guestsPayload = [];
+        if (isBookerTheGuest) {
+            guestsPayload.push({
+                full_name: guestName.trim(),
+                identity_card: cleanIdCard,
+                phone_number: guestPhone.trim(),
+                is_primary: true
+            });
+            actualGuests.forEach((g) => {
+                if (g.full_name && g.full_name.trim()) {
+                    guestsPayload.push({
+                        full_name: g.full_name.trim(),
+                        identity_card: (g.identity_card || '').trim(),
+                        phone_number: (g.phone_number || '').trim(),
+                        is_primary: false
+                    });
+                }
+            });
+        } else {
+            const validActualGuests = actualGuests.filter((g) => g.full_name && g.full_name.trim());
+            if (validActualGuests.length === 0) {
+                setBookingError('Vui lòng khai báo ít nhất 1 người lưu trú thực tế (nhân sự/khách nhận phòng).');
+                return;
+            }
+            guestsPayload = validActualGuests.map((g, idx) => ({
+                full_name: g.full_name.trim(),
+                identity_card: (g.identity_card || '').trim(),
+                phone_number: (g.phone_number || '').trim(),
+                is_primary: idx === 0
+            }));
+        }
+
+        // Kiểm tra sức chứa tối đa của phòng
+        const totalGuestsCount = guestsPayload.length;
+        const roomCapacity = Number(room?.capacity || 2);
+        if (totalGuestsCount > roomCapacity) {
+            setBookingError(`Số người lưu trú (${totalGuestsCount} khách) vượt quá sức chứa tối đa của hạng phòng (${roomCapacity} người lớn). Vui lòng điều chỉnh hoặc đặt thêm phòng.`);
+            return;
+        }
+
         setIsSubmitting(true);
 
         // Chuẩn bị mảng dịch vụ đi kèm theo định dạng chuẩn của Backend
@@ -435,10 +541,15 @@ export default function Checkout() {
             guest_phone: guestPhone.trim(),
             guest_email: guestEmail.trim(),
             identity_card: cleanIdCard,
+            customer_type: customerType,
+            company_name: customerType === 'CORPORATE' ? companyName.trim() : '',
+            company_tax_code: customerType === 'CORPORATE' ? companyTaxCode.trim() : '',
+            company_address: customerType === 'CORPORATE' ? companyAddress.trim() : '',
+            guests: guestsPayload,
             promo_code: appliedPromo ? appliedPromo.code : '',
             discount_amount: appliedPromo ? discountAmount : 0,
             selected_services: servicesPayload,
-            note: `${note ? note + ' | ' : ''}Khách: ${guestCount} người. CCCD: ${cleanIdCard}. Thanh toán: ${paymentMethod}`
+            note: `${note ? note + ' | ' : ''}Khách: ${totalGuestsCount || guestCount} người. CCCD: ${cleanIdCard}.${customerType === 'CORPORATE' ? ` [Công ty: ${companyName.trim()} - MST: ${companyTaxCode.trim()}]` : ''} Thanh toán: ${paymentMethod}`
         };
 
         try {
@@ -745,6 +856,121 @@ export default function Checkout() {
                                     )}
                                 </div>
 
+                                {/* TAB CHỌN LOẠI ĐẶT PHÒNG: CÁ NHÂN / GIA ĐÌNH vs DOANH NGHIỆP / ĐOÀN THỂ */}
+                                <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl mb-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSwitchCustomerType('MEMBER')}
+                                        className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                                            customerType === 'MEMBER'
+                                                ? 'bg-white text-slate-900 shadow-xs'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <span>👤</span>
+                                        <span>Đặt Cá nhân / Gia đình</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSwitchCustomerType('CORPORATE')}
+                                        className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                                            customerType === 'CORPORATE'
+                                                ? 'bg-blue-600 text-white shadow-xs'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <span>🏢</span>
+                                        <span>Đặt cho Công ty / Đoàn thể</span>
+                                    </button>
+                                </div>
+
+                                {/* KHỐI THÔNG TIN DOANH NGHIỆP & XUẤT HÓA ĐƠN VAT */}
+                                {customerType === 'CORPORATE' && (
+                                    <div className="mb-6 p-4 sm:p-5 bg-gradient-to-br from-blue-50/80 via-indigo-50/40 to-slate-50 border-2 border-blue-200 rounded-2xl space-y-4 animate-in fade-in">
+                                        <div className="flex items-center justify-between pb-2 border-b border-blue-200/80">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">🏢</span>
+                                                <div>
+                                                    <h3 className="text-xs sm:text-sm font-bold text-blue-950 uppercase tracking-wider">
+                                                        Thông tin Pháp nhân Doanh nghiệp (Xuất hóa đơn VAT)
+                                                    </h3>
+                                                    <p className="text-[11px] text-blue-700">
+                                                        Khách sạn sẽ xuất hóa đơn GTGT điện tử chuẩn kế toán theo thông tin này
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider border border-blue-300">
+                                                VAT Invoice
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                    Tên công ty / Doanh nghiệp <span className="text-rose-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Ví dụ: CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ TRUYỀN THÔNG TA"
+                                                    value={companyName}
+                                                    onChange={(e) => setCompanyName(e.target.value)}
+                                                    required
+                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                                            Mã số thuế (MST) <span className="text-rose-500">*</span>
+                                                        </label>
+                                                        <span className="text-[10px] text-slate-400">10 số hoặc 13 số</span>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Ví dụ: 0101234567 hoặc 0101234567-001"
+                                                        value={companyTaxCode}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.trim();
+                                                            setCompanyTaxCode(val);
+                                                            if (val) {
+                                                                const err = validateTaxCode(val);
+                                                                setTaxCodeError(err);
+                                                            } else {
+                                                                setTaxCodeError('');
+                                                            }
+                                                        }}
+                                                        required
+                                                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-xs sm:text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 transition ${
+                                                            taxCodeError ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200 focus:border-blue-600'
+                                                        }`}
+                                                    />
+                                                    {taxCodeError && (
+                                                        <p className="text-[11px] text-rose-600 mt-1 font-medium flex items-center gap-1">
+                                                            <span>⚠️</span> {taxCodeError}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                        Địa chỉ trụ sở công ty <span className="text-rose-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Địa chỉ đăng ký kinh doanh..."
+                                                        value={companyAddress}
+                                                        onChange={(e) => setCompanyAddress(e.target.value)}
+                                                        required
+                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="space-y-4">
                                     {/* Họ và tên */}
                                     <div>
@@ -891,10 +1117,133 @@ export default function Checkout() {
                                                 </button>
                                             </div>
                                             <span className="text-xs text-slate-400">
-                                                Sức chứa tối đa: {room.capacity || 2} người lớn
+                                                Sức chứa tối đa: {room?.capacity || 2} người lớn
                                             </span>
                                         </div>
                                     </div>
+
+                                    {/* PHÂN ĐỊNH: NGƯỜI ĐẶT ĐẠI DIỆN vs NGƯỜI LƯU TRÚ THỰC TẾ (HR/THƯ KÝ ĐẶT PHÒNG) */}
+                                    <div className="pt-2">
+                                        <label className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/70 cursor-pointer transition">
+                                            <input
+                                                type="checkbox"
+                                                checked={isBookerTheGuest}
+                                                onChange={(e) => setIsBookerTheGuest(e.target.checked)}
+                                                className="w-4 h-4 rounded text-blue-600 mt-0.5 cursor-pointer accent-blue-600"
+                                            />
+                                            <div className="text-xs">
+                                                <span className="font-bold text-slate-900 block">
+                                                    Tôi đồng thời là người nhận phòng & lưu trú thực tế
+                                                </span>
+                                                <span className="text-slate-500 text-[11px] block mt-0.5 leading-relaxed">
+                                                    Bỏ chọn nếu bạn là <strong>Nhân sự (HR) / Thư ký / Đại diện công ty</strong> đặt phòng cho cấp trên hoặc nhân viên đi công tác (người đặt không trực tiếp đến ở).
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    {/* KHAI BÁO DANH SÁCH NHÂN SỰ / KHÁCH LƯU TRÚ THỰC TẾ */}
+                                    {(!isBookerTheGuest || customerType === 'CORPORATE') && (
+                                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-base">📋</span>
+                                                    <div>
+                                                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                                            Khai báo danh sách người lưu trú thực tế ({actualGuests.filter(g => g.full_name?.trim()).length || (isBookerTheGuest ? 1 : 0)} khách)
+                                                        </h4>
+                                                        <p className="text-[10px] text-slate-500">
+                                                            Khai báo trước CCCD để Lễ tân làm thủ tục check-in nhanh chóng và đối chiếu
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const cap = Number(room?.capacity || 2);
+                                                        if (actualGuests.length >= cap + 2) {
+                                                            alert(`Hạng phòng này có sức chứa tiêu chuẩn ${cap} người.`);
+                                                        }
+                                                        setActualGuests(prev => [...prev, { full_name: '', identity_card: '', phone_number: '', is_primary: false }]);
+                                                    }}
+                                                    className="px-2.5 py-1 bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 font-bold text-[11px] rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95"
+                                                >
+                                                    <span>➕ Thêm nhân viên/người ở</span>
+                                                </button>
+                                            </div>
+
+                                            {/* CẢNH BÁO SỨC CHỨA PHÒNG THỜI GIAN THỰC */}
+                                            {((isBookerTheGuest ? 1 + actualGuests.filter(g => g.full_name?.trim()).length : actualGuests.filter(g => g.full_name?.trim()).length) > Number(room?.capacity || 2)) && (
+                                                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-center gap-2 animate-in fade-in">
+                                                    <span className="text-base shrink-0">⚠️</span>
+                                                    <span className="leading-tight">
+                                                        <strong>Cảnh báo sức chứa:</strong> Số lượng người lưu trú ({isBookerTheGuest ? 1 + actualGuests.filter(g => g.full_name?.trim()).length : actualGuests.filter(g => g.full_name?.trim()).length} khách) vượt quá tiêu chuẩn của hạng phòng ({room?.capacity || 2} người lớn). Khách sạn có thể phụ thu thêm người khi Check-in.
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div className="space-y-2">
+                                                {actualGuests.map((guest, idx) => (
+                                                    <div key={idx} className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 shadow-2xs">
+                                                        <div className="flex items-center justify-between text-xs">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="font-bold text-slate-800">
+                                                                    #{idx + 1}. Khách nhận phòng {idx === 0 && !isBookerTheGuest ? '(Trưởng đoàn / Đại diện lưu trú)' : ''}
+                                                                </span>
+                                                                {idx === 0 && !isBookerTheGuest && (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[9px] font-bold">
+                                                                        Nhận phòng chính
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {actualGuests.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setActualGuests(prev => prev.filter((_, i) => i !== idx))}
+                                                                    className="text-rose-500 hover:text-rose-700 text-[11px] font-bold cursor-pointer"
+                                                                >
+                                                                    ✕ Xóa
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Họ và tên nhân sự / khách *"
+                                                                value={guest.full_name}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, full_name: val } : g));
+                                                                }}
+                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Số CCCD / Hộ chiếu"
+                                                                value={guest.identity_card}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, identity_card: val.toUpperCase() } : g));
+                                                                }}
+                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                            />
+                                                            <input
+                                                                type="tel"
+                                                                placeholder="Số ĐT nhận phòng"
+                                                                value={guest.phone_number}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, phone_number: val } : g));
+                                                                }}
+                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

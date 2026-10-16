@@ -4,7 +4,12 @@ from .models import Payment, PaymentConfig
 class PaymentSerializer(serializers.ModelSerializer):
     booking_id = serializers.IntegerField(source='booking.id', read_only=True)
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
+    group_booking_id = serializers.IntegerField(source='group_booking.id', read_only=True)
+    group_booking_code = serializers.CharField(source='group_booking.group_code', read_only=True)
+    is_group = serializers.SerializerMethodField()
+    company_name = serializers.SerializerMethodField()
     guest_name = serializers.SerializerMethodField()
+    guest_phone = serializers.SerializerMethodField()
     room_number = serializers.SerializerMethodField()
     booking_details = serializers.SerializerMethodField()
 
@@ -15,7 +20,13 @@ class PaymentSerializer(serializers.ModelSerializer):
             'booking',
             'booking_id',
             'booking_code',
+            'group_booking',
+            'group_booking_id',
+            'group_booking_code',
+            'is_group',
+            'company_name',
             'guest_name',
+            'guest_phone',
             'room_number',
             'amount',
             'payment_method',
@@ -26,18 +37,160 @@ class PaymentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'transaction_id']
 
+    def get_is_group(self, obj):
+        return bool(obj.group_booking)
+
+    def get_company_name(self, obj):
+        if obj.group_booking:
+            gb = obj.group_booking
+            if gb.corporate_partner and gb.corporate_partner.company_name:
+                return gb.corporate_partner.company_name
+            master_inv = getattr(gb, 'master_invoice', None)
+            if master_inv and master_inv.company_name:
+                return master_inv.company_name
+            return gb.group_name
+        if obj.booking:
+            b = obj.booking
+            if b.company_name:
+                return b.company_name
+            inv = getattr(b, 'invoice', None)
+            if inv and inv.company_name:
+                return inv.company_name
+        return None
+
     def get_guest_name(self, obj):
-        if not obj.booking or not obj.booking.guest:
+        # 1. Trường hợp giao dịch cho Đơn đoàn / Công ty (GroupBooking)
+        if obj.group_booking:
+            gb = obj.group_booking
+            leader = gb.leader_name or 'Trưởng đoàn'
+            comp = (
+                (gb.corporate_partner.company_name if gb.corporate_partner else None) or
+                (getattr(gb, 'master_invoice', None).company_name if getattr(gb, 'master_invoice', None) else None) or
+                gb.group_name
+            )
+            if comp:
+                return f"{comp} ({leader})"
+            return leader
+
+        # 2. Trường hợp giao dịch cho Đơn đặt phòng lẻ (Booking)
+        if not obj.booking:
             return 'Khách vãng lai'
-        full_name = obj.booking.guest.get_full_name()
-        return full_name if full_name else obj.booking.guest.username
+        
+        b = obj.booking
+        guest_name_val = ''
+        if b.guest:
+            full_name = b.guest.get_full_name()
+            guest_name_val = full_name if full_name else b.guest.username
+        else:
+            guest_name_val = getattr(b, 'guest_name', None) or getattr(b, 'customer_name', None) or 'Khách vãng lai'
+
+        if b.customer_type == 'CORPORATE' and b.company_name:
+            return f"{b.company_name} ({guest_name_val})"
+        return guest_name_val
+
+    def get_guest_phone(self, obj):
+        if obj.group_booking:
+            return obj.group_booking.leader_phone or ''
+        if obj.booking:
+            b = obj.booking
+            if hasattr(b, 'guest_phone') and b.guest_phone:
+                return b.guest_phone
+            if b.guest and hasattr(b.guest, 'phone'):
+                return b.guest.phone or ''
+        return ''
 
     def get_room_number(self, obj):
+        if obj.group_booking:
+            count = obj.group_booking.sub_bookings.count()
+            return f"Đoàn {count} phòng" if count > 0 else 'Đơn đặt đoàn'
         if obj.booking and obj.booking.room:
             return obj.booking.room.room_number
         return 'Chưa gán'
 
     def get_booking_details(self, obj):
+        # 1. Nếu là Đơn đoàn / Công ty: Tổng hợp cấu trúc tương thích HotelInvoiceModal
+        if obj.group_booking:
+            gb = obj.group_booking
+            master_inv = getattr(gb, 'master_invoice', None)
+            comp_name = (
+                (gb.corporate_partner.company_name if gb.corporate_partner else None) or
+                (master_inv.company_name if master_inv else None) or
+                gb.group_name
+            )
+            comp_tax = (
+                (gb.corporate_partner.tax_code if gb.corporate_partner else None) or
+                (master_inv.company_tax_code if master_inv else None) or
+                ''
+            )
+            comp_addr = (
+                (getattr(gb.corporate_partner, 'company_address', None) if gb.corporate_partner else None) or
+                (getattr(master_inv, 'company_address', None) if master_inv else None) or
+                ''
+            )
+
+            subs = list(gb.sub_bookings.select_related('room', 'category').all())
+            room_count = len(subs)
+            room_names = ", ".join([s.room.room_number for s in subs if s.room]) if subs else ""
+            room_display = f"Đoàn {room_count} phòng" + (f" ({room_names})" if room_names else "")
+            
+            first_sub = subs[0] if subs else None
+            check_in = str(first_sub.check_in_date if first_sub else gb.check_in_date)
+            check_out = str(first_sub.check_out_date if first_sub else gb.check_out_date)
+
+            total_val = float(gb.total_amount or 0)
+            deposit_val = float(gb.deposit_amount or 0)
+            is_completed = (obj.payment_status == 'COMPLETED' or gb.is_deposit_paid)
+            paid_amount_val = float(obj.amount) if is_completed else 0.0
+
+            data = {
+                'id': gb.id,
+                'booking_code': gb.group_code,
+                'customer_name': gb.leader_name,
+                'guest_name': gb.leader_name,
+                'guest_phone': gb.leader_phone,
+                'guest_email': gb.leader_email or '',
+                'customer_type': 'CORPORATE',
+                'company_name': comp_name,
+                'company_tax_code': comp_tax,
+                'company_address': comp_addr,
+                'room_number': room_display,
+                'room_name': f"Hợp đồng Đoàn / Doanh nghiệp ({room_count} phòng)",
+                'check_in_date': check_in,
+                'check_out_date': check_out,
+                'room_amount': total_val,
+                'extra_services_total': 0.0,
+                'grand_total_amount': total_val,
+                'deposit_amount': deposit_val,
+                'paid_amount': paid_amount_val,
+                'remaining_balance': max(0.0, total_val - paid_amount_val),
+                'status': gb.status,
+                'payment_method': obj.payment_method,
+                'is_paid': is_completed,
+                'payment_status': obj.payment_status,
+                'is_group': True,
+                'sub_bookings_count': room_count,
+            }
+
+            if master_inv:
+                data['invoice_code'] = master_inv.invoice_code
+                data['invoice'] = {
+                    'invoice_code': master_inv.invoice_code,
+                    'room_charge': float(master_inv.room_charge),
+                    'service_charge': float(master_inv.service_charge),
+                    'total_amount': float(master_inv.total_amount),
+                    'tax': float(master_inv.tax),
+                    'discount': float(master_inv.discount),
+                    'payment_method': master_inv.payment_method or obj.payment_method,
+                    'status': master_inv.status,
+                    'is_company_invoice': True,
+                    'company_name': comp_name,
+                    'company_tax_code': comp_tax,
+                    'company_address': comp_addr,
+                    'invoice_recipient_email': master_inv.invoice_recipient_email or gb.leader_email or '',
+                }
+            return data
+
+        # 2. Nếu là Đơn phòng lẻ thông thường
         b = obj.booking
         if not b:
             return None

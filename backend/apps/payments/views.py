@@ -62,20 +62,79 @@ class ConfirmPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 2. Lấy Booking theo ID hoặc booking_code
-        try:
-            if isinstance(booking_id, int) or (isinstance(booking_id, str) and booking_id.isdigit()):
-                booking = Booking.objects.get(id=int(booking_id))
-            else:
-                booking = Booking.objects.get(booking_code=str(booking_id))
-        except Booking.DoesNotExist:
+        # 2. Lấy Booking hoặc GroupBooking theo ID / Code
+        from ..bookings.models import GroupBooking
+        booking = None
+        group_booking = None
+
+        if str(booking_id).upper().startswith('GRP-'):
+            group_booking = GroupBooking.objects.filter(group_code__iexact=str(booking_id).strip()).first()
+
+        if not group_booking:
+            try:
+                if isinstance(booking_id, int) or (isinstance(booking_id, str) and booking_id.isdigit()):
+                    booking = Booking.objects.get(id=int(booking_id))
+                else:
+                    booking = Booking.objects.get(booking_code=str(booking_id))
+            except Booking.DoesNotExist:
+                group_booking = GroupBooking.objects.filter(group_code__iexact=str(booking_id).strip()).first()
+
+        if not booking and not group_booking:
             return Response(
                 {
                     "success": False,
-                    "message": f"Không tìm thấy đơn đặt phòng với ID '{booking_id}'."
+                    "message": f"Không tìm thấy đơn đặt phòng hoặc đơn đoàn với mã '{booking_id}'."
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if group_booking:
+            try:
+                amount_dec = Decimal(str(amount))
+            except (ValueError, TypeError):
+                amount_dec = group_booking.deposit_amount or group_booking.total_amount
+
+            with transaction.atomic():
+                group_booking = GroupBooking.objects.select_for_update().get(pk=group_booking.pk)
+                payment, _ = Payment.objects.update_or_create(
+                    group_booking=group_booking,
+                    defaults={
+                        'amount': amount_dec,
+                        'payment_method': payment_method or 'TRANSFER',
+                        'payment_status': 'COMPLETED'
+                    }
+                )
+                group_booking.is_deposit_paid = True
+                if group_booking.status == 'tentative':
+                    group_booking.status = 'confirmed'
+                group_booking.save(update_fields=['is_deposit_paid', 'status'])
+
+                if hasattr(group_booking, 'master_invoice') and group_booking.master_invoice:
+                    inv = group_booking.master_invoice
+                    inv.status = 'paid'
+                    inv.paid_at = timezone.now()
+                    inv.save()
+
+                for sub_b in group_booking.sub_bookings.all():
+                    if sub_b.status in ['pending', 'unconfirmed']:
+                        sub_b.status = 'confirmed'
+                        sub_b.save(update_fields=['status'])
+                    sub_b.service_requests.filter(is_paid=False).update(is_paid=True)
+                    sub_b.extra_services.filter(is_paid=False).update(is_paid=True)
+
+            log_action(
+                user=request.user if request.user.is_authenticated else None,
+                action='CREATE',
+                module='INVOICE',
+                description=f"Xác nhận thanh toán {amount_dec:,.0f} VND cho Đơn Đoàn #{group_booking.group_code}",
+                request=request
+            )
+            serializer = PaymentSerializer(payment)
+            return Response({
+                "success": True,
+                "message": f"Xác nhận thanh toán cho Đơn Đoàn #{group_booking.group_code} thành công!",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
 
         # 3. Tính toán chi phí lưu trú và số tiền còn lại cần thanh toán
         try:
@@ -339,11 +398,31 @@ class PaymentListView(APIView):
                 booking__payments__payment_status='COMPLETED'
             ).delete()
 
-        queryset = Payment.objects.select_related('booking', 'booking__guest', 'booking__room', 'booking__category').all().order_by('-created_at')
+        queryset = Payment.objects.select_related(
+            'booking',
+            'booking__guest',
+            'booking__room',
+            'booking__category',
+            'group_booking',
+            'group_booking__corporate_partner',
+            'group_booking__master_invoice'
+        ).prefetch_related(
+            'group_booking__sub_bookings',
+            'group_booking__sub_bookings__room'
+        ).all().order_by('-created_at')
 
-        # Khách hàng chỉ xem giao dịch của chính mình
+        # Khách hàng chỉ xem giao dịch của chính mình (hoặc đoàn/doanh nghiệp do mình làm đầu mối)
         if not is_staff_or_admin:
-            queryset = queryset.filter(booking__guest=user)
+            user_email = getattr(user, 'email', '')
+            user_phone = getattr(user, 'phone', '')
+            q_filter = models.Q(booking__guest=user)
+            if user_email:
+                q_filter |= models.Q(group_booking__leader_email__iexact=user_email)
+                q_filter |= models.Q(group_booking__corporate_partner__contact_email__iexact=user_email)
+            if user_phone:
+                q_filter |= models.Q(group_booking__leader_phone=user_phone)
+                q_filter |= models.Q(group_booking__corporate_partner__contact_phone=user_phone)
+            queryset = queryset.filter(q_filter)
 
         # Lọc trạng thái
         payment_status = request.query_params.get('status')
@@ -358,6 +437,11 @@ class PaymentListView(APIView):
                 models.Q(booking__guest__first_name__icontains=search) |
                 models.Q(booking__guest__last_name__icontains=search) |
                 models.Q(booking__guest__username__icontains=search) |
+                models.Q(booking__company_name__icontains=search) |
+                models.Q(group_booking__group_code__icontains=search) |
+                models.Q(group_booking__group_name__icontains=search) |
+                models.Q(group_booking__leader_name__icontains=search) |
+                models.Q(group_booking__corporate_partner__company_name__icontains=search) |
                 models.Q(transaction_id__icontains=search)
             )
 
@@ -510,27 +594,36 @@ class SepayWebhookView(APIView):
         sepay_id = data.get('id', '')
         reference_code = data.get('referenceCode', '')
 
-        # 2. Tìm mã đơn booking_code trong nội dung chuyển khoản bằng Regex
-        # Hỗ trợ mọi biến thể ngân hàng: có gạch ngang (BK-DA5F79) hoặc bị nuốt gạch ngang (BKDA5F79, BKDA5F79-)
+        # 2. Tìm mã đơn booking_code hoặc group_code trong nội dung chuyển khoản bằng Regex
+        # Hỗ trợ mọi biến thể ngân hàng: có gạch ngang (BK-DA5F79, GRP-912A34) hoặc nuốt gạch ngang
         booking = None
-        match = re.search(r'BK-?([A-Za-z0-9]{4,10})', content, re.IGNORECASE)
-        if match:
-            clean_suffix = match.group(1).upper()
-            # 2.1 Thử tìm theo định dạng chuẩn BK-XXXXXX
-            booking = Booking.objects.filter(booking_code__iexact=f"BK-{clean_suffix}").first()
-            if not booking:
-                # 2.2 Thử tìm theo chuỗi con suffix
-                booking = Booking.objects.filter(booking_code__icontains=clean_suffix).first()
+        group_booking = None
+        from ..bookings.models import GroupBooking
 
-        # Fallback: nếu không thấy BK-xxx, thử tìm theo ID số trong content
-        if not booking:
+        match_grp = re.search(r'GRP-?([A-Za-z0-9]{4,10})', content, re.IGNORECASE)
+        if match_grp:
+            clean_grp = match_grp.group(1).upper()
+            group_booking = GroupBooking.objects.filter(group_code__iexact=f"GRP-{clean_grp}").first()
+            if not group_booking:
+                group_booking = GroupBooking.objects.filter(group_code__icontains=clean_grp).first()
+
+        if not group_booking:
+            match = re.search(r'BK-?([A-Za-z0-9]{4,10})', content, re.IGNORECASE)
+            if match:
+                clean_suffix = match.group(1).upper()
+                booking = Booking.objects.filter(booking_code__iexact=f"BK-{clean_suffix}").first()
+                if not booking:
+                    booking = Booking.objects.filter(booking_code__icontains=clean_suffix).first()
+
+        # Fallback: nếu không thấy BK-xxx hay GRP-xxx, thử tìm theo ID số trong content
+        if not booking and not group_booking:
             id_match = re.search(r'\b(\d{1,6})\b', content)
             if id_match:
                 booking = Booking.objects.filter(id=int(id_match.group(1))).first()
 
-        if not booking:
+        if not booking and not group_booking:
             return Response(
-                {"success": False, "message": f"Không tìm thấy đơn đặt phòng từ nội dung: '{content}'"},
+                {"success": False, "message": f"Không tìm thấy đơn đặt phòng hoặc đơn đặt đoàn từ nội dung: '{content}'"},
                 status=status.HTTP_200_OK
             )
 
@@ -540,7 +633,77 @@ class SepayWebhookView(APIView):
         except (ValueError, TypeError):
             transfer_amount = Decimal('0')
 
-        # 4. Cập nhật thanh toán và trạng thái Booking trong Database
+        # Xử lý đơn Đặt Đoàn (Group Booking)
+        if group_booking:
+            with transaction.atomic():
+                group_booking = GroupBooking.objects.select_for_update().get(pk=group_booking.pk)
+                txn_id = f"SEPAY-{sepay_id}" if sepay_id else (f"SEPAY-{reference_code}" if reference_code else None)
+                defaults = {
+                    'group_booking': group_booking,
+                    'amount': transfer_amount or group_booking.deposit_amount or group_booking.total_amount,
+                    'payment_method': 'TRANSFER',
+                    'payment_status': 'COMPLETED'
+                }
+                pending_payment = Payment.objects.filter(
+                    group_booking=group_booking,
+                    payment_status='PENDING'
+                ).order_by('-created_at').first()
+
+                if pending_payment:
+                    pending_payment.transaction_id = txn_id or pending_payment.transaction_id
+                    pending_payment.amount = transfer_amount or pending_payment.amount
+                    pending_payment.payment_method = 'TRANSFER'
+                    pending_payment.payment_status = 'COMPLETED'
+                    pending_payment.save(update_fields=['transaction_id', 'amount', 'payment_method', 'payment_status'])
+                    payment = pending_payment
+                else:
+                    if txn_id:
+                        payment, _ = Payment.objects.update_or_create(
+                            transaction_id=txn_id,
+                            defaults=defaults
+                        )
+                    else:
+                        payment = Payment.objects.create(**defaults)
+
+                Payment.objects.filter(group_booking=group_booking, payment_status='PENDING').delete()
+
+                group_booking.is_deposit_paid = True
+                if group_booking.status == 'tentative':
+                    group_booking.status = 'confirmed'
+                grp_note = (group_booking.note or '').strip()
+                pay_note = f"SePay VietQR Auto ({transfer_amount:,.0f} VND)"
+                if 'SePay VietQR' not in grp_note:
+                    group_booking.note = f"{grp_note} | {pay_note}" if grp_note else pay_note
+                group_booking.save(update_fields=['is_deposit_paid', 'status', 'note'])
+
+                if hasattr(group_booking, 'master_invoice') and group_booking.master_invoice:
+                    inv = group_booking.master_invoice
+                    inv.status = 'paid'
+                    inv.payment_method = 'bank_transfer'
+                    inv.paid_at = timezone.now()
+                    inv.save()
+
+                for sub_b in group_booking.sub_bookings.all():
+                    if sub_b.status in ['pending', 'unconfirmed']:
+                        sub_b.status = 'confirmed'
+                        sub_b.save(update_fields=['status'])
+                    sub_b.service_requests.filter(is_paid=False).update(is_paid=True)
+                    sub_b.extra_services.filter(is_paid=False).update(is_paid=True)
+
+            log_action(
+                user=None,
+                action='CREATE',
+                module='INVOICE',
+                description=f"SePay Webhook tự động xác nhận thanh toán {transfer_amount:,.0f} VND cho Đơn Đoàn #{group_booking.group_code}",
+                request=request
+            )
+            return Response({
+                "success": True,
+                "message": f"Webhook SePay: Thanh toán cho Đơn Đoàn {group_booking.group_code} thành công!",
+                "data": {"group_code": group_booking.group_code, "amount": float(transfer_amount)}
+            }, status=status.HTTP_200_OK)
+
+        # 4. Cập nhật thanh toán và trạng thái Booking đơn lẻ trong Database
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
 

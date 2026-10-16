@@ -112,12 +112,30 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
     const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'transfer'
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-    // Cấu hình ngân hàng VietQR
+    // Cấu hình ngân hàng VietQR động
     const [bankConfig, setBankConfig] = useState({
         bank_bin: '970422',
-        account_no: '123456789',
+        account_no: '0344997778',
         account_name: 'KHACH SAN TA DA NANG'
     });
+
+    // Tự động tải cấu hình tài khoản thụ hưởng từ Backend
+    useEffect(() => {
+        let isMounted = true;
+        api.get('/payments/config/')
+            .then(res => {
+                const data = res.data?.data || res.data;
+                if (isMounted && data && data.account_no) {
+                    setBankConfig({
+                        bank_bin: data.bank_bin || '970422',
+                        account_no: data.account_no,
+                        account_name: (data.account_name || 'KHACH SAN TA DA NANG').toUpperCase()
+                    });
+                }
+            })
+            .catch(() => {});
+        return () => { isMounted = false; };
+    }, []);
 
     // Thông báo màu trắng giữa màn hình (thay thế browser alert mặc định)
     const [centerModalNotice, setCenterModalNotice] = useState(null);
@@ -168,6 +186,103 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
             }
         ];
     });
+
+    // Đồng bộ lại danh sách khách nếu booking thay đổi hoặc vừa được tải về từ Backend
+    useEffect(() => {
+        if (booking?.guests && Array.isArray(booking.guests) && booking.guests.length > 0) {
+            setGuests(booking.guests.map((g, idx) => ({
+                id: g.id || `guest_${idx}_${Date.now()}`,
+                full_name: g.full_name || '',
+                id_type: g.id_type || 'CCCD',
+                id_number: g.id_number || g.identity_card || '',
+                date_of_birth: g.date_of_birth || '',
+                gender: g.gender || 'Nam',
+                nationality: g.nationality || 'Việt Nam',
+                is_primary: Boolean(g.is_primary ?? idx === 0)
+            })));
+        }
+    }, [booking?.id, booking?.guests]);
+
+    // State cho tính năng [📋 Dán nhanh danh sách đoàn] (Bulk / Fast Paste from Excel/Clipboard)
+    const [showFastPasteModal, setShowFastPasteModal] = useState(false);
+    const [fastPasteText, setFastPasteText] = useState('');
+    const [fastPasteError, setFastPasteError] = useState('');
+
+    const handleApplyFastPaste = () => {
+        setFastPasteError('');
+        const raw = (fastPasteText || '').trim();
+        if (!raw) {
+            setFastPasteError('Vui lòng dán danh sách khách từ Excel hoặc văn bản.');
+            return;
+        }
+
+        const lines = raw.split(/\r?\n/).filter(line => line.trim().length > 0);
+        if (lines.length === 0) {
+            setFastPasteError('Không tìm thấy dòng dữ liệu nào hợp lệ.');
+            return;
+        }
+
+        const parsedGuests = [];
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            // Tách theo Tab (khi copy từ Excel) hoặc dấu phẩy (,) hoặc gạch đứng (|)
+            let parts = line.includes('\t')
+                ? line.split('\t')
+                : line.includes(',')
+                    ? line.split(',')
+                    : line.includes('|')
+                        ? line.split('|')
+                        : line.split(/\s{2,}/);
+
+            parts = parts.map(p => p.trim());
+            const fullName = parts[0] || '';
+            if (!fullName) continue;
+
+            const idCard = parts[1] || '';
+            const genderRaw = (parts[2] || '').toLowerCase();
+            let gender = 'Nam';
+            if (genderRaw.includes('nữ') || genderRaw.includes('female') || genderRaw === 'f') {
+                gender = 'Nữ';
+            } else if (genderRaw.includes('khác') || genderRaw.includes('other')) {
+                gender = 'Khác';
+            }
+
+            const dob = parts[3] || '';
+
+            parsedGuests.push({
+                id: `fast_guest_${Date.now()}_${i}`,
+                full_name: fullName,
+                id_type: 'CCCD',
+                id_number: idCard,
+                gender: gender,
+                date_of_birth: dob,
+                nationality: 'Việt Nam',
+                is_primary: parsedGuests.length === 0 && guests.length === 0
+            });
+        }
+
+        if (parsedGuests.length === 0) {
+            setFastPasteError('Không thể phân tích dữ liệu. Vui lòng kiểm tra lại định dạng.');
+            return;
+        }
+
+        // Nếu danh sách hiện tại chỉ có 1 khách mặc định chưa điền tên, ghi đè
+        setGuests(prev => {
+            const isSingleEmpty = prev.length === 1 && !prev[0].full_name.trim();
+            if (isSingleEmpty) {
+                return parsedGuests;
+            }
+            return [...prev, ...parsedGuests];
+        });
+
+        setShowFastPasteModal(false);
+        setFastPasteText('');
+        showCenterNotice({
+            title: 'Dán Danh Sách Thành Công',
+            message: `Đã nạp thành công ${parsedGuests.length} khách lưu trú vào danh sách nhận phòng!`,
+            type: 'success'
+        });
+    };
 
     const isOverCapacity = guests.length > roomCapacity;
 
@@ -305,6 +420,12 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
         return baseRoomCharge;
     }, [baseRoomCharge, isEarlyCheckIn, applyEarlyCharge, estimatedEarlyCharge]);
 
+    const isGroupRoom = Boolean(
+        booking?.group_booking || 
+        booking?.group_booking_code || 
+        booking?.group_booking_id
+    );
+
     const paidAmount = useMemo(() => {
         if (booking?.paid_amount !== undefined && booking?.paid_amount !== null) {
             return Number(booking.paid_amount);
@@ -316,11 +437,15 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
     }, [booking, baseRoomCharge]);
 
     const effectiveRemainingBalance = useMemo(() => {
+        if (isGroupRoom) {
+            // Tiền phòng gộp vào Hóa đơn tổng của đoàn (Master-Billing), khách lẻ không nợ tiền phòng tại quầy
+            return 0;
+        }
         return Math.max(0, effectiveRoomCharge - paidAmount);
-    }, [effectiveRoomCharge, paidAmount]);
+    }, [isGroupRoom, effectiveRoomCharge, paidAmount]);
 
     // Đánh giá trạng thái tài chính
-    const isFullyPaid = effectiveRemainingBalance <= 0; // Trường hợp 2 (Pre-paid)
+    const isFullyPaid = isGroupRoom || effectiveRemainingBalance <= 0; // Trường hợp 2 (Pre-paid) hoặc Gộp đoàn (Master-Billing)
 
     // 4. TẢI DANH SÁCH PHÒNG TRỐNG & CẤU HÌNH VIETQR
     useEffect(() => {
@@ -640,11 +765,15 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                 <span>Tóm tắt tài chính trước nhận phòng (Folio Balance)</span>
                             </span>
                             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                isFullyPaid
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                    : 'bg-amber-50 text-amber-800 border-amber-300'
+                                isGroupRoom
+                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
+                                    : isFullyPaid
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                        : 'bg-amber-50 text-amber-800 border-amber-300'
                             }`}>
-                                {isFullyPaid ? '✓ Đã thanh toán 100%' : 'Chưa thanh toán đủ'}
+                                {isGroupRoom
+                                    ? `🏢 Gộp đoàn #${booking.group_booking_code || ''}`
+                                    : (isFullyPaid ? '✓ Đã thanh toán 100%' : 'Chưa thanh toán đủ')}
                             </span>
                         </div>
 
@@ -662,33 +791,56 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                 )}
                             </div>
 
-                            {/* Đã thanh toán */}
-                            <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200">
-                                <span className="text-[10px] text-emerald-600 block font-medium">Đã thanh toán trước:</span>
-                                <strong className="text-sm font-bold text-emerald-700 block mt-0.5">
-                                    {formatCurrency(paidAmount)}
-                                </strong>
-                            </div>
+                            {/* Đã thanh toán / Hình thức */}
+                            {isGroupRoom ? (
+                                <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-200">
+                                    <span className="text-[10px] text-indigo-600 block font-medium">Hình thức quyết toán:</span>
+                                    <strong className="text-xs font-bold text-indigo-800 block mt-0.5 truncate" title={`Hóa đơn đoàn #${booking.group_booking_code || ''}`}>
+                                        🏢 HĐ đoàn #{booking.group_booking_code || ''}
+                                    </strong>
+                                    <span className="text-[9px] text-emerald-600 font-bold block mt-0.5">
+                                        {booking.is_group_deposit_paid ? '✓ Đã cọc 50% đoàn' : 'Chờ cọc đoàn'}
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200">
+                                    <span className="text-[10px] text-emerald-600 block font-medium">Đã thanh toán trước:</span>
+                                    <strong className="text-sm font-bold text-emerald-700 block mt-0.5">
+                                        {formatCurrency(paidAmount)}
+                                    </strong>
+                                </div>
+                            )}
 
                             {/* Còn thiếu / Remaining Balance */}
                             <div className={`p-3 rounded-xl border ${
-                                isFullyPaid
-                                    ? 'bg-slate-50 border-slate-200'
-                                    : 'bg-rose-50 border-rose-200'
+                                isGroupRoom
+                                    ? 'bg-emerald-50/50 border-emerald-200'
+                                    : isFullyPaid
+                                        ? 'bg-slate-50 border-slate-200'
+                                        : 'bg-rose-50 border-rose-200'
                             }`}>
-                                <span className={`text-[10px] block font-medium ${isFullyPaid ? 'text-slate-500' : 'text-rose-600'}`}>
-                                    Còn thiếu (Cần thu):
+                                <span className={`text-[10px] block font-medium ${
+                                    isGroupRoom ? 'text-emerald-700' : isFullyPaid ? 'text-slate-500' : 'text-rose-600'
+                                }`}>
+                                    {isGroupRoom ? 'Cần thu khách lẻ:' : 'Còn thiếu (Cần thu):'}
                                 </span>
                                 <strong className={`text-base font-black block mt-0.5 ${
-                                    isFullyPaid ? 'text-emerald-700' : 'text-rose-600'
+                                    isGroupRoom ? 'text-emerald-700' : isFullyPaid ? 'text-emerald-700' : 'text-rose-600'
                                 }`}>
-                                    {isFullyPaid ? '0đ (Đã đủ)' : formatCurrency(effectiveRemainingBalance)}
+                                    {isGroupRoom ? '0đ (HĐ Đoàn)' : isFullyPaid ? '0đ (Đã đủ)' : formatCurrency(effectiveRemainingBalance)}
                                 </strong>
                             </div>
                         </div>
 
                         {/* Thông báo thông minh theo trường hợp */}
-                        {isFullyPaid ? (
+                        {isGroupRoom ? (
+                            <div className="mt-3 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-900 text-[11px] flex items-center gap-2">
+                                <span className="text-base">🏢</span>
+                                <div>
+                                    <strong>Chính sách Master-Billing (Đoàn {booking.group_booking_name ? `"${booking.group_booking_name}"` : 'Doanh nghiệp'}):</strong> Chi phí tiền phòng được kết chuyển và quyết toán trên Hóa đơn tổng của Doanh nghiệp. Lễ tân gán phòng, tiếp nhận CCCD khách lưu trú và bàn giao chìa khóa phòng mà <strong>không thu tiền phòng của khách</strong>.
+                                </div>
+                            </div>
+                        ) : isFullyPaid ? (
                             <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] flex items-center gap-2">
                                 <span className="text-base">✅</span>
                                 <div>
@@ -1092,15 +1244,27 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                     </p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleAddGuest}
-                                disabled={isSubmitting || isProcessingPayment}
-                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
-                            >
-                                <span>➕</span>
-                                <span>Thêm người ở cùng</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowFastPasteModal(true)}
+                                    disabled={isSubmitting || isProcessingPayment}
+                                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 shadow-2xs"
+                                    title="Dán nhanh danh sách đoàn từ Excel hoặc văn bản"
+                                >
+                                    <span>📋</span>
+                                    <span>Dán nhanh danh sách đoàn</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAddGuest}
+                                    disabled={isSubmitting || isProcessingPayment}
+                                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 shadow-2xs"
+                                >
+                                    <span>➕</span>
+                                    <span>Thêm người ở cùng</span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* CẢNH BÁO THÔNG MINH KHI VƯỢT QUÁ TIÊU CHUẨN SỨC CHỨA */}
@@ -1375,7 +1539,34 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                     </button>
 
                     {/* LOGIC THÔNG MINH THEO YÊU CẦU: */}
-                    {isFullyPaid ? (
+                    {isGroupRoom ? (
+                        /* PHÒNG THUỘC ĐOÀN CÔNG TY (MASTER-BILLING): Nút Check-in đoàn */
+                        <button
+                            type="button"
+                            disabled={
+                                isSubmitting ||
+                                availableRooms.length === 0 ||
+                                !selectedRoomId ||
+                                isExpiredCheckIn ||
+                                (isEarlyCheckIn && !confirmEarlyCheckIn) ||
+                                (isLateCheckIn && !confirmLateCheckIn)
+                            }
+                            onClick={handleDirectCheckIn}
+                            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Đang Check-in...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>🏢</span>
+                                    <span>Xác nhận Check-in Phòng Đoàn #{booking.group_booking_code || ''}</span>
+                                </>
+                            )}
+                        </button>
+                    ) : isFullyPaid ? (
                         /* TRƯỜNG HỢP 2 (PRE-PAID): Chỉ hiện 1 nút "Hoàn tất Check-in" */
                         <button
                             type="button"
@@ -1552,6 +1743,89 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                         >
                             Đã hiểu
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL POPUP: [📋 DÁN NHANH DANH SÁCH ĐOÀN] TỪ EXCEL / CLIPBOARD */}
+            {showFastPasteModal && (
+                <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+                    <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-xl w-full border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150 relative">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">📋</span>
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                        Dán nhanh danh sách khách đoàn từ Excel
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500">
+                                        Sao chép từ file bảng tính Excel hoặc Zalo và dán vào khung bên dưới
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowFastPasteModal(false);
+                                    setFastPasteError('');
+                                }}
+                                className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 text-indigo-900 text-xs space-y-1">
+                            <div className="font-bold flex items-center gap-1">
+                                <span>💡</span>
+                                <span>Định dạng hỗ trợ mỗi dòng:</span>
+                            </div>
+                            <code className="block bg-white p-2 rounded-lg font-mono text-[11px] text-indigo-950 border border-indigo-200/80">
+                                Họ và tên [Tab hoặc Phẩy] Số CCCD [Tab hoặc Phẩy] Giới tính [Tab hoặc Phẩy] Ngày sinh
+                            </code>
+                            <p className="text-[10px] text-indigo-700 italic">
+                                Ví dụ: "Nguyễn Văn Nam &nbsp;&nbsp;&nbsp; 048099001234 &nbsp;&nbsp;&nbsp; Nam &nbsp;&nbsp;&nbsp; 1990-05-15"
+                            </p>
+                        </div>
+
+                        <div>
+                            <textarea
+                                rows={7}
+                                value={fastPasteText}
+                                onChange={(e) => {
+                                    setFastPasteText(e.target.value);
+                                    if (fastPasteError) setFastPasteError('');
+                                }}
+                                placeholder="Dán nội dung từ Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	1995-10-20&#10;Lê Văn Hoàng	048092003456	Nam	1988-02-12"
+                                className="w-full p-3.5 bg-slate-50 border border-slate-300 rounded-2xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                            />
+                            {fastPasteError && (
+                                <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                                    <span>⚠️</span> {fastPasteError}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowFastPasteModal(false);
+                                    setFastPasteError('');
+                                }}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleApplyFastPaste}
+                                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer active:scale-95 flex items-center gap-1.5"
+                            >
+                                <span>✓</span>
+                                <span>Phân tích & Nạp danh sách</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

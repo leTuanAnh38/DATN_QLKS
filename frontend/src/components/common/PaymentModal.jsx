@@ -26,7 +26,7 @@ import { bookingService } from '../../services/bookingService';
  */
 const DEFAULT_BANK_CONFIG = {
     bank_bin: '970422', // Mã BIN MB Bank
-    account_no: '123456789',
+    account_no: '0344997778',
     account_name: 'KHACH SAN TA DA NANG',
 };
 

@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import { useAuth } from '../../store/authStore';
+import api from '../../services/api';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -18,6 +19,34 @@ export default function CorporateBooking() {
     // Data states
     const [categories, setCategories] = useState([]);
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+    // Dynamic VietQR Bank Config (Tải từ hệ thống cấu hình ngân hàng)
+    const [bankConfig, setBankConfig] = useState({
+        bank_bin: '970422',
+        account_no: '0344997778',
+        account_name: 'KHACH SAN TA DA NANG'
+    });
+    const [copiedField, setCopiedField] = useState(null);
+
+    // Tự động tải cấu hình tài khoản thụ hưởng từ Backend API /payments/config/
+    useEffect(() => {
+        let isMounted = true;
+        api.get('/payments/config/')
+            .then((res) => {
+                const data = res.data?.data || res.data;
+                if (isMounted && data && data.account_no) {
+                    setBankConfig({
+                        bank_bin: data.bank_bin || '970422',
+                        account_no: data.account_no,
+                        account_name: (data.account_name || 'KHACH SAN TA DA NANG').toUpperCase()
+                    });
+                }
+            })
+            .catch((err) => {
+                console.error('Không thể tải cấu hình ngân hàng VietQR từ server:', err);
+            });
+        return () => { isMounted = false; };
+    }, []);
 
     // Corporate Code Validation
     const [corporateCodeInput, setCorporateCodeInput] = useState('');
@@ -39,8 +68,25 @@ export default function CorporateBooking() {
     const [leaderName, setLeaderName] = useState(user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.username || ''));
     const [leaderPhone, setLeaderPhone] = useState(user?.phone_number || '');
     const [leaderEmail, setLeaderEmail] = useState(user?.email || '');
-    const [identityCard, setIdentityCard] = useState('');
+    const [identityCard, setIdentityCard] = useState(
+        user?.guest_profile?.id_card_number || user?.id_card_number || user?.identity_card || user?.id_number || ''
+    );
     const [note, setNote] = useState('');
+
+    // Tự động đồng bộ thông tin Trưởng đoàn & CCCD khi hồ sơ người dùng (User Profile) thay đổi hoặc tải xong
+    useEffect(() => {
+        if (user) {
+            const fullName = user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user.username || '');
+            const phone = user.phone_number || '';
+            const email = user.email || '';
+            const cccd = user.guest_profile?.id_card_number || user.id_card_number || user.identity_card || user.id_number || '';
+
+            setLeaderName((prev) => prev || fullName);
+            setLeaderPhone((prev) => prev || phone);
+            setLeaderEmail((prev) => prev || email);
+            setIdentityCard((prev) => prev || cccd);
+        }
+    }, [user]);
 
     // VAT Invoice
     const [isCompanyInvoice, setIsCompanyInvoice] = useState(true);
@@ -109,6 +155,121 @@ export default function CorporateBooking() {
 
         return () => { isMounted = false; };
     }, [checkInDate, checkOutDate]);
+
+    // Rooming List state: Danh sách phân phòng & khách lưu trú từng phòng (Tùy chọn)
+    const [roomingList, setRoomingList] = useState([]);
+    const [isRoomingListOpen, setIsRoomingListOpen] = useState(true);
+
+    // Đồng bộ roomingList khi selectedRooms hoặc categories thay đổi
+    useEffect(() => {
+        setRoomingList((prevList) => {
+            const nextList = [];
+            let globalRoomIdx = 1;
+
+            categories.forEach((cat) => {
+                const qty = Number(selectedRooms[cat.id] || 0);
+                if (qty > 0) {
+                    const existingForCat = prevList.filter((r) => r.category_id === cat.id);
+                    for (let i = 0; i < qty; i++) {
+                        const roomKey = `${cat.id}_${i}`;
+                        const existingRoom = existingForCat[i];
+                        if (existingRoom) {
+                            nextList.push({
+                                ...existingRoom,
+                                room_key: roomKey,
+                                global_index: globalRoomIdx++,
+                                category_name: cat.name,
+                                capacity: Number(cat.capacity || 2),
+                                room_index: i + 1
+                            });
+                        } else {
+                            nextList.push({
+                                room_key: roomKey,
+                                global_index: globalRoomIdx++,
+                                category_id: cat.id,
+                                category_name: cat.name,
+                                capacity: Number(cat.capacity || 2),
+                                room_index: i + 1,
+                                guests: [
+                                    {
+                                        id: `guest_${roomKey}_0`,
+                                        full_name: '',
+                                        id_type: 'CCCD',
+                                        id_number: '',
+                                        date_of_birth: '',
+                                        gender: 'Nam',
+                                        nationality: 'Việt Nam',
+                                        is_primary: true
+                                    }
+                                ]
+                            });
+                        }
+                    }
+                }
+            });
+
+            return nextList;
+        });
+    }, [selectedRooms, categories]);
+
+    const handleAddGuestToAllocatedRoom = (roomKey) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                if (room.guests.length >= room.capacity) {
+                    alert(`Hạng phòng "${room.category_name}" chỉ có sức chứa tối đa ${room.capacity} khách. Không thể thêm vượt quá sức chứa quy định!`);
+                    return room;
+                }
+                const newGuest = {
+                    id: `guest_${roomKey}_${Date.now()}`,
+                    full_name: '',
+                    id_type: 'CCCD',
+                    id_number: '',
+                    date_of_birth: '',
+                    gender: 'Nam',
+                    nationality: 'Việt Nam',
+                    is_primary: false
+                };
+                return {
+                    ...room,
+                    guests: [...room.guests, newGuest]
+                };
+            })
+        );
+    };
+
+    const handleRemoveGuestFromAllocatedRoom = (roomKey, guestIdx) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const nextGuests = room.guests.filter((_, idx) => idx !== guestIdx);
+                if (nextGuests.length > 0 && !nextGuests.some((g) => g.is_primary)) {
+                    nextGuests[0].is_primary = true;
+                }
+                return {
+                    ...room,
+                    guests: nextGuests
+                };
+            })
+        );
+    };
+
+    const handleAllocatedGuestFieldChange = (roomKey, guestIdx, field, value) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const nextGuests = [...room.guests];
+                nextGuests[guestIdx] = {
+                    ...nextGuests[guestIdx],
+                    [field]: value
+                };
+                return {
+                    ...room,
+                    guests: nextGuests
+                };
+            })
+        );
+    };
 
     // Validate corporate code
     const handleApplyCorporateCode = async (e) => {
@@ -238,6 +399,13 @@ export default function CorporateBooking() {
             }
         });
 
+        // Danh sách phân phòng & khách lưu trú (lấy những khách đã điền họ tên)
+        const roomingPayload = roomingList.map((r) => ({
+            category_id: r.category_id,
+            room_index: r.room_index,
+            guests: r.guests.filter((g) => (g.full_name || '').trim())
+        })).filter((r) => r.guests.length > 0);
+
         const payload = {
             group_name: groupName.trim() || `Đoàn khách ${leaderName.trim()}`,
             corporate_code: appliedPartner ? appliedPartner.corporate_code : null,
@@ -249,6 +417,7 @@ export default function CorporateBooking() {
             check_in_date: checkInDate,
             check_out_date: checkOutDate,
             rooms: roomsPayload,
+            rooming_list: roomingPayload,
             deposit_amount: depositAmount,
             note: note.trim() || null,
             is_company_invoice: isCompanyInvoice,
@@ -580,6 +749,46 @@ export default function CorporateBooking() {
                                     className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                 />
                             </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="block text-[11px] font-bold text-slate-500 uppercase">
+                                        Số CCCD / Hộ chiếu người đại diện:
+                                    </label>
+                                    {(user?.guest_profile?.id_card_number || user?.id_card_number || user?.identity_card || user?.id_number) && identityCard && (
+                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                                            <span>✓</span>
+                                            <span>Từ hồ sơ cá nhân</span>
+                                        </span>
+                                    )}
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="12 số CCCD hoặc mã Hộ chiếu (Passport)"
+                                    value={identityCard}
+                                    onChange={(e) => setIdentityCard(e.target.value.toUpperCase())}
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                    Phục vụ khai báo lưu trú tạm trú nhanh theo quy định.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                                    Yêu cầu đặc biệt / Ghi chú cho đoàn:
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="VD: Cần hỗ trợ check-in sớm, bố trí phòng gần nhau..."
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                    Khách sạn sẽ tiếp nhận và phản hồi theo khả năng đáp ứng.
+                                </p>
+                            </div>
                         </div>
 
                         {/* Hóa đơn VAT */}
@@ -648,6 +857,199 @@ export default function CorporateBooking() {
                             )}
                         </div>
                     </div>
+
+                    {/* BƯỚC 5: DANH SÁCH PHÂN PHÒNG & NGƯỜI Ở CÙNG (ROOMING LIST - TÙY CHỌN) */}
+                    {totalRoomsCount > 0 && (
+                        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                        <span>👥</span>
+                                        <span>5. Danh Sách Khách Lưu Trú Cho Từng Phòng</span>
+                                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                            Tùy chọn - Không bắt buộc
+                                        </span>
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Khai báo trước danh sách người ở cho từng phòng để nhận phòng nhanh (Fast Check-in) khi đến. Nếu chưa có danh sách chính xác, bạn có thể bỏ qua để Lễ tân hỗ trợ sau.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRoomingListOpen(!isRoomingListOpen)}
+                                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    <span>{isRoomingListOpen ? 'Thu gọn' : 'Mở danh sách'}</span>
+                                    <span>{isRoomingListOpen ? '▲' : '▼'}</span>
+                                </button>
+                            </div>
+
+                            {isRoomingListOpen && (
+                                <div className="space-y-4">
+                                    {roomingList.map((room) => {
+                                        const roomCap = Number(room.capacity || 2);
+                                        const guestCount = room.guests.length;
+                                        const isFull = guestCount >= roomCap;
+
+                                        return (
+                                            <div
+                                                key={room.room_key}
+                                                className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition space-y-3"
+                                            >
+                                                {/* Header của từng phòng */}
+                                                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                                                            #{room.global_index}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                                                                Phòng {room.global_index}: {room.category_name}
+                                                            </div>
+                                                            <span className="text-[11px] text-slate-500">
+                                                                Sức chứa tối đa: <strong className="text-slate-700">{roomCap} người lớn</strong>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        {/* Badge sức chứa */}
+                                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 border ${
+                                                            isFull
+                                                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                                                : 'bg-white text-slate-700 border-slate-200'
+                                                        }`}>
+                                                            <span>👥</span>
+                                                            <span>{guestCount}/{roomCap} người</span>
+                                                            {isFull && <span className="text-[10px] text-amber-600 font-semibold">(Đã tối đa)</span>}
+                                                        </span>
+
+                                                        <button
+                                                            type="button"
+                                                            disabled={isFull}
+                                                            onClick={() => handleAddGuestToAllocatedRoom(room.room_key)}
+                                                            title={isFull ? `Phòng đã đạt sức chứa tối đa (${roomCap} người)` : 'Thêm người ở cùng'}
+                                                            className={`px-3 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 ${
+                                                                isFull
+                                                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                                                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 cursor-pointer active:scale-95'
+                                                            }`}
+                                                        >
+                                                            <span>➕</span>
+                                                            <span>Thêm người ở cùng</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Danh sách khách trong phòng */}
+                                                <div className="space-y-2.5">
+                                                    {room.guests.map((guest, gIdx) => {
+                                                        const isPrimary = Boolean(guest.is_primary || gIdx === 0);
+
+                                                        return (
+                                                            <div
+                                                                key={guest.id || gIdx}
+                                                                className={`p-3 rounded-xl border transition ${
+                                                                    isPrimary
+                                                                        ? 'bg-blue-50/50 border-blue-200/90'
+                                                                        : 'bg-white border-slate-200'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                                                                        <span>{isPrimary ? '⭐' : '👤'}</span>
+                                                                        <span>{isPrimary ? 'Khách đại diện phòng' : `Người ở cùng phòng #${gIdx}`}</span>
+                                                                    </span>
+
+                                                                    {!isPrimary && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveGuestFromAllocatedRoom(room.room_key, gIdx)}
+                                                                            className="text-rose-600 hover:text-rose-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer p-0.5 hover:bg-rose-50 rounded transition"
+                                                                        >
+                                                                            <span>🗑️ Xóa</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-[11px]">
+                                                                    {/* Họ và tên */}
+                                                                    <div className="sm:col-span-2">
+                                                                        <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
+                                                                            Họ và tên
+                                                                        </label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={guest.full_name || ''}
+                                                                            onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'full_name', e.target.value)}
+                                                                            placeholder={isPrimary && room.global_index === 1 ? leaderName || 'Nguyễn Văn A' : 'Nguyễn Văn A'}
+                                                                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                        />
+                                                                    </div>
+
+                                                                    {/* Loại giấy tờ */}
+                                                                    <div>
+                                                                        <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Loại giấy tờ</label>
+                                                                        <select
+                                                                            value={guest.id_type || 'CCCD'}
+                                                                            onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'id_type', e.target.value)}
+                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                                                        >
+                                                                            <option value="CCCD">CCCD / CMND</option>
+                                                                            <option value="PASSPORT">Hộ chiếu</option>
+                                                                            <option value="OTHER">Trẻ em / Khác</option>
+                                                                        </select>
+                                                                    </div>
+
+                                                                    {/* Số giấy tờ */}
+                                                                    <div>
+                                                                        <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Số CCCD / Hộ chiếu</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={guest.id_number || ''}
+                                                                            onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'id_number', e.target.value)}
+                                                                            placeholder={isPrimary && room.global_index === 1 ? identityCard || 'Số định danh...' : 'Số định danh...'}
+                                                                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                        />
+                                                                    </div>
+
+                                                                    {/* Giới tính */}
+                                                                    <div>
+                                                                        <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Giới tính</label>
+                                                                        <select
+                                                                            value={guest.gender || 'Nam'}
+                                                                            onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'gender', e.target.value)}
+                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                                                        >
+                                                                            <option value="Nam">Nam</option>
+                                                                            <option value="Nữ">Nữ</option>
+                                                                            <option value="Khác">Khác</option>
+                                                                        </select>
+                                                                    </div>
+
+                                                                    {/* Ngày sinh */}
+                                                                    <div>
+                                                                        <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Ngày sinh</label>
+                                                                        <input
+                                                                            type="date"
+                                                                            value={guest.date_of_birth || ''}
+                                                                            onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'date_of_birth', e.target.value)}
+                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* TỔNG KẾT & ĐẶT CỌC */}
                     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">
@@ -729,16 +1131,66 @@ export default function CorporateBooking() {
                                 </div>
                             </div>
 
-                            {/* Mã VietQR cọc */}
-                            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl inline-block mx-auto">
+                            {/* Mã VietQR cọc tự động từ cấu hình hệ thống */}
+                            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl inline-block mx-auto max-w-sm w-full">
                                 <img
-                                    src={`https://img.vietqr.io/image/970422-123456789-compact2.jpg?amount=${createdGroup.deposit_amount}&addInfo=Coc%20doan%20${createdGroup.group_code}&accountName=KHACH%20SAN%20TA%20DA%20NANG`}
+                                    src={`https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${createdGroup.deposit_amount}&addInfo=${encodeURIComponent(`Coc doan ${createdGroup.group_code}`)}&accountName=${encodeURIComponent(bankConfig.account_name)}`}
                                     alt="VietQR Deposit"
-                                    className="w-48 h-48 mx-auto rounded-xl object-contain shadow-xs"
+                                    className="w-48 h-48 mx-auto rounded-xl object-contain shadow-xs bg-white p-1"
                                 />
                                 <span className="text-[10px] text-slate-500 block mt-1.5 font-semibold">
                                     Quét mã VietQR bằng app ngân hàng để chuyển cọc tự động
                                 </span>
+
+                                {/* Khung chi tiết thông tin chuyển khoản */}
+                                <div className="mt-3 p-3 bg-white rounded-xl border border-indigo-100 text-left text-xs space-y-1.5 shadow-2xs">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-slate-500 text-[11px]">Ngân hàng:</span>
+                                        <strong className="text-slate-900 font-bold">MB Bank ({bankConfig.bank_bin})</strong>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-slate-500 text-[11px]">Số tài khoản:</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <strong className="font-mono text-blue-700 font-extrabold text-xs">{bankConfig.account_no}</strong>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(bankConfig.account_no);
+                                                    setCopiedField('acc');
+                                                    setTimeout(() => setCopiedField(null), 2000);
+                                                }}
+                                                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer"
+                                                title="Sao chép số tài khoản"
+                                            >
+                                                {copiedField === 'acc' ? '✓ Đã chép' : 'Sao chép'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-slate-500 text-[11px]">Chủ tài khoản:</span>
+                                        <strong className="text-slate-900 uppercase text-[11px] font-bold">{bankConfig.account_name}</strong>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                                        <span className="text-slate-500 text-[11px]">Nội dung CK:</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <strong className="font-mono text-indigo-700 font-bold text-xs bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                                                Coc doan {createdGroup.group_code}
+                                            </strong>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`Coc doan ${createdGroup.group_code}`);
+                                                    setCopiedField('note');
+                                                    setTimeout(() => setCopiedField(null), 2000);
+                                                }}
+                                                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer"
+                                                title="Sao chép nội dung chuyển khoản"
+                                            >
+                                                {copiedField === 'note' ? '✓ Đã chép' : 'Sao chép'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="flex items-center gap-3 justify-center pt-2">
