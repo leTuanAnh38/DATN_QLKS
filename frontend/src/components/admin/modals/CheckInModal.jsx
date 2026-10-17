@@ -160,25 +160,31 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
 
     // DANH SÁCH KHÁCH LƯU TRÚ (KHAI BÁO LƯU TRÚ KHI CHECK-IN)
     const [guests, setGuests] = useState(() => {
-        if (booking?.guests && Array.isArray(booking.guests) && booking.guests.length > 0) {
-            return booking.guests.map((g, idx) => ({
-                id: g.id || `guest_${idx}_${Date.now()}`,
-                full_name: g.full_name || '',
-                id_type: g.id_type || 'CCCD',
-                id_number: g.id_number || '',
-                date_of_birth: g.date_of_birth || '',
-                gender: g.gender || 'Nam',
-                nationality: g.nationality || 'Việt Nam',
-                is_primary: Boolean(g.is_primary ?? idx === 0)
-            }));
-        }
         const details = booking?.guest_details || {};
+        const fallbackIdCard = (details.id_number || booking?.identity_card || '').trim();
+
+        if (booking?.guests && Array.isArray(booking.guests) && booking.guests.length > 0) {
+            return booking.guests.map((g, idx) => {
+                const isPrimary = Boolean(g.is_primary ?? idx === 0);
+                const guestIdCard = (g.id_number || g.identity_card || (isPrimary ? fallbackIdCard : '') || '').trim();
+                return {
+                    id: g.id || `guest_${idx}_${Date.now()}`,
+                    full_name: g.full_name || (isPrimary ? (details.full_name || booking?.guest_name || '') : ''),
+                    id_type: g.id_type || details.id_type || 'CCCD',
+                    id_number: guestIdCard,
+                    date_of_birth: g.date_of_birth || (isPrimary ? details.date_of_birth : '') || '',
+                    gender: g.gender || (isPrimary ? details.gender : 'Nam') || 'Nam',
+                    nationality: g.nationality || (isPrimary ? details.nationality : 'Việt Nam') || 'Việt Nam',
+                    is_primary: isPrimary
+                };
+            });
+        }
         return [
             {
                 id: 'primary',
                 full_name: details.full_name || booking?.guest_name || '',
                 id_type: details.id_type || 'CCCD',
-                id_number: details.id_number || booking?.identity_card || '',
+                id_number: fallbackIdCard,
                 date_of_birth: details.date_of_birth || '',
                 gender: details.gender || 'Nam',
                 nationality: details.nationality || 'Việt Nam',
@@ -189,19 +195,26 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
 
     // Đồng bộ lại danh sách khách nếu booking thay đổi hoặc vừa được tải về từ Backend
     useEffect(() => {
+        const details = booking?.guest_details || {};
+        const fallbackIdCard = (details.id_number || booking?.identity_card || '').trim();
+
         if (booking?.guests && Array.isArray(booking.guests) && booking.guests.length > 0) {
-            setGuests(booking.guests.map((g, idx) => ({
-                id: g.id || `guest_${idx}_${Date.now()}`,
-                full_name: g.full_name || '',
-                id_type: g.id_type || 'CCCD',
-                id_number: g.id_number || g.identity_card || '',
-                date_of_birth: g.date_of_birth || '',
-                gender: g.gender || 'Nam',
-                nationality: g.nationality || 'Việt Nam',
-                is_primary: Boolean(g.is_primary ?? idx === 0)
-            })));
+            setGuests(booking.guests.map((g, idx) => {
+                const isPrimary = Boolean(g.is_primary ?? idx === 0);
+                const guestIdCard = (g.id_number || g.identity_card || (isPrimary ? fallbackIdCard : '') || '').trim();
+                return {
+                    id: g.id || `guest_${idx}_${Date.now()}`,
+                    full_name: g.full_name || (isPrimary ? (details.full_name || booking?.guest_name || '') : ''),
+                    id_type: g.id_type || details.id_type || 'CCCD',
+                    id_number: guestIdCard,
+                    date_of_birth: g.date_of_birth || (isPrimary ? details.date_of_birth : '') || '',
+                    gender: g.gender || (isPrimary ? details.gender : 'Nam') || 'Nam',
+                    nationality: g.nationality || (isPrimary ? details.nationality : 'Việt Nam') || 'Việt Nam',
+                    is_primary: isPrimary
+                };
+            }));
         }
-    }, [booking?.id, booking?.guests]);
+    }, [booking?.id, booking?.guests, booking?.identity_card]);
 
     // State cho tính năng [📋 Dán nhanh danh sách đoàn] (Bulk / Fast Paste from Excel/Clipboard)
     const [showFastPasteModal, setShowFastPasteModal] = useState(false);
@@ -799,7 +812,13 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                         🏢 HĐ đoàn #{booking.group_booking_code || ''}
                                     </strong>
                                     <span className="text-[9px] text-emerald-600 font-bold block mt-0.5">
-                                        {booking.is_group_deposit_paid ? '✓ Đã cọc 50% đoàn' : 'Chờ cọc đoàn'}
+                                        {booking.group_deposit_status || (
+                                            booking.is_group_fully_paid || (booking.is_group_deposit_paid && Number(booking.group_deposit_amount || 0) >= Number(booking.group_total_amount || 0))
+                                                ? '✓ Đã thanh toán 100% đoàn'
+                                                : booking.is_group_deposit_paid
+                                                    ? '✓ Đã cọc 50% đoàn'
+                                                    : 'Chờ cọc đoàn'
+                                        )}
                                     </span>
                                 </div>
                             ) : (

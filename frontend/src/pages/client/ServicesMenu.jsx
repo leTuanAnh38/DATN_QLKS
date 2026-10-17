@@ -151,10 +151,16 @@ export default function ServicesMenu() {
     };
 
     // Tải lịch sử đơn đặt món của khách
-    const fetchOrderHistory = async (isSilent = false) => {
+    const fetchOrderHistory = async (isSilent = false, specificBooking = null) => {
+        const targetBooking = specificBooking || (!isAuthenticated ? sessionStorage.getItem('pms_guest_booking_code') : null);
+        if (!isAuthenticated && !targetBooking) {
+            setOrderHistory([]);
+            return;
+        }
         if (!isSilent) setIsLoadingHistory(true);
         try {
-            const res = await hotelService.getMyServiceRequests();
+            const params = targetBooking ? { booking: targetBooking } : {};
+            const res = await hotelService.getMyServiceRequests(params);
             if (res.success) {
                 setOrderHistory(res.requests || []);
             }
@@ -169,22 +175,48 @@ export default function ServicesMenu() {
     const loadData = async () => {
         setIsLoading(true);
         try {
-            const [catRes, itemsRes, bkRes, historyRes] = await Promise.all([
+            const promises = [
                 hotelService.getServiceCategories(),
-                hotelService.getServiceItems(),
-                hotelService.getMyActiveBookings(),
-                hotelService.getMyServiceRequests()
-            ]);
+                hotelService.getServiceItems()
+            ];
 
-            if (catRes.success) setCategories(catRes.categories || []);
-            if (itemsRes.success) setServiceItems(itemsRes.items || []);
-            if (historyRes.success) setOrderHistory(historyRes.requests || []);
-            if (bkRes.success) {
+            if (isAuthenticated) {
+                promises.push(hotelService.getMyActiveBookings());
+                promises.push(hotelService.getMyServiceRequests());
+            }
+
+            const results = await Promise.all(promises);
+            const catRes = results[0];
+            const itemsRes = results[1];
+            const bkRes = isAuthenticated ? results[2] : null;
+            const historyRes = isAuthenticated ? results[3] : null;
+
+            if (catRes && catRes.success) setCategories(catRes.categories || []);
+            if (itemsRes && itemsRes.success) setServiceItems(itemsRes.items || []);
+
+            if (isAuthenticated && historyRes && historyRes.success) {
+                setOrderHistory(historyRes.requests || []);
+            } else if (!isAuthenticated) {
+                const savedCode = sessionStorage.getItem('pms_guest_booking_code');
+                if (savedCode) {
+                    fetchOrderHistory(true, savedCode);
+                } else {
+                    setOrderHistory([]);
+                }
+            }
+
+            if (isAuthenticated && bkRes && bkRes.success) {
                 const bks = bkRes.bookings || [];
                 setActiveBookings(bks);
                 if (bks.length > 0) {
                     setSelectedBookingId(String(bks[0].id));
+                } else {
+                    setSelectedBookingId('');
                 }
+            } else if (!isAuthenticated) {
+                setActiveBookings([]);
+                const savedCode = sessionStorage.getItem('pms_guest_booking_code');
+                if (savedCode) setSelectedBookingId(savedCode);
             }
         } catch (error) {
             console.error('Lỗi khi tải dữ liệu dịch vụ:', error);
@@ -305,6 +337,9 @@ export default function ServicesMenu() {
         setNote('');
         if (activeBookings.length > 0 && !selectedBookingId) {
             setSelectedBookingId(String(activeBookings[0].id));
+        } else if (!selectedBookingId) {
+            const savedCode = sessionStorage.getItem('pms_guest_booking_code');
+            if (savedCode) setSelectedBookingId(savedCode);
         }
     };
 
@@ -322,15 +357,16 @@ export default function ServicesMenu() {
 
         if (!selectedItem) return;
 
-        if (!selectedBookingId) {
-            showToast('error', 'Vui lòng chọn Số phòng / Đơn đặt phòng đang lưu trú của bạn.');
+        const bookingKey = (selectedBookingId || '').trim().toUpperCase();
+        if (!bookingKey) {
+            showToast('error', 'Vui lòng nhập Mã Đặt phòng (VD: BK-02DE4E) in trên thẻ phòng của bạn.');
             return;
         }
 
         try {
             setIsSubmitting(true);
             const payload = {
-                booking_id: selectedBookingId,
+                booking_id: bookingKey,
                 service_id: selectedItem.id,
                 quantity: Number(quantity) || 1,
                 note: note.trim()
@@ -339,24 +375,26 @@ export default function ServicesMenu() {
             const res = await hotelService.createServiceRequest(payload);
 
             if (res && res.success) {
+                sessionStorage.setItem('pms_guest_booking_code', bookingKey);
+
                 const targetBooking = activeBookings.find(
-                    (b) => String(b.id) === String(selectedBookingId)
+                    (b) => String(b.id) === String(selectedBookingId) || b.booking_code === bookingKey
                 );
-                const roomNum = targetBooking?.room_number || 'đã chọn';
+                const roomNum = res.data?.room_number || targetBooking?.room_number || 'phòng lưu trú';
 
                 setSuccessOrderInfo({
                     serviceName: selectedItem.name,
                     quantity: Number(quantity) || 1,
                     totalPrice: Number(selectedItem.price) * (Number(quantity) || 1),
                     roomNumber: roomNum,
-                    bookingCode: targetBooking?.booking_code || ''
+                    bookingCode: bookingKey
                 });
 
                 handleCloseOrderModal();
-                fetchOrderHistory(true);
+                fetchOrderHistory(true, bookingKey);
                 showToast('success', res.message || 'Yêu cầu của quý khách đã được gửi đến bộ phận phục vụ!');
             } else {
-                showToast('error', res?.message || 'Không thể gửi yêu cầu dịch vụ. Vui lòng kiểm tra lại.');
+                showToast('error', res?.message || 'Không thể gửi yêu cầu dịch vụ. Vui lòng kiểm tra lại mã đặt phòng.');
             }
         } catch (error) {
             console.error('Lỗi khi gửi yêu cầu:', error);
@@ -389,6 +427,15 @@ export default function ServicesMenu() {
         } finally {
             setCancellingRequestId(null);
         }
+    };
+
+    // Xóa phiên lưu trữ mã phòng trên thiết bị (dành cho khách chưa đăng nhập)
+    const handleClearGuestSession = () => {
+        sessionStorage.removeItem('pms_guest_booking_code');
+        setSelectedBookingId('');
+        setOrderHistory([]);
+        setIsHistoryModalOpen(false);
+        showToast('success', 'Đã xóa phiên lưu trữ phòng trên thiết bị này.');
     };
 
     // Thống kê nhanh đơn đặt món
@@ -499,7 +546,7 @@ export default function ServicesMenu() {
                             </p>
 
                             {/* Thông tin phòng đang lưu trú của khách */}
-                            {activeBookings.length > 0 && (
+                            {isAuthenticated && activeBookings.length > 0 && (
                                 <div className="mt-6 flex flex-wrap items-center gap-3">
                                     <div className="inline-flex flex-wrap items-center gap-2 p-2.5 px-4 rounded-2xl bg-white/90 backdrop-blur-md border border-amber-200/80 text-xs shadow-xs">
                                         <span className="text-amber-800 font-bold">🏨 Phòng đang ở:</span>
@@ -894,22 +941,22 @@ export default function ServicesMenu() {
                                         </>
                                     ) : (
                                         <div className="space-y-2.5">
-                                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2.5">
-                                                <span className="text-base shrink-0">⚠️</span>
+                                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2.5">
+                                                <span className="text-base shrink-0">🏨</span>
                                                 <div className="space-y-0.5">
-                                                    <p className="font-bold">Yêu cầu hoàn tất nhận phòng (Check-in)</p>
-                                                    <p className="text-[11px] text-amber-700 leading-relaxed">
-                                                        Dịch vụ tại phòng chỉ áp dụng cho quý khách <strong>đã nhận phòng (Check-in)</strong> và <strong>đã được xếp phòng thực tế</strong>. Nếu quý khách đã đặt phòng trước, vui lòng làm thủ tục nhận phòng tại quầy lễ tân trước khi gọi dịch vụ.
+                                                    <p className="font-bold">Dành cho Khách lưu trú & Khách theo đoàn</p>
+                                                    <p className="text-[11px] text-blue-800 leading-relaxed">
+                                                        Quý khách vui lòng nhập <strong>Mã Đặt phòng (Mã Booking)</strong> in trên bìa thẻ phòng (Keycard) hoặc phiếu nhận phòng của bạn để hệ thống phục vụ trực tiếp tới phòng.
                                                     </p>
                                                 </div>
                                             </div>
                                             <input
                                                 type="text"
                                                 value={selectedBookingId}
-                                                onChange={(e) => setSelectedBookingId(e.target.value)}
-                                                placeholder="Nhập Mã Booking đã Check-in (VD: BK-B38570)"
+                                                onChange={(e) => setSelectedBookingId(e.target.value.toUpperCase())}
+                                                placeholder="Nhập Mã Booking (VD: BK-02DE4E)"
                                                 required
-                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase tracking-wider"
                                             />
                                         </div>
                                     )}
@@ -1004,7 +1051,12 @@ export default function ServicesMenu() {
                 <button
                     type="button"
                     onClick={() => {
-                        fetchOrderHistory();
+                        const targetBooking = !isAuthenticated ? sessionStorage.getItem('pms_guest_booking_code') : null;
+                        if (!isAuthenticated && !targetBooking) {
+                            showToast('error', 'Quý khách vui lòng đặt dịch vụ với Mã Booking trên thẻ phòng để theo dõi lịch sử.');
+                            return;
+                        }
+                        fetchOrderHistory(false, targetBooking);
                         setIsHistoryModalOpen(true);
                     }}
                     className="fixed bottom-6 left-6 z-40 px-4 py-3 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-2xl border border-slate-700/60 font-bold text-xs flex items-center gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
@@ -1059,6 +1111,17 @@ export default function ServicesMenu() {
                                         <span className={isLoadingHistory ? 'animate-spin' : ''}>🔄</span>
                                         <span className="hidden sm:inline">Làm mới</span>
                                     </button>
+                                    {!isAuthenticated && sessionStorage.getItem('pms_guest_booking_code') && (
+                                        <button
+                                            type="button"
+                                            onClick={handleClearGuestSession}
+                                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center gap-1 transition cursor-pointer"
+                                            title="Xóa phiên lưu trữ mã phòng này trên thiết bị này"
+                                        >
+                                            <span>🗑️</span>
+                                            <span className="hidden sm:inline">Xóa phiên</span>
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={() => setIsHistoryModalOpen(false)}

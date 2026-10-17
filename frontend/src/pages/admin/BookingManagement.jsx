@@ -139,8 +139,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [bookingTab, setBookingTab] = useState('walk_in'); // 'walk_in' | 'advance'
     const [walkInAvailableRooms, setWalkInAvailableRooms] = useState([]);
     const [advanceCategories, setAdvanceCategories] = useState([]);
+    const [categoryAvailabilities, setCategoryAvailabilities] = useState({});
     const [isLoadingWalkInRooms, setIsLoadingWalkInRooms] = useState(false);
     const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+    const [isLoadingAvailabilities, setIsLoadingAvailabilities] = useState(false);
     const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
     const [walkInForm, setWalkInForm] = useState({
         customer_type: 'MEMBER', // 'MEMBER' | 'CORPORATE'
@@ -815,6 +817,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             if (cats.length > 0) {
                 setWalkInForm((prev) => ({ ...prev, category_id: String(cats[0].id) }));
             }
+
+            // Gọi kiểm tra số phòng trống theo ngày
+            fetchCategoryAvailabilities(todayStr, tomorrowStr);
         } catch (error) {
             console.error('Lỗi khi tải dữ liệu phòng và hạng phòng:', error);
             showToast('error', error.message || 'Lỗi khi tải danh sách phòng/hạng phòng.');
@@ -823,6 +828,33 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             setIsLoadingCategories(false);
         }
     };
+
+    // Hàm gọi API kiểm tra số phòng còn trống cho tất cả hạng phòng theo ngày
+    const fetchCategoryAvailabilities = async (checkIn, checkOut) => {
+        if (!checkIn || !checkOut) return;
+        try {
+            setIsLoadingAvailabilities(true);
+            const res = await bookingService.checkAvailability({
+                check_in_date: checkIn,
+                check_out_date: checkOut,
+                category_id: 'all'
+            });
+            if (res && res.success && res.availabilities) {
+                setCategoryAvailabilities(res.availabilities);
+            }
+        } catch (err) {
+            console.error('Lỗi kiểm tra số phòng trống theo ngày:', err);
+        } finally {
+            setIsLoadingAvailabilities(false);
+        }
+    };
+
+    // Tự động cập nhật số phòng trống khi thay đổi ngày Check-in / Check-out trong tab Đặt phòng trước
+    useEffect(() => {
+        if (isWalkInModalOpen && bookingTab === 'advance' && walkInForm.check_in_date && walkInForm.check_out_date) {
+            fetchCategoryAvailabilities(walkInForm.check_in_date, walkInForm.check_out_date);
+        }
+    }, [isWalkInModalOpen, bookingTab, walkInForm.check_in_date, walkInForm.check_out_date]);
 
     // Xác nhận tiếp đón (Walk-in Check-in ngay HOẶC Đặt phòng trước qua điện thoại)
     const handleConfirmWalkIn = async (e) => {
@@ -1159,11 +1191,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         const noShow = bookings.filter((b) => b.status === 'no_show').length;
         const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
 
-        const totalRevenue = bookings
-            .filter((b) => ['confirmed', 'checked_in', 'checked_out', 'completed'].includes(b.status))
-            .reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+        const validBookings = bookings.filter((b) => ['confirmed', 'checked_in', 'checked_out', 'completed'].includes(b.status));
+        const totalRevenue = validBookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+        const validCount = validBookings.length;
 
-        return { total, pending, confirmed, checkedIn, checkedOut, noShow, cancelled, totalRevenue };
+        return { total, pending, confirmed, checkedIn, checkedOut, noShow, cancelled, totalRevenue, validCount };
     }, [bookings]);
 
     // Dữ liệu đã lọc theo dropdown và tìm kiếm
@@ -1409,15 +1441,20 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     <span className="text-[11px] opacity-80 mt-0.5 block">Đơn khách/lễ tân hủy</span>
                 </div>
 
-                {/* 6. Doanh thu dự kiến */}
-                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs col-span-2 sm:col-span-1">
+                {/* 6. Tổng giá trị đơn đặt phòng */}
+                <div 
+                    className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs col-span-2 sm:col-span-1"
+                    title="Tổng giá trị phòng & dịch vụ của các đơn đặt phòng hợp lệ (bao gồm đơn đã xác nhận, khách đang ở và đã hoàn tất)"
+                >
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                        DOANH THU ĐƠN
+                        TỔNG GIÁ TRỊ ĐƠN
                     </span>
                     <div className="text-lg font-black text-rose-600 mt-1 truncate">
                         {stats.totalRevenue.toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-400">VND</span>
                     </div>
-                    <span className="text-[11px] text-slate-400 mt-0.5 block">Đơn hợp lệ</span>
+                    <span className="text-[11px] text-slate-400 mt-0.5 block truncate" title="Gồm cả khách đang ở & đã check-out">
+                        {stats.validCount || 0} đơn hợp lệ (Gồm khách đang ở)
+                    </span>
                 </div>
             </div>
 
@@ -1767,7 +1804,13 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                                     <span>🏢</span> Gộp đoàn {booking.group_booking_code ? `#${booking.group_booking_code}` : ''}
                                                                 </span>
                                                                 <span className="text-[9px] text-emerald-600 font-bold block">
-                                                                    {booking.is_group_deposit_paid ? '✓ Đã cọc 50% đoàn' : 'Chờ cọc đoàn'}
+                                                                    {booking.group_deposit_status || (
+                                                                        booking.is_group_fully_paid || (booking.is_group_deposit_paid && Number(booking.group_deposit_amount || 0) >= Number(booking.group_total_amount || 0))
+                                                                            ? '✓ Đã thanh toán 100% đoàn'
+                                                                            : booking.is_group_deposit_paid
+                                                                                ? '✓ Đã cọc 50% đoàn'
+                                                                                : 'Chờ cọc đoàn'
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                         );
@@ -3157,9 +3200,14 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                     >
                                                         {advanceCategories.map((c) => {
                                                             const price = Number(c.promo_price) || Number(c.base_price) || 0;
+                                                            const availInfo = categoryAvailabilities[c.id];
+                                                            const availRooms = availInfo ? availInfo.available_rooms : (c.available_rooms ?? c.rooms_count ?? null);
+                                                            const isSoldOut = availInfo ? availInfo.is_sold_out : (availRooms !== null && availRooms <= 0);
+
                                                             return (
-                                                                <option key={c.id} value={c.id}>
+                                                                <option key={c.id} value={c.id} className={isSoldOut ? 'text-rose-600 font-bold bg-rose-50' : ''}>
                                                                     {c.name} — {price.toLocaleString('vi-VN')} VND/đêm ({c.capacity || 2} khách • {c.bed_type || '1 Giường'})
+                                                                    {availRooms !== null ? (isSoldOut ? ' [⚠️ HẾT PHÒNG]' : ` [Còn ${availRooms} phòng trống]`) : ''}
                                                                 </option>
                                                             );
                                                         })}
@@ -3190,6 +3238,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 : 0;
                                             const totalAmount = pricePerNight * nights;
 
+                                            const curAvail = selectedCat ? categoryAvailabilities[selectedCat.id] : null;
+                                            const curAvailRooms = curAvail ? curAvail.available_rooms : (selectedCat?.available_rooms ?? null);
+                                            const isCurSoldOut = curAvail ? curAvail.is_sold_out : (curAvailRooms !== null && curAvailRooms <= 0);
+
                                             return (
                                                 <div className="space-y-3 pt-1">
                                                     {selectedCat && (
@@ -3207,9 +3259,27 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
-                                                                Đang mở đặt
-                                                            </span>
+                                                            <div className="text-right">
+                                                                {isLoadingAvailabilities ? (
+                                                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 animate-pulse">
+                                                                        Đang kiểm tra...
+                                                                    </span>
+                                                                ) : curAvailRooms !== null ? (
+                                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${
+                                                                        isCurSoldOut
+                                                                            ? 'bg-rose-50 text-rose-700 border-rose-300'
+                                                                            : curAvailRooms <= 2
+                                                                            ? 'bg-amber-50 text-amber-700 border-amber-300'
+                                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                                                    }`}>
+                                                                        {isCurSoldOut ? '⚠️ Đã hết phòng' : `✓ Còn ${curAvailRooms} phòng trống`}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
+                                                                        Đang mở đặt
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
 

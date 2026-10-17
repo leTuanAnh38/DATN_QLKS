@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
@@ -66,7 +66,7 @@ export default function Checkout() {
     const [taxCodeError, setTaxCodeError] = useState('');
     const [isBookerTheGuest, setIsBookerTheGuest] = useState(true);
     const [actualGuests, setActualGuests] = useState([
-        { full_name: '', identity_card: '', phone_number: '', is_primary: true }
+        { full_name: '', id_type: 'CCCD', identity_card: '', phone_number: '', is_primary: true }
     ]);
 
     const [guestName, setGuestName] = useState('');
@@ -117,6 +117,7 @@ export default function Checkout() {
     const [loadingServices, setLoadingServices] = useState(false);
     const [selectedServices, setSelectedServices] = useState({}); // { [serviceId]: quantity }
     const [serviceFilter, setServiceFilter] = useState('all');
+    const [isExpandedServices, setIsExpandedServices] = useState(false);
 
     // 6. State Gửi đơn & Xử lý thành công
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -369,9 +370,26 @@ export default function Checkout() {
     // Danh sách các nhóm dịch vụ để lọc tabs
     const serviceCategories = ['all', ...Array.from(new Set(servicesList.map((s) => s.category_name).filter(Boolean)))];
 
-    const filteredServices = serviceFilter === 'all'
-        ? servicesList
-        : servicesList.filter((s) => s.category_name === serviceFilter);
+    const filteredServices = useMemo(() => {
+        const raw = serviceFilter === 'all'
+            ? servicesList
+            : servicesList.filter((s) => s.category_name === serviceFilter);
+        // Đưa các dịch vụ khách đã chọn lên đầu danh sách để dễ theo dõi
+        return [...raw].sort((a, b) => {
+            const aSelected = Boolean(selectedServices[a.id]);
+            const bSelected = Boolean(selectedServices[b.id]);
+            if (aSelected && !bSelected) return -1;
+            if (!aSelected && bSelected) return 1;
+            return 0;
+        });
+    }, [servicesList, serviceFilter, selectedServices]);
+
+    // Khi chọn 'Tất cả dịch vụ' và danh sách nhiều hơn 4 món, mặc định chỉ hiển thị 4 món đầu (trừ khi người dùng bấm 'Xem thêm')
+    const INITIAL_SERVICES_LIMIT = 4;
+    const shouldShowExpandButton = filteredServices.length > INITIAL_SERVICES_LIMIT;
+    const displayedServices = isExpandedServices || !shouldShowExpandButton
+        ? filteredServices
+        : filteredServices.slice(0, INITIAL_SERVICES_LIMIT);
 
     // =========================================================================
     // LOGIC XỬ LÝ MÃ GIẢM GIÁ (PROMO CODE)
@@ -486,23 +504,27 @@ export default function Checkout() {
 
         // Chuẩn bị danh sách khách lưu trú thực tế (BookingGuest)
         let guestsPayload = [];
-        if (isBookerTheGuest) {
+        if (customerType !== 'CORPORATE' || isBookerTheGuest) {
             guestsPayload.push({
                 full_name: guestName.trim(),
+                id_type: 'CCCD',
                 identity_card: cleanIdCard,
                 phone_number: guestPhone.trim(),
                 is_primary: true
             });
-            actualGuests.forEach((g) => {
-                if (g.full_name && g.full_name.trim()) {
-                    guestsPayload.push({
-                        full_name: g.full_name.trim(),
-                        identity_card: (g.identity_card || '').trim(),
-                        phone_number: (g.phone_number || '').trim(),
-                        is_primary: false
-                    });
-                }
-            });
+            if (customerType === 'CORPORATE') {
+                actualGuests.forEach((g) => {
+                    if (g.full_name && g.full_name.trim()) {
+                        guestsPayload.push({
+                            full_name: g.full_name.trim(),
+                            id_type: g.id_type || 'CCCD',
+                            identity_card: (g.identity_card || '').trim(),
+                            phone_number: (g.phone_number || '').trim(),
+                            is_primary: false
+                        });
+                    }
+                });
+            }
         } else {
             const validActualGuests = actualGuests.filter((g) => g.full_name && g.full_name.trim());
             if (validActualGuests.length === 0) {
@@ -511,6 +533,7 @@ export default function Checkout() {
             }
             guestsPayload = validActualGuests.map((g, idx) => ({
                 full_name: g.full_name.trim(),
+                id_type: g.id_type || 'CCCD',
                 identity_card: (g.identity_card || '').trim(),
                 phone_number: (g.phone_number || '').trim(),
                 is_primary: idx === 0
@@ -856,7 +879,7 @@ export default function Checkout() {
                                     )}
                                 </div>
 
-                                {/* TAB CHỌN LOẠI ĐẶT PHÒNG: CÁ NHÂN / GIA ĐÌNH vs DOANH NGHIỆP / ĐOÀN THỂ */}
+                                {/* TAB CHỌN LOẠI ĐẶT PHÒNG: CÁ NHÂN / GIA ĐÌNH vs CÔNG TY / ĐI CÔNG TÁC (XUẤT HÓA ĐƠN VAT) */}
                                 <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl mb-6">
                                     <button
                                         type="button"
@@ -880,33 +903,35 @@ export default function Checkout() {
                                         }`}
                                     >
                                         <span>🏢</span>
-                                        <span>Đặt cho Công ty / Đoàn thể</span>
+                                        <span>Công ty / Đi công tác (Cần VAT)</span>
                                     </button>
                                 </div>
 
                                 {/* KHỐI THÔNG TIN DOANH NGHIỆP & XUẤT HÓA ĐƠN VAT */}
                                 {customerType === 'CORPORATE' && (
-                                    <div className="mb-6 p-4 sm:p-5 bg-gradient-to-br from-blue-50/80 via-indigo-50/40 to-slate-50 border-2 border-blue-200 rounded-2xl space-y-4 animate-in fade-in">
-                                        <div className="flex items-center justify-between pb-2 border-b border-blue-200/80">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xl">🏢</span>
+                                    <div className="mb-6 p-4 sm:p-5 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-4 animate-in fade-in">
+                                        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-base shadow-2xs">
+                                                    🏢
+                                                </div>
                                                 <div>
-                                                    <h3 className="text-xs sm:text-sm font-bold text-blue-950 uppercase tracking-wider">
+                                                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
                                                         Thông tin Pháp nhân Doanh nghiệp (Xuất hóa đơn VAT)
                                                     </h3>
-                                                    <p className="text-[11px] text-blue-700">
-                                                        Khách sạn sẽ xuất hóa đơn GTGT điện tử chuẩn kế toán theo thông tin này
+                                                    <p className="text-[11px] text-slate-500">
+                                                        Dành cho khách đi công tác cần hóa đơn điện tử GTGT hợp lệ để quyết toán với công ty
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider border border-blue-300">
+                                            <span className="px-2.5 py-1 rounded-lg bg-white text-slate-700 text-[10px] font-extrabold uppercase tracking-wider border border-slate-200 shadow-2xs">
                                                 VAT Invoice
                                             </span>
                                         </div>
 
                                         <div className="space-y-3">
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                                                     Tên công ty / Doanh nghiệp <span className="text-rose-500">*</span>
                                                 </label>
                                                 <input
@@ -921,7 +946,7 @@ export default function Checkout() {
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div>
-                                                    <div className="flex items-center justify-between mb-1">
+                                                    <div className="flex items-center justify-between mb-1.5">
                                                         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                                                             Mã số thuế (MST) <span className="text-rose-500">*</span>
                                                         </label>
@@ -954,7 +979,7 @@ export default function Checkout() {
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                                                         Địa chỉ trụ sở công ty <span className="text-rose-500">*</span>
                                                     </label>
                                                     <input
@@ -966,6 +991,17 @@ export default function Checkout() {
                                                         className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                                     />
                                                 </div>
+                                            </div>
+
+                                            <div className="pt-2.5 border-t border-slate-200/80 text-[11px] text-slate-600 flex items-center justify-between flex-wrap gap-2">
+                                                <span>💡 Quý khách cần đặt từ 3 phòng trở lên cho cả đoàn du lịch / công ty?</span>
+                                                <Link
+                                                    to="/corporate-booking"
+                                                    className="font-bold text-blue-600 hover:text-blue-800 underline flex items-center gap-1 transition"
+                                                >
+                                                    <span>Xem trang Đặt phòng theo đoàn (B2B)</span>
+                                                    <span>→</span>
+                                                </Link>
                                             </div>
                                         </div>
                                     </div>
@@ -1122,128 +1158,166 @@ export default function Checkout() {
                                         </div>
                                     </div>
 
-                                    {/* PHÂN ĐỊNH: NGƯỜI ĐẶT ĐẠI DIỆN vs NGƯỜI LƯU TRÚ THỰC TẾ (HR/THƯ KÝ ĐẶT PHÒNG) */}
-                                    <div className="pt-2">
-                                        <label className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/70 cursor-pointer transition">
-                                            <input
-                                                type="checkbox"
-                                                checked={isBookerTheGuest}
-                                                onChange={(e) => setIsBookerTheGuest(e.target.checked)}
-                                                className="w-4 h-4 rounded text-blue-600 mt-0.5 cursor-pointer accent-blue-600"
-                                            />
-                                            <div className="text-xs">
-                                                <span className="font-bold text-slate-900 block">
-                                                    Tôi đồng thời là người nhận phòng & lưu trú thực tế
-                                                </span>
-                                                <span className="text-slate-500 text-[11px] block mt-0.5 leading-relaxed">
-                                                    Bỏ chọn nếu bạn là <strong>Nhân sự (HR) / Thư ký / Đại diện công ty</strong> đặt phòng cho cấp trên hoặc nhân viên đi công tác (người đặt không trực tiếp đến ở).
-                                                </span>
-                                            </div>
-                                        </label>
-                                    </div>
-
-                                    {/* KHAI BÁO DANH SÁCH NHÂN SỰ / KHÁCH LƯU TRÚ THỰC TẾ */}
-                                    {(!isBookerTheGuest || customerType === 'CORPORATE') && (
-                                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-base">📋</span>
-                                                    <div>
-                                                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                                            Khai báo danh sách người lưu trú thực tế ({actualGuests.filter(g => g.full_name?.trim()).length || (isBookerTheGuest ? 1 : 0)} khách)
-                                                        </h4>
-                                                        <p className="text-[10px] text-slate-500">
-                                                            Khai báo trước CCCD để Lễ tân làm thủ tục check-in nhanh chóng và đối chiếu
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const cap = Number(room?.capacity || 2);
-                                                        if (actualGuests.length >= cap + 2) {
-                                                            alert(`Hạng phòng này có sức chứa tiêu chuẩn ${cap} người.`);
-                                                        }
-                                                        setActualGuests(prev => [...prev, { full_name: '', identity_card: '', phone_number: '', is_primary: false }]);
-                                                    }}
-                                                    className="px-2.5 py-1 bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 font-bold text-[11px] rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95"
-                                                >
-                                                    <span>➕ Thêm nhân viên/người ở</span>
-                                                </button>
-                                            </div>
-
-                                            {/* CẢNH BÁO SỨC CHỨA PHÒNG THỜI GIAN THỰC */}
-                                            {((isBookerTheGuest ? 1 + actualGuests.filter(g => g.full_name?.trim()).length : actualGuests.filter(g => g.full_name?.trim()).length) > Number(room?.capacity || 2)) && (
-                                                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-center gap-2 animate-in fade-in">
-                                                    <span className="text-base shrink-0">⚠️</span>
-                                                    <span className="leading-tight">
-                                                        <strong>Cảnh báo sức chứa:</strong> Số lượng người lưu trú ({isBookerTheGuest ? 1 + actualGuests.filter(g => g.full_name?.trim()).length : actualGuests.filter(g => g.full_name?.trim()).length} khách) vượt quá tiêu chuẩn của hạng phòng ({room?.capacity || 2} người lớn). Khách sạn có thể phụ thu thêm người khi Check-in.
+                                    {/* PHÂN ĐỊNH: NGƯỜI ĐẶT ĐẠI DIỆN vs NGƯỜI LƯU TRÚ THỰC TẾ (CHỈ ÁP DỤNG KHI ĐẶT CHO CÔNG TY / ĐI CÔNG TÁC) */}
+                                    {customerType === 'CORPORATE' && (
+                                        <div className="pt-2">
+                                            <label className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/70 cursor-pointer transition">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isBookerTheGuest}
+                                                    onChange={(e) => setIsBookerTheGuest(e.target.checked)}
+                                                    className="w-4 h-4 rounded text-blue-600 mt-0.5 cursor-pointer accent-blue-600"
+                                                />
+                                                <div className="text-xs">
+                                                    <span className="font-bold text-slate-900 block">
+                                                        Tôi đồng thời là người nhận phòng & lưu trú thực tế
+                                                    </span>
+                                                    <span className="text-slate-500 text-[11px] block mt-0.5 leading-relaxed">
+                                                        Bỏ chọn nếu bạn là <strong>Nhân sự (HR) / Thư ký / Đại diện công ty</strong> đặt phòng cho cấp trên hoặc đồng nghiệp đi công tác (người đặt không trực tiếp đến ở).
                                                     </span>
                                                 </div>
-                                            )}
-
-                                            <div className="space-y-2">
-                                                {actualGuests.map((guest, idx) => (
-                                                    <div key={idx} className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 shadow-2xs">
-                                                        <div className="flex items-center justify-between text-xs">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="font-bold text-slate-800">
-                                                                    #{idx + 1}. Khách nhận phòng {idx === 0 && !isBookerTheGuest ? '(Trưởng đoàn / Đại diện lưu trú)' : ''}
-                                                                </span>
-                                                                {idx === 0 && !isBookerTheGuest && (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[9px] font-bold">
-                                                                        Nhận phòng chính
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            {actualGuests.length > 1 && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setActualGuests(prev => prev.filter((_, i) => i !== idx))}
-                                                                    className="text-rose-500 hover:text-rose-700 text-[11px] font-bold cursor-pointer"
-                                                                >
-                                                                    ✕ Xóa
-                                                                </button>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Họ và tên nhân sự / khách *"
-                                                                value={guest.full_name}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, full_name: val } : g));
-                                                                }}
-                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Số CCCD / Hộ chiếu"
-                                                                value={guest.identity_card}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, identity_card: val.toUpperCase() } : g));
-                                                                }}
-                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                            />
-                                                            <input
-                                                                type="tel"
-                                                                placeholder="Số ĐT nhận phòng"
-                                                                value={guest.phone_number}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, phone_number: val } : g));
-                                                                }}
-                                                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            </label>
                                         </div>
                                     )}
+
+                                    {/* KHAI BÁO DANH SÁCH NHÂN SỰ / KHÁCH LƯU TRÚ THỰC TẾ (CHỈ ÁP DỤNG KHI ĐẶT CHO CÔNG TY) */}
+                                    {customerType === 'CORPORATE' && (() => {
+                                        const roomCap = Number(room?.capacity || 2);
+                                        const currentTotalGuests = (isBookerTheGuest ? 1 : 0) + actualGuests.length;
+                                        const isMaxCapacityReached = currentTotalGuests >= roomCap;
+
+                                        return (
+                                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                                                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base">📋</span>
+                                                        <div>
+                                                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                                                Danh sách người lưu trú ({isBookerTheGuest ? 1 + actualGuests.filter(g => g.full_name?.trim()).length : actualGuests.filter(g => g.full_name?.trim()).length} / {roomCap} khách tối đa)
+                                                            </h4>
+                                                            <p className="text-[10px] text-slate-500">
+                                                                Khai báo trước thông tin để Lễ tân đối chiếu và làm thủ tục check-in nhanh chóng
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        disabled={isMaxCapacityReached}
+                                                        onClick={() => {
+                                                            if (isMaxCapacityReached) return;
+                                                            setActualGuests(prev => [...prev, { full_name: '', id_type: 'CCCD', identity_card: '', phone_number: '', is_primary: false }]);
+                                                        }}
+                                                        className={`px-3 py-1.5 font-bold text-[11px] rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95 ${
+                                                            isMaxCapacityReached
+                                                                ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-70'
+                                                                : 'bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 shadow-2xs'
+                                                        }`}
+                                                        title={isMaxCapacityReached ? `Phòng này chỉ ở tối đa ${roomCap} người lớn` : 'Thêm người ở cùng phòng'}
+                                                    >
+                                                        <span>➕ Thêm người ở</span>
+                                                        <span className="text-[10px] opacity-75">({currentTotalGuests}/{roomCap})</span>
+                                                    </button>
+                                                </div>
+
+                                                {/* THÔNG BÁO GIỚI HẠN SỨC CHỨA THEO QUY ĐỊNH PHÒNG */}
+                                                {isMaxCapacityReached && (
+                                                    <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-xs flex items-center gap-2 animate-in fade-in">
+                                                        <span className="text-sm shrink-0">ℹ️</span>
+                                                        <span className="leading-tight text-[11px]">
+                                                            Đã đạt sức chứa tối đa của hạng phòng (<strong>{roomCap} người lớn</strong>). Nếu có thêm người hoặc đoàn đông, quý khách vui lòng đặt thêm phòng hoặc liên hệ lễ tân.
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-2.5">
+                                                    {actualGuests.map((guest, idx) => (
+                                                        <div key={idx} className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 shadow-2xs">
+                                                            <div className="flex items-center justify-between text-xs">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="font-bold text-slate-800">
+                                                                        #{idx + 1}. Khách lưu trú {idx === 0 && !isBookerTheGuest ? '(Người đại diện nhận phòng)' : ''}
+                                                                    </span>
+                                                                    {idx === 0 && !isBookerTheGuest && (
+                                                                        <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[9px] font-bold">
+                                                                            Nhận phòng chính
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {actualGuests.length > 1 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setActualGuests(prev => prev.filter((_, i) => i !== idx))}
+                                                                        className="text-rose-500 hover:text-rose-700 text-[11px] font-bold cursor-pointer"
+                                                                    >
+                                                                         Xóa
+                                                                    </button>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                                                {/* Họ và tên */}
+                                                                <div className="sm:col-span-4">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Họ và tên khách/nhân sự *"
+                                                                        value={guest.full_name}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, full_name: val } : g));
+                                                                        }}
+                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Loại giấy tờ: CCCD hoặc Hộ chiếu */}
+                                                                <div className="sm:col-span-2">
+                                                                    <select
+                                                                        value={guest.id_type || 'CCCD'}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, id_type: val } : g));
+                                                                        }}
+                                                                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                                                    >
+                                                                        <option value="CCCD">CCCD</option>
+                                                                        <option value="PASSPORT">Hộ chiếu</option>
+                                                                    </select>
+                                                                </div>
+
+                                                                {/* Số giấy tờ */}
+                                                                <div className="sm:col-span-3">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder={guest.id_type === 'PASSPORT' ? 'Số Hộ chiếu...' : 'Số CCCD...'}
+                                                                        value={guest.identity_card}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, identity_card: val.toUpperCase() } : g));
+                                                                        }}
+                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Số ĐT */}
+                                                                <div className="sm:col-span-3">
+                                                                    <input
+                                                                        type="tel"
+                                                                        placeholder="Số ĐT nhận phòng"
+                                                                        value={guest.phone_number}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, phone_number: val } : g));
+                                                                        }}
+                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
 
@@ -1294,7 +1368,10 @@ export default function Checkout() {
                                                 <button
                                                     key={catName}
                                                     type="button"
-                                                    onClick={() => setServiceFilter(catName)}
+                                                    onClick={() => {
+                                                        setServiceFilter(catName);
+                                                        setIsExpandedServices(false);
+                                                    }}
                                                     className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer ${isActive
                                                         ? 'bg-slate-900 text-white shadow-sm'
                                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -1319,114 +1396,139 @@ export default function Checkout() {
                                         Chưa có dịch vụ nào trong danh mục này.
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {filteredServices.map((svc) => {
-                                            const isSelected = Boolean(selectedServices[svc.id]);
-                                            const currentQty = selectedServices[svc.id] || 1;
-                                            const svcImg = svc.display_image || svc.image_url || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
-                                            const priceNum = Number(svc.price || 0);
+                                    <div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {displayedServices.map((svc) => {
+                                                const isSelected = Boolean(selectedServices[svc.id]);
+                                                const currentQty = selectedServices[svc.id] || 1;
+                                                const svcImg = svc.display_image || svc.image_url || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
+                                                const priceNum = Number(svc.price || 0);
 
-                                            return (
-                                                <div
-                                                    key={svc.id}
-                                                    className={`group relative rounded-2xl border p-4 transition-all duration-200 flex flex-col justify-between ${isSelected
-                                                        ? 'border-amber-400 bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30 shadow-md shadow-amber-500/10 ring-1 ring-amber-400'
-                                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
-                                                        }`}
-                                                >
-                                                    <div className="flex gap-3.5 items-start">
-                                                        {/* Checkbox chọn dịch vụ */}
-                                                        <div className="pt-0.5">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`svc-check-${svc.id}`}
-                                                                checked={isSelected}
-                                                                onChange={() => handleToggleService(svc.id)}
-                                                                className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300 cursor-pointer"
-                                                            />
-                                                        </div>
-
-                                                        {/* Ảnh đại diện dịch vụ */}
-                                                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden shrink-0 relative border border-slate-100 bg-slate-50">
-                                                            <img
-                                                                src={svcImg}
-                                                                alt={svc.name}
-                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                                onError={(e) => {
-                                                                    e.target.src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
-                                                                }}
-                                                            />
-                                                        </div>
-
-                                                        {/* Thông tin dịch vụ */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                                {svc.category_name && (
-                                                                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                                                                        {svc.category_icon ? `${svc.category_icon} ` : ''}{svc.category_name}
-                                                                    </span>
-                                                                )}
+                                                return (
+                                                    <div
+                                                        key={svc.id}
+                                                        className={`group relative rounded-2xl border p-4 transition-all duration-200 flex flex-col justify-between ${isSelected
+                                                            ? 'border-amber-400 bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30 shadow-md shadow-amber-500/10 ring-1 ring-amber-400'
+                                                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
+                                                            }`}
+                                                    >
+                                                        <div className="flex gap-3.5 items-start">
+                                                            {/* Checkbox chọn dịch vụ */}
+                                                            <div className="pt-0.5">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    id={`svc-check-${svc.id}`}
+                                                                    checked={isSelected}
+                                                                    onChange={() => handleToggleService(svc.id)}
+                                                                    className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300 cursor-pointer"
+                                                                />
                                                             </div>
 
-                                                            <h4
-                                                                onClick={() => handleToggleService(svc.id)}
-                                                                className="font-bold text-xs sm:text-sm text-slate-900 mt-1 cursor-pointer hover:text-orange-600 transition truncate"
-                                                                title={svc.name}
-                                                            >
-                                                                {svc.name}
-                                                            </h4>
-
-                                                            {svc.description && (
-                                                                <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                                                                    {svc.description}
-                                                                </p>
-                                                            )}
-
-                                                            <div className="mt-1.5 font-bold text-xs text-orange-600">
-                                                                {priceNum.toLocaleString('vi-VN')} <span className="text-[10px] font-semibold text-slate-500">VNĐ</span>
+                                                            {/* Ảnh đại diện dịch vụ */}
+                                                            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden shrink-0 relative border border-slate-100 bg-slate-50">
+                                                                <img
+                                                                    src={svcImg}
+                                                                    alt={svc.name}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                    onError={(e) => {
+                                                                        e.target.src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
+                                                                    }}
+                                                                />
                                                             </div>
-                                                        </div>
-                                                    </div>
 
-                                                    {/* Khu vực Tùy chỉnh số lượng khi đã chọn */}
-                                                    {isSelected && (
-                                                        <div className="mt-3 pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs animate-in fade-in duration-200">
-                                                            <span className="text-[11px] font-semibold text-slate-600">
-                                                                Số lượng sử dụng:
-                                                            </span>
-
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="inline-flex items-center bg-white border border-amber-300 rounded-xl shadow-xs overflow-hidden">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleUpdateServiceQty(svc.id, -1)}
-                                                                        className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition"
-                                                                        title="Giảm số lượng"
-                                                                    >
-                                                                        -
-                                                                    </button>
-                                                                    <span className="w-8 text-center font-bold text-slate-900 text-xs">
-                                                                        {currentQty}
-                                                                    </span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleUpdateServiceQty(svc.id, 1)}
-                                                                        className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition"
-                                                                        title="Tăng số lượng"
-                                                                    >
-                                                                        +
-                                                                    </button>
+                                                            {/* Thông tin dịch vụ */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    {svc.category_name && (
+                                                                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                                                            {svc.category_icon ? `${svc.category_icon} ` : ''}{svc.category_name}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
 
-                                                                <span className="text-[11px] font-extrabold text-slate-900 ml-1">
-                                                                    = {(priceNum * currentQty).toLocaleString('vi-VN')} ₫
-                                                                </span>
+                                                                <h4
+                                                                    onClick={() => handleToggleService(svc.id)}
+                                                                    className="font-bold text-xs sm:text-sm text-slate-900 mt-1 cursor-pointer hover:text-orange-600 transition truncate"
+                                                                    title={svc.name}
+                                                                >
+                                                                    {svc.name}
+                                                                </h4>
+
+                                                                {svc.description && (
+                                                                    <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                                                                        {svc.description}
+                                                                    </p>
+                                                                )}
+
+                                                                <div className="mt-1.5 font-bold text-xs text-orange-600">
+                                                                    {priceNum.toLocaleString('vi-VN')} <span className="text-[10px] font-semibold text-slate-500">VNĐ</span>
+                                                                </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Khu vực Tùy chỉnh số lượng khi đã chọn */}
+                                                        {isSelected && (
+                                                            <div className="mt-3 pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs animate-in fade-in duration-200">
+                                                                <span className="text-[11px] font-semibold text-slate-600">
+                                                                    Số lượng sử dụng:
+                                                                </span>
+
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="inline-flex items-center bg-white border border-amber-300 rounded-xl shadow-xs overflow-hidden">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleUpdateServiceQty(svc.id, -1)}
+                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition"
+                                                                            title="Giảm số lượng"
+                                                                        >
+                                                                            -
+                                                                        </button>
+                                                                        <span className="w-8 text-center font-bold text-slate-900 text-xs">
+                                                                            {currentQty}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleUpdateServiceQty(svc.id, 1)}
+                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition"
+                                                                            title="Tăng số lượng"
+                                                                        >
+                                                                            +
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <span className="text-[11px] font-extrabold text-slate-900 ml-1">
+                                                                        = {(priceNum * currentQty).toLocaleString('vi-VN')} ₫
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Nút Xem thêm / Thu gọn khi danh sách nhiều dịch vụ */}
+                                        {shouldShowExpandButton && (
+                                            <div className="mt-4 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsExpandedServices(!isExpandedServices)}
+                                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-100 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 text-slate-700 text-xs font-bold transition-all border border-slate-200 shadow-2xs cursor-pointer active:scale-95"
+                                                >
+                                                    {isExpandedServices ? (
+                                                        <>
+                                                            <span>Thu gọn danh sách dịch vụ</span>
+                                                            <span className="text-sm font-black leading-none">↑</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span>Xem thêm {filteredServices.length - INITIAL_SERVICES_LIMIT} dịch vụ tiện ích khác</span>
+                                                            <span className="text-sm font-black leading-none">↓</span>
+                                                        </>
                                                     )}
-                                                </div>
-                                            );
-                                        })}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

@@ -51,6 +51,37 @@ export default function TADaNangHotelLanding() {
     const [latestPosts, setLatestPosts] = useState([]);
     const [isLoadingNews, setIsLoadingNews] = useState(true);
 
+    // Danh sách ảnh banner chạy luân phiên (Slider)
+    const bannerImages = [
+        {
+            url: "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1920&q=80",
+            title: "Kỳ Nghỉ Thượng Lưu",
+            subtitle: "Tại Khách Sạn TA Đà Nẵng",
+            desc: "Nghỉ dưỡng đẳng cấp bên bờ biển Mỹ Khê với dịch vụ chu đáo và không gian thư thái tuyệt đối."
+        },
+        {
+            url: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1920&q=80",
+            title: "Thiên Đường Nghỉ Dưỡng",
+            subtitle: "Hồ Bơi Vô Cực Hướng Biển",
+            desc: "Thưởng ngoạn hoàng hôn biển lãng mạn cùng ly cocktail tinh tế bên hồ bơi chân mây."
+        },
+        {
+            url: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1920&q=80",
+            title: "Phòng Suite Hạng Sang",
+            subtitle: "Đặc Quyền Dịch Vụ 5 Sao",
+            desc: "Nội thất cao cấp, ban công ngắm trọn đại dương và trải nghiệm ẩm thực thượng hạng."
+        }
+    ];
+    const [currentBanner, setCurrentBanner] = useState(0);
+
+    // Tự động chuyển ảnh banner sau mỗi 6 giây
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentBanner((prev) => (prev + 1) % bannerImages.length);
+        }, 6000);
+        return () => clearInterval(timer);
+    }, [bannerImages.length]);
+
     const calculateNights = () => {
         if (!checkInDate || !checkOutDate) return 1;
         const diff = Math.round((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24));
@@ -111,52 +142,98 @@ export default function TADaNangHotelLanding() {
             <Navbar />
 
 
-            {/* 3. HERO SECTION CHUẨN LUXURY HOTEL */}
-            <section className="relative min-h-[560px] lg:h-[620px] flex items-center justify-center bg-slate-950 overflow-hidden">
-                {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
-                <img
-                    src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1920&q=80"
-                    alt="Khách Sạn TA Đà Nẵng Resort"
-                    className="absolute inset-0 w-full h-full object-cover object-center"
-                />
-                {/* 2. Lớp phủ Gradient Tối (phủ đều toàn bộ kết hợp gradient đáy) */}
-                <div className="absolute inset-0 bg-black/50 bg-gradient-to-t from-slate-950 via-black/40 to-black/30" />
+            {/* 3. HERO SECTION CHUẨN LUXURY HOTEL - SLIDER CHẠY QUA LẠI */}
+            <section className="relative min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group">
+                {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng cross-fade mềm mại */}
+                {bannerImages.map((b, idx) => (
+                    <div
+                        key={idx}
+                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                            currentBanner === idx ? 'opacity-100 z-0' : 'opacity-0 -z-10'
+                        }`}
+                    >
+                        <img
+                            src={b.url}
+                            alt={b.title}
+                            className={`w-full h-full object-cover object-center transition-transform duration-7000 ease-out ${
+                                currentBanner === idx ? 'scale-105' : 'scale-100'
+                            }`}
+                        />
+                    </div>
+                ))}
 
-                {/* 3. Hero Content nổi bật trên cùng (relative z-10) */}
-                <div className="relative z-10 max-w-5xl mx-auto px-4 text-center text-white py-16">
-                    <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-tight sm:leading-tight mb-6">
-                        Khởi Đầu Kỳ Nghỉ Thượng Lưu Đích Thực <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-sky-200 to-amber-200">
-                            Tại Khách Sạn TA Đà Nẵng
+                {/* Lớp phủ mỏng nhẹ, giữ độ sáng tự nhiên cho ảnh biển */}
+                <div className="absolute inset-0 bg-black/25 bg-gradient-to-t from-slate-950/70 via-black/15 to-transparent z-1" />
+
+                {/* Hero Content nổi bật trên cùng (relative z-10) */}
+                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white py-12">
+                    <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight mb-4 drop-shadow-md transition-all duration-700">
+                        {bannerImages[currentBanner].title} <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-sky-100 to-amber-100">
+                            {bannerImages[currentBanner].subtitle}
                         </span>
                     </h1>
 
-                    <p className="text-base sm:text-lg text-slate-200 max-w-2xl mx-auto mb-8 font-light leading-relaxed">
-                        Nơi vẻ đẹp hùng vĩ của biển Mỹ Khê hòa quyện tinh hoa kiến trúc nghỉ dưỡng đương đại.
-                        Trải nghiệm dịch vụ quản gia 24/7 và sự thanh tĩnh tuyệt đối.
+                    <p className="text-sm sm:text-base text-slate-100 max-w-xl mx-auto mb-6 font-normal leading-relaxed drop-shadow-sm transition-all duration-700">
+                        {bannerImages[currentBanner].desc}
                     </p>
 
-                    <div className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm text-slate-300">
-                        <span className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-200 drop-shadow-sm">
+                        <span className="flex items-center gap-1.5">
                             <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                             </svg>
-                            Đảm bảo giá trực tiếp tốt nhất
+                            Giá trực tiếp tốt nhất
                         </span>
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5">
                             <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                             </svg>
-                            Miễn phí linh hoạt đổi hủy 24h
+                            Linh hoạt đổi hủy 24h
                         </span>
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5">
                             <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                             </svg>
-                            Đưa đón sân bay VIP Mercedes-Benz
+                            Đưa đón sân bay VIP
                         </span>
                     </div>
+
+                    {/* Dấu chấm chuyển slide (Dots Indicators) */}
+                    <div className="flex items-center justify-center gap-2 mt-6">
+                        {bannerImages.map((_, dotIdx) => (
+                            <button
+                                key={dotIdx}
+                                type="button"
+                                onClick={() => setCurrentBanner(dotIdx)}
+                                className={`transition-all duration-300 rounded-full cursor-pointer ${
+                                    currentBanner === dotIdx
+                                        ? 'w-7 h-2 bg-white shadow-sm'
+                                        : 'w-2 h-2 bg-white/50 hover:bg-white/80'
+                                }`}
+                                aria-label={`Xem banner ${dotIdx + 1}`}
+                            />
+                        ))}
+                    </div>
                 </div>
+
+                {/* Nút Previous & Next chuyển banner */}
+                <button
+                    type="button"
+                    onClick={() => setCurrentBanner((prev) => (prev - 1 + bannerImages.length) % bannerImages.length)}
+                    className="absolute left-4 z-10 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition opacity-0 group-hover:opacity-100 cursor-pointer shadow-md"
+                    aria-label="Banner trước"
+                >
+                    ❮
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setCurrentBanner((prev) => (prev + 1) % bannerImages.length)}
+                    className="absolute right-4 z-10 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition opacity-0 group-hover:opacity-100 cursor-pointer shadow-md"
+                    aria-label="Banner kế tiếp"
+                >
+                    ❯
+                </button>
             </section>
 
             {/* 4. FLOATING BOOKING SEARCH BAR WIDGET */}

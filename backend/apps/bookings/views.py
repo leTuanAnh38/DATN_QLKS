@@ -501,11 +501,14 @@ class BookingViewSet(viewsets.ModelViewSet):
                     dob = g.get('date_of_birth')
                     if not dob or str(dob).strip() == '':
                         dob = None
+                    raw_id = (g.get('id_number') or g.get('identity_card') or '').strip()
+                    if not raw_id and is_p:
+                        raw_id = (identity_card or '').strip()
                     guests_to_create.append(BookingGuest(
                         booking=booking,
                         full_name=g_name,
                         id_type=g.get('id_type', 'CCCD'),
-                        id_number=(g.get('id_number') or '').strip() or None,
+                        id_number=raw_id or None,
                         date_of_birth=dob,
                         gender=(g.get('gender') or '').strip() or 'Nam',
                         nationality=(g.get('nationality') or '').strip() or 'Việt Nam',
@@ -652,6 +655,26 @@ class BookingViewSet(viewsets.ModelViewSet):
         if booking.room and booking.room.status == 'occupied':
             booking.room.status = 'available'
             booking.room.save(update_fields=['status'])
+
+        # Hủy các ServiceRequest đang chờ của phòng này (nếu có)
+        try:
+            from ..services.models import ServiceRequest
+            ServiceRequest.objects.filter(booking=booking, status__in=['pending', 'in_progress']).update(status='cancelled')
+        except Exception:
+            pass
+
+        # Nếu phòng này thuộc một Đơn Đặt Đoàn (GroupBooking), tự động đồng bộ lại đoàn
+        if booking.group_booking:
+            group = booking.group_booking
+            active_subs = group.sub_bookings.exclude(status='cancelled')
+            if not active_subs.exists():
+                group.status = 'cancelled'
+                group.note = f"{group.note or ''}\n[Toàn bộ phòng trong đoàn đã hủy lúc {now_str}]".strip()
+                group.save(update_fields=['status', 'note', 'updated_at'])
+            else:
+                new_total = sum(Decimal(str(b.grand_total_amount or b.total_amount or 0)) for b in active_subs)
+                group.total_amount = new_total
+                group.save(update_fields=['total_amount', 'updated_at'])
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
         log_action(
@@ -2642,7 +2665,16 @@ class BookingViewSet(viewsets.ModelViewSet):
                     paid_amount = float(booking.total_amount or room_charge)
 
             is_group_sub_room = bool(booking.group_booking_id and getattr(booking, 'is_master_billed', True))
-            if is_group_sub_room:
+            group = booking.group_booking
+            is_company_all_inclusive = bool(is_group_sub_room and group and getattr(group, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE')
+
+            if is_company_all_inclusive:
+                # Công ty chi trả toàn bộ (Cả tiền phòng lẫn mọi chi phí dịch vụ phát sinh)
+                # Khách trả phòng lẻ tại quầy không phải trả tiền, toàn bộ kết chuyển vào Master Folio của đoàn
+                remaining_amount = 0.0
+                sub_room_charge = 0.0
+                sub_invoice_total = 0.0
+            elif is_group_sub_room:
                 # Tiền phòng chuyển vào Master Folio của đoàn, số tiền khách lẻ tại quầy phải trả chỉ là dịch vụ phát sinh
                 remaining_amount = max(0.0, float(total_service_charge - paid_amount))
                 sub_room_charge = 0.0
@@ -3199,9 +3231,9 @@ class BookingViewSet(viewsets.ModelViewSet):
         # 2. Lấy tất cả các đơn đặt phòng diễn ra trong tháng đó (check_in_date <= month_end AND check_out_date >= month_start)
         # Loại bỏ các đơn đã hủy (cancelled) hoặc vắng mặt (no_show) vì không chiếm dụng phòng trên sơ đồ
         month_bookings = Booking.objects.select_related(
-            'guest', 'category', 'room', 'room__category'
+            'guest', 'category', 'room', 'room__category', 'group_booking'
         ).prefetch_related(
-            'service_requests__service', 'extra_services'
+            'service_requests__service', 'extra_services', 'guests'
         ).filter(
             check_in_date__lte=month_end,
             check_out_date__gte=month_start
@@ -3215,11 +3247,26 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         import re
         for b in month_bookings:
+            # 1. Ưu tiên lấy tên người đại diện lưu trú của từng phòng (cho đơn đoàn công ty / MICE)
             guest_name = ''
-            if b.guest:
-                guest_name = b.guest.get_full_name() or b.guest.username
+            primary_guest = None
+            try:
+                primary_guest = b.guests.filter(is_primary=True).first() or b.guests.first()
+                if primary_guest and primary_guest.full_name:
+                    guest_name = primary_guest.full_name.strip()
+            except Exception:
+                pass
+
+            if not guest_name and b.guest:
+                guest_name = (b.guest.get_full_name().strip() or f"{b.guest.first_name or ''} {b.guest.last_name or ''}".strip()) or b.guest.username
+
             if not guest_name:
                 guest_name = 'Khách vãng lai'
+
+            # Thông tin liên hệ & người ở cùng phòng
+            guest_phone = getattr(primary_guest, 'phone_number', None) or (getattr(b.guest, 'phone_number', '') if b.guest else '')
+            identity_card = (primary_guest.id_number if primary_guest and primary_guest.id_number else b.identity_card) or ''
+            occupants = [g.full_name for g in b.guests.all() if g.full_name]
 
             # Tính tiền dịch vụ phát sinh (ServiceRequest completed + BookingExtraService)
             service_total = 0.0
@@ -3254,9 +3301,12 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'id': b.id,
                 'booking_code': b.booking_code,
                 'guest_name': guest_name,
-                'guest_phone': getattr(b.guest, 'phone_number', '') if b.guest else '',
+                'booker_name': b.guest.get_full_name() if b.guest else '',
+                'group_name': b.group_booking.group_name if b.group_booking else '',
+                'occupants': occupants,
+                'guest_phone': guest_phone,
                 'guest_email': getattr(b.guest, 'email', '') if b.guest else '',
-                'identity_card': b.identity_card,
+                'identity_card': identity_card,
                 'category_id': b.category_id,
                 'category_name': b.category.name if b.category else (b.room.category.name if b.room and b.room.category else ''),
                 'room_id': b.room_id,

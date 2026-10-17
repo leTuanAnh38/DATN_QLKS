@@ -103,7 +103,13 @@ class BookingSerializer(serializers.ModelSerializer):
     customer_type_display = serializers.CharField(source='get_customer_type_display', read_only=True)
     group_booking_code = serializers.CharField(source='group_booking.group_code', read_only=True, default=None)
     group_booking_name = serializers.CharField(source='group_booking.group_name', read_only=True, default=None)
+    group_billing_type = serializers.CharField(source='group_booking.billing_type', read_only=True, default=None)
+    is_company_all_inclusive = serializers.SerializerMethodField()
     is_group_deposit_paid = serializers.BooleanField(source='group_booking.is_deposit_paid', read_only=True, default=False)
+    is_group_fully_paid = serializers.SerializerMethodField()
+    group_deposit_amount = serializers.DecimalField(source='group_booking.deposit_amount', max_digits=12, decimal_places=0, read_only=True, default=0)
+    group_total_amount = serializers.DecimalField(source='group_booking.total_amount', max_digits=12, decimal_places=0, read_only=True, default=0)
+    group_deposit_status = serializers.SerializerMethodField()
     group_status = serializers.CharField(source='group_booking.status', read_only=True, default=None)
 
     class Meta:
@@ -119,8 +125,14 @@ class BookingSerializer(serializers.ModelSerializer):
             'group_booking',
             'group_booking_code',
             'group_booking_name',
+            'group_billing_type',
+            'is_company_all_inclusive',
             'is_master_billed',
             'is_group_deposit_paid',
+            'is_group_fully_paid',
+            'group_deposit_amount',
+            'group_total_amount',
+            'group_deposit_status',
             'group_status',
             'review',
             'category',
@@ -387,14 +399,21 @@ class BookingSerializer(serializers.ModelSerializer):
 
         return 0.0
 
+    def get_is_company_all_inclusive(self, obj):
+        return bool(obj.group_booking and getattr(obj.group_booking, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE')
+
     def get_remaining_balance(self, obj):
         """
         remaining_balance: total_amount - paid_amount.
         Số tiền dương là khách nợ cần thu thêm, số 0 là hòa, số âm là phải thối lại.
         Đối với phòng thuộc đoàn có tính tiền vào hóa đơn tổng (is_master_billed=True hoặc group_booking),
-        tiền phòng do đoàn/công ty thanh toán tập trung, khách lẻ tại phòng chỉ phải trả dịch vụ cá nhân phát sinh (nếu có).
+        tiền phòng do đoàn/công ty thanh toán tập trung:
+        - Nếu ALL_INCLUSIVE: Công ty trả toàn bộ (cả phòng & dịch vụ phát sinh), khách lẻ còn nợ = 0đ.
+        - Nếu ROOM_ONLY: Công ty chỉ trả tiền phòng, khách lẻ tự trả dịch vụ phát sinh tại phòng.
         """
         if obj.group_booking_id and getattr(obj, 'is_master_billed', True):
+            if self.get_is_company_all_inclusive(obj):
+                return 0.0
             service_charge = self.get_service_charge(obj)
             direct_paid = self.get_paid_amount(obj)
             return float(max(0.0, service_charge - direct_paid))
@@ -653,6 +672,29 @@ class BookingSerializer(serializers.ModelSerializer):
             return 'Thẻ tín dụng'
         return 'Chưa xác định'
 
+    def get_is_company_all_inclusive(self, obj):
+        if obj.group_booking:
+            return obj.group_booking.billing_type == 'ALL_INCLUSIVE'
+        return False
+
+    def get_is_group_fully_paid(self, obj):
+        if obj.group_booking and obj.group_booking.is_deposit_paid:
+            deposit = float(obj.group_booking.deposit_amount or 0)
+            total = float(obj.group_booking.total_amount or 0)
+            return total > 0 and deposit >= total
+        return False
+
+    def get_group_deposit_status(self, obj):
+        if not obj.group_booking:
+            return None
+        if obj.group_booking.is_deposit_paid:
+            deposit = float(obj.group_booking.deposit_amount or 0)
+            total = float(obj.group_booking.total_amount or 0)
+            if total > 0 and deposit >= total:
+                return '✓ Đã thanh toán 100% đoàn'
+            return '✓ Đã cọc đoàn'
+        return 'Chờ cọc đoàn'
+
 
 # ========================================================
 # SERIALIZERS CHO ĐỐI TÁC DOANH NGHIỆP & ĐƠN ĐẶT ĐOÀN
@@ -673,6 +715,7 @@ class CorporatePartnerSerializer(serializers.ModelSerializer):
 class GroupBookingSerializer(serializers.ModelSerializer):
     corporate_partner_details = CorporatePartnerSerializer(source='corporate_partner', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    billing_type_display = serializers.CharField(source='get_billing_type_display', read_only=True)
     total_rooms = serializers.SerializerMethodField()
     sub_bookings = serializers.SerializerMethodField()
     rooms_summary = serializers.SerializerMethodField()
@@ -688,6 +731,7 @@ class GroupBookingSerializer(serializers.ModelSerializer):
             'leader_email', 'check_in_date', 'check_out_date', 'nights',
             'total_amount', 'deposit_amount', 'is_deposit_paid',
             'deposit_status', 'remaining_balance',
+            'billing_type', 'billing_type_display',
             'status', 'status_display', 'note', 'internal_note',
             'total_rooms', 'sub_bookings', 'rooms_summary',
             'created_at', 'updated_at'
@@ -704,6 +748,10 @@ class GroupBookingSerializer(serializers.ModelSerializer):
 
     def get_deposit_status(self, obj):
         if obj.is_deposit_paid:
+            deposit = float(obj.deposit_amount or 0)
+            total = float(obj.total_amount or 0)
+            if total > 0 and deposit >= total:
+                return 'Đã thanh toán 100%'
             return 'Đã thanh toán cọc'
         if obj.deposit_amount and obj.deposit_amount > 0:
             return 'Chờ thanh toán cọc'

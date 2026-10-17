@@ -292,9 +292,12 @@ export default function InvoiceManagement() {
 
             {/* THẺ THỐNG KÊ TỔNG QUAN (KPIs) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div 
+                    className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs"
+                    title="Tổng dòng tiền thực tế đã thu vào tài khoản/két sắt (bao gồm tiền cọc và tiền quyết toán trả phòng)"
+                >
                     <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-                        <span>Tổng tiền đã thu (VND)</span>
+                        <span>Tổng tiền đã thu (Thực thu)</span>
                         <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                             <ArrowUpRight className="w-4 h-4" />
                         </div>
@@ -302,7 +305,7 @@ export default function InvoiceManagement() {
                     <div className="text-2xl font-black text-emerald-600 mt-2 font-serif">
                         {formatVND(stats.totalRevenue)}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Từ {stats.completedCount} giao dịch thành công</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Từ {stats.completedCount} giao dịch thành công (Cọc & Quyết toán)</p>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -675,39 +678,59 @@ export default function InvoiceManagement() {
             {/* 4. LOGIC TÁI SỬ DỤNG: GẮN COMPONENT HÓA ĐƠN CÓ SẴN CỦA BẠN        */}
             {/* ================================================================= */}
             {selectedPayment && (
-                /**
-                 * CÁCH 1: Nếu component Hóa đơn nhận prop `booking` (như HotelInvoiceModal sẵn có):
-                 */
                 <HotelInvoiceModal
-                    booking={selectedPayment.booking_details || selectedPayment.booking || {
-                        id: selectedPayment.group_booking_id || selectedPayment.booking_id,
-                        booking_code: selectedPayment.group_booking_code || selectedPayment.booking_code || (selectedPayment.transaction_id ? selectedPayment.transaction_id.replace('TXN-', '') : ''),
-                        customer_name: selectedPayment.guest_name,
-                        guest_name: selectedPayment.guest_name,
-                        guest_phone: selectedPayment.guest_phone,
-                        customer_type: selectedPayment.is_group ? 'CORPORATE' : 'MEMBER',
-                        company_name: selectedPayment.company_name,
-                        room_number: selectedPayment.room_number,
-                        guest: { get_full_name: selectedPayment.guest_name },
-                        total_amount: selectedPayment.amount,
-                        room_amount: selectedPayment.amount,
-                        status: selectedPayment.payment_status === 'COMPLETED' ? 'paid' : 'pending',
-                        payment_method: selectedPayment.payment_method
-                    }}
+                    booking={
+                        selectedPayment.is_group
+                            ? {
+                                ...(selectedPayment.booking_details || {}),
+                                id: selectedPayment.group_booking_id || selectedPayment.booking_details?.id,
+                                is_group_master: true,
+                                is_group_booking: true,
+                                booking_code: selectedPayment.group_booking_code || selectedPayment.booking_details?.booking_code || selectedPayment.booking_details?.group_code,
+                                group_code: selectedPayment.group_booking_code || selectedPayment.booking_details?.group_code,
+                                group_name: selectedPayment.booking_details?.group_name || selectedPayment.company_name,
+                                customer_name: selectedPayment.guest_name || selectedPayment.booking_details?.customer_name || selectedPayment.booking_details?.leader_name,
+                                guest_name: selectedPayment.guest_name || selectedPayment.booking_details?.guest_name || selectedPayment.booking_details?.leader_name,
+                                guest_phone: selectedPayment.guest_phone || selectedPayment.booking_details?.guest_phone || selectedPayment.booking_details?.leader_phone,
+                                customer_type: 'CORPORATE',
+                                company_name: selectedPayment.company_name || selectedPayment.booking_details?.company_name,
+                                company_tax_code: selectedPayment.booking_details?.company_tax_code,
+                                company_address: selectedPayment.booking_details?.company_address,
+                                total_rooms: selectedPayment.booking_details?.total_rooms || selectedPayment.booking_details?.sub_bookings?.length,
+                                sub_bookings: selectedPayment.booking_details?.sub_bookings || [],
+                                billing_type: selectedPayment.booking_details?.billing_type || 'ALL_INCLUSIVE',
+                                is_all_inclusive: Boolean(selectedPayment.booking_details?.billing_type === 'ALL_INCLUSIVE' || selectedPayment.booking_details?.is_all_inclusive),
+                                deposit_amount: selectedPayment.booking_details?.deposit_amount,
+                                is_deposit_paid: selectedPayment.booking_details?.is_deposit_paid ?? true,
+                                status: selectedPayment.booking_details?.status || (selectedPayment.payment_status === 'COMPLETED' ? 'checked_out' : 'tentative'),
+                                total_amount: selectedPayment.booking_details?.total_amount,
+                                room_amount: selectedPayment.booking_details?.room_amount || selectedPayment.booking_details?.total_amount,
+                                payment_method: selectedPayment.payment_method ? (
+                                    selectedPayment.payment_method === 'TRANSFER' ? 'Chuyển khoản VietQR' :
+                                    selectedPayment.payment_method === 'CASH' ? 'Tiền mặt (Tại quầy lễ tân)' :
+                                    'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'
+                                ) : 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'
+                            }
+                            : (selectedPayment.booking_details || selectedPayment.booking || {
+                                id: selectedPayment.booking_id,
+                                booking_code: selectedPayment.booking_code || (selectedPayment.transaction_id ? selectedPayment.transaction_id.replace('TXN-', '') : ''),
+                                customer_name: selectedPayment.guest_name,
+                                guest_name: selectedPayment.guest_name,
+                                guest_phone: selectedPayment.guest_phone,
+                                customer_type: 'MEMBER',
+                                company_name: selectedPayment.company_name,
+                                room_number: selectedPayment.room_number,
+                                guest: { get_full_name: selectedPayment.guest_name },
+                                total_amount: selectedPayment.amount,
+                                room_amount: selectedPayment.amount,
+                                status: selectedPayment.payment_status === 'COMPLETED' ? 'paid' : 'pending',
+                                payment_method: selectedPayment.payment_method
+                            })
+                    }
                     payment={selectedPayment}
                     paymentMethod={selectedPayment.payment_method}
                     onClose={() => setSelectedPayment(null)}
                 />
-
-                /**
-                 * CÁCH 2: Nếu component của bạn nhận `paymentId` hoặc `bookingId`:
-                 * 
-                 * <InvoiceModal
-                 *     paymentId={selectedPayment.id}
-                 *     bookingId={selectedPayment.booking_id}
-                 *     onClose={() => setSelectedPayment(null)}
-                 * />
-                 */
             )}
         </div>
     );

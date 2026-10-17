@@ -809,6 +809,11 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             <span className="text-[10px] text-blue-400 font-mono">
                                 #{hoveredBooking.booking_code}
                             </span>
+                            {hoveredBooking.group_name && (
+                                <span className="text-[10px] text-amber-300 block font-semibold mt-0.5">
+                                    🏢 Đoàn: {hoveredBooking.group_name}
+                                </span>
+                            )}
                         </div>
                         <span
                             className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
@@ -906,12 +911,22 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
                                 <div>
                                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                                        Khách hàng
+                                        Khách đại diện phòng
                                     </span>
                                     <strong className="text-sm font-bold text-slate-900 block mt-0.5">
                                         {selectedBookingModal.guest_name}
                                     </strong>
-                                    <span className="text-[11px] text-slate-500">
+                                    {selectedBookingModal.group_name && (
+                                        <span className="text-xs text-amber-700 font-semibold block mt-0.5">
+                                            🏢 Thuộc đoàn: {selectedBookingModal.group_name} {selectedBookingModal.booker_name ? `(Trưởng đoàn: ${selectedBookingModal.booker_name})` : ''}
+                                        </span>
+                                    )}
+                                    {selectedBookingModal.occupants && selectedBookingModal.occupants.length > 1 && (
+                                        <span className="text-[11px] text-slate-600 block mt-0.5">
+                                            👥 Khách cùng phòng: {selectedBookingModal.occupants.join(', ')}
+                                        </span>
+                                    )}
+                                    <span className="text-[11px] text-slate-500 block mt-0.5">
                                         {selectedBookingModal.guest_phone || selectedBookingModal.guest_email || '—'}
                                     </span>
                                 </div>

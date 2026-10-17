@@ -75,6 +75,16 @@ class GroupBooking(models.Model):
     deposit_amount = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tiền đặt cọc (VND)")
     is_deposit_paid = models.BooleanField(default=False, verbose_name="Đã thanh toán tiền cọc")
     
+    BILLING_TYPE_CHOICES = (
+        ('ROOM_ONLY', 'Công ty chỉ trả tiền phòng (Khách tự trả phát sinh)'),
+        ('ALL_INCLUSIVE', 'Công ty chi trả toàn bộ (Tiền phòng + Dịch vụ phát sinh)'),
+    )
+    billing_type = models.CharField(
+        max_length=20,
+        choices=BILLING_TYPE_CHOICES,
+        default='ROOM_ONLY',
+        verbose_name="Chính sách thanh toán chi phí phát sinh"
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='tentative', verbose_name="Trạng thái")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú yêu cầu đặc biệt của đoàn")
     internal_note = models.TextField(blank=True, null=True, verbose_name="Ghi chú nội bộ (Lễ tân/Kinh doanh)")

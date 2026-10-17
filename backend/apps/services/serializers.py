@@ -131,16 +131,31 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return 'Phòng tiêu chuẩn'
 
     def get_guest_name(self, obj):
-        if obj.booking and obj.booking.guest:
-            full_name = obj.booking.guest.get_full_name().strip()
-            if not full_name:
-                full_name = f"{obj.booking.guest.first_name or ''} {obj.booking.guest.last_name or ''}".strip()
-            return full_name or obj.booking.guest.username
+        if obj.booking:
+            try:
+                primary_guest = obj.booking.guests.filter(is_primary=True).first() or obj.booking.guests.first()
+                if primary_guest and primary_guest.full_name:
+                    return primary_guest.full_name.strip()
+            except Exception:
+                pass
+
+            if obj.booking.guest:
+                full_name = obj.booking.guest.get_full_name().strip()
+                if not full_name:
+                    full_name = f"{obj.booking.guest.first_name or ''} {obj.booking.guest.last_name or ''}".strip()
+                return full_name or obj.booking.guest.username
         return 'Khách lưu trú'
 
     def get_guest_phone(self, obj):
-        if obj.booking and obj.booking.guest:
-            return getattr(obj.booking.guest, 'phone_number', '') or ''
+        if obj.booking:
+            try:
+                primary_guest = obj.booking.guests.filter(is_primary=True).first() or obj.booking.guests.first()
+                if primary_guest and getattr(primary_guest, 'phone_number', None):
+                    return primary_guest.phone_number
+            except Exception:
+                pass
+            if obj.booking.guest:
+                return getattr(obj.booking.guest, 'phone_number', '') or ''
         return ''
 
     def get_service_image(self, obj):

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { roomService } from '../../services/roomService';
+import { hotelService } from '../../services/hotelService';
 import { bookingService } from '../../services/bookingService';
 import { useAuth } from '../../store/authStore';
 import api from '../../services/api';
@@ -19,6 +20,17 @@ export default function CorporateBooking() {
     // Data states
     const [categories, setCategories] = useState([]);
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+    // Dịch vụ khách sạn khả dụng để chọn kèm cho từng phòng
+    const [availableServices, setAvailableServices] = useState([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(false);
+    const [activeServicePickerRoomKey, setActiveServicePickerRoomKey] = useState(null);
+
+    // Hình thức thanh toán: 'DEPOSIT_50' (Cọc 50%) hoặc 'FULL' (Thanh toán tất cả 100%)
+    const [paymentOption, setPaymentOption] = useState('DEPOSIT_50');
+
+    // Chính sách chi trả dịch vụ phát sinh: 'ROOM_ONLY' (Khách tự trả) hoặc 'ALL_INCLUSIVE' (Công ty chi trả toàn bộ)
+    const [billingType, setBillingType] = useState('ROOM_ONLY');
 
     // Dynamic VietQR Bank Config (Tải từ hệ thống cấu hình ngân hàng)
     const [bankConfig, setBankConfig] = useState({
@@ -99,6 +111,38 @@ export default function CorporateBooking() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
     const [createdGroup, setCreatedGroup] = useState(null);
+    const [isPaidSuccess, setIsPaidSuccess] = useState(false);
+
+    // Tự động kiểm tra trạng thái thanh toán VietQR (Long Polling 3s/lần)
+    useEffect(() => {
+        if (!createdGroup?.group_code || isPaidSuccess) return;
+
+        let isMounted = true;
+        let isChecking = false;
+
+        const checkStatus = async () => {
+            if (isChecking || !isMounted) return;
+            isChecking = true;
+            try {
+                const res = await api.get(`/payments/${createdGroup.group_code}/status/`);
+                if (isMounted && res.data?.status === 'COMPLETED') {
+                    setIsPaidSuccess(true);
+                }
+            } catch (err) {
+                // Nuốt lỗi mạng tạm thời trong lúc polling
+            } finally {
+                isChecking = false;
+            }
+        };
+
+        checkStatus();
+        const intervalId = setInterval(checkStatus, 3000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [createdGroup, isPaidSuccess]);
 
     // Load room categories
     useEffect(() => {
@@ -112,6 +156,25 @@ export default function CorporateBooking() {
             })
             .finally(() => {
                 if (isMounted) setIsLoadingCategories(false);
+            });
+        return () => { isMounted = false; };
+    }, []);
+
+    // Load danh mục dịch vụ khách sạn đang phục vụ
+    useEffect(() => {
+        let isMounted = true;
+        setIsLoadingServices(true);
+        hotelService.getServices({ status: 'active' })
+            .then((res) => {
+                if (isMounted && res?.success && Array.isArray(res.items)) {
+                    setAvailableServices(res.items);
+                }
+            })
+            .catch((err) => {
+                console.error('Không thể tải danh sách dịch vụ:', err);
+            })
+            .finally(() => {
+                if (isMounted) setIsLoadingServices(false);
             });
         return () => { isMounted = false; };
     }, []);
@@ -180,7 +243,8 @@ export default function CorporateBooking() {
                                 global_index: globalRoomIdx++,
                                 category_name: cat.name,
                                 capacity: Number(cat.capacity || 2),
-                                room_index: i + 1
+                                room_index: i + 1,
+                                services: existingRoom.services || []
                             });
                         } else {
                             nextList.push({
@@ -201,7 +265,8 @@ export default function CorporateBooking() {
                                         nationality: 'Việt Nam',
                                         is_primary: true
                                     }
-                                ]
+                                ],
+                                services: []
                             });
                         }
                     }
@@ -249,6 +314,69 @@ export default function CorporateBooking() {
                 return {
                     ...room,
                     guests: nextGuests
+                };
+            })
+        );
+    };
+
+    // Quản lý dịch vụ chọn kèm cho từng phòng
+    const handleAddServiceToRoom = (roomKey, serviceItem) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const existingServices = room.services || [];
+                const existIdx = existingServices.findIndex((s) => s.service_id === serviceItem.id);
+                if (existIdx >= 0) {
+                    const updated = [...existingServices];
+                    updated[existIdx] = {
+                        ...updated[existIdx],
+                        quantity: updated[existIdx].quantity + 1
+                    };
+                    return { ...room, services: updated };
+                } else {
+                    return {
+                        ...room,
+                        services: [
+                            ...existingServices,
+                            {
+                                service_id: serviceItem.id,
+                                name: serviceItem.name,
+                                price: Number(serviceItem.price || 0),
+                                quantity: 1,
+                                category_name: serviceItem.category?.name || serviceItem.category_name || ''
+                            }
+                        ]
+                    };
+                }
+            })
+        );
+    };
+
+    const handleUpdateServiceQtyInRoom = (roomKey, serviceId, delta) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const existingServices = room.services || [];
+                const updated = existingServices
+                    .map((s) => {
+                        if (s.service_id === serviceId) {
+                            return { ...s, quantity: s.quantity + delta };
+                        }
+                        return s;
+                    })
+                    .filter((s) => s.quantity > 0);
+                return { ...room, services: updated };
+            })
+        );
+    };
+
+    const handleRemoveServiceFromRoom = (roomKey, serviceId) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                return {
+                    ...room,
+                    services: (room.services || []).filter((s) => s.service_id !== serviceId)
                 };
             })
         );
@@ -325,7 +453,7 @@ export default function CorporateBooking() {
     // Financial calculations
     const discountPercent = appliedPartner ? Number(appliedPartner.discount_percent || 0) : 0;
 
-    const { totalRoomsCount, subtotalAmount, totalDiscount, grandTotal, depositAmount } = useMemo(() => {
+    const { totalRoomsCount, subtotalAmount, totalDiscount, totalServicesAmount, grandTotal, depositAmount } = useMemo(() => {
         let count = 0;
         let subtotal = 0;
         categories.forEach((cat) => {
@@ -337,18 +465,27 @@ export default function CorporateBooking() {
             }
         });
 
+        // Tính tổng tiền dịch vụ đã chọn cho tất cả các phòng
+        let servicesTotal = 0;
+        roomingList.forEach((r) => {
+            (r.services || []).forEach((s) => {
+                servicesTotal += Number(s.price || 0) * Number(s.quantity || 1);
+            });
+        });
+
         const discount = discountPercent > 0 ? (subtotal * discountPercent) / 100 : 0;
-        const total = Math.max(0, subtotal - discount);
-        const deposit = Math.round(total * 0.5);
+        const total = Math.max(0, subtotal - discount + servicesTotal);
+        const deposit = paymentOption === 'FULL' ? total : Math.round(total * 0.5);
 
         return {
             totalRoomsCount: count,
             subtotalAmount: subtotal,
             totalDiscount: discount,
+            totalServicesAmount: servicesTotal,
             grandTotal: total,
             depositAmount: deposit
         };
-    }, [categories, selectedRooms, nights, discountPercent]);
+    }, [categories, selectedRooms, nights, discountPercent, roomingList, paymentOption]);
 
     // Handle room qty
     const handleRoomQtyChange = (catId, delta) => {
@@ -399,12 +536,16 @@ export default function CorporateBooking() {
             }
         });
 
-        // Danh sách phân phòng & khách lưu trú (lấy những khách đã điền họ tên)
+        // Danh sách phân phòng & khách lưu trú & dịch vụ đi kèm từng phòng
         const roomingPayload = roomingList.map((r) => ({
             category_id: r.category_id,
             room_index: r.room_index,
-            guests: r.guests.filter((g) => (g.full_name || '').trim())
-        })).filter((r) => r.guests.length > 0);
+            guests: (r.guests || []).filter((g) => (g.full_name || '').trim()),
+            services: (r.services || []).map((s) => ({
+                service_id: s.service_id,
+                quantity: s.quantity
+            }))
+        })).filter((r) => r.guests.length > 0 || (r.services && r.services.length > 0));
 
         const payload = {
             group_name: groupName.trim() || `Đoàn khách ${leaderName.trim()}`,
@@ -418,7 +559,9 @@ export default function CorporateBooking() {
             check_out_date: checkOutDate,
             rooms: roomsPayload,
             rooming_list: roomingPayload,
+            payment_option: paymentOption,
             deposit_amount: depositAmount,
+            billing_type: billingType,
             note: note.trim() || null,
             is_company_invoice: isCompanyInvoice,
             company_name: isCompanyInvoice ? companyName.trim() : null,
@@ -435,7 +578,8 @@ export default function CorporateBooking() {
                     group_code: res.group_code,
                     deposit_amount: res.deposit_amount,
                     total_amount: res.total_amount,
-                    total_rooms: res.total_rooms
+                    total_rooms: res.total_rooms,
+                    payment_option: paymentOption
                 });
             } else {
                 setSubmitError(res.message || 'Không thể tạo đơn đặt đoàn.');
@@ -452,20 +596,79 @@ export default function CorporateBooking() {
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-blue-600 selection:text-white">
             <Navbar />
 
-            <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
-                {/* HERO BANNER - WHITE / LIGHT THEME */}
-                <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50/70 p-8 sm:p-12 border border-slate-200/80 shadow-sm">
-                    <div className="relative z-10 max-w-3xl space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100/80 border border-blue-200 text-blue-800 text-xs font-bold uppercase tracking-wider">
-                            <span>🏢</span>
-                            <span>Cổng Đặt Phòng Dành Cho Doanh Nghiệp & Đoàn M.I.C.E</span>
+            {/* BREADCRUMB ĐỒNG BỘ 100% VỚI CÁC TRANG KHÁC */}
+            <div className="bg-white border-b border-slate-100 py-3">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
+                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                        <span>/</span>
+                        <Link to="/rooms" className="hover:text-blue-600 transition">Phòng nghỉ & Suites</Link>
+                        <span>/</span>
+                        <span className="text-slate-900 font-semibold truncate">Đặt phòng theo đoàn công ty</span>
+                    </nav>
+                </div>
+            </div>
+
+            <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+                {/* 2. HERO BANNER LUXURY SÁNG SỦA, TINH TẾ */}
+                <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-50/90 via-white to-sky-50/70 border border-slate-200/90 shadow-md">
+                    {/* Ảnh resort sáng nét, phủ nhẹ ở góc phải */}
+                    <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 overflow-hidden pointer-events-none opacity-40 md:opacity-90">
+                        <img
+                            src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"
+                            alt="Đặt phòng theo đoàn khách sạn TA Đà Nẵng"
+                            className="w-full h-full object-cover object-center"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent" />
+                    </div>
+
+                    <div className="relative z-10 p-6 sm:p-10 space-y-6 max-w-2xl">
+                    
+                        <div className="space-y-3">
+                            <h1 className="font-serif text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                                Khách Hàng Doanh Nghiệp <br />
+                                <span className="text-blue-600">
+                                    & Đặt Phòng Theo Đoàn
+                                </span>
+                            </h1>
+                            <p className="text-slate-600 text-xs sm:text-sm sm:leading-relaxed font-normal">
+                                Giải pháp lưu trú toàn diện cho công tác, hội thảo và du lịch tập thể. Đặt nhiều phòng cùng lúc với chiết khấu hợp đồng ưu đãi, xuất Hóa đơn GTGT (VAT) điện tử hợp lệ và điều phối chuyên nghiệp.
+                            </p>
                         </div>
-                        <h1 className="font-serif text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Chương Trình Khách Hàng Doanh Nghiệp & Đặt Theo Đoàn
-                        </h1>
-                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                            Đặt nhiều phòng cùng lúc với chính sách chiết khấu hợp đồng ưu đãi, hỗ trợ xuất Hóa đơn GTGT (VAT) điện tử hợp lệ và chính sách đặt cọc giữ chỗ linh hoạt.
-                        </p>
+
+                        {/* Các tiện ích & đặc quyền dành riêng cho đoàn */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200/80">
+                            <div className="flex items-center gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0 border border-blue-100">
+                                    🏷️
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-900">Chiết Khấu B2B</h4>
+                                    <p className="text-[11px] text-slate-500">Ưu đãi theo hợp đồng</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0 border border-emerald-100">
+                                    🧾
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-900">Hóa Đơn VAT</h4>
+                                    <p className="text-[11px] text-slate-500">Xuất hóa đơn hợp lệ</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0 border border-amber-100">
+                                    🤵
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-900">Trợ Lý Đoàn</h4>
+                                    <p className="text-[11px] text-slate-500">Hỗ trợ check-in 24/7</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1043,6 +1246,108 @@ export default function CorporateBooking() {
                                                         );
                                                     })}
                                                 </div>
+
+                                                {/* Dịch vụ chọn kèm cho phòng này */}
+                                                <div className="pt-3 border-t border-slate-200/80 space-y-2.5">
+                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                                            <span>🛎️</span>
+                                                            <span>Dịch vụ tiện ích chọn kèm phòng này</span>
+                                                            {room.services && room.services.length > 0 && (
+                                                                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px]">
+                                                                    {room.services.length} dịch vụ
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setActiveServicePickerRoomKey(activeServicePickerRoomKey === room.room_key ? null : room.room_key)}
+                                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1 transition cursor-pointer active:scale-95"
+                                                        >
+                                                            <span>➕</span>
+                                                            <span>{activeServicePickerRoomKey === room.room_key ? 'Đóng menu' : 'Thêm dịch vụ'}</span>
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Danh sách dịch vụ đã chọn cho phòng */}
+                                                    {room.services && room.services.length > 0 ? (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            {room.services.map((svc) => (
+                                                                <div key={svc.service_id} className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="text-xs font-bold text-slate-900 truncate">{svc.name}</div>
+                                                                        <div className="text-[11px] text-amber-600 font-semibold">
+                                                                            {formatCurrency(svc.price)} / lần
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, -1)}
+                                                                            className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer"
+                                                                        >
+                                                                            -
+                                                                        </button>
+                                                                        <span className="w-5 text-center text-xs font-black text-slate-800">{svc.quantity}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, 1)}
+                                                                            className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer"
+                                                                        >
+                                                                            +
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveServiceFromRoom(room.room_key, svc.service_id)}
+                                                                            className="text-slate-400 hover:text-rose-600 text-xs ml-1 cursor-pointer p-0.5"
+                                                                            title="Xóa dịch vụ"
+                                                                        >
+                                                                            ✕
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-[11px] text-slate-400 italic">
+                                                            Chưa chọn dịch vụ nào cho phòng này (như Buffet sáng, Spa, Minibar, Đưa đón sân bay...).
+                                                        </div>
+                                                    )}
+
+                                                    {/* Panel chọn dịch vụ cho phòng này */}
+                                                    {activeServicePickerRoomKey === room.room_key && (
+                                                        <div className="p-3 bg-white rounded-xl border border-indigo-200 space-y-2 animate-in fade-in duration-150">
+                                                            <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                                                                <span>Chọn dịch vụ khách sạn muốn thêm vào phòng:</span>
+                                                                <span className="text-[10px] text-slate-400">Bấm (+) Thêm</span>
+                                                            </div>
+                                                            {availableServices.length === 0 ? (
+                                                                <p className="text-xs text-slate-400">Đang tải hoặc không có dịch vụ nào khả dụng.</p>
+                                                            ) : (
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-1">
+                                                                    {availableServices.map((item) => (
+                                                                        <div
+                                                                            key={item.id}
+                                                                            className="p-2 rounded-lg border border-slate-100 bg-slate-50/70 hover:bg-indigo-50/50 hover:border-indigo-200 transition flex items-center justify-between gap-2"
+                                                                        >
+                                                                            <div className="min-w-0">
+                                                                                <div className="text-xs font-semibold text-slate-900 truncate">{item.name}</div>
+                                                                                <div className="text-[11px] text-indigo-700 font-bold">{formatCurrency(item.price)}</div>
+                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleAddServiceToRoom(room.room_key, item)}
+                                                                                className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shrink-0 cursor-pointer shadow-2xs"
+                                                                            >
+                                                                                + Thêm
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -1051,9 +1356,152 @@ export default function CorporateBooking() {
                         </div>
                     )}
 
-                    {/* TỔNG KẾT & ĐẶT CỌC */}
+                    {/* TỔNG KẾT & CHỌN HÌNH THỨC THANH TOÁN */}
                     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">
-                        <div className="space-y-2 text-xs">
+                        {/* 1. CHÍNH SÁCH THANH TOÁN PHÁT SINH TẠI PHÒNG (BILLING ROUTING) */}
+                        <div className="space-y-3 pb-5 border-b border-slate-200">
+                            <div className="flex items-center justify-between">
+                                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <span>⚖️</span>
+                                    <span>Chính sách chi trả dịch vụ phát sinh tại phòng (Minibar, Giặt là, Ăn uống...):</span>
+                                </label>
+                                <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">Quy định hạch toán</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                {/* Tùy chọn 1: Khách tự trả phát sinh (ROOM_ONLY) */}
+                                <div
+                                    onClick={() => setBillingType('ROOM_ONLY')}
+                                    className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
+                                        billingType === 'ROOM_ONLY'
+                                            ? 'border-indigo-600 bg-indigo-50/50 shadow-sm ring-2 ring-indigo-500/20'
+                                            : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="billingType"
+                                        checked={billingType === 'ROOM_ONLY'}
+                                        onChange={() => setBillingType('ROOM_ONLY')}
+                                        className="mt-1 w-4 h-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                    />
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-black text-slate-900">Khách tự trả chi phí phát sinh</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">
+                                                Mặc định
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                                            Công ty chỉ chi trả tiền phòng & dịch vụ đặt trước theo hợp đồng. Khách từng phòng tự thanh toán chi phí phát sinh cá nhân khi trả phòng lẻ tại quầy lễ tân.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Tùy chọn 2: Công ty chi trả toàn bộ (ALL_INCLUSIVE) */}
+                                <div
+                                    onClick={() => setBillingType('ALL_INCLUSIVE')}
+                                    className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
+                                        billingType === 'ALL_INCLUSIVE'
+                                            ? 'border-purple-600 bg-purple-50/50 shadow-sm ring-2 ring-purple-500/20'
+                                            : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="billingType"
+                                        checked={billingType === 'ALL_INCLUSIVE'}
+                                        onChange={() => setBillingType('ALL_INCLUSIVE')}
+                                        className="mt-1 w-4 h-4 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                    />
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-black text-slate-900">Công ty chi trả toàn bộ</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
+                                                Bao trọn gói
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                                            Công ty bảo lãnh toàn bộ chi phí. Mọi dịch vụ phát sinh của các phòng sẽ được gộp vào Hóa đơn tổng (Master Folio) của công ty để quyết toán khi trả đoàn.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. CHỌN HÌNH THỨC THANH TOÁN */}
+                        <div className="space-y-3">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                💳 Lựa chọn hình thức thanh toán cho toàn đoàn:
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                {/* Tùy chọn A: Đặt cọc 50% */}
+                                <div
+                                    onClick={() => setPaymentOption('DEPOSIT_50')}
+                                    className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
+                                        paymentOption === 'DEPOSIT_50'
+                                            ? 'border-blue-600 bg-blue-50/50 shadow-sm ring-2 ring-blue-500/20'
+                                            : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="paymentOption"
+                                        checked={paymentOption === 'DEPOSIT_50'}
+                                        onChange={() => setPaymentOption('DEPOSIT_50')}
+                                        className="mt-1 w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-black text-slate-900">Đặt cọc 50% giữ phòng</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                                                Phổ biến
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                                            Thanh toán trước 50% (gồm phòng & dịch vụ). 50% còn lại thanh toán khi làm thủ tục nhận phòng hoặc trả phòng.
+                                        </p>
+                                        <div className="text-xs font-bold text-blue-600 pt-0.5">
+                                            Số tiền thanh toán: {formatCurrency(Math.round(grandTotal * 0.5))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Tùy chọn B: Thanh toán 100% */}
+                                <div
+                                    onClick={() => setPaymentOption('FULL')}
+                                    className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
+                                        paymentOption === 'FULL'
+                                            ? 'border-emerald-600 bg-emerald-50/50 shadow-sm ring-2 ring-emerald-500/20'
+                                            : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="paymentOption"
+                                        checked={paymentOption === 'FULL'}
+                                        onChange={() => setPaymentOption('FULL')}
+                                        className="mt-1 w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-black text-slate-900">Thanh toán toàn bộ 100%</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                                Trọn gói
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                                            Tất toán toàn bộ chi phí ngay. Toàn bộ phòng và dịch vụ được tất toán sẵn, khách đoàn đến chỉ việc nhận phòng.
+                                        </p>
+                                        <div className="text-xs font-bold text-emerald-600 pt-0.5">
+                                            Số tiền thanh toán: {formatCurrency(grandTotal)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. BẢNG TÍNH CHI TIẾT TỔNG HỢP */}
+                        <div className="space-y-2 text-xs pt-4 border-t border-slate-200">
                             <div className="flex justify-between text-slate-600">
                                 <span>Tổng tiền phòng gốc ({totalRoomsCount} phòng • {nights} đêm):</span>
                                 <span className="font-semibold text-slate-900">{formatCurrency(subtotalAmount)}</span>
@@ -1064,19 +1512,31 @@ export default function CorporateBooking() {
                                     <span>-{formatCurrency(totalDiscount)}</span>
                                 </div>
                             )}
+                            {totalServicesAmount > 0 && (
+                                <div className="flex justify-between text-indigo-600 font-semibold">
+                                    <span>Tổng chi phí dịch vụ chọn kèm các phòng:</span>
+                                    <span>+{formatCurrency(totalServicesAmount)}</span>
+                                </div>
+                            )}
                             <div className="pt-3 border-t border-slate-200 flex justify-between items-baseline">
-                                <span className="text-base font-bold text-slate-900">Tổng Giá Trị Hợp Đồng Đoàn:</span>
+                                <span className="text-base font-bold text-slate-900">Tổng Giá Trị Hợp Đồng Toàn Đoàn:</span>
                                 <span className="text-2xl sm:text-3xl font-black text-amber-600">{formatCurrency(grandTotal)}</span>
                             </div>
-                            <div className="pt-2 flex justify-between items-baseline text-sm">
-                                <span className="text-slate-600 font-medium">Tiền đặt cọc giữ chỗ (50%):</span>
+                            <div className="pt-2 flex justify-between items-baseline text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <span className="text-slate-700 font-bold">
+                                    {paymentOption === 'FULL'
+                                        ? 'Số tiền thanh toán ngay (100% Trọn gói):'
+                                        : 'Tiền đặt cọc giữ chỗ (50% Tổng đơn):'}
+                                </span>
                                 <span className="text-xl font-black text-blue-600">{formatCurrency(depositAmount)}</span>
                             </div>
                         </div>
 
                         <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <p className="text-[11px] text-slate-500 max-w-md">
-                                Sau khi gửi đơn, hệ thống sẽ mở mã QR VietQR để Doanh nghiệp quét thanh toán tiền cọc 50%. Khách sạn sẽ liên hệ xác nhận trong vòng 15 phút.
+                                {paymentOption === 'FULL'
+                                    ? 'Sau khi gửi đơn, hệ thống sẽ mở mã QR VietQR để Doanh nghiệp quét thanh toán toàn bộ 100%. Khách sạn sẽ liên hệ xác nhận trong vòng 15 phút.'
+                                    : 'Sau khi gửi đơn, hệ thống sẽ mở mã QR VietQR để Doanh nghiệp quét thanh toán tiền cọc 50%. Khách sạn sẽ liên hệ xác nhận trong vòng 15 phút.'}
                             </p>
 
                             <button
@@ -1092,7 +1552,11 @@ export default function CorporateBooking() {
                                 ) : (
                                     <>
                                         <span>🏢</span>
-                                        <span>Xác Nhận Đặt Phòng Đoàn ({totalRoomsCount} phòng)</span>
+                                        <span>
+                                            {paymentOption === 'FULL'
+                                                ? `Xác Nhận & Thanh Toán 100% (${totalRoomsCount} phòng)`
+                                                : `Xác Nhận & Đặt Cọc 50% (${totalRoomsCount} phòng)`}
+                                        </span>
                                     </>
                                 )}
                             </button>
@@ -1100,111 +1564,182 @@ export default function CorporateBooking() {
                     </div>
                 </form>
 
-                {/* MODAL THÀNH CÔNG & MÃ VIETQR ĐẶT CỌC */}
-                {createdGroup && (
-                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
-                        <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-5 shadow-2xl animate-in zoom-in-95 duration-200">
-                            <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center text-3xl mx-auto shadow-lg shadow-emerald-500/30">
-                                ✓
-                            </div>
-                            <div>
-                                <h3 className="font-serif text-2xl font-bold text-slate-900">
-                                    Đăng Ký Đặt Đoàn Thành Công!
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-1">
-                                    Mã đơn đoàn của quý khách: <strong className="font-mono text-indigo-700 font-black text-sm">#{createdGroup.group_code}</strong>
-                                </p>
-                            </div>
+                {/* MODAL THÀNH CÔNG & MÃ VIETQR THANH TOÁN */}
+                {createdGroup && (() => {
+                    const isFull = createdGroup.payment_option === 'FULL';
+                    const qrNote = isFull ? `TT toan doan ${createdGroup.group_code}` : `Coc doan ${createdGroup.group_code}`;
 
-                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left text-xs space-y-2">
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Quy mô đoàn:</span>
-                                    <strong className="text-slate-900">{createdGroup.total_rooms} phòng</strong>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Tổng tiền hợp đồng:</span>
-                                    <strong className="text-slate-900">{formatCurrency(createdGroup.total_amount)}</strong>
-                                </div>
-                                <div className="flex justify-between pt-2 border-t border-slate-200 font-bold">
-                                    <span className="text-slate-700">Tiền đặt cọc cần thanh toán (50%):</span>
-                                    <strong className="text-rose-600 text-sm">{formatCurrency(createdGroup.deposit_amount)}</strong>
-                                </div>
-                            </div>
+                    return (
+                        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
+                            <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-5 shadow-2xl animate-in zoom-in-95 duration-200">
+                                {isPaidSuccess ? (
+                                    /* MÀN HÌNH TỰ ĐỘNG XÁC NHẬN THANH TOÁN THÀNH CÔNG */
+                                    <div className="space-y-5 animate-in zoom-in-95 duration-200">
+                                        <div className="w-20 h-20 rounded-full bg-emerald-500 text-white flex items-center justify-center text-4xl mx-auto shadow-xl shadow-emerald-500/40">
+                                            ✓
+                                        </div>
+                                        <div>
+                                            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
+                                                Đã Nhận Tiền Thành Công
+                                            </span>
+                                            <h3 className="font-serif text-2xl font-black text-slate-900 mt-2">
+                                                {isFull ? 'Tất Toán Hợp Đồng Đoàn Thành Công!' : 'Xác Nhận Đặt Cọc Đoàn Thành Công!'}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                Hệ thống đã nhận được tiền chuyển khoản VietQR cho đơn đoàn <strong className="font-mono text-indigo-700 font-black">#{createdGroup.group_code}</strong>.
+                                            </p>
+                                        </div>
 
-                            {/* Mã VietQR cọc tự động từ cấu hình hệ thống */}
-                            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl inline-block mx-auto max-w-sm w-full">
-                                <img
-                                    src={`https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${createdGroup.deposit_amount}&addInfo=${encodeURIComponent(`Coc doan ${createdGroup.group_code}`)}&accountName=${encodeURIComponent(bankConfig.account_name)}`}
-                                    alt="VietQR Deposit"
-                                    className="w-48 h-48 mx-auto rounded-xl object-contain shadow-xs bg-white p-1"
-                                />
-                                <span className="text-[10px] text-slate-500 block mt-1.5 font-semibold">
-                                    Quét mã VietQR bằng app ngân hàng để chuyển cọc tự động
-                                </span>
+                                        <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-left text-xs space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Trạng thái hợp đồng:</span>
+                                                <strong className="text-emerald-700 font-bold">Đã xác nhận (Confirmed)</strong>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Quy mô đoàn:</span>
+                                                <strong className="text-slate-900">{createdGroup.total_rooms} phòng</strong>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Tổng giá trị hợp đồng:</span>
+                                                <strong className="text-slate-900">{formatCurrency(createdGroup.total_amount)}</strong>
+                                            </div>
+                                            <div className="flex justify-between pt-2 border-t border-emerald-200/80 font-bold">
+                                                <span className="text-slate-700">
+                                                    {isFull ? 'Số tiền đã tất toán (100%):' : 'Số tiền cọc đã thanh toán (50%):'}
+                                                </span>
+                                                <strong className="text-emerald-600 text-sm">{formatCurrency(createdGroup.deposit_amount)}</strong>
+                                            </div>
+                                        </div>
 
-                                {/* Khung chi tiết thông tin chuyển khoản */}
-                                <div className="mt-3 p-3 bg-white rounded-xl border border-indigo-100 text-left text-xs space-y-1.5 shadow-2xs">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-slate-500 text-[11px]">Ngân hàng:</span>
-                                        <strong className="text-slate-900 font-bold">MB Bank ({bankConfig.bank_bin})</strong>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-slate-500 text-[11px]">Số tài khoản:</span>
-                                        <div className="flex items-center gap-1.5">
-                                            <strong className="font-mono text-blue-700 font-extrabold text-xs">{bankConfig.account_no}</strong>
+                                        <div className="flex flex-col sm:flex-row items-center gap-3 justify-center pt-2">
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(bankConfig.account_no);
-                                                    setCopiedField('acc');
-                                                    setTimeout(() => setCopiedField(null), 2000);
-                                                }}
-                                                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer"
-                                                title="Sao chép số tài khoản"
+                                                onClick={() => navigate('/booking-history')}
+                                                className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                                             >
-                                                {copiedField === 'acc' ? '✓ Đã chép' : 'Sao chép'}
+                                                Xem Lịch Sử Đặt Phòng
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate('/')}
+                                                className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                                            >
+                                                Về Trang Chủ
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-slate-500 text-[11px]">Chủ tài khoản:</span>
-                                        <strong className="text-slate-900 uppercase text-[11px] font-bold">{bankConfig.account_name}</strong>
-                                    </div>
-                                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                                        <span className="text-slate-500 text-[11px]">Nội dung CK:</span>
-                                        <div className="flex items-center gap-1.5">
-                                            <strong className="font-mono text-indigo-700 font-bold text-xs bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                                                Coc doan {createdGroup.group_code}
-                                            </strong>
+                                ) : (
+                                    /* MÀN HÌNH QUÉT MÃ VIETQR VÀ CHỜ CHUYỂN KHOẢN */
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center text-3xl mx-auto shadow-lg shadow-blue-500/30">
+                                            🏢
+                                        </div>
+                                        <div>
+                                            <h3 className="font-serif text-2xl font-bold text-slate-900">
+                                                {isFull ? 'Thanh Toán Hợp Đồng Đoàn 100%' : 'Thanh Toán Đặt Cọc Đoàn 50%'}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                Mã đơn đoàn của quý khách: <strong className="font-mono text-indigo-700 font-black text-sm">#{createdGroup.group_code}</strong>
+                                            </p>
+                                        </div>
+
+                                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left text-xs space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-500">Quy mô đoàn:</span>
+                                                <strong className="text-slate-900">{createdGroup.total_rooms} phòng</strong>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-500">Tổng tiền hợp đồng:</span>
+                                                <strong className="text-slate-900">{formatCurrency(createdGroup.total_amount)}</strong>
+                                            </div>
+                                            <div className="flex justify-between pt-2 border-t border-slate-200 font-bold">
+                                                <span className="text-slate-700">
+                                                    {isFull ? 'Số tiền thanh toán tất cả (100%):' : 'Tiền đặt cọc cần thanh toán (50%):'}
+                                                </span>
+                                                <strong className="text-rose-600 text-sm">{formatCurrency(createdGroup.deposit_amount)}</strong>
+                                            </div>
+                                        </div>
+
+                                        {/* Mã VietQR cọc tự động từ cấu hình hệ thống */}
+                                        <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl inline-block mx-auto max-w-sm w-full">
+                                            <img
+                                                src={`https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${createdGroup.deposit_amount}&addInfo=${encodeURIComponent(qrNote)}&accountName=${encodeURIComponent(bankConfig.account_name)}`}
+                                                alt="VietQR Payment"
+                                                className="w-48 h-48 mx-auto rounded-xl object-contain shadow-xs bg-white p-1"
+                                            />
+                                            
+                                            {/* Trạng thái lắng nghe giao dịch realtime */}
+                                            <div className="flex items-center justify-center gap-2 py-1.5 px-3 mt-2 text-[11px] text-blue-700 font-bold bg-white/90 rounded-xl border border-blue-200 shadow-2xs">
+                                                <div className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></div>
+                                                <span>Đang chờ nhận tiền chuyển khoản... (Tự động xác nhận)</span>
+                                            </div>
+
+                                            {/* Khung chi tiết thông tin chuyển khoản */}
+                                            <div className="mt-3 p-3 bg-white rounded-xl border border-indigo-100 text-left text-xs space-y-1.5 shadow-2xs">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-slate-500 text-[11px]">Ngân hàng:</span>
+                                                    <strong className="text-slate-900 font-bold">MB Bank ({bankConfig.bank_bin})</strong>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-slate-500 text-[11px]">Số tài khoản:</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <strong className="font-mono text-blue-700 font-extrabold text-xs">{bankConfig.account_no}</strong>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(bankConfig.account_no);
+                                                                setCopiedField('acc');
+                                                                setTimeout(() => setCopiedField(null), 2000);
+                                                            }}
+                                                            className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer"
+                                                            title="Sao chép số tài khoản"
+                                                        >
+                                                            {copiedField === 'acc' ? '✓ Đã chép' : 'Sao chép'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-slate-500 text-[11px]">Chủ tài khoản:</span>
+                                                    <strong className="text-slate-900 uppercase text-[11px] font-bold">{bankConfig.account_name}</strong>
+                                                </div>
+                                                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                                                    <span className="text-slate-500 text-[11px]">Nội dung CK:</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <strong className="font-mono text-indigo-700 font-bold text-xs bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                                                            {qrNote}
+                                                        </strong>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(qrNote);
+                                                                setCopiedField('note');
+                                                                setTimeout(() => setCopiedField(null), 2000);
+                                                            }}
+                                                            className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer"
+                                                            title="Sao chép nội dung chuyển khoản"
+                                                        >
+                                                            {copiedField === 'note' ? '✓ Đã chép' : 'Sao chép'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 justify-center pt-2">
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(`Coc doan ${createdGroup.group_code}`);
-                                                    setCopiedField('note');
-                                                    setTimeout(() => setCopiedField(null), 2000);
-                                                }}
-                                                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer"
-                                                title="Sao chép nội dung chuyển khoản"
+                                                onClick={() => navigate('/')}
+                                                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                                             >
-                                                {copiedField === 'note' ? '✓ Đã chép' : 'Sao chép'}
+                                                Về Trang Chủ
                                             </button>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 justify-center pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/')}
-                                    className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
-                                >
-                                    Về Trang Chủ
-                                </button>
+                                    </>
+                                )}
                             </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
             </main>
 
             <Footer />

@@ -120,7 +120,8 @@ class Payment(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Payment #{self.id} - {self.booking.booking_code} - {self.amount} ({self.payment_status})"
+        code_ref = self.booking.booking_code if self.booking else (self.group_booking.group_code if self.group_booking else "N/A")
+        return f"Payment #{self.id} - {code_ref} - {self.amount} ({self.payment_status})"
 
     class Meta:
         verbose_name = "Thanh Toán"

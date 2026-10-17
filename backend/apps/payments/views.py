@@ -374,12 +374,19 @@ class PaymentListView(APIView):
                         transaction_id=f"TXN-{inv.invoice_code.replace('INV-', '')}"
                     )
 
-            # 2. Đồng bộ thêm các booking đã thanh toán hợp lệ mà chưa có payment
+            # 2. Đồng bộ thêm các booking lẻ đã thanh toán hợp lệ mà chưa có payment
+            # Lưu ý: Bỏ qua các phòng thuộc hợp đồng đoàn (group_booking) vì tiền phòng và quyết toán đã được hạch toán tập trung ở HĐ đoàn
             paid_bookings = Booking.objects.filter(
                 models.Q(status__in=['completed', 'checked_out', 'paid', 'PAID']) |
                 models.Q(note__icontains='VietQR: Đã thanh toán') |
                 models.Q(note__icontains='đã thanh toán thành công')
-            ).exclude(status__in=['cancelled', 'no_show']).exclude(payments__isnull=False)
+            ).filter(
+                group_booking__isnull=True
+            ).exclude(
+                status__in=['cancelled', 'no_show']
+            ).exclude(
+                payments__isnull=False
+            )
 
             for b in paid_bookings:
                 note_lower = (b.note or '').lower()
@@ -522,29 +529,74 @@ class PaymentConfigView(APIView):
 class PaymentStatusView(APIView):
     """
     API endpoint: GET /api/payments/<booking_id>/status/
-    Kiểm tra trạng thái thanh toán của đơn đặt phòng phục vụ Long Polling từ Frontend.
-    Hỗ trợ booking_id là ID (số) hoặc booking_code (chuỗi).
+    Kiểm tra trạng thái thanh toán của đơn đặt phòng hoặc đơn đặt đoàn phục vụ Long Polling từ Frontend.
+    Hỗ trợ booking_id là ID (số) hoặc mã code (BK-xxxxxx hoặc GRP-xxxxxx).
     Trả về {"status": "COMPLETED"} hoặc {"status": "PENDING"}.
     """
     permission_classes = [AllowAny]
 
     def get(self, request, booking_id):
-        # 1. Tra cứu booking theo ID số hoặc booking_code
-        try:
-            if str(booking_id).isdigit():
-                booking = Booking.objects.get(id=int(booking_id))
-            else:
-                booking = Booking.objects.get(booking_code=str(booking_id))
-        except Booking.DoesNotExist:
+        from ..bookings.models import GroupBooking
+        booking = None
+        group_booking = None
+
+        raw_id = str(booking_id).strip()
+
+        # 1. Tra cứu theo GroupBooking (Mã đoàn GRP-xxxxxx hoặc ID)
+        if raw_id.upper().startswith('GRP-') or 'GRP' in raw_id.upper():
+            group_booking = GroupBooking.objects.filter(group_code__iexact=raw_id).first()
+            if not group_booking:
+                clean_grp = re.sub(r'[^A-Za-z0-9]', '', raw_id).upper()
+                group_booking = GroupBooking.objects.filter(group_code__icontains=clean_grp.replace('GRP', '')).first()
+
+        if not group_booking and raw_id.isdigit():
+            group_booking = GroupBooking.objects.filter(id=int(raw_id)).first()
+
+        # 2. Tra cứu theo Booking đơn lẻ nếu chưa thấy đơn đoàn
+        if not group_booking:
+            try:
+                if raw_id.isdigit():
+                    booking = Booking.objects.get(id=int(raw_id))
+                else:
+                    booking = Booking.objects.get(booking_code__iexact=raw_id)
+            except Booking.DoesNotExist:
+                pass
+
+        if not booking and not group_booking:
             return Response(
                 {
                     "status": "NOT_FOUND",
-                    "message": f"Không tìm thấy đơn đặt phòng với ID '{booking_id}'."
+                    "message": f"Không tìm thấy đơn đặt phòng hoặc đơn đặt đoàn với mã '{booking_id}'."
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # 2. Kiểm tra trạng thái thanh toán:
+        # Xử lý kết quả kiểm tra cho Đơn đặt đoàn
+        if group_booking:
+            has_completed_payment = Payment.objects.filter(group_booking=group_booking, payment_status='COMPLETED').exists()
+            is_deposit_paid = bool(group_booking.is_deposit_paid)
+            is_group_confirmed = group_booking.status in ['confirmed', 'checked_in', 'paid', 'completed']
+            is_invoice_paid = hasattr(group_booking, 'master_invoice') and group_booking.master_invoice and group_booking.master_invoice.status == 'paid'
+
+            if has_completed_payment or is_deposit_paid or is_group_confirmed or is_invoice_paid:
+                return Response({
+                    "status": "COMPLETED",
+                    "group_code": group_booking.group_code,
+                    "group_id": group_booking.id,
+                    "is_group": True,
+                    "is_deposit_paid": True,
+                    "group_status": group_booking.status
+                }, status=status.HTTP_200_OK)
+
+            return Response({
+                "status": "PENDING",
+                "group_code": group_booking.group_code,
+                "group_id": group_booking.id,
+                "is_group": True,
+                "is_deposit_paid": False
+            }, status=status.HTTP_200_OK)
+
+        # Xử lý kết quả kiểm tra cho Đơn phòng lẻ
         has_completed_payment = Payment.objects.filter(booking=booking, payment_status='COMPLETED').exists()
         is_invoice_paid = hasattr(booking, 'invoice') and booking.invoice.status == 'paid'
         is_booking_paid = booking.status in ['paid', 'confirmed', 'completed', 'checked_in']
@@ -606,6 +658,13 @@ class SepayWebhookView(APIView):
             group_booking = GroupBooking.objects.filter(group_code__iexact=f"GRP-{clean_grp}").first()
             if not group_booking:
                 group_booking = GroupBooking.objects.filter(group_code__icontains=clean_grp).first()
+        else:
+            match_doan = re.search(r'(?:doan|group)\s*#?([A-Za-z0-9]{4,10})', content, re.IGNORECASE)
+            if match_doan:
+                suffix = match_doan.group(1).upper()
+                group_booking = GroupBooking.objects.filter(group_code__iexact=f"GRP-{suffix}").first()
+                if not group_booking:
+                    group_booking = GroupBooking.objects.filter(group_code__icontains=suffix).first()
 
         if not group_booking:
             match = re.search(r'BK-?([A-Za-z0-9]{4,10})', content, re.IGNORECASE)

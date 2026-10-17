@@ -9,6 +9,8 @@ import { Link } from 'react-router-dom';
 export default function RoomSlider({ rooms = [] }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(3);
+    const [isHovered, setIsHovered] = useState(false);
+    const [slideDirection, setSlideDirection] = useState('forward'); // 'forward' | 'backward'
 
     // Tính toán số lượng thẻ hiển thị theo kích thước màn hình
     // Desktop: 3 cards, Tablet: 2 cards, Mobile: 1 card
@@ -31,6 +33,31 @@ export default function RoomSlider({ rooms = [] }) {
     // Chỉ số tối đa có thể trượt đến
     const maxIndex = Math.max(0, rooms.length - itemsPerPage);
 
+    // Tự động chạy đi chạy lại (Auto-slide qua lại, dừng khi hover)
+    useEffect(() => {
+        if (maxIndex <= 0 || isHovered) return;
+
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => {
+                if (slideDirection === 'forward') {
+                    if (prev >= maxIndex) {
+                        setSlideDirection('backward');
+                        return Math.max(0, prev - 1);
+                    }
+                    return prev + 1;
+                } else {
+                    if (prev <= 0) {
+                        setSlideDirection('forward');
+                        return Math.min(maxIndex, prev + 1);
+                    }
+                    return prev - 1;
+                }
+            });
+        }, 4000);
+
+        return () => clearInterval(interval);
+    }, [maxIndex, isHovered, slideDirection]);
+
     // Điều chỉnh lại currentIndex nếu resize màn hình làm tràn giới hạn
     useEffect(() => {
         if (currentIndex > maxIndex) {
@@ -40,11 +67,13 @@ export default function RoomSlider({ rooms = [] }) {
 
     // Xử lý trượt lùi (<)
     const handlePrev = () => {
+        setSlideDirection('backward');
         setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
     };
 
     // Xử lý trượt tới (>)
     const handleNext = () => {
+        setSlideDirection('forward');
         setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
     };
 
@@ -53,7 +82,11 @@ export default function RoomSlider({ rooms = [] }) {
     }
 
     return (
-        <div className="relative">
+        <div 
+            className="relative"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             {/* Header thanh điều hướng: Nút mũi tên < và > */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">

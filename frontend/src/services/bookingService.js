@@ -732,9 +732,24 @@ export const bookingService = {
             };
         } catch (error) {
             console.error('Lỗi khi tạo đơn đặt đoàn:', error);
+            const errData = error.response?.data;
+            let errMsg = 'Không thể tạo đơn đặt đoàn. Vui lòng kiểm tra lại thông tin.';
+            if (typeof errData === 'string') {
+                errMsg = errData;
+            } else if (errData?.message) {
+                errMsg = errData.message;
+            } else if (errData?.detail) {
+                errMsg = errData.detail;
+            } else if (errData && typeof errData === 'object') {
+                const values = Object.values(errData);
+                if (values.length > 0) {
+                    const first = values[0];
+                    errMsg = Array.isArray(first) ? first.join(', ') : String(first);
+                }
+            }
             return {
                 success: false,
-                message: error.response?.data?.message || 'Không thể tạo đơn đặt đoàn. Vui lòng kiểm tra lại thông tin.'
+                message: errMsg
             };
         }
     },
@@ -819,6 +834,48 @@ export const bookingService = {
             return {
                 success: false,
                 message: error.response?.data?.message || 'Không thể xác nhận tiền cọc.'
+            };
+        }
+    },
+
+    /**
+     * Hủy toàn bộ đơn đặt đoàn Master và đồng bộ hủy toàn bộ các phòng con
+     * POST /api/bookings/groups/:id/cancel/
+     */
+    async cancelGroupBooking(id, reason = 'Khách hàng / Quản lý yêu cầu hủy đoàn') {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/cancel/`, { reason });
+            return {
+                success: true,
+                message: response.data?.message || 'Đã hủy toàn bộ đoàn thành công!',
+                data: response.data?.group_booking
+            };
+        } catch (error) {
+            console.error('Lỗi khi hủy đơn đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể hủy đơn đặt đoàn.'
+            };
+        }
+    },
+
+    /**
+     * Cập nhật chính sách thanh toán chi phí phát sinh của đoàn (ROOM_ONLY | ALL_INCLUSIVE)
+     * POST /api/bookings/groups/:id/billing-type/
+     */
+    async updateGroupBillingType(id, billingType) {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/billing-type/`, { billing_type: billingType });
+            return {
+                success: true,
+                message: response.data?.message || 'Cập nhật chính sách thanh toán thành công!',
+                data: response.data?.group_booking
+            };
+        } catch (error) {
+            console.error('Lỗi khi cập nhật chính sách thanh toán đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể cập nhật chính sách thanh toán.'
             };
         }
     }

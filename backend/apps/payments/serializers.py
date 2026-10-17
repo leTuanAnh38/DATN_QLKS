@@ -111,6 +111,22 @@ class PaymentSerializer(serializers.ModelSerializer):
         # 1. Nếu là Đơn đoàn / Công ty: Tổng hợp cấu trúc tương thích HotelInvoiceModal
         if obj.group_booking:
             gb = obj.group_booking
+            from ..bookings.serializers import GroupBookingSerializer
+            data = GroupBookingSerializer(gb, context=self.context).data
+            
+            # Đảm bảo các cờ nhận diện Group Master cho HotelInvoiceModal
+            data['is_group_master'] = True
+            data['is_group_booking'] = True
+            data['booking_code'] = gb.group_code
+            data['customer_name'] = gb.leader_name
+            data['guest_name'] = gb.leader_name
+            data['guest_phone'] = gb.leader_phone
+            data['guest_email'] = gb.leader_email or ''
+            data['customer_type'] = 'CORPORATE'
+            data['payment_method'] = obj.payment_method or data.get('payment_method')
+            data['paid_amount'] = float(obj.amount)
+            data['payment_status'] = obj.payment_status
+
             master_inv = getattr(gb, 'master_invoice', None)
             comp_name = (
                 (gb.corporate_partner.company_name if gb.corporate_partner else None) or
@@ -127,49 +143,9 @@ class PaymentSerializer(serializers.ModelSerializer):
                 (getattr(master_inv, 'company_address', None) if master_inv else None) or
                 ''
             )
-
-            subs = list(gb.sub_bookings.select_related('room', 'category').all())
-            room_count = len(subs)
-            room_names = ", ".join([s.room.room_number for s in subs if s.room]) if subs else ""
-            room_display = f"Đoàn {room_count} phòng" + (f" ({room_names})" if room_names else "")
-            
-            first_sub = subs[0] if subs else None
-            check_in = str(first_sub.check_in_date if first_sub else gb.check_in_date)
-            check_out = str(first_sub.check_out_date if first_sub else gb.check_out_date)
-
-            total_val = float(gb.total_amount or 0)
-            deposit_val = float(gb.deposit_amount or 0)
-            is_completed = (obj.payment_status == 'COMPLETED' or gb.is_deposit_paid)
-            paid_amount_val = float(obj.amount) if is_completed else 0.0
-
-            data = {
-                'id': gb.id,
-                'booking_code': gb.group_code,
-                'customer_name': gb.leader_name,
-                'guest_name': gb.leader_name,
-                'guest_phone': gb.leader_phone,
-                'guest_email': gb.leader_email or '',
-                'customer_type': 'CORPORATE',
-                'company_name': comp_name,
-                'company_tax_code': comp_tax,
-                'company_address': comp_addr,
-                'room_number': room_display,
-                'room_name': f"Hợp đồng Đoàn / Doanh nghiệp ({room_count} phòng)",
-                'check_in_date': check_in,
-                'check_out_date': check_out,
-                'room_amount': total_val,
-                'extra_services_total': 0.0,
-                'grand_total_amount': total_val,
-                'deposit_amount': deposit_val,
-                'paid_amount': paid_amount_val,
-                'remaining_balance': max(0.0, total_val - paid_amount_val),
-                'status': gb.status,
-                'payment_method': obj.payment_method,
-                'is_paid': is_completed,
-                'payment_status': obj.payment_status,
-                'is_group': True,
-                'sub_bookings_count': room_count,
-            }
+            data['company_name'] = comp_name
+            data['company_tax_code'] = comp_tax
+            data['company_address'] = comp_addr
 
             if master_inv:
                 data['invoice_code'] = master_inv.invoice_code

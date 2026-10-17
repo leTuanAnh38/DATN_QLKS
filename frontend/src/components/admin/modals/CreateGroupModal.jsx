@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { bookingService } from '../../../services/bookingService';
 import { roomService } from '../../../services/roomService';
+import { useHasPermission } from '../../../utils/permission';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -8,6 +9,7 @@ const formatCurrency = (val) => {
 };
 
 export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
+    const canCreateBookings = useHasPermission('bookings', 'create');
     const [categories, setCategories] = useState([]);
     const [partners, setPartners] = useState([]);
     const [isLoadingInit, setIsLoadingInit] = useState(true);
@@ -37,6 +39,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     // Deposit Payment Method & Paid Status
     const [depositPaymentMethod, setDepositPaymentMethod] = useState('TRANSFER'); // 'TRANSFER' | 'CASH' | 'POS' | 'CREDIT'
     const [isDepositPaidNow, setIsDepositPaidNow] = useState(false);
+
+    // Chính sách chi trả dịch vụ phát sinh (Billing Routing)
+    const [billingType, setBillingType] = useState('ROOM_ONLY'); // 'ROOM_ONLY' | 'ALL_INCLUSIVE'
 
     // Multi-room selection: { [categoryId]: quantity }
     const [selectedRooms, setSelectedRooms] = useState({});
@@ -193,6 +198,11 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         e.preventDefault();
         setError('');
 
+        if (!canCreateBookings) {
+            setError('Bạn không có quyền tạo đơn đặt phòng theo đoàn (Chỉ dành cho Lễ tân, Quản lý hoặc Quản trị viên).');
+            return;
+        }
+
         if (totalRoomsCount === 0) {
             setError('Vui lòng chọn ít nhất 1 phòng trong cơ cấu đoàn.');
             return;
@@ -249,6 +259,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             deposit_amount: depositVal,
             deposit_payment_method: depositPaymentMethod,
             is_deposit_paid: isDepositPaidNow,
+            billing_type: billingType,
             note: combinedNote || null,
             internal_note: internalNote.trim() || null,
             is_company_invoice: isCompanyInvoice,
@@ -735,6 +746,56 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                             <option value="POS">💳 Quẹt thẻ máy POS</option>
                                             <option value="CREDIT">🏢 Bảo lãnh công nợ B2B (Thanh toán sau)</option>
                                         </select>
+                                    </div>
+                                </div>
+
+                                {/* CHÍNH SÁCH THANH TOÁN PHÁT SINH (BILLING ROUTING) */}
+                                <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                                    <label className="text-[11px] text-slate-700 font-bold uppercase tracking-wider block">
+                                        ⚖️ Chính sách chi trả dịch vụ phát sinh tại phòng:
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        <div
+                                            onClick={() => setBillingType('ROOM_ONLY')}
+                                            className={`p-2.5 rounded-xl border text-left cursor-pointer transition flex items-start gap-2.5 ${
+                                                billingType === 'ROOM_ONLY'
+                                                    ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20'
+                                                    : 'border-slate-200 bg-white hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="adminBillingType"
+                                                checked={billingType === 'ROOM_ONLY'}
+                                                onChange={() => setBillingType('ROOM_ONLY')}
+                                                className="mt-0.5 w-3.5 h-3.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                            />
+                                            <div className="text-[11px] leading-tight">
+                                                <span className="font-bold text-slate-900 block">Khách tự trả phát sinh (ROOM_ONLY)</span>
+                                                <span className="text-[10px] text-slate-500">Khách trả tiền dịch vụ tại quầy khi trả phòng lẻ.</span>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            onClick={() => setBillingType('ALL_INCLUSIVE')}
+                                            className={`p-2.5 rounded-xl border text-left cursor-pointer transition flex items-start gap-2.5 ${
+                                                billingType === 'ALL_INCLUSIVE'
+                                                    ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/20'
+                                                    : 'border-slate-200 bg-white hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="adminBillingType"
+                                                checked={billingType === 'ALL_INCLUSIVE'}
+                                                onChange={() => setBillingType('ALL_INCLUSIVE')}
+                                                className="mt-0.5 w-3.5 h-3.5 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                            />
+                                            <div className="text-[11px] leading-tight">
+                                                <span className="font-bold text-slate-900 block">Công ty chi trả toàn bộ (ALL_INCLUSIVE)</span>
+                                                <span className="text-[10px] text-slate-500">Gộp toàn bộ phát sinh vào hóa đơn tổng của đoàn.</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

@@ -78,6 +78,13 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         return () => { isMounted = false; };
     }, []);
 
+    const subBookings = useMemo(() => {
+        return groupData?.sub_bookings || [];
+    }, [groupData?.sub_bookings]);
+    const isCompleted = ['completed', 'checked_out'].includes(groupData?.status);
+    const isCancelled = groupData?.status === 'cancelled';
+    const hasInHouseRoom = groupData?.status === 'checked_in' || subBookings.some(b => b.status === 'checked_in');
+
     const totalContractAmount = useMemo(() => Number(groupData?.total_amount || 0), [groupData?.total_amount]);
     const depositAmount = useMemo(() => {
         if (groupData?.is_deposit_paid) {
@@ -86,15 +93,69 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         return 0;
     }, [groupData?.is_deposit_paid, groupData?.deposit_amount, totalContractAmount]);
 
+    const isFullPaid = useMemo(() => {
+        return Boolean(groupData?.is_deposit_paid && Number(groupData?.deposit_amount || 0) >= totalContractAmount && totalContractAmount > 0);
+    }, [groupData?.is_deposit_paid, groupData?.deposit_amount, totalContractAmount]);
+
+    // Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE), tổng hợp phụ phí dịch vụ phát sinh chưa thanh toán của các phòng
+    const unpaidIncidentalsTotal = useMemo(() => {
+        if (groupData?.billing_type !== 'ALL_INCLUSIVE') return 0;
+        let sum = 0;
+        (subBookings || []).forEach((b) => {
+            if (b.extra_services && Array.isArray(b.extra_services)) {
+                b.extra_services.forEach((s) => {
+                    if (!s.is_paid) {
+                        sum += Number(s.total_price || 0);
+                    }
+                });
+            }
+        });
+        return sum;
+    }, [groupData?.billing_type, subBookings]);
+
+    const totalSettlementDue = useMemo(() => {
+        return totalContractAmount + unpaidIncidentalsTotal;
+    }, [totalContractAmount, unpaidIncidentalsTotal]);
+
     const remainingSettlementBalance = useMemo(() => {
-        return Math.max(0, totalContractAmount - depositAmount);
-    }, [totalContractAmount, depositAmount]);
+        return Math.max(0, totalSettlementDue - depositAmount);
+    }, [totalSettlementDue, depositAmount]);
 
     const groupQrUrl = useMemo(() => {
         if (!bankConfig.bank_bin || !bankConfig.account_no || remainingSettlementBalance <= 0) return '';
         const addInfo = encodeURIComponent(`Thanh toan doan ${groupData?.group_code || ''}`);
         return `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${remainingSettlementBalance}&addInfo=${addInfo}&accountName=${encodeURIComponent(bankConfig.account_name)}`;
     }, [bankConfig, remainingSettlementBalance, groupData?.group_code]);
+
+    const handleUpdateBillingType = async (newType) => {
+        if (isCompleted || isCancelled) return;
+        try {
+            setIsActionLoading(true);
+            const res = await bookingService.updateGroupBillingType(groupData.id, newType);
+            if (res.success) {
+                setActionMessage({
+                    type: 'success',
+                    text: `Đã đổi chính sách thanh toán sang: ${newType === 'ALL_INCLUSIVE' ? 'Công ty chi trả toàn bộ (ALL_INCLUSIVE)' : 'Khách tự trả phát sinh tại phòng (ROOM_ONLY)'}`
+                });
+                if (res.data) {
+                    setLocalGroup(res.data);
+                } else {
+                    setLocalGroup(prev => ({
+                        ...prev,
+                        billing_type: newType,
+                        billing_type_display: newType === 'ALL_INCLUSIVE' ? 'Công ty chi trả toàn bộ' : 'Khách tự trả phát sinh'
+                    }));
+                }
+                if (typeof onRefresh === 'function') onRefresh(res.data, false);
+            } else {
+                setActionMessage({ type: 'error', text: res.message || 'Không thể cập nhật chính sách.' });
+            }
+        } catch (err) {
+            setActionMessage({ type: 'error', text: 'Lỗi khi cập nhật chính sách thanh toán.' });
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
 
     // State cho Modal xác nhận nền trắng giữa màn hình (thay thế window.confirm mặc định)
     const [confirmDialog, setConfirmDialog] = useState({
@@ -213,10 +274,13 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
     // Check-out từng phòng lẻ trong đoàn (Mở hộp thoại nền trắng)
     const handleSingleRoomCheckOut = (bookingId, roomNumber) => {
+        const isAllInclusive = groupData?.billing_type === 'ALL_INCLUSIVE';
         showConfirm({
             title: 'Xác Nhận Check-out Phòng Lẻ',
-            message: `Xác nhận trả phòng sớm cho phòng ${roomNumber || bookingId}?`,
-            detail: `Tiền phòng đã bảo lãnh theo HĐ đoàn #${groupData.group_code}. Khách lưu trú chỉ thanh toán dịch vụ phát sinh cá nhân (nếu có). Sau khi trả phòng, phòng sẽ chuyển sang trạng thái "Cần dọn dẹp".`,
+            message: `Xác nhận làm thủ tục trả phòng cho phòng ${roomNumber || bookingId}?`,
+            detail: isAllInclusive
+                ? `Tiền phòng & mọi dịch vụ phát sinh của phòng này đã được CÔNG TY BẢO LÃNH CHI TRẢ TOÀN BỘ theo HĐ đoàn #${groupData.group_code}. Khách không cần thanh toán tại quầy lễ tân.`
+                : `Tiền phòng đã bảo lãnh theo HĐ đoàn #${groupData.group_code}. Khách lưu trú chỉ thanh toán dịch vụ phát sinh cá nhân (nếu có) tại quầy lễ tân. Sau khi trả phòng, phòng sẽ chuyển sang trạng thái "Cần dọn dẹp".`,
             confirmText: '✓ Xác Nhận Trả Phòng',
             confirmType: 'amber',
             icon: '🚪',
@@ -271,8 +335,78 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         }
     };
 
-    const subBookings = groupData.sub_bookings || [];
-    const isCompleted = ['completed', 'checked_out'].includes(groupData?.status);
+    // Hủy Toàn Bộ Đơn Đoàn (Thực thi)
+    const executeCancelGroup = async (reason = 'Lễ tân / Quản lý yêu cầu hủy đoàn') => {
+        closeConfirm();
+        try {
+            setIsActionLoading(true);
+            const res = await bookingService.cancelGroupBooking(groupData.id, reason);
+            if (res.success) {
+                setActionMessage({ type: 'success', text: res.message || 'Đã hủy toàn bộ đoàn thành công!' });
+                if (res.data) setLocalGroup(res.data);
+                if (typeof onRefresh === 'function') onRefresh(res.data, false);
+            } else {
+                setActionMessage({ type: 'error', text: res.message || 'Lỗi khi hủy đơn đoàn.' });
+            }
+        } catch (err) {
+            setActionMessage({ type: 'error', text: 'Lỗi kết nối máy chủ.' });
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    // Hủy Toàn Bộ Đơn Đoàn (Mở hộp thoại nền trắng)
+    const handleCancelGroup = () => {
+        if (hasInHouseRoom) {
+            setActionMessage({
+                type: 'error',
+                text: 'Đoàn đang lưu trú tại khách sạn (In-house), không thể hủy. Vui lòng thực hiện thủ tục Check-out & Quyết toán.'
+            });
+            return;
+        }
+
+        showConfirm({
+            title: 'Xác Nhận Hủy Toàn Bộ Đoàn',
+            message: `Bạn có chắc chắn muốn HỦY TOÀN BỘ đơn đoàn #${groupData.group_code}?`,
+            detail: `Đoàn "${groupData.group_name}" gồm ${subBookings.length} phòng. Tất cả các phòng con sẽ chuyển sang trạng thái "Đã Hủy", giải phóng phòng trống (available) và hủy các yêu cầu dịch vụ liên quan.`,
+            confirmText: '✕ Xác Nhận Hủy Cả Đoàn',
+            confirmType: 'rose',
+            icon: '✕',
+            onConfirm: () => executeCancelGroup('Lễ tân / Quản lý hủy đơn đoàn')
+        });
+    };
+
+    // Hủy riêng 1 phòng con trong đoàn (Thực thi)
+    const executeSingleRoomCancel = async (bookingId, roomNumber) => {
+        closeConfirm();
+        try {
+            setIsActionLoading(true);
+            const res = await bookingService.cancelBooking(bookingId, `Hủy lẻ phòng ${roomNumber || ''} trong đoàn #${groupData.group_code}`);
+            if (res.success || res.status === 'cancelled') {
+                setActionMessage({ type: 'success', text: `Đã hủy phòng ${roomNumber || bookingId} khỏi đoàn. Hệ thống đã tự động tính lại tổng tiền đoàn.` });
+                if (typeof onRefresh === 'function') onRefresh(null, false);
+            } else {
+                setActionMessage({ type: 'error', text: res.message || 'Không thể hủy phòng này.' });
+            }
+        } catch (err) {
+            setActionMessage({ type: 'error', text: 'Lỗi khi hủy phòng lẻ.' });
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    // Hủy riêng 1 phòng con trong đoàn (Mở hộp thoại nền trắng)
+    const handleSingleRoomCancel = (bookingId, roomNumber) => {
+        showConfirm({
+            title: 'Xác Nhận Hủy Phòng Lẻ Khỏi Đoàn',
+            message: `Bạn có chắc chắn muốn HỦY phòng ${roomNumber || bookingId} khỏi đoàn #${groupData.group_code}?`,
+            detail: `Phòng này sẽ được hủy và giải phóng về trạng thái phòng trống. Các phòng còn lại của đoàn vẫn được giữ nguyên. Hệ thống sẽ tự động cập nhật lại tổng tiền hợp đồng của đoàn.`,
+            confirmText: '✕ Xác Nhận Hủy Phòng Này',
+            confirmType: 'rose',
+            icon: '✕',
+            onConfirm: () => executeSingleRoomCancel(bookingId, roomNumber)
+        });
+    };
 
     // State mở modal in hóa đơn đoàn
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -283,11 +417,16 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         const partner = groupData.corporate_partner_details || groupData.corporate_partner;
         const totalAmount = Number(groupData.total_amount) || 0;
         const depositAmount = Number(groupData.deposit_amount) || 0;
+        const isAllInclusive = groupData.billing_type === 'ALL_INCLUSIVE';
+        const finalGrandTotal = isAllInclusive ? (totalAmount + unpaidIncidentalsTotal) : totalAmount;
 
         return {
             ...groupData,
             id: groupData.id,
             is_group_master: true,
+            billing_type: groupData.billing_type,
+            billing_type_display: groupData.billing_type_display,
+            is_all_inclusive: isAllInclusive,
             booking_code: groupData.group_code,
             group_code: groupData.group_code,
             group_name: groupData.group_name,
@@ -304,9 +443,10 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             check_in_date: groupData.check_in_date,
             check_out_date: groupData.check_out_date,
             nights: groupData.nights || 1,
-            total_amount: totalAmount,
+            total_amount: finalGrandTotal,
             room_amount: totalAmount,
-            grand_total_amount: totalAmount,
+            incidentals_amount: unpaidIncidentalsTotal,
+            grand_total_amount: finalGrandTotal,
             deposit_amount: depositAmount,
             is_deposit_paid: Boolean(groupData.is_deposit_paid || isCompleted),
             status: groupData.status,
@@ -315,7 +455,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             payment_method: 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)',
             note: groupData.note || ''
         };
-    }, [groupData, subBookings, isCompleted]);
+    }, [groupData, subBookings, isCompleted, unpaidIncidentalsTotal]);
 
     const [isEditingRoomingList, setIsEditingRoomingList] = useState(false);
     const [roomingForm, setRoomingForm] = useState({});
@@ -490,20 +630,43 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                         #{groupData.group_code}
                                     </span>
                                     <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide flex items-center gap-1 ${
-                                        groupData.status === 'checked_in'
-                                            ? 'bg-emerald-100 text-emerald-800'
+                                        isCancelled
+                                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                             : isCompleted
                                             ? 'bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs'
+                                            : groupData.status === 'checked_in'
+                                            ? 'bg-emerald-100 text-emerald-800'
                                             : 'bg-blue-100 text-blue-800'
                                     }`}>
-                                        <span>{isCompleted ? '✓' : groupData.status === 'checked_in' ? '🔑' : '📋'}</span>
-                                        <span>{isCompleted ? 'ĐÃ HOÀN THÀNH (ĐÃ QUYẾT TOÁN)' : (groupData.status_display || groupData.status)}</span>
+                                        <span>{isCancelled ? '✕' : isCompleted ? '✓' : groupData.status === 'checked_in' ? '🔑' : '📋'}</span>
+                                        <span>{isCancelled ? 'ĐÃ HỦY TOÀN ĐOÀN' : isCompleted ? 'ĐÃ HOÀN THÀNH (ĐÃ QUYẾT TOÁN)' : (groupData.status_display || groupData.status)}</span>
                                     </span>
                                     {groupData.corporate_partner_details && (
                                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
                                             🏢 {groupData.corporate_partner_details.company_name} (-{groupData.corporate_partner_details.discount_percent}%)
                                         </span>
                                     )}
+                                    <button
+                                        type="button"
+                                        disabled={isCompleted || isCancelled || isActionLoading}
+                                        onClick={() => handleUpdateBillingType(groupData.billing_type === 'ALL_INCLUSIVE' ? 'ROOM_ONLY' : 'ALL_INCLUSIVE')}
+                                        title="Bấm để chuyển đổi chính sách chi trả giữa Công ty chi trả toàn bộ và Khách tự trả phát sinh"
+                                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition flex items-center gap-1 cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
+                                            groupData.billing_type === 'ALL_INCLUSIVE'
+                                                ? 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200/80 shadow-2xs'
+                                                : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100 shadow-2xs'
+                                        }`}
+                                    >
+                                        <span>{groupData.billing_type === 'ALL_INCLUSIVE' ? '🏢' : '👤'}</span>
+                                        <span>
+                                            {groupData.billing_type === 'ALL_INCLUSIVE'
+                                                ? 'Công ty chi trả toàn bộ'
+                                                : 'Khách tự trả phát sinh'}
+                                        </span>
+                                        {!isCompleted && !isCancelled && (
+                                            <span className="text-[10px] text-slate-400 font-normal underline ml-0.5">đổi</span>
+                                        )}
+                                    </button>
                                 </div>
                                 <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-1">
                                     {groupData.group_name}
@@ -561,7 +724,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
                         <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                             <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                {isCompleted ? 'Quyết toán hợp đồng' : 'Đặt cọc'}
+                                {isCompleted ? 'Quyết toán hợp đồng' : (isFullPaid ? 'Thanh toán hợp đồng' : 'Đặt cọc')}
                             </span>
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-xs font-bold text-slate-900">
@@ -570,11 +733,13 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                                     isCompleted
                                         ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                        : isFullPaid
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                         : groupData.is_deposit_paid
                                         ? 'bg-emerald-100 text-emerald-800'
                                         : 'bg-amber-100 text-amber-800'
                                 }`}>
-                                    {isCompleted ? '✓ Đã quyết toán 100%' : groupData.is_deposit_paid ? 'Đã cọc' : 'Chờ cọc'}
+                                    {isCompleted ? '✓ Đã quyết toán 100%' : (isFullPaid ? '✓ Đã thanh toán 100%' : (groupData.is_deposit_paid ? 'Đã cọc' : 'Chờ cọc'))}
                                 </span>
                             </div>
                         </div>
@@ -708,16 +873,18 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                         ? 'bg-emerald-100 text-emerald-800'
                                                         : (b.status === 'completed' || b.status === 'checked_out')
                                                         ? 'bg-slate-100 text-slate-600'
+                                                        : b.status === 'cancelled'
+                                                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                                         : 'bg-blue-100 text-blue-800'
                                                 }`}>
-                                                    {b.status_display || b.status}
+                                                    {b.status === 'cancelled' ? '✕ Đã Hủy' : (b.status_display || b.status)}
                                                 </span>
 
-                                                {/* Thao tác Check-in / Check-out cho từng phòng lẻ trong đoàn */}
+                                                {/* Thao tác Check-in / Check-out / Hủy cho từng phòng lẻ trong đoàn */}
                                                 {!isEditingRoomingList && (
                                                     <div className="flex items-center gap-1.5">
                                                         {b.status === 'confirmed' && (
-                                                            <button
+                                                             <button
                                                                 type="button"
                                                                 disabled={isActionLoading}
                                                                 onClick={() => handleSingleRoomCheckIn(b.id, b.room_number)}
@@ -726,6 +893,18 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                             >
                                                                 <span>🔑</span>
                                                                 <span>Check-in</span>
+                                                            </button>
+                                                        )}
+                                                        {['pending', 'confirmed'].includes(b.status) && (
+                                                            <button
+                                                                type="button"
+                                                                disabled={isActionLoading}
+                                                                onClick={() => handleSingleRoomCancel(b.id, b.room_number)}
+                                                                title="Hủy riêng phòng lẻ này khỏi đoàn"
+                                                                className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition flex items-center gap-1 cursor-pointer active:scale-95"
+                                                            >
+                                                                <span>✕</span>
+                                                                <span>Hủy phòng</span>
                                                             </button>
                                                         )}
                                                         {b.status === 'checked_in' && (
@@ -914,7 +1093,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
                 {/* MODAL FOOTER & BULK ACTIONS */}
                 <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         {isCompleted && (
                             <span className="px-3.5 py-2 bg-purple-50 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold flex items-center gap-1.5">
                                 <span>✓</span>
@@ -922,7 +1101,14 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             </span>
                         )}
 
-                        {!isCompleted && groupData.status !== 'checked_in' && (
+                        {isCancelled && (
+                            <span className="px-3.5 py-2 bg-rose-50 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                                <span>✕</span>
+                                <span>Đơn đặt đoàn này ĐÃ BỊ HỦY</span>
+                            </span>
+                        )}
+
+                        {!isCompleted && !isCancelled && groupData.status !== 'checked_in' && (
                             <button
                                 type="button"
                                 disabled={isActionLoading}
@@ -934,7 +1120,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             </button>
                         )}
 
-                        {!isCompleted && groupData.status === 'checked_in' && (
+                        {!isCompleted && !isCancelled && groupData.status === 'checked_in' && (
                             <button
                                 type="button"
                                 disabled={isActionLoading}
@@ -943,6 +1129,19 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             >
                                 <span>🧾</span>
                                 <span>Check-out Toàn Đoàn & Quyết Toán</span>
+                            </button>
+                        )}
+
+                        {!isCompleted && !isCancelled && !hasInHouseRoom && (
+                            <button
+                                type="button"
+                                disabled={isActionLoading}
+                                onClick={handleCancelGroup}
+                                className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                title="Hủy toàn bộ đơn đoàn và đồng loạt hủy tất cả phòng con (chỉ áp dụng trước khi nhận phòng)"
+                            >
+                                <span>✕</span>
+                                <span>Hủy Toàn Bộ Đoàn</span>
                             </button>
                         )}
                     </div>
@@ -1006,13 +1205,22 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
                                 <div className="space-y-2 text-xs">
                                     <div className="flex justify-between items-center text-slate-600">
-                                        <span>Tổng giá trị hợp đồng ({subBookings.length} phòng):</span>
+                                        <span>Giá trị hợp đồng phòng & dịch vụ đặt trước ({subBookings.length} phòng):</span>
                                         <span className="font-bold font-mono text-slate-900">{formatCurrency(totalContractAmount)}</span>
                                     </div>
+                                    {groupData.billing_type === 'ALL_INCLUSIVE' && (
+                                        <div className="flex justify-between items-center text-purple-700 bg-purple-50/80 px-2.5 py-1.5 rounded-xl border border-purple-200/60 font-semibold">
+                                            <span className="flex items-center gap-1">
+                                                <span>➕</span>
+                                                <span>Dịch vụ phát sinh tại phòng (Công ty chi trả toàn bộ):</span>
+                                            </span>
+                                            <span className="font-mono font-bold">+{formatCurrency(unpaidIncidentalsTotal)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between items-center text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl border border-emerald-200/60 font-semibold">
                                         <span className="flex items-center gap-1">
                                             <span>✓</span>
-                                            <span>Đã đặt cọc trước (50% chuyển khoản):</span>
+                                            <span>Đã đặt cọc trước (chuyển khoản):</span>
                                         </span>
                                         <span className="font-mono font-bold">-{formatCurrency(depositAmount)}</span>
                                     </div>
@@ -1073,24 +1281,24 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
                                     {/* VIETQR CARD HIỂN THỊ KHI CHỌN CHUYỂN KHOẢN */}
                                     {settlementPaymentMethod === 'transfer' && groupQrUrl && (
-                                        <div className="p-4 bg-slate-900 rounded-2xl text-white flex flex-col sm:flex-row items-center gap-4">
+                                        <div className="p-4 bg-white rounded-2xl border-2 border-indigo-200/80 shadow-sm flex flex-col sm:flex-row items-center gap-4">
                                             <img
                                                 src={groupQrUrl}
                                                 alt="VietQR Group Settlement"
-                                                className="w-36 h-36 rounded-xl bg-white p-1.5 shrink-0 shadow-md"
+                                                className="w-36 h-36 rounded-xl bg-white p-1 shrink-0 border border-slate-200 shadow-xs"
                                             />
                                             <div className="space-y-1.5 text-xs text-left">
-                                                <div className="font-bold text-indigo-300 uppercase tracking-wide text-[10px]">
+                                                <div className="font-bold text-indigo-700 uppercase tracking-wide text-[10px]">
                                                     Quét mã thanh toán quyết toán đoàn
                                                 </div>
-                                                <div className="font-mono text-base font-black text-emerald-400">
+                                                <div className="font-mono text-lg font-black text-emerald-600">
                                                     {formatCurrency(remainingSettlementBalance)}
                                                 </div>
-                                                <div className="text-slate-300 text-[11px] space-y-0.5">
-                                                    <div>🏦 Ngân hàng: <strong>MBBank ({bankConfig.bank_bin})</strong></div>
-                                                    <div>💳 STK: <strong className="font-mono text-white">{bankConfig.account_no}</strong></div>
-                                                    <div>👤 Chủ TK: <strong>{bankConfig.account_name}</strong></div>
-                                                    <div>📝 Nội dung: <strong className="font-mono text-amber-300">Thanh toan doan {groupData.group_code}</strong></div>
+                                                <div className="text-slate-700 text-[11px] space-y-1">
+                                                    <div>🏦 Ngân hàng: <strong className="text-slate-900">MBBank ({bankConfig.bank_bin})</strong></div>
+                                                    <div>💳 STK: <strong className="font-mono font-bold text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">{bankConfig.account_no}</strong></div>
+                                                    <div>👤 Chủ TK: <strong className="text-slate-900">{bankConfig.account_name}</strong></div>
+                                                    <div>📝 Nội dung: <strong className="font-mono text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Thanh toan doan {groupData.group_code}</strong></div>
                                                 </div>
                                             </div>
                                         </div>

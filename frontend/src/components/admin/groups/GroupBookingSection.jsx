@@ -4,6 +4,7 @@ import CreateGroupModal from '../modals/CreateGroupModal';
 import GroupDetailModal from '../modals/GroupDetailModal';
 import HotelInvoiceModal from '../modals/HotelInvoiceModal';
 import Pagination from '../../common/Pagination';
+import { useHasPermission } from '../../../utils/permission';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -24,6 +25,7 @@ const formatDate = (dateStr) => {
 };
 
 export default function GroupBookingSection({ onOpenCreateModal }) {
+    const canCreateBookings = useHasPermission('bookings', 'create');
     const [groups, setGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -193,13 +195,15 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
                         🔄
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center gap-2 cursor-pointer active:scale-95"
-                    >
-                        <span>+ Tạo Đặt Phòng Theo Đoàn</span>
-                    </button>
+                    {canCreateBookings && (
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                        >
+                            <span>+ Tạo Đặt Phòng Theo Đoàn</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -288,7 +292,9 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
                     <div className="text-4xl">🏢</div>
                     <h4 className="font-bold text-slate-800 text-sm">Chưa có đơn đặt đoàn nào phù hợp</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                        Bấm nút <strong>"+ Tạo Đặt Phòng Theo Đoàn"</strong> để bắt đầu tiếp nhận và phân bổ phòng cho đoàn khách.
+                        {canCreateBookings
+                            ? <>Bấm nút <strong>"+ Tạo Đặt Phòng Theo Đoàn"</strong> để bắt đầu tiếp nhận và phân bổ phòng cho đoàn khách.</>
+                            : 'Hiện tại chưa có đơn đặt đoàn nào được ghi nhận trong hệ thống.'}
                     </p>
                 </div>
             ) : (
@@ -315,14 +321,16 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
                                                         #{group.group_code}
                                                     </span>
                                                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-                                                        isCheckedIn
+                                                        group.status === 'cancelled'
+                                                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                                            : isCheckedIn
                                                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                                             : isCompleted
                                                             ? 'bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs'
                                                             : 'bg-blue-100 text-blue-800 border border-blue-200'
                                                     }`}>
-                                                        <span>{isCompleted ? '✓' : isCheckedIn ? '🔑' : '📋'}</span>
-                                                        <span>{isCompleted ? 'ĐÃ HOÀN THÀNH & QUYẾT TOÁN' : (group.status_display || group.status)}</span>
+                                                        <span>{group.status === 'cancelled' ? '✕' : isCompleted ? '✓' : isCheckedIn ? '🔑' : '📋'}</span>
+                                                        <span>{group.status === 'cancelled' ? 'ĐÃ HỦY' : isCompleted ? 'ĐÃ HOÀN THÀNH & QUYẾT TOÁN' : (group.status_display || group.status)}</span>
                                                     </span>
                                                     {partner && (
                                                         <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 text-[11px] font-bold border border-purple-200">
@@ -381,7 +389,7 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
 
                                         <div>
                                             <span className="text-slate-400 block text-[10px] uppercase font-bold">
-                                                {isCompleted ? 'Quyết toán hợp đồng' : 'Tình trạng cọc'}
+                                                {isCompleted ? 'Quyết toán hợp đồng' : (group.is_deposit_paid && Number(group.deposit_amount || 0) >= Number(group.total_amount || 0) && Number(group.total_amount || 0) > 0 ? 'Thanh toán' : 'Tình trạng cọc')}
                                             </span>
                                             {isCompleted ? (
                                                 <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
@@ -391,7 +399,11 @@ export default function GroupBookingSection({ onOpenCreateModal }) {
                                                 <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-bold ${
                                                     group.is_deposit_paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                                                 }`}>
-                                                    {group.is_deposit_paid ? '✓ Đã thanh toán cọc' : '⏳ Chờ thanh toán cọc'}
+                                                    {group.is_deposit_paid && Number(group.deposit_amount || 0) >= Number(group.total_amount || 0) && Number(group.total_amount || 0) > 0
+                                                        ? '✓ Đã thanh toán 100%'
+                                                        : group.is_deposit_paid
+                                                            ? '✓ Đã thanh toán cọc'
+                                                            : '⏳ Chờ thanh toán cọc'}
                                                 </span>
                                             )}
                                         </div>

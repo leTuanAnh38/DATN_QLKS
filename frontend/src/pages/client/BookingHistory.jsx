@@ -81,8 +81,11 @@ export const getGroupBookingInfo = (booking) => {
         return { isGroup: false };
     }
 
+    const groupId = booking.group_booking_id || (typeof booking.group_booking === 'object' ? booking.group_booking?.id : booking.group_booking);
+
     return {
         isGroup: true,
+        groupId: groupId || code,
         groupCode: code || 'GRP-B2B',
         groupName: name || 'Khách đoàn',
         isMasterBilled: booking.is_master_billed !== false
@@ -111,6 +114,7 @@ export default function BookingHistory() {
 
     // 3. State Modal Hủy phòng
     const [cancelModalBooking, setCancelModalBooking] = useState(null);
+    const [cancelScope, setCancelScope] = useState('single'); // 'single' | 'group'
     const [cancelReason, setCancelReason] = useState('Thay đổi lịch trình chuyến đi');
     const [customReason, setCustomReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
@@ -339,30 +343,55 @@ export default function BookingHistory() {
         };
     }, [isAuthenticated]);
 
-    // Xử lý Hủy đặt phòng (PATCH status='cancelled')
+    // Xử lý Hủy đặt phòng (Khách lẻ hoặc Hủy đoàn)
     const handleConfirmCancel = async () => {
         if (!cancelModalBooking) return;
 
         const finalReason = cancelReason === 'Khác' ? customReason.trim() || 'Lý do cá nhân' : cancelReason;
+        const groupInfo = getGroupBookingInfo(cancelModalBooking);
 
         try {
             setIsCancelling(true);
-            const res = await bookingService.cancelBooking(cancelModalBooking.id, finalReason);
-
-            if (res && (res.success || res.status === 'cancelled')) {
-                showToast('success', `Đã hủy đơn ${cancelModalBooking.booking_code} thành công.`);
-                // Cập nhật ngay trong state danh sách mà không cần reload trang
-                setBookings((prev) =>
-                    prev.map((b) =>
-                        b.id === cancelModalBooking.id
-                            ? { ...b, status: 'cancelled', status_display: 'Đã Hủy' }
-                            : b
-                    )
-                );
-                setCancelModalBooking(null);
-                setCustomReason('');
+            if (cancelScope === 'group' && groupInfo.isGroup) {
+                // Hủy toàn bộ các phòng trong đoàn
+                const targetGroupId = groupInfo.groupId || groupInfo.groupCode;
+                const res = await bookingService.cancelGroupBooking(targetGroupId, finalReason);
+                if (res && res.success) {
+                    showToast('success', `Đã hủy toàn bộ đoàn #${groupInfo.groupCode} thành công.`);
+                    // Đồng bộ trạng thái tất cả phòng trong đoàn thành 'cancelled'
+                    setBookings((prev) =>
+                        prev.map((b) => {
+                            const bGroup = getGroupBookingInfo(b);
+                            if (bGroup.isGroup && bGroup.groupCode === groupInfo.groupCode) {
+                                return { ...b, status: 'cancelled', status_display: 'Đã Hủy' };
+                            }
+                            return b;
+                        })
+                    );
+                    setCancelModalBooking(null);
+                    setCustomReason('');
+                    setCancelScope('single');
+                } else {
+                    showToast('error', res?.message || 'Không thể hủy đơn đoàn. Vui lòng thử lại sau.');
+                }
             } else {
-                showToast('error', res?.message || 'Không thể hủy đơn đặt phòng. Vui lòng thử lại sau.');
+                // Hủy riêng phòng này
+                const res = await bookingService.cancelBooking(cancelModalBooking.id, finalReason);
+                if (res && (res.success || res.status === 'cancelled')) {
+                    showToast('success', `Đã hủy đơn ${cancelModalBooking.booking_code} thành công.`);
+                    setBookings((prev) =>
+                        prev.map((b) =>
+                            b.id === cancelModalBooking.id
+                                ? { ...b, status: 'cancelled', status_display: 'Đã Hủy' }
+                                : b
+                        )
+                    );
+                    setCancelModalBooking(null);
+                    setCustomReason('');
+                    setCancelScope('single');
+                } else {
+                    showToast('error', res?.message || 'Không thể hủy đơn đặt phòng. Vui lòng thử lại sau.');
+                }
             }
         } catch (err) {
             showToast('error', err.message || 'Lỗi xử lý khi hủy đơn.');
@@ -822,6 +851,7 @@ export default function BookingHistory() {
 
                                     const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
                                     const isPending = ['pending', 'paid', 'PAID'].includes(booking.status);
+                                    const canCancel = ['pending', 'confirmed', 'paid', 'PAID'].includes(booking.status);
                                     const isPaid = !isCancelled && Boolean(
                                         booking.payment_status === 'COMPLETED' ||
                                         booking.is_paid ||
@@ -870,9 +900,14 @@ export default function BookingHistory() {
                                     const isTransfer = methodCode === 'TRANSFER';
                                     const grandTotalNum = Number(booking.grand_total_amount ?? booking.total_amount) || 0;
                                     const roomAmountNum = Number(booking.room_amount ?? booking.total_amount) || 0;
-                                    const extraServicesTotal = Number(booking.extra_services_total) || 0;
-                                    const extraServices = Array.isArray(booking.extra_services) ? booking.extra_services : [];
-                                    const hasExtraServices = extraServicesTotal > 0 && extraServices.length > 0;
+                                    const extraServices = (Array.isArray(booking.extra_services) && booking.extra_services.length > 0)
+                                        ? booking.extra_services
+                                        : (Array.isArray(booking.selected_services) && booking.selected_services.length > 0)
+                                            ? booking.selected_services
+                                            : (Array.isArray(booking.service_requests) ? booking.service_requests : []);
+                                    const extraServicesTotal = Number(booking.extra_services_total) || 
+                                        extraServices.reduce((sum, s) => sum + Number(s.total_price || (s.price * (s.quantity || 1)) || 0), 0);
+                                    const hasExtraServices = extraServices.length > 0;
                                     const groupInfo = getGroupBookingInfo(booking);
 
                                     return (
@@ -911,13 +946,13 @@ export default function BookingHistory() {
                                                     {/* HUY HIỆU PHÂN BIỆT: ĐƠN THEO ĐOÀN VS KHÁCH LẺ */}
                                                     {groupInfo.isGroup ? (
                                                         <span
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-indigo-600 text-white shadow-xs"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white text-indigo-700 border border-indigo-200 shadow-2xs"
                                                             title={`Phòng thuộc Hợp đồng đoàn #${groupInfo.groupCode} - ${groupInfo.groupName}`}
                                                         >
                                                             <span>🏢</span>
-                                                            <span>ĐOÀN: #{groupInfo.groupCode}</span>
+                                                            <span className="font-extrabold text-indigo-800">ĐOÀN: #{groupInfo.groupCode}</span>
                                                             {groupInfo.groupName && (
-                                                                <span className="hidden sm:inline font-semibold text-indigo-100 max-w-[200px] truncate">
+                                                                <span className="hidden sm:inline font-medium text-slate-600 max-w-[220px] truncate">
                                                                     • {groupInfo.groupName}
                                                                 </span>
                                                             )}
@@ -1046,42 +1081,61 @@ export default function BookingHistory() {
                                                     <div className="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-center gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                                                         {groupInfo.isGroup && groupInfo.isMasterBilled ? (
                                                             /* HIỂN THỊ TÀI CHÍNH CHO PHÒNG THUỘC ĐOÀN B2B (MASTER-BILLING) */
-                                                            <div className="text-left lg:text-right">
-                                                                <span className="text-[11px] font-bold uppercase tracking-wider block text-indigo-600">
-                                                                    🏢 Hợp đồng đoàn bảo lãnh
-                                                                </span>
-                                                                {hasExtraServices ? (
-                                                                    <>
-                                                                        <div className="text-xl sm:text-2xl font-black mt-0.5 text-amber-600">
-                                                                            +{extraServicesTotal.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
-                                                                        </div>
-                                                                        <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
-                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/80 font-bold shadow-2xs">
-                                                                                <span>Phụ thu dịch vụ cá nhân ({extraServices.length}):</span>
-                                                                                <strong>+{extraServicesTotal.toLocaleString('vi-VN')} đ</strong>
-                                                                            </span>
-                                                                            <span className="text-slate-400">
-                                                                                Tiền phòng: <strong>{roomAmountNum.toLocaleString('vi-VN')} đ</strong> (Công ty chi trả)
-                                                                            </span>
-                                                                        </div>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <div className="text-xl sm:text-2xl font-black mt-0.5 text-indigo-700">
-                                                                            0 <span className="text-xs font-bold text-slate-500">VND</span>
-                                                                        </div>
-                                                                        <div className="mt-1 flex flex-col items-start lg:items-end gap-0.5 text-[11px]">
-                                                                            <span className="text-slate-500">
-                                                                                Tiền phòng: <strong className="text-slate-700">{roomAmountNum.toLocaleString('vi-VN')} đ</strong>
-                                                                            </span>
-                                                                            <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                                                                                <span>✓</span>
-                                                                                <span>Đã bảo lãnh theo HĐ #{groupInfo.groupCode}</span>
-                                                                            </span>
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                            </div>
+                                                            (() => {
+                                                                const isGroupAllInclusive = Boolean(
+                                                                    booking.is_all_inclusive || 
+                                                                    booking.is_company_all_inclusive || 
+                                                                    booking.billing_type === 'ALL_INCLUSIVE' ||
+                                                                    booking.group_billing_type === 'ALL_INCLUSIVE' ||
+                                                                    booking.group_booking_billing_type === 'ALL_INCLUSIVE'
+                                                                );
+                                                                const guestRemainingBalance = Number(
+                                                                    booking.remaining_balance != null 
+                                                                        ? booking.remaining_balance 
+                                                                        : (booking.remaining_amount != null ? booking.remaining_amount : 0)
+                                                                );
+                                                                
+                                                                const isFullyCoveredByCompany = isGroupAllInclusive || guestRemainingBalance === 0;
+
+                                                                return (
+                                                                    <div className="text-left lg:text-right">
+                                                                        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
+                                                                            Chi phí khách thanh toán
+                                                                        </span>
+                                                                        
+                                                                        {isFullyCoveredByCompany ? (
+                                                                            <>
+                                                                                <div className="text-xl sm:text-2xl font-black mt-0.5 text-indigo-700">
+                                                                                    0 <span className="text-xs font-bold text-slate-500">VND</span>
+                                                                                </div>
+                                                                                <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
+                                                                                    <span className="text-slate-400">
+                                                                                        Tiền phòng: <strong>{roomAmountNum.toLocaleString('vi-VN')} đ</strong> (Công ty chi trả)
+                                                                                    </span>
+                                                                                </div>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div className="text-xl sm:text-2xl font-black mt-0.5 text-amber-600">
+                                                                                    +{guestRemainingBalance > 0 ? guestRemainingBalance.toLocaleString('vi-VN') : extraServicesTotal.toLocaleString('vi-VN')} VND
+                                                                                </div>
+                                                                                <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
+                                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/80 font-bold shadow-2xs">
+                                                                                        <span>Dịch vụ phát sinh riêng ({extraServices.length}):</span>
+                                                                                        <strong>+{extraServicesTotal.toLocaleString('vi-VN')} đ</strong>
+                                                                                    </span>
+                                                                                    <span className="text-slate-400">
+                                                                                        Tiền phòng: <strong>{roomAmountNum.toLocaleString('vi-VN')} đ</strong> (Công ty chi trả)
+                                                                                    </span>
+                                                                                    <span className="text-amber-700 font-medium">
+                                                                                        (Thu khi khách trả phòng)
+                                                                                    </span>
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()
                                                         ) : (
                                                             /* HIỂN THỊ TÀI CHÍNH CHO ĐƠN KHÁCH LẺ */
                                                             <div className="text-left lg:text-right">
@@ -1101,10 +1155,6 @@ export default function BookingHistory() {
                                                                     <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
                                                                         <span className="text-slate-500">
                                                                             Tiền phòng: <strong className="text-slate-700">{roomAmountNum.toLocaleString('vi-VN')} đ</strong>
-                                                                        </span>
-                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/80 font-bold shadow-2xs">
-                                                                            <span>Phụ thu dịch vụ ({extraServices.length}):</span>
-                                                                            <strong>+{extraServicesTotal.toLocaleString('vi-VN')} đ</strong>
                                                                         </span>
                                                                     </div>
                                                                 ) : (
@@ -1130,15 +1180,18 @@ export default function BookingHistory() {
                                                                 </button>
                                                             )}
 
-                                                            {/* Nút Hủy đặt phòng (Chỉ cho phép khách lẻ hủy, đoàn do trưởng đoàn quản lý) */}
-                                                            {isPending && !groupInfo.isGroup && (
+                                                            {/* Nút Hủy đặt phòng (Hỗ trợ cả khách lẻ và đơn đoàn) */}
+                                                            {canCancel && (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => setCancelModalBooking(booking)}
+                                                                    onClick={() => {
+                                                                        setCancelModalBooking(booking);
+                                                                        setCancelScope('single');
+                                                                    }}
                                                                     className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
                                                                     <span>✕</span>
-                                                                    <span>Hủy đặt phòng</span>
+                                                                    <span>{groupInfo.isGroup ? 'Hủy phòng / Hủy đoàn' : 'Hủy đặt phòng'}</span>
                                                                 </button>
                                                             )}
 
@@ -1202,49 +1255,78 @@ export default function BookingHistory() {
                                             </div>
 
                                             {/* CHI TIẾT CÁC DỊCH VỤ PHÁT SINH TẠI PHÒNG (NẾU CÓ) */}
-                                            {hasExtraServices && (
-                                                <div className="bg-amber-50/40 px-5 sm:px-7 py-3.5 border-t border-amber-100">
-                                                    <div className="flex items-center justify-between gap-2 mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider">
-                                                                {extraServices.some(s => (s.service_name || '').toLowerCase().includes('bồi thường')) ? 'Dịch vụ & Phụ phí' : 'Dịch vụ tại phòng'}
-                                                            </span>
-                                                            <span className="text-xs font-bold text-slate-800">
-                                                                Đã ghi nhận ({extraServices.length} mục)
+                                            {hasExtraServices && (() => {
+                                                const isGroupAllInclusive = Boolean(
+                                                    booking.is_all_inclusive || 
+                                                    booking.is_company_all_inclusive || 
+                                                    booking.billing_type === 'ALL_INCLUSIVE' ||
+                                                    booking.group_billing_type === 'ALL_INCLUSIVE' ||
+                                                    booking.group_booking_billing_type === 'ALL_INCLUSIVE'
+                                                );
+                                                const guestRemainingBalance = Number(
+                                                    booking.remaining_balance != null 
+                                                        ? booking.remaining_balance 
+                                                        : (booking.remaining_amount != null ? booking.remaining_amount : 0)
+                                                );
+                                                const isFullyCoveredByCompany = groupInfo.isGroup && groupInfo.isMasterBilled && (isGroupAllInclusive || guestRemainingBalance === 0);
+
+                                                return (
+                                                    <div className="bg-white px-5 sm:px-7 py-4 border-t border-slate-100">
+                                                        <div className="flex items-center justify-between gap-2 mb-2.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                                                    isFullyCoveredByCompany 
+                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/70' 
+                                                                        : (extraServices.some(s => (s.service_name || '').toLowerCase().includes('bồi thường')) ? 'bg-rose-50 text-rose-700 border border-rose-200/70' : 'bg-slate-100 text-slate-700 border border-slate-200/80')
+                                                                }`}>
+                                                                    {isFullyCoveredByCompany ? 'Dịch vụ đặt kèm theo đoàn' : (extraServices.some(s => (s.service_name || '').toLowerCase().includes('bồi thường')) ? 'Dịch vụ & Phụ phí' : 'Dịch vụ & Tiện ích')}
+                                                                </span>
+                                                                <span className="text-xs font-semibold text-slate-500">
+                                                                    Đã ghi nhận ({extraServices.length} mục)
+                                                                </span>
+                                                            </div>
+                                                            <span className={`text-xs font-bold ${isFullyCoveredByCompany ? 'text-indigo-700' : 'text-slate-800'}`}>
+                                                                {isFullyCoveredByCompany
+                                                                    ? `${extraServicesTotal > 0 ? `Đoàn chi trả: ${extraServicesTotal.toLocaleString('vi-VN')} VND` : 'Tiện ích miễn phí'}`
+                                                                    : (extraServicesTotal > 0 ? `Phụ thu: +${extraServicesTotal.toLocaleString('vi-VN')} VND` : 'Tiện ích miễn phí')
+                                                                }
                                                             </span>
                                                         </div>
-                                                        <span className="text-xs font-black text-amber-900">
-                                                            Tổng phụ thu: +{extraServicesTotal.toLocaleString('vi-VN')} VND
-                                                        </span>
-                                                    </div>
-                                                    <div className="divide-y divide-amber-200/50 text-xs">
-                                                        {extraServices.map((srv, idx) => {
-                                                            const cleanName = (srv.service_name || '')
-                                                                .replace(/\[Yêu cầu #\d+\]/gi, '')
-                                                                .replace(/\(x\d+\)/gi, '')
-                                                                .trim();
-                                                            const isDamage = cleanName.toLowerCase().includes('bồi thường');
-                                                            return (
-                                                                <div key={srv.id || idx} className={`py-1.5 flex items-center justify-between ${isDamage ? 'text-rose-900 font-medium' : 'text-slate-700'}`}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className={`w-1.5 h-1.5 rounded-full ${isDamage ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
-                                                                        {isDamage && (
-                                                                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                                                                                ⚠️ Bồi thường
-                                                                            </span>
-                                                                        )}
-                                                                        <span className={`font-semibold ${isDamage ? 'text-rose-900' : 'text-slate-900'}`}>{cleanName}</span>
-                                                                        <span className="text-slate-400 text-[11px]">(x{srv.quantity || 1})</span>
+                                                        <div className="divide-y divide-slate-100 text-xs">
+                                                            {extraServices.map((srv, idx) => {
+                                                                const cleanName = (srv.service_name || '')
+                                                                    .replace(/\[Yêu cầu #\d+\]/gi, '')
+                                                                    .replace(/\(x\d+\)/gi, '')
+                                                                    .trim();
+                                                                const isDamage = cleanName.toLowerCase().includes('bồi thường');
+                                                                const srvTotal = Number(srv.total_price != null ? srv.total_price : (srv.price * (srv.quantity || 1)));
+                                                                return (
+                                                                    <div key={srv.id || idx} className={`py-1.5 flex items-center justify-between ${isDamage ? 'text-rose-900 font-medium' : 'text-slate-700'}`}>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className={`w-1.5 h-1.5 rounded-full ${isDamage ? 'bg-rose-500' : (isFullyCoveredByCompany ? 'bg-indigo-500' : 'bg-amber-500')}`}></span>
+                                                                            {isDamage && (
+                                                                                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                                                                    ⚠️ Bồi thường
+                                                                                </span>
+                                                                            )}
+                                                                            <span className={`font-semibold ${isDamage ? 'text-rose-900' : 'text-slate-900'}`}>{cleanName}</span>
+                                                                            <span className="text-slate-400 text-[11px]">(x{srv.quantity || 1})</span>
+                                                                            {isFullyCoveredByCompany && srvTotal > 0 && (
+                                                                                <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                                                                    ✓ Công ty chi trả
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <span className={`font-bold ${isDamage ? 'text-rose-700' : (srvTotal > 0 ? (isFullyCoveredByCompany ? 'text-indigo-800' : 'text-slate-800') : 'text-emerald-700')}`}>
+                                                                            {srvTotal > 0 ? `${srvTotal.toLocaleString('vi-VN')} VND` : 'Miễn phí'}
+                                                                        </span>
                                                                     </div>
-                                                                    <span className={`font-bold ${isDamage ? 'text-rose-700' : 'text-slate-800'}`}>
-                                                                        {Number(srv.total_price || (srv.price * (srv.quantity || 1))).toLocaleString('vi-VN')} VND
-                                                                    </span>
-                                                                </div>
-                                                            );
-                                                        })}
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                );
+                                            })()}
 
                                             {/* BANNER THÔNG TIN HỢP ĐỒNG ĐOÀN CHO PHÒNG THUỘC ĐOÀN B2B */}
                                             {groupInfo.isGroup && (
@@ -1332,6 +1414,58 @@ export default function BookingHistory() {
                             </div>
                         </div>
 
+                        {/* Phạm vi hủy nếu là Đơn theo đoàn */}
+                        {(() => {
+                            const modalGroup = cancelModalBooking ? getGroupBookingInfo(cancelModalBooking) : { isGroup: false };
+                            if (!modalGroup.isGroup) return null;
+                            return (
+                                <div className="mb-4 p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
+                                    <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                                        Phạm vi hủy (Đoàn #{modalGroup.groupCode}):
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                        <label className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
+                                            cancelScope === 'single'
+                                                ? 'border-indigo-600 bg-white ring-2 ring-indigo-500/20 shadow-xs'
+                                                : 'border-indigo-100 bg-white/70 hover:bg-white'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="cancelScope"
+                                                value="single"
+                                                checked={cancelScope === 'single'}
+                                                onChange={() => setCancelScope('single')}
+                                                className="accent-indigo-600"
+                                            />
+                                            <div>
+                                                <strong className="block text-slate-800">Chỉ hủy phòng này</strong>
+                                                <span className="text-[11px] text-slate-500 font-mono">#{cancelModalBooking.booking_code}</span>
+                                            </div>
+                                        </label>
+
+                                        <label className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
+                                            cancelScope === 'group'
+                                                ? 'border-rose-600 bg-rose-50/70 ring-2 ring-rose-500/20 shadow-xs'
+                                                : 'border-indigo-100 bg-white/70 hover:bg-white'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="cancelScope"
+                                                value="group"
+                                                checked={cancelScope === 'group'}
+                                                onChange={() => setCancelScope('group')}
+                                                className="accent-rose-600"
+                                            />
+                                            <div>
+                                                <strong className="block text-rose-700">Hủy toàn bộ đoàn</strong>
+                                                <span className="text-[11px] text-rose-500">Đồng bộ hủy tất cả phòng</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* Tóm tắt đơn hủy */}
                         <div className="bg-slate-50 rounded-2xl p-4 text-xs space-y-2 mb-4 border border-slate-200/80">
                             <div className="flex justify-between">
@@ -1397,7 +1531,7 @@ export default function BookingHistory() {
                                         <span>Đang hủy đơn...</span>
                                     </>
                                 ) : (
-                                    <span>Xác nhận Hủy Đơn</span>
+                                    <span>{cancelScope === 'group' ? 'Xác nhận Hủy Toàn Bộ Đoàn' : 'Xác nhận Hủy Phòng'}</span>
                                 )}
                             </button>
 

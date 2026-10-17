@@ -264,7 +264,9 @@ class ActiveGuestBookingsView(APIView):
 
     def get(self, request):
         user = request.user
-        base_qs = Booking.objects.select_related('room', 'category', 'guest').filter(
+        base_qs = Booking.objects.select_related(
+            'room', 'category', 'guest'
+        ).prefetch_related('guests').filter(
             status='checked_in',
             room__isnull=False
         ).order_by('-created_at')
@@ -279,16 +281,20 @@ class ActiveGuestBookingsView(APIView):
             )
         )
 
+        if not user.is_authenticated:
+            return Response({
+                'success': True,
+                'count': 0,
+                'bookings': [],
+                'data': []
+            }, status=status.HTTP_200_OK)
+
         if not is_staff_or_admin:
-            if user.is_authenticated:
-                user_email = user.email.strip() if user.email else ''
-                if user_email:
-                    base_qs = base_qs.filter(Q(guest=user) | Q(guest__email=user_email))
-                else:
-                    base_qs = base_qs.filter(guest=user)
+            user_email = user.email.strip() if user.email else ''
+            if user_email:
+                base_qs = base_qs.filter(Q(guest=user) | Q(guest__email=user_email))
             else:
-                # Khách vãng lai chưa đăng nhập: lấy danh sách các phòng đang lưu trú để chọn
-                base_qs = base_qs[:20]
+                base_qs = base_qs.filter(guest=user)
 
         results = []
         for b in base_qs:
@@ -296,13 +302,29 @@ class ActiveGuestBookingsView(APIView):
                 continue
             room_num = b.room.room_number
             cat_name = b.category.name if b.category else (b.room.category.name if b.room and b.room.category else 'Tiêu chuẩn')
-            guest_name = (b.guest.get_full_name().strip() or f"{b.guest.first_name or ''} {b.guest.last_name or ''}".strip()) if b.guest else 'Khách lưu trú'
+
+            # 1. Ưu tiên lấy tên người đại diện lưu trú của từng phòng (rất quan trọng cho đơn đặt theo đoàn công ty)
+            guest_name = ''
+            try:
+                primary_guest = b.guests.filter(is_primary=True).first() or b.guests.first()
+                if primary_guest and primary_guest.full_name:
+                    guest_name = primary_guest.full_name.strip()
+            except Exception:
+                pass
+
+            # 2. Nếu phòng chưa có khai báo lưu trú chi tiết, lấy từ tài khoản đặt phòng
+            if not guest_name and b.guest:
+                guest_name = (b.guest.get_full_name().strip() or f"{b.guest.first_name or ''} {b.guest.last_name or ''}".strip()) or b.guest.username
+
+            if not guest_name:
+                guest_name = 'Khách lưu trú'
+
             results.append({
                 'id': b.id,
                 'booking_code': b.booking_code,
                 'room_number': room_num,
                 'room_name': cat_name,
-                'guest_name': guest_name or (b.guest.username if b.guest else 'Khách lưu trú'),
+                'guest_name': guest_name,
                 'status': b.status,
                 'status_display': b.get_status_display(),
                 'display_label': f"Phòng {room_num} • Mã #{b.booking_code} ({guest_name})"
@@ -360,8 +382,13 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             base_qs = base_qs.filter(status=status_param)
 
         if not user.is_authenticated:
-            # Cho phép hiển thị dữ liệu phục vụ quản trị và thử nghiệm hoặc lọc theo booking
-            return base_qs
+            # Khách chưa đăng nhập (khách đoàn/vãng lai): chỉ cho phép tra cứu nếu truyền đúng mã booking cụ thể
+            booking_param = self.request.query_params.get('booking_id') or self.request.query_params.get('booking')
+            if booking_param:
+                if str(booking_param).isdigit():
+                    return base_qs.filter(booking_id=int(booking_param))
+                return base_qs.filter(booking__booking_code=str(booking_param).strip().upper())
+            return base_qs.none()
 
         is_staff_or_admin = (
             user.is_staff or 
@@ -412,12 +439,17 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         """
         Khách hàng gửi yêu cầu dịch vụ tại phòng:
         Payload: {
-            "booking_id": 7,
+            "booking_id": "BK-02DE4E" (hoặc ID 7),
             "service_id": 1,
             "quantity": 2,
             "note": "Mang lên lúc 19:30, ít đường"
         }
+        Hỗ trợ:
+        - Khách cá nhân đã đăng nhập: Đặt cho phòng của chính mình.
+        - Khách đoàn / Thành viên trong đoàn: Tự nhập mã booking in trên thẻ phòng (BK-xxxxxx) mà không cần tài khoản HR.
+        - Nhân viên / Quản lý: Đặt hỗ trợ cho khách phòng bất kỳ.
         """
+        user = request.user
         data = request.data
         booking_id = data.get('booking') or data.get('booking_id')
         service_id = data.get('service') or data.get('service_id')
@@ -428,7 +460,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         if not booking_id:
             return Response({
                 'success': False,
-                'message': 'Vui lòng chọn đơn đặt phòng / số phòng đang lưu trú của bạn.'
+                'message': 'Vui lòng nhập Mã Đặt phòng (VD: BK-02DE4E) in trên thẻ phòng hoặc phiếu nhận phòng của bạn.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if not service_id:
@@ -450,36 +482,34 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 'message': 'Số lượng không hợp lệ.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Tìm Booking
-        booking = Booking.objects.filter(pk=booking_id).select_related('room', 'guest').first()
+        # 2. Tìm Booking theo ID hoặc booking_code
+        booking = Booking.objects.filter(pk=booking_id).select_related('room', 'guest', 'group_booking').first() if str(booking_id).isdigit() else None
         if not booking:
-            # Thử tìm theo booking_code nếu truyền vào mã chuỗi
-            booking = Booking.objects.filter(booking_code=str(booking_id).strip().upper()).select_related('room', 'guest').first()
+            booking = Booking.objects.filter(booking_code=str(booking_id).strip().upper()).select_related('room', 'guest', 'group_booking').first()
 
         if not booking:
             return Response({
                 'success': False,
-                'message': 'Không tìm thấy thông tin đơn đặt phòng tương ứng.'
+                'message': f'Không tìm thấy đơn đặt phòng với mã "{booking_id}". Quý khách vui lòng kiểm tra lại mã in trên phiếu nhận phòng hoặc thẻ phòng.'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # 2.1. Phân quyền: Khách hàng chỉ được đặt dịch vụ cho đơn của chính mình
-        user = request.user
-        is_staff_or_admin = (
-            user.is_authenticated and (
+        # 2.1. Phân quyền:
+        # Nếu khách đã đăng nhập: kiểm tra tính sở hữu đơn phòng
+        if user.is_authenticated:
+            is_staff_or_admin = (
                 user.is_staff or 
                 user.is_superuser or 
                 getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'service_staff', 'housekeeper'] or
                 getattr(user, 'role', '') != 'guest'
             )
-        )
-        if user.is_authenticated and not is_staff_or_admin:
-            user_email = user.email.strip() if user.email else ''
-            is_owner = (booking.guest == user) or (user_email and booking.guest and booking.guest.email == user_email)
-            if not is_owner:
-                return Response({
-                    'success': False,
-                    'message': 'Quý khách không thể gọi dịch vụ cho đơn đặt phòng của khách hàng khác.'
-                }, status=status.HTTP_403_FORBIDDEN)
+            if not is_staff_or_admin:
+                user_email = user.email.strip() if user.email else ''
+                is_owner = (booking.guest == user) or (user_email and booking.guest and booking.guest.email == user_email)
+                if not is_owner:
+                    return Response({
+                        'success': False,
+                        'message': 'Quý khách không thể gọi dịch vụ cho đơn đặt phòng của khách hàng khác.'
+                    }, status=status.HTTP_403_FORBIDDEN)
 
         # 2.2. Kiểm tra trạng thái đơn: Phải là đang lưu trú (checked_in)
         if booking.status != 'checked_in':
@@ -545,8 +575,27 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         user = request.user
         new_status = request.data.get('status')
 
+        if not user.is_authenticated:
+            if new_status == 'cancelled':
+                if service_req.status != 'pending':
+                    return Response({
+                        'success': False,
+                        'message': 'Yêu cầu chỉ có thể hủy khi đang ở trạng thái Chờ xử lý.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                service_req.status = 'cancelled'
+                service_req.save(update_fields=['status', 'updated_at'])
+                serializer = self.get_serializer(service_req, context={'request': request})
+                return Response({
+                    'success': True,
+                    'message': 'Đã hủy yêu cầu dịch vụ thành công.',
+                    'data': serializer.data
+                }, status=status.HTTP_200_OK)
+            return Response({
+                'success': False,
+                'message': 'Quý khách vui lòng đăng nhập để thực hiện thao tác.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
         is_staff_or_admin = (
-            not user.is_authenticated or
             user.is_staff or 
             user.is_superuser or 
             getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
@@ -698,7 +747,18 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         """
         service_req = self.get_object()
         booking = service_req.booking
-        guest_name = (booking.guest.get_full_name() or booking.guest.username) if booking and booking.guest else "Khách lưu trú"
+        guest_name = ''
+        if booking:
+            try:
+                primary_guest = booking.guests.filter(is_primary=True).first() or booking.guests.first()
+                if primary_guest and primary_guest.full_name:
+                    guest_name = primary_guest.full_name.strip()
+            except Exception:
+                pass
+            if not guest_name and booking.guest:
+                guest_name = (booking.guest.get_full_name().strip() or f"{booking.guest.first_name or ''} {booking.guest.last_name or ''}".strip()) or booking.guest.username
+        if not guest_name:
+            guest_name = "Khách lưu trú"
         room_label = (booking.room.room_number if booking and booking.room else None) or \
                      (booking.category.name if booking and booking.category else "Chưa xếp phòng")
         service_name = service_req.service.name if service_req.service else "Dịch vụ"

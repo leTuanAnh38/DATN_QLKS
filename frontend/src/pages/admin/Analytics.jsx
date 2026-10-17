@@ -365,12 +365,18 @@ export default function Analytics({ onNavigateToCustomer }) {
             {/* ========================================================================= */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 {/* KPI 1: TỔNG DOANH THU TRONG KỲ */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-blue-400/60 hover:shadow-md transition">
+                <div 
+                    className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-blue-400/60 hover:shadow-md transition"
+                    title="Doanh thu kế toán ghi nhận từ các hóa đơn đã thanh toán & hoàn tất trả phòng trong kỳ chọn"
+                >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                            Doanh Thu Trong Kỳ
-                        </span>
+                        <div>
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                                Doanh Thu Trong Kỳ
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-normal">Hóa đơn đã quyết toán</span>
+                        </div>
                         <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center text-blue-600">
                             <DollarSign className="w-5 h-5" />
                         </div>
