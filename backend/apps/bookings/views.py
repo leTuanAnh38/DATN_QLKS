@@ -3827,10 +3827,136 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'created_at': sr.created_at.isoformat() if sr.created_at else None
             })
 
+        # 7. NHỊP ĐẬP VẬN HÀNH TRONG NGÀY (TODAY'S OPERATIONS PULSE)
+        ci_expected_qs = all_bookings.filter(check_in_date=today).exclude(status__in=['cancelled', 'no_show'])
+        ci_expected_count = ci_expected_qs.count()
+        ci_arrived_count = ci_expected_qs.filter(status__in=['checked_in', 'completed', 'checked_out']).count()
+        ci_remaining_count = max(0, ci_expected_count - ci_arrived_count)
+
+        co_expected_qs = all_bookings.filter(check_out_date=today).exclude(status='cancelled')
+        co_expected_count = co_expected_qs.count()
+        co_departed_count = co_expected_qs.filter(status__in=['completed', 'checked_out']).count()
+        co_remaining_count = co_expected_qs.filter(status='checked_in').count()
+
+        in_house_qs = all_bookings.filter(status='checked_in')
+        in_house_rooms_count = occupied_rooms
+        in_house_guests_count = in_house_qs.count() * 2
+
+        readiness_pct = round((available_rooms / max(1, total_rooms)) * 100, 1)
+
+        operations_pulse = {
+            'today_date': today.strftime('%d/%m/%Y'),
+            'check_in': {
+                'total_expected': ci_expected_count,
+                'arrived': ci_arrived_count,
+                'remaining': ci_remaining_count,
+                'progress_pct': round((ci_arrived_count / max(1, ci_expected_count)) * 100, 1) if ci_expected_count > 0 else 100.0
+            },
+            'check_out': {
+                'total_expected': co_expected_count,
+                'departed': co_departed_count,
+                'remaining': co_remaining_count,
+                'progress_pct': round((co_departed_count / max(1, co_expected_count)) * 100, 1) if co_expected_count > 0 else 100.0
+            },
+            'in_house': {
+                'occupied_rooms': in_house_rooms_count,
+                'total_rooms': total_rooms,
+                'estimated_guests': in_house_guests_count,
+                'occupancy_rate': occupancy_rate
+            },
+            'housekeeping': {
+                'available_clean': available_rooms,
+                'cleaning_dirty': cleaning_rooms,
+                'maintenance': maintenance_rooms,
+                'total_rooms': total_rooms,
+                'readiness_pct': readiness_pct
+            }
+        }
+
+        # 8. TRUNG TÂM CẢNH BÁO SỰ VỤ KHẨN (LIVE ACTION CENTER)
+        urgent_vietqr_count = all_bookings.filter(status__in=['paid', 'PAID']).count()
+        urgent_pending_count = all_bookings.filter(status='pending').count()
+        late_checkout_qs = all_bookings.filter(check_out_date__lt=today, status='checked_in')
+        late_checkout_count = late_checkout_qs.count()
+
+        urgent_items = []
+        if urgent_vietqr_count > 0:
+            urgent_items.append({
+                'id': 'vietqr_pending',
+                'level': 'critical',
+                'title': f'{urgent_vietqr_count} đơn thanh toán VietQR (SePay) cần xác nhận',
+                'subtitle': 'Khách đã quét mã chuyển khoản thành công, cần duyệt và phân phòng.',
+                'count': urgent_vietqr_count,
+                'badge': 'VietQR SePay',
+                'action_tab': 'bookings',
+                'action_filter': 'paid',
+                'action_label': 'Xử lý ngay'
+            })
+
+        if urgent_pending_count > 0:
+            urgent_items.append({
+                'id': 'new_bookings_pending',
+                'level': 'warning',
+                'title': f'{urgent_pending_count} đơn đặt phòng mới đang chờ duyệt',
+                'subtitle': 'Cần kiểm tra tình trạng phòng trống và phản hồi cho khách trong vòng 15 phút.',
+                'count': urgent_pending_count,
+                'badge': 'Đơn mới',
+                'action_tab': 'bookings',
+                'action_filter': 'pending',
+                'action_label': 'Duyệt đơn'
+            })
+
+        if pending_requests_count > 0:
+            urgent_items.append({
+                'id': 'service_requests_pending',
+                'level': 'warning',
+                'title': f'{pending_requests_count} yêu cầu dịch vụ phòng đang chờ phục vụ',
+                'subtitle': 'Khách đang chờ dịch vụ F&B, dọn dẹp hoặc đồ dùng bổ sung tại phòng.',
+                'count': pending_requests_count,
+                'badge': 'Room Service',
+                'action_tab': 'services',
+                'action_filter': 'pending',
+                'action_label': 'Mở Kanban'
+            })
+
+        if late_checkout_count > 0:
+            urgent_items.append({
+                'id': 'late_checkout',
+                'level': 'alert',
+                'title': f'{late_checkout_count} phòng quá giờ check-out chưa trả phòng',
+                'subtitle': 'Khách đã quá ngày trả phòng dự kiến nhưng vẫn chưa thực hiện thủ tục check-out.',
+                'count': late_checkout_count,
+                'badge': 'Quá giờ',
+                'action_tab': 'bookings',
+                'action_filter': 'checked_in',
+                'action_label': 'Kiểm tra'
+            })
+
+        if maintenance_rooms > 0:
+            urgent_items.append({
+                'id': 'maintenance_rooms',
+                'level': 'info',
+                'title': f'{maintenance_rooms} phòng đang bảo trì thiết bị kỹ thuật',
+                'subtitle': 'Phòng tạm khóa để bảo dưỡng, kiểm tra tiến độ với bộ phận Kỹ thuật.',
+                'count': maintenance_rooms,
+                'badge': 'Bảo trì',
+                'action_tab': 'rooms',
+                'action_filter': 'maintenance',
+                'action_label': 'Xem phòng'
+            })
+
+        action_center = {
+            'total_urgent': len(urgent_items),
+            'has_urgent': len(urgent_items) > 0,
+            'items': urgent_items
+        }
+
         return Response({
             'success': True,
             'time_filter': time_filter,
             'period_label': period_label,
+            'operations_pulse': operations_pulse,
+            'action_center': action_center,
             'revenue': {
                 'total_revenue': current_revenue,
                 'room_revenue': current_room_revenue,

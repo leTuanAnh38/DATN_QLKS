@@ -37,7 +37,14 @@ import {
     ExternalLink,
     Download,
     Printer,
-    FileSpreadsheet
+    FileSpreadsheet,
+    CreditCard,
+    Briefcase,
+    Percent,
+    Banknote,
+    ShieldCheck,
+    Wallet,
+    Tag
 } from 'lucide-react';
 import { reportService } from '../../services/reportService';
 
@@ -168,30 +175,54 @@ export default function Analytics({ onNavigateToCustomer }) {
         csv += `Kỳ báo cáo:,${reportData.filter_label || timeFilter}\n`;
         csv += `Thời gian xuất:,${new Date().toLocaleString('vi-VN')}\n\n`;
 
-        csv += '1. TỔNG QUAN CHỈ SỐ CHÍNH (KPI)\n';
+        csv += '1. TỔNG QUAN CHỈ SỐ CHÍNH (HOTEL PMS KEY METRICS)\n';
         csv += `Tổng doanh thu trong kỳ:,${sum.total_revenue || 0} VND\n`;
         csv += `Tăng trưởng so với kỳ trước:,${sum.growth_rate || 0}%\n`;
         csv += `Tổng số lượt đặt phòng (Bookings):,${sum.total_bookings || 0} lượt\n`;
-        csv += `Tỉ lệ lấp đầy phòng:,${sum.occupancy_rate || 0}%\n`;
-        csv += `Phòng đang ở:,${sum.occupied_rooms || 0}/${sum.total_rooms || 0}\n`;
-        csv += `Phòng trống sẵn sàng:,${sum.available_rooms || 0}\n`;
+        csv += `Tỉ lệ lấp đầy phòng (Occupancy):,${sum.occupancy_rate || 0}%\n`;
+        csv += `Giá bán phòng bình quân (ADR):,${sum.adr || 0} VND/đêm\n`;
+        csv += `Doanh thu trên mỗi phòng sẵn có (RevPAR):,${sum.revpar || 0} VND/phòng\n`;
+        csv += `Thời gian lưu trú trung bình (ALOS):,${sum.alos || 1.0} đêm\n`;
+        csv += `Số đêm phòng đã bán:,${sum.sold_room_nights || 0} đêm\n`;
         csv += `Giá trị đơn trung bình (AOV):,${sum.average_order_value || 0} VND\n\n`;
 
-        csv += '2. CHI TIẾT DOANH THU THEO MỐC THỜI GIAN\n';
+        // Cơ cấu Kênh thanh toán
+        const pMethods = reportData?.payment_methods || [];
+        if (pMethods.length > 0) {
+            csv += '2. CƠ CẤU KÊNH THANH TOÁN (PAYMENT METHODS)\n';
+            csv += 'Kênh thanh toán,Số tiền (VND),Số giao dịch,Tỷ trọng (%)\n';
+            pMethods.forEach((pm) => {
+                csv += `"${pm.name}",${pm.amount || 0},${pm.count || 0},${pm.percentage || 0}%\n`;
+            });
+            csv += '\n';
+        }
+
+        // Top Doanh nghiệp Đối tác B2B
+        const topCorp = reportData?.top_corporate_partners || [];
+        if (topCorp.length > 0) {
+            csv += '3. TOP DOANH NGHIỆP ĐỐI TÁC B2B\n';
+            csv += 'Hạng,Tên doanh nghiệp,Mã đối tác,MST,Người liên hệ,Số đoàn,Tổng doanh thu (VND)\n';
+            topCorp.forEach((cp, idx) => {
+                csv += `${idx + 1},"${cp.company_name}","${cp.corporate_code}","${cp.tax_code}","${cp.contact_person}",${cp.total_groups || 0},${cp.total_revenue || 0}\n`;
+            });
+            csv += '\n';
+        }
+
+        csv += '4. CHI TIẾT DOANH THU THEO MỐC THỜI GIAN\n';
         csv += 'Thời gian,Doanh thu (VND),Số lượt đặt\n';
         revChart.forEach((item) => {
             csv += `"${item.full_date || item.label}",${item.revenue || 0},${item.booking_count || 0}\n`;
         });
         csv += '\n';
 
-        csv += '3. TOP 5 PHÒNG ĐƯỢC ĐẶT NHIỀU NHẤT\n';
+        csv += '5. TOP 5 PHÒNG ĐƯỢC ĐẶT NHIỀU NHẤT\n';
         csv += 'Hạng,Số phòng,Loại phòng,Số lượt đặt,Doanh thu mang lại (VND)\n';
         topR.forEach((r, idx) => {
             csv += `${idx + 1},"${r.room_number}","${r.category_name || ''}",${r.booking_count || 0},${r.revenue || 0}\n`;
         });
         csv += '\n';
 
-        csv += '4. TOP 5 KHÁCH HÀNG VIP CHI TIÊU CAO NHẤT\n';
+        csv += '6. TOP 5 KHÁCH HÀNG VIP CHI TIÊU CAO NHẤT\n';
         csv += 'Hạng,Tên khách hàng,Email,Hạng VIP,Số đơn đặt,Tổng chi tiêu (VND)\n';
         topC.forEach((c, idx) => {
             csv += `${idx + 1},"${c.full_name || c.username}","${c.email || ''}","${c.vip_tier || ''}",${c.booking_count || 0},${c.total_spent || 0}\n`;
@@ -220,6 +251,10 @@ export default function Analytics({ onNavigateToCustomer }) {
     const revenueByCategory = reportData?.revenue_by_category || [];
     const topRooms = reportData?.top_rooms || [];
     const topVip = reportData?.top_vip_customers || [];
+    const paymentMethods = reportData?.payment_methods || [];
+    const revenueMix = reportData?.revenue_mix || [];
+    const customerSegments = reportData?.customer_segments || [];
+    const topCorporatePartners = reportData?.top_corporate_partners || [];
 
     // Tính toán dữ liệu PieChart theo tab được chọn
     const activePieData = useMemo(() => {
@@ -361,9 +396,9 @@ export default function Analytics({ onNavigateToCustomer }) {
             )}
 
             {/* ========================================================================= */}
-            {/* PHẦN 2: THẺ KPI (4 Ô HIỂN THỊ SỐ TỔNG NỔI BẬT)                            */}
+            {/* PHẦN 2: THẺ KPI CHUYÊN SÂU (6 CHỈ SỐ VÀNG HOTEL BUSINESS INTELLIGENCE)      */}
             {/* ========================================================================= */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {/* KPI 1: TỔNG DOANH THU TRONG KỲ */}
                 <div 
                     className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-blue-400/60 hover:shadow-md transition"
@@ -414,7 +449,85 @@ export default function Analytics({ onNavigateToCustomer }) {
                     </div>
                 </div>
 
-                {/* KPI 2: TỔNG SỐ LƯỢT ĐẶT PHÒNG (BOOKINGS) */}
+                {/* KPI 2: GIÁ BÁN PHÒNG BÌNH QUÂN (ADR - AVERAGE DAILY RATE) */}
+                <div 
+                    className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-cyan-400/60 hover:shadow-md transition"
+                    title="Giá bán phòng bình quân mỗi ngày (ADR = Tổng tiền phòng / Số đêm phòng đã bán)"
+                >
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                                Giá Bán TB (ADR)
+                            </span>
+                            <span className="text-[10px] text-cyan-700 bg-cyan-50 font-bold px-1.5 py-0.5 rounded border border-cyan-200/60">
+                                Average Daily Rate
+                            </span>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200/60 flex items-center justify-center text-cyan-600">
+                            <Banknote className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif">
+                            {isLoading ? (
+                                <div className="h-7 w-32 bg-slate-200 animate-pulse rounded"></div>
+                            ) : (
+                                formatVND(summary.adr)
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-1 text-xs text-slate-500">
+                            <span className="text-[11px]">Bình quân giá bán trên mỗi đêm</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <span>Đêm phòng đã bán:</span>
+                            <strong className="text-cyan-700 font-bold">
+                                {summary.sold_room_nights ?? 0} đêm
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+
+                {/* KPI 3: DOANH THU TRÊN MỖI PHÒNG SẴN CÓ (RevPAR) */}
+                <div 
+                    className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-indigo-400/60 hover:shadow-md transition"
+                    title="Doanh thu trên mỗi phòng sẵn có (RevPAR = Doanh thu phòng / Tổng số phòng khả dụng)"
+                >
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                                Doanh Thu / Phòng (RevPAR)
+                            </span>
+                            <span className="text-[10px] text-indigo-700 bg-indigo-50 font-bold px-1.5 py-0.5 rounded border border-indigo-200/60">
+                                Rev. Per Avail. Room
+                            </span>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200/60 flex items-center justify-center text-indigo-600">
+                            <TrendingUp className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif">
+                            {isLoading ? (
+                                <div className="h-7 w-32 bg-slate-200 animate-pulse rounded"></div>
+                            ) : (
+                                formatVND(summary.revpar)
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-1 text-xs text-slate-500">
+                            <span className="text-[11px]">Chỉ số hiệu quả buồng phòng</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <span>Lưu trú TB (ALOS):</span>
+                            <strong className="text-indigo-700 font-bold">
+                                {summary.alos ?? 1.0} đêm/khách
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+
+                {/* KPI 4: TỔNG SỐ LƯỢT ĐẶT PHÒNG (BOOKINGS) */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-amber-400/60 hover:shadow-md transition">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
                     <div className="flex items-center justify-between mb-3">
@@ -446,7 +559,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                     </div>
                 </div>
 
-                {/* KPI 3: CÔNG SUẤT PHÒNG HIỆN TẠI (OCCUPANCY RATE) */}
+                {/* KPI 5: CÔNG SUẤT PHÒNG HIỆN TẠI (OCCUPANCY RATE) */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-emerald-400/60 hover:shadow-md transition">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
                     <div className="flex items-center justify-between mb-3">
@@ -486,7 +599,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                     </div>
                 </div>
 
-                {/* KPI 4: GIÁ TRỊ ĐƠN TRUNG BÌNH (AOV) */}
+                {/* KPI 6: GIÁ TRỊ ĐƠN TRUNG BÌNH (AOV) */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-purple-400/60 hover:shadow-md transition">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-pink-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
                     <div className="flex items-center justify-between mb-3">
@@ -852,6 +965,245 @@ export default function Analytics({ onNavigateToCustomer }) {
             </div>
 
             {/* ========================================================================= */}
+            {/* PHẦN 4.5: CƠ CẤU KÊNH THANH TOÁN & PHÂN KHÚC KHÁCH HÀNG (B2C VS B2B)       */}
+            {/* ========================================================================= */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* CỘT 1: CƠ CẤU KÊNH THANH TOÁN */}
+                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-200/60">
+                                        <Wallet className="w-4 h-4" />
+                                    </div>
+                                    <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                                        Cơ Cấu Kênh Thanh Toán
+                                    </h2>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    Phân bổ dòng tiền thu qua VietQR SePay, tiền mặt & thẻ
+                                </p>
+                            </div>
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                Cổng thanh toán
+                            </span>
+                        </div>
+
+                        {isLoading ? (
+                            <div className="py-12 text-center text-slate-400">
+                                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                <span className="text-xs">Đang tổng hợp kênh thanh toán...</span>
+                            </div>
+                        ) : paymentMethods.length === 0 ? (
+                            <div className="py-10 text-center text-slate-400 text-xs">
+                                Chưa có giao dịch thanh toán trong kỳ
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {paymentMethods.map((pm, idx) => {
+                                    const iconBg =
+                                        pm.code === 'VIETQR' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                        pm.code === 'CASH' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                        pm.code === 'CARD' ? 'bg-purple-50 text-purple-600 border-purple-200' :
+                                        'bg-pink-50 text-pink-600 border-pink-200';
+
+                                    const barGradient =
+                                        pm.code === 'VIETQR' ? 'from-blue-600 to-indigo-600' :
+                                        pm.code === 'CASH' ? 'from-emerald-500 to-teal-500' :
+                                        pm.code === 'CARD' ? 'from-purple-600 to-indigo-600' :
+                                        'from-pink-500 to-rose-500';
+
+                                    return (
+                                        <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/60 border border-slate-100 hover:border-slate-200 transition">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center border ${iconBg}`}>
+                                                        {pm.code === 'VIETQR' && <ShieldCheck className="w-4 h-4" />}
+                                                        {pm.code === 'CASH' && <Banknote className="w-4 h-4" />}
+                                                        {pm.code === 'CARD' && <CreditCard className="w-4 h-4" />}
+                                                        {pm.code === 'EWALLET' && <Wallet className="w-4 h-4" />}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs font-bold text-slate-900 block">
+                                                            {pm.name}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400">
+                                                            {pm.count} giao dịch
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-xs font-black text-slate-900">
+                                                        {formatVND(pm.amount)}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                                                        {pm.percentage}%
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress bar */}
+                                            <div className="w-full bg-slate-200/70 h-2 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full bg-gradient-to-r ${barGradient} transition-all duration-700`}
+                                                    style={{ width: `${Math.min(pm.percentage || 0, 100)}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                            Đối soát SePay Webhook tự động
+                        </span>
+                        <span className="font-bold text-slate-800">
+                            {formatVND(paymentMethods.reduce((acc, curr) => acc + (curr.amount || 0), 0))}
+                        </span>
+                    </div>
+                </div>
+
+                {/* CỘT 2: PHÂN KHÚC KHÁCH HÀNG & CƠ CẤU NGUỒN THU */}
+                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60">
+                                        <Briefcase className="w-4 h-4" />
+                                    </div>
+                                    <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                                        Phân Khúc Khách & Nguồn Thu
+                                    </h2>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    Tỷ trọng B2C vs B2B và Phân bổ Tiền phòng vs Tiện ích F&B
+                                </p>
+                            </div>
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80">
+                                Phân bổ doanh số
+                            </span>
+                        </div>
+
+                        {/* SUB-SECTION 1: KHÁCH LẺ (B2C) VS ĐOÀN DOANH NGHIỆP (B2B) */}
+                        <div className="mb-5">
+                            <div className="flex items-center justify-between mb-2.5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                    Phân khúc Khách hàng (B2C vs B2B)
+                                </span>
+                                <span className="text-[10px] text-slate-500">
+                                    {customerSegments.reduce((sum, s) => sum + (s.count || 0), 0)} lượt đoàn/khách
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                {customerSegments.map((seg, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`p-3 rounded-2xl border ${
+                                            seg.code === 'B2B'
+                                                ? 'bg-amber-50/50 border-amber-200/80'
+                                                : 'bg-blue-50/50 border-blue-200/80'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                                {seg.code === 'B2B' ? (
+                                                    <Briefcase className="w-3.5 h-3.5 text-amber-600" />
+                                                ) : (
+                                                    <Users className="w-3.5 h-3.5 text-blue-600" />
+                                                )}
+                                                {seg.name}
+                                            </span>
+                                            <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                                                seg.code === 'B2B' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                                            }`}>
+                                                {seg.percentage}%
+                                            </span>
+                                        </div>
+                                        <div className="text-base font-black text-slate-900 font-serif">
+                                            {formatVND(seg.amount)}
+                                        </div>
+                                        <span className="text-[10px] text-slate-500">
+                                            {seg.count} {seg.code === 'B2B' ? 'đoàn hội nghị/tour' : 'lượt đặt phòng lẻ'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Stacked bar B2C vs B2B */}
+                            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex">
+                                {customerSegments.map((seg, idx) => (
+                                    <div
+                                        key={idx}
+                                        style={{ width: `${seg.percentage || 0}%`, backgroundColor: seg.color }}
+                                        title={`${seg.name}: ${seg.percentage}%`}
+                                        className="h-full transition-all duration-700"
+                                    ></div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* SUB-SECTION 2: TIỀN PHÒNG VS DỊCH VỤ F&B */}
+                        <div className="pt-4 border-t border-slate-100">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                    Cơ cấu Nguồn thu (Phòng & Dịch vụ)
+                                </span>
+                                <span className="text-[10px] text-slate-500">
+                                    Tổng thực thu kỳ
+                                </span>
+                            </div>
+
+                            <div className="space-y-2">
+                                {revenueMix.map((mix, idx) => (
+                                    <div key={idx} className="flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="w-2.5 h-2.5 rounded-full"
+                                                style={{ backgroundColor: mix.color }}
+                                            ></span>
+                                            <span className="font-semibold text-slate-700">{mix.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-slate-900">{formatVND(mix.amount)}</span>
+                                            <span className="text-[10px] font-bold text-slate-400 w-10 text-right">
+                                                {mix.percentage}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Stacked bar Room vs Service */}
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex mt-2.5">
+                                {revenueMix.map((mix, idx) => (
+                                    <div
+                                        key={idx}
+                                        style={{ width: `${mix.percentage || 0}%`, backgroundColor: mix.color }}
+                                        title={`${mix.name}: ${mix.percentage}%`}
+                                        className="h-full transition-all duration-700"
+                                    ></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span className="text-[11px]">Định hướng: Mở rộng hợp đồng B2B gia tăng RevPAR</span>
+                        <span className="font-bold text-emerald-600">
+                            {formatVND(revenueMix.reduce((acc, curr) => acc + (curr.amount || 0), 0))}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* ========================================================================= */}
             {/* PHẦN 5: BẢNG XẾP HẠNG TOP KHÁCH HÀNG VIP                                  */}
             {/* ========================================================================= */}
             <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -995,6 +1347,147 @@ export default function Analytics({ onNavigateToCustomer }) {
                                                 </div>
                                                 <span className="text-[10px] text-slate-400">
                                                     Đã thanh toán
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* PHẦN 6: BẢNG XẾP HẠNG TOP DOANH NGHIỆP ĐỐI TÁC (B2B CORPORATE PARTNERS)   */}
+            {/* ========================================================================= */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <Building2 className="w-5 h-5 text-indigo-600" />
+                            <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                                Top Doanh Nghiệp Đối Tác (B2B Corporate Partners)
+                            </h2>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                            Các công ty, tập đoàn lữ hành & đối tác sự kiện M.I.C.E có đóng góp doanh thu lớn nhất
+                        </p>
+                    </div>
+                    <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200/80 self-start sm:self-auto flex items-center gap-1.5">
+                        <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                        Hợp Đồng Đoàn & Sự Kiện
+                    </span>
+                </div>
+
+                {/* Table Top B2B Partners */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr className="bg-slate-50/70 border-b border-slate-200/70 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                <th className="py-3 px-5 text-center w-16">THỨ HẠNG</th>
+                                <th className="py-3 px-5">DOANH NGHIỆP / CÔNG TY</th>
+                                <th className="py-3 px-5">MÃ HỢP ĐỒNG & ƯU ĐÃI</th>
+                                <th className="py-3 px-5">ĐẠI DIỆN LIÊN HỆ</th>
+                                <th className="py-3 px-5 text-center">SỐ ĐOÀN ĐÃ TỔ CHỨC</th>
+                                <th className="py-3 px-5 text-right">TỔNG DOANH THU ĐÓNG GÓP</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" className="py-12 text-center text-slate-400">
+                                        <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                        <span>Đang tải danh sách doanh nghiệp đối tác...</span>
+                                    </td>
+                                </tr>
+                            ) : topCorporatePartners.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="py-10 text-center text-slate-400">
+                                        Chưa có dữ liệu đặt phòng đoàn doanh nghiệp
+                                    </td>
+                                </tr>
+                            ) : (
+                                topCorporatePartners.map((partner) => {
+                                    const rankBadge =
+                                        partner.rank === 1
+                                            ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/30 ring-2 ring-amber-300'
+                                            : partner.rank === 2
+                                                ? 'bg-slate-300 text-slate-900 font-black shadow-xs'
+                                                : partner.rank === 3
+                                                    ? 'bg-amber-700/80 text-white font-black'
+                                                    : 'bg-slate-100 text-slate-600 font-bold';
+
+                                    return (
+                                        <tr
+                                            key={partner.id}
+                                            className="hover:bg-slate-50/80 transition group"
+                                        >
+                                            {/* Thứ hạng */}
+                                            <td className="py-3.5 px-5 text-center">
+                                                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-xl text-xs ${rankBadge}`}>
+                                                    {partner.rank}
+                                                </span>
+                                            </td>
+
+                                            {/* Tên công ty & Mã số thuế */}
+                                            <td className="py-3.5 px-5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-bold flex items-center justify-center text-xs shadow-xs shrink-0">
+                                                        <Building2 className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <strong className="text-slate-900 text-xs font-bold block truncate group-hover:text-indigo-600 transition">
+                                                            {partner.company_name}
+                                                        </strong>
+                                                        <span className="text-[11px] text-slate-400 block truncate font-mono">
+                                                            MST: {partner.tax_code}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* Mã Hợp đồng & Ưu đãi */}
+                                            <td className="py-3.5 px-5">
+                                                <div className="space-y-1">
+                                                    <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] bg-slate-100 text-slate-800 px-2 py-0.5 rounded-lg border border-slate-200">
+                                                        <Tag className="w-3 h-3 text-indigo-500" />
+                                                        {partner.corporate_code}
+                                                    </span>
+                                                    <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                                                        <Percent className="w-3 h-3" />
+                                                        Chiết khấu {partner.discount_percent}%
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* Người đại diện liên hệ */}
+                                            <td className="py-3.5 px-5">
+                                                <div className="space-y-0.5 text-[11px]">
+                                                    <div className="font-semibold text-slate-800 truncate max-w-[160px]">
+                                                        {partner.contact_person}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-slate-500">
+                                                        <Phone className="w-3 h-3 text-slate-400" />
+                                                        <span>{partner.contact_phone}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* Số đoàn đã tổ chức */}
+                                            <td className="py-3.5 px-5 text-center">
+                                                <span className="font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2.5 py-1 rounded-lg text-xs">
+                                                    {partner.total_groups} đoàn
+                                                </span>
+                                            </td>
+
+                                            {/* Tổng doanh thu */}
+                                            <td className="py-3.5 px-5 text-right">
+                                                <div className="font-black text-indigo-700 text-sm font-serif">
+                                                    {formatVND(partner.total_revenue)}
+                                                </div>
+                                                <span className="text-[10px] text-slate-400">
+                                                    Hóa đơn tổng đoàn
                                                 </span>
                                             </td>
                                         </tr>

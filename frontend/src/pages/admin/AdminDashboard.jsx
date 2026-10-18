@@ -1,6 +1,38 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronDown, User as UserIcon, LogOut, ExternalLink } from 'lucide-react';
+import {
+    ChevronDown,
+    User as UserIcon,
+    LogOut,
+    ExternalLink,
+    Calendar,
+    Clock,
+    CheckCircle2,
+    AlertTriangle,
+    AlertCircle,
+    BedDouble,
+    Users,
+    ArrowUpRight,
+    ArrowRight,
+    ShieldAlert,
+    RefreshCw,
+    PlusCircle,
+    Search,
+    Compass,
+    ShieldCheck,
+    Zap,
+    DoorOpen,
+    Check,
+    Sparkles,
+    SlidersHorizontal,
+    BellRing,
+    Flame,
+    DollarSign,
+    Receipt,
+    Utensils,
+    TrendingUp,
+    TrendingDown
+} from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { useHasPermission } from '../../utils/permission';
@@ -1491,202 +1523,578 @@ export default function HotelAdminDashboard({ initialTab }) {
                                             Năm {new Date().getFullYear()}
                                         </button>
                                     </div>
-                                    {/* Quick Actions (Ẩn/Hiện chuẩn theo phân quyền vai trò người dùng) */}
-                                    {canViewGuests && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setActiveTab('guests')}
-                                            className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>👥</span>
-                                            <span>Khách Hàng</span>
-                                        </button>
-                                    )}
-                                    {canViewEmployees && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setActiveTab('employees')}
-                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>🛡️</span>
-                                            <span>Nhân Sự & Phân Quyền</span>
-                                        </button>
-                                    )}
-                                    {canViewRooms && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setActiveTab('rooms')}
-                                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>🏢</span>
-                                            <span>Sơ Đồ Phòng (PMS)</span>
-                                        </button>
-                                    )}
-                                    {canViewBookings && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setActiveTab('bookings');
-                                                setBookingSubFilter('all');
-                                                setIsBookingMenuOpen(true);
-                                            }}
-                                            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/25 transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>📅</span>
-                                            <span>Xử Lý Đặt Phòng</span>
-                                        </button>
-                                    )}
-                                    {canViewServices && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setActiveTab('services')}
-                                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-600/25 transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>🛎️</span>
-                                            <span>Kanban Dịch Vụ</span>
-                                        </button>
-                                    )}
-                                    {canViewServices && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setActiveTab('service-items')}
-                                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>🍽️</span>
-                                            <span>Quản Lý Thực Đơn</span>
-                                        </button>
-                                    )}
-                                    {canViewInvoices && !isHighLevelManager && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setActiveTab('invoices')}
-                                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-xl shadow-md shadow-cyan-600/25 transition flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <span>💳</span>
-                                            <span>Hóa Đơn & Thu Ngân</span>
-                                        </button>
-                                    )}
                                 </div>
                             </div>
 
-                            {/* 4 Quick Stat Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                                {/* 1. Doanh thu */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                            {/* ========================================================================= */}
+                            {/* TẦNG 1: 4 THẺ TÀI CHÍNH & HIỆU SUẤT KINH DOANH (ĐỔI THEO BỘ LỌC THỜI GIAN) */}
+                            {/* ========================================================================= */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                                {/* Thẻ 1: Tổng Doanh thu */}
+                                <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-blue-400 hover:shadow-md transition">
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                                                DOANH THU ({dashboardData?.period_label?.toUpperCase() || 'THÁNG HIỆN TẠI'})
+                                                Tổng Doanh Thu ({dashboardData?.period_label?.toUpperCase() || 'KỲ HIỆN TẠI'})
                                             </span>
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs"> $ </div>
+                                            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs border border-blue-200/60">
+                                                <DollarSign className="w-4 h-4" />
+                                            </div>
                                         </div>
-                                        <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-                                            {(dashboardData?.revenue?.total_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500">VND</span>
+                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
+                                            {(dashboardData?.revenue?.total_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500 font-sans">VND</span>
                                         </div>
-                                        <div className="flex items-center text-xs font-bold gap-1">
+                                        <div className="flex items-center text-xs font-bold gap-1.5 pt-0.5">
                                             {(dashboardData?.revenue?.growth_rate || 0) >= 0 ? (
-                                                <span className="text-emerald-600">↗ +{dashboardData?.revenue?.growth_rate || 0}%</span>
+                                                <span className="inline-flex items-center gap-0.5 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 text-[11px]">
+                                                    <TrendingUp className="w-3 h-3" /> +{dashboardData?.revenue?.growth_rate || 0}%
+                                                </span>
                                             ) : (
-                                                <span className="text-rose-600">↘ {dashboardData?.revenue?.growth_rate || 0}%</span>
+                                                <span className="inline-flex items-center gap-0.5 text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200/60 text-[11px]">
+                                                    <TrendingDown className="w-3 h-3" /> {dashboardData?.revenue?.growth_rate || 0}%
+                                                </span>
                                             )}
-                                            <span className="text-[11px] text-slate-400 font-normal">
+                                            <span className="text-[11px] text-slate-400 font-normal truncate">
                                                 {dashboardData?.revenue?.growth_label || 'so với kỳ trước'}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                                        <span>{dashboardData?.revenue?.target_label || 'Mục tiêu'}: {(dashboardData?.revenue?.target_revenue || 0).toLocaleString('vi-VN')} đ</span>
+                                        <span>Tiến độ kỳ:</span>
                                         <span className="font-semibold text-blue-600">
-                                            Đạt {dashboardData?.revenue?.achievement_rate || 0}% ({dashboardData?.revenue?.paid_invoices_count || 0} HĐ)
+                                            Đạt {dashboardData?.revenue?.achievement_rate || 0}% chỉ tiêu
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* 2. Công suất phòng */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                                {/* Thẻ 2: Doanh thu Tiền phòng */}
+                                <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-emerald-400 hover:shadow-md transition">
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400"> CÔNG SUẤT PHÒNG PMS </span>
-                                            <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-xs"> 🏠 </div>
-                                        </div>
-                                        <div className="flex items-baseline justify-between mb-1.5">
-                                            <span className="text-xl sm:text-2xl font-bold text-slate-900">
-                                                {dashboardData?.occupancy?.occupied_rooms || 0}
-                                                <span className="text-sm font-normal text-slate-400">/{dashboardData?.occupancy?.total_rooms || 0}</span>
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                                Doanh Thu Tiền Phòng
                                             </span>
-                                            <span className="text-xs text-slate-500">Phòng có khách</span>
-                                            <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
-                                                {dashboardData?.occupancy?.occupancy_rate || 0}%
+                                            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs border border-emerald-200/60">
+                                                <BedDouble className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
+                                            {(dashboardData?.revenue?.room_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500 font-sans">VND</span>
+                                        </div>
+                                        <div className="text-xs text-slate-500 pt-0.5 flex items-center gap-1.5">
+                                            <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 text-[10px]">
+                                                {dashboardData?.revenue?.total_revenue > 0
+                                                    ? `Chiếm ${Math.round(((dashboardData.revenue.room_revenue || 0) / dashboardData.revenue.total_revenue) * 100)}% tổng thu`
+                                                    : 'Chiếm 82%'}
                                             </span>
-                                        </div>
-                                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mb-2">
-                                            <div
-                                                className="bg-orange-500 h-2 rounded-full transition-all duration-700 ease-out"
-                                                style={{ width: `${Math.min(100, dashboardData?.occupancy?.occupancy_rate || 0)}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-2 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                                        <span>Sẵn sàng đón khách</span>
-                                        <strong className="text-slate-800">{dashboardData?.occupancy?.available_rooms || 0} Phòng trống</strong>
-                                    </div>
-                                </div>
-
-                                {/* 3. Chờ xác nhận */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400"> CHỜ XÁC NHẬN </span>
-                                            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs"> 🕒 </div>
-                                        </div>
-                                        <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-                                            {dashboardData?.bookings?.pending_count ?? pendingBookingsCount} <span className="text-xs font-normal text-slate-500">Đơn chờ duyệt</span>
-                                        </div>
-                                        <div className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                                            <span>
-                                                {(dashboardData?.bookings?.pending_count ?? pendingBookingsCount) > 0
-                                                    ? '⚠️ Cần phản hồi < 15 phút'
-                                                    : ' Tất cả đơn đã được xử lý'}
-                                            </span>
+                                            <span className="text-[11px] text-slate-400 truncate">Lưu trú buồng phòng</span>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                                        <span>Đang ở: <strong className="text-slate-700">{dashboardData?.bookings?.checked_in_count || 0}</strong> • Đã duyệt: <strong className="text-slate-700">{dashboardData?.bookings?.confirmed_count || 0}</strong></span>
-                                        <strong className="text-slate-800">{dashboardData?.bookings?.total_bookings || actualBookingsCount} Đơn</strong>
+                                        <span>Nguồn thu cốt lõi</span>
+                                        <strong className="text-emerald-700 font-semibold">PMS Room Charge</strong>
                                     </div>
                                 </div>
 
-                                {/* 4. Yêu cầu dịch vụ (Concierge & In-Room Dining) */}
+                                {/* Thẻ 3: Doanh thu Dịch vụ & F&B */}
                                 <div 
                                     onClick={() => setActiveTab('services')}
-                                    className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition cursor-pointer group"
+                                    className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-purple-400 hover:shadow-md transition cursor-pointer group"
+                                    title="Mở phân hệ Dịch vụ phòng"
                                 >
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-blue-600 transition"> YÊU CẦU DỊCH VỤ PHÒNG </span>
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition"> 🛎️ </div>
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-purple-600 transition">
+                                                Doanh Thu Dịch Vụ & F&B
+                                            </span>
+                                            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xs border border-purple-200/60 group-hover:bg-purple-600 group-hover:text-white transition">
+                                                <Utensils className="w-4 h-4" />
+                                            </div>
                                         </div>
-                                        <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-                                            {dashboardData?.services?.total_requests || 0} <span className="text-xs font-normal text-slate-500">Yêu cầu ({(dashboardData?.services?.total_sales || 0).toLocaleString('vi-VN')} đ)</span>
+                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
+                                            {(dashboardData?.revenue?.service_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500 font-sans">VND</span>
                                         </div>
-                                        <div className="text-xs text-slate-500 flex items-center gap-2">
-                                            <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold text-[10px]">
-                                                Chờ: {dashboardData?.services?.pending_count || 0}
+                                        <div className="text-xs text-slate-500 pt-0.5 flex items-center gap-1.5">
+                                            <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60 text-[10px]">
+                                                {dashboardData?.services?.completed_count || 0} yêu cầu xong
                                             </span>
-                                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold text-[10px]">
-                                                Đang làm: {dashboardData?.services?.in_progress_count || 0}
-                                            </span>
-                                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold text-[10px]">
-                                                Xong: {dashboardData?.services?.completed_count || 0}
-                                            </span>
+                                            <span className="text-[11px] text-slate-400 truncate">Ẩm thực, minibar, tour</span>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                                        <span>Bảng Kanban điều phối</span>
-                                        <strong className="text-blue-600 group-hover:underline">Mở Kanban dịch vụ →</strong>
+                                        <span>Điều phối Kanban</span>
+                                        <strong className="text-purple-600 group-hover:underline">Xem dịch vụ →</strong>
+                                    </div>
+                                </div>
+
+                                {/* Thẻ 4: Hóa đơn Quyết toán & Tiến độ Mục tiêu */}
+                                <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                                Hóa Đơn Đã Quyết Toán
+                                            </span>
+                                            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs border border-amber-200/60">
+                                                <Receipt className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
+                                            {dashboardData?.revenue?.paid_invoices_count || 0} <span className="text-xs font-normal text-slate-500 font-sans">Hóa đơn</span>
+                                        </div>
+                                        {/* Progress bar đạt chỉ tiêu */}
+                                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mt-2">
+                                            <div
+                                                className="bg-amber-500 h-1.5 rounded-full transition-all duration-700"
+                                                style={{ width: `${Math.min(100, dashboardData?.revenue?.achievement_rate || 0)}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                                        <span>Mục tiêu kỳ:</span>
+                                        <strong className="text-slate-800">
+                                            {(dashboardData?.revenue?.target_revenue || 0).toLocaleString('vi-VN')} đ
+                                        </strong>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* ========================================================================= */}
+                            {/* TẦNG 2: VẬN HÀNH TIỀN SẢNH THỜI GIAN THỰC (TODAY'S OPERATIONS PULSE)       */}
+                            {/* ========================================================================= */}
+                            {(() => {
+                                const pulse = dashboardData?.operations_pulse || {
+                                    today_date: new Date().toLocaleDateString('vi-VN'),
+                                    check_in: { total_expected: checkInTodayCount, arrived: 0, remaining: checkInTodayCount, progress_pct: 0 },
+                                    check_out: { total_expected: checkOutTodayCount, departed: 0, remaining: checkOutTodayCount, progress_pct: 0 },
+                                    in_house: {
+                                        occupied_rooms: dashboardData?.occupancy?.occupied_rooms || 0,
+                                        total_rooms: dashboardData?.occupancy?.total_rooms || 0,
+                                        estimated_guests: (dashboardData?.occupancy?.occupied_rooms || 0) * 2,
+                                        occupancy_rate: dashboardData?.occupancy?.occupancy_rate || 0
+                                    },
+                                    housekeeping: {
+                                        available_clean: dashboardData?.occupancy?.available_rooms || 0,
+                                        cleaning_dirty: dashboardData?.occupancy?.cleaning_rooms || 0,
+                                        maintenance: dashboardData?.occupancy?.maintenance_rooms || 0,
+                                        readiness_pct: 0
+                                    }
+                                };
+
+                                return (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                <h2 className="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wider">
+                                                    Nhịp Đập Vận Hành Hôm Nay • {pulse.today_date}
+                                                </h2>
+                                            </div>
+                                            <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                                                Dữ liệu buồng phòng & luân chuyển khách thời gian thực
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {/* Thẻ 1: Check-in hôm nay */}
+                                            <div
+                                                onClick={() => {
+                                                    setActiveTab('bookings');
+                                                    setBookingSubFilter('all');
+                                                    setIsBookingMenuOpen(true);
+                                                }}
+                                                className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs hover:border-blue-400 hover:shadow-md transition cursor-pointer group"
+                                                title="Xem danh sách đặt phòng check-in hôm nay"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                        Check-in Hôm Nay
+                                                    </span>
+                                                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition">
+                                                        <DoorOpen className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline justify-between mb-1">
+                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                        {pulse.check_in.arrived}
+                                                        <span className="text-xs font-normal text-slate-400">/{pulse.check_in.total_expected} phòng</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60">
+                                                        {pulse.check_in.remaining} phòng chưa đến
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mt-2">
+                                                    <div
+                                                        className="bg-blue-600 h-1.5 rounded-full transition-all duration-700"
+                                                        style={{ width: `${Math.min(100, pulse.check_in.progress_pct || 0)}%` }}
+                                                    ></div>
+                                                </div>
+                                                <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                                                    <span>Đã hoàn tất check-in:</span>
+                                                    <strong className="text-slate-700">{pulse.check_in.progress_pct}%</strong>
+                                                </div>
+                                            </div>
+
+                                            {/* Thẻ 2: Check-out hôm nay */}
+                                            <div
+                                                onClick={() => {
+                                                    setActiveTab('bookings');
+                                                    setBookingSubFilter('checked_in');
+                                                    setIsBookingMenuOpen(true);
+                                                }}
+                                                className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs hover:border-purple-400 hover:shadow-md transition cursor-pointer group"
+                                                title="Xem danh sách phòng check-out hôm nay"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                        Check-out Hôm Nay
+                                                    </span>
+                                                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition">
+                                                        <Clock className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline justify-between mb-1">
+                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                        {pulse.check_out.departed}
+                                                        <span className="text-xs font-normal text-slate-400">/{pulse.check_out.total_expected} phòng</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60">
+                                                        {pulse.check_out.remaining} phòng đang ở
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mt-2">
+                                                    <div
+                                                        className="bg-purple-600 h-1.5 rounded-full transition-all duration-700"
+                                                        style={{ width: `${Math.min(100, pulse.check_out.progress_pct || 0)}%` }}
+                                                    ></div>
+                                                </div>
+                                                <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                                                    <span>Đã hoàn tất trả phòng:</span>
+                                                    <strong className="text-slate-700">{pulse.check_out.progress_pct}%</strong>
+                                                </div>
+                                            </div>
+
+                                            {/* Thẻ 3: Khách đang lưu trú In-house */}
+                                            <div
+                                                onClick={() => setActiveTab('rooms')}
+                                                className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs hover:border-emerald-400 hover:shadow-md transition cursor-pointer group"
+                                                title="Mở sơ đồ phòng xem các phòng đang có khách"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                        Đang Lưu Trú (In-House)
+                                                    </span>
+                                                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition">
+                                                        <Users className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline justify-between mb-1">
+                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                        {pulse.in_house.occupied_rooms}
+                                                        <span className="text-xs font-normal text-slate-400">/{pulse.in_house.total_rooms} phòng</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                                                        Lấp đầy {pulse.in_house.occupancy_rate}%
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mt-2">
+                                                    <div
+                                                        className="bg-emerald-500 h-1.5 rounded-full transition-all duration-700"
+                                                        style={{ width: `${Math.min(100, pulse.in_house.occupancy_rate || 0)}%` }}
+                                                    ></div>
+                                                </div>
+                                                <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                                                    <span>Số khách thực tế:</span>
+                                                    <strong className="text-emerald-700 font-bold">~{pulse.in_house.estimated_guests} khách</strong>
+                                                </div>
+                                            </div>
+
+                                            {/* Thẻ 4: Tình trạng Buồng phòng Housekeeping */}
+                                            <div
+                                                onClick={() => setActiveTab('rooms')}
+                                                className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs hover:border-amber-400 hover:shadow-md transition cursor-pointer group"
+                                                title="Mở sơ đồ phòng theo dõi công tác dọn phòng buồng"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                        Buồng Phòng Sẵn Sàng
+                                                    </span>
+                                                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition">
+                                                        <Sparkles className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline justify-between mb-1">
+                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                        {pulse.housekeeping.available_clean}
+                                                        <span className="text-xs font-normal text-slate-400"> phòng sạch</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                                                        {pulse.housekeeping.cleaning_dirty} đang dọn
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mt-2">
+                                                    <div
+                                                        className="bg-amber-500 h-1.5 rounded-full transition-all duration-700"
+                                                        style={{ width: `${Math.min(100, pulse.housekeeping.readiness_pct || 0)}%` }}
+                                                    ></div>
+                                                </div>
+                                                <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                                                    <span>Phòng hỏng / Bảo trì:</span>
+                                                    <strong className="text-rose-600 font-bold">{pulse.housekeeping.maintenance} phòng</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* ========================================================================= */}
+                            {/* PHẦN 2 & 3: TRUNG TÂM CẢNH BÁO KHẨN & THAO TÁC NHANH LỄ TÂN (GRID 2 CỘT)  */}
+                            {/* ========================================================================= */}
+                            {(() => {
+                                const actionCenter = dashboardData?.action_center || {
+                                    total_urgent: 0,
+                                    has_urgent: false,
+                                    items: []
+                                };
+
+                                return (
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                        {/* CỘT TRÁI (8 CỘT): TRUNG TÂM CẢNH BÁO KHẨN (LIVE ACTION CENTER) */}
+                                        <div className="lg:col-span-8 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`p-1.5 rounded-lg border ${
+                                                            actionCenter.has_urgent
+                                                                ? 'bg-rose-50 text-rose-600 border-rose-200/80 animate-pulse'
+                                                                : 'bg-emerald-50 text-emerald-600 border-emerald-200/80'
+                                                        }`}>
+                                                            {actionCenter.has_urgent ? (
+                                                                <BellRing className="w-4 h-4" />
+                                                            ) : (
+                                                                <CheckCircle2 className="w-4 h-4" />
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                                                Trung Tâm Cảnh Báo & Xử Lý Sự Vụ
+                                                            </h3>
+                                                            <p className="text-xs text-slate-500">
+                                                                Tự động phát hiện các yêu cầu nóng, đơn cọc và quá hạn cần giải quyết
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                                                        actionCenter.has_urgent
+                                                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                    }`}>
+                                                        {actionCenter.has_urgent ? `${actionCenter.total_urgent} sự vụ cần xử lý` : 'VẬN HÀNH ỔN ĐỊNH'}
+                                                    </span>
+                                                </div>
+
+                                                {/* Danh sách các việc khẩn */}
+                                                {!actionCenter.has_urgent || actionCenter.items.length === 0 ? (
+                                                    <div className="py-6 px-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex items-center gap-3.5">
+                                                        <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                            <Check className="w-5 h-5 stroke-[2.5]" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-xs font-bold text-emerald-900">
+                                                                Tuyệt vời! Không có sự vụ tồn đọng cần can thiệp khẩn cấp
+                                                            </h4>
+                                                            <p className="text-[11px] text-emerald-700/80 mt-0.5">
+                                                                Mọi đơn đặt phòng đã được xác nhận, yêu cầu dịch vụ phòng đang được xử lý đúng tiến độ và buồng phòng luôn sẵn sàng.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2.5">
+                                                        {actionCenter.items.map((item, idx) => {
+                                                            const isCritical = item.level === 'critical';
+                                                            const isWarning = item.level === 'warning';
+                                                            const isAlert = item.level === 'alert';
+
+                                                            const cardBg = isCritical
+                                                                ? 'bg-rose-50/60 border-rose-200/80 hover:bg-rose-50'
+                                                                : isAlert
+                                                                    ? 'bg-amber-50/60 border-amber-200/80 hover:bg-amber-50'
+                                                                    : 'bg-blue-50/60 border-blue-200/80 hover:bg-blue-50';
+
+                                                            const badgeColor = isCritical
+                                                                ? 'bg-rose-100 text-rose-800'
+                                                                : isAlert
+                                                                    ? 'bg-amber-100 text-amber-800'
+                                                                    : 'bg-blue-100 text-blue-800';
+
+                                                            const btnColor = isCritical
+                                                                ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                                                                : isAlert
+                                                                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                                                    : 'bg-blue-600 hover:bg-blue-700 text-white';
+
+                                                            return (
+                                                                <div
+                                                                    key={idx}
+                                                                    className={`p-3 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${cardBg}`}
+                                                                >
+                                                                    <div className="flex items-start gap-3 min-w-0">
+                                                                        <div className="mt-0.5 shrink-0">
+                                                                            {isCritical && <Zap className="w-4 h-4 text-rose-600 animate-pulse" />}
+                                                                            {isAlert && <AlertTriangle className="w-4 h-4 text-amber-600" />}
+                                                                            {isWarning && <Clock className="w-4 h-4 text-blue-600" />}
+                                                                            {item.level === 'info' && <SlidersHorizontal className="w-4 h-4 text-slate-600" />}
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <strong className="text-xs font-bold text-slate-900 block truncate">
+                                                                                    {item.title}
+                                                                                </strong>
+                                                                                <span className={`text-[10px] font-extrabold px-2 py-0.2 rounded-full shrink-0 ${badgeColor}`}>
+                                                                                    {item.badge}
+                                                                                </span>
+                                                                            </div>
+                                                                            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+                                                                                {item.subtitle}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (item.action_tab) {
+                                                                                setActiveTab(item.action_tab);
+                                                                                if (item.action_filter) setBookingSubFilter(item.action_filter);
+                                                                                if (item.action_tab === 'bookings') setIsBookingMenuOpen(true);
+                                                                            }
+                                                                        }}
+                                                                        className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer self-end sm:self-auto shrink-0 flex items-center gap-1 ${btnColor}`}
+                                                                    >
+                                                                        <span>{item.action_label || 'Xử lý'}</span>
+                                                                        <ArrowRight className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                                                <span className="flex items-center gap-1.5">
+                                                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                                                    Tự động làm mới mỗi khi có booking mới hoặc webhook SePay
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => loadDashboardStats(true)}
+                                                    className="text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                                                >
+                                                    <RefreshCw className="w-3 h-3" />
+                                                    <span>Quét lại</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* CỘT PHẢI (4 CỘT): CỤM THAO TÁC NHANH LỄ TÂN (FRONT-DESK FAST ACTIONS) */}
+                                        <div className="lg:col-span-4 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200/80">
+                                                            <Zap className="w-4 h-4" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                                                Thao Tác Nhanh
+                                                            </h3>
+                                                            <p className="text-xs text-slate-500">
+                                                                Phím tắt nghiệp vụ tiền sảnh
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                                        1 Chạm
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-2.5">
+                                                    {/* Phím 1: Đặt phòng tại quầy Walk-in */}
+                                                    {canViewBookings && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setActiveTab('bookings');
+                                                                setBookingSubFilter('all');
+                                                                setIsBookingMenuOpen(true);
+                                                            }}
+                                                            className="w-full p-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-700 transition flex items-center justify-between cursor-pointer group"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <PlusCircle className="w-4 h-4" />
+                                                                <span>Đặt Phòng Tại Quầy (Walk-in)</span>
+                                                            </div>
+                                                            <ArrowRight className="w-3.5 h-3.5 opacity-80 group-hover:translate-x-0.5 transition-transform" />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Phím 2: Sơ đồ phòng PMS */}
+                                                    {canViewRooms && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setActiveTab('rooms')}
+                                                            className="w-full p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 text-emerald-900 border border-emerald-200 font-bold text-xs transition flex items-center justify-between cursor-pointer group"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <BedDouble className="w-4 h-4 text-emerald-700" />
+                                                                <span>Sơ Đồ Buồng Phòng (PMS Board)</span>
+                                                            </div>
+                                                            <ArrowRight className="w-3.5 h-3.5 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Phím 3: Kanban Dịch vụ Concierge */}
+                                                    {canViewServices && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setActiveTab('services')}
+                                                            className="w-full p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100/80 text-purple-900 border border-purple-200 font-bold text-xs transition flex items-center justify-between cursor-pointer group"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <BellRing className="w-4 h-4 text-purple-700" />
+                                                                <span>Điều Phối Dịch Vụ Phòng (Concierge)</span>
+                                                            </div>
+                                                            <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Phím 4: Báo cáo & Thống kê Chuyên sâu */}
+                                                    {canViewAnalytics && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setActiveTab('analytics')}
+                                                            className="w-full p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 font-bold text-xs transition flex items-center justify-between cursor-pointer group"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <ArrowUpRight className="w-4 h-4 text-slate-600" />
+                                                                <span>Báo Cáo & Phân Tích Chuyên Sâu</span>
+                                                            </div>
+                                                            <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                                                <span>Ca trực hiện tại:</span>
+                                                <strong className="text-slate-700 font-medium">Lễ tân & Điều hành PMS</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* CÔNG SUẤT THEO HẠNG PHÒNG & NGUỒN ĐẶT PHÒNG */}
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
