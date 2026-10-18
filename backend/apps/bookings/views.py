@@ -879,6 +879,94 @@ class BookingViewSet(viewsets.ModelViewSet):
             'rooms': serializer.data
         }, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'], url_path='pre-assign-room')
+    def pre_assign_room(self, request, pk=None):
+        """
+        API cho phép Lễ tân gán phòng thực tế trước (hoặc hủy/đổi phòng đã gán)
+        cho đơn đặt phòng trước khi khách tới làm thủ tục Check-in.
+        - POST /api/bookings/<id>/pre-assign-room/
+        - Payload: { "room_id": 101 } hoặc { "room_id": null } để hủy gán.
+        - Lưu ý: Không đổi status của Booking sang 'checked_in', không đổi status của Room sang 'occupied'.
+        """
+        booking = self.get_object()
+        user = request.user
+
+        # 1. Kiểm tra phân quyền theo ma trận quyền (Yêu cầu quyền bookings.update)
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền thực hiện gán phòng trước (Yêu cầu quyền Cập nhật đơn đặt phòng).'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2. Kiểm tra trạng thái đơn: Không được gán cho đơn đã check-in, check-out, completed, cancelled, no-show
+        if booking.status in ['checked_in', 'checked_out', 'completed', 'cancelled', 'no_show']:
+            return Response({
+                'success': False,
+                'message': f'Không thể gán phòng trước cho đơn đang ở trạng thái "{booking.get_status_display()}".'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        room_id = request.data.get('room_id')
+
+        # 3. Hủy gán phòng nếu room_id là None, rỗng, hoặc 0
+        if room_id is None or room_id == '' or room_id == 0:
+            old_room_number = booking.room.room_number if booking.room else None
+            booking.room = None
+            booking.save(update_fields=['room', 'updated_at'])
+            return Response({
+                'success': True,
+                'message': f'Đã hủy gán phòng cho đơn {booking.booking_code}.' if old_room_number else 'Đơn chưa được gán phòng.',
+                'room_id': None,
+                'room_number': None,
+                'room_name': booking.category.name if booking.category else 'Phòng tiêu chuẩn'
+            }, status=status.HTTP_200_OK)
+
+        # 4. Kiểm tra phòng tồn tại
+        try:
+            target_room = Room.objects.select_related('category').get(pk=int(room_id))
+        except (Room.DoesNotExist, ValueError):
+            return Response({
+                'success': False,
+                'message': f'Không tìm thấy phòng với mã ID {room_id}.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 5. Kiểm tra trạng thái bảo trì
+        if target_room.status == 'maintenance':
+            return Response({
+                'success': False,
+                'message': f'Phòng {target_room.room_number} đang trong tình trạng bảo trì, không thể gán cho khách.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 6. Kiểm tra xung đột phòng trong khoảng thời gian lưu trú của đơn
+        conflicting_status_filter = (
+            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+            Q(group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in']) |
+            Q(status='pending', created_at__gte=timezone.now() - timezone.timedelta(minutes=15))
+        )
+
+        conflict_booking = Booking.objects.filter(
+            room=target_room,
+            check_in_date__lt=booking.check_out_date,
+            check_out_date__gt=booking.check_in_date
+        ).exclude(id=booking.id).filter(conflicting_status_filter).first()
+
+        if conflict_booking:
+            return Response({
+                'success': False,
+                'message': f'Phòng {target_room.room_number} đã được gán hoặc đang có đơn #{conflict_booking.booking_code} trong khoảng thời gian {conflict_booking.check_in_date.strftime("%d/%m/%Y")} - {conflict_booking.check_out_date.strftime("%d/%m/%Y")}.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 7. Gán phòng thành công (không đổi status của booking hay room)
+        booking.room = target_room
+        booking.save(update_fields=['room', 'updated_at'])
+
+        return Response({
+            'success': True,
+            'message': f'Đã gán phòng {target_room.room_number} ({target_room.category.name if target_room.category else ""}) cho đơn {booking.booking_code}.',
+            'room_id': target_room.id,
+            'room_number': target_room.room_number,
+            'category_name': target_room.category.name if target_room.category else ''
+        }, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'], url_path='check-in')
     def check_in(self, request, pk=None):
         """

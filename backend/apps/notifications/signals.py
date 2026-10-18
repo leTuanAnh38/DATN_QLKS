@@ -273,25 +273,27 @@ def get_service_category_type(service_name="", category_name=""):
     3. 'amenities': Tiện ích & buồng phòng (khăn, gối, giặt ủi...)
     4. 'fnb': Ẩm thực & đồ uống (F&B)
     """
-    text = f"{category_name} {service_name}".strip().lower()
+    s_text = (service_name or "").strip().lower()
+    c_text = (category_name or "").strip().lower()
+    full_text = f"{c_text} {s_text}"
 
     # Nhóm 1: Vận chuyển / Đưa đón sân bay (Có chữ "Sân bay", "Xe", "Đưa đón")
-    if any(k in text for k in ['sân bay', 'xe', 'đưa đón', 'transfer', 'airport', 'taxi', 'shuttle', 'đón tiễn']):
+    if any(k in full_text for k in ['sân bay', 'xe', 'đưa đón', 'transfer', 'airport', 'taxi', 'shuttle', 'đón tiễn']):
         return 'transport'
 
     # Nhóm 2: Spa / Chăm sóc sức khỏe (Có chữ "Spa", "Massage", "Trị liệu")
-    if any(k in text for k in ['spa', 'massage', 'trị liệu', 'xông hơi', 'sauna', 'thư giãn', 'wellness', 'chăm sóc da']):
+    if any(k in full_text for k in ['spa', 'massage', 'trị liệu', 'xông hơi', 'sauna', 'thư giãn', 'wellness', 'chăm sóc da']):
         return 'spa'
 
-    # Nhóm 3: Tiện ích & buồng phòng khác (Gối, khăn tắm, giặt ủi...)
-    if any(k in text for k in ['gối', 'khăn', 'tắm', 'giặt', 'ủi', 'buồng phòng', 'tiện ích', 'bàn chải', 'kem đánh răng', 'dép', 'dọn phòng', 'housekeeping', 'laundry', 'amenities', 'chăn', 'nệm']):
-        return 'amenities'
+    # Nhóm 3: Giặt ủi (Phải kiểm tra theo TÊN DỊCH VỤ vì danh mục chung có thể là "Tiện ích & Giặt ủi")
+    if any(k in s_text for k in ['giặt', 'ủi', 'laundry', 'giặt sấy', 'giặt hấp']):
+        return 'laundry'
 
     # Nhóm 4: Ẩm thực / Đồ uống (F&B)
-    if any(k in text for k in ['ẩm thực', 'đồ ăn', 'món ăn', 'thức ăn', 'bữa ăn', 'ăn uống', 'đồ uống', 'món', 'f&b', 'dining', 'food', 'drink', 'beverage', 'thực đơn', 'bếp', 'nhà hàng', 'bar', 'cà phê', 'coffee', 'trà', 'bánh', 'buffet', 'nước', 'rượu', 'bia', 'hải sản']):
+    if any(k in full_text for k in ['ẩm thực', 'đồ ăn', 'món ăn', 'thức ăn', 'bữa ăn', 'ăn uống', 'đồ uống', 'món', 'f&b', 'dining', 'food', 'drink', 'beverage', 'thực đơn', 'bếp', 'nhà hàng', 'bar', 'cà phê', 'coffee', 'trà', 'bánh', 'buffet', 'nước', 'rượu', 'bia', 'hải sản']):
         return 'fnb'
 
-    # Mặc định thuộc nhóm Tiện ích & Buồng phòng khác nếu không xác định
+    # Nhóm 5: Tiện ích & buồng phòng (Setup phòng: Gối, khăn, giường phụ, dọn phòng, amenities...)
     return 'amenities'
 
 

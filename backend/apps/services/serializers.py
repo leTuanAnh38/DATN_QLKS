@@ -68,6 +68,7 @@ class ServiceItemSerializer(serializers.ModelSerializer):
 class ServiceRequestSerializer(serializers.ModelSerializer):
     # Thông tin mở rộng về đơn đặt phòng và phòng gọi
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
+    booking_status = serializers.CharField(source='booking.status', read_only=True)
     room_number = serializers.SerializerMethodField()
     room_name = serializers.SerializerMethodField()
     guest_name = serializers.SerializerMethodField()
@@ -94,6 +95,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'id',
             'booking',
             'booking_code',
+            'booking_status',
             'room_number',
             'room_name',
             'guest_name',

@@ -7,6 +7,7 @@ import { notificationService } from '../../services/notificationService';
 import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
 import CheckOutModal from '../../components/admin/modals/CheckOutModal';
 import CheckInModal from '../../components/admin/modals/CheckInModal';
+import PreAssignRoomModal from '../../components/admin/modals/PreAssignRoomModal';
 import StayingGuestsModal from '../../components/admin/modals/StayingGuestsModal';
 import GroupBookingSection from '../../components/admin/groups/GroupBookingSection';
 import Pagination from '../../components/common/Pagination';
@@ -124,6 +125,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
     // 4. State Modal Check-in (Thủ tục Nhận phòng & Gán phòng thực tế)
     const [checkInModalBooking, setCheckInModalBooking] = useState(null);
+    const [preAssignModalBooking, setPreAssignModalBooking] = useState(null);
     const [availableRooms, setAvailableRooms] = useState([]);
     const [selectedRoomId, setSelectedRoomId] = useState('');
     const [checkInNote, setCheckInNote] = useState('');
@@ -144,6 +146,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [isLoadingCategories, setIsLoadingCategories] = useState(false);
     const [isLoadingAvailabilities, setIsLoadingAvailabilities] = useState(false);
     const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
+    const [corporatePartners, setCorporatePartners] = useState([]);
     const [walkInForm, setWalkInForm] = useState({
         customer_type: 'MEMBER', // 'MEMBER' | 'CORPORATE'
         company_name: '',
@@ -799,10 +802,15 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         setIsLoadingCategories(true);
 
         try {
-            const [roomsRes, catsRes] = await Promise.all([
+            const [roomsRes, catsRes, partnersRes] = await Promise.all([
                 roomService.getAdminRooms({ status: 'available' }),
-                roomService.getCategories()
+                roomService.getCategories(),
+                bookingService.getCorporatePartners().catch(() => ({ success: false, data: [] }))
             ]);
+
+            if (partnersRes && partnersRes.success) {
+                setCorporatePartners(partnersRes.data || []);
+            }
 
             if (roomsRes && roomsRes.success) {
                 const rooms = roomsRes.rooms || [];
@@ -1698,13 +1706,45 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 </strong>
                                                 <div className="mt-0.5">
                                                     {booking.room_number ? (
-                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                                                            Phòng {booking.room_number}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                                                                Phòng {booking.room_number}
+                                                            </span>
+                                                            {canManageBookings && ['pending', 'paid', 'confirmed'].includes(booking.status) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setPreAssignModalBooking(booking);
+                                                                    }}
+                                                                    className="text-[9.5px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+                                                                    title="Đổi số phòng đã gán trước"
+                                                                >
+                                                                    Đổi
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-medium border border-slate-200">
-                                                            Chờ gán số phòng
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            {canManageBookings && ['pending', 'paid', 'confirmed'].includes(booking.status) ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setPreAssignModalBooking(booking);
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 text-[10px] font-bold border border-teal-200 transition cursor-pointer"
+                                                                    title="Click để gán số phòng trước khi khách Check-in"
+                                                                >
+                                                                    <span>🚪</span>
+                                                                    <span>+ Gán phòng</span>
+                                                                </button>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-medium border border-slate-200">
+                                                                    Chờ gán số phòng
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </td>
@@ -1761,26 +1801,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
                                             {/* CỘT 5: TỔNG TIỀN */}
                                             <td className="py-2.5 px-2.5 whitespace-nowrap">
-                                                <div className="font-black text-xs sm:text-sm text-rose-600">
-                                                    {Number(booking.grand_total_amount || totalAmountNum).toLocaleString('vi-VN')}
-                                                    <span className="text-[10px] font-medium text-slate-400 ml-1">VND</span>
-                                                </div>
-                                                {booking.extra_services && booking.extra_services.length > 0 && (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200 mt-0.5 font-bold">
-                                                        <span>🛎️ +{Number(booking.extra_services_total || 0).toLocaleString('vi-VN')}đ</span>
-                                                    </span>
-                                                )}
-                                                {/* Phương thức & trạng thái thanh toán */}
                                                 {(() => {
+                                                    const extraServicesNum = Number(booking.extra_services_total || 0);
                                                     const isGroupRoom = Boolean(booking.group_booking || booking.group_booking_code || booking.group_booking_id);
                                                     const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
-                                                    if (isCancelled) {
-                                                        return (
-                                                            <span className="text-[10px] text-rose-500 font-semibold block mt-0.5">
-                                                                ✕ Đã hủy đơn
-                                                            </span>
-                                                        );
-                                                    }
                                                     const isPaid = ['paid', 'PAID', 'completed', 'checked_out'].includes(booking.status) ||
                                                         booking.payment_status === 'COMPLETED' ||
                                                         booking.is_paid ||
@@ -1789,86 +1813,93 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                             booking.note.toLowerCase().includes('đã thanh toán thành công')
                                                         ));
 
-                                                    // Nếu là phòng thuộc đoàn công ty / doanh nghiệp (Master-Billing)
-                                                    if (isGroupRoom) {
-                                                        if (isPaid) {
-                                                            return (
-                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 mt-1" title={`Chi phí đã quyết toán qua Hóa đơn đoàn #${booking.group_booking_code || ''}`}>
-                                                                    <span>🏢</span> Đoàn đã quyết toán
-                                                                </span>
-                                                            );
-                                                        }
-                                                        return (
-                                                            <div className="mt-1 space-y-0.5">
-                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200" title={`Chi phí tiền phòng được kết chuyển vào Hóa đơn đoàn #${booking.group_booking_code || ''}`}>
-                                                                    <span>🏢</span> Gộp đoàn {booking.group_booking_code ? `#${booking.group_booking_code}` : ''}
-                                                                </span>
-                                                                <span className="text-[9px] text-emerald-600 font-bold block">
-                                                                    {booking.group_deposit_status || (
-                                                                        booking.is_group_fully_paid || (booking.is_group_deposit_paid && Number(booking.group_deposit_amount || 0) >= Number(booking.group_total_amount || 0))
-                                                                            ? '✓ Đã thanh toán 100% đoàn'
-                                                                            : booking.is_group_deposit_paid
-                                                                                ? '✓ Đã cọc 50% đoàn'
-                                                                                : 'Chờ cọc đoàn'
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    // Phân loại phương thức thanh toán thực tế cho khách lẻ
-                                                    const rawMethod = (
-                                                        booking.payment_method ||
-                                                        (booking.payments && Array.isArray(booking.payments) && (
-                                                            booking.payments.find(p => p.payment_status === 'COMPLETED')?.payment_method ||
-                                                            booking.payments[0]?.payment_method
-                                                        )) ||
-                                                        booking.invoice?.payment_method ||
-                                                        ''
-                                                    );
-                                                    const rawLower = String(rawMethod).trim().toLowerCase();
-                                                    let isCash = ['cash', 'tiền mặt', 'tien_mat', 'reception', 'tai_quay', 'tại quầy', 'tại lễ tân'].includes(rawLower);
-                                                    let isTransfer = ['transfer', 'vietqr', 'bank_transfer', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(rawLower);
-
-                                                    const noteLower = (booking.note || '').toLowerCase();
-                                                    if (!isCash && !isTransfer) {
-                                                        if (noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer')) {
-                                                            isTransfer = true;
-                                                        } else if (noteLower.includes('reception') || noteLower.includes('tiền mặt') || noteLower.includes('cash') || noteLower.includes('tại lễ tân') || noteLower.includes('tại quầy')) {
-                                                            isCash = true;
-                                                        } else if (['completed', 'checked_out'].includes(booking.status)) {
-                                                            isCash = true;
-                                                        }
-                                                    }
-
-                                                    if (isPaid) {
-                                                        if (isCash) {
-                                                            return (
-                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-1" title="Đã thanh toán bằng tiền mặt tại quầy">
-                                                                    <span>✓</span> Tiền mặt (Đã TT)
-                                                                </span>
-                                                            );
-                                                        }
-                                                        if (isTransfer) {
-                                                            return (
-                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-1" title="Đã thanh toán qua mã VietQR">
-                                                                    <span>✓</span> VietQR (Đã TT)
-                                                                </span>
-                                                            );
-                                                        }
-                                                        return (
-                                                            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-1" title="Đã thanh toán thành công">
-                                                                <span>✓</span> Đã thanh toán
-                                                            </span>
-                                                        );
-                                                    }
-                                                    const rawPayment = booking.note && booking.note.includes('Thanh toán:')
-                                                        ? booking.note.split('Thanh toán:')[1].trim().split('|')[0]
-                                                        : (isCash ? 'Tại Lễ tân' : (isTransfer ? 'VietQR' : 'Tại Lễ tân'));
                                                     return (
-                                                        <span className="text-[10px] text-slate-500 block mt-0.5 truncate max-w-[125px]">
-                                                            💵 {rawPayment}
-                                                        </span>
+                                                        <div>
+                                                            {/* Dòng 1: Số tiền tổng thanh toán & nhãn phụ thu nếu có */}
+                                                            <div className="flex items-baseline gap-1">
+                                                                <span className="font-extrabold text-xs sm:text-sm text-slate-900 tracking-tight">
+                                                                    {Number(booking.grand_total_amount || totalAmountNum).toLocaleString('vi-VN')}
+                                                                </span>
+                                                                <span className="text-[10px] font-semibold text-slate-400">₫</span>
+                                                                {extraServicesNum > 0 && (
+                                                                    <span
+                                                                        className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-200/80 ml-0.5"
+                                                                        title={`Bao gồm +${extraServicesNum.toLocaleString('vi-VN')}đ tiền dịch vụ`}
+                                                                    >
+                                                                        <span>🛎️</span>
+                                                                        <span>+{extraServicesNum >= 1000000 ? `${(extraServicesNum / 1000000).toFixed(1)}M` : `${(extraServicesNum / 1000).toLocaleString('vi-VN')}k`}</span>
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Dòng 2: Trạng thái & Phương thức thanh toán chuẩn hóa */}
+                                                            <div className="mt-0.5">
+                                                                {isCancelled ? (
+                                                                    <span className="inline-flex items-center gap-1 text-[9.5px] font-medium text-slate-400">
+                                                                        ✕ Đã hủy đơn
+                                                                    </span>
+                                                                ) : isGroupRoom ? (
+                                                                    isPaid ? (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-200/80"
+                                                                            title={`Chi phí đã quyết toán qua Hóa đơn đoàn #${booking.group_booking_code || ''}`}
+                                                                        >
+                                                                            <span>🏢</span> Đoàn đã quyết toán
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-200/80"
+                                                                            title={`Chi phí tiền phòng kết chuyển vào Hóa đơn đoàn #${booking.group_booking_code || ''}`}
+                                                                        >
+                                                                            <span>🏢</span> Gộp đoàn {booking.group_booking_code ? `#${booking.group_booking_code}` : ''}
+                                                                        </span>
+                                                                    )
+                                                                ) : isPaid ? (
+                                                                    (() => {
+                                                                        const rawMethod = String(
+                                                                            booking.payment_method ||
+                                                                            (booking.payments?.[0]?.payment_method) ||
+                                                                            booking.invoice?.payment_method ||
+                                                                            ''
+                                                                        ).trim().toLowerCase();
+                                                                        const isCash = ['cash', 'tiền mặt', 'tien_mat', 'reception', 'tai_quay', 'tại quầy', 'tại lễ tân'].includes(rawMethod) ||
+                                                                            (booking.note?.toLowerCase().includes('tiền mặt'));
+                                                                        const isTransfer = ['transfer', 'vietqr', 'bank_transfer', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(rawMethod) ||
+                                                                            (booking.note?.toLowerCase().includes('vietqr'));
+
+                                                                        if (isTransfer) {
+                                                                            return (
+                                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/80" title="Đã thanh toán qua mã chuyển khoản VietQR">
+                                                                                    <span>✓</span> VietQR (Đã TT)
+                                                                                </span>
+                                                                            );
+                                                                        }
+                                                                        return (
+                                                                            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/80" title="Đã thanh toán tiền mặt tại quầy">
+                                                                                <span>✓</span> Tiền mặt (Đã TT)
+                                                                            </span>
+                                                                        );
+                                                                    })()
+                                                                ) : (
+                                                                    (() => {
+                                                                        const noteLower = (booking.note || '').toLowerCase();
+                                                                        const isQR = noteLower.includes('vietqr') || noteLower.includes('chuyển khoản');
+                                                                        if (isQR) {
+                                                                            return (
+                                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/80">
+                                                                                    <span>⏳</span> Chờ quét QR
+                                                                                </span>
+                                                                            );
+                                                                        }
+                                                                        return (
+                                                                            <span className="inline-flex items-center gap-1 text-[9.5px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">
+                                                                                <span>💵</span> Tại Lễ tân
+                                                                            </span>
+                                                                        );
+                                                                    })()
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     );
                                                 })()}
                                             </td>
@@ -2513,6 +2544,17 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             <span>🔑</span>
                                             <span>Check-in</span>
                                         </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPreAssignModalBooking(selectedBooking);
+                                            }}
+                                            className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            title="Gán trước hoặc đổi phòng thực tế cho khách trước khi Check-in"
+                                        >
+                                            <span>🚪</span>
+                                            <span>{selectedBooking.room_number ? `Đổi phòng (P.${selectedBooking.room_number})` : 'Gán phòng trước'}</span>
+                                        </button>
                                         {isCheckInDateReached(selectedBooking.check_in_date) ? (
                                             <button
                                                 type="button"
@@ -2634,6 +2676,49 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             onBookingChanged();
                         }
                         setCheckInModalBooking(null);
+                    }}
+                />
+            )}
+
+            {/* MODAL GÁN PHÒNG TRƯỚC (PRE-ASSIGN ROOM) */}
+            {preAssignModalBooking && (
+                <PreAssignRoomModal
+                    booking={preAssignModalBooking}
+                    isOpen={Boolean(preAssignModalBooking)}
+                    onClose={() => setPreAssignModalBooking(null)}
+                    onSuccess={(resData) => {
+                        const newRoomNum = resData?.room_number || null;
+                        const newRoomId = resData?.room_id || null;
+                        showToast(
+                            'success',
+                            resData?.message || (newRoomNum ? `Đã gán phòng P.${newRoomNum} thành công!` : 'Đã hủy gán phòng!')
+                        );
+                        setBookings((prev) =>
+                            prev.map((b) =>
+                                b.id === preAssignModalBooking.id
+                                    ? {
+                                        ...b,
+                                        room: newRoomId,
+                                        room_id: newRoomId,
+                                        room_number: newRoomNum
+                                    }
+                                    : b
+                            )
+                        );
+                        if (selectedBooking && selectedBooking.id === preAssignModalBooking.id) {
+                            setSelectedBooking((prev) => ({
+                                ...prev,
+                                room: newRoomId,
+                                room_id: newRoomId,
+                                room_number: newRoomNum
+                            }));
+                        }
+                        if (quickFilterMode === 'check-in-today') {
+                            fetchBookings(true, 'check-in-today');
+                        } else {
+                            fetchBookings(true);
+                        }
+                        setPreAssignModalBooking(null);
                     }}
                 />
             )}
@@ -2764,19 +2849,71 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
                                     {/* THÔNG TIN DOANH NGHIỆP NẾU CHỌN CORPORATE */}
                                     {walkInForm.customer_type === 'CORPORATE' && (
-                                        <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2.5 animate-in fade-in">
-                                            <div className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1">
-                                                <span>🏢</span>
-                                                <span>Thông tin Công ty / Đoàn thể</span>
+                                        <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2.5 animate-in fade-in">
+                                            <div className="flex items-center justify-between pb-1 border-b border-indigo-200/60">
+                                                <div className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <span>🏢</span>
+                                                    <span>Thông tin Doanh nghiệp / Tổ chức</span>
+                                                </div>
+                                                <span className="text-[10px] text-indigo-700 bg-indigo-100/80 px-1.5 py-0.2 rounded font-semibold">
+                                                    Xuất hóa đơn GTGT (VAT)
+                                                </span>
                                             </div>
+
+                                            {/* Dropdown chọn nhanh đối tác B2B nếu có */}
+                                            {corporatePartners.length > 0 && (
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                                                        Chọn nhanh từ Đối tác B2B đã ký hợp đồng:
+                                                    </label>
+                                                    <select
+                                                        value={walkInForm.corporate_partner_id || ''}
+                                                        onChange={(e) => {
+                                                            const pid = e.target.value;
+                                                            if (!pid) {
+                                                                setWalkInForm(prev => ({
+                                                                    ...prev,
+                                                                    corporate_partner_id: '',
+                                                                    company_name: '',
+                                                                    company_tax_code: '',
+                                                                    company_address: ''
+                                                                }));
+                                                                return;
+                                                            }
+                                                            const found = corporatePartners.find(p => String(p.id) === String(pid));
+                                                            if (found) {
+                                                                setWalkInForm(prev => ({
+                                                                    ...prev,
+                                                                    corporate_partner_id: pid,
+                                                                    company_name: found.company_name || prev.company_name,
+                                                                    company_tax_code: found.tax_code || prev.company_tax_code,
+                                                                    company_address: found.company_address || prev.company_address,
+                                                                    guest_name: prev.guest_name || found.contact_person || '',
+                                                                    guest_phone: prev.guest_phone || found.contact_phone || '',
+                                                                    guest_email: prev.guest_email || found.contact_email || ''
+                                                                }));
+                                                            }
+                                                        }}
+                                                        className="w-full px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                                    >
+                                                        <option value="">-- Nhập thông tin doanh nghiệp mới / Vãng lai --</option>
+                                                        {corporatePartners.map(p => (
+                                                            <option key={p.id} value={p.id}>
+                                                                🏢 {p.company_name} {p.tax_code ? `(MST: ${p.tax_code})` : ''} {p.corporate_code ? `• Mã: ${p.corporate_code}` : ''}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+
                                             <div>
                                                 <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                                                    Tên công ty / Tổ chức <span className="text-rose-500">*</span>
+                                                    Tên công ty / Doanh nghiệp <span className="text-rose-500">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     required={walkInForm.customer_type === 'CORPORATE'}
-                                                    placeholder="VD: CÔNG TY TNHH CÔNG NGHỆ FPT"
+                                                    placeholder="VD: CÔNG TY CỔ PHẦN CÔNG NGHỆ FPT"
                                                     value={walkInForm.company_name}
                                                     onChange={(e) => setWalkInForm(prev => ({ ...prev, company_name: e.target.value }))}
                                                     className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -2785,23 +2922,25 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
-                                                        Mã số thuế (MST)
+                                                        Mã số thuế (MST) <span className="text-rose-500">*</span>
                                                     </label>
                                                     <input
                                                         type="text"
+                                                        required={walkInForm.customer_type === 'CORPORATE'}
                                                         placeholder="VD: 0101234567"
                                                         value={walkInForm.company_tax_code}
                                                         onChange={(e) => setWalkInForm(prev => ({ ...prev, company_tax_code: e.target.value.trim() }))}
-                                                        className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                        className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
-                                                        Địa chỉ trụ sở công ty
+                                                        Địa chỉ xuất hóa đơn GTGT <span className="text-rose-500">*</span>
                                                     </label>
                                                     <input
                                                         type="text"
-                                                        placeholder="Địa chỉ xuất hóa đơn..."
+                                                        required={walkInForm.customer_type === 'CORPORATE'}
+                                                        placeholder="Địa chỉ trụ sở công ty theo ĐKKD..."
                                                         value={walkInForm.company_address}
                                                         onChange={(e) => setWalkInForm(prev => ({ ...prev, company_address: e.target.value }))}
                                                         className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -2908,12 +3047,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 {bookingTab === 'walk_in' ? (
                                     /* TAB 1: WALK-IN (NHẬN PHÒNG NGAY HÔM NAY) */
                                     <div className="p-5 rounded-2xl bg-emerald-50/30 border border-emerald-200/80 space-y-4">
-                                        <div className="flex items-center justify-between pb-2 border-b border-emerald-200/60">
-                                            <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                                        <div className="flex items-center justify-between pb-2 border-b border-emerald-200/60 gap-2">
+                                            <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-800 flex items-center gap-1.5 truncate">
                                                 <span>🏨</span>
                                                 <span>2. Chọn Phòng Thực Tế & Thời Gian</span>
                                             </h4>
-                                            <span className="text-[11px] font-bold text-emerald-700">
+                                            <span className="text-[11px] font-bold text-emerald-700 whitespace-nowrap shrink-0">
                                                 {walkInAvailableRooms.length} phòng sẵn sàng
                                             </span>
                                         </div>
@@ -3034,48 +3173,48 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             return (
                                                 <div className="space-y-3 pt-1">
                                                     {selectedRoom && (
-                                                        <div className="p-3 bg-white rounded-xl border border-emerald-200 flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center">
+                                                        <div className="p-3 bg-white rounded-xl border border-emerald-200 flex items-center justify-between gap-3">
+                                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center shrink-0">
                                                                     {selectedRoom.room_number}
                                                                 </div>
-                                                                <div>
-                                                                    <div className="font-bold text-slate-900 text-xs">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-bold text-slate-900 text-xs truncate">
                                                                         Phòng {selectedRoom.room_number} — Tầng {selectedRoom.floor}
                                                                     </div>
-                                                                    <div className="text-[10px] text-slate-500">
+                                                                    <div className="text-[10px] text-slate-500 truncate">
                                                                         {selectedRoom.category_name || selectedRoom.category?.name} • {selectedRoom.category_bed_type || '1 Giường King'}
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                                                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300 whitespace-nowrap shrink-0">
                                                                 🟢 Sẵn sàng
                                                             </span>
                                                         </div>
                                                     )}
 
-                                                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 to-blue-950 text-white shadow-md space-y-2">
-                                                        <div className="flex items-center justify-between text-xs text-slate-300">
+                                                    <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2.5">
+                                                        <div className="flex items-center justify-between text-xs text-slate-600">
                                                             <span>Đơn giá phòng:</span>
-                                                            <span className="font-mono font-bold text-white">
+                                                            <span className="font-mono font-bold text-slate-900">
                                                                 {pricePerNight.toLocaleString('vi-VN')} VND / đêm
                                                             </span>
                                                         </div>
-                                                        <div className="flex items-center justify-between text-xs text-slate-300">
+                                                        <div className="flex items-center justify-between text-xs text-slate-600">
                                                             <span>Thời gian lưu trú:</span>
-                                                            <span className="font-bold text-emerald-400">
+                                                            <span className="font-bold text-emerald-700">
                                                                 🌙 {nights} đêm lưu trú
                                                             </span>
                                                         </div>
-                                                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                                                                 Tổng tiền dự kiến:
                                                             </span>
                                                             <div className="text-right">
-                                                                <span className="font-black text-xl text-rose-400">
+                                                                <span className="font-black text-xl text-rose-600">
                                                                     {totalAmount.toLocaleString('vi-VN')}
                                                                 </span>
-                                                                <span className="text-xs text-slate-300 ml-1">VND</span>
+                                                                <span className="text-xs text-slate-500 font-bold ml-1">VND</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -3105,12 +3244,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 ) : (
                                     /* TAB 2: ĐẶT PHÒNG TRƯỚC (NHẬN PHÒNG NGÀY KHÁC TRONG TƯƠNG LAI) */
                                     <div className="p-5 rounded-2xl bg-indigo-50/30 border border-indigo-200/80 space-y-4">
-                                        <div className="flex items-center justify-between pb-2 border-b border-indigo-200/60">
-                                            <h4 className="font-bold text-xs uppercase tracking-wider text-indigo-800 flex items-center gap-1.5">
+                                        <div className="flex items-center justify-between pb-2 border-b border-indigo-200/60 gap-2">
+                                            <h4 className="font-bold text-xs uppercase tracking-wider text-indigo-800 flex items-center gap-1.5 truncate">
                                                 <span>📅</span>
-                                                <span>2. Chọn Hạng Phòng & Ngày Đặt Giữ Chỗ</span>
+                                                <span className="truncate">2. Chọn Hạng Phòng & Ngày Đặt Giữ Chỗ</span>
                                             </h4>
-                                            <span className="text-[11px] font-bold text-indigo-700">
+                                            <span className="text-[11px] font-bold text-indigo-700 whitespace-nowrap shrink-0">
                                                 {advanceCategories.length} hạng phòng
                                             </span>
                                         </div>
@@ -3245,27 +3384,27 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             return (
                                                 <div className="space-y-3 pt-1">
                                                     {selectedCat && (
-                                                        <div className="p-3 bg-white rounded-xl border border-indigo-200 flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center">
+                                                        <div className="p-3 bg-white rounded-xl border border-indigo-200 flex items-center justify-between gap-3">
+                                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0">
                                                                     🏨
                                                                 </div>
-                                                                <div>
-                                                                    <div className="font-bold text-slate-900 text-xs">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-bold text-slate-900 text-xs truncate">
                                                                         {selectedCat.name}
                                                                     </div>
-                                                                    <div className="text-[10px] text-slate-500">
+                                                                    <div className="text-[10px] text-slate-500 truncate">
                                                                         Sức chứa: {selectedCat.capacity || 2} khách • {selectedCat.bed_type || '1 Giường đôi'} {selectedCat.size ? `• ${selectedCat.size} m²` : ''}
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right">
+                                                            <div className="text-right shrink-0">
                                                                 {isLoadingAvailabilities ? (
-                                                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 animate-pulse">
+                                                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 animate-pulse whitespace-nowrap shrink-0 inline-block">
                                                                         Đang kiểm tra...
                                                                     </span>
                                                                 ) : curAvailRooms !== null ? (
-                                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${
+                                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border whitespace-nowrap shrink-0 inline-block ${
                                                                         isCurSoldOut
                                                                             ? 'bg-rose-50 text-rose-700 border-rose-300'
                                                                             : curAvailRooms <= 2
@@ -3275,7 +3414,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                                         {isCurSoldOut ? '⚠️ Đã hết phòng' : `✓ Còn ${curAvailRooms} phòng trống`}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
+                                                                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200 whitespace-nowrap shrink-0 inline-block">
                                                                         Đang mở đặt
                                                                     </span>
                                                                 )}
@@ -3312,28 +3451,28 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         </div>
                                                     </div>
 
-                                                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-md space-y-2">
-                                                        <div className="flex items-center justify-between text-xs text-slate-300">
+                                                    <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2.5">
+                                                        <div className="flex items-center justify-between text-xs text-slate-600">
                                                             <span>Đơn giá hạng phòng:</span>
-                                                            <span className="font-mono font-bold text-white">
+                                                            <span className="font-mono font-bold text-slate-900">
                                                                 {pricePerNight.toLocaleString('vi-VN')} VND / đêm
                                                             </span>
                                                         </div>
-                                                        <div className="flex items-center justify-between text-xs text-slate-300">
+                                                        <div className="flex items-center justify-between text-xs text-slate-600">
                                                             <span>Thời gian lưu trú:</span>
-                                                            <span className="font-bold text-indigo-400">
+                                                            <span className="font-bold text-indigo-700">
                                                                 🌙 {nights} đêm lưu trú
                                                             </span>
                                                         </div>
-                                                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                                                                 Tổng tiền giữ chỗ:
                                                             </span>
                                                             <div className="text-right">
-                                                                <span className="font-black text-xl text-rose-400">
+                                                                <span className="font-black text-xl text-rose-600">
                                                                     {totalAmount.toLocaleString('vi-VN')}
                                                                 </span>
-                                                                <span className="text-xs text-slate-300 ml-1">VND</span>
+                                                                <span className="text-xs text-slate-500 font-bold ml-1">VND</span>
                                                             </div>
                                                         </div>
                                                     </div>

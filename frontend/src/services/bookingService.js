@@ -233,6 +233,33 @@ export const bookingService = {
     },
 
     /**
+     * Gán trước phòng hoặc hủy gán phòng cho đơn đặt phòng chưa check-in (POST /api/bookings/:id/pre-assign-room/)
+     * @param {number|string} bookingId
+     * @param {number|string|null} roomId
+     */
+    async preAssignRoom(bookingId, roomId = null) {
+        try {
+            const response = await api.post(`/bookings/${bookingId}/pre-assign-room/`, {
+                room_id: roomId
+            });
+            return {
+                success: true,
+                message: response.data?.message || 'Cập nhật gán phòng thành công!',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi gán phòng trước:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể gán phòng trước. Vui lòng thử lại.'
+            };
+        }
+    },
+
+    /**
      * Thực hiện thủ tục Check-in cho đơn đặt phòng (POST /api/bookings/:id/check-in/)
      * @param {number|string} bookingId
      * @param {Object} payload - { room_id, internal_note, allow_upgrade }

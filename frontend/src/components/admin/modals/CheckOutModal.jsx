@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { bookingService } from '../../../services/bookingService';
 import { paymentService } from '../../../services/paymentService';
+import hotelService from '../../../services/hotelService';
 import api from '../../../services/api';
 
 // Helper format tiền tệ VNĐ
@@ -59,12 +60,31 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const [isDebtPaid, setIsDebtPaid] = useState(false); // Đã giải quyết xong phần nợ chưa
     const [paymentMethod, setPaymentMethod] = useState('bank_transfer'); // 'bank_transfer' | 'cash'
 
+    // Xử lý các dịch vụ chưa hoàn tất phục vụ (pending, in_progress, delivering)
+    const [serviceActionLoading, setServiceActionLoading] = useState(null); // id of request or 'bulk'
+    const [serviceActionMsg, setServiceActionMsg] = useState(null); // { type, text }
+
     // Cấu hình ngân hàng VietQR động
     const [bankConfig, setBankConfig] = useState({
         bank_bin: '970422',
         account_no: '0344997778',
         account_name: 'KHACH SAN TA DA NANG'
     });
+
+    // Hàm refresh lại bảng kê sau khi thao tác dịch vụ
+    const refreshSummary = useCallback(async () => {
+        if (!booking?.id) return;
+        try {
+            const res = await bookingService.getBookingSummary(booking.id);
+            if (res?.success && res?.data) {
+                setSummary(res.data);
+            } else if (res?.data) {
+                setSummary(res.data);
+            }
+        } catch (err) {
+            console.error('Lỗi khi cập nhật lại bảng kê Folio:', err);
+        }
+    }, [booking?.id]);
 
     // 1. TẢI BẢNG KÊ CHI TIẾT TỪ BACKEND
     useEffect(() => {
@@ -118,6 +138,99 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             isMounted = false;
         };
     }, [booking?.id]);
+
+    // Danh sách các dịch vụ chưa hoàn thành (chờ xử lý hoặc đang thực hiện)
+    const uncompletedServices = useMemo(() => {
+        return (summary?.extra_services || []).filter(
+            (s) => s.source === 'service_request' && ['pending', 'in_progress', 'delivering'].includes(s.status)
+        );
+    }, [summary]);
+
+    // Xử lý xác nhận đã hoàn thành hoặc hủy dịch vụ trực tiếp trong modal check-out
+    const handleQuickUpdateServiceStatus = async (serviceItem, newStatus) => {
+        const requestId = serviceItem.request_id || (typeof serviceItem.id === 'string' && serviceItem.id.startsWith('req_') ? serviceItem.id.replace('req_', '') : serviceItem.id);
+        if (!requestId) return;
+
+        if (newStatus === 'cancelled') {
+            const isConfirmed = window.confirm(
+                `Xác nhận khách KHÔNG sử dụng dịch vụ "${serviceItem.service_name}"?\n\n• Hệ thống sẽ hủy yêu cầu dịch vụ này.\n• Số tiền ${formatCurrency(serviceItem.total_price)} sẽ tự động TRỪ khỏi hóa đơn check-out ngay lập tức.`
+            );
+            if (!isConfirmed) return;
+        }
+
+        try {
+            setServiceActionLoading(requestId);
+            setServiceActionMsg(null);
+
+            const res = await hotelService.updateServiceRequestStatus(
+                requestId,
+                newStatus,
+                newStatus === 'cancelled'
+                    ? 'Hủy tại bước Check-out do khách không sử dụng'
+                    : 'Xác nhận hoàn thành tại bước Check-out'
+            );
+
+            if (res.success) {
+                setServiceActionMsg({
+                    type: newStatus === 'cancelled' ? 'info' : 'success',
+                    text: newStatus === 'cancelled'
+                        ? `Đã hủy dịch vụ "${serviceItem.service_name}" và trừ ${formatCurrency(serviceItem.total_price)} khỏi hóa đơn!`
+                        : `Đã xác nhận dịch vụ "${serviceItem.service_name}" hoàn tất phục vụ!`
+                });
+
+                // Cập nhật lại summary và số tiền
+                await refreshSummary();
+
+                // Tự tắt thông báo sau 4 giây
+                setTimeout(() => {
+                    setServiceActionMsg(null);
+                }, 4000);
+            } else {
+                alert(res.message || 'Không thể cập nhật trạng thái dịch vụ. Vui lòng thử lại.');
+            }
+        } catch (err) {
+            console.error('Lỗi khi cập nhật dịch vụ:', err);
+            alert('Đã xảy ra lỗi khi kết nối máy chủ để cập nhật dịch vụ.');
+        } finally {
+            setServiceActionLoading(null);
+        }
+    };
+
+    // Xác nhận nhanh TẤT CẢ các dịch vụ đang chờ thành hoàn tất
+    const handleCompleteAllServices = async () => {
+        if (!uncompletedServices.length) return;
+        const confirmAll = window.confirm(
+            `Xác nhận tất cả ${uncompletedServices.length} dịch vụ đang chờ đã được phục vụ cho khách?`
+        );
+        if (!confirmAll) return;
+
+        try {
+            setServiceActionLoading('bulk');
+            for (const svc of uncompletedServices) {
+                const reqId = svc.request_id || (typeof svc.id === 'string' && svc.id.startsWith('req_') ? svc.id.replace('req_', '') : svc.id);
+                if (reqId) {
+                    await hotelService.updateServiceRequestStatus(
+                        reqId,
+                        'completed',
+                        'Xác nhận hoàn thành hàng loạt tại bước Check-out'
+                    );
+                }
+            }
+            setServiceActionMsg({
+                type: 'success',
+                text: `Đã xác nhận hoàn thành tất cả ${uncompletedServices.length} dịch vụ!`
+            });
+            await refreshSummary();
+            setTimeout(() => {
+                setServiceActionMsg(null);
+            }, 4000);
+        } catch (err) {
+            console.error('Lỗi khi hoàn thành tất cả dịch vụ:', err);
+            alert('Có lỗi xảy ra khi cập nhật dịch vụ.');
+        } finally {
+            setServiceActionLoading(null);
+        }
+    };
 
     // 2. TÍNH TOÁN CÁC KHOẢN MỤC TÀI CHÍNH (FOLIO BALANCE) TỪ BACKEND TRẢ VỀ
     const roomCharge = useMemo(() => {
@@ -258,6 +371,15 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const handleConfirmCheckOut = async () => {
         if (!booking?.id || isSubmitting || !isPaymentSettled) return;
 
+        // Cảnh báo lễ tân nếu còn dịch vụ chưa phục vụ hoặc chưa hủy
+        if (uncompletedServices.length > 0) {
+            const svcNames = uncompletedServices.map((s) => `• ${s.service_name} (${formatCurrency(s.total_price)})`).join('\n');
+            const confirmProceed = window.confirm(
+                `⚠️ LƯU Ý QUAN TRỌNG TRƯỚC KHI CHECK-OUT:\n\nHiện vẫn còn ${uncompletedServices.length} dịch vụ chưa được xác nhận hoàn thành:\n${svcNames}\n\nNếu tiếp tục check-out, toàn bộ tiền của các dịch vụ này VẪN SẼ ĐƯỢC TÍNH vào hóa đơn của khách.\n\nNếu khách KHÔNG sử dụng, vui lòng bấm nút "Khách không dùng" ở bảng kê trước để hủy và trừ tiền.\n\nBạn có chắc chắn muốn tiếp tục check-out ngay bây giờ?`
+            );
+            if (!confirmProceed) return;
+        }
+
         try {
             setIsSubmitting(true);
             const res = await bookingService.checkOut(booking.id, {
@@ -311,16 +433,16 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                 {/* ========================================================================= */}
                 <div className="flex items-start justify-between pb-4 border-b border-slate-200 mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-orange-500/20 shrink-0">
+                        <div className="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
                             🧾
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-black text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">
+                                <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
                                     #{summary?.booking_code || booking.booking_code}
                                 </span>
                                 <span className="text-xs text-slate-300">•</span>
-                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-300 uppercase tracking-wide">
+                                <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 uppercase tracking-wide">
                                     {summary?.room_number ? `Phòng ${summary.room_number}` : (booking.room_number ? `Phòng ${booking.room_number}` : 'Đang lưu trú')}
                                 </span>
                             </div>
@@ -452,7 +574,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         )}
 
                         {/* THÔNG TIN KHÁCH VÀ PHÒNG */}
-                        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-200 text-xs">
+                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 text-xs">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <span className="text-[11px] text-slate-400 block">Khách hàng lưu trú:</span>
@@ -465,7 +587,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 </div>
                                 <div>
                                     <span className="text-[11px] text-slate-400 block">Hạng phòng & Số phòng:</span>
-                                    <strong className="text-slate-900 text-xs block text-blue-700 font-bold">
+                                    <strong className="text-slate-900 text-xs block font-bold">
                                         🏨 {summary?.room_name || booking.room_name}
                                     </strong>
                                     <span className="text-[11px] text-slate-600 font-bold block mt-0.5">
@@ -480,12 +602,67 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                     <div className="text-[11px] text-slate-700 font-medium">
                                         <span>Check-out: {formatDateTime(new Date().toISOString())}</span>
                                     </div>
-                                    <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded-md">
+                                    <span className="inline-block mt-1 px-2 py-0.5 bg-white text-slate-700 border border-slate-200 text-[10px] font-bold rounded-md">
                                         🌙 {summary?.nights || booking.nights || 1} đêm lưu trú
                                     </span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* ================================================================= */}
+                        {/* THÔNG BÁO TÁC VỤ DỊCH VỤ NHANH (NẾU CÓ)                          */}
+                        {/* ================================================================= */}
+                        {serviceActionMsg && (
+                            <div className={`p-3 rounded-2xl border text-xs flex items-center justify-between transition-all shadow-xs ${
+                                serviceActionMsg.type === 'success'
+                                    ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
+                                    : 'bg-sky-50/90 border-sky-200 text-sky-900'
+                            }`}>
+                                <span className="flex items-center gap-2 font-medium">
+                                    <span className="text-base">{serviceActionMsg.type === 'success' ? '✅' : 'ℹ️'}</span>
+                                    <span>{serviceActionMsg.text}</span>
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setServiceActionMsg(null)}
+                                    className="text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded cursor-pointer font-bold"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        )}
+
+                        {/* CẢNH BÁO THÔNG MINH: CÓ DỊCH VỤ CHƯA ĐÁNH DẤU HOÀN THÀNH */}
+                        {uncompletedServices.length > 0 && (
+                            <div className="p-3.5 rounded-2xl bg-amber-50/95 border border-amber-300/90 shadow-xs text-xs space-y-2">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-2.5">
+                                        <span className="text-xl leading-none mt-0.5">⚠️</span>
+                                        <div>
+                                            <strong className="text-amber-950 font-bold block text-xs">
+                                                Lưu ý: Phát hiện {uncompletedServices.length} dịch vụ chưa đánh dấu hoàn thành!
+                                            </strong>
+                                            <p className="text-[11px] text-amber-900/90 mt-0.5 leading-relaxed">
+                                                Khách đang làm thủ tục trả phòng nhưng vẫn còn dịch vụ ở trạng thái <em>Chờ xử lý / Đang thực hiện</em> (ví dụ: xe đưa đón Maybach/Limousine hoặc món ăn).
+                                                Vui lòng hỏi khách:
+                                                Nếu <strong>đã phục vụ</strong>, bấm <strong>[✓ Đã phục vụ]</strong>.
+                                                Nếu <strong>khách không dùng</strong> (chưa kịp phục vụ hoặc khách hủy), bấm <strong>[✕ Khách không dùng]</strong> để hệ thống tự động trừ tiền khỏi hóa đơn.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {uncompletedServices.length > 1 && (
+                                        <button
+                                            type="button"
+                                            disabled={Boolean(serviceActionLoading)}
+                                            onClick={handleCompleteAllServices}
+                                            className="shrink-0 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[10px] transition shadow-xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                        >
+                                            {serviceActionLoading === 'bulk' ? 'Đang cập nhật...' : '✓ Xác nhận tất cả đã dùng'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* ================================================================= */}
                         {/* BẢNG KÊ CHI TIẾT KHOẢN MỤC (FOLIO STATEMENT)                     */}
@@ -568,41 +745,88 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             summary.extra_services.map((svc, idx) => {
                                                 const isDamage = svc.service_name?.includes('Bồi thường');
                                                 const isPaid = Boolean(svc.is_paid);
+                                                const isServiceRequest = svc.source === 'service_request';
+                                                const isUncompleted = isServiceRequest && ['pending', 'in_progress', 'delivering'].includes(svc.status);
+                                                const isItemActionLoading = serviceActionLoading === (svc.request_id || svc.id);
 
                                                 return (
                                                     <tr
                                                         key={svc.id || idx}
                                                         className={`${
                                                             isDamage
-                                                                ? 'bg-rose-50/40 hover:bg-rose-50/70 border-l-2 border-rose-500'
-                                                                : isPaid
-                                                                ? 'bg-emerald-50/15 hover:bg-emerald-50/30'
-                                                                : 'bg-amber-50/20 hover:bg-amber-50/40'
+                                                                ? 'bg-rose-50/30 hover:bg-rose-50/50 border-l-2 border-rose-400'
+                                                                : isUncompleted
+                                                                    ? 'bg-amber-50/30 hover:bg-amber-50/50 border-l-2 border-amber-400'
+                                                                    : 'hover:bg-slate-50/60'
                                                         }`}
                                                     >
                                                         <td className="py-2.5 px-4">
-                                                            <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                                                <span className={isDamage ? 'text-rose-600' : isPaid ? 'text-emerald-600' : 'text-amber-600'}>
-                                                                    {isDamage ? '⚠️' : isPaid ? '🧺' : '🍽️'}
-                                                                </span>
+                                                            <div className="font-semibold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                                                                <span>{isDamage ? '⚠️' : isPaid ? '🧺' : '🍽️'}</span>
                                                                 <span className={isDamage ? 'text-rose-900 font-bold' : ''}>
                                                                     {svc.service_name}
                                                                 </span>
+
+                                                                {/* Huy hiệu thanh toán */}
                                                                 {isPaid ? (
-                                                                    <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold">
-                                                                        🟢 Đã trả trước
+                                                                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold">
+                                                                        ✓ Đã trả trước
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold">
-                                                                        🟠 Thu tại quầy
+                                                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-semibold">
+                                                                        Thu tại quầy
                                                                     </span>
                                                                 )}
+
+                                                                {/* Huy hiệu trạng thái phục vụ */}
+                                                                {isServiceRequest && (
+                                                                    svc.status === 'completed' ? (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300 text-[9px] font-bold">
+                                                                            ✓ Đã phục vụ
+                                                                        </span>
+                                                                    ) : svc.status === 'in_progress' || svc.status === 'delivering' ? (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-300 text-[9px] font-bold">
+                                                                            🚗 Đang thực hiện
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 text-[9px] font-bold animate-pulse">
+                                                                            ⏳ Chờ phục vụ
+                                                                        </span>
+                                                                    )
+                                                                )}
                                                             </div>
-                                                            {svc.created_at && (
-                                                                <div className="text-[10px] text-slate-400">
-                                                                    Thời gian: {formatDateTime(svc.created_at)}
-                                                                </div>
-                                                            )}
+
+                                                            {/* Dòng thao tác nhanh nếu dịch vụ chưa hoàn thành */}
+                                                            <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
+                                                                {svc.created_at ? (
+                                                                    <div className="text-[10px] text-slate-400">
+                                                                        Thời gian đặt: {formatDateTime(svc.created_at)}
+                                                                    </div>
+                                                                ) : <div />}
+
+                                                                {isUncompleted && (
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={Boolean(serviceActionLoading)}
+                                                                            onClick={() => handleQuickUpdateServiceStatus(svc, 'completed')}
+                                                                            className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition cursor-pointer disabled:opacity-50 flex items-center gap-1 shadow-2xs"
+                                                                            title="Khách đã sử dụng dịch vụ này, xác nhận hoàn thành để tính vào hóa đơn"
+                                                                        >
+                                                                            {isItemActionLoading ? '...' : '✓ Đã phục vụ'}
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={Boolean(serviceActionLoading)}
+                                                                            onClick={() => handleQuickUpdateServiceStatus(svc, 'cancelled')}
+                                                                            className="px-2 py-0.5 rounded-md bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-bold text-[10px] transition cursor-pointer disabled:opacity-50 flex items-center gap-1 shadow-2xs"
+                                                                            title="Khách không sử dụng hoặc hủy dịch vụ, hủy yêu cầu và TRỪ tiền khỏi hóa đơn ngay lập tức"
+                                                                        >
+                                                                            {isItemActionLoading ? '...' : '✕ Khách không dùng (Trừ tiền)'}
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="py-2.5 px-3 text-center text-slate-700 font-semibold">
                                                             x{svc.quantity}
@@ -662,11 +886,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                         {/* Dịch vụ đặt trước */}
                                         {Number(summary?.prepaid_services_total || 0) > 0 && (
-                                            <tr className="bg-emerald-50/30">
-                                                <td colSpan={3} className="py-1.5 px-4 text-right text-emerald-800 font-medium text-[11px]">
+                                            <tr>
+                                                <td colSpan={3} className="py-1.5 px-4 text-right text-slate-600 font-medium text-[11px]">
                                                     + Dịch vụ đặt kèm trước (Đã thanh toán Online):
                                                 </td>
-                                                <td className="py-1.5 px-4 text-right font-bold text-emerald-700 text-[11px]">
+                                                <td className="py-1.5 px-4 text-right font-semibold text-slate-800 text-[11px]">
                                                     {formatCurrency(summary.prepaid_services_total)}
                                                 </td>
                                             </tr>
@@ -674,11 +898,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                         {/* Dịch vụ phát sinh */}
                                         {Number(summary?.unpaid_services_total || 0) > 0 && (
-                                            <tr className="bg-amber-50/30">
-                                                <td colSpan={3} className="py-1.5 px-4 text-right text-amber-800 font-medium text-[11px]">
+                                            <tr>
+                                                <td colSpan={3} className="py-1.5 px-4 text-right text-slate-600 font-medium text-[11px]">
                                                     + Dịch vụ phát sinh trong kỳ nghỉ (Cần thu):
                                                 </td>
-                                                <td className="py-1.5 px-4 text-right font-bold text-amber-700 text-[11px]">
+                                                <td className="py-1.5 px-4 text-right font-semibold text-slate-800 text-[11px]">
                                                     {formatCurrency(summary.unpaid_services_total)}
                                                 </td>
                                             </tr>
@@ -706,11 +930,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                         {/* Khấu trừ tiền phòng gộp đoàn nếu là phòng thuộc đoàn */}
                                         {isGroupRoom && (
-                                            <tr className="bg-indigo-50/70 border-t border-indigo-200">
-                                                <td colSpan={3} className="py-2 px-4 text-right font-bold text-indigo-900 text-xs">
+                                            <tr className="bg-slate-50 border-t border-slate-200">
+                                                <td colSpan={3} className="py-2 px-4 text-right font-bold text-slate-800 text-xs">
                                                     🏢 Chuyển thanh toán vào Hóa đơn đoàn #{booking.group_booking_code || ''}:
                                                 </td>
-                                                <td className="py-2 px-4 text-right font-bold text-indigo-700 text-sm">
+                                                <td className="py-2 px-4 text-right font-bold text-slate-800 text-sm">
                                                     -{formatCurrency(roomCharge)}
                                                 </td>
                                             </tr>
@@ -718,20 +942,20 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                         {/* Số tiền Đã thanh toán trước đó (chữ xanh lá) */}
                                         {paidAmount > 0 && (
-                                            <tr className="bg-emerald-50/70 border-t border-emerald-200">
-                                                <td colSpan={3} className="py-2.5 px-4 text-right font-bold text-emerald-800">
+                                            <tr className="border-t border-slate-100">
+                                                <td colSpan={3} className="py-2 px-4 text-right font-bold text-slate-700">
                                                     ✓ Số tiền Đã thanh toán trước đó:
                                                 </td>
-                                                <td className="py-2.5 px-4 text-right font-black text-emerald-600 text-sm">
+                                                <td className="py-2 px-4 text-right font-black text-emerald-600 text-sm">
                                                     -{formatCurrency(paidAmount + (isDebtPaid ? initialRemainingBalance : 0))}
                                                 </td>
                                             </tr>
                                         )}
 
                                         {/* SỐ TIỀN CẦN THANH TOÁN THÊM: remaining_balance */}
-                                        <tr className={`border-t-2 ${currentRemainingBalance > 0 ? 'bg-rose-50/80 border-rose-300' : 'bg-emerald-50 border-emerald-300'}`}>
-                                            <td colSpan={3} className="py-3 px-4 text-right font-extrabold text-sm uppercase tracking-wide">
-                                                <span className={currentRemainingBalance > 0 ? 'text-rose-900' : 'text-emerald-900'}>
+                                        <tr className={`border-t-2 ${currentRemainingBalance > 0 ? 'bg-slate-50 border-slate-900' : 'bg-slate-50 border-slate-200'}`}>
+                                            <td colSpan={3} className="py-3 px-4 text-right font-extrabold text-xs uppercase tracking-wide">
+                                                <span className="text-slate-900">
                                                     {isGroupRoom ? 'SỐ TIỀN THỰC THU KHÁCH TẠI QUẦY (Guest Balance Due):' : (currentRemainingBalance > 0 ? 'SỐ TIỀN CẦN THANH TOÁN THÊM (Remaining Balance):' : 'CÔNG NỢ CÒN LẠI (Folio Balance):')}
                                                 </span>
                                             </td>
@@ -755,33 +979,33 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         {/* TRƯỜNG HỢP A: remaining_balance > 0 (Có nợ tiền phòng hoặc dịch vụ) */}
                         {/* Bắt buộc render form thanh toán VietQR yêu cầu quét ĐÚNG SỐ TIỀN remaining_balance này */}
                         {currentRemainingBalance > 0 ? (
-                            <div className="p-4.5 rounded-2xl border-2 border-rose-400 bg-rose-50/20 space-y-4 animate-in fade-in duration-200">
-                                <div className="flex items-center justify-between pb-2 border-b border-rose-200">
+                            <div className="p-4.5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4 animate-in fade-in duration-200">
+                                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xl">⚠️</span>
-                                        <h4 className="font-bold text-rose-900 text-xs sm:text-sm uppercase tracking-wide">
+                                        <span className="text-base">💳</span>
+                                        <h4 className="font-bold text-slate-900 text-xs sm:text-sm uppercase tracking-wide">
                                             Yêu cầu thu thêm tiền phát sinh: <span className="text-rose-600 font-black">{formatCurrency(currentRemainingBalance)}</span>
                                         </h4>
                                     </div>
-                                    <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px] border border-rose-300">
+                                    <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200">
                                         Chưa thanh toán
                                     </span>
                                 </div>
 
-                                <p className="text-[11px] text-slate-600">
+                                <p className="text-[11px] text-slate-500">
                                     Khách có phát sinh dịch vụ hoặc chưa thanh toán đủ tiền phòng. Vui lòng quét mã VietQR hoặc thu tiền mặt trước khi bấm hoàn tất Check-out.
                                 </p>
 
                                 {/* Lựa chọn phương thức thu */}
                                 <div className="flex items-center gap-3">
                                     <label className="text-[11px] font-bold text-slate-700">Hình thức thanh toán:</label>
-                                    <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+                                    <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
                                         <button
                                             type="button"
                                             onClick={() => setPaymentMethod('bank_transfer')}
-                                            className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                                                 paymentMethod === 'bank_transfer'
-                                                    ? 'bg-blue-600 text-white shadow-xs'
+                                                    ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
                                             }`}
                                         >
@@ -790,9 +1014,9 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         <button
                                             type="button"
                                             onClick={() => setPaymentMethod('cash')}
-                                            className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                                                 paymentMethod === 'cash'
-                                                    ? 'bg-amber-600 text-white shadow-xs'
+                                                    ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
                                             }`}
                                         >
@@ -803,9 +1027,9 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                 {/* FORM THANH TOÁN VIETQR: YÊU CẦU QUÉT ĐÚNG SỐ TIỀN remaining_balance */}
                                 {paymentMethod === 'bank_transfer' && (
-                                    <div className="p-4 bg-white rounded-2xl border border-blue-200 shadow-sm flex flex-col sm:flex-row items-center gap-5">
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center gap-5">
                                         {/* Mã QR với viền đứt nét nổi bật */}
-                                        <div className="relative p-2 bg-white rounded-2xl border-2 border-dashed border-blue-400 max-w-[190px] w-full aspect-square flex items-center justify-center shrink-0">
+                                        <div className="relative p-2 bg-white rounded-2xl border border-slate-300 max-w-[180px] w-full aspect-square flex items-center justify-center shrink-0">
                                             {qrUrl ? (
                                                 <img
                                                     src={qrUrl}
@@ -819,21 +1043,21 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                         {/* Chi tiết số tiền yêu cầu thanh toán */}
                                         <div className="space-y-2 text-xs text-slate-700 flex-1 w-full">
-                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200">
-                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200">
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                                 VietQR Chuyển khoản tức thì
                                             </div>
 
                                             <div className="space-y-1 pt-1">
-                                                <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                <div className="flex justify-between border-b border-slate-200/70 pb-1">
                                                     <span className="text-slate-500">Ngân hàng:</span>
                                                     <strong className="text-slate-900">{bankConfig.bank_bin}</strong>
                                                 </div>
-                                                <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                <div className="flex justify-between border-b border-slate-200/70 pb-1">
                                                     <span className="text-slate-500">Số tài khoản:</span>
                                                     <strong className="font-mono text-slate-900">{bankConfig.account_no}</strong>
                                                 </div>
-                                                <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                <div className="flex justify-between border-b border-slate-200/70 pb-1">
                                                     <span className="text-slate-500">Chủ tài khoản:</span>
                                                     <strong className="text-slate-900">{bankConfig.account_name}</strong>
                                                 </div>
@@ -849,7 +1073,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                     type="button"
                                                     disabled={isProcessingDebtPayment}
                                                     onClick={handleConfirmDebtPayment}
-                                                    className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                                    className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                                                 >
                                                     {isProcessingDebtPayment ? (
                                                         <>
@@ -870,7 +1094,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                 {/* FORM THU TIỀN MẶT */}
                                 {paymentMethod === 'cash' && (
-                                    <div className="p-4 bg-white rounded-2xl border border-amber-200 flex items-center justify-between">
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
                                         <div className="space-y-1">
                                             <div className="font-bold text-slate-900 text-xs">Thu ngân tại quầy lễ tân:</div>
                                             <p className="text-[11px] text-slate-500">
@@ -882,7 +1106,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             type="button"
                                             disabled={isProcessingDebtPayment}
                                             onClick={handleConfirmDebtPayment}
-                                            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                                         >
                                             {isProcessingDebtPayment ? (
                                                 <>
@@ -903,36 +1127,36 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                             /* TRƯỜNG HỢP B: remaining_balance <= 0 */
                             /* ẨN TOÀN BỘ KHU VỰC QUÉT QR */
                             isGroupRoom ? (
-                                <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl text-xs text-indigo-900 flex items-center justify-between animate-in fade-in duration-200">
+                                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 flex items-center justify-between animate-in fade-in duration-200">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-indigo-600/20">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
                                             🏢
                                         </div>
                                         <div>
-                                            <strong className="text-sm text-indigo-950 block">Quy chế Master-Billing: Tiền phòng chuyển HĐ Đoàn</strong>
-                                            <span className="text-[11px] text-indigo-700">
+                                            <strong className="text-sm text-slate-900 block">Quy chế Master-Billing: Tiền phòng chuyển HĐ Đoàn</strong>
+                                            <span className="text-[11px] text-slate-500">
                                                 Tiền phòng đã được kết chuyển vào Hóa đơn tổng của Doanh nghiệp (#{booking.group_booking_code || ''}). Khách không nợ dịch vụ phát sinh tại phòng.
                                             </span>
                                         </div>
                                     </div>
-                                    <span className="px-3 py-1 rounded-full bg-indigo-600 text-white font-black text-xs shadow-xs">
+                                    <span className="px-3 py-1 rounded-full bg-slate-200 text-slate-800 font-black text-xs">
                                         0đ CẦN THU
                                     </span>
                                 </div>
                             ) : (
-                                <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900 flex items-center justify-between animate-in fade-in duration-200">
+                                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 flex items-center justify-between animate-in fade-in duration-200">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-emerald-500/20">
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
                                             ✓
                                         </div>
                                         <div>
-                                            <strong className="text-sm text-emerald-950 block">Folio Đã Cân Bằng (Đã Thanh Toán Đủ 100%)</strong>
-                                            <span className="text-[11px] text-emerald-700">
+                                            <strong className="text-sm text-slate-900 block">Folio Đã Cân Bằng (Đã Thanh Toán Đủ 100%)</strong>
+                                            <span className="text-[11px] text-slate-500">
                                                 Toàn bộ tiền phòng và phụ phí dịch vụ đã được tất toán thành công. Không phát sinh công nợ tại quầy.
                                             </span>
                                         </div>
                                     </div>
-                                    <span className="px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs shadow-xs">
+                                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs">
                                         0đ CẦN THU
                                     </span>
                                 </div>
@@ -953,7 +1177,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                     type="checkbox"
                                     checked={isCompanyInvoice}
                                     onChange={(e) => setIsCompanyInvoice(e.target.checked)}
-                                    className="w-4 h-4 text-amber-600 rounded-md focus:ring-amber-500 cursor-pointer"
+                                    className="w-4 h-4 text-slate-900 rounded-md focus:ring-slate-900 cursor-pointer"
                                 />
                             </label>
 
@@ -966,7 +1190,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             placeholder="VD: Công ty Cổ phần FPT"
                                             value={companyName}
                                             onChange={(e) => setCompanyName(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/15 focus:border-slate-700"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -976,7 +1200,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             placeholder="VD: 0101248141"
                                             value={companyTaxCode}
                                             onChange={(e) => setCompanyTaxCode(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-slate-900/15 focus:border-slate-700"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -986,7 +1210,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             placeholder="ketoan@company.com"
                                             value={invoiceRecipientEmail}
                                             onChange={(e) => setInvoiceRecipientEmail(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/15 focus:border-slate-700"
                                         />
                                     </div>
                                     <div className="space-y-1 sm:col-span-2">
@@ -996,7 +1220,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             placeholder="Địa chỉ ghi trên giấy phép ĐKKD"
                                             value={companyAddress}
                                             onChange={(e) => setCompanyAddress(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/15 focus:border-slate-700"
                                         />
                                     </div>
                                 </div>
@@ -1015,7 +1239,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 value={checkoutNote}
                                 onChange={(e) => setCheckoutNote(e.target.value)}
                                 disabled={isSubmitting}
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
+                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/15 focus:border-slate-700 transition"
                             />
                         </div>
 
@@ -1047,10 +1271,10 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                     type="button"
                                     disabled={isSubmitting || !isPaymentSettled}
                                     onClick={handleConfirmCheckOut}
-                                    className={`px-6 py-2.5 font-extrabold text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95 text-white ${
+                                    className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 text-white ${
                                         !isPaymentSettled
-                                            ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                                            : 'bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 shadow-amber-500/25 ring-2 ring-amber-400/40'
+                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                                            : 'bg-slate-900 hover:bg-slate-800 text-white'
                                     }`}
                                     title={!isPaymentSettled ? 'Vui lòng hoàn tất thanh toán số tiền còn thiếu trước khi Check-out.' : 'Nhấn để hoàn tất Check-out và trả phòng'}
                                 >

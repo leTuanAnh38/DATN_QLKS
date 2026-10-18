@@ -151,40 +151,31 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                 {/* 2. THANH THỐNG KÊ NHANH & BỘ LỌC */}
                 <div className="py-4 space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-center gap-3">
-                            <span className="text-2xl">👥</span>
-                            <div>
-                                <span className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider block">
-                                    Tổng số khách lưu trú
-                                </span>
-                                <strong className="text-lg font-black text-emerald-950">
-                                    {guests.length} khách
-                                </strong>
-                            </div>
+                        <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
+                            <span className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider block">
+                                Tổng số khách lưu trú
+                            </span>
+                            <strong className="text-lg font-black text-emerald-950 block mt-0.5">
+                                {guests.length} khách
+                            </strong>
                         </div>
 
-                        <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-2xl flex items-center gap-3">
-                            <span className="text-2xl">🚪</span>
-                            <div>
-                                <span className="text-[10px] uppercase font-bold text-blue-800 tracking-wider block">
-                                    Số phòng đang có khách
-                                </span>
-                                <strong className="text-lg font-black text-blue-950">
-                                    {totalRooms} phòng
-                                </strong>
-                            </div>
+                        <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-2xl">
+                            <span className="text-[10px] uppercase font-bold text-blue-800 tracking-wider block">
+                                Số phòng đang có khách
+                            </span>
+                            <strong className="text-lg font-black text-blue-950 block mt-0.5">
+                                {totalRooms} phòng
+                            </strong>
                         </div>
 
-                        <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-center gap-3">
-                            <span className="text-2xl">⏰</span>
-                            <div>
-                                <span className="text-[10px] uppercase font-bold text-amber-800 tracking-wider block">
-                                    Thời điểm tổng hợp
-                                </span>
-                                <strong className="text-xs font-bold text-amber-950 block mt-0.5">
-                                    {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • {new Date().toLocaleDateString('vi-VN')}
-                                </strong>
-                            </div>
+                        <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                            <span className="text-[10px] uppercase font-bold text-amber-800 tracking-wider block">
+                                Thời điểm tổng hợp
+                            </span>
+                            <strong className="text-xs font-bold text-amber-950 block mt-1">
+                                {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • {new Date().toLocaleDateString('vi-VN')}
+                            </strong>
                         </div>
                     </div>
 
@@ -269,14 +260,14 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                         <table className="w-full text-left text-xs border-collapse">
                             <thead className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase tracking-wider sticky top-0 border-b border-slate-200 z-10">
                                 <tr>
-                                    <th className="py-2.5 px-3 text-center w-10">STT</th>
-                                    <th className="py-2.5 px-3">Phòng</th>
-                                    <th className="py-2.5 px-3">Mã Đơn</th>
-                                    <th className="py-2.5 px-3">Họ và tên</th>
-                                    <th className="py-2.5 px-3">Giấy tờ & Số định danh</th>
-                                    <th className="py-2.5 px-3">Ngày sinh / Giới tính</th>
-                                    <th className="py-2.5 px-3">Quốc tịch</th>
-                                    <th className="py-2.5 px-3">Thời gian lưu trú</th>
+                                    <th className="py-2.5 px-3 text-center w-10 whitespace-nowrap">STT</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Phòng</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Mã Đơn</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap min-w-[170px]">Họ và tên</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap min-w-[150px]">Giấy tờ & Số định danh</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Ngày sinh / Giới tính</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap text-center">Quốc tịch</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Thời gian lưu trú</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -287,57 +278,57 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                                             g.is_primary ? 'bg-blue-50/20' : ''
                                         }`}
                                     >
-                                        <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">
+                                        <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px] whitespace-nowrap">
                                             {idx + 1}
                                         </td>
-                                        <td className="py-3 px-3">
+                                        <td className="py-3 px-3 whitespace-nowrap">
                                             <span className="px-2 py-1 bg-emerald-100 text-emerald-900 font-black text-xs rounded-lg border border-emerald-300 inline-block font-mono">
                                                 {g.room_number || 'Chưa gán'}
                                             </span>
-                                            <span className="text-[10px] text-slate-500 block mt-0.5 truncate max-w-[120px]">
+                                            <span className="text-[10px] text-slate-500 block mt-0.5 truncate max-w-[130px]">
                                                 {g.room_name}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-3">
-                                            <span className="font-mono text-xs font-bold text-slate-700">
+                                        <td className="py-3 px-3 whitespace-nowrap">
+                                            <span className="font-mono text-xs font-bold text-slate-700 whitespace-nowrap">
                                                 #{g.booking_code}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-3">
-                                            <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                                        <td className="py-3 px-3 min-w-[170px]">
+                                            <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5 whitespace-nowrap">
                                                 <span>{g.full_name}</span>
                                                 {g.is_primary && (
-                                                    <span className="px-1.5 py-0.2 bg-blue-100 text-blue-700 text-[9px] font-bold rounded">
+                                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold rounded whitespace-nowrap shrink-0">
                                                         Đại diện
                                                     </span>
                                                 )}
                                             </div>
                                             {g.guest_phone && (
-                                                <span className="text-[10px] text-slate-400 block mt-0.5">
+                                                <span className="text-[10px] text-slate-400 block mt-0.5 whitespace-nowrap">
                                                     📞 {g.guest_phone}
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="py-3 px-3">
+                                        <td className="py-3 px-3 min-w-[150px] whitespace-nowrap">
                                             <span className="text-[10px] font-bold text-slate-500 block uppercase">
                                                 {g.id_type_display || g.id_type || 'CCCD'}
                                             </span>
-                                            <strong className="font-mono text-xs font-bold text-slate-900">
+                                            <strong className="font-mono text-xs font-bold text-slate-900 whitespace-nowrap">
                                                 {g.id_number || <span className="text-slate-400 italic font-normal">Chưa có</span>}
                                             </strong>
                                         </td>
-                                        <td className="py-3 px-3">
+                                        <td className="py-3 px-3 whitespace-nowrap">
                                             <div>{g.date_of_birth || <span className="text-slate-400">—</span>}</div>
                                             <span className="text-[10px] text-slate-500 block">
                                                 {g.gender || '—'}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-3">
-                                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold border border-slate-200">
+                                        <td className="py-3 px-3 whitespace-nowrap text-center">
+                                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold border border-slate-200 whitespace-nowrap shrink-0 inline-block">
                                                 {g.nationality || 'Việt Nam'}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-3 text-[11px]">
+                                        <td className="py-3 px-3 text-[11px] whitespace-nowrap">
                                             <div className="text-emerald-700 font-semibold">
                                                 Vào: {g.actual_check_in || g.check_in_date || '—'}
                                             </div>

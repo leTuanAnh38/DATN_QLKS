@@ -866,7 +866,7 @@ export default function Checkout() {
                                     </div>
 
                                     {isAuthenticated ? (
-                                        <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100 flex items-center gap-1">
+                                        <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 flex items-center gap-1">
                                             ✓ Đã điền từ tài khoản
                                         </span>
                                     ) : (
@@ -936,11 +936,11 @@ export default function Checkout() {
                                                 </label>
                                                 <input
                                                     type="text"
-                                                    placeholder="Ví dụ: CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ TRUYỀN THÔNG TA"
+                                                    placeholder="Ví dụ: Công ty Cổ phần Công nghệ và Truyền thông TA"
                                                     value={companyName}
                                                     onChange={(e) => setCompanyName(e.target.value)}
                                                     required
-                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                                 />
                                             </div>
 
@@ -967,7 +967,7 @@ export default function Checkout() {
                                                             }
                                                         }}
                                                         required
-                                                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-xs sm:text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 transition ${
+                                                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 transition ${
                                                             taxCodeError ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200 focus:border-blue-600'
                                                         }`}
                                                     />
@@ -988,7 +988,7 @@ export default function Checkout() {
                                                         value={companyAddress}
                                                         onChange={(e) => setCompanyAddress(e.target.value)}
                                                         required
-                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                                     />
                                                 </div>
                                             </div>
@@ -1019,77 +1019,43 @@ export default function Checkout() {
                                             value={guestName}
                                             onChange={(e) => setGuestName(e.target.value)}
                                             required
-                                            className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                            className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                         />
                                     </div>
 
-                                    {/* Số CCCD / Hộ chiếu (Tự động lấy từ hồ sơ nếu có, nếu chưa thì để trống) */}
+                                    {/* Số CCCD / Hộ chiếu */}
                                     <div>
-                                        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
-                                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                                Số CCCD / Hộ chiếu (Passport) <span className="text-rose-500">*</span>
-                                            </label>
-
-                                            {/* Trạng thái dữ liệu từ hồ sơ */}
-                                            {hasProfileIdCard && isUsingProfileIdCard ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    Đã lấy từ hồ sơ của bạn
-                                                </span>
-                                            ) : isAuthenticated && !hasProfileIdCard ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                                                    <span>ℹ️</span> Chưa có trong hồ sơ (Vui lòng nhập)
-                                                </span>
-                                            ) : (
-                                                <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                                                    Yêu cầu 9 - 12 ký tự
-                                                </span>
-                                            )}
-                                        </div>
+                                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                            Số CCCD / Hộ chiếu (Passport) <span className="text-rose-500">*</span>
+                                        </label>
 
                                         <div className="relative">
                                             <input
                                                 type="text"
                                                 maxLength={15}
-                                                placeholder={
-                                                    hasProfileIdCard
-                                                        ? "Số CCCD/Hộ chiếu từ hồ sơ"
-                                                        : "Chưa có trong hồ sơ - Nhập 12 số CCCD hoặc số Hộ chiếu (VD: 048099012345)"
-                                                }
+                                                placeholder="Nhập số CCCD (12 số) hoặc số Hộ chiếu"
                                                 value={identityCard}
                                                 onChange={(e) => {
                                                     setIdentityCard(e.target.value.toUpperCase());
                                                     if (bookingError) setBookingError('');
                                                 }}
                                                 required
-                                                className={`w-full pl-11 ${hasProfileIdCard && isUsingProfileIdCard ? 'pr-24' : 'pr-4'} py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border rounded-2xl text-xs sm:text-sm font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition ${hasProfileIdCard && isUsingProfileIdCard ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-200'
-                                                    }`}
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-mono font-medium text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                             />
                                             <span className="absolute left-3.5 top-3 text-slate-400 text-base">
                                                 🪪
                                             </span>
-                                            {hasProfileIdCard && isUsingProfileIdCard && (
-                                                <span className="absolute right-3 top-2.5 px-2 py-1 bg-emerald-100/80 text-emerald-800 text-[10px] font-bold rounded-lg uppercase tracking-wider flex items-center gap-1">
-                                                    ✓ Hồ sơ
-                                                </span>
-                                            )}
                                         </div>
 
-                                        {/* Ghi chú hướng dẫn thông minh */}
-                                        <div className="mt-1 text-[11px]">
-                                            {hasProfileIdCard && isUsingProfileIdCard ? (
-                                                <p className="text-emerald-700 flex items-center gap-1 font-medium">
-                                                    <span>✓</span> Hệ thống đã tự động điền số CCCD/Hộ chiếu từ hồ sơ của bạn. Bạn vẫn có thể sửa nếu đặt phòng cho người khác.
-                                                </p>
-                                            ) : isAuthenticated && !hasProfileIdCard ? (
-                                                <p className="text-amber-700 flex items-center gap-1">
-                                                    <span>💡</span> Hồ sơ của bạn chưa lưu CCCD. Số CCCD bạn nhập tại đây sẽ được tự động lưu vào hồ sơ cá nhân cho các lần sau.
+                                        {/* Ghi chú hướng dẫn */}
+                                        <div className="mt-1.5 text-[11px]">
+                                            {isAuthenticated && !hasProfileIdCard ? (
+                                                <p className="text-amber-600 flex items-center gap-1 font-medium">
+                                                    <span>💡</span> Số CCCD bạn nhập sẽ được tự động lưu vào hồ sơ cá nhân cho các lần sau.
                                                 </p>
                                             ) : (
                                                 <p className="text-slate-400">
-                                                    Thông tin bắt buộc theo Luật Cư trú & Du lịch để khách sạn đăng ký tạm trú hợp pháp với cơ quan chức năng.
+                                                    Thông tin bắt buộc để làm thủ tục nhận phòng. Bạn có thể chỉnh sửa nếu đặt hộ người khác.
                                                 </p>
                                             )}
                                         </div>
@@ -1107,7 +1073,7 @@ export default function Checkout() {
                                                 value={guestPhone}
                                                 onChange={(e) => setGuestPhone(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                             />
                                         </div>
 
@@ -1122,7 +1088,7 @@ export default function Checkout() {
                                                 value={guestEmail}
                                                 onChange={(e) => setGuestEmail(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                             />
                                         </div>
                                     </div>
@@ -1580,7 +1546,7 @@ export default function Checkout() {
                                                         setPromoInput(e.target.value.toUpperCase());
                                                         setPromoError('');
                                                     }}
-                                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal placeholder:capitalize focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                                 />
                                             </div>
                                             <button
@@ -1665,7 +1631,7 @@ export default function Checkout() {
                                     placeholder="Ví dụ: Cần phòng tầng cao, view thoáng, hỗ trợ nhận phòng sớm lúc 13:00, chuẩn bị bánh kỉ niệm..."
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
+                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition"
                                 />
 
                                 {/* Chips chọn nhanh */}

@@ -32,6 +32,52 @@ const STATUS_META = {
 const STATUS_ORDER = ['pending', 'in_progress', 'delivering', 'completed', 'cancelled'];
 const LIST_PAGE_SIZE = 10;
 
+// Helper kiểm tra dịch vụ buồng phòng / tiện ích setup phòng trước khi khách tới
+const isRoomPrepService = (serviceName = '', categoryName = '') => {
+    const sText = (serviceName || '').trim().toLowerCase();
+    // Chỉ loại trừ nếu TÊN DỊCH VỤ là giặt ủi (vì danh mục cha là "Tiện ích & Giặt ủi")
+    if (['giặt', 'ủi', 'laundry', 'giặt sấy', 'giặt hấp'].some((k) => sText.includes(k))) return false;
+
+    const prepKeywords = [
+        'gối', 'khăn', 'tắm', 'buồng phòng', 'tiện ích', 'bàn chải', 'kem đánh răng',
+        'dép', 'dọn phòng', 'housekeeping', 'amenities', 'chăn', 'nệm', 'topper',
+        'giường phụ', 'nôi', 'trang trí', 'hoa tươi', 'rượu vang', 'setup'
+    ];
+    const fullText = `${categoryName || ''} ${serviceName || ''}`.trim().toLowerCase();
+    return prepKeywords.some((k) => fullText.includes(k));
+};
+
+// Helper kiểm tra dịch vụ vận chuyển (xe đưa đón sân bay / ga tàu)
+const isTransportService = (serviceName = '', categoryName = '') => {
+    const text = `${categoryName || ''} ${serviceName || ''}`.trim().toLowerCase();
+    return ['sân bay', 'xe', 'đưa đón', 'transfer', 'airport', 'taxi', 'shuttle', 'đón tiễn'].some((k) => text.includes(k));
+};
+
+// Kiểm tra khóa thực hiện dịch vụ:
+// - null: Được phép làm
+// - 'NO_ROOM': Chưa gán phòng
+// - 'WAIT_CHECKIN': Đã gán phòng nhưng chưa Check-in (cho dịch vụ ăn uống, spa, giặt ủi)
+const getServiceLockReason = (item) => {
+    if (!item) return null;
+    if (isTransportService(item.service_name, item.category_name)) return null;
+
+    const hasRoom = item.room_number && item.room_number !== 'Chưa gán phòng' && item.room_number !== 'Chờ xếp';
+    if (!hasRoom) return 'NO_ROOM';
+
+    const isCheckedIn = item.booking_status ? item.booking_status === 'checked_in' : false;
+    if (isCheckedIn) return null;
+
+    // Đã gán phòng nhưng chưa check-in: Cho phép các dịch vụ tiện nghi buồng phòng / setup phòng
+    if (isRoomPrepService(item.service_name, item.category_name)) {
+        return null;
+    }
+
+    // Các dịch vụ ăn uống nóng, spa, giặt ủi: Yêu cầu khách check-in
+    return 'WAIT_CHECKIN';
+};
+
+const checkRequiresCheckIn = (item) => Boolean(getServiceLockReason(item));
+
 export default function ServiceRequestKanban() {
     // 1. Data States
     const [kanbanData, setKanbanData] = useState({
@@ -134,6 +180,17 @@ export default function ServiceRequestKanban() {
         // 🔒 CHẶN THAY ĐỔI TRẠNG THÁI NẾU ĐƠN ĐÃ HOÀN THÀNH (ĐÃ TÍNH VÀO HÓA ĐƠN)
         if (currentItem.status === 'completed' || sourceColumn === 'completed') {
             showToast('warning', 'Yêu cầu dịch vụ này đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái.');
+            return;
+        }
+
+        // 🔒 CHẶN BẮT ĐẦU / THỰC HIỆN DỊCH VỤ NẾU CHƯA ĐỦ ĐIỀU KIỆN
+        const lockReason = getServiceLockReason(currentItem);
+        if (['in_progress', 'delivering', 'completed'].includes(newStatus) && lockReason) {
+            if (lockReason === 'NO_ROOM') {
+                showToast('warning', `Đơn phòng #${currentItem.booking_code} chưa được gán phòng cụ thể. Vui lòng liên hệ Lễ tân gán phòng trước khi thực hiện dịch vụ!`);
+            } else {
+                showToast('warning', `Đơn phòng #${currentItem.booking_code} chưa làm thủ tục nhận phòng. Dịch vụ ẩm thực / spa / giặt ủi yêu cầu khách có mặt tại phòng để phục vụ!`);
+            }
             return;
         }
 
@@ -569,6 +626,7 @@ export default function ServiceRequestKanban() {
                                     const meta = STATUS_META[item.status];
                                     const isUpdatingThis = isUpdatingId === item.id;
                                     const totalAmt = Number(item.total_price) || 0;
+                                    const needsCheckIn = checkRequiresCheckIn(item);
 
                                     return (
                                         <tr
@@ -581,6 +639,25 @@ export default function ServiceRequestKanban() {
                                                     🚪 {item.room_number || 'Chờ xếp'}
                                                 </span>
                                                 <span className="text-[10px] text-slate-400 block mt-1 font-mono">#{item.booking_code}</span>
+                                                {item.status === 'pending' && (
+                                                    <>
+                                                        {getServiceLockReason(item) === 'NO_ROOM' && (
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold mt-1" title="Chưa gán số phòng cụ thể">
+                                                                ⚠️ Chưa gán phòng
+                                                            </span>
+                                                        )}
+                                                        {getServiceLockReason(item) === 'WAIT_CHECKIN' && (
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold mt-1" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
+                                                                ⚠️ Chờ Check-in
+                                                            </span>
+                                                        )}
+                                                        {!getServiceLockReason(item) && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold mt-1" title="Đã có số phòng! Nhân viên buồng phòng có thể chuẩn bị gối khăn / tiện nghi vào phòng trước khi khách tới">
+                                                                🛏️ Setup phòng
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
                                             </td>
 
                                             {/* Khách hàng */}
@@ -697,10 +774,22 @@ export default function ServiceRequestKanban() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'in_progress')}
-                                                                disabled={isUpdatingThis}
-                                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer"
+                                                                disabled={isUpdatingThis || needsCheckIn}
+                                                                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition shadow-xs flex items-center gap-1 ${
+                                                                    needsCheckIn
+                                                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                                                                        : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                                                                }`}
+                                                                title={
+                                                                    getServiceLockReason(item) === 'NO_ROOM'
+                                                                        ? "Chưa gán số phòng cụ thể. Cần liên hệ Lễ tân gán phòng trước khi thực hiện."
+                                                                        : (getServiceLockReason(item) === 'WAIT_CHECKIN'
+                                                                            ? "Khách chưa làm thủ tục Check-in nhận phòng. Dịch vụ ăn uống / spa yêu cầu khách có mặt tại phòng để phục vụ."
+                                                                            : "Bắt đầu chuẩn bị")
+                                                                }
                                                             >
-                                                                Bắt đầu ➔
+                                                                {needsCheckIn && <span>🔒</span>}
+                                                                <span>Bắt đầu ➔</span>
                                                             </button>
                                                         </>
                                                     )}
@@ -878,6 +967,7 @@ export default function ServiceRequestKanban() {
                                         const isUpdatingThis = isUpdatingId === item.id;
                                         const totalAmt = Number(item.total_price) || 0;
                                         const isCompleted = item.status === 'completed' || col.key === 'completed';
+                                        const needsCheckIn = checkRequiresCheckIn(item);
 
                                         return (
                                             <div
@@ -912,6 +1002,25 @@ export default function ServiceRequestKanban() {
                                                             <span className="text-[10px] text-slate-400 block mt-1 font-medium">
                                                                 #{item.booking_code} • {item.guest_name}
                                                             </span>
+                                                            {item.status === 'pending' && (
+                                                                <>
+                                                                    {getServiceLockReason(item) === 'NO_ROOM' && (
+                                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold mt-1" title="Chưa gán số phòng cụ thể">
+                                                                            ⚠️ Chưa gán phòng
+                                                                        </span>
+                                                                    )}
+                                                                    {getServiceLockReason(item) === 'WAIT_CHECKIN' && (
+                                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold mt-1" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
+                                                                            ⚠️ Chờ Check-in
+                                                                        </span>
+                                                                    )}
+                                                                    {!getServiceLockReason(item) && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
+                                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold mt-1" title="Đã có số phòng! Nhân viên buồng phòng có thể chuẩn bị gối khăn / tiện nghi vào phòng trước khi khách tới">
+                                                                            🛏️ Setup phòng
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            )}
                                                         </div>
 
                                                         {/* Badge nhóm dịch vụ & Trạng thái thanh toán */}
@@ -977,6 +1086,14 @@ export default function ServiceRequestKanban() {
                                                             </span>
                                                         </div>
                                                     )}
+
+                                                    {/* Cảnh báo dịch vụ yêu cầu nhận phòng trước khi thực hiện */}
+                                                    {needsCheckIn && item.status === 'pending' && (
+                                                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50/90 text-amber-900 border border-amber-200 text-[10px] font-bold my-2 shadow-2xs">
+                                                            <span>⚠️</span>
+                                                            <span>Khách chưa nhận phòng (Chờ Check-in)</span>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Card Footer: Thời gian & Nút bấm chuyển trạng thái */}
@@ -1001,9 +1118,21 @@ export default function ServiceRequestKanban() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'in_progress')}
-                                                                    title="Bắt đầu chuẩn bị"
-                                                                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                                                                    disabled={needsCheckIn}
+                                                                    title={
+                                                                        getServiceLockReason(item) === 'NO_ROOM'
+                                                                            ? "Chưa gán số phòng cụ thể. Cần liên hệ Lễ tân gán phòng trước khi thực hiện."
+                                                                            : (getServiceLockReason(item) === 'WAIT_CHECKIN'
+                                                                                ? "Khách chưa làm thủ tục Check-in nhận phòng. Dịch vụ ăn uống / spa yêu cầu khách có mặt tại phòng để phục vụ."
+                                                                                : "Bắt đầu chuẩn bị")
+                                                                    }
+                                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition shadow-xs flex items-center gap-1 ${
+                                                                        needsCheckIn
+                                                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                                                                            : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                                                                    }`}
                                                                 >
+                                                                    {needsCheckIn && <span>🔒</span>}
                                                                     <span>Bắt đầu</span>
                                                                     <span>➔</span>
                                                                 </button>

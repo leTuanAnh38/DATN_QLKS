@@ -197,112 +197,134 @@ export default function PromotionsPage() {
     };
 
     // 7. CÁC GÓI NGHỈ DƯỠNG NỔI BẬT (FEATURED PACKAGES)
+    // 7. CÁC GÓI NGHỈ DƯỠNG NỔI BẬT (FEATURED PACKAGES - ĐỒNG BỘ THEO HẠNG PHÒNG & DỊCH VỤ THỰC TẾ)
     const featuredPackages = [
         {
             id: 'pkg-1',
-            badge: 'Trọn gói Nghỉ dưỡng & Suite',
-            highlightBadge: 'Tiết kiệm 35%',
-            title: 'Kỳ Nghỉ Hoàng Gia - Long Stay Special',
-            description: 'Giảm 35% cho kỳ nghỉ từ 3 đêm trở lên tại các hạng Suite hướng biển Mỹ Khê, đưa đón Mercedes riêng & tặng thẻ ẩm thực 1.000.000đ.',
+            badge: 'Suite Hướng Biển & Tiện Ích',
+            highlightBadge: 'Mã Giảm 10%',
+            title: 'Kỳ Nghỉ Hoàng Gia Đà Nẵng - Royal Oceanfront',
+            description: 'Trải nghiệm đỉnh cao tại hạng Royal Grand Ocean Suite view biển Mỹ Khê, xe Limousine đưa đón sân bay & tặng Set Trà Chiều Hoàng Gia.',
             perks: [
-                'Đưa đón sân bay 2 chiều xe Limousine cao cấp',
-                'Buffet sáng phong vị Michelin Selected hàng ngày',
-                'Trà chiều Sunset High Tea tầng 25 miễn phí',
-                'Tặng 60 phút massage thảo dược tại The Lotus Spa'
+                'Đưa đón sân bay 2 chiều bằng xe Limousine cao cấp',
+                'Set Trà Chiều Hoàng Gia Royal High Tea ngắm hoàng hôn',
+                'Trị liệu cổ vai gáy thảo dược hoặc massage đá nóng núi lửa',
+                'Hỗ trợ check-in nhận phòng sớm & ưu tiên chọn tầng cao'
             ],
-            originalPrice: '6.500.000đ',
-            price: '4.225.000đ',
+            originalPrice: '3.800.000đ',
+            price: '3.420.000đ',
             unit: '/ đêm',
-            code: 'LONGSTAY35',
+            code: 'SUMMER2026',
             image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80'
         },
         {
             id: 'pkg-2',
             badge: 'Kỷ Niệm & Trăng Mật',
-            highlightBadge: 'Tặng Bữa Tối Nến',
-            title: 'Trăng Mật Thiên Đường - Honeymoon Serenade',
-            description: 'Set trang trí bồn sục hoa hồng view biển, rượu vang Pháp Moët & Chandon ướp lạnh và bữa tối lãng mạn 5 món tại bãi biển riêng.',
+            highlightBadge: 'Tặng Vang Đỏ & Setup',
+            title: 'Trăng Mật Lãng Mạn - Oceanfront Honeymoon',
+            description: 'Setup phòng tân hôn hoa hồng, bồn sục Jacuzzi ngắm bình minh biển Mỹ Khê, tặng vang đỏ Bordeaux Grand Cru và bữa tối Bò Wagyu Úc sốt tiêu.',
             perks: [
-                'Trang trí phòng tân hôn hoa tươi & bánh kem nghệ thuật',
-                '1 Chai Champagne Moët & Chandon Imperial ướp lạnh',
-                'Bữa tối nến 5 món phong vị Âu bên bờ biển riêng',
-                'Nâng hạng phòng miễn phí lên Ocean Panorama Suite'
+                'Trang trí bồn tắm hoa tươi lãng mạn & bánh kem nghệ thuật',
+                'Tặng 01 chai Vang Đỏ Bordeaux Grand Cru thượng hạng',
+                'Thưởng thức Bò Wagyu Úc nướng than hoa sốt tiêu rừng',
+                'Nâng hạng phòng miễn phí lên Premier Oceanfront Suite (nếu có)'
             ],
-            originalPrice: '11.200.000đ',
-            price: '7.850.000đ',
-            unit: '/ gói 3N2Đ',
-            code: 'HONEYMOON',
+            originalPrice: '3.200.000đ',
+            price: '2.880.000đ',
+            unit: '/ đêm',
+            code: 'WELCOME10',
             image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80'
         },
         {
             id: 'pkg-3',
-            badge: 'Ẩm thực & Sky Bar',
-            highlightBadge: 'Buffet Tôm Hùm',
-            title: 'Weekend Gourmet & Sky Bar Escape',
-            description: 'Thưởng thức đại tiệc Buffet Hải sản Tôm hùm Nha Trang không giới hạn tại nhà hàng Ocean Breeze và chill trọn vẹn tại Sky Bar 28.',
+            badge: 'Ẩm Thực & Tri Ân',
+            highlightBadge: 'Thượng Vị Hải Sản',
+            title: 'Kỳ Nghỉ Ẩm Thực Biển - Luxury Gourmet Escape',
+            description: 'Tận hưởng kỳ nghỉ biển tiện nghi tại Deluxe King City View cùng đại tiệc Cua Hoàng Đế Alaska, Súp tôm hùm Nha Trang và Cocktail hoàng hôn.',
             perks: [
-                'Buffet Tôm hùm và hàu Pháp chế biến nóng tại bàn',
-                'Miễn phí 02 Signature Cocktail tại Sky Bar tầng 28',
-                'Check-in nhận phòng sớm từ 11:00 trưa không phụ phí',
-                'Bể bơi vô cực nước ấm chân mây view biển Mỹ Khê'
+                'Thưởng thức Súp Tôm Hùm Nha Trang Saffron cao cấp',
+                'Tặng 02 ly Cocktail Đà Nẵng Sunset Signature tại hồ bơi',
+                'Miễn phí dịch vụ giặt hấp cao cấp & set gối lông vũ theo yêu cầu',
+                'Tích lũy 100k = 1 điểm nâng hạng thẻ thành viên TA Club tự động'
             ],
-            originalPrice: '2.400.000đ',
-            price: '1.680.000đ',
-            unit: '/ khách',
-            code: 'GOURMET28',
+            originalPrice: '1.800.000đ',
+            price: '1.620.000đ',
+            unit: '/ đêm',
+            code: 'TADANANG',
             image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'
         }
     ];
 
-    // 8. HẠNG THẺ HỘI VIÊN VIP
+    // 8. HẠNG THẺ HỘI VIÊN VIP (ĐỒNG BỘ 100% VỚI HỆ THỐNG LOYALTY DATABASE)
     const membershipTiers = [
         {
-            name: 'Hội Viên Bạc (Silver)',
+            name: 'Đồng (Bronze)',
+            code: 'BRONZE',
             level: 'Hạng Khởi Đầu',
-            color: 'from-slate-500 to-slate-700',
-            border: 'border-slate-200',
+            color: 'from-amber-800 to-amber-950',
+            border: 'border-amber-700/30',
             bg: 'bg-white',
-            discount: 'Giảm 5%',
-            points: 'Tích 1x Điểm',
+            discount: 'Giảm 0%',
+            points: '0 điểm',
+            pointsDesc: 'Đăng ký tài khoản nhận ngay',
             benefits: [
-                'Chiết khấu trực tiếp 5% mọi đơn đặt phòng',
-                'Ưu tiên check-in tại quầy Priority',
-                'Miễn phí đồ uống chào đón Welcome Drink',
-                'Tặng voucher sinh nhật trị giá 200.000đ'
+                'Tích 1 điểm cho mỗi 100.000 VNĐ thanh toán',
+                'Quản lý lịch sử đặt phòng & hóa đơn trực tuyến',
+                'Nhận thông báo ưu đãi độc quyền Flash Sale',
+                'Áp dụng voucher chào mừng thành viên mới'
             ]
         },
         {
-            name: 'Hội Viên Vàng (Gold)',
-            level: 'Được Yêu Thích Nhất',
+            name: 'Bạc (Silver)',
+            code: 'SILVER',
+            level: 'Thành Viên Thân Thiết',
+            color: 'from-slate-500 to-slate-700',
+            border: 'border-slate-300',
+            bg: 'bg-white',
+            discount: 'Giảm 5%',
+            points: 'Từ 100 điểm',
+            pointsDesc: 'Chi tiêu tích lũy từ 10.000.000đ',
+            benefits: [
+                'Tự động chiết khấu 5% tiền phòng mọi đơn đặt',
+                'Tích lũy điểm thăng hạng nhanh chóng',
+                'Ưu tiên check-in tại quầy riêng (Priority)',
+                'Tặng đồ uống chào đón Welcome Drink cao cấp'
+            ]
+        },
+        {
+            name: 'Vàng (Gold)',
+            code: 'GOLD',
+            level: 'Hạng Thượng Lưu',
             color: 'from-amber-500 to-yellow-600',
             border: 'border-amber-300 ring-2 ring-amber-300/30',
             bg: 'bg-white',
             discount: 'Giảm 10%',
-            points: 'Tích 1.5x Điểm',
-            badge: 'POPULAR',
+            points: 'Từ 300 điểm',
+            pointsDesc: 'Chi tiêu tích lũy từ 30.000.000đ',
+            badge: 'PHỔ BIẾN NHẤT',
             benefits: [
-                'Chiết khấu trực tiếp 10% giá phòng & ẩm thực',
-                'Miễn phí nâng hạng phòng (khi có phòng trống)',
-                'Check-out muộn tới 14:00 chiều',
-                'Đĩa trái cây nhiệt đới tươi mới mỗi ngày',
-                'Giảm 20% các dịch vụ tại The Lotus Spa'
+                'Tự động chiết khấu 10% tiền phòng mọi đơn đặt',
+                'Linh hoạt Check-in sớm & Check-out muộn (khi có phòng)',
+                'Tặng đĩa hoa quả nhiệt đới tươi mới tại phòng',
+                'Ưu tiên chọn phòng tầng cao view biển đẹp'
             ]
         },
         {
-            name: 'Kim Cương (Diamond VIP)',
-            level: 'Đẳng Cấp Thượng Lưu',
-            color: 'from-blue-600 to-indigo-700',
-            border: 'border-blue-300 ring-2 ring-blue-300/30',
+            name: 'Kim Cương (Diamond)',
+            code: 'DIAMOND',
+            level: 'Đẳng Cấp Tối Thượng',
+            color: 'from-slate-900 via-cyan-900 to-indigo-950',
+            border: 'border-cyan-400 ring-2 ring-cyan-400/30',
             bg: 'bg-white',
-            discount: 'Giảm 15% - 20%',
-            points: 'Tích 2x Điểm',
-            badge: 'EXCLUSIVE',
+            discount: 'Giảm 15%',
+            points: 'Từ 600 điểm',
+            pointsDesc: 'Chi tiêu tích lũy từ 60.000.000đ',
+            badge: 'VIP CAO CẤP NHẤT',
             benefits: [
-                'Chiết khấu tối đa 20% toàn bộ dịch vụ khách sạn',
-                'Đưa đón sân bay Limousine Mercedes miễn phí',
-                'Sử dụng không giới hạn Executive Lounge tầng 25',
-                'Linh hoạt Check-in sớm 10:00 & Check-out trễ 16:00',
-                'Quản gia riêng phục vụ 24/7 (Dedicated Butler)'
+                'Chiết khấu 15% trọn đời toàn bộ tiền phòng (Mức cao nhất)',
+                'Ưu tiên nâng hạng phòng Suite miễn phí (khi có phòng)',
+                'Miễn phí đưa đón sân bay bằng xe cao cấp',
+                'Quản gia & Lễ tân phục vụ ưu tiên riêng 24/7'
             ]
         }
     ];
@@ -709,7 +731,7 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 <section className="py-16 bg-slate-50 border-t border-slate-200/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center max-w-2xl mx-auto mb-12">
+                        <div className="text-center max-w-2xl mx-auto mb-8">
                             <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">
                                 <Crown className="w-4 h-4 text-amber-600" />
                                 <span>ĐẶC QUYỀN HỘI VIÊN TA CLUB</span>
@@ -717,40 +739,67 @@ export default function PromotionsPage() {
                             <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
                                 Tích Điểm Tối Đa & Nâng Hạng Thẻ
                             </h2>
-                            <p className="text-xs sm:text-sm text-slate-500 mt-2">
-                                Đăng ký hoàn toàn miễn phí để nhận ngay chiết khấu phòng và quyền lợi VIP suốt kỳ nghỉ
+                            <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                                Đăng ký tài khoản miễn phí để tự động tích điểm sau mỗi kỳ nghỉ. Càng tích lũy nhiều điểm, hạng thẻ càng cao và chiết khấu phòng càng lớn!
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {/* Thanh giải thích quy tắc tích điểm 100k = 1 pt */}
+                        <div className="max-w-3xl mx-auto mb-10 p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50 border border-amber-200/90 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-2xs">
+                            <div className="flex items-center gap-3 text-amber-950">
+                                <span className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-base shrink-0 shadow-sm">
+                                    ★
+                                </span>
+                                <div>
+                                    <strong className="block font-bold text-slate-900">Cơ chế tích điểm tự động của hệ thống</strong>
+                                    <span className="text-slate-600 text-[11px]">
+                                        Cứ mỗi <strong>100.000 VNĐ</strong> thanh toán hóa đơn thành công khi check-out = <strong>1 điểm</strong> tích lũy vào tài khoản.
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200">
+                                    Tự động thăng hạng
+                                </span>
+                                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                                    Giảm tới 15% trọn đời
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* 4 Hạng thẻ hội viên chuẩn hóa theo Database */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {membershipTiers.map((tier, idx) => (
                                 <div
                                     key={idx}
-                                    className={`rounded-3xl border ${tier.border} ${tier.bg} p-6 sm:p-8 flex flex-col justify-between shadow-md relative overflow-hidden group hover:-translate-y-1 transition-all`}
+                                    className={`rounded-3xl border ${tier.border} ${tier.bg} p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:-translate-y-1.5 transition-all duration-300`}
                                 >
                                     {tier.badge && (
-                                        <span className="absolute top-4 right-4 bg-amber-400 text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                                        <span className="absolute top-4 right-4 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
                                             {tier.badge}
                                         </span>
                                     )}
 
                                     <div>
-                                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-r ${tier.color} flex items-center justify-center text-white mb-4 shadow-md`}>
-                                            <Crown className="w-6 h-6" />
+                                        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-r ${tier.color} flex items-center justify-center text-white mb-4 shadow-md`}>
+                                            <Crown className="w-5 h-5" />
                                         </div>
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">{tier.level}</span>
-                                        <h3 className="text-xl font-serif font-bold text-slate-900 mt-1 mb-2">{tier.name}</h3>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{tier.level}</span>
+                                        <h3 className="text-lg font-serif font-bold text-slate-900 mt-0.5 mb-2">{tier.name}</h3>
 
-                                        <div className="flex items-baseline gap-2 mb-6">
-                                            <span className="text-3xl font-extrabold text-amber-600">{tier.discount}</span>
-                                            <span className="text-xs text-slate-500">• {tier.points}</span>
+                                        <div className="mb-4 pb-3 border-b border-slate-100">
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-black text-amber-600">{tier.discount}</span>
+                                                <span className="text-xs font-bold text-slate-700">• {tier.points}</span>
+                                            </div>
+                                            <span className="text-[11px] text-slate-400 block mt-0.5">{tier.pointsDesc}</span>
                                         </div>
 
-                                        <ul className="space-y-2.5 text-xs text-slate-600 border-t border-slate-100 pt-4 mb-6">
+                                        <ul className="space-y-2 text-xs text-slate-600 mb-6">
                                             {tier.benefits.map((b, i) => (
                                                 <li key={i} className="flex items-start gap-2">
-                                                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                                    <span>{b}</span>
+                                                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                                    <span className="text-[11px] leading-snug">{b}</span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -758,9 +807,9 @@ export default function PromotionsPage() {
 
                                     <Link
                                         to="/login"
-                                        className="w-full py-3 rounded-xl border border-slate-200 hover:border-blue-600 text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 bg-white text-xs font-bold text-center transition block shadow-xs"
+                                        className="w-full py-2.5 rounded-xl border border-slate-200 hover:border-blue-600 text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 bg-white text-xs font-bold text-center transition block shadow-xs"
                                     >
-                                        Đăng Ký Thành Viên Ngay
+                                        Đăng Ký / Xem Thẻ
                                     </Link>
                                 </div>
                             ))}

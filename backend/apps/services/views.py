@@ -642,6 +642,39 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                     'message': 'Yêu cầu dịch vụ này đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # 🔒 Kiểm tra điều kiện bắt đầu / thực hiện dịch vụ phòng
+            if new_status in ['in_progress', 'delivering', 'completed']:
+                booking = service_req.booking
+                if booking:
+                    category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
+                    service_name = service_req.service.name if service_req.service else ""
+                    from ..notifications.signals import get_service_category_type
+                    cat_type = get_service_category_type(service_name, category_name)
+
+                    # Dịch vụ vận chuyển (xe đón tiễn sân bay) luôn được phép thực hiện trước
+                    if cat_type != 'transport':
+                        has_room = bool(booking.room and booking.room.room_number)
+                        is_checked_in = (booking.status == 'checked_in')
+
+                        # 1. Chưa gán phòng: Không thể thực hiện vì chưa biết mang vào phòng nào
+                        if not has_room:
+                            return Response({
+                                'success': False,
+                                'code': 'ROOM_ASSIGNMENT_REQUIRED',
+                                'message': f'Đơn #{booking.booking_code} chưa được gán phòng cụ thể. Vui lòng liên hệ Lễ tân gán số phòng trước khi thực hiện dịch vụ "{service_name}".'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+
+                        # 2. Đã gán phòng nhưng khách chưa Check-in:
+                        # - Cho phép: Dịch vụ buồng phòng / tiện nghi phòng (Set gối, khăn, nệm, giường phụ, setup phòng...)
+                        # - Chặn: Dịch vụ ẩm thực (F&B), spa trị liệu, giặt ủi cần khách có mặt tại phòng
+                        if not is_checked_in and cat_type in ['fnb', 'spa', 'laundry']:
+                            service_group_label = "ẩm thực & đồ uống" if cat_type == 'fnb' else ("spa trị liệu" if cat_type == 'spa' else "giặt ủi")
+                            return Response({
+                                'success': False,
+                                'code': 'CHECKIN_REQUIRED',
+                                'message': f'Khách hàng đơn #{booking.booking_code} chưa hoàn tất thủ tục nhận phòng (Check-in). Dịch vụ {service_group_label} "{service_name}" yêu cầu khách có mặt tại phòng để phục vụ trực tiếp. Vui lòng đợi khách nhận phòng!'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+
             old_status = service_req.status
             service_req.status = new_status
             update_fields.append('status')
