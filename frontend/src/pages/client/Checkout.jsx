@@ -572,6 +572,7 @@ export default function Checkout() {
             promo_code: appliedPromo ? appliedPromo.code : '',
             discount_amount: appliedPromo ? discountAmount : 0,
             selected_services: servicesPayload,
+            payment_method: paymentMethod,
             note: `${note ? note + ' | ' : ''}Khách: ${totalGuestsCount || guestCount} người. CCCD: ${cleanIdCard}.${customerType === 'CORPORATE' ? ` [Công ty: ${companyName.trim()} - MST: ${companyTaxCode.trim()}]` : ''} Thanh toán: ${paymentMethod}`
         };
 

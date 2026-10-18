@@ -8,3 +8,4 @@ pillow==12.3.0
 PyJWT==2.15.0
 sqlparse==0.6.0
 tzdata==2026.4
+python-dotenv==1.2.4

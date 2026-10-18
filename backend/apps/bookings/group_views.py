@@ -17,6 +17,7 @@ from ..users.models import User, GuestProfile, log_action
 from ..users.views import check_role_permission
 from ..payments.models import Invoice, Payment
 from .serializers import GroupBookingSerializer, CorporatePartnerSerializer, BookingSerializer
+from .email_service import send_group_booking_email_async
 from core_project.pagination import StandardResultsSetPagination
 
 
@@ -576,6 +577,30 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             request=request
         )
 
+        # Tự động gửi email xác nhận đặt đoàn:
+        # - Nếu đã thanh toán cọc: gửi email xác nhận ĐÃ THANH TOÁN TIỀN CỌC THÀNH CÔNG
+        # - Nếu chưa cọc và KHÔNG phải luồng thanh toán VietQR online trên web (khách đặt tại quầy/chuyển khoản sau):
+        #   gửi email tiếp nhận đơn đoàn kèm mã VietQR cọc.
+        # - Nếu khách đặt trên Web và chọn VietQR online: tuân theo Phương án 1 (chờ quét VietQR xong SePay Webhook tự động gửi).
+        try:
+            is_vietqr_online = (
+                not is_deposit_paid and
+                deposit_payment_method == 'TRANSFER' and
+                (not request.user.is_authenticated or getattr(request.user, 'role', '') in ['', 'guest'])
+            )
+            if is_deposit_paid:
+                send_group_booking_email_async(
+                    group_booking=group_booking,
+                    email_type='payment_success'
+                )
+            elif not is_vietqr_online:
+                send_group_booking_email_async(
+                    group_booking=group_booking,
+                    email_type='group_confirmation'
+                )
+        except Exception:
+            pass
+
         serializer = GroupBookingSerializer(group_booking, context={'request': request})
         return Response({
             'success': True,
@@ -885,10 +910,56 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             ServiceRequest.objects.filter(booking_id__in=sub_booking_ids).update(is_paid=True)
             BookingExtraService.objects.filter(booking_id__in=sub_booking_ids).update(is_paid=True)
 
+        # Gửi email HTML 5 sao xác nhận nhận tiền cọc đoàn thành công
+        try:
+            send_group_booking_email_async(
+                group_booking=group,
+                email_type='payment_success'
+            )
+        except Exception:
+            pass
+
         return Response({
             'success': True,
             'message': f'Xác nhận tiền cọc thành công cho đoàn #{group.group_code}!',
             'group_booking': GroupBookingSerializer(group, context={'request': request}).data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='resend-email')
+    def resend_email(self, request, pk=None):
+        """
+        API POST /api/group-bookings/<id>/resend-email/
+        Cho phép Lễ tân / Quản trị viên gửi lại Email xác nhận đoàn thủ công về email Trưởng đoàn / Công ty.
+        """
+        group = self.get_object()
+        user = request.user
+
+        if not (user.is_superuser or check_role_permission(user, 'bookings', 'view')):
+            return Response({'success': False, 'message': 'Bạn không có quyền thực hiện gửi lại email đoàn.'}, status=status.HTTP_403_FORBIDDEN)
+
+        custom_email = (request.data.get('email') or '').strip()
+        recipient_target = custom_email or group.leader_email
+        if hasattr(group, 'master_invoice') and group.master_invoice and group.master_invoice.invoice_recipient_email:
+            recipient_target = custom_email or group.master_invoice.invoice_recipient_email
+
+        if not recipient_target:
+            return Response({
+                'success': False,
+                'message': 'Đơn đoàn này chưa có địa chỉ email người nhận. Vui lòng cung cấp email trong request.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        email_type = 'payment_success' if group.is_deposit_paid else 'group_confirmation'
+        send_group_booking_email_async(
+            group_booking=group,
+            email_type=email_type,
+            recipient_email=recipient_target
+        )
+
+        log_action(user, 'SEND_EMAIL', 'BOOKING', f"Gửi lại email xác nhận cho Đơn Đoàn #{group.group_code} tới {recipient_target}", request=request)
+
+        return Response({
+            'success': True,
+            'message': f"Đã kích hoạt gửi email xác nhận Đơn Đoàn #{group.group_code} tới {recipient_target}!"
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['patch', 'post'], url_path='billing-type')

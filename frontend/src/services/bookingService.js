@@ -905,6 +905,27 @@ export const bookingService = {
                 message: error.response?.data?.message || 'Không thể cập nhật chính sách thanh toán.'
             };
         }
+    },
+
+    /**
+     * Gửi lại email xác nhận đơn đoàn thủ công
+     * POST /api/bookings/groups/:id/resend-email/
+     */
+    async resendGroupBookingEmail(id, email = null) {
+        try {
+            const payload = email ? { email } : {};
+            const response = await api.post(`/bookings/groups/${id}/resend-email/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Gửi lại email đơn đoàn thành công!'
+            };
+        } catch (error) {
+            console.error('Lỗi khi gửi lại email đơn đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể gửi lại email xác nhận đoàn.'
+            };
+        }
     }
 };
 

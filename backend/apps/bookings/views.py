@@ -18,6 +18,7 @@ from ..payments.models import Invoice, Payment
 from ..notifications.models import Notification
 from ..notifications.signals import get_staff_and_admin_users
 from .serializers import BookingSerializer, PromotionSerializer
+from .email_service import send_booking_email_async
 from core_project.pagination import StandardResultsSetPagination
 
 
@@ -565,6 +566,24 @@ class BookingViewSet(viewsets.ModelViewSet):
                 except Exception:
                     pass
 
+        # TRIGGER 1 - Khi tạo đơn đặt phòng thành công:
+        # ÁP DỤNG PHƯƠNG ÁN 1 (Tối ưu UX - Không gửi 2 email trùng lặp):
+        # Nếu khách chọn thanh toán online qua VietQR: Khách đang mở popup quét mã trực tiếp trên màn hình,
+        # tạm thời không gửi email QR để tránh spam hộp thư.
+        # Khi khách quét mã xong và tiền về, Webhook SePay (Trigger 2) sẽ gửi DUY NHẤT 1 EMAIL "✅ ĐÃ THANH TOÁN THÀNH CÔNG".
+        # Chỉ gửi email tại đây nếu khách chọn thanh toán tại quầy lễ tân (reception/cash).
+        payment_method_input = str(data.get('payment_method') or '').strip().lower()
+        is_vietqr_online = (payment_method_input == 'vietqr') or ('thanh toán: vietqr' in note.lower())
+
+        if not is_vietqr_online:
+            recipient_target = guest_email or (guest_user.email if (guest_user and guest_user.email) else None)
+            send_booking_email_async(
+                booking=booking,
+                email_type='booking_confirmation',
+                custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận đặt phòng #{booking.booking_code} - Trạng thái thanh toán",
+                recipient_email=recipient_target
+            )
+
         serializer = BookingSerializer(booking, context={'request': request})
         return Response({
             'success': True,
@@ -586,6 +605,86 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'total_amount': float(grand_total_amount),
             }
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='resend-email', permission_classes=[IsAuthenticated])
+    def resend_email(self, request, pk=None):
+        """
+        Trigger 3 - API Gửi lại Email thủ công cho Lễ tân / Nhân viên:
+        Endpoint: POST /api/bookings/<id>/resend-email/
+        Lễ tân có thể bấm gửi lại email xác nhận/biên lai cho khách bất cứ lúc nào.
+        """
+        booking = self.get_object()
+        user = request.user
+
+        # Phân quyền: Nhân viên nội bộ hoặc khách hàng sở hữu đơn
+        is_staff_or_admin = (
+            user.is_staff or 
+            user.is_superuser or 
+            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier'] or
+            check_role_permission(user, 'bookings', 'update')
+        )
+        if not is_staff_or_admin and booking.guest != user:
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền gửi lại email cho đơn đặt phòng của khách hàng khác.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Lấy địa chỉ email mục tiêu (ưu tiên email do lễ tân nhập mới trong request.data)
+        custom_email = (request.data.get('email') or '').strip()
+        target_email = custom_email or (booking.guest.email if booking.guest else None)
+        if not target_email and hasattr(booking, 'invoice') and booking.invoice:
+            target_email = booking.invoice.invoice_recipient_email
+
+        if not target_email:
+            return Response({
+                'success': False,
+                'message': 'Đơn đặt phòng này chưa có địa chỉ email nhận thư. Vui lòng nhập địa chỉ email vào ô thông tin để gửi lại.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        import re
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", target_email):
+            return Response({
+                'success': False,
+                'message': f'Địa chỉ email "{target_email}" không đúng định dạng.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Nhận diện trạng thái đơn để thiết lập tiêu đề phù hợp
+        is_paid = (
+            booking.status in ['paid', 'PAID', 'checked_in', 'checked_out', 'completed'] or
+            (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid') or
+            (hasattr(booking, 'payments') and booking.payments.filter(payment_status='COMPLETED').exists())
+        )
+
+        if is_paid:
+            subject = f"[Khách Sạn TA Đà Nẵng] Xác nhận ĐÃ THANH TOÁN THÀNH CÔNG - Đơn #{booking.booking_code}"
+            email_type = 'payment_success'
+        else:
+            subject = f"[Khách Sạn TA Đà Nẵng] Xác nhận đặt phòng #{booking.booking_code} - Trạng thái thanh toán"
+            email_type = 'booking_confirmation'
+
+        # Gửi email chạy ngầm
+        send_booking_email_async(
+            booking=booking,
+            email_type=email_type,
+            custom_subject=subject,
+            recipient_email=target_email
+        )
+
+        log_action(
+            user=user,
+            action='UPDATE',
+            module='BOOKING',
+            description=f"Lễ tân {user.username} gửi lại email biên lai cho đơn #{booking.booking_code} tới {target_email}",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f'Hệ thống đang tiến hành gửi email xác nhận cho đơn #{booking.booking_code} tới {target_email}.',
+            'booking_code': booking.booking_code,
+            'recipient_email': target_email,
+            'is_paid': is_paid
+        }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], url_path='cancel-booking', permission_classes=[AllowAny])
     def cancel_booking(self, request):

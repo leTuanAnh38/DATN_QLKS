@@ -335,6 +335,23 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         }
     };
 
+    // Gửi lại Email xác nhận đoàn
+    const handleResendEmail = async () => {
+        try {
+            setIsActionLoading(true);
+            const res = await bookingService.resendGroupBookingEmail(groupData.id);
+            if (res.success) {
+                setActionMessage({ type: 'success', text: res.message || 'Đã gửi email xác nhận đoàn thành công!' });
+            } else {
+                setActionMessage({ type: 'error', text: res.message || 'Không thể gửi email đoàn.' });
+            }
+        } catch (err) {
+            setActionMessage({ type: 'error', text: 'Lỗi khi gửi email đoàn.' });
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
     // Hủy Toàn Bộ Đơn Đoàn (Thực thi)
     const executeCancelGroup = async (reason = 'Lễ tân / Quản lý yêu cầu hủy đoàn') => {
         closeConfirm();
@@ -675,6 +692,15 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                         </div>
 
                         <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                disabled={isActionLoading}
+                                onClick={handleResendEmail}
+                                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                title="Gửi thư xác nhận đặt đoàn qua Email Trưởng đoàn / Công ty"
+                            >
+                                <span>✉️ Gửi Email Đoàn</span>
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => setIsInvoiceModalOpen(true)}

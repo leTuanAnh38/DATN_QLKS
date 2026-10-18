@@ -326,30 +326,38 @@ class BookingSerializer(serializers.ModelSerializer):
     # =========================================================================
     def get_room_charge(self, obj):
         """
-        room_charge: Tiền phòng (Giá phòng * Số đêm - Giảm giá nếu có).
+        room_charge: Tiền phòng thuần túy (Giá phòng * Số đêm - Giảm giá nếu có).
+        Tuyệt đối không lấy nhầm model.total_amount khi chưa trừ tiền dịch vụ đặt kèm.
         """
-        pre_ordered_total = float(sum(
-            float(r.total_price or ((getattr(r, 'unit_price', 0) or (r.service.price if r.service else 0)) * r.quantity))
-            for r in obj.service_requests.filter(is_paid=True)
-        ))
-        model_total = None
+        # 1. Ưu tiên lấy từ Invoice nếu đã có hóa đơn
         try:
-            model_total = obj.__dict__.get('total_amount', None)
+            if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.room_charge is not None:
+                return float(obj.invoice.room_charge)
         except Exception:
             pass
 
-        if model_total is not None and float(model_total) > 0:
-            val = float(model_total)
-            if pre_ordered_total > 0 and val >= pre_ordered_total:
-                return float(val - pre_ordered_total)
-            elif pre_ordered_total == 0:
-                return val
-
+        # 2. Tính trực tiếp từ đơn giá hạng phòng và số đêm lưu trú
         nights = self.get_nights(obj)
         daily_rate = self.get_daily_rate(obj)
-        subtotal = float(daily_rate * nights)
-        membership_disc = float(obj.membership_discount or 0)
-        return max(0.0, float(subtotal - membership_disc))
+        if daily_rate > 0 and nights > 0:
+            subtotal = float(daily_rate * nights)
+            membership_disc = float(obj.membership_discount or 0)
+            promo_disc = float(self.get_promotion_discount(obj) or 0)
+            return max(0.0, float(subtotal - membership_disc - promo_disc))
+
+        # 3. Fallback: Nếu không có daily_rate, lấy model.total_amount trừ đi toàn bộ dịch vụ đặt kèm
+        all_services_total = float(sum(
+            float(r.total_price or ((getattr(r, 'unit_price', 0) or (r.service.price if r.service else 0)) * r.quantity))
+            for r in obj.service_requests.exclude(status='cancelled')
+        ))
+        model_total = getattr(obj, 'total_amount', None)
+        if model_total is not None and float(model_total) > 0:
+            val = float(model_total)
+            if all_services_total > 0 and val >= all_services_total:
+                return float(val - all_services_total)
+            return val
+
+        return 0.0
 
     def get_service_charge(self, obj):
         """

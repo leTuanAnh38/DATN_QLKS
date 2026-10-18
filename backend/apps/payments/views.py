@@ -7,8 +7,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
-
-from ..bookings.models import Booking
+from ..bookings.models import Booking, GroupBooking
+from ..bookings.email_service import send_booking_email_async, send_group_booking_email_async
 from ..users.models import log_action
 from ..users.views import check_role_permission
 from .models import Payment, Invoice, PaymentConfig
@@ -650,7 +650,6 @@ class SepayWebhookView(APIView):
         # Hỗ trợ mọi biến thể ngân hàng: có gạch ngang (BK-DA5F79, GRP-912A34) hoặc nuốt gạch ngang
         booking = None
         group_booking = None
-        from ..bookings.models import GroupBooking
 
         match_grp = re.search(r'GRP-?([A-Za-z0-9]{4,10})', content, re.IGNORECASE)
         if match_grp:
@@ -756,6 +755,16 @@ class SepayWebhookView(APIView):
                 description=f"SePay Webhook tự động xác nhận thanh toán {transfer_amount:,.0f} VND cho Đơn Đoàn #{group_booking.group_code}",
                 request=request
             )
+
+            # Gửi email HTML 5 sao xác nhận thanh toán/đặt cọc thành công cho toàn đoàn
+            try:
+                send_group_booking_email_async(
+                    group_booking=group_booking,
+                    email_type='payment_success'
+                )
+            except Exception:
+                pass
+
             return Response({
                 "success": True,
                 "message": f"Webhook SePay: Thanh toán cho Đơn Đoàn {group_booking.group_code} thành công!",
@@ -825,6 +834,21 @@ class SepayWebhookView(APIView):
             module='PAYMENT',
             description=f"SePay Webhook tự động xác nhận thanh toán {transfer_amount:,.0f} VND cho đơn {booking.booking_code}",
             request=request
+        )
+
+        # TRIGGER 2 - Khi khách quét mã VietQR và Webhook SePay báo tiền về thành công:
+        # Ngay sau khi cập nhật trạng thái đơn sang đã thanh toán, tự động gọi lại hàm gửi email chạy ngầm
+        recipient_target = None
+        if hasattr(booking, 'invoice') and booking.invoice and booking.invoice.invoice_recipient_email:
+            recipient_target = booking.invoice.invoice_recipient_email.strip()
+        elif booking.guest and booking.guest.email:
+            recipient_target = booking.guest.email.strip()
+
+        send_booking_email_async(
+            booking=booking,
+            email_type='payment_success',
+            custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận ĐÃ THANH TOÁN THÀNH CÔNG - Đơn #{booking.booking_code}",
+            recipient_email=recipient_target
         )
 
         return Response({
