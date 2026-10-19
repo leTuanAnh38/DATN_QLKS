@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 export default function Footer() {
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
+    const { settings: hotelInfo } = useHotelSettings();
 
     const handleSubscribe = (e) => {
         e.preventDefault();
@@ -20,16 +22,24 @@ export default function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
                     {/* Column 1: Brand Info */}
                     <div>
-                        <Link to="/" className="flex items-center space-x-3 mb-4 inline-flex">
-                            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-serif font-black text-base">
-                                TA
-                            </div>
-                            <span className="font-serif font-bold text-slate-900 text-base tracking-wide">
-                                KHÁCH SẠN TA ĐÀ NẴNG
+                        <Link to="/" className="flex items-center space-x-3 mb-4 inline-flex group">
+                            {hotelInfo.logo_url ? (
+                                <img
+                                    src={hotelInfo.logo_url}
+                                    alt={hotelInfo.hotel_name}
+                                    className="h-10 max-w-[140px] object-contain rounded-lg shadow-xs group-hover:scale-105 transition-transform"
+                                />
+                            ) : (
+                                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-serif font-black text-base group-hover:scale-105 transition-transform">
+                                    TA
+                                </div>
+                            )}
+                            <span className="font-serif font-bold text-slate-900 text-base tracking-wide uppercase group-hover:text-blue-600 transition-colors">
+                                {hotelInfo.hotel_name || 'KHÁCH SẠN TA ĐÀ NẴNG'}
                             </span>
                         </Link>
                         <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                            Kiệt tác nghỉ dưỡng 5 sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.
+                            {hotelInfo.description || 'Kiệt tác nghỉ dưỡng 5 sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.'}
                         </p>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 inline-block text-xs">
                             <span className="font-bold text-slate-800">🏆 WINNER 2024</span>
@@ -42,9 +52,9 @@ export default function Footer() {
                         <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">Khu nghỉ dưỡng</h5>
                         <div className="space-y-3 text-xs text-slate-600">
                             <div>
-                                <strong className="block text-slate-900 font-semibold">Khách Sạn TA Đà Nẵng (Flagship)</strong>
-                                <p className="text-slate-500">08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Ngũ Hành Sơn, Đà Nẵng</p>
-                                <a href="tel:+842363889900" className="text-blue-600 font-medium hover:underline">+84 (0) 236 388 9900</a>
+                                <strong className="block text-slate-900 font-semibold">{hotelInfo.hotel_name} (Flagship)</strong>
+                                <p className="text-slate-500">{hotelInfo.address}</p>
+                                <a href={`tel:${hotelInfo.phone_number.replace(/\s+/g, '')}`} className="text-blue-600 font-medium hover:underline">{hotelInfo.phone_number}</a>
                             </div>
                             <div>
                                 <strong className="block text-slate-900 font-semibold">Khách Sạn TA Phú Quốc (Resort)</strong>

@@ -14,6 +14,7 @@ import NewsList from './pages/client/NewsList';
 import NewsDetail from './pages/client/NewsDetail';
 import CorporateBooking from './pages/client/CorporateBooking';
 import Login from './pages/auth/login';
+import { hotelSettingStore } from './store/hotelSettingStore';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -26,6 +27,11 @@ function ScrollToTop() {
 }
 
 function App() {
+  useEffect(() => {
+    // Tự động tải thông tin thương hiệu, logo & đồng bộ favicon toàn trang
+    hotelSettingStore.fetchSettings();
+  }, []);
+
   return (
     <BrowserRouter>
       <ScrollToTop />

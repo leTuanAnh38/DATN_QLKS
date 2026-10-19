@@ -47,6 +47,30 @@ def render_booking_email_html(booking, custom_message=None):
     - Bảng thông tin chi tiết đặt phòng & Khách hàng Doanh nghiệp (nếu có).
     - Bảng kê chi phí minh bạch: Tiền phòng + Dịch vụ đặt kèm - Giảm giá VIP / Khuyến mãi = Tổng cộng.
     """
+    # 0. Tải thông tin thương hiệu & cấu hình vận hành từ Database (HotelSetting)
+    from .models import HotelSetting
+    try:
+        hotel_settings = HotelSetting.get_settings()
+        hotel_name = hotel_settings.hotel_name or 'Khách Sạn TA Đà Nẵng'
+        hotel_slogan = hotel_settings.hotel_slogan or '5-Star Luxury Resort & Hotel'
+        hotel_address = hotel_settings.address or '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
+        hotel_hotline = hotel_settings.hotline or '1900 8899'
+        hotel_phone = hotel_settings.phone_number or '0236 388 9999'
+        hotel_email = hotel_settings.email or 'contact@tahotel.vn'
+        check_in_time = hotel_settings.check_in_time or '14:00'
+        check_out_time = hotel_settings.check_out_time or '12:00'
+    except Exception:
+        hotel_name = 'Khách Sạn TA Đà Nẵng'
+        hotel_slogan = '5-Star Luxury Resort & Hotel'
+        hotel_address = '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
+        hotel_hotline = '1900 8899'
+        hotel_phone = '0236 388 9999'
+        hotel_email = 'contact@tahotel.vn'
+        check_in_time = '14:00'
+        check_out_time = '12:00'
+    hotel_name_upper = hotel_name.upper()
+    hotel_slogan_upper = hotel_slogan.upper()
+
     # 1. Xác định trạng thái thanh toán thực tế của đơn
     note_str = (booking.note or '').lower()
     is_paid = (
@@ -292,7 +316,7 @@ def render_booking_email_html(booking, custom_message=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xác nhận Đặt phòng - Khách Sạn TA Đà Nẵng</title>
+    <title>Xác nhận Đặt phòng - {hotel_name}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; line-height: 1.5;">
     <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #F1F5F9; padding: 30px 10px;">
@@ -309,13 +333,13 @@ def render_booking_email_html(booking, custom_message=None):
                             <h1 style="margin: 0; padding: 0; color: #F59E0B !important; font-size: 26px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1.3;">
                                 <font color="#F59E0B">
                                     <span style="color: #F59E0B !important; font-size: 26px; font-weight: 900; letter-spacing: 1.5px;">
-                                        KHÁCH SẠN TA ĐÀ NẴNG
+                                        {hotel_name_upper}
                                     </span>
                                 </font>
                             </h1>
                             <p style="margin: 6px 0 0 0; color: #FCD34D !important; font-size: 13px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;">
                                 <font color="#FCD34D">
-                                    <span style="color: #FCD34D !important; letter-spacing: 2.5px;">5-STAR LUXURY RESORT &amp; HOTEL</span>
+                                    <span style="color: #FCD34D !important; letter-spacing: 2.5px;">{hotel_slogan_upper}</span>
                                 </font>
                             </p>
                             <table role="presentation" align="center" style="margin: 14px auto 14px auto; border-collapse: collapse;">
@@ -325,8 +349,8 @@ def render_booking_email_html(booking, custom_message=None):
                             </table>
                             <p style="margin: 0; color: #E2E8F0 !important; font-size: 12px; line-height: 1.6;">
                                 <font color="#E2E8F0">
-                                    📍 08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Q. Ngũ Hành Sơn, TP. Đà Nẵng<br/>
-                                    📞 Hotline: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">1900 8899</font></strong> | ✉ Email: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">contact@tahotel.vn</font></strong>
+                                    📍 {hotel_address}<br/>
+                                    📞 Hotline: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_hotline}</font></strong> | ✉ Email: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_email}</font></strong>
                                 </font>
                             </p>
                         </td>
@@ -342,7 +366,7 @@ def render_booking_email_html(booking, custom_message=None):
                                     Kính gửi Quý khách <span style="color: #D97706; font-weight: 800;">{guest_name}</span>,
                                 </h3>
                                 <p style="margin: 0; color: #334155; font-size: 14px; line-height: 1.7;">
-                                    <strong style="color: #B45309; font-weight: 800;">Khách Sạn TA Đà Nẵng</strong> trân trọng cảm ơn Quý khách đã tin tưởng và lựa chọn kỳ nghỉ dưỡng tại khách sạn chúng tôi. Dưới đây là thông tin chi tiết và biên lai xác nhận đặt phòng của Quý khách.
+                                    <strong style="color: #B45309; font-weight: 800;">{hotel_name}</strong> trân trọng cảm ơn Quý khách đã tin tưởng và lựa chọn kỳ nghỉ dưỡng tại khách sạn chúng tôi. Dưới đây là thông tin chi tiết và biên lai xác nhận đặt phòng của Quý khách.
                                 </p>
                             </div>
 
@@ -388,13 +412,13 @@ def render_booking_email_html(booking, custom_message=None):
                                     <tr style="background-color: #F8FAFC;">
                                         <td style="padding: 10px 12px; color: #64748B; font-weight: 600;">Thời gian Check-in:</td>
                                         <td style="padding: 10px 12px; color: #0F172A; font-weight: 600;">
-                                            {check_in_str} <span style="font-size: 12px; color: #64748B;">(Sau 14:00)</span>
+                                            {check_in_str} <span style="font-size: 12px; color: #64748B;">(Sau {check_in_time})</span>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 10px 12px; color: #64748B; font-weight: 600; border-top: 1px solid #F1F5F9;">Thời gian Check-out:</td>
                                         <td style="padding: 10px 12px; color: #0F172A; font-weight: 600; border-top: 1px solid #F1F5F9;">
-                                            {check_out_str} <span style="font-size: 12px; color: #64748B;">(Trước 12:00)</span>
+                                            {check_out_str} <span style="font-size: 12px; color: #64748B;">(Trước {check_out_time})</span>
                                         </td>
                                     </tr>
                                     <tr style="background-color: #F8FAFC;">
@@ -449,9 +473,9 @@ def render_booking_email_html(booking, custom_message=None):
                             <div style="margin-top: 28px; background-color: #F8FAFC; border-left: 4px solid #D97706; padding: 14px 18px; border-radius: 0 8px 8px 0;">
                                 <p style="margin: 0 0 6px 0; color: #1E293B; font-weight: bold; font-size: 13px;">📌 QUY ĐỊNH NHẬN PHÒNG &amp; LƯU Ý QUAN TRỌNG:</p>
                                 <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.6;">
-                                    <li>Giờ nhận phòng (Check-in) từ <strong>14:00</strong> và Giờ trả phòng (Check-out) trước <strong>12:00</strong> trưa.</li>
+                                    <li>Giờ nhận phòng (Check-in) từ <strong>{check_in_time}</strong> và Giờ trả phòng (Check-out) trước <strong>{check_out_time}</strong> trưa.</li>
                                     <li>Quý khách vui lòng xuất trình <strong>CCCD / Hộ chiếu bản gốc</strong> tại quầy Lễ tân để làm thủ tục khai báo tạm trú theo quy định.</li>
-                                    <li>Nếu Quý khách có yêu cầu đặc biệt về nhận phòng sớm hoặc đưa đón sân bay, vui lòng gọi trực tiếp hotline <strong>1900 8899</strong> để được phục vụ chu đáo nhất.</li>
+                                    <li>Nếu Quý khách có yêu cầu đặc biệt về nhận phòng sớm hoặc đưa đón sân bay, vui lòng gọi trực tiếp hotline <strong>{hotel_hotline}</strong> để được phục vụ chu đáo nhất.</li>
                                 </ul>
                             </div>
 
@@ -463,17 +487,17 @@ def render_booking_email_html(booking, custom_message=None):
                         <td bgcolor="#0F172A" style="background-color: #0F172A !important; padding: 28px 30px; text-align: center; color: #E2E8F0 !important; font-size: 12px; line-height: 1.6; border-top: 2px solid #D97706;">
                             <p style="margin: 0 0 8px 0; color: #F59E0B !important; font-weight: 800; font-size: 13.5px; letter-spacing: 0.5px; text-transform: uppercase;">
                                 <font color="#F59E0B">
-                                    <span style="color: #F59E0B !important;">KHÁCH SẠN TA ĐÀ NẴNG HÂN HẠNH ĐƯỢC CHÀO ĐÓN QUÝ KHÁCH!</span>
+                                    <span style="color: #F59E0B !important;">{hotel_name_upper} HÂN HẠNH ĐƯỢC CHÀO ĐÓN QUÝ KHÁCH!</span>
                                 </font>
                             </p>
                             <p style="margin: 0 0 6px 0; color: #CBD5E1 !important;">
                                 <font color="#CBD5E1">
-                                    Hotline: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">1900 8899</font></strong> | Lễ tân 24/7: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">0236 388 9999</font></strong> | Email: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">contact@tahotel.vn</font></strong>
+                                    Hotline: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_hotline}</font></strong> | Lễ tân 24/7: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_phone}</font></strong> | Email: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_email}</font></strong>
                                 </font>
                             </p>
                             <p style="margin: 8px 0 0 0; font-size: 11px; color: #94A3B8 !important;">
                                 <font color="#94A3B8">
-                                    <em>* Đây là thư điện tử gửi tự động từ hệ sinh thái quản lý khách sạn TA Đà Nẵng. Quý khách vui lòng không trả lời trực tiếp email này.</em>
+                                    <em>* Đây là thư điện tử gửi tự động từ hệ sinh thái quản lý khách sạn {hotel_name}. Quý khách vui lòng không trả lời trực tiếp email này.</em>
                                 </font>
                             </p>
                         </td>
@@ -530,7 +554,13 @@ def _send_booking_email_worker(booking_id, email_type='booking_confirmation', cu
             )
             return
 
-        # 3. Tiêu đề email
+        # 3. Tiêu đề email & Tên thương hiệu
+        from .models import HotelSetting
+        try:
+            h_name = HotelSetting.get_settings().hotel_name or 'Khách Sạn TA Đà Nẵng'
+        except Exception:
+            h_name = 'Khách Sạn TA Đà Nẵng'
+
         if custom_subject:
             subject = custom_subject
         else:
@@ -539,15 +569,15 @@ def _send_booking_email_worker(booking_id, email_type='booking_confirmation', cu
                 (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid')
             )
             if email_type == 'payment_success' or is_paid:
-                subject = f"[Khách Sạn TA Đà Nẵng] Xác nhận ĐÃ THANH TOÁN THÀNH CÔNG - Đơn #{booking.booking_code}"
+                subject = f"[{h_name}] Xác nhận ĐÃ THANH TOÁN THÀNH CÔNG - Đơn #{booking.booking_code}"
             else:
-                subject = f"[Khách Sạn TA Đà Nẵng] Xác nhận đặt phòng #{booking.booking_code} - Trạng thái thanh toán"
+                subject = f"[{h_name}] Xác nhận đặt phòng #{booking.booking_code} - Trạng thái thanh toán"
 
         # 4. Tạo nội dung HTML và Text thuần
         html_content = render_booking_email_html(booking)
         text_content = strip_tags(html_content)
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"Khách Sạn TA Đà Nẵng <{settings.EMAIL_HOST_USER}>"
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"{h_name} <{settings.EMAIL_HOST_USER}>"
 
         msg = EmailMultiAlternatives(
             subject=subject,
@@ -595,6 +625,30 @@ def render_group_booking_email_html(group_booking, custom_message=None):
     - Bảng kê chi phí minh bạch: Tiền phòng + Chiết khấu Doanh nghiệp + Dịch vụ đoàn = Tổng giá trị hợp đồng.
     - Khối Thông tin Xuất Hóa đơn GTGT (VAT) Công ty đầy đủ hợp lệ.
     """
+    # 0. Tải thông tin thương hiệu & cấu hình từ HotelSetting
+    from .models import HotelSetting
+    try:
+        hotel_settings = HotelSetting.get_settings()
+        hotel_name = hotel_settings.hotel_name or 'Khách Sạn TA Đà Nẵng'
+        hotel_slogan = hotel_settings.hotel_slogan or '5-Star Luxury Resort & Hotel'
+        hotel_address = hotel_settings.address or '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
+        hotel_hotline = hotel_settings.hotline or '1900 8899'
+        hotel_phone = hotel_settings.phone_number or '0236 388 9999'
+        hotel_email = hotel_settings.email or 'contact@tahotel.vn'
+        check_in_time = hotel_settings.check_in_time or '14:00'
+        check_out_time = hotel_settings.check_out_time or '12:00'
+    except Exception:
+        hotel_name = 'Khách Sạn TA Đà Nẵng'
+        hotel_slogan = '5-Star Luxury Resort & Hotel'
+        hotel_address = '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
+        hotel_hotline = '1900 8899'
+        hotel_phone = '0236 388 9999'
+        hotel_email = 'contact@tahotel.vn'
+        check_in_time = '14:00'
+        check_out_time = '12:00'
+    hotel_name_upper = hotel_name.upper()
+    hotel_slogan_upper = hotel_slogan.upper()
+
     # 1. Tính toán thời gian lưu trú
     check_in = group_booking.check_in_date
     check_out = group_booking.check_out_date
@@ -811,7 +865,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xác nhận Đặt Phòng Theo Đoàn Doanh Nghiệp - Khách Sạn TA Đà Nẵng</title>
+    <title>Xác nhận Đặt Phòng Theo Đoàn Doanh Nghiệp - {hotel_name}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; -webkit-font-smoothing: antialiased;">
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1F5F9; padding: 30px 10px;">
@@ -828,10 +882,10 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                                 </span>
                             </div>
                             <h1 style="margin: 0; font-family: 'Playfair Display', 'Georgia', serif; font-size: 26px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">
-                                <font color="#F59E0B">KHÁCH SẠN TA ĐÀ NẴNG</font>
+                                <font color="#F59E0B">{hotel_name_upper}</font>
                             </h1>
                             <p style="margin: 6px 0 0 0; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600;">
-                                <font color="#FCD34D">★ ★ ★ ★ ★ &nbsp; LUXURY RESORT & CONVENTION &nbsp; ★ ★ ★ ★ ★</font>
+                                <font color="#FCD34D">★ ★ ★ ★ ★ &nbsp; {hotel_slogan_upper} &nbsp; ★ ★ ★ ★ ★</font>
                             </p>
                         </td>
                     </tr>
@@ -845,7 +899,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                                 Kính gửi Quý đại diện: <strong style="color: #0F172A; font-size: 17px;">{group_booking.leader_name}</strong>,
                             </p>
                             <p style="margin: 0 0 18px 0; font-size: 14px; line-height: 1.6; color: #475569;">
-                                Khách Sạn TA Đà Nẵng xin trân trọng gửi thư xác nhận đặt phòng theo đoàn công ty cho: <strong style="color: #2563EB;">{group_booking.group_name}</strong>. Cảm ơn Quý khách và Quý Doanh nghiệp đã tin tưởng lựa chọn dịch vụ lưu trú 5 sao của chúng tôi.
+                                {hotel_name} xin trân trọng gửi thư xác nhận đặt phòng theo đoàn công ty cho: <strong style="color: #2563EB;">{group_booking.group_name}</strong>. Cảm ơn Quý khách và Quý Doanh nghiệp đã tin tưởng lựa chọn dịch vụ lưu trú 5 sao của chúng tôi.
                             </p>
 
                             <!-- Khung Trạng thái Đặt cọc / Thanh toán -->
@@ -875,7 +929,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                                     <tr>
                                         <td style="padding: 6px 0; color: #64748B;">Thời gian lưu trú chung:</td>
                                         <td style="padding: 6px 0; font-weight: 600; color: #0F172A;">
-                                            {check_in_str} <span style="color: #64748B;">(14:00)</span> ➔ {check_out_str} <span style="color: #64748B;">(12:00)</span>
+                                            {check_in_str} <span style="color: #64748B;">({check_in_time})</span> ➔ {check_out_str} <span style="color: #64748B;">({check_out_time})</span>
                                             <span style="color: #2563EB; font-weight: bold;">({nights} đêm)</span>
                                         </td>
                                     </tr>
@@ -930,7 +984,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                                 <strong>📌 LƯU Ý DÀNH CHO TRƯỞNG ĐOÀN:</strong>
                                 <ul style="margin: 6px 0 0 0; padding-left: 18px;">
                                     <li>Trưởng đoàn có thể cập nhật danh sách khách lưu trú (Rooming List) và CCCD từng phòng trực tiếp trên hệ thống hoặc gửi danh sách qua email bộ phận Lễ tân.</li>
-                                    <li>Giờ nhận phòng tiêu chuẩn: <strong>14:00</strong> | Giờ trả phòng: <strong>12:00</strong>.</li>
+                                    <li>Giờ nhận phòng tiêu chuẩn: <strong>{check_in_time}</strong> | Giờ trả phòng: <strong>{check_out_time}</strong>.</li>
                                     <li>Đối với trường hợp trả phòng trễ hoặc nhận phòng sớm theo đoàn, vui lòng báo trước Hotline Lễ tân để sắp xếp quỹ phòng tốt nhất.</li>
                                 </ul>
                             </div>
@@ -942,16 +996,16 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                     <tr>
                         <td style="background-color: #0F172A; color: #94A3B8; padding: 26px 30px; text-align: center; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B;">
                             <div style="color: #F59E0B; font-size: 15px; font-weight: bold; margin-bottom: 6px; letter-spacing: 1px;">
-                                KHÁCH SẠN TA ĐÀ NẴNG
+                                {hotel_name_upper}
                             </div>
                             <div style="color: #CBD5E1; margin-bottom: 4px;">
-                                📍 Địa chỉ: 123 Võ Nguyên Giáp, Phường Phước Mỹ, Quận Sơn Trà, TP. Đà Nẵng
+                                📍 Địa chỉ: {hotel_address}
                             </div>
                             <div style="color: #CBD5E1; margin-bottom: 12px;">
-                                ☎ Hotline Khách Đoàn & Sự kiện: <strong>0236 3888 999</strong> | ✉ Email: <strong>hotro@khachsantadn.com</strong>
+                                ☎ Hotline Khách Đoàn & Sự kiện: <strong>{hotel_hotline}</strong> | ✉ Email: <strong>{hotel_email}</strong>
                             </div>
                             <div style="font-size: 11px; color: #64748B; border-top: 1px solid #1E293B; padding-top: 12px;">
-                                © 2026 TA Danang Hotel & Convention. Mọi quyền được bảo lưu. Email này được gửi tự động từ hệ thống quản lý khách sạn PMS.
+                                © 2026 {hotel_name}. Mọi quyền được bảo lưu. Email này được gửi tự động từ hệ thống quản lý khách sạn PMS.
                             </div>
                         </td>
                     </tr>
@@ -1015,23 +1069,29 @@ def _send_group_booking_email_worker(group_booking_id, email_type='payment_succe
             )
             return
 
-        # 3. Tiêu đề email
+        # 3. Tiêu đề email & Tên thương hiệu
+        from .models import HotelSetting
+        try:
+            h_name = HotelSetting.get_settings().hotel_name or 'Khách Sạn TA Đà Nẵng'
+        except Exception:
+            h_name = 'Khách Sạn TA Đà Nẵng'
+
         if custom_subject:
             subject = custom_subject
         else:
             is_full = group_booking.is_deposit_paid and (group_booking.deposit_amount >= group_booking.total_amount)
             if is_full:
-                subject = f"[Khách Sạn TA Đà Nẵng] Xác nhận ĐÃ THANH TOÁN 100% TOÀN BỘ - Đơn Đoàn #{group_booking.group_code} ({group_booking.group_name})"
+                subject = f"[{h_name}] Xác nhận ĐÃ THANH TOÁN 100% TOÀN BỘ - Đơn Đoàn #{group_booking.group_code} ({group_booking.group_name})"
             elif group_booking.is_deposit_paid:
-                subject = f"[Khách Sạn TA Đà Nẵng] Xác nhận ĐÃ THANH TOÁN TIỀN CỌC THÀNH CÔNG - Đơn Đoàn #{group_booking.group_code} ({group_booking.group_name})"
+                subject = f"[{h_name}] Xác nhận ĐÃ THANH TOÁN TIỀN CỌC THÀNH CÔNG - Đơn Đoàn #{group_booking.group_code} ({group_booking.group_name})"
             else:
-                subject = f"[Khách Sạn TA Đà Nẵng] Tiếp nhận Đơn Đặt Đoàn #{group_booking.group_code} ({group_booking.group_name}) - Chờ cọc"
+                subject = f"[{h_name}] Tiếp nhận Đơn Đặt Đoàn #{group_booking.group_code} ({group_booking.group_name}) - Chờ cọc"
 
         # 4. Render HTML và gửi
         html_content = render_group_booking_email_html(group_booking)
         text_content = strip_tags(html_content)
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"Khách Sạn TA Đà Nẵng <{settings.EMAIL_HOST_USER}>"
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"{h_name} <{settings.EMAIL_HOST_USER}>"
 
         msg = EmailMultiAlternatives(
             subject=subject,

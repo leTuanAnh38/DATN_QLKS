@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Q, F
 from django.db import transaction
-from .models import Booking, Promotion, BookingExtraService, BookingGuest
+from .models import Booking, Promotion, BookingExtraService, BookingGuest, HotelSetting
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile, log_action
 from ..users.views import check_role_permission
@@ -17,7 +17,7 @@ from ..services.models import ServiceItem, ServiceRequest
 from ..payments.models import Invoice, Payment
 from ..notifications.models import Notification
 from ..notifications.signals import get_staff_and_admin_users
-from .serializers import BookingSerializer, PromotionSerializer
+from .serializers import BookingSerializer, PromotionSerializer, HotelSettingSerializer
 from .email_service import send_booking_email_async
 from core_project.pagination import StandardResultsSetPagination
 
@@ -1316,6 +1316,31 @@ class BookingViewSet(viewsets.ModelViewSet):
                 auto_log = f"{late_log}\n{auto_log}"
             if receptionist_note:
                 auto_log += f" Ghi chú: {receptionist_note}"
+
+            # Xử lý phụ thu nhận phòng sớm trong ngày (Same-day Early Check-in Surcharge)
+            same_day_surcharge = float(request.data.get('same_day_early_surcharge', 0) or 0)
+            if same_day_surcharge > 0:
+                booking.total_amount = float(booking.total_amount or 0) + same_day_surcharge
+                if 'total_amount' not in update_fields:
+                    update_fields.append('total_amount')
+
+                # Kiểm tra xem khoản thanh toán đã nhận có đủ trả cả phụ thu này không
+                # (Trường hợp lễ tân bấm "Thu tiền & Check-in", Payment đã ghi nhận đủ tiền trước khi check-in)
+                completed_payments_sum = sum(
+                    float(p.amount) for p in booking.payments.filter(payment_status='COMPLETED')
+                )
+                is_surcharge_paid = completed_payments_sum >= float(booking.total_amount)
+
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name='Phụ thu nhận phòng sớm trong ngày (Early Check-in)',
+                    quantity=1,
+                    price=same_day_surcharge,
+                    is_paid=is_surcharge_paid
+                )
+                if is_surcharge_paid:
+                    booking.extra_services.filter(is_paid=False).update(is_paid=True)
+                auto_log = f"[Phụ thu nhận phòng sớm trong ngày lúc {time_str}]: +{same_day_surcharge:,.0f} VND.\n{auto_log}"
 
             if booking.internal_note:
                 booking.internal_note = f"{booking.internal_note}\n{auto_log}".strip()
@@ -2837,6 +2862,18 @@ class BookingViewSet(viewsets.ModelViewSet):
                     if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() for r in valid_requests):
                         total_service_charge += float((bes.price or 0) * (bes.quantity or 1))
 
+            # Phụ thu Trả phòng muộn (Late Check-out Surcharge)
+            late_checkout_surcharge = float(request.data.get('late_checkout_surcharge', 0) or 0)
+            if late_checkout_surcharge > 0:
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name='Phụ thu trả phòng muộn (Late Check-out)',
+                    quantity=1,
+                    price=late_checkout_surcharge,
+                    is_paid=True
+                )
+                total_service_charge += late_checkout_surcharge
+
             grand_total = float(room_charge + total_service_charge)
 
             # Xác định số tiền đã thanh toán trước và số tiền còn lại phải thu
@@ -4137,4 +4174,83 @@ class PromotionViewSet(viewsets.ModelViewSet):
             description=f'Xóa mã khuyến mãi "{code}"',
             request=self.request
         )
+
+
+class HotelSettingView(APIView):
+    """
+    API endpoint: /api/hotel-settings/ hoặc /api/bookings/hotel-settings/
+    - GET (Public): Lấy thông tin cấu hình khách sạn & vận hành (Singleton).
+    - PUT / PATCH (Admin/Owner): Cập nhật thông tin khách sạn, giờ check-in/out, mức phụ thu và thuế phí.
+    """
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get(self, request):
+        config = HotelSetting.get_solo()
+        serializer = HotelSettingSerializer(config)
+        return Response({
+            "success": True,
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        if not (request.user.is_superuser or getattr(request.user, 'role', None) in ['admin', 'owner']):
+            return Response({
+                "success": False,
+                "message": "Bạn không có quyền chỉnh sửa cấu hình hệ thống khách sạn."
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        config = HotelSetting.get_solo()
+        serializer = HotelSettingSerializer(config, data=request.data, partial=False)
+        if serializer.is_valid():
+            cfg = serializer.save()
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='SYSTEM',
+                description=f"Cập nhật cài đặt hệ thống khách sạn: {cfg.hotel_name}",
+                request=request
+            )
+            return Response({
+                "success": True,
+                "message": "Cập nhật cài đặt hệ thống thành công!",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            "success": False,
+            "message": "Dữ liệu cấu hình không hợp lệ.",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        if not (request.user.is_superuser or getattr(request.user, 'role', None) in ['admin', 'owner']):
+            return Response({
+                "success": False,
+                "message": "Bạn không có quyền chỉnh sửa cấu hình hệ thống khách sạn."
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        config = HotelSetting.get_solo()
+        serializer = HotelSettingSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            cfg = serializer.save()
+            log_action(
+                user=request.user,
+                action='UPDATE',
+                module='SYSTEM',
+                description=f"Cập nhật một phần cài đặt hệ thống khách sạn: {cfg.hotel_name}",
+                request=request
+            )
+            return Response({
+                "success": True,
+                "message": "Cập nhật cài đặt hệ thống thành công!",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            "success": False,
+            "message": "Dữ liệu cấu hình không hợp lệ.",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 

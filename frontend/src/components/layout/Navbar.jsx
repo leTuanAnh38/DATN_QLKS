@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
+import api from '../../services/api';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
 import LogoutConfirmModal from '../common/LogoutConfirmModal';
 import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
@@ -32,6 +34,11 @@ export default function Navbar({
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const userMenuRef = useRef(null);
+
+    // Thông tin thương hiệu & Logo động từ cài đặt hệ thống
+    const { settings } = useHotelSettings();
+    const hotelNameDisplay = settings?.hotel_name ? `${settings.hotel_name.toUpperCase()} LUXURY COLLECTION` : 'KHÁCH SẠN TA ĐÀ NẴNG LUXURY COLLECTION';
+    const hotlineDisplay = settings?.hotline || '1900 8899';
 
     // Tự động đóng dropdown khi click ra ngoài
     useEffect(() => {
@@ -120,7 +127,7 @@ export default function Navbar({
                 <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
                     <div className="flex items-center space-x-4">
                         <span className="font-semibold tracking-wider text-amber-600 uppercase text-[11px]">
-                            KHÁCH SẠN TA ĐÀ NẴNG LUXURY COLLECTION
+                            {hotelNameDisplay}
                         </span>
                         <span className="hidden sm:inline text-slate-300">|</span>
                         <span className="hidden sm:inline flex items-center gap-1 text-slate-500">
@@ -137,9 +144,9 @@ export default function Navbar({
                         )}
                     </div>
                     <div className="flex items-center space-x-4 text-slate-600">
-                        <a href="tel:19008899" className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer transition">
+                        <a href={`tel:${hotlineDisplay.replace(/\s+/g, '')}`} className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer transition">
                             <span className="text-orange-500">📞</span>
-                            Hotline 24/7: <strong className="text-slate-900">1900 8899</strong>
+                            Hotline 24/7: <strong className="text-slate-900">{hotlineDisplay}</strong>
                         </a>
                         <span className="text-slate-300">|</span>
                         <div className="flex items-center space-x-2">
@@ -155,16 +162,24 @@ export default function Navbar({
             <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
                     {/* Brand Logo */}
-                    <Link to="/" className="flex items-center space-x-3 cursor-pointer">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/30 flex-shrink-0">
-                            <span className="text-white font-serif font-black text-xl tracking-tighter">TA</span>
-                        </div>
+                    <Link to="/" className="flex items-center space-x-3 cursor-pointer group">
+                        {settings?.logo_url ? (
+                            <img
+                                src={settings.logo_url}
+                                alt={settings.hotel_name || 'Khách Sạn TA Đà Nẵng'}
+                                className="h-11 max-w-[170px] object-contain rounded-xl shadow-xs group-hover:scale-105 transition-transform"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/30 flex-shrink-0 group-hover:scale-105 transition-transform">
+                                <span className="text-white font-serif font-black text-xl tracking-tighter">TA</span>
+                            </div>
+                        )}
                         <div className="flex flex-col">
-                            <span className="font-serif font-bold text-slate-900 text-lg leading-tight tracking-wide whitespace-nowrap">
-                                KHÁCH SẠN TA
+                            <span className="font-serif font-bold text-slate-900 text-lg leading-tight tracking-wide whitespace-nowrap group-hover:text-blue-600 transition-colors">
+                                {settings?.hotel_name ? settings.hotel_name.slice(0, 24) : 'KHÁCH SẠN TA'}
                             </span>
                             <span className="text-[10px] font-semibold text-blue-600 tracking-[0.2em] uppercase whitespace-nowrap">
-                                ĐÀ NẴNG ★★★★★
+                                {settings?.hotel_slogan ? settings.hotel_slogan.slice(0, 26) : 'ĐÀ NẴNG ★★★★★'}
                             </span>
                         </div>
                     </Link>

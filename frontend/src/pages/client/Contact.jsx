@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import api from '../../services/api';
 import { contactService } from '../../services/contactService';
 
 const DEPARTMENT_LABELS = {
@@ -13,6 +14,43 @@ const DEPARTMENT_LABELS = {
 };
 
 export default function ContactPage() {
+    // Hotel brand & operational settings from backend
+    const [hotelInfo, setHotelInfo] = useState({
+        hotel_name: 'Khách Sạn TA Đà Nẵng',
+        hotel_slogan: '5-Star Luxury Resort & Hotel',
+        address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam',
+        hotline: '1900 8899',
+        phone_number: '+84 (0) 236 388 9900',
+        email: 'contact@tahotel.vn',
+        check_in_time: '14:00',
+        check_out_time: '12:00',
+        banner_contact: ''
+    });
+
+    useEffect(() => {
+        let isMounted = true;
+        api.get('/hotel-settings/')
+            .then(res => {
+                const data = res.data?.data || res.data;
+                if (data && isMounted) {
+                    setHotelInfo(prev => ({
+                        ...prev,
+                        hotel_name: data.hotel_name || prev.hotel_name,
+                        hotel_slogan: data.hotel_slogan || prev.hotel_slogan,
+                        address: data.address || prev.address,
+                        hotline: data.hotline || prev.hotline,
+                        phone_number: data.phone_number || prev.phone_number,
+                        email: data.email || prev.email,
+                        check_in_time: data.check_in_time || prev.check_in_time,
+                        check_out_time: data.check_out_time || prev.check_out_time,
+                        banner_contact: data.banner_contact || prev.banner_contact
+                    }));
+                }
+            })
+            .catch(() => {});
+        return () => { isMounted = false; };
+    }, []);
+
     // Form state
     const [formData, setFormData] = useState({
         fullName: '',
@@ -29,11 +67,11 @@ export default function ContactPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState(null); // { type: 'success' | 'error', text }
 
-    // FAQ list
+    // FAQ list - bound to dynamic hotel name and check-in / check-out times
     const faqs = [
         {
-            q: 'Giờ nhận phòng và trả phòng tiêu chuẩn của Khách sạn TA là mấy giờ?',
-            a: 'Thời gian nhận phòng tiêu chuẩn (check-in) là từ 14:00 và trả phòng (check-out) trước 12:00 trưa. Khách sạn luôn hỗ trợ nhận phòng sớm hoặc trả phòng muộn linh hoạt tùy theo tình trạng phòng thực tế hoặc đặc quyền hạng phòng/hội viên TA Club.'
+            q: `Giờ nhận phòng và trả phòng tiêu chuẩn của ${hotelInfo.hotel_name} là mấy giờ?`,
+            a: `Thời gian nhận phòng tiêu chuẩn (check-in) là từ ${hotelInfo.check_in_time} và trả phòng (check-out) trước ${hotelInfo.check_out_time} trưa. Khách sạn luôn hỗ trợ nhận phòng sớm hoặc trả phòng muộn linh hoạt tùy theo tình trạng phòng thực tế hoặc đặc quyền hạng phòng/hội viên TA Club.`
         },
         {
             q: 'Khách sạn có dịch vụ nhận gửi hành lý trước check-in hoặc sau check-out không?',
@@ -46,7 +84,7 @@ export default function ContactPage() {
     ];
 
     const handleCopyAddress = () => {
-        const address = '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam';
+        const address = hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam';
         navigator.clipboard.writeText(address);
         setCopiedAddress(true);
         setTimeout(() => setCopiedAddress(false), 2500);
@@ -134,7 +172,7 @@ export default function ContactPage() {
             <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
                 {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
                 <img
-                    src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90"
+                    src={hotelInfo.banner_contact || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90"}
                     alt="Khách Sạn TA Đà Nẵng Luxury Resort & Concierge"
                     className="absolute inset-0 w-full h-full object-cover object-center"
                 />
@@ -148,7 +186,7 @@ export default function ContactPage() {
                         <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
                             Kết Nối & Chỉ Dẫn Đường Đi <br className="hidden sm:inline" />
                             <span className="text-amber-400">
-                                Khách Sạn TA Đà Nẵng
+                                {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                             </span>
                         </h1>
                         <p className="text-sm sm:text-base text-gray-100 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md">
@@ -311,7 +349,7 @@ export default function ContactPage() {
                                         Trụ sở nghỉ dưỡng Flagship
                                     </span>
                                     <h3 className="font-serif text-xl font-bold text-slate-900 mt-0.5">
-                                        Khách Sạn TA Đà Nẵng
+                                        {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                     </h3>
                                 </div>
                                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0">
@@ -320,15 +358,15 @@ export default function ContactPage() {
                             </div>
 
                             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
-                                <strong>08 Võ Nguyên Giáp</strong>, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam.
+                                {hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam.'}
                             </p>
                             <p className="text-xs text-slate-500 mb-5 italic">
-                                Tọa lạc tại cung đường resort ven biển đẹp nhất Việt Nam, đối diện bãi tắm Mỹ Khê.
+                                {hotelInfo.hotel_slogan || 'Kiệt tác nghỉ dưỡng ven biển đẳng cấp quốc tế.'}
                             </p>
 
                             <div className="flex flex-wrap gap-2.5">
                                 <a
-                                    href="https://maps.google.com"
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotelInfo.address || 'Khách Sạn TA Đà Nẵng')}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
@@ -362,8 +400,8 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-base shrink-0">🏨</div>
                                     <div>
                                         <strong className="text-slate-900 font-bold block">Phòng Đặt Phòng (Reservations)</strong>
-                                        <span className="text-slate-500 block text-[11px]">(+84) 236 388 9900 - <span className="text-blue-600 font-semibold">Ext 1</span></span>
-                                        <a href="mailto:booking@tadananghotel.com" className="text-blue-600 hover:underline">booking@tadananghotel.com</a>
+                                        <span className="text-slate-500 block text-[11px]">{hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-blue-600 font-semibold">Ext 1</span></span>
+                                        <a href={`mailto:${hotelInfo.email || 'booking@tadananghotel.com'}`} className="text-blue-600 hover:underline">{hotelInfo.email || 'booking@tadananghotel.com'}</a>
                                     </div>
                                 </div>
 
@@ -372,8 +410,8 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center text-base shrink-0">🍴</div>
                                     <div>
                                         <strong className="text-slate-900 font-bold block">Dịch Vụ Ẩm Thực & Bar (F&B)</strong>
-                                        <span className="text-slate-500 block text-[11px]">(+84) 236 388 9900 - <span className="text-blue-600 font-semibold">Ext 2</span></span>
-                                        <a href="mailto:dining@tadananghotel.com" className="text-blue-600 hover:underline">dining@tadananghotel.com</a>
+                                        <span className="text-slate-500 block text-[11px]">{hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-blue-600 font-semibold">Ext 2</span></span>
+                                        <a href={`mailto:${hotelInfo.email || 'dining@tadananghotel.com'}`} className="text-blue-600 hover:underline">{hotelInfo.email || 'dining@tadananghotel.com'}</a>
                                     </div>
                                 </div>
 
@@ -382,8 +420,8 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-base shrink-0">🪷</div>
                                     <div>
                                         <strong className="text-slate-900 font-bold block">The Lotus Spa & Wellness</strong>
-                                        <span className="text-slate-500 block text-[11px]">(+84) 236 388 9900 - <span className="text-blue-600 font-semibold">Ext 3</span></span>
-                                        <a href="mailto:spa@tadananghotel.com" className="text-blue-600 hover:underline">spa@tadananghotel.com</a>
+                                        <span className="text-slate-500 block text-[11px]">{hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-blue-600 font-semibold">Ext 3</span></span>
+                                        <a href={`mailto:${hotelInfo.email || 'spa@tadananghotel.com'}`} className="text-blue-600 hover:underline">{hotelInfo.email || 'spa@tadananghotel.com'}</a>
                                     </div>
                                 </div>
 
@@ -392,8 +430,8 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-base shrink-0">🏛️</div>
                                     <div>
                                         <strong className="text-slate-900 font-bold block">Ban Sự Kiện Đoàn & M.I.C.E</strong>
-                                        <span className="text-slate-500 block text-[11px]">(+84) 236 388 9900 - <span className="text-blue-600 font-semibold">Ext 4</span></span>
-                                        <a href="mailto:mice@tadananghotel.com" className="text-blue-600 hover:underline">mice@tadananghotel.com</a>
+                                        <span className="text-slate-500 block text-[11px]">{hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-blue-600 font-semibold">Ext 4</span></span>
+                                        <a href={`mailto:${hotelInfo.email || 'mice@tadananghotel.com'}`} className="text-blue-600 hover:underline">{hotelInfo.email || 'mice@tadananghotel.com'}</a>
                                     </div>
                                 </div>
                             </div>
@@ -402,8 +440,8 @@ export default function ContactPage() {
                             <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-950 text-white flex items-center justify-between">
                                 <div>
                                     <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">Hotline Khẩn Cấp VIP 24/7</span>
-                                    <strong className="text-lg font-bold">1900 8899</strong>
-                                    <span className="block text-[10px] text-slate-300">Hoặc (+84) 901 234 567</span>
+                                    <strong className="text-lg font-bold">{hotelInfo.hotline || '1900 8899'}</strong>
+                                    <span className="block text-[10px] text-slate-300">Điện thoại bàn: {hotelInfo.phone_number || '(+84) 236 388 9900'}</span>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg shadow-md">
                                     📞
@@ -426,12 +464,12 @@ export default function ContactPage() {
                                 Bản Đồ Vị Trí & Hướng Dẫn Di Chuyển
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
-                                Khách Sạn TA Đà Nẵng sở hữu vị trí mặt tiền biển phong thủy vượng khí, kết nối thông suốt với cảng hàng không quốc tế, ga đường sắt và các di sản văn hóa thế giới lân cận.
+                                {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'} sở hữu vị trí đắc địa, kết nối thông suốt với cảng hàng không quốc tế, ga đường sắt và các địa danh du lịch nổi tiếng.
                             </p>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
                             <span className="text-orange-500">📍</span>
-                            <span>Tọa độ GPS: <strong>16.0544° N, 108.2435° E</strong></span>
+                            <span>{hotelInfo.address || '08 Võ Nguyên Giáp, Đà Nẵng'}</span>
                         </div>
                     </div>
 
@@ -439,14 +477,14 @@ export default function ContactPage() {
                     <div className="w-full h-[460px] rounded-3xl overflow-hidden shadow-lg border border-slate-200 relative bg-slate-100">
                         {/* Interactive Real Google Maps Iframe */}
                         <iframe
-                            src="https://maps.google.com/maps?q=08%20V%C3%B5%20Nguy%C3%AAn%20Gi%C3%A1p,%20Ph%C6%B0%E1%BB%9Dng%20M%E1%BB%B9%20An,%20Qu%E1%BA%ADn%20Ng%C5%A9%20H%C3%A0nh%20S%C6%A1n,%20%C4%90%C3%A0%20N%E1%BA%B5ng&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                            src={`https://maps.google.com/maps?q=${encodeURIComponent(hotelInfo.address || 'Khách Sạn TA Đà Nẵng')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
                             width="100%"
                             height="100%"
                             style={{ border: 0 }}
                             allowFullScreen=""
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
-                            title="Bản đồ vị trí thực tế Khách Sạn TA Đà Nẵng"
+                            title={`Bản đồ vị trí thực tế ${hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}`}
                             className="w-full h-full"
                         />
 
@@ -457,22 +495,22 @@ export default function ContactPage() {
                                 <span className="font-bold text-[11px] uppercase tracking-wider text-slate-800">5-Star Luxury Resort</span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm">
-                                Khách Sạn TA Đà Nẵng
+                                {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                             </h4>
                             <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                                08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Q. Ngũ Hành Sơn
+                                {hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Q. Ngũ Hành Sơn'}
                             </p>
                             <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                                 <span className="text-emerald-600 font-semibold flex items-center gap-1">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                                    Trực diện biển Mỹ Khê
+                                    {hotelInfo.hotel_slogan || 'Resort Đẳng Cấp 5 Sao'}
                                 </span>
                             </div>
                         </div>
 
                         {/* Bottom Right CTA Link to Google Maps */}
                         <a
-                            href="https://www.google.com/maps/dir/?api=1&destination=08+V%C3%B5+Nguy%C3%AAn+Gi%C3%A1p,+Ph%C6%B0%E1%BB%9Dng+M%E1%BB%B9+An,+Qu%E1%BA%ADn+Ng%C5%A9+H%C3%A0nh+S%C6%A1n,+%C4%90%C3%A0+N%E1%BA%B5ng"
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hotelInfo.address || 'Khách Sạn TA Đà Nẵng')}`}
                             target="_blank"
                             rel="noreferrer"
                             className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 flex items-center gap-2 transition hover:scale-105 active:scale-95 pointer-events-auto"

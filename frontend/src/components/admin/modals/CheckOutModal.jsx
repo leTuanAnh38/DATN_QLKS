@@ -71,6 +71,15 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         account_name: 'KHACH SAN TA DA NANG'
     });
 
+    // Cấu hình khách sạn & phụ thu động từ Cài đặt hệ thống
+    const [hotelSettings, setHotelSettings] = useState({
+        check_out_time: '12:00',
+        late_checkout_12pm_3pm: 30,
+        late_checkout_3pm_6pm: 50,
+        late_checkout_after_6pm: 100
+    });
+    const [applyLateSurcharge, setApplyLateSurcharge] = useState(true);
+
     // Hàm refresh lại bảng kê sau khi thao tác dịch vụ
     const refreshSummary = useCallback(async () => {
         if (!booking?.id) return;
@@ -96,9 +105,10 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                 setIsLoading(true);
                 setError(null);
 
-                const [summaryRes, configRes] = await Promise.allSettled([
+                const [summaryRes, configRes, hotelRes] = await Promise.allSettled([
                     bookingService.getBookingSummary(booking.id),
-                    api.get('/payments/config/')
+                    api.get('/payments/config/'),
+                    api.get('/hotel-settings/')
                 ]);
 
                 if (isMounted) {
@@ -118,6 +128,19 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 account_no: cData.account_no,
                                 account_name: (cData.account_name || '').toUpperCase()
                             });
+                        }
+                    }
+
+                    if (hotelRes.status === 'fulfilled') {
+                        const hData = hotelRes.value.data?.data || hotelRes.value.data;
+                        if (hData) {
+                            setHotelSettings(prev => ({
+                                ...prev,
+                                check_out_time: hData.check_out_time || prev.check_out_time,
+                                late_checkout_12pm_3pm: hData.late_checkout_12pm_3pm !== undefined && hData.late_checkout_12pm_3pm !== null ? Number(hData.late_checkout_12pm_3pm) : 30,
+                                late_checkout_3pm_6pm: hData.late_checkout_3pm_6pm !== undefined && hData.late_checkout_3pm_6pm !== null ? Number(hData.late_checkout_3pm_6pm) : 50,
+                                late_checkout_after_6pm: hData.late_checkout_after_6pm !== undefined && hData.late_checkout_after_6pm !== null ? Number(hData.late_checkout_after_6pm) : 100
+                            }));
                         }
                     }
                 }
@@ -310,21 +333,74 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         return Number(summary?.service_charge ?? booking?.extra_services_total ?? 0);
     }, [summary, booking]);
 
+    // Tự động phát hiện trả phòng muộn (Late Check-out Detection) theo Cài đặt hệ thống
+    const lateCheckOutInfo = useMemo(() => {
+        if (!booking?.check_out_date) return null;
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+        const bCheckOutStr = String(booking.check_out_date).split('T')[0];
+
+        // Nếu ngày hiện tại trước ngày check-out dự kiến thì không phải trả phòng muộn
+        if (todayStr < bCheckOutStr) return null;
+
+        const [stdH, stdM] = (hotelSettings.check_out_time || '12:00').split(':').map(Number);
+        const stdDecimal = (stdH || 12) + (stdM || 0) / 60;
+        const currentDecimal = now.getHours() + now.getMinutes() / 60;
+
+        // Nếu đúng ngày check-out nhưng trước hoặc đúng giờ chuẩn
+        if (todayStr === bCheckOutStr && currentDecimal <= stdDecimal) {
+            return null;
+        }
+
+        let percent = Number(hotelSettings.late_checkout_after_6pm !== undefined ? hotelSettings.late_checkout_after_6pm : 100);
+        let rule = `Sau 18:00 tối (+${percent}% 1 đêm)`;
+        if (todayStr === bCheckOutStr) {
+            if (currentDecimal <= 15) {
+                percent = Number(hotelSettings.late_checkout_12pm_3pm !== undefined ? hotelSettings.late_checkout_12pm_3pm : 30);
+                rule = `12:00 - 15:00 (+${percent}%)`;
+            } else if (currentDecimal <= 18) {
+                percent = Number(hotelSettings.late_checkout_3pm_6pm !== undefined ? hotelSettings.late_checkout_3pm_6pm : 50);
+                rule = `15:00 - 18:00 (+${percent}%)`;
+            }
+        } else {
+            rule = `Quá hạn trả phòng >= 1 ngày (+${percent}%)`;
+        }
+
+        const nights = Math.max(1, Number(summary?.nights || booking.nights) || 1);
+        const rawRoom = Number(summary?.room_charge ?? booking.room_amount ?? booking.total_amount ?? 0);
+        const dailyRate = nights > 0 ? (rawRoom / nights) : rawRoom;
+        const amount = Math.round((dailyRate * percent) / 100);
+
+        const currentTimeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+        return {
+            percent,
+            amount,
+            rule,
+            currentTime: currentTimeStr
+        };
+    }, [booking, summary, hotelSettings]);
+
+    const lateChargeAmount = (lateCheckOutInfo && applyLateSurcharge) ? lateCheckOutInfo.amount : 0;
+
     // Số tiền còn thiếu ban đầu từ backend (Folio Balance Due)
     const initialRemainingBalance = useMemo(() => {
         if (isGroupRoom) {
             // Đối với phòng thuộc đoàn công ty (Master-Billing), tiền phòng chuyển HĐ đoàn,
             // khách lẻ chỉ thanh toán phần dịch vụ phát sinh cá nhân tại phòng (nếu có)
-            return Math.max(0, unpaidServiceCharge - paidAmount);
+            return Math.max(0, unpaidServiceCharge + lateChargeAmount - paidAmount);
         }
         if (summary?.remaining_balance !== undefined && summary?.remaining_balance !== null) {
-            return Number(summary.remaining_balance);
+            return Number(summary.remaining_balance) + lateChargeAmount;
         }
         if (summary?.remaining_amount !== undefined && summary?.remaining_amount !== null) {
-            return Number(summary.remaining_amount);
+            return Number(summary.remaining_amount) + lateChargeAmount;
         }
-        return Math.max(0, totalAmount - paidAmount);
-    }, [isGroupRoom, unpaidServiceCharge, summary, totalAmount, paidAmount]);
+        return Math.max(0, totalAmount + lateChargeAmount - paidAmount);
+    }, [isGroupRoom, unpaidServiceCharge, lateChargeAmount, summary, totalAmount, paidAmount]);
 
     // Số tiền còn thiếu thực tế (sau khi lễ tân vừa bấm xác nhận thanh toán nợ)
     const currentRemainingBalance = useMemo(() => {
@@ -385,6 +461,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             const res = await bookingService.checkOut(booking.id, {
                 payment_method: paymentMethod,
                 note: checkoutNote.trim(),
+                late_checkout_surcharge: lateChargeAmount,
                 is_company_invoice: isCompanyInvoice,
                 company_name: isCompanyInvoice ? companyName.trim() : null,
                 company_tax_code: isCompanyInvoice ? companyTaxCode.trim() : null,
@@ -556,6 +633,37 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                 ) : (
                     /* 2B. BẢNG KÊ CHI TIẾT TRƯỚC THANH TOÁN (FOLIO ITEMIZED TABLE) */
                     <div className="space-y-6">
+                        {/* CẢNH BÁO TRẢ PHÒNG MUỘN (LATE CHECK-OUT) THEO CÀI ĐẶT HỆ THỐNG */}
+                        {lateCheckOutInfo && (
+                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
+                                            <span className="text-base">⏰</span>
+                                            <span>Phát hiện Trả phòng muộn (Late Check-out) lúc {lateCheckOutInfo.currentTime}</span>
+                                            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                                {lateCheckOutInfo.rule}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-600 leading-relaxed">
+                                            Quy định khách sạn: Giờ trả phòng chuẩn là <strong>{hotelSettings.check_out_time || '12:00'}</strong>. Khách check-out muộn áp dụng phụ thu <strong>+{lateCheckOutInfo.percent}%</strong> tiền phòng 1 ngày (~<strong className="text-slate-900">{formatCurrency(lateCheckOutInfo.amount)}</strong>).
+                                        </p>
+                                    </div>
+                                    <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs self-start sm:self-auto shrink-0 transition">
+                                        <input
+                                            type="checkbox"
+                                            checked={applyLateSurcharge}
+                                            onChange={(e) => setApplyLateSurcharge(e.target.checked)}
+                                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                                        />
+                                        <span className="text-xs font-bold text-slate-800">
+                                            {applyLateSurcharge ? 'Áp dụng phụ thu' : 'Miễn phụ thu (Waive)'}
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
                         {/* THÔNG BÁO GỘP ĐOÀN MASTER-BILLING */}
                         {isGroupRoom && (
                             <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs space-y-1">
@@ -927,6 +1035,18 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 {formatCurrency(totalAmount)}
                                             </td>
                                         </tr>
+
+                                        {/* Phụ thu trả phòng muộn (nếu có áp dụng) */}
+                                        {lateChargeAmount > 0 && (
+                                            <tr className="bg-amber-50/70 border-t border-amber-200">
+                                                <td colSpan={3} className="py-2 px-4 text-right text-amber-900 font-semibold text-xs">
+                                                    ⏰ Phụ thu trả phòng muộn ({lateCheckOutInfo?.rule || `+${lateCheckOutInfo?.percent}%`}):
+                                                </td>
+                                                <td className="py-2 px-4 text-right font-bold text-amber-800 text-xs">
+                                                    +{formatCurrency(lateChargeAmount)}
+                                                </td>
+                                            </tr>
+                                        )}
 
                                         {/* Khấu trừ tiền phòng gộp đoàn nếu là phòng thuộc đoàn */}
                                         {isGroupRoom && (

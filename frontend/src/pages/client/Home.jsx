@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer';
 import FeaturedRoomCategories from '../../components/client/FeaturedRoomCategories';
 import FeaturedServices from '../../components/client/FeaturedServices';
 import postService from '../../services/postService';
+import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 
 // Tiện ích ngày tháng
 const getTodayStr = () => {
@@ -51,22 +52,28 @@ export default function TADaNangHotelLanding() {
     const [latestPosts, setLatestPosts] = useState([]);
     const [isLoadingNews, setIsLoadingNews] = useState(true);
 
-    // Danh sách ảnh banner chạy luân phiên (Slider)
+    const { settings } = useHotelSettings();
+    const bannerHome1 = settings?.banner_home || DEFAULT_BANNERS.banner_home;
+    const bannerHome2 = settings?.banner_home_2 || DEFAULT_BANNERS.banner_home_2;
+    const bannerHome3 = settings?.banner_home_3 || DEFAULT_BANNERS.banner_home_3;
+    const hotelName = settings?.hotel_name || "Khách Sạn TA Đà Nẵng";
+
+    // Danh sách ảnh banner chạy luân phiên (Slider 3 ảnh)
     const bannerImages = [
         {
-            url: "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1920&q=80",
+            url: bannerHome1,
             title: "Kỳ Nghỉ Thượng Lưu",
-            subtitle: "Tại Khách Sạn TA Đà Nẵng",
+            subtitle: `Tại ${hotelName}`,
             desc: "Nghỉ dưỡng đẳng cấp bên bờ biển Mỹ Khê với dịch vụ chu đáo và không gian thư thái tuyệt đối."
         },
         {
-            url: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1920&q=80",
+            url: bannerHome2,
             title: "Thiên Đường Nghỉ Dưỡng",
             subtitle: "Hồ Bơi Vô Cực Hướng Biển",
             desc: "Thưởng ngoạn hoàng hôn biển lãng mạn cùng ly cocktail tinh tế bên hồ bơi chân mây."
         },
         {
-            url: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1920&q=80",
+            url: bannerHome3,
             title: "Phòng Suite Hạng Sang",
             subtitle: "Đặc Quyền Dịch Vụ 5 Sao",
             desc: "Nội thất cao cấp, ban công ngắm trọn đại dương và trải nghiệm ẩm thực thượng hạng."

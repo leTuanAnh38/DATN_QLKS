@@ -8,6 +8,7 @@ import { useAuth } from '../../store/authStore';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import PaymentModal, { PaymentSection } from '../../components/common/PaymentModal';
+import api from '../../services/api';
 
 // Hàm tiện ích format ngày thành chuỗi YYYY-MM-DD
 const formatDateToInput = (date) => {
@@ -128,6 +129,34 @@ export default function Checkout() {
     // 7. Quản lý kiểm tra tình trạng phòng trống (Chống Overbooking)
     const [availability, setAvailability] = useState(null);
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+
+    // Cấu hình Cài đặt hệ thống (giờ check-in/out, thuế VAT, phí dịch vụ)
+    const [hotelSettings, setHotelSettings] = useState({
+        check_in_time: '14:00',
+        check_out_time: '12:00',
+        vat_percent: 8,
+        service_charge_percent: 5
+    });
+
+    useEffect(() => {
+        let isMounted = true;
+        api.get('/hotel-settings/')
+            .then(res => {
+                const data = res.data?.data || res.data;
+                if (isMounted && data) {
+                    setHotelSettings({
+                        check_in_time: data.check_in_time || '14:00',
+                        check_out_time: data.check_out_time || '12:00',
+                        vat_percent: Number(data.vat_percent) || 8,
+                        service_charge_percent: Number(data.service_charge_percent) || 5,
+                        hotline: data.hotline || '1900 8899',
+                        hotel_name: data.hotel_name || 'Khách Sạn TA Đà Nẵng'
+                    });
+                }
+            })
+            .catch(err => console.error('Lỗi tải cài đặt khách sạn:', err));
+        return () => { isMounted = false; };
+    }, []);
 
     // Tải danh sách Dịch vụ đang hoạt động từ Backend (API GET /api/services/)
     useEffect(() => {
@@ -735,7 +764,7 @@ export default function Checkout() {
                                                 Thời gian lưu trú
                                             </h2>
                                             <p className="text-xs text-slate-500">
-                                                Nhận phòng từ 14:00 • Trả phòng trước 12:00
+                                                Nhận phòng từ {hotelSettings.check_in_time || '14:00'} • Trả phòng trước {hotelSettings.check_out_time || '12:00'}
                                             </p>
                                         </div>
                                     </div>
@@ -762,7 +791,7 @@ export default function Checkout() {
                                             />
                                         </div>
                                         <span className="text-[11px] text-slate-400 block">
-                                            Lịch đón khách từ: 14:00 ({formatDateDisplay(checkInDate)})
+                                            Lịch đón khách từ: {hotelSettings.check_in_time || '14:00'} ({formatDateDisplay(checkInDate)})
                                         </span>
                                     </div>
 
@@ -782,7 +811,7 @@ export default function Checkout() {
                                             />
                                         </div>
                                         <span className="text-[11px] text-slate-400 block">
-                                            Trả phòng trước: 12:00 ({formatDateDisplay(checkOutDate)})
+                                            Trả phòng trước: {hotelSettings.check_out_time || '12:00'} ({formatDateDisplay(checkOutDate)})
                                         </span>
                                     </div>
                                 </div>
@@ -1779,13 +1808,13 @@ export default function Checkout() {
                                     <div className="flex justify-between items-center text-slate-600">
                                         <span>Nhận phòng:</span>
                                         <strong className="text-slate-900">
-                                            {formatDateDisplay(checkInDate)} (14:00)
+                                            {formatDateDisplay(checkInDate)} ({hotelSettings.check_in_time || '14:00'})
                                         </strong>
                                     </div>
                                     <div className="flex justify-between items-center text-slate-600">
                                         <span>Trả phòng:</span>
                                         <strong className="text-slate-900">
-                                            {formatDateDisplay(checkOutDate)} (12:00)
+                                            {formatDateDisplay(checkOutDate)} ({hotelSettings.check_out_time || '12:00'})
                                         </strong>
                                     </div>
                                     <div className="flex justify-between items-center text-blue-600 font-semibold pt-1 border-t border-slate-200">
@@ -1850,7 +1879,7 @@ export default function Checkout() {
                                     )}
 
                                     <div className="flex justify-between text-slate-500">
-                                        <span>Thuế VAT & Phí phục vụ</span>
+                                        <span>Thuế VAT ({hotelSettings.vat_percent || 8}%) & Phí phục vụ ({hotelSettings.service_charge_percent || 5}%)</span>
                                         <span className="text-emerald-600 font-medium">Đã bao gồm</span>
                                     </div>
 
@@ -1932,7 +1961,7 @@ export default function Checkout() {
                                         ✓ Nhận phòng nhanh chóng tại quầy Lễ tân
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        📞 Hotline hỗ trợ 24/7: <strong className="text-slate-700">1900 8899</strong>
+                                        📞 Hotline hỗ trợ 24/7: <strong className="text-slate-700">{hotelSettings.hotline || '1900 8899'}</strong>
                                     </div>
                                 </div>
                             </div>

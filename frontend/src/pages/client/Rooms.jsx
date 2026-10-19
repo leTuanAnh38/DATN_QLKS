@@ -3,6 +3,7 @@ import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import roomService from '../../services/roomService';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 // Định dạng ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -26,7 +27,8 @@ const formatDateDisplay = (dateStr) => {
  */
 export default function RoomsAndSuitesPage() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const location = useLocation();
+    const { settings } = useHotelSettings();
+    const bannerRoomsImg = settings?.banner_rooms || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=2074&q=85";
 
     // Nhận các tham số tìm kiếm từ thanh tìm phòng trang chủ
     const checkInParam = searchParams.get('checkIn') || location.state?.checkInDate || '';
@@ -141,7 +143,7 @@ export default function RoomsAndSuitesPage() {
             <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
                 {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
                 <img
-                    src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=2074&q=85"
+                    src={bannerRoomsImg}
                     alt="Phòng nghỉ & Suites Khách Sạn TA Đà Nẵng"
                     className="absolute inset-0 w-full h-full object-cover object-center"
                 />

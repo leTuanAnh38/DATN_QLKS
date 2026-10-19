@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { bookingService } from '../../../services/bookingService';
 import { roomService } from '../../../services/roomService';
 import { useHasPermission } from '../../../utils/permission';
+import api from '../../../services/api';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -12,6 +13,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     const canCreateBookings = useHasPermission('bookings', 'create');
     const [categories, setCategories] = useState([]);
     const [partners, setPartners] = useState([]);
+    const [hotelSettings, setHotelSettings] = useState({
+        group_deposit_percent: 50
+    });
     const [isLoadingInit, setIsLoadingInit] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -65,14 +69,24 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
 
         Promise.allSettled([
             roomService.getCategories(),
-            bookingService.getCorporatePartners({ active_only: true })
-        ]).then(([catRes, partnerRes]) => {
+            bookingService.getCorporatePartners({ active_only: true }),
+            api.get('/hotel-settings/')
+        ]).then(([catRes, partnerRes, hotelRes]) => {
             if (!isMounted) return;
             if (catRes.status === 'fulfilled' && catRes.value?.categories) {
                 setCategories(catRes.value.categories);
             }
             if (partnerRes.status === 'fulfilled' && partnerRes.value?.data) {
                 setPartners(partnerRes.value.data);
+            }
+            if (hotelRes.status === 'fulfilled') {
+                const hData = hotelRes.value.data?.data || hotelRes.value.data;
+                if (hData) {
+                    setHotelSettings(prev => ({
+                        ...prev,
+                        group_deposit_percent: Number(hData.group_deposit_percent) || 50
+                    }));
+                }
             }
             setIsLoadingInit(false);
         });
@@ -242,7 +256,8 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             combinedNote = combinedNote ? `${prefixStr} ${combinedNote}` : prefixStr;
         }
 
-        const depositVal = customDeposit !== '' ? Number(customDeposit) : Math.round(grandTotal * 0.5);
+        const depPercent = Number(hotelSettings.group_deposit_percent) || 50;
+        const depositVal = customDeposit !== '' ? Number(customDeposit) : Math.round(grandTotal * (depPercent / 100));
 
         const payload = {
             group_name: groupName.trim() || `Đoàn khách ${leaderName.trim()}`,
@@ -721,11 +736,11 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                                     <div>
                                         <label className="text-[11px] text-slate-600 font-semibold block mb-1">
-                                            Tiền đặt cọc giữ chỗ (Mặc định 50%):
+                                            Tiền đặt cọc giữ chỗ (Mặc định {hotelSettings.group_deposit_percent || 50}%):
                                         </label>
                                         <input
                                             type="number"
-                                            placeholder={String(Math.round(grandTotal * 0.5))}
+                                            placeholder={String(Math.round(grandTotal * ((hotelSettings.group_deposit_percent || 50) / 100)))}
                                             value={customDeposit}
                                             onChange={(e) => setCustomDeposit(e.target.value)}
                                             className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"

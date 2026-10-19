@@ -107,6 +107,17 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
     const [applyEarlyCharge, setApplyEarlyCharge] = useState(true);
     const [confirmLateCheckIn, setConfirmLateCheckIn] = useState(false);
 
+    // Cấu hình khách sạn & phụ thu động từ Cài đặt hệ thống
+    const [hotelSettings, setHotelSettings] = useState({
+        check_in_time: '14:00',
+        check_out_time: '12:00',
+        early_checkin_before_6am: 100,
+        early_checkin_6am_9am: 50,
+        early_checkin_9am_12pm: 30,
+        early_checkin_9am_2pm: 30
+    });
+    const [applySameDayEarlyCharge, setApplySameDayEarlyCharge] = useState(true);
+
     // Form thanh toán thu nốt phần remaining_balance khi click "Thu tiền & Check-in"
     const [showPaymentForm, setShowPaymentForm] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'transfer'
@@ -119,21 +130,43 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
         account_name: 'KHACH SAN TA DA NANG'
     });
 
-    // Tự động tải cấu hình tài khoản thụ hưởng từ Backend
+    // Tự động tải cấu hình tài khoản thụ hưởng & Cài đặt hệ thống từ Backend
     useEffect(() => {
         let isMounted = true;
-        api.get('/payments/config/')
-            .then(res => {
-                const data = res.data?.data || res.data;
-                if (isMounted && data && data.account_no) {
+        Promise.allSettled([
+            api.get('/payments/config/'),
+            api.get('/hotel-settings/')
+        ]).then(([bankRes, hotelRes]) => {
+            if (!isMounted) return;
+            if (bankRes.status === 'fulfilled') {
+                const data = bankRes.value.data?.data || bankRes.value.data;
+                if (data && data.account_no) {
                     setBankConfig({
                         bank_bin: data.bank_bin || '970422',
                         account_no: data.account_no,
                         account_name: (data.account_name || 'KHACH SAN TA DA NANG').toUpperCase()
                     });
                 }
-            })
-            .catch(() => {});
+            }
+            if (hotelRes.status === 'fulfilled') {
+                const hData = hotelRes.value.data?.data || hotelRes.value.data;
+                if (hData) {
+                    const early9to12 = hData.early_checkin_9am_12pm !== undefined && hData.early_checkin_9am_12pm !== null
+                        ? Number(hData.early_checkin_9am_12pm)
+                        : (hData.early_checkin_9am_2pm !== undefined && hData.early_checkin_9am_2pm !== null ? Number(hData.early_checkin_9am_2pm) : 30);
+
+                    setHotelSettings(prev => ({
+                        ...prev,
+                        check_in_time: hData.check_in_time || prev.check_in_time,
+                        check_out_time: hData.check_out_time || prev.check_out_time,
+                        early_checkin_before_6am: hData.early_checkin_before_6am !== undefined && hData.early_checkin_before_6am !== null ? Number(hData.early_checkin_before_6am) : 100,
+                        early_checkin_6am_9am: hData.early_checkin_6am_9am !== undefined && hData.early_checkin_6am_9am !== null ? Number(hData.early_checkin_6am_9am) : 50,
+                        early_checkin_9am_12pm: early9to12,
+                        early_checkin_9am_2pm: early9to12
+                    }));
+                }
+            }
+        }).catch(() => {});
         return () => { isMounted = false; };
     }, []);
 
@@ -433,6 +466,54 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
         return baseRoomCharge;
     }, [baseRoomCharge, isEarlyCheckIn, applyEarlyCharge, estimatedEarlyCharge]);
 
+    // Tự động phát hiện nhận phòng sớm trong ngày (Same-day Early Check-in) theo Cài đặt hệ thống
+    const sameDayEarlyCheckInInfo = useMemo(() => {
+        if (!booking?.check_in_date || isEarlyCheckIn || isLateCheckIn || isExpiredCheckIn) return null;
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+        const bCheckInStr = String(booking.check_in_date).split('T')[0];
+
+        // Chỉ tính nếu đúng ngày check-in hôm nay
+        if (todayStr !== bCheckInStr) return null;
+
+        const [stdH, stdM] = (hotelSettings.check_in_time || '14:00').split(':').map(Number);
+        const stdDecimal = (stdH || 14) + (stdM || 0) / 60;
+        const currentDecimal = now.getHours() + now.getMinutes() / 60;
+
+        // Nếu hiện tại đã đến hoặc qua giờ check-in chuẩn thì không phụ thu
+        if (currentDecimal >= stdDecimal) return null;
+
+        let percent = Number(hotelSettings.early_checkin_before_6am !== undefined ? hotelSettings.early_checkin_before_6am : 100);
+        let rule = `Trước 06:00 sáng (+${percent}% 1 đêm)`;
+        if (currentDecimal >= 9) {
+            const p = hotelSettings.early_checkin_9am_12pm !== undefined ? hotelSettings.early_checkin_9am_12pm : hotelSettings.early_checkin_9am_2pm;
+            percent = Number(p !== undefined ? p : 30);
+            rule = `09:00 - ${hotelSettings.check_in_time || '14:00'} (+${percent}%)`;
+        } else if (currentDecimal >= 6) {
+            percent = Number(hotelSettings.early_checkin_6am_9am !== undefined ? hotelSettings.early_checkin_6am_9am : 50);
+            rule = `06:00 - 09:00 (+${percent}%)`;
+        }
+
+        const nights = Math.max(1, Number(booking.nights) || 1);
+        const rawRoom = Number(booking?.room_charge ?? booking?.room_amount ?? booking?.total_amount ?? 0);
+        const dayRate = nights > 0 ? (rawRoom / nights) : rawRoom;
+        const amount = Math.round((dayRate * percent) / 100);
+
+        const currentTimeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+        return {
+            percent,
+            amount,
+            rule,
+            currentTime: currentTimeStr
+        };
+    }, [booking, isEarlyCheckIn, isLateCheckIn, isExpiredCheckIn, hotelSettings]);
+
+    const sameDayEarlySurcharge = (sameDayEarlyCheckInInfo && applySameDayEarlyCharge) ? sameDayEarlyCheckInInfo.amount : 0;
+
     const isGroupRoom = Boolean(
         booking?.group_booking || 
         booking?.group_booking_code || 
@@ -449,13 +530,21 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
         return 0;
     }, [booking, baseRoomCharge]);
 
+    const preOrderedServicesTotal = useMemo(() => {
+        return Number(booking?.service_charge ?? booking?.extra_services_total ?? 0);
+    }, [booking]);
+
+    const totalExpectedCharges = useMemo(() => {
+        return effectiveRoomCharge + sameDayEarlySurcharge + preOrderedServicesTotal;
+    }, [effectiveRoomCharge, sameDayEarlySurcharge, preOrderedServicesTotal]);
+
     const effectiveRemainingBalance = useMemo(() => {
         if (isGroupRoom) {
             // Tiền phòng gộp vào Hóa đơn tổng của đoàn (Master-Billing), khách lẻ không nợ tiền phòng tại quầy
             return 0;
         }
-        return Math.max(0, effectiveRoomCharge - paidAmount);
-    }, [isGroupRoom, effectiveRoomCharge, paidAmount]);
+        return Math.max(0, totalExpectedCharges - paidAmount);
+    }, [isGroupRoom, totalExpectedCharges, paidAmount]);
 
     // Đánh giá trạng thái tài chính
     const isFullyPaid = isGroupRoom || effectiveRemainingBalance <= 0; // Trường hợp 2 (Pre-paid) hoặc Gộp đoàn (Master-Billing)
@@ -666,6 +755,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                 internal_note: finalNote,
                 confirm_early_check_in: confirmEarlyCheckIn,
                 apply_early_charge: applyEarlyCharge,
+                same_day_early_surcharge: sameDayEarlySurcharge,
                 confirm_late_check_in: confirmLateCheckIn,
                 guests: guestsPayload
             });
@@ -802,15 +892,27 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {/* Tiền phòng */}
+                            {/* Tiền phòng / Tổng chi phí */}
                             <div className="p-3 bg-white rounded-xl border border-slate-200">
-                                <span className="text-[10px] text-slate-400 block font-medium">Tiền phòng ({booking.nights || 1} đêm):</span>
+                                <span className="text-[10px] text-slate-400 block font-medium">
+                                    {preOrderedServicesTotal > 0 ? `Tổng chi phí (${booking.nights || 1} đêm):` : `Tiền phòng (${booking.nights || 1} đêm):`}
+                                </span>
                                 <strong className="text-sm font-bold text-slate-900 block mt-0.5">
-                                    {formatCurrency(effectiveRoomCharge)}
+                                    {formatCurrency(totalExpectedCharges)}
                                 </strong>
+                                {preOrderedServicesTotal > 0 && (
+                                    <span className="text-[9px] text-indigo-600 font-semibold block">
+                                        (Gồm {formatCurrency(effectiveRoomCharge)} phòng + {formatCurrency(preOrderedServicesTotal)} DV)
+                                    </span>
+                                )}
                                 {isEarlyCheckIn && applyEarlyCharge && (
                                     <span className="text-[9px] text-emerald-600 font-semibold block">
                                         (Đã gồm +{formatCurrency(estimatedEarlyCharge)} ở sớm)
+                                    </span>
+                                )}
+                                {sameDayEarlySurcharge > 0 && (
+                                    <span className="text-[9px] text-amber-700 font-semibold block">
+                                        (Đã gồm +{formatCurrency(sameDayEarlySurcharge)} nhận sớm hôm nay)
                                     </span>
                                 )}
                             </div>
@@ -838,6 +940,11 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                     <strong className="text-sm font-bold text-emerald-700 block mt-0.5">
                                         {formatCurrency(paidAmount)}
                                     </strong>
+                                    {paidAmount > totalExpectedCharges && (
+                                        <span className="text-[9px] text-emerald-700 font-semibold block">
+                                            (Đã thanh toán dư +{formatCurrency(paidAmount - totalExpectedCharges)})
+                                        </span>
+                                    )}
                                 </div>
                             )}
 
@@ -944,6 +1051,37 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                     />
                                     <span className="text-xs font-bold text-slate-900">
                                         Tôi xác nhận đồng ý cho khách nhận phòng sớm từ hôm nay <span className="text-rose-600">*</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 2B. NHẬN PHÒNG SỚM TRONG NGÀY (SAME-DAY EARLY CHECK-IN) THEO CÀI ĐẶT HỆ THỐNG */}
+                    {sameDayEarlyCheckInInfo && (
+                        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
+                                        <span className="text-base">⏰</span>
+                                        <span>Phát hiện Nhận phòng sớm trong ngày (Early Check-in) lúc {sameDayEarlyCheckInInfo.currentTime}</span>
+                                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                            {sameDayEarlyCheckInInfo.rule}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Quy định khách sạn: Giờ nhận phòng chuẩn là <strong>{hotelSettings.check_in_time || '14:00'}</strong>. Khách nhận phòng sớm trước giờ áp dụng phụ thu <strong>+{sameDayEarlyCheckInInfo.percent}%</strong> tiền phòng 1 ngày (~<strong className="text-slate-900">{formatCurrency(sameDayEarlyCheckInInfo.amount)}</strong>).
+                                    </p>
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs self-start sm:self-auto shrink-0 transition">
+                                    <input
+                                        type="checkbox"
+                                        checked={applySameDayEarlyCharge}
+                                        onChange={(e) => setApplySameDayEarlyCharge(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    <span className="text-xs font-bold text-slate-800">
+                                        {applySameDayEarlyCharge ? 'Áp dụng phụ thu' : 'Miễn phụ thu (Waive)'}
                                     </span>
                                 </label>
                             </div>

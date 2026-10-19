@@ -27,9 +27,11 @@ import {
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { promotionService } from '../../services/promotionService';
+import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 
 export default function PromotionsPage() {
     const navigate = useNavigate();
+    const { settings } = useHotelSettings();
 
     // 1. STATE DỮ LIỆU KHUYẾN MÃI TỪ BACKEND
     const [dbPromotions, setDbPromotions] = useState([]);
@@ -369,10 +371,20 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 {/* 1. HERO SPOTLIGHT: ĐẬM CHẤT MARKETING NỀN SÁNG CAO CẤP VỚI COUNTDOWN */}
                 {/* ============================================================== */}
-                <header className="relative pt-12 pb-16 overflow-hidden bg-gradient-to-b from-blue-50/70 via-amber-50/25 to-slate-50 border-b border-slate-200/80">
+                <header className="relative pt-12 pb-16 overflow-hidden border-b border-slate-200/80">
+                    {/* Background Dynamic Banner with refined light overlay */}
+                    <div className="absolute inset-0 z-0">
+                        <img
+                            src={settings?.banner_promotions || DEFAULT_BANNERS.banner_promotions}
+                            alt="Khuyến Mãi Banner"
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px]" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/70 via-white/85 to-slate-50" />
+                    </div>
                     {/* Ambient Glow Orbs */}
-                    <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[320px] bg-gradient-to-r from-blue-300/25 via-rose-300/20 to-amber-300/25 blur-3xl rounded-full pointer-events-none -z-0" />
-                    <div className="absolute -top-20 right-10 w-72 h-72 bg-amber-200/30 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[320px] bg-gradient-to-r from-blue-300/25 via-rose-300/20 to-amber-300/25 blur-3xl rounded-full pointer-events-none z-0" />
+                    <div className="absolute -top-20 right-10 w-72 h-72 bg-amber-200/30 rounded-full blur-3xl pointer-events-none z-0" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className="text-center max-w-3xl mx-auto">

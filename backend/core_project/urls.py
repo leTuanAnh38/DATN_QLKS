@@ -21,12 +21,13 @@ from django.conf.urls.static import static
 
 from apps.services.views import ServiceRequestViewSet
 from apps.posts.views import ImageUploadView
-from apps.bookings.views import PromotionViewSet
+from apps.bookings.views import PromotionViewSet, HotelSettingView
 from apps.users.views import AuditLogViewSet
 from apps.payments.views import SepayWebhookView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/hotel-settings/', HotelSettingView.as_view(), name='hotel-settings-direct'),
     path('api/auth/', include('apps.users.urls')),
     path('api/users/', include('apps.users.urls')),
     path('api/audit-logs/', AuditLogViewSet.as_view({'get': 'list'}), name='audit-logs-list'),

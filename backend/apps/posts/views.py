@@ -19,7 +19,7 @@ class IsHotelStaffOrAdmin(BasePermission):
             return False
         if request.user.is_staff or request.user.is_superuser:
             return True
-        return getattr(request.user, 'role', '') in ['admin', 'manager', 'receptionist']
+        return getattr(request.user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist']
 
 
 class PostViewSet(viewsets.ModelViewSet):

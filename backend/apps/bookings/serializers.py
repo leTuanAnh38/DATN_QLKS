@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Booking, BookingExtraService, Promotion, BookingGuest, CorporatePartner, GroupBooking
+from .models import Booking, BookingExtraService, Promotion, BookingGuest, CorporatePartner, GroupBooking, HotelSetting
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User
 import datetime
@@ -190,7 +190,8 @@ class BookingSerializer(serializers.ModelSerializer):
         synced_service_signatures = set()
 
         # 1. Nguồn chuẩn xác nhất cho các món gọi tại phòng: các ServiceRequest đã hoàn thành (completed)
-        # Xác định dịch vụ phát sinh đã được thanh toán chưa (Khi checkout thành công có invoice paid)
+        # Xác định dịch vụ phát sinh đã được thanh toán chưa:
+        # Khi checkout thành công có invoice status == 'paid'
         services_is_paid = bool(
             obj.status in ['completed', 'checked_out'] and 
             hasattr(obj, 'invoice') and 
@@ -361,15 +362,8 @@ class BookingSerializer(serializers.ModelSerializer):
 
     def get_service_charge(self, obj):
         """
-        service_charge: Tổng tiền dịch vụ phát sinh & dịch vụ đặt kèm.
+        service_charge: Tổng tiền toàn bộ dịch vụ phát sinh & dịch vụ đặt kèm (gồm cả ServiceRequest và BookingExtraService).
         """
-        # Ưu tiên tính từ tất cả ServiceRequest hợp lệ (trừ cancelled)
-        valid_requests = obj.service_requests.exclude(status='cancelled').select_related('service')
-        if valid_requests.exists():
-            return float(sum(
-                float(req.total_price or ((getattr(req, 'unit_price', 0) or (req.service.price if req.service else 0)) * req.quantity))
-                for req in valid_requests
-            ))
         return float(self.get_extra_services_total(obj))
 
     def get_total_amount(self, obj):
@@ -783,5 +777,12 @@ class GroupBookingSerializer(serializers.ModelSerializer):
             if b.room:
                 summary[cat_name]['assigned_rooms'].append(b.room.room_number)
         return list(summary.values())
+
+
+class HotelSettingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HotelSetting
+        fields = '__all__'
+
 
 

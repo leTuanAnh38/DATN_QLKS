@@ -7,6 +7,7 @@ import { hotelService } from '../../services/hotelService';
 import { bookingService } from '../../services/bookingService';
 import { useAuth } from '../../store/authStore';
 import api from '../../services/api';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -16,6 +17,7 @@ const formatCurrency = (val) => {
 export default function CorporateBooking() {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
+    const { settings } = useHotelSettings();
 
     // Data states
     const [categories, setCategories] = useState([]);
@@ -40,23 +42,49 @@ export default function CorporateBooking() {
     });
     const [copiedField, setCopiedField] = useState(null);
 
-    // Tự động tải cấu hình tài khoản thụ hưởng từ Backend API /payments/config/
+    // Dynamic Hotel Policies from System Settings
+    const [hotelSettings, setHotelSettings] = useState({
+        group_deposit_percent: 50,
+        vat_percent: 8,
+        service_charge_percent: 5,
+        check_in_time: '14:00',
+        check_out_time: '12:00'
+    });
+
+    // Tự động tải cấu hình ngân hàng & Cài đặt hệ thống từ Backend
     useEffect(() => {
         let isMounted = true;
-        api.get('/payments/config/')
-            .then((res) => {
-                const data = res.data?.data || res.data;
-                if (isMounted && data && data.account_no) {
+        Promise.allSettled([
+            api.get('/payments/config/'),
+            api.get('/hotel-settings/')
+        ]).then(([bankRes, hotelRes]) => {
+            if (!isMounted) return;
+            if (bankRes.status === 'fulfilled') {
+                const data = bankRes.value.data?.data || bankRes.value.data;
+                if (data && data.account_no) {
                     setBankConfig({
                         bank_bin: data.bank_bin || '970422',
                         account_no: data.account_no,
                         account_name: (data.account_name || 'KHACH SAN TA DA NANG').toUpperCase()
                     });
                 }
-            })
-            .catch((err) => {
-                console.error('Không thể tải cấu hình ngân hàng VietQR từ server:', err);
-            });
+            }
+            if (hotelRes.status === 'fulfilled') {
+                const hData = hotelRes.value.data?.data || hotelRes.value.data;
+                if (hData) {
+                    setHotelSettings(prev => ({
+                        ...prev,
+                        group_deposit_percent: Number(hData.group_deposit_percent) || 50,
+                        vat_percent: Number(hData.vat_percent) || 8,
+                        service_charge_percent: Number(hData.service_charge_percent) || 5,
+                        check_in_time: hData.check_in_time || prev.check_in_time,
+                        check_out_time: hData.check_out_time || prev.check_out_time
+                    }));
+                }
+            }
+        }).catch((err) => {
+            console.error('Không thể tải cấu hình ngân hàng hoặc cài đặt khách sạn:', err);
+        });
         return () => { isMounted = false; };
     }, []);
 
@@ -475,7 +503,8 @@ export default function CorporateBooking() {
 
         const discount = discountPercent > 0 ? (subtotal * discountPercent) / 100 : 0;
         const total = Math.max(0, subtotal - discount + servicesTotal);
-        const deposit = paymentOption === 'FULL' ? total : Math.round(total * 0.5);
+        const groupDepositPercent = Number(hotelSettings.group_deposit_percent) || 50;
+        const deposit = paymentOption === 'FULL' ? total : Math.round(total * (groupDepositPercent / 100));
 
         return {
             totalRoomsCount: count,
@@ -485,7 +514,7 @@ export default function CorporateBooking() {
             grandTotal: total,
             depositAmount: deposit
         };
-    }, [categories, selectedRooms, nights, discountPercent, roomingList, paymentOption]);
+    }, [categories, selectedRooms, nights, discountPercent, roomingList, paymentOption, hotelSettings.group_deposit_percent]);
 
     // Handle room qty
     const handleRoomQtyChange = (catId, delta) => {
@@ -616,7 +645,7 @@ export default function CorporateBooking() {
                     {/* Ảnh resort sáng nét, phủ nhẹ ở góc phải */}
                     <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 overflow-hidden pointer-events-none opacity-40 md:opacity-90">
                         <img
-                            src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"
+                            src={settings?.banner_corporate || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"}
                             alt="Đặt phòng theo đoàn khách sạn TA Đà Nẵng"
                             className="w-full h-full object-cover object-center"
                         />
@@ -1452,16 +1481,16 @@ export default function CorporateBooking() {
                                     />
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-black text-slate-900">Đặt cọc 50% giữ phòng</span>
+                                            <span className="text-xs font-black text-slate-900">Đặt cọc {hotelSettings.group_deposit_percent || 50}% giữ phòng</span>
                                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
                                                 Phổ biến
                                             </span>
                                         </div>
                                         <p className="text-[11px] text-slate-500 leading-relaxed">
-                                            Thanh toán trước 50% (gồm phòng & dịch vụ). 50% còn lại thanh toán khi làm thủ tục nhận phòng hoặc trả phòng.
+                                            Thanh toán trước {hotelSettings.group_deposit_percent || 50}% (gồm phòng & dịch vụ). {100 - (hotelSettings.group_deposit_percent || 50)}% còn lại thanh toán khi làm thủ tục nhận phòng hoặc trả phòng.
                                         </p>
                                         <div className="text-xs font-bold text-blue-600 pt-0.5">
-                                            Số tiền thanh toán: {formatCurrency(Math.round(grandTotal * 0.5))}
+                                            Số tiền thanh toán: {formatCurrency(Math.round(grandTotal * ((hotelSettings.group_deposit_percent || 50) / 100)))}
                                         </div>
                                     </div>
                                 </div>
@@ -1472,7 +1501,7 @@ export default function CorporateBooking() {
                                     className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
                                         paymentOption === 'FULL'
                                             ? 'border-emerald-600 bg-emerald-50/50 shadow-sm ring-2 ring-emerald-500/20'
-                                            : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
+                                             : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
                                     }`}
                                 >
                                     <input
@@ -1526,7 +1555,7 @@ export default function CorporateBooking() {
                                 <span className="text-slate-700 font-bold">
                                     {paymentOption === 'FULL'
                                         ? 'Số tiền thanh toán ngay (100% Trọn gói):'
-                                        : 'Tiền đặt cọc giữ chỗ (50% Tổng đơn):'}
+                                        : `Tiền đặt cọc giữ chỗ (${hotelSettings.group_deposit_percent || 50}% Tổng đơn):`}
                                 </span>
                                 <span className="text-xl font-black text-blue-600">{formatCurrency(depositAmount)}</span>
                             </div>

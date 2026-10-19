@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
 
-from .models import GroupBooking, CorporatePartner, Booking, BookingGuest, BookingExtraService
+from .models import GroupBooking, CorporatePartner, Booking, BookingGuest, BookingExtraService, HotelSetting
 from ..services.models import ServiceItem, ServiceRequest
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User, GuestProfile, log_action
@@ -409,7 +409,7 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                 return Response({'success': False, 'message': 'Vui lòng chọn số lượng phòng hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
 
             # Tính tiền đặt cọc quy định theo 2 lựa chọn thanh toán:
-            # - 'DEPOSIT_50': Đặt cọc 50% tổng đơn (phòng + dịch vụ)
+            # - 'DEPOSIT_PERCENT': Đặt cọc theo tỷ lệ quy định hệ thống (mặc định 50%)
             # - 'FULL': Thanh toán toàn bộ 100% tổng đơn
             payment_option = str(data.get('payment_option') or 'DEPOSIT_50').upper()
             input_deposit = data.get('deposit_amount')
@@ -419,7 +419,9 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             elif input_deposit is not None and str(input_deposit).replace('.', '', 1).isdigit() and Decimal(str(input_deposit)) >= 0:
                 deposit_amount = Decimal(str(input_deposit))
             else:
-                deposit_amount = round(total_group_amount * Decimal('0.5')) # 50% tổng đơn đoàn
+                setting = HotelSetting.get_settings()
+                dep_rate = Decimal(str(setting.group_deposit_percent or 50)) / Decimal('100')
+                deposit_amount = round(total_group_amount * dep_rate)
 
             is_deposit_paid = bool(data.get('is_deposit_paid', False))
             deposit_payment_method = str(data.get('deposit_payment_method') or 'TRANSFER').upper()

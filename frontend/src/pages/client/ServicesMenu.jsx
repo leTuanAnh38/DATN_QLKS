@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import hotelService from '../../services/hotelService';
 import { useAuth } from '../../store/authStore';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 // Tiện ích format thời gian chi tiết (VD: 14:30 • 29/09/2026)
 const formatDateTimeDisplay = (isoStr) => {
@@ -112,6 +113,8 @@ export const getServiceLabels = (serviceName = '', categoryName = '') => {
 
 export default function ServicesMenu() {
     const { user, isAuthenticated } = useAuth();
+    const { settings } = useHotelSettings();
+    const bannerServicesImg = settings?.banner_services || "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2070&q=85";
 
     // 1. Data States
     const [categories, setCategories] = useState([]);
@@ -524,7 +527,7 @@ export default function ServicesMenu() {
                 <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
                     {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
                     <img
-                        src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2070&q=85"
+                        src={bannerServicesImg}
                         alt="Luxury 5-Star Resort & Dining"
                         className="absolute inset-0 w-full h-full object-cover object-center"
                     />

@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import postService from '../../services/postService';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 export default function NewsList() {
+    const { settings } = useHotelSettings();
     const [posts, setPosts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
@@ -81,7 +83,7 @@ export default function NewsList() {
             <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
                 {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
                 <img
-                    src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85"
+                    src={settings?.banner_news || "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85"}
                     alt="Khách Sạn TA Đà Nẵng Resort"
                     className="absolute inset-0 w-full h-full object-cover object-center"
                 />

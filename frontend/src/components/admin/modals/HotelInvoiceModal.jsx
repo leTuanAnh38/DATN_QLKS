@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../../../services/api';
 
 /**
  * Component Modal & Mẫu In Hóa Đơn Đặt Phòng (Check-in Invoice Voucher)
@@ -9,6 +10,37 @@ import React from 'react';
  */
 export default function HotelInvoiceModal({ booking, payment, transaction, paymentMethod, onClose }) {
     if (!booking) return null;
+
+    // Tự động tải thông tin khách sạn từ Cài đặt hệ thống
+    const [hotelInfo, setHotelInfo] = useState({
+        hotel_name: 'Khách Sạn TA Đà Nẵng',
+        hotel_slogan: '5-Star Luxury Resort & Hotel',
+        address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng',
+        hotline: '1900 8899',
+        email: 'contact@tahotel.vn',
+        tax_code: '0401234567'
+    });
+
+    useEffect(() => {
+        let isMounted = true;
+        api.get('/hotel-settings/')
+            .then(res => {
+                const data = res.data?.data || res.data;
+                if (data && isMounted) {
+                    setHotelInfo(prev => ({
+                        ...prev,
+                        hotel_name: data.hotel_name || prev.hotel_name,
+                        hotel_slogan: data.hotel_slogan || prev.hotel_slogan,
+                        address: data.address || prev.address,
+                        hotline: data.hotline || prev.hotline,
+                        email: data.email || prev.email,
+                        tax_code: data.tax_code || prev.tax_code,
+                    }));
+                }
+            })
+            .catch(() => {});
+        return () => { isMounted = false; };
+    }, []);
 
     // Helper format ngày DD/MM/YYYY
     const formatDate = (dateStr) => {
@@ -246,7 +278,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     // Tổng thanh toán thực tế (Grand Total bao gồm cả tiền phòng và toàn bộ dịch vụ phát sinh)
     const grandTotal = isGroupMaster 
         ? (roomAmount + extraServicesTotal)
-        : (Number(booking.grand_total_amount) || (roomAmount + extraServicesTotal));
+        : (roomAmount + extraServicesTotal);
 
     // Xác định đơn đã hủy hay không
     const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
@@ -272,15 +304,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     const balanceDue = isCancelled ? 0 : (
         isGroupMaster
             ? (isCompleted ? 0 : Math.max(0, grandTotal - paidAmount))
-            : Number(
-                booking.remaining_balance != null
-                    ? booking.remaining_balance
-                    : (booking.remaining_amount != null
-                        ? booking.remaining_amount
-                        : (isGroupRoom
-                            ? Math.max(0, extraServicesTotal - paidAmount)
-                            : Math.max(0, grandTotal - paidAmount)))
-            )
+            : (isGroupRoom
+                ? Math.max(0, extraServicesTotal - paidAmount)
+                : Math.max(0, grandTotal - paidAmount))
     );
     const bookingCodeDisplay = `#${String(booking.booking_code || booking.group_code || '').replace('-', '')}`;
     const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
@@ -418,22 +444,29 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4">
                         {/* Cột trái: Tên khách sạn & địa chỉ chính thức của Khách Sạn TA Đà Nẵng */}
                         <div className="flex items-start gap-3.5">
-                            {/* Logo thương hiệu TA: Monogram hộp vuông bo góc chuẩn nhận diện thương hiệu */}
-                            <div className="w-11 h-11 shrink-0 rounded-xl bg-slate-900 text-white flex items-center justify-center font-serif font-black text-xl shadow-xs border border-slate-900 tracking-tighter">
-                                TA
-                            </div>
+                            {hotelInfo.logo_url ? (
+                                <img
+                                    src={hotelInfo.logo_url}
+                                    alt={hotelInfo.hotel_name}
+                                    className="w-12 h-12 object-contain shrink-0 rounded-lg border border-slate-200"
+                                />
+                            ) : (
+                                <div className="w-11 h-11 shrink-0 rounded-xl bg-slate-900 text-white flex items-center justify-center font-serif font-black text-xl shadow-xs border border-slate-900 tracking-tighter">
+                                    TA
+                                </div>
+                            )}
                             <div>
                                 <h1 className="text-lg font-bold text-slate-900 leading-tight uppercase font-serif tracking-wide">
-                                    Khách Sạn TA Đà Nẵng
+                                    {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                 </h1>
                                 <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest mt-0.5">
-                                    5-Star Luxury Resort & Hotel
+                                    {hotelInfo.hotel_slogan || '5-Star Luxury Resort & Hotel'}
                                 </p>
                                 <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                                    08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng
+                                    {hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'}
                                 </p>
-                                <p className="text-[11px] text-slate-600 leading-relaxed">
-                                    Hotline: 1900 8899 | Email: contact@tahotel.vn
+                                <p className="text-[11px] text-slate-600 leading-relaxed font-mono">
+                                    Hotline: {hotelInfo.hotline || '1900 8899'} | Email: {hotelInfo.email || 'contact@tahotel.vn'}{hotelInfo.tax_code ? ` | MST: ${hotelInfo.tax_code}` : ''}
                                 </p>
                             </div>
                         </div>
@@ -733,7 +766,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                             .replace(/\(x\d+\)/gi, '')
                                             .trim();
                                         const isDamageCompensation = cleanName.toLowerCase().includes('bồi thường');
-                                        const serviceIsPaid = Boolean(service.is_paid || (booking.status === 'completed' && booking.invoice?.status === 'paid'));
+                                        const isTimeSurcharge = cleanName.toLowerCase().includes('phụ thu') || cleanName.toLowerCase().includes('sớm') || cleanName.toLowerCase().includes('muộn');
+                                        const serviceIsPaid = Boolean(
+                                            service.is_paid || 
+                                            (booking.status === 'completed' && booking.invoice?.status === 'paid')
+                                        );
                                         return (
                                             <tr key={service.id || idx} className={`border-b border-slate-200 ${isDamageCompensation ? 'bg-rose-50/20 print:bg-transparent' : ''}`}>
                                                 <td className="py-2.5 text-left">
@@ -741,17 +778,21 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                         {isDamageCompensation && <span className="text-rose-600"></span>}
                                                         <span>{cleanName}</span>
                                                     </div>
-                                                    <div className={`text-[10px] ${isDamageCompensation ? 'text-rose-600 font-medium' : 'text-slate-500'}`}>
+                                                    <div className={`text-[10px] ${isDamageCompensation ? 'text-rose-600 font-medium' : isTimeSurcharge ? 'text-amber-700 font-medium print:text-slate-600' : 'text-slate-500'}`}>
                                                         {isGroupMaster 
                                                             ? `Phục vụ ${service.room_number ? (String(service.room_number).startsWith('Phòng') ? service.room_number : `Phòng ${service.room_number}`) : ''} (Mã #${service.sub_booking_code || ''}) • Gộp vào HĐ đoàn`
-                                                            : (isDamageCompensation ? 'Bồi thường thiệt hại / hư hỏng thiết bị phòng' : 'Dịch vụ phát sinh / Gọi món tại phòng')
+                                                            : (isDamageCompensation 
+                                                                ? 'Bồi thường thiệt hại / hư hỏng thiết bị phòng' 
+                                                                : isTimeSurcharge 
+                                                                ? 'Phụ thu quy định thời gian nhận / trả phòng khách sạn' 
+                                                                : 'Dịch vụ phát sinh / Gọi món tại phòng')
                                                         }
                                                     </div>
                                                 </td>
                                                 <td className="py-2.5 text-center">
                                                     {serviceIsPaid || isCompleted ? (
-                                                        <span className="inline-block text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                            {isGroupMaster ? '✓ Đã quyết toán' : '✓ Đã thanh toán'}
+                                                        <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
+                                                            {isGroupMaster ? '✓ Đã quyết toán' : `✓ ${getPaidMethodLabel()}`}
                                                         </span>
                                                     ) : (
                                                         <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black ${

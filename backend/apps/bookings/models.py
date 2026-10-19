@@ -276,4 +276,126 @@ class BookingGuest(models.Model):
     class Meta:
         verbose_name = "Khách lưu trú"
         verbose_name_plural = "3. Khai báo Lưu trú (Guests)"
-        ordering = ['-is_primary', 'created_at']
+        ordering = ['-is_primary', 'created_at']
+
+
+# ========================================================
+# BẢNG CÀI ĐẶT THÔNG TIN KHÁCH SẠN & VẬN HÀNH (SINGLETON)
+# ========================================================
+class HotelSetting(models.Model):
+    """
+    Cấu hình Thông tin Khách sạn, Quy định Nhận/Trả phòng, Phụ thu & Chính sách vận hành (Singleton - PK=1).
+    Admin/Owner có thể chỉnh sửa tại trang Cài Đặt Hệ Thống.
+    """
+    # 1. Thông tin thương hiệu & Liên hệ
+    hotel_name = models.CharField(max_length=200, default='Khách Sạn TA Đà Nẵng', verbose_name="Tên khách sạn")
+    hotel_slogan = models.CharField(max_length=255, default='5-Star Luxury Resort & Hotel', verbose_name="Khẩu hiệu / Slogan")
+    stars = models.PositiveIntegerField(default=5, verbose_name="Tiêu chuẩn số sao")
+    address = models.CharField(max_length=255, default='08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng', verbose_name="Địa chỉ khách sạn")
+    hotline = models.CharField(max_length=50, default='1900 8899', verbose_name="Hotline lễ tân")
+    phone_number = models.CharField(max_length=50, default='+84 (0) 236 388 9900', verbose_name="Điện thoại bàn")
+    email = models.EmailField(default='contact@tahotel.vn', verbose_name="Email liên hệ / CSKH")
+    website = models.CharField(max_length=200, default='https://tahotel.vn', verbose_name="Website chính thức")
+    tax_code = models.CharField(max_length=50, default='0401234567', verbose_name="Mã số thuế (MST)")
+    description = models.TextField(
+        default='Kiệt tác nghỉ dưỡng 5 sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.',
+        verbose_name="Giới thiệu khách sạn"
+    )
+
+    # 2. Quy định Giờ Nhận / Trả phòng
+    check_in_time = models.CharField(max_length=10, default='14:00', verbose_name="Giờ Check-in tiêu chuẩn")
+    check_out_time = models.CharField(max_length=10, default='12:00', verbose_name="Giờ Check-out tiêu chuẩn")
+
+    # 3. Phụ thu Check-in sớm (%)
+    early_checkin_before_6am = models.DecimalField(max_digits=5, decimal_places=2, default=100.0, verbose_name="Phụ thu nhận phòng trước 06:00 (%)")
+    early_checkin_6am_9am = models.DecimalField(max_digits=5, decimal_places=2, default=50.0, verbose_name="Phụ thu nhận phòng 06:00 - 09:00 (%)")
+    early_checkin_9am_12pm = models.DecimalField(max_digits=5, decimal_places=2, default=30.0, verbose_name="Phụ thu nhận phòng 09:00 - 12:00 (%)")
+
+    # 4. Phụ thu Check-out muộn (%)
+    late_checkout_12pm_3pm = models.DecimalField(max_digits=5, decimal_places=2, default=30.0, verbose_name="Phụ thu trả phòng 12:00 - 15:00 (%)")
+    late_checkout_3pm_6pm = models.DecimalField(max_digits=5, decimal_places=2, default=50.0, verbose_name="Phụ thu trả phòng 15:00 - 18:00 (%)")
+    late_checkout_after_6pm = models.DecimalField(max_digits=5, decimal_places=2, default=100.0, verbose_name="Phụ thu trả phòng sau 18:00 (%)")
+
+    # 5. Chính sách Thuế VAT, Phí Dịch Vụ & Đặt Cọc
+    vat_percent = models.DecimalField(max_digits=5, decimal_places=2, default=8.0, verbose_name="Thuế GTGT / VAT (%)")
+    service_charge_percent = models.DecimalField(max_digits=5, decimal_places=2, default=5.0, verbose_name="Phí dịch vụ khách sạn (%)")
+    group_deposit_percent = models.DecimalField(max_digits=5, decimal_places=2, default=50.0, verbose_name="Tỷ lệ cọc đặt đoàn (%)")
+    auto_cancel_minutes = models.PositiveIntegerField(default=30, verbose_name="Thời gian giữ phòng chờ thanh toán (phút)")
+    cancellation_free_hours = models.PositiveIntegerField(default=48, verbose_name="Hủy phòng miễn phí trước (giờ)")
+
+    # 6. Logo & Favicon thương hiệu
+    logo_url = models.CharField(max_length=500, blank=True, null=True, verbose_name="Logo thương hiệu (URL / File)")
+    favicon_url = models.CharField(max_length=500, blank=True, null=True, verbose_name="Favicon website (URL / File)")
+
+    # 7. Banner của từng trang (Hero Banners)
+    banner_home = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Chủ (Slide 1)")
+    banner_home_2 = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Chủ (Slide 2)")
+    banner_home_3 = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Chủ (Slide 3)")
+    banner_rooms = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Phòng & Suites")
+    banner_services = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Dịch Vụ")
+    banner_promotions = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Khuyến Mãi")
+    banner_news = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Tin Tức")
+    banner_contact = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Liên Hệ")
+    banner_corporate = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Đặt Đoàn (MICE)")
+
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Thời gian cập nhật")
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                'hotel_name': 'Khách Sạn TA Đà Nẵng',
+                'hotel_slogan': '5-Star Luxury Resort & Hotel',
+                'stars': 5,
+                'address': '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng',
+                'hotline': '1900 8899',
+                'phone_number': '+84 (0) 236 388 9900',
+                'email': 'contact@tahotel.vn',
+                'website': 'https://tahotel.vn',
+                'tax_code': '0401234567',
+                'logo_url': '',
+                'favicon_url': '',
+                'banner_home': 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1920&q=80',
+                'banner_home_2': 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1920&q=80',
+                'banner_home_3': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1920&q=80',
+                'banner_rooms': 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=2074&q=85',
+                'banner_services': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2070&q=85',
+                'banner_promotions': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
+                'banner_news': 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85',
+                'banner_contact': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90',
+                'banner_corporate': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
+                'check_in_time': '14:00',
+                'check_out_time': '12:00',
+                'early_checkin_before_6am': 100.0,
+                'early_checkin_6am_9am': 50.0,
+                'early_checkin_9am_12pm': 30.0,
+                'late_checkout_12pm_3pm': 30.0,
+                'late_checkout_3pm_6pm': 50.0,
+                'late_checkout_after_6pm': 100.0,
+                'vat_percent': 8.0,
+                'service_charge_percent': 5.0,
+                'group_deposit_percent': 50.0,
+                'auto_cancel_minutes': 30,
+                'cancellation_free_hours': 48,
+            }
+        )
+        return obj
+
+    @classmethod
+    def get_settings(cls):
+        return cls.get_solo()
+
+    def __str__(self):
+        return f"{self.hotel_name} - Cấu hình Hệ thống"
+
+    class Meta:
+        verbose_name = "Cài đặt Khách Sạn & Vận Hành"
+        verbose_name_plural = "Cài đặt Khách Sạn & Vận Hành"

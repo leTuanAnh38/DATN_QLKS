@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Booking, BookingExtraService, Promotion, BookingGuest, GroupBooking, CorporatePartner
+from .models import Booking, BookingExtraService, Promotion, BookingGuest, GroupBooking, CorporatePartner, HotelSetting
 
 # Tạo khối nhập Dịch vụ phát sinh ngay bên trong form Đặt phòng
 class BookingExtraServiceInline(admin.TabularInline):
@@ -99,4 +99,14 @@ class CorporatePartnerAdmin(admin.ModelAdmin):
 
 
 admin.site.register(GroupBooking, GroupBookingAdmin)
-admin.site.register(CorporatePartner, CorporatePartnerAdmin)
+admin.site.register(CorporatePartner, CorporatePartnerAdmin)
+
+
+@admin.register(HotelSetting)
+class HotelSettingAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        return not HotelSetting.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
