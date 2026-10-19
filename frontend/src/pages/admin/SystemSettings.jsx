@@ -1173,10 +1173,10 @@ export default function SystemSettings() {
                                     key: 'banner_home_3',
                                     title: '3. Trang Chủ — Slide 3: Phòng Suite Hạng Sang',
                                     badge: 'Trang Chủ • Slide 3',
-                                    subtitle: 'Slide thứ 3 giới thiệu phòng Suite 5 sao, ẩm thực thượng hạng và đặc quyền',
+                                    subtitle: `Slide thứ 3 giới thiệu phòng Suite ${hotelData.stars || 5} sao, ẩm thực thượng hạng và đặc quyền`,
                                     previewTag: 'Trang Chủ • Slide 3',
                                     previewTitle: 'Phòng Suite Hạng Sang',
-                                    previewSub: 'Đặc Quyền Dịch Vụ 5 Sao',
+                                    previewSub: `Đặc Quyền Dịch Vụ ${hotelData.stars || 5} Sao`,
                                     route: '/',
                                     defaultUrl: DEFAULT_BANNERS.banner_home_3,
                                 },
@@ -1185,7 +1185,7 @@ export default function SystemSettings() {
                                     title: '4. Trang Danh Sách Phòng & Suites',
                                     badge: 'Trang Chuyên Mục',
                                     subtitle: 'Banner đầu trang tra cứu phòng trống, bộ lọc tiện nghi và đặt phòng',
-                                    previewTag: 'Nghỉ Dưỡng 5 Sao',
+                                    previewTag: `Nghỉ Dưỡng ${hotelData.stars || 5} Sao`,
                                     previewTitle: 'Tuyệt Tác Không Gian Nghỉ Dưỡng',
                                     previewSub: 'Bên Bờ Biển Mỹ Khê',
                                     route: '/rooms',
@@ -1806,7 +1806,7 @@ export default function SystemSettings() {
                                         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1.5">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-xs font-bold text-slate-800">Phí Phục Vụ (Service %)</label>
-                                                <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-semibold">Chuẩn 5 Sao</span>
+                                                <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-semibold">Chuẩn {hotelData.stars || 5} Sao</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <input
@@ -1821,7 +1821,7 @@ export default function SystemSettings() {
                                                 />
                                                 <span className="font-bold text-slate-500 text-sm">%</span>
                                             </div>
-                                            <p className="text-[11px] text-slate-400">Phí phục vụ khách sạn 5 sao thông thường là 5%.</p>
+                                            <p className="text-[11px] text-slate-400">Phí phục vụ khách sạn {hotelData.stars || 5} sao thông thường là {hotelData.service_charge_percent}%.</p>
                                         </div>
 
                                         {/* TỶ LỆ CỌC ĐOÀN */}

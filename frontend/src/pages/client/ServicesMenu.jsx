@@ -114,6 +114,8 @@ export const getServiceLabels = (serviceName = '', categoryName = '') => {
 export default function ServicesMenu() {
     const { user, isAuthenticated } = useAuth();
     const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
+    const hotelName = settings?.hotel_name || "Khách Sạn TA Đà Nẵng";
     const bannerServicesImg = settings?.banner_services || "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2070&q=85";
 
     // 1. Data States
@@ -528,7 +530,7 @@ export default function ServicesMenu() {
                     {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
                     <img
                         src={bannerServicesImg}
-                        alt="Luxury 5-Star Resort & Dining"
+                        alt={`Luxury ${starCount}-Star Resort & Dining`}
                         className="absolute inset-0 w-full h-full object-cover object-center"
                     />
 
@@ -545,7 +547,7 @@ export default function ServicesMenu() {
                                 </span>
                             </h1>
                             <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
-                                Thưởng thức ẩm thực mỹ vị, set trà chiều hoàng gia, liệu trình spa thảo dược và các tiện ích buồng phòng đẳng cấp 5 sao phục vụ tận phòng nghỉ của bạn tại Khách Sạn TA Đà Nẵng.
+                                Thưởng thức ẩm thực mỹ vị, set trà chiều hoàng gia, liệu trình spa thảo dược và các tiện ích buồng phòng đẳng cấp {starCount} sao phục vụ tận phòng nghỉ của bạn tại {hotelName}.
                             </p>
 
                             {/* Thông tin phòng đang lưu trú của khách */}
@@ -769,7 +771,7 @@ export default function ServicesMenu() {
                                                     {item.name}
                                                 </h3>
                                                 <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed font-light">
-                                                    {item.description || 'Dịch vụ chuẩn 5 sao phục vụ trực tiếp tại phòng nghỉ.'}
+                                                    {item.description || `Dịch vụ chuẩn ${starCount} sao phục vụ trực tiếp tại phòng nghỉ.`}
                                                 </p>
                                             </div>
                                         </div>

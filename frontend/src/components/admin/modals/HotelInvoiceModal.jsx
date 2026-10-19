@@ -14,7 +14,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     // Tự động tải thông tin khách sạn từ Cài đặt hệ thống
     const [hotelInfo, setHotelInfo] = useState({
         hotel_name: 'Khách Sạn TA Đà Nẵng',
-        hotel_slogan: '5-Star Luxury Resort & Hotel',
+        hotel_slogan: 'Khách Sạn & Khu Nghỉ Dưỡng',
         address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng',
         hotline: '1900 8899',
         email: 'contact@tahotel.vn',
@@ -460,7 +460,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                 </h1>
                                 <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest mt-0.5">
-                                    {hotelInfo.hotel_slogan || '5-Star Luxury Resort & Hotel'}
+                                    {hotelInfo.hotel_slogan || (hotelInfo.stars ? `${hotelInfo.stars}-Star Hotel & Resort` : 'Khách Sạn & Khu Nghỉ Dưỡng')}
                                 </p>
                                 <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
                                     {hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'}

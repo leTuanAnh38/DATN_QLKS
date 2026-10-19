@@ -629,8 +629,9 @@ def render_group_booking_email_html(group_booking, custom_message=None):
     from .models import HotelSetting
     try:
         hotel_settings = HotelSetting.get_settings()
+        stars = getattr(hotel_settings, 'stars', 3) or 3
         hotel_name = hotel_settings.hotel_name or 'Khách Sạn TA Đà Nẵng'
-        hotel_slogan = hotel_settings.hotel_slogan or '5-Star Luxury Resort & Hotel'
+        hotel_slogan = hotel_settings.hotel_slogan or f'{stars}-Star Hotel & Resort'
         hotel_address = hotel_settings.address or '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
         hotel_hotline = hotel_settings.hotline or '1900 8899'
         hotel_phone = hotel_settings.phone_number or '0236 388 9999'
@@ -638,8 +639,9 @@ def render_group_booking_email_html(group_booking, custom_message=None):
         check_in_time = hotel_settings.check_in_time or '14:00'
         check_out_time = hotel_settings.check_out_time or '12:00'
     except Exception:
+        stars = 3
         hotel_name = 'Khách Sạn TA Đà Nẵng'
-        hotel_slogan = '5-Star Luxury Resort & Hotel'
+        hotel_slogan = '3-Star Hotel & Resort'
         hotel_address = '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
         hotel_hotline = '1900 8899'
         hotel_phone = '0236 388 9999'
@@ -648,6 +650,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
         check_out_time = '12:00'
     hotel_name_upper = hotel_name.upper()
     hotel_slogan_upper = hotel_slogan.upper()
+    stars_display = ' '.join(['★'] * stars)
 
     # 1. Tính toán thời gian lưu trú
     check_in = group_booking.check_in_date
@@ -885,7 +888,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                                 <font color="#F59E0B">{hotel_name_upper}</font>
                             </h1>
                             <p style="margin: 6px 0 0 0; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600;">
-                                <font color="#FCD34D">★ ★ ★ ★ ★ &nbsp; {hotel_slogan_upper} &nbsp; ★ ★ ★ ★ ★</font>
+                                <font color="#FCD34D">{stars_display} &nbsp; {hotel_slogan_upper} &nbsp; {stars_display}</font>
                             </p>
                         </td>
                     </tr>
@@ -899,7 +902,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                                 Kính gửi Quý đại diện: <strong style="color: #0F172A; font-size: 17px;">{group_booking.leader_name}</strong>,
                             </p>
                             <p style="margin: 0 0 18px 0; font-size: 14px; line-height: 1.6; color: #475569;">
-                                {hotel_name} xin trân trọng gửi thư xác nhận đặt phòng theo đoàn công ty cho: <strong style="color: #2563EB;">{group_booking.group_name}</strong>. Cảm ơn Quý khách và Quý Doanh nghiệp đã tin tưởng lựa chọn dịch vụ lưu trú 5 sao của chúng tôi.
+                                {hotel_name} xin trân trọng gửi thư xác nhận đặt phòng theo đoàn công ty cho: <strong style="color: #2563EB;">{group_booking.group_name}</strong>. Cảm ơn Quý khách và Quý Doanh nghiệp đã tin tưởng lựa chọn dịch vụ lưu trú {stars} sao của chúng tôi.
                             </p>
 
                             <!-- Khung Trạng thái Đặt cọc / Thanh toán -->

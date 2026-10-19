@@ -27,15 +27,15 @@ export function applyFavicon(faviconUrl) {
 let listeners = [];
 let currentSettings = {
     hotel_name: 'Khách Sạn TA Đà Nẵng',
-    hotel_slogan: '5-Star Luxury Resort & Hotel',
-    stars: 5,
+    hotel_slogan: 'Luxury Resort & Hotel',
+    stars: 3,
     address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng',
     hotline: '1900 8899',
     phone_number: '+84 (0) 236 388 9900',
     email: 'contact@tahotel.vn',
     website: 'https://tahotel.vn',
     tax_code: '0401234567',
-    description: 'Kiệt tác nghỉ dưỡng 5 sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.',
+    description: 'Kiệt tác nghỉ dưỡng giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.',
     logo_url: '',
     favicon_url: '',
     banner_home: DEFAULT_BANNERS.banner_home,

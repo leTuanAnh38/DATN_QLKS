@@ -32,6 +32,8 @@ import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore
 export default function PromotionsPage() {
     const navigate = useNavigate();
     const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
+    const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
 
     // 1. STATE DỮ LIỆU KHUYẾN MÃI TỪ BACKEND
     const [dbPromotions, setDbPromotions] = useState([]);
@@ -403,7 +405,7 @@ export default function PromotionsPage() {
                             </h1>
 
                             <p className="mt-4 text-sm sm:text-base text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
-                                Tận hưởng kỳ nghỉ biển chuẩn 5 sao quốc tế tại Khách Sạn TA Đà Nẵng với cam kết giá tốt nhất,
+                                Tận hưởng kỳ nghỉ biển chuẩn {starCount} sao quốc tế tại {hotelName} với cam kết giá tốt nhất,
                                 miễn phí nâng hạng phòng và voucher giảm giá trực tiếp cho mọi lượt đặt.
                             </p>
 
@@ -868,7 +870,7 @@ export default function PromotionsPage() {
                                 <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-2xl font-bold mb-4 border border-rose-200 shadow-xs">
                                     🍸
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2">Đón Tiếp 5 Sao Cá Nhân</h3>
+                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2">Đón Tiếp {starCount} Sao Cá Nhân</h3>
                                 <p className="text-xs text-slate-600 leading-relaxed">
                                     Nước trái cây hữu cơ chào đón pha chế riêng, đĩa hoa quả nhiệt đới tươi mới mỗi ngày và quyền chọn hướng phòng đẹp nhất.
                                 </p>

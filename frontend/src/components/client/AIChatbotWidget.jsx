@@ -27,8 +27,9 @@ import {
 } from 'lucide-react';
 import { askChatbot } from '../../services/chatbotService';
 import { useAuth } from '../../store/authStore';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
-const SESSION_STORAGE_KEY = 'ta_hotel_ai_chat_history_v2';
+const SESSION_STORAGE_KEY = 'ta_hotel_ai_chat_history_v3';
 
 // Bảng mã ngôn ngữ cho Web Speech API (STT & TTS)
 const SPEECH_LANG_MAP = {
@@ -57,12 +58,14 @@ const SUPPORTED_LANGS = [
     { code: 'zh', flag: '🇨🇳', label: '中文' }
 ];
 
-const WELCOME_MESSAGES = {
-    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **Khách Sạn TA Đà Nẵng 5★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• 🏨 **Tra cứu phòng trống & Giá hôm nay**\n• 🍽️ **Thực đơn ẩm thực, Spa & Xe đưa đón sân bay**\n• 🏢 **Thủ tục đặt phòng Công ty (xuất hóa đơn VAT)**\n• 🔍 **Tra cứu trạng thái đơn đặt phòng tức thì**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
-    en: `Dear Valued Guest! I am your 5-Star AI Concierge at **TA Da Nang Hotel & Resort**.\n\nI am at your service 24/7 to assist with:\n• 🏨 **Room Availability & Rates (with USD conversion)**\n• 🍽️ **Fine Dining Menus, Ocean Spa & Luxury Airport Transfers**\n• 🏢 **Corporate & Group Bookings (VAT Invoices)**\n• 🔍 **Real-Time Reservation Status Lookup**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
-    ko: `고객님 안녕하십니까! **TA 다낭 5성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• 🏨 **실시간 빈 객실 및 1박 요금 (KRW 원화 자동 환산)**\n• 🍽️ **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• 🏢 **기업/단체 예약 및 공식 세금계산서 발행**\n• 🔍 **실시간 예약 진행 상태 즉시 조회**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
-    zh: `尊敬的贵宾，您好！我是**TA岘港五星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供以下五星级服务：\n• 🏨 **实时客房空房与今日优惠房价（人民币CNY自动换算）**\n• 🍽️ **特色餐饮菜单、海景水疗SPA与豪华机场接送服务**\n• 🏢 **商务会奖（M.I.C.E）与企业团队预订政策**\n• 🔍 **实时预订订单进度追踪**\n\n您可以点击下方快捷问题或直接输入您的需求！`
-};
+const getWelcomeMessages = (stars = 3, hotelName = 'Khách Sạn TA Đà Nẵng') => ({
+    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **${hotelName} ${stars}★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• 🏨 **Tra cứu phòng trống & Giá hôm nay**\n• 🍽️ **Thực đơn ẩm thực, Spa & Xe đưa đón sân bay**\n• 🏢 **Thủ tục đặt phòng Công ty (xuất hóa đơn VAT)**\n• 🔍 **Tra cứu trạng thái đơn đặt phòng tức thì**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
+    en: `Dear Valued Guest! I am your ${stars}-Star AI Concierge at **${hotelName}**.\n\nI am at your service 24/7 to assist with:\n• 🏨 **Room Availability & Rates (with USD conversion)**\n• 🍽️ **Fine Dining Menus, Ocean Spa & Luxury Airport Transfers**\n• 🏢 **Corporate & Group Bookings (VAT Invoices)**\n• 🔍 **Real-Time Reservation Status Lookup**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
+    ko: `고객님 안녕하십니까! **${hotelName} ${stars}성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• 🏨 **실시간 빈 객실 및 1박 요금 (KRW 원화 자동 환산)**\n• 🍽️ **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• 🏢 **기업/단체 예약 및 공식 세금계산서 발행**\n• 🔍 **실시간 예약 진행 상태 즉시 조회**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
+    zh: `尊敬的贵宾，您好！我是**${hotelName} ${stars}星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供服务：\n• 🏨 **实时客房空房与今日优惠房价（人民币CNY自动换算）**\n• 🍽️ **特色餐饮菜单、海景水疗SPA与豪华机场接送服务**\n• 🏢 **商务会奖（M.I.C.E）与企业团队预订政策**\n• 🔍 **实时预订订单进度追踪**\n\n您可以点击下方快捷问题或直接输入您的需求！`
+});
+
+const WELCOME_MESSAGES = getWelcomeMessages(3, 'Khách Sạn TA Đà Nẵng');
 
 const QUICK_CHIPS_BY_LANG = {
     vi: [
@@ -100,7 +103,7 @@ const I18N_DICT = {
         swipe_hint: 'Vuốt sang để xem thêm 👉',
         avail_rooms: (n) => `Còn ${n} phòng`,
         sold_out: 'Tạm hết phòng',
-        luxury_tag: '5★ Luxury',
+        luxury_tag: 'Đặc Quyền VIP',
         max_guests: (b, c) => `${b} • Tối đa ${c} khách`,
         price_from: 'Giá từ:',
         per_night: ' /đêm',
@@ -140,7 +143,7 @@ const I18N_DICT = {
         swipe_hint: 'Swipe to view more 👉',
         avail_rooms: (n) => `${n} rooms left`,
         sold_out: 'Fully booked',
-        luxury_tag: '5★ Luxury',
+        luxury_tag: 'VIP Luxury',
         max_guests: (b, c) => `${b} • Up to ${c} guests`,
         price_from: 'From:',
         per_night: ' /night',
@@ -296,6 +299,12 @@ function renderFormattedContent(text) {
 
 export default function AIChatbotWidget() {
     const navigate = useNavigate();
+    const { user, isAuthenticated } = useAuth();
+    const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
+    const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
+    const welcomeMessages = getWelcomeMessages(starCount, hotelName);
+
     const [isOpen, setIsOpen] = useState(false);
     const [selectedLang, setSelectedLang] = useState('vi');
     const [messages, setMessages] = useState(() => {
@@ -314,7 +323,7 @@ export default function AIChatbotWidget() {
             id: 'welcome-1',
             role: 'model',
             detected_lang: 'vi',
-            text: WELCOME_MESSAGES.vi,
+            text: welcomeMessages.vi,
             time: 'Bây giờ'
         }];
     });
@@ -335,7 +344,6 @@ export default function AIChatbotWidget() {
     const inputRef = useRef(null);
     const langDropdownRef = useRef(null);
     const recognitionRef = useRef(null);
-    const { user, isAuthenticated } = useAuth();
 
     // Tải trước danh sách Voice cho Text-to-Speech
     useEffect(() => {
@@ -688,7 +696,7 @@ export default function AIChatbotWidget() {
             setIsListening(false);
         }
 
-        const welcomeText = WELCOME_MESSAGES[selectedLang] || WELCOME_MESSAGES.vi;
+        const welcomeText = welcomeMessages[selectedLang] || welcomeMessages.vi;
         const freshWelcome = {
             id: `welcome-${Date.now()}`,
             role: 'model',
@@ -727,9 +735,9 @@ export default function AIChatbotWidget() {
                         transition-all duration-300 ease-out cursor-pointer
                         hover:scale-105 active:scale-95
                         shadow-[0_8px_25px_-5px_rgba(217,119,6,0.2)]`}
-                    title="Trợ Lý Ảo AI - Khách Sạn TA Đà Nẵng 5★ (Multilingual Concierge)"
+                    title={`Trợ Lý Ảo AI - ${hotelName} ${starCount}★ (Multilingual Concierge)`}
                     aria-expanded={isOpen}
-                    aria-label="Mở khung trò chuyện với Trợ lý AI 5 sao"
+                    aria-label={`Mở khung trò chuyện với Trợ lý AI ${starCount} sao`}
                 >
                     {/* Hiệu ứng hào quang Vàng Gold dịu nhẹ */}
                     <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-200 opacity-25 blur group-hover:opacity-40 transition duration-500 animate-pulse" />
@@ -742,7 +750,7 @@ export default function AIChatbotWidget() {
 
                         <div className="hidden sm:flex flex-col text-left">
                             <span className="text-xs font-bold text-slate-800 tracking-wider uppercase">
-                                Trợ Lý AI 5★
+                                Trợ Lý AI {starCount}★
                             </span>
                             <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-normal">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
@@ -798,14 +806,14 @@ export default function AIChatbotWidget() {
                             <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
                                     <h2 className="text-sm font-bold text-slate-800 tracking-tight font-sans m-0 whitespace-nowrap">
-                                        Trợ Lý AI 5★
+                                        Trợ Lý AI {starCount}★
                                     </h2>
                                     <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-semibold tracking-wider flex-shrink-0 uppercase">
                                         Concierge
                                     </span>
                                 </div>
                                 <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
-                                    <span>Khách Sạn TA Đà Nẵng</span>
+                                    <span>{hotelName}</span>
                                     <span className="text-slate-300">•</span>
                                     <span className="text-emerald-600 font-medium">Online 24/7</span>
                                 </p>
@@ -1017,7 +1025,7 @@ export default function AIChatbotWidget() {
                                                                         #{bk.booking_code}
                                                                     </span>
                                                                     <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-semibold">
-                                                                        5★ TA
+                                                                        {starCount}★ TA
                                                                     </span>
                                                                 </div>
                                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs flex items-center gap-1 ${
@@ -1507,7 +1515,7 @@ export default function AIChatbotWidget() {
                         </form>
 
                         <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 px-1">
-                            <span>Khách Sạn TA Đà Nẵng 5-Star Resort</span>
+                            <span>{hotelName} {starCount}-Star Resort</span>
                             <span className="flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                 {currentDict.instant_response}

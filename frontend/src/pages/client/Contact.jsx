@@ -17,7 +17,7 @@ export default function ContactPage() {
     // Hotel brand & operational settings from backend
     const [hotelInfo, setHotelInfo] = useState({
         hotel_name: 'Khách Sạn TA Đà Nẵng',
-        hotel_slogan: '5-Star Luxury Resort & Hotel',
+        hotel_slogan: 'Khách Sạn & Khu Nghỉ Dưỡng',
         address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam',
         hotline: '1900 8899',
         phone_number: '+84 (0) 236 388 9900',
@@ -490,9 +490,13 @@ export default function ContactPage() {
 
                         {/* Overlaid Hotel Pin Card */}
                         <div className="absolute top-4 left-4 max-w-xs bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/60 pointer-events-auto">
-                            <div className="flex items-center gap-1 text-amber-500 text-xs mb-1">
-                                <span>★</span>
-                                <span className="font-bold text-[11px] uppercase tracking-wider text-slate-800">5-Star Luxury Resort</span>
+                            <div className="flex items-center gap-0.5 text-amber-500 text-xs mb-1">
+                                {Array.from({ length: hotelInfo.stars || 3 }).map((_, i) => (
+                                    <span key={i}>★</span>
+                                ))}
+                                <span className="font-bold text-[11px] uppercase tracking-wider text-slate-800 ml-1">
+                                    {hotelInfo.stars || 3}-Star Hotel & Resort
+                                </span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm">
                                 {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
@@ -503,7 +507,7 @@ export default function ContactPage() {
                             <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                                 <span className="text-emerald-600 font-semibold flex items-center gap-1">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                                    {hotelInfo.hotel_slogan || 'Resort Đẳng Cấp 5 Sao'}
+                                    {hotelInfo.hotel_slogan || `Resort Đẳng Cấp ${hotelInfo.stars || 3} Sao`}
                                 </span>
                             </div>
                         </div>

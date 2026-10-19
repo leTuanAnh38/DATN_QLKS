@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import roomService from '../../services/roomService';
 import RoomSlider from './RoomSlider';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 export default function FeaturedRoomCategories() {
+    const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
+    const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterType, setFilterType] = useState('all');
@@ -50,7 +54,7 @@ export default function FeaturedRoomCategories() {
                 <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-widest mb-4 shadow-xs">
                         <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                        BỘ SƯU TẬP HẠNG PHÒNG 5 SAO
+                        BỘ SƯU TẬP HẠNG PHÒNG {starCount} SAO
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
@@ -59,7 +63,7 @@ export default function FeaturedRoomCategories() {
                         </span>
                     </h2>
                     <p className="text-slate-600 text-sm sm:text-base mt-4 leading-relaxed font-normal">
-                        Mỗi hạng phòng tại Khách Sạn TA Đà Nẵng là một tác phẩm kiến trúc hòa quyện cùng thiên nhiên biển Mỹ Khê, đem lại sự thư thái và tiện nghi thượng lưu cho kỳ nghỉ hoàn mỹ.
+                        Mỗi hạng phòng tại {hotelName} là một tác phẩm kiến trúc hòa quyện cùng thiên nhiên biển Mỹ Khê, đem lại sự thư thái và tiện nghi thượng lưu cho kỳ nghỉ hoàn mỹ.
                     </p>
 
                     {/* Filter Tabs */}

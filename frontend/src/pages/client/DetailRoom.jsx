@@ -7,6 +7,7 @@ import { useAuth } from '../../store/authStore';
 import UserAvatar from '../../components/common/UserAvatar';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 // Hàm tiện ích format ngày thành chuỗi YYYY-MM-DD
 const formatDateToInput = (date) => {
@@ -89,6 +90,8 @@ const STANDARD_AMENITY_GROUPS = [
 ];
 
 export default function DetailRoom() {
+    const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
     // 1. Hook useParams() lấy tham số ID / Slug từ URL
     const { id, roomId, slug } = useParams();
     const currentRoomId = id || roomId || slug;
@@ -614,7 +617,7 @@ export default function DetailRoom() {
                                     </span>
                                 )}
                                 <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                                    👑 5-STAR RESORT
+                                    👑 {starCount}-STAR RESORT
                                 </span>
                                 {room.total_rooms_count > 0 && (
                                     <span className="text-xs text-slate-500 font-medium">
@@ -959,7 +962,7 @@ export default function DetailRoom() {
                                 </div>
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 self-start sm:self-auto">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Tiêu chuẩn 5 sao quốc tế
+                                    Tiêu chuẩn {starCount} sao quốc tế
                                 </span>
                             </div>
 

@@ -96,6 +96,9 @@ export default function ServiceRequestKanban() {
     const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
     const [showCancelled, setShowCancelled] = useState(false);
 
+    // Số lượng đơn Hoàn thành hiển thị tối đa trên cột Kanban (mặc định 8 đơn mới nhất để giữ bảng gọn gàng)
+    const [completedDisplayCount, setCompletedDisplayCount] = useState(8);
+
     // Chế độ xem: 'list' (mỗi yêu cầu 1 hàng) | 'board' (Kanban kéo thả)
     const [viewMode, setViewMode] = useState('list');
     const [statusTab, setStatusTab] = useState('all');
@@ -400,9 +403,10 @@ export default function ServiceRequestKanban() {
     const pageStartIndex = (safePage - 1) * LIST_PAGE_SIZE;
     const paginatedListItems = listItems.slice(pageStartIndex, pageStartIndex + LIST_PAGE_SIZE);
 
-    // Về trang 1 khi đổi từ khóa, tab trạng thái hoặc chế độ xem
+    // Về trang 1 và đặt lại giới hạn đơn hoàn thành khi đổi từ khóa, tab trạng thái hoặc chế độ xem
     useEffect(() => {
         setCurrentPage(1);
+        setCompletedDisplayCount(8);
     }, [searchKeyword, selectedCategoryFilter, statusTab, viewMode]);
 
     const handleListPageChange = (page) => {
@@ -590,20 +594,18 @@ export default function ServiceRequestKanban() {
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
-                                    <th className="py-3 px-3 whitespace-nowrap">Phòng / Mã đơn</th>
-                                    <th className="py-3 px-3">Khách hàng</th>
-                                    <th className="py-3 px-3">Dịch vụ yêu cầu</th>
-                                    <th className="py-3 px-3 whitespace-nowrap text-center">SL</th>
-                                    <th className="py-3 px-3 whitespace-nowrap">Thành tiền</th>
-                                    <th className="py-3 px-3 whitespace-nowrap">Thời gian</th>
-                                    <th className="py-3 px-3 whitespace-nowrap">Trạng thái (Đổi nhanh)</th>
-                                    <th className="py-3 px-3 text-center whitespace-nowrap">Thao tác</th>
+                                    <th className="py-3 px-4 whitespace-nowrap">Phòng & Mã Đơn</th>
+                                    <th className="py-3 px-4 min-w-[130px]">Khách Hàng</th>
+                                    <th className="py-3 px-4 min-w-[240px]">Dịch Vụ Yêu Cầu</th>
+                                    <th className="py-3 px-4 whitespace-nowrap text-right">Chi Phí & Số Lượng</th>
+                                    <th className="py-3 px-4 whitespace-nowrap">Thời Gian</th>
+                                    <th className="py-3 px-4 text-center whitespace-nowrap">Trạng Thái & Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-slate-700">
                                 {isLoading && allListItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                                        <td colSpan={6} className="py-12 text-center text-slate-400">
                                             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                                             <span>Đang tải danh sách yêu cầu dịch vụ...</span>
                                         </td>
@@ -612,7 +614,7 @@ export default function ServiceRequestKanban() {
 
                                 {!isLoading && listItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                                        <td colSpan={6} className="py-12 text-center text-slate-400">
                                             <div className="text-3xl mb-2">📭</div>
                                             <p className="font-semibold text-slate-700">Không có yêu cầu dịch vụ nào</p>
                                             <p className="text-[11px] text-slate-400 mt-1">
@@ -631,154 +633,139 @@ export default function ServiceRequestKanban() {
                                     return (
                                         <tr
                                             key={item.id}
-                                            className={`hover:bg-blue-50/30 transition duration-150 ${isUpdatingThis ? 'opacity-60 bg-slate-50' : ''}`}
+                                            className={`hover:bg-blue-50/25 transition duration-150 ${isUpdatingThis ? 'opacity-60 bg-slate-50' : ''}`}
                                         >
-                                            {/* Phòng / Mã đơn */}
-                                            <td className="py-2.5 px-3 whitespace-nowrap">
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono font-bold text-[11px] tracking-wider">
-                                                    🚪 {item.room_number || 'Chờ xếp'}
+                                            {/* 1. Phòng / Mã đơn */}
+                                            <td className="py-3.5 px-4 whitespace-nowrap align-middle">
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50/80 text-indigo-700 border border-indigo-200/80 font-mono font-black text-xs shadow-2xs">
+                                                    <span>🚪</span>
+                                                    <span>{item.room_number ? `Phòng ${item.room_number}` : 'Chờ xếp'}</span>
+                                                </div>
+                                                <span className="text-[10px] text-slate-400 block mt-1 font-mono tracking-tight font-medium">
+                                                    #{item.booking_code}
                                                 </span>
-                                                <span className="text-[10px] text-slate-400 block mt-1 font-mono">#{item.booking_code}</span>
                                                 {item.status === 'pending' && (
-                                                    <>
+                                                    <div className="mt-1">
                                                         {getServiceLockReason(item) === 'NO_ROOM' && (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold mt-1" title="Chưa gán số phòng cụ thể">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold" title="Chưa gán số phòng cụ thể">
                                                                 ⚠️ Chưa gán phòng
                                                             </span>
                                                         )}
                                                         {getServiceLockReason(item) === 'WAIT_CHECKIN' && (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold mt-1" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
                                                                 ⚠️ Chờ Check-in
                                                             </span>
                                                         )}
                                                         {!getServiceLockReason(item) && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold mt-1" title="Đã có số phòng! Nhân viên buồng phòng có thể chuẩn bị gối khăn / tiện nghi vào phòng trước khi khách tới">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold" title="Đã có số phòng! Nhân viên buồng phòng có thể chuẩn bị gối khăn / tiện nghi vào phòng trước khi khách tới">
                                                                 🛏️ Setup phòng
                                                             </span>
                                                         )}
-                                                    </>
+                                                    </div>
                                                 )}
                                             </td>
 
-                                            {/* Khách hàng */}
-                                            <td className="py-2.5 px-3 min-w-[110px] max-w-[160px]">
-                                                <div className="font-bold text-slate-900 truncate" title={item.guest_name}>
-                                                    {item.guest_name || '—'}
+                                            {/* 2. Khách hàng */}
+                                            <td className="py-3.5 px-4 min-w-[130px] max-w-[180px] align-middle">
+                                                <div className="font-bold text-slate-900 text-xs truncate" title={item.guest_name}>
+                                                    {item.guest_name || 'Khách lưu trú'}
                                                 </div>
+                                                <span className="text-[11px] text-slate-400 block mt-0.5">
+                                                    Khách lưu trú
+                                                </span>
                                             </td>
 
-                                            {/* Dịch vụ yêu cầu */}
-                                            <td className="py-2.5 px-3 min-w-[220px] max-w-[320px]">
-                                                <div className="flex items-center gap-2.5">
+                                            {/* 3. Dịch vụ yêu cầu */}
+                                            <td className="py-3.5 px-4 min-w-[240px] max-w-[360px] align-middle">
+                                                <div className="flex items-center gap-3">
                                                     {item.service_image ? (
                                                         <img
                                                             src={item.service_image}
                                                             alt={item.service_name}
-                                                            className="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0"
+                                                            className="w-11 h-11 rounded-xl object-cover border border-slate-200/80 shrink-0 shadow-2xs"
                                                         />
                                                     ) : (
-                                                        <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center text-base shrink-0">
+                                                        <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-lg shrink-0 border border-slate-200/60">
                                                             🍽️
                                                         </div>
                                                     )}
-                                                    <div className="min-w-0">
-                                                        <div className="font-bold text-slate-900 truncate" title={item.service_name}>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="font-bold text-slate-900 text-xs sm:text-[13px] truncate" title={item.service_name}>
                                                             {item.service_name}
                                                         </div>
                                                         <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                                            <span className="inline-block px-1.5 rounded bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold">
+                                                            <span className="inline-block px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200/70">
                                                                 {item.category_name || 'Dịch vụ'}
                                                             </span>
                                                             {item.is_paid ? (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold whitespace-nowrap shadow-2xs">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                                    <span> Đã thanh toán (Đặt trước)</span>
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold shadow-2xs">
+                                                                    <span>🟢 Đã trả trước</span>
                                                                 </span>
                                                             ) : (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold whitespace-nowrap shadow-2xs">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                                    <span> Phát sinh (Thu lúc Check-out)</span>
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/80 text-[10px] font-semibold shadow-2xs">
+                                                                    <span>🟠 Thu Check-out</span>
                                                                 </span>
                                                             )}
                                                             {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold whitespace-nowrap shadow-2xs">
-                                                                    <span>⏰ Hẹn: {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold shadow-2xs">
+                                                                    <span>⏰ Hẹn {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                                                                 </span>
                                                             )}
                                                         </div>
                                                         {item.note && (
-                                                            <div className="text-[11px] text-amber-700 italic truncate mt-0.5" title={item.note}>
-                                                                💬 {item.note}
+                                                            <div className="text-[11px] text-slate-500 italic truncate mt-1 flex items-center gap-1" title={item.note}>
+                                                                <span>💬</span>
+                                                                <span className="truncate">{item.note}</span>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
                                             </td>
 
-                                            {/* Số lượng */}
-                                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                                                <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold font-mono">
-                                                    x{item.quantity}
+                                            {/* 4. Chi phí & Số lượng gộp chung */}
+                                            <td className="py-3.5 px-4 whitespace-nowrap text-right align-middle">
+                                                <div className="font-black text-rose-600 text-sm tracking-tight">
+                                                    {totalAmt.toLocaleString('vi-VN')} đ
+                                                </div>
+                                                <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
+                                                    x{item.quantity || 1} suất
                                                 </span>
                                             </td>
 
-                                            {/* Thành tiền */}
-                                            <td className="py-2.5 px-3 whitespace-nowrap font-black text-rose-600">
-                                                {totalAmt.toLocaleString('vi-VN')} đ
+                                            {/* 5. Thời gian */}
+                                            <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-slate-500 align-middle">
+                                                <div className="flex items-center gap-1 font-medium">
+                                                    <span></span>
+                                                    <span>{formatTimeAgo(item.created_at)}</span>
+                                                </div>
                                             </td>
 
-                                            {/* Thời gian */}
-                                            <td className="py-2.5 px-3 whitespace-nowrap text-[11px] text-slate-500">
-                                                ⏱️ {formatTimeAgo(item.created_at)}
-                                            </td>
+                                            {/* 6. Trạng thái & Thao tác (Gộp chung 1 cột duy nhất, không trùng lặp) */}
+                                            <td className="py-3.5 px-4 whitespace-nowrap align-middle">
+                                                <div className="flex items-center justify-center">
+                                                    {item.status === 'completed' && (
+                                                        <span
+                                                            title="Yêu cầu dịch vụ đã hoàn thành và được tự động hạch toán vào hóa đơn phòng"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs select-none"
+                                                        >
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                            <span>✓ Hoàn thành (Đã tính vào phòng)</span>
+                                                        </span>
+                                                    )}
 
-                                            {/* Trạng thái - đổi nhanh */}
-                                            <td className="py-2.5 px-3 whitespace-nowrap">
-                                                {item.status === 'completed' ? (
-                                                    <span
-                                                        title="Đơn dịch vụ đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái"
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold select-none cursor-not-allowed shadow-2xs"
-                                                    >
-                                                        <span></span>
-                                                        <span>✓ Hoàn thành</span>
-                                                    </span>
-                                                ) : (
-                                                    <select
-                                                        value={item.status}
-                                                        disabled={isUpdatingThis}
-                                                        onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                                                        className={`px-2 py-1 rounded-lg border text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${meta.pill}`}
-                                                    >
-                                                        {STATUS_ORDER.map((key) => (
-                                                            <option key={key} value={key}>
-                                                                {STATUS_META[key].icon} {STATUS_META[key].label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                            </td>
-
-                                            {/* Thao tác nhanh theo trạng thái */}
-                                            <td className="py-2.5 px-3 whitespace-nowrap">
-                                                <div className="flex items-center justify-center gap-1.5">
                                                     {item.status === 'pending' && (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleUpdateStatus(item.id, 'cancelled')}
-                                                                disabled={isUpdatingThis}
-                                                                className="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
-                                                            >
-                                                                ✕ Hủy
-                                                            </button>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                                                                ⏳ Chờ xử lý
+                                                            </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'in_progress')}
                                                                 disabled={isUpdatingThis || needsCheckIn}
-                                                                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition shadow-xs flex items-center gap-1 ${
+                                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1 ${
                                                                     needsCheckIn
                                                                         ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-                                                                        : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                                                                        : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:shadow-md'
                                                                 }`}
                                                                 title={
                                                                     getServiceLockReason(item) === 'NO_ROOM'
@@ -789,64 +776,86 @@ export default function ServiceRequestKanban() {
                                                                 }
                                                             >
                                                                 {needsCheckIn && <span>🔒</span>}
-                                                                <span>Bắt đầu ➔</span>
+                                                                <span>Bắt đầu</span>
+                                                                <span>➔</span>
                                                             </button>
-                                                        </>
-                                                    )}
-                                                    {item.status === 'in_progress' && (
-                                                        <>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => handleUpdateStatus(item.id, 'pending')}
+                                                                onClick={() => handleUpdateStatus(item.id, 'cancelled')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                title="Hủy yêu cầu này"
                                                             >
-                                                                ↩ Chờ
+                                                                ✕
                                                             </button>
+                                                        </div>
+                                                    )}
+
+                                                    {item.status === 'in_progress' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold">
+                                                                ⚙️ Đang làm
+                                                            </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'delivering')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                                                                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1"
                                                             >
-                                                                <span>🛎️ Phục vụ</span>
+                                                                <span>🛎️ Giao phòng</span>
+                                                                <span>➔</span>
                                                             </button>
-                                                        </>
-                                                    )}
-                                                    {item.status === 'delivering' && (
-                                                        <>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => handleUpdateStatus(item.id, 'in_progress')}
+                                                                onClick={() => handleUpdateStatus(item.id, 'pending')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                title="Trả về Chờ xử lý"
                                                             >
-                                                                ↩ Chuẩn bị
+                                                                ↩
                                                             </button>
+                                                        </div>
+                                                    )}
+
+                                                    {item.status === 'delivering' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold">
+                                                                🛎️ Đang giao
+                                                            </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'completed')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1"
                                                             >
-                                                                <span>✓ Hoàn thành</span>
+                                                                <span>✓ Hoàn tất</span>
                                                             </button>
-                                                        </>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'in_progress')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                title="Trả về Đang chuẩn bị"
+                                                            >
+                                                                ↩
+                                                            </button>
+                                                        </div>
                                                     )}
-                                                    {item.status === 'completed' && (
-                                                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
-                                                            ✓ Đã tính hóa đơn
-                                                        </span>
-                                                    )}
+
                                                     {item.status === 'cancelled' && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleUpdateStatus(item.id, 'pending')}
-                                                            disabled={isUpdatingThis}
-                                                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-[11px] font-bold transition cursor-pointer"
-                                                        >
-                                                            ↩ Khôi phục
-                                                        </button>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
+                                                                ✕ Đã hủy
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateStatus(item.id, 'pending')}
+                                                                disabled={isUpdatingThis}
+                                                                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                                                            >
+                                                                <span>↩ Khôi phục</span>
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </td>
@@ -923,6 +932,8 @@ export default function ServiceRequestKanban() {
                 {columns.map((col) => {
                     const columnItems = filterColumnItems(kanbanData[col.key] || []);
                     const isDropTarget = activeDropZone === col.key;
+                    const isCompletedCol = col.key === 'completed';
+                    const displayedItems = isCompletedCol ? columnItems.slice(0, completedDisplayCount) : columnItems;
 
                     return (
                         <div
@@ -946,14 +957,17 @@ export default function ServiceRequestKanban() {
                                 </div>
                                 <span
                                     className={`px-2 py-0.5 rounded-full text-xs font-bold shadow-xs ${col.badgeBg}`}
+                                    title={isCompletedCol && columnItems.length > completedDisplayCount ? `Đang hiển thị ${displayedItems.length} trên tổng ${columnItems.length} đơn hoàn thành` : undefined}
                                 >
-                                    {columnItems.length}
+                                    {isCompletedCol && columnItems.length > completedDisplayCount
+                                        ? `${displayedItems.length} / ${columnItems.length}`
+                                        : columnItems.length}
                                 </span>
                             </div>
 
                             {/* Cards Container */}
                             <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[750px] pr-1 scrollbar-thin">
-                                {columnItems.length === 0 ? (
+                                {displayedItems.length === 0 ? (
                                     <div className="h-44 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 text-xs text-center p-4">
                                         <span className="text-2xl mb-1">📭</span>
                                         <span>Không có yêu cầu nào</span>
@@ -962,7 +976,7 @@ export default function ServiceRequestKanban() {
                                         </span>
                                     </div>
                                 ) : (
-                                    columnItems.map((item) => {
+                                    displayedItems.map((item) => {
                                         const isDraggingThis = draggedItemId === item.id;
                                         const isUpdatingThis = isUpdatingId === item.id;
                                         const totalAmt = Number(item.total_price) || 0;
@@ -1198,6 +1212,43 @@ export default function ServiceRequestKanban() {
                                             </div>
                                         );
                                     })
+                                )}
+
+                                {/* NÚT XEM THÊM & THU GỌN CHO CỘT HOÀN THÀNH (PHƯƠNG ÁN 1) */}
+                                {isCompletedCol && columnItems.length > 8 && (
+                                    <div className="pt-2.5 pb-1 space-y-1.5 border-t border-slate-200/80 mt-2">
+                                        {columnItems.length > completedDisplayCount ? (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCompletedDisplayCount((prev) => prev + 8)}
+                                                    className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-xs cursor-pointer"
+                                                >
+                                                    <span>▾ Xem thêm 8 đơn cũ hơn</span>
+                                                    <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-black">
+                                                        Còn {columnItems.length - displayedItems.length}
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCompletedDisplayCount(columnItems.length)}
+                                                    className="w-full text-center text-[11px] text-slate-500 hover:text-emerald-700 hover:underline font-semibold cursor-pointer py-0.5"
+                                                >
+                                                    Xem tất cả ({columnItems.length} đơn)
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div className="text-center pt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCompletedDisplayCount(8)}
+                                                    className="py-1.5 px-3 rounded-xl bg-slate-200/70 hover:bg-slate-200 text-slate-700 text-xs font-bold transition inline-flex items-center gap-1.5 cursor-pointer"
+                                                >
+                                                    <span>▴ Thu gọn lại 8 đơn mới nhất</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </div>

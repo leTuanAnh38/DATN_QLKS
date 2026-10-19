@@ -8,6 +8,7 @@ import { useAuth } from '../../store/authStore';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import PaymentModal, { PaymentSection } from '../../components/common/PaymentModal';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 import api from '../../services/api';
 
 // Hàm tiện ích format ngày thành chuỗi YYYY-MM-DD
@@ -38,6 +39,8 @@ export default function Checkout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, isAuthenticated } = useAuth();
+    const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
 
     // 1. Quản lý State Dữ liệu Phòng
     const [room, setRoom] = useState(null);
@@ -1789,7 +1792,7 @@ export default function Checkout() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold uppercase block w-fit mb-1">
-                                                5-STAR SUITE
+                                                {starCount}-STAR SUITE
                                             </span>
                                             <h3 className="font-serif font-bold text-base text-slate-900 leading-snug line-clamp-2">
                                                 {room.name}

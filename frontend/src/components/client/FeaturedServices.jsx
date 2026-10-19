@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import hotelService from '../../services/hotelService';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 // Danh sách dịch vụ mẫu cao cấp dự phòng (fallback) để giao diện luôn tráng lệ
 const FALLBACK_SERVICES = [
@@ -67,6 +68,9 @@ const FALLBACK_SERVICES = [
 ];
 
 export default function FeaturedServices() {
+    const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
+    const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
     const [services, setServices] = useState([]);
     const [categories, setCategories] = useState([]);
     const [activeFilter, setActiveFilter] = useState('all');
@@ -131,7 +135,7 @@ export default function FeaturedServices() {
                 <div className="text-center max-w-3xl mx-auto mb-12">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-bold uppercase tracking-widest mb-3">
                         <span>✨</span>
-                        ĐẶC QUYỀN DỊCH VỤ & ẨM THỰC 5 SAO
+                        ĐẶC QUYỀN DỊCH VỤ & ẨM THỰC {starCount} SAO
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Tinh Hoa Dịch Vụ Nghỉ Dưỡng <br />
@@ -202,7 +206,7 @@ export default function FeaturedServices() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                         {filteredServices.slice(0, 6).map((item) => {
                             const imgSrc = item.display_image || item.image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80';
-                            const categoryName = item.category_name || item.category?.name || 'Dịch vụ 5 sao';
+                            const categoryName = item.category_name || item.category?.name || (`Dịch vụ ${starCount} sao`);
                             const categoryIcon = item.category_icon || item.category?.icon || '🛎️';
                             const badgeText = item.badge || (Number(item.price) > 1000000 ? 'Đặc Quyền VIP' : 'Được Yêu Thích');
 
@@ -248,7 +252,7 @@ export default function FeaturedServices() {
                                                 {item.name}
                                             </h3>
                                             <p className="text-slate-500 text-xs sm:text-sm line-clamp-2 leading-relaxed mb-6 font-normal">
-                                                {item.description || "Dịch vụ đẳng cấp được chế tác riêng phục vụ khách hàng lưu trú tại Khách Sạn TA Đà Nẵng."}
+                                                {item.description || `Dịch vụ đẳng cấp được chế tác riêng phục vụ khách hàng lưu trú tại ${hotelName}.`}
                                             </p>
                                         </div>
 
@@ -283,7 +287,7 @@ export default function FeaturedServices() {
                             🛎️ IN-ROOM DINING & CONCIERGE SERVICE
                         </div>
                         <h3 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 leading-snug">
-                            Trải Nghiệm Đầy Đủ Thực Đơn Ẩm Thực & Tiện Ích Phòng 5 Sao
+                            Trải Nghiệm Đầy Đủ Thực Đơn Ẩm Thực & Tiện Ích Phòng {starCount} Sao
                         </h3>
                         <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                             Khách sạn hỗ trợ khách lưu trú gọi món ăn, đồ uống và đặt lịch The Lotus Spa trực tuyến qua điện thoại hoặc máy tính bảng trong phòng. Bộ phận Concierge giao tận cửa phòng chỉ trong 20 - 30 phút.

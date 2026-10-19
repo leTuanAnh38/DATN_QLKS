@@ -26,8 +26,10 @@ const formatDateDisplay = (dateStr) => {
  * Tích hợp trạng thái Loading (Skeleton) và xử lý ảnh đại diện chuẩn PMS
  */
 export default function RoomsAndSuitesPage() {
+    const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const { settings } = useHotelSettings();
+    const hotelName = settings?.hotel_name || "Khách Sạn TA Đà Nẵng";
     const bannerRoomsImg = settings?.banner_rooms || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=2074&q=85";
 
     // Nhận các tham số tìm kiếm từ thanh tìm phòng trang chủ
@@ -162,7 +164,7 @@ export default function RoomsAndSuitesPage() {
                                 </span>
                             </h1>
                             <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
-                                Trải nghiệm các hạng phòng và suites 5 sao chuẩn quốc tế, sở hữu tầm nhìn trực diện biển xanh bao la cùng dịch vụ phòng cao cấp 24/7 tại Khách Sạn TA Đà Nẵng.
+                                Trải nghiệm các hạng phòng và suites {settings?.stars || 3} sao chuẩn quốc tế, sở hữu tầm nhìn trực diện biển xanh bao la cùng dịch vụ phòng cao cấp 24/7 tại {hotelName}.
                             </p>
                         </div>
 
@@ -393,7 +395,7 @@ export default function RoomsAndSuitesPage() {
                                                 </span>
                                             )}
                                             <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
-                                                5-STAR RESORT
+                                                {settings?.stars || 3}-STAR RESORT
                                             </span>
                                         </div>
 
@@ -423,7 +425,7 @@ export default function RoomsAndSuitesPage() {
                                             <p className="mt-3 text-xs text-slate-600 line-clamp-2 leading-relaxed font-normal">
                                                 {room.short_description ||
                                                     room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
-                                                    'Phòng nghỉ thượng lưu được trang bị đầy đủ nội thất nhập khẩu, view biển panorama và tiện ích 5 sao đồng bộ.'}
+                                                    `Phòng nghỉ thượng lưu được trang bị đầy đủ nội thất nhập khẩu, view biển panorama và tiện ích ${settings?.stars || 3} sao đồng bộ.`}
                                             </p>
                                         </div>
 

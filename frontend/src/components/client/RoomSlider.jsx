@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 /**
  * Component Carousel/Slider hiển thị danh sách phòng cho Trang chủ
@@ -7,6 +8,8 @@ import { Link } from 'react-router-dom';
  * Có 2 nút bấm mũi tên (< và >) kèm hiệu ứng trượt transition mượt mà
  */
 export default function RoomSlider({ rooms = [] }) {
+    const { settings } = useHotelSettings();
+    const starCount = settings?.stars || 3;
     const [currentIndex, setCurrentIndex] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(3);
     const [isHovered, setIsHovered] = useState(false);
@@ -179,7 +182,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                 </span>
                                             )}
                                             <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
-                                                5-STAR
+                                                {starCount}-STAR
                                             </span>
                                         </div>
 
@@ -207,7 +210,7 @@ export default function RoomSlider({ rooms = [] }) {
                                             <p className="mt-2 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
                                                 {room.short_description ||
                                                     room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
-                                                    'Không gian nghỉ dưỡng sang trọng view biển trọn vẹn, trang bị đầy đủ tiện nghi cao cấp 5 sao.'}
+                                                    `Không gian nghỉ dưỡng sang trọng view biển trọn vẹn, trang bị đầy đủ tiện nghi cao cấp ${starCount} sao.`}
                                             </p>
                                         </div>
 

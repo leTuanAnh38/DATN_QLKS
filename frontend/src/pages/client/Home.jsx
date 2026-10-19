@@ -75,7 +75,7 @@ export default function TADaNangHotelLanding() {
         {
             url: bannerHome3,
             title: "Phòng Suite Hạng Sang",
-            subtitle: "Đặc Quyền Dịch Vụ 5 Sao",
+            subtitle: `Đặc Quyền Dịch Vụ ${settings?.stars || 3} Sao`,
             desc: "Nội thất cao cấp, ban công ngắm trọn đại dương và trải nghiệm ẩm thực thượng hạng."
         }
     ];

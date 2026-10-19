@@ -131,8 +131,8 @@ export default function Navbar({
                         </span>
                         <span className="hidden sm:inline text-slate-300">|</span>
                         <span className="hidden sm:inline flex items-center gap-1 text-slate-500">
-                            <span className="text-amber-500 font-bold">★</span>
-                            The Leading Hotels of the World
+                            <span className="text-amber-500 font-bold">{'★'.repeat(settings?.stars || 3)}</span>
+                            Tiêu Chuẩn {settings?.stars || 3} Sao Quốc Tế
                         </span>
                         {isAuthenticated && (
                             <>
@@ -160,9 +160,9 @@ export default function Navbar({
 
             {/* 2. HEADER NAVIGATION */}
             <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3 xl:gap-8">
                     {/* Brand Logo */}
-                    <Link to="/" className="flex items-center space-x-3 cursor-pointer group">
+                    <Link to="/" className="flex items-center space-x-3 cursor-pointer group shrink-0">
                         {settings?.logo_url ? (
                             <img
                                 src={settings.logo_url}
@@ -179,22 +179,22 @@ export default function Navbar({
                                 {settings?.hotel_name ? settings.hotel_name.slice(0, 24) : 'KHÁCH SẠN TA'}
                             </span>
                             <span className="text-[10px] font-semibold text-blue-600 tracking-[0.2em] uppercase whitespace-nowrap">
-                                {settings?.hotel_slogan ? settings.hotel_slogan.slice(0, 26) : 'ĐÀ NẴNG ★★★★★'}
+                                {settings?.hotel_slogan ? settings.hotel_slogan.slice(0, 36) : `ĐÀ NẴNG ${'★'.repeat(settings?.stars || 3)}`}
                             </span>
                         </div>
                     </Link>
 
                     {/* Desktop Navigation Links */}
-                    <nav className="hidden lg:flex items-center space-x-7 text-sm font-medium">
+                    <nav className="hidden lg:flex items-center space-x-3.5 xl:space-x-5 2xl:space-x-7 text-[13px] xl:text-sm font-medium shrink-0">
                         {navItems.map((item) => {
                             const active = item.isActive(location.pathname);
                             return (
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    className={`transition-colors duration-200 ${
+                                    className={`whitespace-nowrap transition-colors duration-200 py-1 ${
                                         active
-                                            ? 'text-blue-600 font-semibold border-b-2 border-blue-600 pb-1'
+                                            ? 'text-blue-600 font-bold border-b-2 border-blue-600'
                                             : 'text-slate-700 hover:text-blue-600'
                                     }`}
                                 >
@@ -205,26 +205,35 @@ export default function Navbar({
                     </nav>
 
                     {/* Header Actions */}
-                    <div className="flex items-center space-x-3 sm:space-x-4">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        {/* Nút Đặt phòng ngay hiện đại, sang trọng */}
                         <Link
                             to={actionLink}
                             onClick={handleActionClick}
-                            className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-medium text-sm rounded-lg shadow-md shadow-orange-500/20 hover:shadow-lg transition-all duration-200"
+                            className="hidden sm:inline-flex items-center gap-2 px-3.5 xl:px-4.5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white font-bold text-xs xl:text-[13px] rounded-xl shadow-md shadow-orange-500/25 hover:shadow-lg hover:shadow-orange-500/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
                         >
-                            {actionText}
+                            <svg className="w-4 h-4 text-white/95 group-hover:scale-110 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="tracking-wide">{actionText}</span>
+                            <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform shrink-0">
+                                →
+                            </span>
                         </Link>
 
                         {/* AUTH SECTION: NÚT ĐĂNG NHẬP HOẶC AVATAR MẶC ĐỊNH KHI ĐÃ ĐĂNG NHẬP */}
                         {!isAuthenticated ? (
-                            // Khi CHƯA đăng nhập: Hiển thị Nút Đăng nhập
+                            // Khi CHƯA đăng nhập: Hiển thị Nút Đăng nhập hiện đại
                             <Link
                                 to="/login"
-                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 hover:border-blue-300 transition-all duration-200 shadow-sm"
+                                className="inline-flex items-center gap-2 px-3 xl:px-3.5 py-2 xl:py-2.5 rounded-xl text-xs xl:text-[13px] font-semibold text-slate-700 hover:text-blue-600 bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-blue-400 shadow-xs hover:shadow-md hover:shadow-blue-500/10 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
                             >
-                                <svg className="w-4 h-4 text-slate-500 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                <span>Đăng nhập</span>
+                                <div className="w-5 h-5 rounded-lg bg-white border border-slate-200 group-hover:border-blue-300 group-hover:bg-blue-600 text-slate-600 group-hover:text-white flex items-center justify-center transition-all duration-200 shrink-0">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                                <span className="tracking-tight">Đăng nhập</span>
                             </Link>
                         ) : (
                             // Khi ĐÃ đăng nhập thành công: Hiển thị CHUÔNG THÔNG BÁO và AVATAR MẶC ĐỊNH
@@ -457,18 +466,26 @@ export default function Navbar({
                                     setMobileMenuOpen(false);
                                     handleActionClick(e);
                                 }}
-                                className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium text-sm rounded-lg shadow text-center"
+                                className="w-full py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-bold text-sm rounded-xl shadow-md text-center flex items-center justify-center gap-2"
                             >
-                                {actionText}
+                                <svg className="w-4 h-4 text-white/95" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>{actionText}</span>
                             </Link>
 
                             {!isAuthenticated ? (
                                 <Link
                                     to="/login"
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="w-full py-2.5 text-center text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                                    className="w-full py-2.5 text-center text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition flex items-center justify-center gap-2"
                                 >
-                                    🔑 Đăng nhập / Đăng ký
+                                    <div className="w-5 h-5 rounded-md bg-white border border-slate-200 text-slate-600 flex items-center justify-center">
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </div>
+                                    <span>Đăng nhập / Đăng ký</span>
                                 </Link>
                             ) : (
                                 isStaffRole(user) && (

@@ -38,8 +38,16 @@ export default function Footer() {
                                 {hotelInfo.hotel_name || 'KHÁCH SẠN TA ĐÀ NẴNG'}
                             </span>
                         </Link>
+                        <div className="flex items-center gap-0.5 text-amber-500 text-xs mb-3">
+                            {Array.from({ length: hotelInfo.stars || 3 }).map((_, i) => (
+                                <span key={i}>★</span>
+                            ))}
+                            <span className="text-[11px] font-medium text-slate-500 ml-1.5">
+                                Khách sạn {hotelInfo.stars || 3} Sao
+                            </span>
+                        </div>
                         <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                            {hotelInfo.description || 'Kiệt tác nghỉ dưỡng 5 sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.'}
+                            {hotelInfo.description || `Kiệt tác nghỉ dưỡng ${hotelInfo.stars || 3} sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.`}
                         </p>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 inline-block text-xs">
                             <span className="font-bold text-slate-800">🏆 WINNER 2024</span>

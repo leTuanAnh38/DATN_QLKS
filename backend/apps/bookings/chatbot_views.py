@@ -131,7 +131,10 @@ def build_hotel_context(request):
     try:
         setting = HotelSetting.get_settings()
         if setting:
-            context_data['hotel_info']['name'] = f"{setting.hotel_name} (5-Star Luxury Resort & Hotel)"
+            stars = getattr(setting, 'stars', 3) or 3
+            slogan = setting.hotel_slogan or f"{stars}-Star Hotel & Resort"
+            context_data['hotel_info']['name'] = f"{setting.hotel_name} ({slogan})"
+            context_data['hotel_info']['stars'] = stars
             context_data['hotel_info']['address'] = setting.address or context_data['hotel_info']['address']
             context_data['hotel_info']['hotline'] = setting.hotline or context_data['hotel_info']['hotline']
             context_data['hotel_info']['email'] = setting.email or context_data['hotel_info']['email']
@@ -315,16 +318,16 @@ def generate_system_prompt(hotel_context):
     system_prompt = f"""Bạn là Trợ lý ảo AI Concierge cao cấp của {h_info['name']}.
 NGUYÊN TẮC GIAO TIẾP VÀ XƯNG HÔ:
 1. Luôn xưng "Em" và gọi người dùng là "Quý khách" (khi nói Tiếng Việt).
-2. Giọng điệu chuyên nghiệp, cực kỳ lịch thiệp, chu đáo, tinh tế chuẩn khách sạn nghỉ dưỡng 5 sao quốc tế (5-Star Luxury Resort).
+2. Giọng điệu chuyên nghiệp, cực kỳ lịch thiệp, chu đáo, tinh tế chuẩn khách sạn nghỉ dưỡng {h_info.get('stars', 3)} sao quốc tế ({h_info.get('stars', 3)}-Star Luxury Resort).
 3. Câu trả lời ngắn gọn, rõ ràng, định dạng đẹp mắt (sử dụng in đậm, gạch đầu dòng, icon lịch sự).
 4. TUYỆT ĐỐI CHỈ cung cấp dữ liệu thực tế dựa trên thông tin hệ thống được cung cấp dưới đây, không bịa đặt số liệu hay giá phòng.
 
 QUY TẮC ĐA NGÔN NGỮ TỰ ĐỘNG (AUTOMATIC MULTILINGUAL CONCIERGE):
 - Đà Nẵng đón lượng lớn khách quốc tế (Đặc biệt là Hàn Quốc, Trung Quốc, Âu Mỹ / Khách nói Tiếng Anh).
 - TỰ ĐỘNG nhận diện ngôn ngữ của câu hỏi và trả lời bằng CHÍNH NGÔN NGỮ ĐÓ:
-  + Nếu khách hỏi bằng Tiếng Anh (English): Trả lời bằng Tiếng Anh sang trọng, chuẩn 5 sao ("Dear Valued Guest", "Warmest greetings from TA Da Nang Hotel").
-  + Nếu khách hỏi bằng Tiếng Hàn (한국어): Trả lời bằng Tiếng Hàn kính ngữ 존댓말 ("안녕하십니까, 고객님", "TA 다낭 5성급 호텔에 오신 것을 진심으로 환영합니다").
-  + Nếu khách hỏi bằng Tiếng Trung (中文): Trả lời bằng Tiếng Trung nhã nhặn, tôn trọng ("尊敬的贵宾，您好", "欢迎来到TA岘港五星级度假酒店").
+  + Nếu khách hỏi bằng Tiếng Anh (English): Trả lời bằng Tiếng Anh sang trọng, chuẩn {h_info.get('stars', 3)} sao ("Dear Valued Guest", "Warmest greetings from TA Da Nang Hotel").
+  + Nếu khách hỏi bằng Tiếng Hàn (한국어): Trả lời bằng Tiếng Hàn kính ngữ 존댓말 ("안녕하십니까, 고객님", "TA 다낭 {h_info.get('stars', 3)}성급 호텔에 오신 것을 진심으로 환영합니다").
+  + Nếu khách hỏi bằng Tiếng Trung (中文): Trả lời bằng Tiếng Trung nhã nhặn, tôn trọng ("尊敬的贵宾，您好", "欢迎来到TA岘港{h_info.get('stars', 3)}星级度假酒店").
   + Nếu khách hỏi bằng Tiếng Việt: Trả lời bằng Tiếng Việt ấm áp, hiếu khách.
 - QUY ĐỔI GIÁ TIỀN CHO KHÁCH QUỐC TẾ (CURRENCY CONVERSION):
   Khi đề cập đến giá phòng hoặc dịch vụ cho khách quốc tế (Anh/Hàn/Trung), hãy luôn hiển thị song song giá gốc VND và giá quy đổi tương đương:
@@ -568,8 +571,9 @@ def local_smart_fallback(message, user, hotel_context, tracked_bookings=None, la
             )
         else:
             services = hotel_context.get('services', [])
+            stars_val = h_info.get('stars', 3)
             lines = [
-                f"Dạ {h_info['name']} hân hạnh phục vụ Quý khách các dịch vụ đẳng cấp 5 sao quốc tế:\n",
+                f"Dạ {h_info['name']} hân hạnh phục vụ Quý khách các dịch vụ đẳng cấp {stars_val} sao quốc tế:\n",
                 "• 🍽️ **Ẩm thực & In-room Dining (24/7)**: Thực đơn Á - Âu, hải sản tươi sống Mỹ Khê, Bò Wagyu A5 thượng hạng.",
                 "• 💆 **TA Ocean Spa & Wellness**: Xông hơi đá muối Himalaya, massage bấm huyệt thảo dược phục hồi năng lượng.",
                 "• 🚗 **Xe đưa đón Sân bay Quốc tế Đà Nẵng**: Dòng xe Limousine & Mercedes sang trọng đón tiễn tận nơi.",
@@ -1080,7 +1084,7 @@ class ChatbotAskView(APIView):
                 f"- Thời gian lưu trú: {bk['check_in_date']} đến {bk['check_out_date']}\n"
                 f"- Tổng thanh toán: {bk['total_amount']}\n"
                 f"- Trạng thái hiện tại: {bk['status_label']} (Bước {bk['step_index']}/4)\n"
-                f"Hãy phản hồi đầy đủ thông tin này một cách ân cần, sang trọng chuẩn 5 sao và chúc khách có kỳ nghỉ thoải mái."
+                f"Hãy phản hồi đầy đủ thông tin này một cách ân cần, sang trọng chuẩn {hotel_context['hotel_info'].get('stars', 3)} sao và chúc khách có kỳ nghỉ thoải mái."
             )
 
         # 2. Kiểm tra Gemini API Key
