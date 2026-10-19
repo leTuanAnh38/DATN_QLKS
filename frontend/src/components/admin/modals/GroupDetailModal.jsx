@@ -1175,14 +1175,6 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                     <div className="flex items-center gap-2.5">
                         <button
                             type="button"
-                            onClick={() => setIsInvoiceModalOpen(true)}
-                            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-                            title="Xem và in hóa đơn thanh toán toàn đoàn"
-                        >
-                            <span>🖨️ In Hóa Đơn Đoàn</span>
-                        </button>
-                        <button
-                            type="button"
                             onClick={onClose}
                             className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer"
                         >

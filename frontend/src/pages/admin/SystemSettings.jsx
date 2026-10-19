@@ -482,9 +482,6 @@ export default function SystemSettings() {
             {/* HEADER PHÂN HỆ CÀI ĐẶT HỆ THỐNG */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 shadow-xs">
-                        <Sliders className="w-6 h-6 text-blue-600" />
-                    </div>
                     <div>
                         <div className="flex items-center gap-2">
                             <h1 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">

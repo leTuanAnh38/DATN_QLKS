@@ -24,9 +24,11 @@ from apps.posts.views import ImageUploadView
 from apps.bookings.views import PromotionViewSet, HotelSettingView
 from apps.users.views import AuditLogViewSet
 from apps.payments.views import SepayWebhookView
+from apps.bookings.chatbot_views import ChatbotAskView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/chatbot/ask/', ChatbotAskView.as_view(), name='chatbot-ask'),
     path('api/hotel-settings/', HotelSettingView.as_view(), name='hotel-settings-direct'),
     path('api/auth/', include('apps.users.urls')),
     path('api/users/', include('apps.users.urls')),

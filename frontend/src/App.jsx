@@ -15,6 +15,7 @@ import NewsDetail from './pages/client/NewsDetail';
 import CorporateBooking from './pages/client/CorporateBooking';
 import Login from './pages/auth/login';
 import { hotelSettingStore } from './store/hotelSettingStore';
+import AIChatbotWidget from './components/client/AIChatbotWidget';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -26,6 +27,15 @@ function ScrollToTop() {
   return null;
 }
 
+function CustomerChatbot() {
+  const { pathname } = useLocation();
+  // Ẩn Trợ lý AI trên các trang quản trị backend /admin
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
+  return <AIChatbotWidget />;
+}
+
 function App() {
   useEffect(() => {
     // Tự động tải thông tin thương hiệu, logo & đồng bộ favicon toàn trang
@@ -35,6 +45,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <CustomerChatbot />
       <Routes>
         {/* Trang chủ */}
         <Route path="/" element={<Home />} />

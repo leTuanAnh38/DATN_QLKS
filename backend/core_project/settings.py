@@ -188,3 +188,8 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# ==========================================
+# GOOGLE GEMINI AI CONFIGURATION
+# ==========================================
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
