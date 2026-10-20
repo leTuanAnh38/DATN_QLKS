@@ -31,7 +31,9 @@ import {
     Receipt,
     Utensils,
     TrendingUp,
-    TrendingDown
+    TrendingDown,
+    Menu,
+    X
 } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
@@ -261,6 +263,12 @@ export default function HotelAdminDashboard({ initialTab }) {
     const [isBookingMenuOpen, setIsBookingMenuOpen] = useState(true);
     const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(true);
     const [isMarketingMenuOpen, setIsMarketingMenuOpen] = useState(true);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+    // Tự động đóng Sidebar trên Mobile khi chuyển tab hoặc chuyển URL
+    useEffect(() => {
+        setIsMobileSidebarOpen(false);
+    }, [activeTab, location.pathname]);
 
     // Kiểm tra phân hệ: Cho phép tài khoản Quản trị, Lễ tân và Nhân sự
     // (admin, owner, manager, receptionist, staff, cashier, housekeeper, service_staff, technician hoặc is_staff, is_superuser)
@@ -629,20 +637,45 @@ export default function HotelAdminDashboard({ initialTab }) {
 
     return (
         <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white print:bg-white print:block">
+            {/* Backdrop làm mờ khi mở Sidebar trên Mobile */}
+            {isMobileSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden animate-fadeIn"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
             {/* ========================================================================= */}
-            {/* 1. SIDEBAR CỐ ĐỊNH BÊN TRÁI (w-72 sang trọng, không xô lệch chữ dài) */}
+            {/* 1. SIDEBAR CỐ ĐỊNH BÊN TRÁI (w-72 sang trọng, trượt Drawer trên Mobile)  */}
             {/* ========================================================================= */}
-            <aside className="w-72 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-40 border-r border-slate-800 print:hidden">
+            <aside
+                className={`w-72 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 border-r border-slate-800 transition-transform duration-300 ease-in-out print:hidden ${
+                    isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+                }`}
+            >
                 {/* Logo Brand Header (Cố định phía trên) */}
-                <Link to="/" className="h-20 shrink-0 flex items-center px-6 border-b border-slate-800/80 gap-3 hover:bg-slate-800/40 transition">
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg shadow-blue-600/40 shrink-0">
-                        TA
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                        <span className="text-white font-bold text-base tracking-wide font-serif truncate"> TA ĐÀ NẴNG </span>
-                        <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate"> Luxury Hotel Admin </span>
-                    </div>
-                </Link>
+                <div className="h-20 shrink-0 flex items-center justify-between px-6 border-b border-slate-800/80">
+                    <Link to="/" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 hover:bg-slate-800/40 transition">
+                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg shadow-blue-600/40 shrink-0">
+                            TA
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-white font-bold text-base tracking-wide font-serif truncate"> TA ĐÀ NẴNG </span>
+                            <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate"> Luxury Hotel Admin </span>
+                        </div>
+                    </Link>
+                    {/* Nút đóng Sidebar chỉ hiện trên mobile */}
+                    <button
+                        type="button"
+                        onClick={() => setIsMobileSidebarOpen(false)}
+                        className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center lg:hidden transition cursor-pointer"
+                        title="Đóng thanh điều hướng"
+                        aria-label="Đóng thanh điều hướng"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
                 {/* Nav Links (Cuộn độc lập khi menu dài ra) */}
                 <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent px-4 py-6">
@@ -1271,25 +1304,38 @@ export default function HotelAdminDashboard({ initialTab }) {
             </aside>
 
             {/* ========================================================================= */}
-            {/* 2. KHU VỰC NỘI DUNG CHÍNH (BÊN PHẢI ml-72, min-w-0 max-w-full) */}
+            {/* 2. KHU VỰC NỘI DUNG CHÍNH (ml-0 trên Mobile, ml-72 trên Desktop lg:)     */}
             {/* ========================================================================= */}
-            <div className="flex-1 ml-72 flex flex-col min-h-screen min-w-0 max-w-full print:ml-0 print:w-full">
-                {/* Top Navbar: Ghim cố định trên cùng với sticky top-0 z-50, nền đặc bg-white, viền và bóng phân cách */}
-                <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-50 shadow-sm print:hidden">
-                    {/* Search bar */}
-                    <div className="relative w-96">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm phòng, khách hàng, mã đặt chỗ..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-                        />
+            <div className="flex-1 ml-0 lg:ml-72 flex flex-col min-h-screen min-w-0 max-w-full print:ml-0 print:w-full">
+                {/* Top Navbar: Ghim cố định trên cùng với sticky top-0 z-30, nền đặc bg-white, viền và bóng phân cách */}
+                <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm print:hidden">
+                    <div className="flex items-center gap-3 flex-1 min-w-0 mr-3">
+                        {/* Nút Hamburger mở Sidebar trên Mobile */}
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileSidebarOpen(true)}
+                            className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center lg:hidden transition cursor-pointer shrink-0"
+                            title="Mở menu quản trị"
+                            aria-label="Mở menu quản trị"
+                        >
+                            <Menu className="w-5 h-5" />
+                        </button>
+
+                        {/* Search bar */}
+                        <div className="relative flex-1 max-w-xs sm:max-w-sm md:w-96">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm phòng, khách, mã..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                            />
+                        </div>
                     </div>
 
                     {/* Right Status + Notifications + Avatar */}
@@ -1414,7 +1460,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                 </header>
 
                 {/* Nội dung bảng điều khiển thay đổi theo Tab */}
-                <main className="p-6 lg:p-8 space-y-6 flex-1 min-w-0 max-w-full print:p-0 print:m-0 print:w-full">
+                <main className="p-3.5 sm:p-6 lg:p-8 space-y-6 flex-1 min-w-0 max-w-full print:p-0 print:m-0 print:w-full">
                     {/* TAB 1: QUẢN LÝ KHÁCH HÀNG (FEATURE 1) */}
                     {activeTab === 'guests' && (
                         canViewGuests ? <GuestManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem phân hệ Khách hàng.')
