@@ -806,6 +806,7 @@ class AdminGuestSerializer(serializers.ModelSerializer):
 
 
 class AdminEmployeeSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=False, allow_blank=True)
     full_name = serializers.SerializerMethodField()
     employee_profile = EmployeeProfileSerializer(read_only=True)
     password = serializers.CharField(write_only=True, required=False, min_length=6)
@@ -817,6 +818,47 @@ class AdminEmployeeSerializer(serializers.ModelSerializer):
     shift = serializers.CharField(write_only=True, required=False, allow_blank=True)
     base_salary = serializers.DecimalField(write_only=True, required=False, max_digits=12, decimal_places=0, allow_null=True)
     hire_date = serializers.DateField(write_only=True, required=False, allow_null=True)
+
+    def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, 'copy') else dict(data)
+
+        # 1. Tự động chuẩn hóa họ tên: tách fullName / full_name thành first_name, last_name
+        full_name_input = data.pop('fullName', None) or data.pop('full_name', None) or ''
+        if full_name_input and not (data.get('first_name') and data.get('last_name')):
+            parts = str(full_name_input).strip().split()
+            if len(parts) > 1:
+                data['first_name'] = " ".join(parts[:-1])
+                data['last_name'] = parts[-1]
+            elif parts:
+                data['first_name'] = parts[0]
+                data['last_name'] = ""
+
+        # 2. Chuẩn hóa số điện thoại: phone -> phone_number
+        phone_input = data.pop('phone', None)
+        if phone_input and not data.get('phone_number'):
+            data['phone_number'] = str(phone_input).strip()
+
+        # 3. Tự động sinh username nếu frontend không truyền lên
+        if not data.get('username'):
+            email = str(data.get('email', '')).strip()
+            emp_code = str(data.get('employee_code', '')).strip()
+            base_uname = ''
+            if email and '@' in email:
+                base_uname = email.split('@')[0]
+            elif emp_code:
+                base_uname = emp_code.lower()
+            elif data.get('last_name'):
+                base_uname = f"{data.get('first_name', '')}_{data.get('last_name', '')}".lower()
+
+            clean_uname = re.sub(r'[^a-zA-Z0-9_]', '', base_uname) or 'employee'
+            uname = clean_uname
+            counter = 1
+            while User.objects.filter(username=uname).exists():
+                uname = f"{clean_uname}_{counter}"
+                counter += 1
+            data['username'] = uname
+
+        return super().to_internal_value(data)
 
     class Meta:
         model = User

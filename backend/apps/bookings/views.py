@@ -75,6 +75,37 @@ class BookingViewSet(viewsets.ModelViewSet):
                 base_qs = base_qs.filter(guest_filter)
             return base_qs.order_by('-created_at')
 
+        # Lọc tìm kiếm theo từ khóa (Mã đặt phòng, Tên khách, SĐT, Số CCCD, Số phòng)
+        search_query = (self.request.query_params.get('search') or '').strip()
+        if search_query:
+            clean_kw = search_query.lstrip('#').strip() or search_query
+            base_qs = base_qs.filter(
+                Q(booking_code__icontains=clean_kw) |
+                Q(guest__first_name__icontains=search_query) |
+                Q(guest__last_name__icontains=search_query) |
+                Q(guest__username__icontains=search_query) |
+                Q(guest__email__icontains=search_query) |
+                Q(guest__phone_number__icontains=search_query) |
+                Q(guests__full_name__icontains=search_query) |
+                Q(guests__id_number__icontains=search_query) |
+                Q(identity_card__icontains=search_query) |
+                Q(room__room_number__icontains=search_query) |
+                Q(company_name__icontains=search_query)
+            ).distinct()
+
+            from django.db.models import Case, When, Value, IntegerField
+            # ƯU TIÊN TUYỆT ĐỐI: Khớp chính xác mã đơn lên vị trí số 1 đầu tiên
+            match_priority = Case(
+                When(booking_code__iexact=clean_kw, then=Value(1)),
+                When(booking_code__iexact=f"BK-{clean_kw}", then=Value(1)),
+                When(booking_code__istartswith=clean_kw, then=Value(2)),
+                When(booking_code__istartswith=f"BK-{clean_kw}", then=Value(2)),
+                When(booking_code__icontains=clean_kw, then=Value(3)),
+                default=Value(10),
+                output_field=IntegerField()
+            )
+            return base_qs.order_by(match_priority, '-created_at')
+
         # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL, ưu tiên:
         # 1. Chờ duyệt (pending) lên đầu tiên
         # 2. Đã xác nhận (confirmed) kế tiếp
@@ -2417,7 +2448,12 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
 
         # 1. Kiểm tra phân quyền: Yêu cầu quyền cập nhật đơn đặt phòng hoặc tạo yêu cầu dịch vụ
-        can_add = user.is_superuser or check_role_permission(user, 'bookings', 'update') or check_role_permission(user, 'services', 'create')
+        can_add = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'owner'] or
+            check_role_permission(user, 'bookings', 'update') or
+            check_role_permission(user, 'services', 'create')
+        )
         if not can_add:
             return Response({
                 'success': False,
@@ -2563,10 +2599,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
+        can_remove = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'owner'] or
+            check_role_permission(user, 'bookings', 'update')
+        )
+        if not can_remove:
             return Response({
                 'success': False,
-                'message': 'Bạn không có quyền xóa phụ phí dịch vụ của đơn đặt phòng (Yêu cầu quyền Cập nhật đơn đặt phòng).'
+                'message': 'Bạn không có quyền xóa phụ phí dịch vụ của đơn đặt phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
 
         item_id = str(request.data.get('item_id', '')).strip()
@@ -2798,8 +2839,13 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # Kiểm tra phân quyền: Yêu cầu quyền bookings.update theo ma trận RBAC
-        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
+        # Kiểm tra phân quyền: Yêu cầu quyền bookings.update theo Ma trận phân quyền RBAC (Lễ tân, Quản lý, Admin)
+        can_checkout = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'owner'] or
+            check_role_permission(user, 'bookings', 'update')
+        )
+        if not can_checkout:
             return Response({
                 'success': False,
                 'message': 'Bạn không có quyền thực hiện thủ tục Check-out trả phòng (Yêu cầu quyền Cập nhật đơn đặt phòng).'

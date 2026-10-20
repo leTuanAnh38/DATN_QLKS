@@ -78,8 +78,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const canCreateBookings = useHasPermission('bookings', 'create');
     const canUpdateBookings = useHasPermission('bookings', 'update');
     const canDeleteBookings = useHasPermission('bookings', 'delete');
-    // canManageBookings phục vụ các thao tác cập nhật đơn: Duyệt, Check-in, Check-out, No-show, Sửa
+    const canManageFinance = useHasPermission('finance', 'update') || useHasPermission('finance', 'create');
+    const isCashier = currentUserRole === 'cashier';
+    // canManageBookings phục vụ các thao tác cập nhật đơn: Duyệt, Check-in, No-show, Sửa (Lễ tân, Quản lý, Admin)
     const canManageBookings = canUpdateBookings;
+    // canCheckOut tuân thủ nghiêm ngặt Ma trận phân quyền: Chỉ người có quyền cập nhật đơn đặt phòng (Lễ tân, Quản lý, Admin) mới được thực hiện Check-out
+    const canCheckOut = canUpdateBookings;
 
     // 1. Quản lý State Dữ liệu
     const [bookings, setBookings] = useState([]);
@@ -1949,7 +1953,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                                 </>
                                                             )}
 
-                                                            {/* Nút hành động chính theo trạng thái */}
+                                                            {/* Nút hành động chính theo trạng thái: confirmed -> check-in */}
                                                             {booking.status === 'confirmed' && (
                                                                 <>
                                                                     <button
@@ -1982,18 +1986,20 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                                     )}
                                                                 </>
                                                             )}
-                                                            {booking.status === 'checked_in' && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setCheckOutModalBooking(booking)}
-                                                                    className="px-2 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
-                                                                    title="Thực hiện thanh toán và Check-out trả phòng"
-                                                                >
-                                                                    <span>🧾</span>
-                                                                    <span>Check-out</span>
-                                                                </button>
-                                                            )}
                                                         </>
+                                                    )}
+
+                                                    {/* Nút Check-out: Dành cho Lễ tân, Quản lý, và Thu ngân */}
+                                                    {(canManageBookings || canCheckOut) && booking.status === 'checked_in' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setCheckOutModalBooking(booking)}
+                                                            className="px-2 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer active:scale-95"
+                                                            title="Thực hiện thanh toán và Check-out trả phòng"
+                                                        >
+                                                            <span>🧾</span>
+                                                            <span>Check-out</span>
+                                                        </button>
                                                     )}
 
                                                     {/* Nút Xem chi tiết đơn (Mọi vai trò đều được xem) */}
@@ -2530,7 +2536,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         </div>
 
                         {/* Nút hành động Modal */}
-                        {canManageBookings && ['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(selectedBooking.status) && (
+                        {((canManageBookings && ['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(selectedBooking.status)) ||
+                          (canCheckOut && selectedBooking.status === 'checked_in')) && (
                             <div className="pt-5 mt-6 border-t border-slate-100 flex items-center justify-center gap-2.5 flex-wrap">
                                 {selectedBooking.status === 'confirmed' && (
                                     <>

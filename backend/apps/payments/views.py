@@ -7,12 +7,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
-from ..bookings.models import Booking, GroupBooking
+from ..bookings.models import Booking, GroupBooking, HotelSetting
 from ..bookings.email_service import send_booking_email_async, send_group_booking_email_async
 from ..users.models import log_action
 from ..users.views import check_role_permission
-from .models import Payment, Invoice, PaymentConfig
-from .serializers import PaymentSerializer, PaymentConfigSerializer
+from .models import Payment, Invoice, PaymentConfig, CashierShift, CashOutVoucher
+from .serializers import PaymentSerializer, PaymentConfigSerializer, CashierShiftSerializer, CashOutVoucherSerializer
 
 class IsAdminOrOwnerUser(BasePermission):
     """
@@ -283,17 +283,29 @@ class ConfirmPaymentView(APIView):
                 amount=amount_dec
             ).first()
 
+            # Tìm ca làm việc đang mở (ưu tiên của user, sau đó là ca chung tại quầy)
+            active_shift = None
+            if request.user and request.user.is_authenticated:
+                active_shift = CashierShift.objects.filter(user=request.user, status='OPEN').first()
+                if not active_shift:
+                    active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+
             if pending_payment:
                 pending_payment.payment_method = payment_method or 'TRANSFER'
                 pending_payment.payment_status = 'COMPLETED'
-                pending_payment.save(update_fields=['payment_method', 'payment_status'])
+                if active_shift and not pending_payment.shift:
+                    pending_payment.shift = active_shift
+                    pending_payment.save(update_fields=['payment_method', 'payment_status', 'shift'])
+                else:
+                    pending_payment.save(update_fields=['payment_method', 'payment_status'])
                 payment = pending_payment
             else:
                 payment = Payment.objects.create(
                     booking=booking,
                     amount=amount_dec,
                     payment_method=payment_method or 'TRANSFER',
-                    payment_status='COMPLETED'
+                    payment_status='COMPLETED',
+                    shift=active_shift
                 )
 
             # 4.3 Cập nhật hóa đơn nếu có
@@ -416,7 +428,14 @@ class PaymentListView(APIView):
         ).prefetch_related(
             'group_booking__sub_bookings',
             'group_booking__sub_bookings__room'
-        ).all().order_by('-created_at')
+        ).annotate(
+            status_priority=models.Case(
+                models.When(payment_status__in=['PENDING', 'PROCESSING'], then=models.Value(1)),
+                models.When(payment_status='COMPLETED', then=models.Value(2)),
+                default=models.Value(3),
+                output_field=models.IntegerField()
+            )
+        ).all().order_by('status_priority', '-created_at')
 
         # Khách hàng chỉ xem giao dịch của chính mình (hoặc đoàn/doanh nghiệp do mình làm đầu mối)
         if not is_staff_or_admin:
@@ -856,5 +875,690 @@ class SepayWebhookView(APIView):
             "message": f"Đã cập nhật trạng thái COMPLETED cho đơn {booking.booking_code} thành công!",
             "booking_code": booking.booking_code
         }, status=status.HTTP_200_OK)
+
+
+class ConfirmPaymentByIdView(APIView):
+    """
+    API endpoint: POST /api/payments/<int:payment_id>/confirm/
+    Xác nhận hoàn tất một giao dịch thanh toán (PENDING -> COMPLETED) bởi Thu ngân / Lễ tân / Quản lý:
+    - Cập nhật payment_status = 'COMPLETED'
+    - Cập nhật payment_method ('CASH' hoặc 'TRANSFER') nếu được cung cấp
+    - Cập nhật Booking hoặc GroupBooking (status, note, dịch vụ đi kèm)
+    - Cập nhật Invoice liên quan sang status = 'paid'
+    - Gửi email xác nhận thanh toán tự động
+    - Ghi nhận Audit Log
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, payment_id):
+        user = request.user
+        can_confirm = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'cashier', 'owner'] or
+            check_role_permission(user, 'finance', 'update') or
+            check_role_permission(user, 'finance', 'create')
+        )
+        if not can_confirm:
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền xác nhận thanh toán (Yêu cầu vai trò Thu ngân / Lễ tân / Quản lý).'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            payment = Payment.objects.select_related('booking', 'group_booking').get(pk=payment_id)
+        except Payment.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': f'Không tìm thấy giao dịch thanh toán #{payment_id}.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if payment.payment_status == 'COMPLETED':
+            return Response({
+                'success': True,
+                'message': 'Giao dịch này đã ở trạng thái hoàn tất thành công.',
+                'data': PaymentSerializer(payment).data
+            }, status=status.HTTP_200_OK)
+
+        new_method = request.data.get('payment_method')
+        note = (request.data.get('note') or '').strip()
+
+        with transaction.atomic():
+            payment.payment_status = 'COMPLETED'
+            if new_method:
+                payment.payment_method = str(new_method).upper()
+            payment.save(update_fields=['payment_status', 'payment_method'])
+
+            # 1. Đơn đặt phòng lẻ
+            if payment.booking:
+                b = payment.booking
+                if b.status in ['pending', 'unconfirmed']:
+                    b.status = 'paid'
+                method_name = 'Tiền mặt' if payment.payment_method == 'CASH' else 'VietQR'
+                pay_note = f"{method_name}: Đã xác nhận thu ({payment.amount:,.0f} VND)"
+                if note:
+                    pay_note += f" - {note}"
+                curr_note = (b.note or '').strip()
+                if pay_note not in curr_note:
+                    b.note = f"{curr_note} | {pay_note}" if curr_note else pay_note
+                b.save(update_fields=['status', 'note'])
+
+                # Đồng bộ invoice
+                inv = getattr(b, 'invoice', None)
+                if inv:
+                    inv.status = 'paid'
+                    inv.paid_at = timezone.now()
+                    inv.save(update_fields=['status', 'paid_at'])
+
+                # Đồng bộ dịch vụ
+                b.service_requests.filter(is_paid=False).update(is_paid=True)
+                b.extra_services.filter(is_paid=False).update(is_paid=True)
+
+                # Gửi email xác nhận thanh toán
+                target_email = None
+                if inv and inv.invoice_recipient_email:
+                    target_email = inv.invoice_recipient_email.strip()
+                elif b.guest and b.guest.email:
+                    target_email = b.guest.email.strip()
+
+                try:
+                    send_booking_email_async(
+                        booking=b,
+                        email_type='payment_success',
+                        custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận THU TIỀN THÀNH CÔNG - Đơn #{b.booking_code}",
+                        recipient_email=target_email
+                    )
+                except Exception:
+                    pass
+
+            # 2. Đơn đặt phòng đoàn
+            elif payment.group_booking:
+                grp = payment.group_booking
+                grp.is_deposit_paid = True
+                if grp.status == 'tentative':
+                    grp.status = 'confirmed'
+                grp.save(update_fields=['is_deposit_paid', 'status'])
+
+                if hasattr(grp, 'master_invoice') and grp.master_invoice:
+                    inv = grp.master_invoice
+                    inv.status = 'paid'
+                    inv.paid_at = timezone.now()
+                    inv.save(update_fields=['status', 'paid_at'])
+
+                for sub_b in grp.sub_bookings.all():
+                    if sub_b.status in ['pending', 'unconfirmed']:
+                        sub_b.status = 'confirmed'
+                        sub_b.save(update_fields=['status'])
+                    sub_b.service_requests.filter(is_paid=False).update(is_paid=True)
+                    sub_b.extra_services.filter(is_paid=False).update(is_paid=True)
+
+                try:
+                    send_group_booking_email_async(
+                        group_booking=grp,
+                        email_type='group_deposit_success',
+                        custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận thanh toán đặt đoàn #{grp.group_code}",
+                        recipient_email=grp.leader_email
+                    )
+                except Exception:
+                    pass
+
+        log_action(
+            user=user,
+            action='UPDATE',
+            module='INVOICE',
+            description=f"Thu ngân ({user.username}) xác nhận hoàn tất thanh toán #{payment.transaction_id or payment.id} ({payment.amount:,.0f} VND) phương thức {payment.payment_method}",
+            request=request
+        )
+
+        # Tự động gắn ca làm việc nếu thu ngân/lễ tân đang có ca mở hoặc quầy đang mở ca
+        active_shift = CashierShift.objects.filter(user=user, status='OPEN').first()
+        if not active_shift:
+            active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+        if active_shift:
+            payment.shift = active_shift
+            payment.save(update_fields=['shift'])
+
+        return Response({
+            'success': True,
+            'message': f'Xác nhận thanh toán cho giao dịch #{payment.transaction_id or payment.id} thành công!',
+            'data': PaymentSerializer(payment).data
+        }, status=status.HTTP_200_OK)
+
+
+# =============================================================================
+# NGHIỆP VỤ CA LÀM VIỆC & KẾT CA BÀN GIAO QUỸ TIỀN MẶT (Z-REPORT)
+# =============================================================================
+
+class CurrentShiftView(APIView):
+    """
+    API endpoint: GET /api/payments/shifts/current/
+    Lấy ca làm việc đang mở (OPEN):
+    - Ưu tiên 1: Ca do chính nhân viên này mở.
+    - Ưu tiên 2: Ca đang mở chung tại quầy tiếp tân / thu ngân (Lễ tân, Thu ngân, Quản lý, Chủ KS và Admin đều cùng nhìn thấy và làm việc chung trên két tiền quầy).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        is_manager = bool(user.is_superuser or user.role in ['admin', 'owner', 'manager'])
+
+        # 1. Tìm ca đang mở của chính user trước
+        active_shift = CashierShift.objects.filter(user=user, status='OPEN').first()
+
+        # 2. Nếu user chưa có ca mở riêng, lấy ca đang mở chung tại quầy tiếp tân / thu ngân
+        if not active_shift:
+            active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+
+        if not active_shift:
+            return Response({
+                'success': True,
+                'has_active_shift': False,
+                'is_manager_view': is_manager,
+                'active_shift': None,
+                'shift': None
+            }, status=status.HTTP_200_OK)
+
+        serializer = CashierShiftSerializer(active_shift)
+        data = serializer.data
+        data['is_own_shift'] = bool(active_shift.user == user)
+        data['is_manager_view'] = is_manager
+
+        return Response({
+            'success': True,
+            'has_active_shift': True,
+            'is_manager_view': is_manager,
+            'is_own_shift': bool(active_shift.user == user),
+            'active_shift': data,
+            'shift': data
+        }, status=status.HTTP_200_OK)
+
+
+class OpenShiftView(APIView):
+    """
+    API endpoint: POST /api/payments/shifts/open/
+    Mở ca làm việc mới cho Thu ngân / Lễ tân.
+    Payload:
+    - shift_type: 'MORNING' | 'AFTERNOON' | 'NIGHT' | 'STANDARD'
+    - opening_cash: Số tiền mặt ban đầu nhận trong két (Float)
+    - notes: Ghi chú mở ca
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        # 1. Kiểm tra nếu user đang có ca chưa kết thúc
+        existing_open = CashierShift.objects.filter(user=user, status='OPEN').first()
+        if existing_open:
+            return Response({
+                'success': False,
+                'message': f"Bạn đang có ca làm việc #{existing_open.shift_code} chưa kết thúc. Vui lòng kết ca hiện tại trước khi mở ca mới!"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        shift_type = request.data.get('shift_type', 'MORNING')
+        opening_cash_raw = request.data.get('opening_cash', 0)
+        notes = request.data.get('notes', '').strip()
+
+        try:
+            opening_cash = max(Decimal('0'), Decimal(str(opening_cash_raw or 0)))
+        except (ValueError, TypeError):
+            opening_cash = Decimal('0')
+
+        new_shift = CashierShift.objects.create(
+            user=user,
+            shift_type=shift_type,
+            opening_cash=opening_cash,
+            notes=notes,
+            status='OPEN'
+        )
+
+        log_action(
+            user=user,
+            action='CREATE',
+            module='INVOICE',
+            description=f"Mở ca làm việc {new_shift.get_shift_type_display()} (#{new_shift.shift_code}) với số dư ban đầu {opening_cash:,.0f} VND",
+            request=request
+        )
+
+        serializer = CashierShiftSerializer(new_shift)
+        return Response({
+            'success': True,
+            'message': f"Mở ca làm việc {new_shift.get_shift_type_display()} thành công!",
+            'data': serializer.data,
+            'shift': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+
+class CloseShiftView(APIView):
+    """
+    API endpoint: POST /api/payments/shifts/<int:pk>/close/
+    Kết ca & Bàn giao quỹ tiền mặt (Lập Z-Report).
+    Payload:
+    - actual_cash: Tiền mặt thực tế đếm được trong két (Bắt buộc)
+    - handover_user_id: ID nhân viên nhận bàn giao ca (Tùy chọn)
+    - notes: Ghi chú kết ca / giải trình chênh lệch
+    - denominations: Object chi tiết số lượng từng mệnh giá tiền
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        user = request.user
+        shift = CashierShift.objects.filter(pk=pk).first()
+        if not shift:
+            return Response({
+                'success': False,
+                'message': 'Không tìm thấy ca làm việc.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if shift.status == 'CLOSED':
+            return Response({
+                'success': False,
+                'message': 'Ca làm việc này đã được kết ca trước đó.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Chỉ người mở ca hoặc Quản lý / Admin / Chủ KS mới có quyền kết ca bàn giao
+        is_manager = bool(user.is_superuser or user.role in ['admin', 'owner', 'manager'])
+        if shift.user != user and not is_manager:
+            owner_name = shift.user.get_full_name() or shift.user.username
+            return Response({
+                'success': False,
+                'message': f"Ca trực này do nhân viên {owner_name} mở và chịu trách nhiệm tiền két. Chỉ {owner_name} hoặc Quản lý mới có quyền kết ca bàn giao!"
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        actual_cash_raw = request.data.get('actual_cash')
+        if actual_cash_raw is None:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng nhập số tiền mặt thực tế kiểm đếm được trong két.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            actual_cash = max(Decimal('0'), Decimal(str(actual_cash_raw)))
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'message': 'Số tiền mặt kiểm đếm không đúng định dạng số.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        handover_user_id = request.data.get('handover_user_id')
+        handover_user_obj = None
+        if handover_user_id:
+            from django.contrib.auth import get_user_model
+            UserModel = get_user_model()
+            handover_user_obj = UserModel.objects.filter(pk=handover_user_id).first()
+            if handover_user_obj and handover_user_obj.pk == shift.user_id:
+                return Response({
+                    'success': False,
+                    'message': 'Không thể bàn giao ca làm việc cho chính người đang trực ca hiện tại!'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        notes = request.data.get('notes', '').strip()
+        denominations = request.data.get('denominations')
+
+        with transaction.atomic():
+            shift = CashierShift.objects.select_for_update().get(pk=pk)
+
+            # Tính toán tóm tắt doanh thu thực tế
+            summary = shift.calculate_current_summary()
+            shift.total_cash_in = Decimal(str(summary['cash_in']))
+            shift.total_transfer_in = Decimal(str(summary['transfer_in']))
+            shift.total_card_in = Decimal(str(summary['card_in']))
+            shift.total_cash_out = Decimal(str(summary.get('cash_out', 0)))
+            shift.expected_cash = Decimal(str(summary['expected_cash']))
+            shift.actual_cash = actual_cash
+            shift.difference = actual_cash - shift.expected_cash
+
+            shift.status = 'CLOSED'
+            shift.closed_at = timezone.now()
+
+            if handover_user_obj:
+                shift.handover_user = handover_user_obj
+
+            if notes:
+                shift.notes = f"{shift.notes}\n{notes}".strip() if shift.notes else notes
+
+            if denominations:
+                shift.denominations = denominations
+
+            shift.save()
+
+            # Gắn tất cả các payment COMPLETED chưa có shift trong khoảng thời gian này vào ca
+            Payment.objects.filter(
+                models.Q(shift__isnull=True),
+                created_at__gte=shift.opened_at,
+                created_at__lte=shift.closed_at,
+                payment_status='COMPLETED'
+            ).update(shift=shift)
+
+        diff_str = f"Thừa {shift.difference:+,.0f} VND" if shift.difference > 0 else (f"Hụt {shift.difference:,.0f} VND" if shift.difference < 0 else "Cân bằng (0 VND)")
+        log_action(
+            user=user,
+            action='UPDATE',
+            module='INVOICE',
+            description=f"Kết ca #{shift.shift_code} ({shift.get_shift_type_display()}): Dự kiến {shift.expected_cash:,.0f} VND, Thực kiểm {shift.actual_cash:,.0f} VND, Chênh lệch {diff_str}",
+            request=request
+        )
+
+        serializer = CashierShiftSerializer(shift)
+        return Response({
+            'success': True,
+            'message': f"Kết ca làm việc #{shift.shift_code} và lập báo cáo Z-Report thành công!",
+            'data': serializer.data,
+            'shift': serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+class ShiftSummaryView(APIView):
+    """
+    API endpoint: GET /api/payments/shifts/<int:pk>/summary/
+    Lấy tóm tắt tài chính và danh sách giao dịch chi tiết của ca làm việc.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        shift = CashierShift.objects.filter(pk=pk).first()
+        if not shift:
+            return Response({
+                'success': False,
+                'message': 'Không tìm thấy ca làm việc.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        summary = shift.calculate_current_summary()
+        end_time = shift.closed_at or timezone.now()
+
+        payments = Payment.objects.filter(
+            models.Q(shift=shift) | (
+                models.Q(shift__isnull=True) &
+                models.Q(created_at__gte=shift.opened_at) &
+                models.Q(created_at__lte=end_time)
+            ),
+            payment_status='COMPLETED'
+        ).select_related('booking', 'group_booking')
+
+        payment_list = PaymentSerializer(payments, many=True).data
+        cash_out_list = CashOutVoucherSerializer(shift.cash_outs.all(), many=True).data
+
+        return Response({
+            'success': True,
+            'shift': CashierShiftSerializer(shift).data,
+            'summary': summary,
+            'payments': payment_list,
+            'cash_outs': cash_out_list
+        }, status=status.HTTP_200_OK)
+
+
+class ShiftListView(APIView):
+    """
+    API endpoint: GET /api/payments/shifts/
+    Lấy lịch sử danh sách ca làm việc. Hỗ trợ lọc theo trạng thái, ngày mở, nhân viên.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        queryset = CashierShift.objects.select_related('user', 'handover_user').all().order_by('-opened_at', '-id')
+
+        # Quản trị viên, Quản lý, Lễ tân và Thu ngân được xem toàn bộ lịch sử ca quầy để đối soát & in Z-Report
+        is_front_office = bool(
+            user.is_superuser or
+            user.role in ['admin', 'owner', 'manager', 'receptionist', 'cashier']
+        )
+        if not is_front_office:
+            queryset = queryset.filter(models.Q(user=user) | models.Q(handover_user=user))
+
+        status_param = request.query_params.get('status')
+        if status_param and status_param != 'ALL':
+            queryset = queryset.filter(status=status_param)
+
+        shift_type = request.query_params.get('shift_type')
+        if shift_type and shift_type != 'ALL':
+            queryset = queryset.filter(shift_type=shift_type)
+
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                models.Q(shift_code__icontains=search) |
+                models.Q(user__username__icontains=search) |
+                models.Q(user__first_name__icontains=search) |
+                models.Q(user__last_name__icontains=search) |
+                models.Q(notes__icontains=search)
+            )
+
+        from_date = request.query_params.get('from_date')
+        if from_date:
+            queryset = queryset.filter(opened_at__date__gte=from_date)
+
+        to_date = request.query_params.get('to_date')
+        if to_date:
+            queryset = queryset.filter(opened_at__date__lte=to_date)
+
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        serializer = CashierShiftSerializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'count': queryset.count(),
+            'data': serializer.data,
+            'shifts': serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+class ShiftReportView(APIView):
+    """
+    API endpoint: GET /api/payments/shifts/<int:pk>/report/
+    Dữ liệu báo cáo kết ca chuẩn Z-Report phục vụ in phiếu khổ 80mm / A4 / A5.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        shift = CashierShift.objects.select_related('user', 'handover_user').filter(pk=pk).first()
+        if not shift:
+            return Response({
+                'success': False,
+                'message': 'Không tìm thấy ca làm việc.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            hotel_settings = HotelSetting.get_settings()
+            hotel_name = hotel_settings.hotel_name or 'Khách Sạn TA Đà Nẵng'
+            hotel_address = hotel_settings.address or 'Đà Nẵng, Việt Nam'
+            hotel_hotline = hotel_settings.hotline or '0905 123 456'
+        except Exception:
+            hotel_name = 'Khách Sạn TA Đà Nẵng'
+            hotel_address = 'Đà Nẵng, Việt Nam'
+            hotel_hotline = '0905 123 456'
+
+        summary = shift.calculate_current_summary()
+        shift_data = CashierShiftSerializer(shift).data
+        cash_out_list = CashOutVoucherSerializer(shift.cash_outs.all(), many=True).data
+
+        report_data = {
+            **shift_data,
+            'hotel': {
+                'name': hotel_name,
+                'address': hotel_address,
+                'hotline': hotel_hotline,
+            },
+            'shift': shift_data,
+            'summary': summary,
+            'cash_outs': cash_out_list,
+            'printed_at': timezone.now().isoformat(),
+            'printed_by': request.user.get_full_name() or request.user.username
+        }
+
+        return Response({
+            'success': True,
+            'data': report_data,
+            'report': report_data,
+            'shift': shift_data,
+            'summary': summary,
+            'cash_outs': cash_out_list
+        }, status=status.HTTP_200_OK)
+
+
+class CreateCashOutView(APIView):
+    """
+    API endpoint: POST /api/payments/cash-outs/
+    Lập phiếu chi tiền mặt hoặc hoàn tiền (Refund / Petty Cash Out):
+    1. REFUND_DEPOSIT: Hoàn cọc / Trả tiền thừa đơn phòng
+    2. REFUND_CANCEL: Hoàn tiền cọc khi hủy đơn phòng / đơn đoàn
+    3. PETTY_CASH: Chi phí phát sinh nội bộ quầy tiếp tân
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        # 0. Phân quyền nghiệp vụ: Chỉ Thu ngân (Cashier), Quản lý (Manager), Chủ KS (Owner) và Admin mới có quyền lập phiếu chi / hoàn cọc
+        # Lễ tân (Front Desk) chỉ có quyền thu tiền, không được phép tự ý xuất quỹ két chi tiền
+        can_cash_out = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'cashier']
+        )
+        if not can_cash_out:
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền lập phiếu chi tiền mặt hoặc hoàn cọc. Nghiệp vụ này thuộc thẩm quyền của Thu ngân và Quản lý khách sạn.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        voucher_type = request.data.get('voucher_type', 'REFUND_DEPOSIT')
+        payment_method = request.data.get('payment_method', 'CASH').upper()
+        amount_raw = request.data.get('amount')
+        recipient_name = (request.data.get('recipient_name') or '').strip()
+        recipient_phone = (request.data.get('recipient_phone') or '').strip()
+        reason = (request.data.get('reason') or '').strip()
+        approved_by = (request.data.get('approved_by') or '').strip()
+        booking_id = request.data.get('booking_id')
+        group_booking_id = request.data.get('group_booking_id')
+
+        # 1. Validation cơ bản
+        if not recipient_name:
+            return Response({'success': False, 'message': 'Vui lòng nhập họ tên người nhận tiền.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not reason:
+            return Response({'success': False, 'message': 'Vui lòng nhập lý do lập phiếu chi.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            amount = Decimal(str(amount_raw or 0))
+            if amount <= Decimal('0'):
+                return Response({'success': False, 'message': 'Số tiền chi phải lớn hơn 0 đ.'}, status=status.HTTP_400_BAD_REQUEST)
+        except (ValueError, TypeError):
+            return Response({'success': False, 'message': 'Số tiền chi không đúng định dạng số hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Tìm ca trực hiện tại tại quầy
+        active_shift = CashierShift.objects.filter(user=user, status='OPEN').first()
+        if not active_shift:
+            active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+
+        # 3. Nếu chi TIỀN MẶT từ két: Bắt buộc phải có ca trực mở và két phải đủ tiền
+        if payment_method == 'CASH':
+            if not active_shift:
+                return Response({
+                    'success': False,
+                    'message': 'Quầy hiện chưa có ca trực nào đang mở. Không thể chi tiền mặt từ két khi chưa mở ca làm việc!'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            summary = active_shift.calculate_current_summary()
+            current_cash_in_drawer = Decimal(str(summary.get('expected_cash', 0)))
+            if amount > current_cash_in_drawer:
+                return Response({
+                    'success': False,
+                    'message': f"Số tiền mặt trong két hiện tại ({current_cash_in_drawer:,.0f} đ) không đủ để chi số tiền {amount:,.0f} đ!"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 4. Tìm booking liên quan nếu có
+        booking_obj = None
+        if booking_id:
+            from ..bookings.models import Booking
+            booking_obj = Booking.objects.filter(models.Q(id=booking_id) | models.Q(booking_code=booking_id)).first()
+
+        group_booking_obj = None
+        if group_booking_id:
+            from ..bookings.models import GroupBooking
+            group_booking_obj = GroupBooking.objects.filter(models.Q(id=group_booking_id) | models.Q(group_code=group_booking_id)).first()
+
+        # 5. Tạo phiếu chi
+        voucher = CashOutVoucher.objects.create(
+            shift=active_shift,
+            voucher_type=voucher_type,
+            payment_method=payment_method,
+            amount=amount,
+            booking=booking_obj,
+            group_booking=group_booking_obj,
+            recipient_name=recipient_name,
+            recipient_phone=recipient_phone,
+            reason=reason,
+            user=user,
+            approved_by=approved_by or (user.get_full_name() or user.username)
+        )
+
+        # Cập nhật số tiền total_cash_out của ca nếu chi tiền mặt
+        if payment_method == 'CASH' and active_shift:
+            summary = active_shift.calculate_current_summary()
+            active_shift.total_cash_out = Decimal(str(summary.get('cash_out', 0)))
+            active_shift.save(update_fields=['total_cash_out'])
+
+        # Ghi log kiểm toán
+        log_action(
+            user=user,
+            action='CREATE',
+            module='INVOICE',
+            description=f"Lập phiếu chi {voucher.voucher_code}: {amount:,.0f} VND ({voucher.get_voucher_type_display()}) cho {recipient_name}",
+            request=request
+        )
+
+        serializer = CashOutVoucherSerializer(voucher)
+        return Response({
+            'success': True,
+            'message': f"Lập phiếu chi #{voucher.voucher_code} thành công ({amount:,.0f} đ)!",
+            'data': serializer.data,
+            'voucher': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+
+class CashOutListView(APIView):
+    """
+    API endpoint: GET /api/payments/cash-outs/
+    Lấy danh sách các phiếu chi tiền & hoàn cọc.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = CashOutVoucher.objects.select_related('shift', 'booking', 'group_booking', 'user').all().order_by('-created_at')
+
+        shift_id = request.query_params.get('shift_id')
+        if shift_id:
+            queryset = queryset.filter(shift_id=shift_id)
+
+        voucher_type = request.query_params.get('voucher_type')
+        if voucher_type and voucher_type != 'ALL':
+            queryset = queryset.filter(voucher_type=voucher_type)
+
+        payment_method = request.query_params.get('payment_method')
+        if payment_method and payment_method != 'ALL':
+            queryset = queryset.filter(payment_method=payment_method)
+
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                models.Q(voucher_code__icontains=search) |
+                models.Q(recipient_name__icontains=search) |
+                models.Q(recipient_phone__icontains=search) |
+                models.Q(reason__icontains=search) |
+                models.Q(booking__booking_code__icontains=search) |
+                models.Q(group_booking__group_code__icontains=search)
+            )
+
+        serializer = CashOutVoucherSerializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'count': queryset.count(),
+            'data': serializer.data,
+            'vouchers': serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+
 
 

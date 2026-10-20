@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Payment, PaymentConfig
+from .models import Payment, PaymentConfig, CashierShift, CashOutVoucher
 
 class PaymentSerializer(serializers.ModelSerializer):
     booking_id = serializers.IntegerField(source='booking.id', read_only=True)
@@ -225,4 +225,137 @@ class PaymentConfigSerializer(serializers.ModelSerializer):
         if not val:
             raise serializers.ValidationError("Tên chủ tài khoản không được để trống.")
         return val
+
+
+class CashierShiftSerializer(serializers.ModelSerializer):
+    """
+    Serializer cho Ca làm việc & Két tiền của Thu ngân / Lễ tân.
+    Bao gồm thông tin người trực, người nhận bàn giao, số liệu tài chính và tóm tắt theo thời gian thực.
+    """
+    user_name = serializers.SerializerMethodField()
+    user_role = serializers.CharField(source='user.role', read_only=True)
+    handover_user_name = serializers.SerializerMethodField()
+    shift_type_display = serializers.CharField(source='get_shift_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    realtime_summary = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CashierShift
+        fields = [
+            'id',
+            'shift_code',
+            'shift_type',
+            'shift_type_display',
+            'user',
+            'user_name',
+            'user_role',
+            'status',
+            'status_display',
+            'opened_at',
+            'closed_at',
+            'opening_cash',
+            'actual_cash',
+            'expected_cash',
+            'difference',
+            'total_cash_in',
+            'total_transfer_in',
+            'total_card_in',
+            'total_cash_out',
+            'handover_user',
+            'handover_user_name',
+            'notes',
+            'denominations',
+            'realtime_summary',
+        ]
+        read_only_fields = ['id', 'shift_code', 'opened_at']
+
+    def get_user_name(self, obj):
+        if not obj.user:
+            return '—'
+        name = obj.user.get_full_name()
+        return name if name and name.strip() else obj.user.username
+
+    def get_handover_user_name(self, obj):
+        if not obj.handover_user:
+            return None
+        name = obj.handover_user.get_full_name()
+        return name if name and name.strip() else obj.handover_user.username
+
+    def get_realtime_summary(self, obj):
+        try:
+            return obj.calculate_current_summary()
+        except Exception:
+            return None
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        from decimal import Decimal
+        # Nếu ca đang mở (OPEN), đồng bộ số liệu dòng tiền realtime để mọi bảng hiển thị chính xác
+        if instance.status == 'OPEN':
+            summary = ret.get('realtime_summary') or instance.calculate_current_summary()
+            if summary:
+                ret['total_cash_in'] = summary.get('cash_in', 0)
+                ret['total_transfer_in'] = summary.get('transfer_in', 0)
+                ret['total_card_in'] = summary.get('card_in', 0)
+                ret['total_cash_out'] = summary.get('cash_out', 0)
+                ret['total_transfer_out'] = summary.get('transfer_out', 0)
+                ret['expected_cash'] = summary.get('expected_cash', instance.opening_cash)
+                ret['total_revenue'] = summary.get('total_revenue', 0)
+        else:
+            ret['total_revenue'] = float(
+                Decimal(str(instance.total_cash_in or 0)) +
+                Decimal(str(instance.total_transfer_in or 0)) +
+                Decimal(str(instance.total_card_in or 0))
+            )
+        return ret
+
+
+class CashOutVoucherSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    shift_code = serializers.CharField(source='shift.shift_code', read_only=True)
+    voucher_type_display = serializers.CharField(source='get_voucher_type_display', read_only=True)
+    payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
+    group_booking_code = serializers.CharField(source='group_booking.group_code', read_only=True)
+    room_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CashOutVoucher
+        fields = [
+            'id',
+            'voucher_code',
+            'voucher_type',
+            'voucher_type_display',
+            'payment_method',
+            'payment_method_display',
+            'amount',
+            'shift',
+            'shift_code',
+            'booking',
+            'booking_code',
+            'group_booking',
+            'group_booking_code',
+            'room_number',
+            'recipient_name',
+            'recipient_phone',
+            'reason',
+            'user',
+            'user_name',
+            'approved_by',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'voucher_code', 'created_at']
+
+    def get_user_name(self, obj):
+        if not obj.user:
+            return '—'
+        name = obj.user.get_full_name()
+        return name if name and name.strip() else obj.user.username
+
+    def get_room_number(self, obj):
+        if obj.booking and obj.booking.room:
+            return obj.booking.room.room_number
+        return None
+
+
 

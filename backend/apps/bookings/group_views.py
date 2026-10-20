@@ -670,7 +670,14 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
         group = self.get_object()
         user = request.user
 
-        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
+        can_checkout_group = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'cashier'] or
+            check_role_permission(user, 'bookings', 'update') or
+            check_role_permission(user, 'finance', 'create') or
+            check_role_permission(user, 'finance', 'update')
+        )
+        if not can_checkout_group:
             return Response({'success': False, 'message': 'Bạn không có quyền thực hiện Check-out đoàn.'}, status=status.HTTP_403_FORBIDDEN)
 
         now = timezone.now()

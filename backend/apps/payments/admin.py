@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Invoice, Payment, PaymentConfig
+from .models import Invoice, Payment, PaymentConfig, CashierShift
 
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('invoice_code', 'booking', 'group_booking', 'is_company_invoice', 'company_name', 'company_tax_code', 'total_amount', 'payment_method', 'status', 'created_at')
@@ -28,7 +28,7 @@ admin.site.register(Invoice, InvoiceAdmin)
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'booking', 'amount', 'payment_method', 'payment_status', 'transaction_id', 'created_at')
+    list_display = ('id', 'booking', 'shift', 'amount', 'payment_method', 'payment_status', 'transaction_id', 'created_at')
     list_filter = ('payment_status', 'payment_method', 'created_at')
     search_fields = ('transaction_id', 'booking__booking_code', 'booking__guest__username')
     readonly_fields = ('created_at',)
@@ -43,4 +43,12 @@ class PaymentConfigAdmin(admin.ModelAdmin):
         return not PaymentConfig.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return False
+
+@admin.register(CashierShift)
+class CashierShiftAdmin(admin.ModelAdmin):
+    list_display = ('shift_code', 'shift_type', 'user', 'status', 'opening_cash', 'actual_cash', 'difference', 'opened_at', 'closed_at')
+    list_filter = ('status', 'shift_type', 'opened_at')
+    search_fields = ('shift_code', 'user__username', 'user__first_name', 'user__last_name')
+    readonly_fields = ('shift_code', 'opened_at')
+

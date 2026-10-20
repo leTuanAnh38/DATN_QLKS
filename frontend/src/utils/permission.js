@@ -46,14 +46,14 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         settings: { read: false, create: false, update: false, delete: false },
     },
 
-    // 5. Thu Ngân (Cashier): Thanh toán, hóa đơn VAT, thu tiền cọc
+    // 5. Thu Ngân (Cashier): Thanh toán, hóa đơn VAT, thu tiền cọc, quyết toán Check-out
     cashier: {
         overview: { read: true, create: false, update: false, delete: false },
         rooms: { read: true, create: false, update: false, delete: false },
-        categories: { read: false, create: false, update: false, delete: false },
+        categories: { read: true, create: false, update: false, delete: false },
         bookings: { read: true, create: false, update: false, delete: false },
-        guests: { read: false, create: false, update: false, delete: false },
-        services: { read: false, create: false, update: false, delete: false },
+        guests: { read: true, create: false, update: false, delete: false },
+        services: { read: true, create: false, update: false, delete: false },
         finance: { read: true, create: true, update: true, delete: false },
         reports: { read: true, create: false, update: false, delete: false },
         employees: { read: false, create: false, update: false, delete: false },

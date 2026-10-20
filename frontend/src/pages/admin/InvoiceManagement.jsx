@@ -20,18 +20,23 @@ import {
     QrCode,
     Banknote,
     Building2,
-    Users
+    Users,
+    PlusCircle,
+    ArrowDownCircle,
+    X
 } from 'lucide-react';
 import api from '../../services/api';
-
-// =========================================================================
-// HƯỚNG DẪN IMPORT COMPONENT HÓA ĐƠN CÓ SẴN CỦA BẠN:
-// Nếu bạn có component <InvoiceModal /> hoặc <HotelInvoiceModal /> từ trước,
-// hãy mở comment import dưới đây:
-// =========================================================================
+import { useAuth } from '../../store/authStore';
+import { paymentService } from '../../services/paymentService';
 import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
+import CollectCashModal from '../../components/admin/modals/CollectCashModal';
+import CreateCashOutModal from '../../components/admin/modals/CreateCashOutModal';
 import Pagination from '../../components/common/Pagination';
-// import InvoiceModal from './InvoiceModal'; // <-- Hoặc đường dẫn component của bạn
+import ShiftStatusWidget from '../../components/admin/shifts/ShiftStatusWidget';
+import ShiftHistoryList from '../../components/admin/shifts/ShiftHistoryList';
+import OpenShiftModal from '../../components/admin/modals/OpenShiftModal';
+import CloseShiftModal from '../../components/admin/modals/CloseShiftModal';
+import ShiftZReportModal from '../../components/admin/modals/ShiftZReportModal';
 
 /**
  * Dữ liệu mẫu dự phòng (Mock data) khi Backend chưa có nhiều giao dịch
@@ -125,6 +130,12 @@ const MOCK_PAYMENTS = [
 ];
 
 export default function InvoiceManagement() {
+    // Phân quyền: Chỉ Thu ngân (Cashier), Quản lý (Manager), Chủ KS (Owner) và Admin mới có quyền Chi tiền / Hoàn cọc
+    // Lễ tân (Receptionist) chỉ có quyền Thu tiền tại quầy, không được phép lập phiếu chi
+    const { user: currentUser } = useAuth();
+    const currentUserRole = currentUser?.role || '';
+    const canCreateCashOut = ['admin', 'owner', 'manager', 'cashier'].includes(currentUserRole);
+
     // 1. STATE QUẢN LÝ DỮ LIỆU
     const [payments, setPayments] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -142,6 +153,88 @@ export default function InvoiceManagement() {
     // 4. STATE PHÂN TRANG (PAGINATION)
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+
+    // 5. STATE NGHIỆP VỤ THU NGÂN: THU TIỀN TẠI QUẦY & CHI TIỀN / HOÀN CỌC
+    const [isCollectCashOpen, setIsCollectCashOpen] = useState(false);
+    const [isCashOutOpen, setIsCashOutOpen] = useState(false);
+    const [confirmingPayment, setConfirmingPayment] = useState(null);
+    const [confirmPaymentMethod, setConfirmPaymentMethod] = useState('TRANSFER');
+    const [confirmNote, setConfirmNote] = useState('');
+    const [isConfirmingLoading, setIsConfirmingLoading] = useState(false);
+
+    // 6. STATE THÔNG BÁO TỨC THÌ (TOAST)
+    const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: '' }
+    const showToast = (type, message) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    };
+
+    // 7. STATE QUẢN LÝ CA LÀM VIỆC & KẾT CA BÀN GIAO QUỸ (GIAI ĐOẠN 3)
+    const [activeShift, setActiveShift] = useState(null);
+    const [isLoadingShift, setIsLoadingShift] = useState(false);
+    const [isOpenShiftModalOpen, setIsOpenShiftModalOpen] = useState(false);
+    const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
+    const [selectedClosingShift, setSelectedClosingShift] = useState(null);
+    const [selectedZReportShiftId, setSelectedZReportShiftId] = useState(null);
+    const [activeTab, setActiveTab] = useState('TRANSACTIONS'); // 'TRANSACTIONS' | 'SHIFTS'
+
+    // Lấy thông tin ca làm việc đang mở hiện tại của thu ngân
+    const fetchCurrentShift = async () => {
+        setIsLoadingShift(true);
+        try {
+            const res = await paymentService.getCurrentShift();
+            const currentShift = res?.active_shift || res?.shift || res?.data;
+            if (res?.success && currentShift) {
+                setActiveShift(currentShift);
+            } else {
+                setActiveShift(null);
+            }
+        } catch (err) {
+            console.warn('Lỗi khi lấy ca hiện tại:', err);
+            setActiveShift(null);
+        } finally {
+            setIsLoadingShift(false);
+        }
+    };
+
+    // Xử lý xác nhận thu tiền cho giao dịch PENDING
+    const handleConfirmPayment = async () => {
+        if (!confirmingPayment) return;
+        setIsConfirmingLoading(true);
+        try {
+            const res = await paymentService.confirmPaymentById(confirmingPayment.id, {
+                payment_method: confirmPaymentMethod,
+                note: confirmNote.trim()
+            });
+            showToast('success', res.message || `Đã xác nhận thu tiền cho giao dịch #${confirmingPayment.transaction_id || confirmingPayment.id} thành công!`);
+            setConfirmingPayment(null);
+            fetchPayments();
+            fetchCurrentShift();
+        } catch (err) {
+            console.error('Lỗi khi xác nhận thanh toán:', err);
+            const msg = err.response?.data?.message || err.response?.data?.detail || 'Không thể xác nhận thanh toán.';
+            showToast('error', msg);
+        } finally {
+            setIsConfirmingLoading(false);
+        }
+    };
+
+    // Callback khi thu tiền mặt thành công từ CollectCashModal
+    const handleCollectCashSuccess = (createdPayment, booking) => {
+        const bCode = booking?.booking_code || createdPayment?.booking_code || '';
+        showToast('success', `Đã ghi nhận thu ${formatVND(createdPayment?.amount || 0)} cho đơn #${bCode} thành công!`);
+        fetchPayments();
+        fetchCurrentShift();
+        // Tự động mở Modal in phiếu hóa đơn
+        if (createdPayment) {
+            setSelectedPayment({
+                ...createdPayment,
+                guest_name: booking?.guest_name || booking?.guest?.get_full_name || createdPayment.guest_name,
+                room_number: booking?.room?.room_number || createdPayment.room_number,
+                booking: booking || createdPayment.booking
+            });
+        }
+    };
 
     // =========================================================================
     // HÀM FETCH DỮ LIỆU TỪ BACKEND
@@ -168,6 +261,7 @@ export default function InvoiceManagement() {
 
     useEffect(() => {
         fetchPayments();
+        fetchCurrentShift();
     }, []);
 
     // Tự động trở về trang 1 khi thay đổi điều kiện tìm kiếm, bộ lọc hoặc kích thước trang
@@ -176,10 +270,17 @@ export default function InvoiceManagement() {
     }, [searchTerm, statusFilter, methodFilter, pageSize]);
 
     // =========================================================================
-    // LỌC DỮ LIỆU THEO TÌM KIẾM VÀ TRẠNG THÁI
+    // LỌC VÀ SẮP XẾP DỮ LIỆU: ƯU TIÊN CHỜ XỬ LÝ (PENDING) LÊN TRÊN HẾT
     // =========================================================================
+    const getStatusPriority = (status) => {
+        const s = String(status || '').toUpperCase();
+        if (s === 'PENDING' || s === 'PROCESSING') return 1; // 1: Chờ xử lý (Ưu tiên cao nhất)
+        if (s === 'COMPLETED') return 2;                     // 2: Thành công (Xuống dưới)
+        return 3;                                            // 3: Thất bại / Đã hủy
+    };
+
     const filteredPayments = useMemo(() => {
-        return payments.filter((item) => {
+        const list = payments.filter((item) => {
             // Lọc theo từ khóa (Mã đặt phòng, Mã đoàn, Tên khách hàng, Tên công ty, SĐT, Mã giao dịch)
             const keyword = searchTerm.trim().toLowerCase();
             const matchSearch =
@@ -200,6 +301,22 @@ export default function InvoiceManagement() {
                 methodFilter === 'ALL' || item.payment_method === methodFilter;
 
             return matchSearch && matchStatus && matchMethod;
+        });
+
+        // Sắp xếp: Chờ xử lý (PENDING) lên trước, Hoàn tất (COMPLETED) xuống sau
+        return list.slice().sort((a, b) => {
+            const prioA = getStatusPriority(a.payment_status);
+            const prioB = getStatusPriority(b.payment_status);
+            if (prioA !== prioB) {
+                return prioA - prioB;
+            }
+            // Cùng nhóm trạng thái: Ưu tiên ngày tạo mới nhất (created_at giảm dần)
+            const timeA = new Date(a.created_at || 0).getTime();
+            const timeB = new Date(b.created_at || 0).getTime();
+            if (timeA !== timeB) {
+                return timeB - timeA;
+            }
+            return (b.id || 0) - (a.id || 0);
         });
     }, [payments, searchTerm, statusFilter, methodFilter]);
 
@@ -256,89 +373,188 @@ export default function InvoiceManagement() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-3.5 sm:space-y-4">
             {/* ================================================================= */}
             {/* 1. HEADER TRANG: TITLE & THỐNG KÊ NHANH                          */}
             {/* ================================================================= */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
-                <div className="flex items-center gap-3.5">
-                   
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-5 py-3.5 sm:px-6 sm:py-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-3">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
                             <span>Thanh toán & Hóa đơn</span>
-                            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                                 PMS Quản lý
                             </span>
                         </h1>
-                        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                        <p className="text-xs text-slate-500 mt-0.5">
                             Theo dõi các giao dịch thanh toán VietQR, tiền mặt và xuất/in phiếu hóa đơn
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-auto">
+                <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+                    {/* Nút Thu tiền mặt tại quầy */}
+                    <button
+                        type="button"
+                        onClick={() => setIsCollectCashOpen(true)}
+                        className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        title="Lập phiếu thu tiền mặt hoặc thu tiền trực tiếp tại quầy lễ tân"
+                    >
+                        <Banknote className="w-4 h-4" />
+                        <span>Thu tiền tại quầy</span>
+                    </button>
+
+                    {/* Nút Chi tiền / Hoàn cọc (Chỉ hiển thị cho Thu ngân, Quản lý, Chủ KS và Admin) */}
+                    {canCreateCashOut && (
+                        <button
+                            type="button"
+                            onClick={() => setIsCashOutOpen(true)}
+                            className="px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs shadow-rose-600/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                            title="Lập phiếu chi tiền mặt từ két hoặc hoàn trả cọc cho khách (Dành cho Thu ngân & Quản lý)"
+                        >
+                            <ArrowDownCircle className="w-4 h-4" />
+                            <span>Chi tiền / Hoàn cọc</span>
+                        </button>
+                    )}
+
                     <button
                         type="button"
                         onClick={fetchPayments}
                         disabled={isLoading}
-                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                         title="Tải lại danh sách"
                     >
-                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                         <span>Làm mới</span>
                     </button>
                 </div>
             </div>
 
-            {/* THẺ THỐNG KÊ TỔNG QUAN (KPIs) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* ================================================================= */}
+            {/* 1.1 WIDGET TRẠNG THÁI CA LÀM VIỆC & KẾT CA BÀN GIAO QUỸ (GIAI ĐOẠN 3) */}
+            {/* ================================================================= */}
+            <ShiftStatusWidget
+                activeShift={activeShift}
+                isLoading={isLoadingShift}
+                onOpenShift={() => setIsOpenShiftModalOpen(true)}
+                onCloseShift={(shift) => {
+                    setSelectedClosingShift(shift);
+                    setIsCloseShiftModalOpen(true);
+                }}
+                onViewZReport={(shiftId) => setSelectedZReportShiftId(shiftId)}
+            />
+
+            {/* ================================================================= */}
+            {/* 1.2 THANH CHUYỂN ĐỔI TAB: GIAO DỊCH vs LỊCH SỬ CA TRỰC (Z-REPORT)   */}
+            {/* ================================================================= */}
+            <div className="flex items-center gap-2 border-b border-slate-200/80 pb-1.5">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('TRANSACTIONS')}
+                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                        activeTab === 'TRANSACTIONS'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                >
+                    <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Giao Dịch Thanh Toán & Thu Tiền</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('SHIFTS')}
+                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                        activeTab === 'SHIFTS'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                >
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Lịch Sử Ca Trực & Sổ Quỹ Z-Report</span>
+                </button>
+            </div>
+
+            {/* NỘI DUNG THEO TAB */}
+            {activeTab === 'SHIFTS' ? (
+                <ShiftHistoryList onRefreshActiveShift={fetchCurrentShift} />
+            ) : (
+                <>
+            {/* THẺ THỐNG KÊ TỔNG QUAN (KPIs) - BẤM ĐỂ LỌC NHANH */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div 
-                    className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs"
-                    title="Tổng dòng tiền thực tế đã thu vào tài khoản/két sắt (bao gồm tiền cọc và tiền quyết toán trả phòng)"
+                    onClick={() => setStatusFilter('ALL')}
+                    className={`bg-white p-3.5 sm:p-4 rounded-2xl border transition cursor-pointer shadow-xs ${
+                        statusFilter === 'ALL'
+                            ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+                            : 'border-slate-200/80 hover:border-slate-300'
+                    }`}
+                    title="Bấm để xem tất cả giao dịch"
                 >
                     <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
                         <span>Tổng tiền đã thu (Thực thu)</span>
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <ArrowUpRight className="w-4 h-4" />
+                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <ArrowUpRight className="w-3.5 h-3.5" />
                         </div>
                     </div>
-                    <div className="text-2xl font-black text-emerald-600 mt-2 font-serif">
+                    <div className="text-xl sm:text-2xl font-black text-emerald-600 mt-1 font-serif">
                         {formatVND(stats.totalRevenue)}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Từ {stats.completedCount} giao dịch thành công (Cọc & Quyết toán)</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Từ {stats.completedCount} giao dịch thành công</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div 
+                    onClick={() => setStatusFilter('COMPLETED')}
+                    className={`bg-white p-3.5 sm:p-4 rounded-2xl border transition cursor-pointer shadow-xs ${
+                        statusFilter === 'COMPLETED'
+                            ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-sm bg-blue-50/20'
+                            : 'border-slate-200/80 hover:border-slate-300'
+                    }`}
+                    title="Bấm để lọc các giao dịch đã hoàn tất"
+                >
                     <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
                         <span>Giao dịch thành công</span>
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <CheckCircle2 className="w-4 h-4" />
+                        <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
                         </div>
                     </div>
-                    <div className="text-2xl font-black text-slate-900 mt-2">
+                    <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
                         {stats.completedCount} <span className="text-xs font-normal text-slate-400">/ {stats.totalCount}</span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Đã đối soát & lưu vào hệ thống</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Đã đối soát & lưu vào hệ thống</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div 
+                    onClick={() => setStatusFilter('PENDING')}
+                    className={`bg-white p-3.5 sm:p-4 rounded-2xl border transition cursor-pointer shadow-xs ${
+                        statusFilter === 'PENDING'
+                            ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/20'
+                            : 'border-slate-200/80 hover:border-amber-300'
+                    }`}
+                    title="Bấm để lọc các giao dịch Chờ xử lý cần xác nhận"
+                >
                     <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-                        <span>Chờ xử lý / Đang chuyển</span>
-                        <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                            <Clock className="w-4 h-4" />
+                        <span className="font-bold text-amber-900">Chờ xử lý / Đang chuyển</span>
+                        <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center animate-pulse">
+                            <Clock className="w-3.5 h-3.5" />
                         </div>
                     </div>
-                    <div className="text-2xl font-black text-amber-600 mt-2">
-                        {stats.pendingCount}
+                    <div className="text-xl sm:text-2xl font-black text-amber-600 mt-1 flex items-center gap-2">
+                        <span>{stats.pendingCount}</span>
+                        {stats.pendingCount > 0 && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                Cần xử lý ngay
+                            </span>
+                        )}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Cần đối soát hoặc xác nhận lại</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Cần đối soát hoặc xác nhận lại</p>
                 </div>
             </div>
 
             {/* ================================================================= */}
             {/* 2. THANH BỘ LỌC (FILTERS): SEARCH INPUT & STATUS DROPDOWN         */}
             {/* ================================================================= */}
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
                 {/* Input Tìm kiếm (mã đặt phòng, tên khách, mã giao dịch) */}
                 <div className="relative flex-1 max-w-md">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -614,20 +830,42 @@ export default function InvoiceManagement() {
                                                 </div>
                                             </td>
 
-                                            {/* 8. Cột Hành động: Nút "Xem / In Hóa đơn" */}
+                                            {/* 8. Cột Hành động: Nút "Xác nhận thu" & "Xem / In Hóa đơn" */}
                                             <td className="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        // Gán dòng dữ liệu được chọn vào state để mở modal
-                                                        setSelectedPayment(payment);
-                                                    }}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs shadow-blue-600/20 transition cursor-pointer active:scale-95"
-                                                    title="Xem và In Hóa đơn"
-                                                >
-                                                    <Printer className="w-3.5 h-3.5" />
-                                                    <span>Xem / In Hóa đơn</span>
-                                                </button>
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    {isPending && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setConfirmingPayment(payment);
+                                                                setConfirmPaymentMethod(payment.payment_method || 'TRANSFER');
+                                                                setConfirmNote('');
+                                                            }}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs shadow-emerald-600/20 transition cursor-pointer active:scale-95"
+                                                            title="Xác nhận đã nhận tiền cho giao dịch này"
+                                                        >
+                                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            <span>Xác nhận thu</span>
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            // Gán dòng dữ liệu được chọn vào state để mở modal
+                                                            setSelectedPayment(payment);
+                                                        }}
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 ${
+                                                            isPending
+                                                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-600/20'
+                                                        }`}
+                                                        title="Xem và In Hóa đơn"
+                                                    >
+                                                        <Printer className="w-3.5 h-3.5" />
+                                                        <span>{isPending ? 'Xem' : 'In Hóa đơn'}</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -673,9 +911,145 @@ export default function InvoiceManagement() {
                     )}
                 </div>
             </div>
+            </>
+            )}
 
             {/* ================================================================= */}
-            {/* 4. LOGIC TÁI SỬ DỤNG: GẮN COMPONENT HÓA ĐƠN CÓ SẴN CỦA BẠN        */}
+            {/* 4. MODAL THU TIỀN TẠI QUẦY (COLLECT CASH MODAL)                   */}
+            {/* ================================================================= */}
+            <CollectCashModal
+                isOpen={isCollectCashOpen}
+                onClose={() => setIsCollectCashOpen(false)}
+                onSuccess={handleCollectCashSuccess}
+            />
+
+            {/* ================================================================= */}
+            {/* 5. MODAL XÁC NHẬN GIAO DỊCH PENDING                               */}
+            {/* ================================================================= */}
+            {confirmingPayment && (
+                <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-6 sm:p-7 shadow-2xl text-left animate-in zoom-in-95 duration-200">
+                        <div className="flex items-start justify-between pb-4 border-b border-slate-100 mb-5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
+                                    ✓
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 text-base">Xác Nhận Đã Nhận Tiền</h3>
+                                    <p className="text-xs text-slate-500">Chuyển giao dịch sang trạng thái Hoàn tất (COMPLETED)</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setConfirmingPayment(null)}
+                                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Khối tóm tắt giao dịch */}
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-500">Mã giao dịch:</span>
+                                    <span className="font-mono font-bold text-slate-800">#{confirmingPayment.transaction_id || confirmingPayment.id}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-500">Khách hàng / Đơn:</span>
+                                    <span className="font-bold text-slate-900">{confirmingPayment.guest_name || confirmingPayment.company_name || 'Khách vãng lai'} ({confirmingPayment.booking_code || confirmingPayment.group_booking_code || '—'})</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                                    <span className="font-bold text-slate-700">Số tiền cần xác nhận:</span>
+                                    <span className="font-mono font-black text-emerald-600 text-sm">{formatVND(confirmingPayment.amount)}</span>
+                                </div>
+                            </div>
+
+                            {/* Phương thức thực nhận */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                    Hình thức tiền đã vào quỹ / tài khoản
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfirmPaymentMethod('TRANSFER')}
+                                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer text-xs font-semibold ${
+                                            confirmPaymentMethod === 'TRANSFER'
+                                                ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        💳 Đã nổi VietQR
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfirmPaymentMethod('CASH')}
+                                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer text-xs font-semibold ${
+                                            confirmPaymentMethod === 'CASH'
+                                                ? 'bg-amber-50 border-amber-400 text-amber-900 font-bold'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        💵 Đã thu tiền mặt
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Ghi chú xác nhận */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                    Ghi chú đối soát (tùy chọn)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={confirmNote}
+                                    onChange={(e) => setConfirmNote(e.target.value)}
+                                    placeholder="VD: Đã kiểm tra sao kê ngân hàng, Nhận tiền mặt tại quầy..."
+                                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
+                                />
+                            </div>
+
+                            {/* Footer hành động */}
+                            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirmingPayment(null)}
+                                    disabled={isConfirmingLoading}
+                                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
+                                >
+                                    Đóng
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmPayment}
+                                    disabled={isConfirmingLoading}
+                                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                >
+                                    {isConfirmingLoading ? 'Đang xác nhận...' : '✓ Xác nhận thu tiền'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ================================================================= */}
+            {/* 6. TOAST THÔNG BÁO TỨC THÌ (FLOATING TOAST)                       */}
+            {/* ================================================================= */}
+            {toast && (
+                <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-bold animate-in slide-in-from-bottom-5 duration-200 ${
+                    toast.type === 'success'
+                        ? 'bg-slate-900 text-white border border-emerald-500/30 shadow-emerald-950/20'
+                        : 'bg-rose-600 text-white shadow-rose-950/20'
+                }`}>
+                    <span>{toast.type === 'success' ? '✅' : '⚠️'}</span>
+                    <span>{toast.message}</span>
+                </div>
+            )}
+
+            {/* ================================================================= */}
+            {/* 7. LOGIC TÁI SỬ DỤNG: GẮN COMPONENT HÓA ĐƠN CÓ SẴN CỦA BẠN        */}
             {/* ================================================================= */}
             {selectedPayment && (
                 <HotelInvoiceModal
@@ -732,6 +1106,55 @@ export default function InvoiceManagement() {
                     onClose={() => setSelectedPayment(null)}
                 />
             )}
+
+            {/* ================================================================= */}
+            {/* 8. CÁC MODAL QUẢN LÝ CA LÀM VIỆC & BÀN GIAO QUỸ (GIAI ĐOẠN 3)     */}
+            {/* ================================================================= */}
+
+            {/* Modal Mở ca làm việc */}
+            <OpenShiftModal
+                isOpen={isOpenShiftModalOpen}
+                onClose={() => setIsOpenShiftModalOpen(false)}
+                onShiftOpened={(newShift) => {
+                    setActiveShift(newShift);
+                    showToast('success', `Đã mở ca làm việc #${newShift.shift_code} thành công!`);
+                }}
+            />
+
+            {/* Modal Kết ca làm việc & Kiểm đếm quỹ */}
+            <CloseShiftModal
+                isOpen={isCloseShiftModalOpen}
+                shift={selectedClosingShift || activeShift}
+                onClose={() => {
+                    setIsCloseShiftModalOpen(false);
+                    setSelectedClosingShift(null);
+                }}
+                onShiftClosed={(closedShift) => {
+                    setActiveShift(null);
+                    showToast('success', `Đã kết ca #${closedShift.shift_code} và bàn giao quỹ thành công!`);
+                    setSelectedZReportShiftId(closedShift.id);
+                }}
+            />
+
+            {/* Modal Báo cáo Z-Report & In ấn */}
+            {selectedZReportShiftId && (
+                <ShiftZReportModal
+                    shiftId={selectedZReportShiftId}
+                    onClose={() => setSelectedZReportShiftId(null)}
+                />
+            )}
+
+            {/* Modal Lập Phiếu Chi Tiền Mặt / Hoàn Cọc */}
+            <CreateCashOutModal
+                isOpen={isCashOutOpen}
+                onClose={() => setIsCashOutOpen(false)}
+                activeShift={activeShift}
+                onCashOutCreated={(voucher) => {
+                    fetchPayments();
+                    fetchCurrentShift();
+                    showToast('success', `Đã lập phiếu chi #${voucher.voucher_code} (${formatVND(voucher.amount)}) thành công!`);
+                }}
+            />
         </div>
     );
 }

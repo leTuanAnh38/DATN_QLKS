@@ -132,6 +132,7 @@ export default function EmployeeManagement() {
     const [employees, setEmployees] = useState([]);
     const [roles, setRoles] = useState(DEFAULT_ROLE_MATRIX);
     const [isLoading, setIsLoading] = useState(true);
+    const [stats, setStats] = useState(null);
 
     // Danh sách vai trò có thể thao tác (Quản lý không được can thiệp vào Admin/Owner/Manager)
     const availableRoles = useMemo(() => {
@@ -248,6 +249,7 @@ export default function EmployeeManagement() {
             setTotalCount(res.count !== undefined ? res.count : list.length);
             setTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
             if (res.roles) setRoles(res.roles);
+            if (res.stats) setStats(res.stats);
         }
         setIsLoading(false);
     };
@@ -394,10 +396,21 @@ export default function EmployeeManagement() {
 
         setIsSubmitting(true);
 
+        const parts = (createFormData.fullName || '').trim().split(/\s+/);
+        const firstName = parts.length > 1 ? parts.slice(0, -1).join(' ') : (parts[0] || '');
+        const lastName = parts.length > 1 ? parts[parts.length - 1] : '';
+        const derivedUsername = (createFormData.email || '').split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 
+                               (createFormData.employee_code || '').toLowerCase().replace(/[^a-zA-Z0-9_]/g, '');
+
         const payload = {
+            username: derivedUsername,
+            full_name: createFormData.fullName,
             fullName: createFormData.fullName,
+            first_name: firstName,
+            last_name: lastName,
             email: createFormData.email,
             phone: createFormData.phone,
+            phone_number: createFormData.phone,
             password: createFormData.password,
             role: createFormData.role,
             employee_code: createFormData.employee_code,
@@ -419,9 +432,18 @@ export default function EmployeeManagement() {
             });
             fetchEmployees();
         } else {
+            let errorText = res.message || 'Không thể tạo nhân viên mới. Vui lòng kiểm tra lại.';
+            if (res.errors && typeof res.errors === 'object') {
+                const detailedErrors = Object.entries(res.errors)
+                    .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                    .join(' | ');
+                if (detailedErrors) {
+                    errorText = `${res.message || 'Lỗi dữ liệu'}: ${detailedErrors}`;
+                }
+            }
             setAlertMessage({
                 type: 'error',
-                text: res.message || 'Không thể tạo nhân viên mới. Vui lòng kiểm tra lại.',
+                text: errorText,
             });
         }
     };
@@ -753,10 +775,11 @@ export default function EmployeeManagement() {
         );
     };
 
-    // Thống kê nhanh
-    const activeCount = employees.filter((e) => e.is_active).length;
-    const managementCount = employees.filter((e) => ['admin', 'owner', 'manager'].includes(e.role)).length;
-    const operationsCount = employees.filter((e) => !['admin', 'owner', 'manager'].includes(e.role)).length;
+    // Thống kê nhanh: Sử dụng số liệu tổng thể từ Backend thay vì chỉ đếm trên trang 1
+    const totalDisplay = stats?.total !== undefined ? stats.total : totalCount;
+    const activeCount = stats?.active !== undefined ? stats.active : employees.filter((e) => e.is_active).length;
+    const managementCount = stats?.management !== undefined ? stats.management : employees.filter((e) => ['admin', 'owner', 'manager'].includes(e.role)).length;
+    const operationsCount = stats?.operations !== undefined ? stats.operations : employees.filter((e) => !['admin', 'owner', 'manager'].includes(e.role)).length;
 
     return (
         <div className="space-y-6">
@@ -824,7 +847,7 @@ export default function EmployeeManagement() {
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                             TỔNG NHÂN SỰ
                         </span>
-                        <div className="text-2xl font-bold text-slate-900 mt-1">{totalCount}</div>
+                        <div className="text-2xl font-bold text-slate-900 mt-1">{totalDisplay}</div>
                         <span className="text-[11px] text-slate-500">Toàn bộ nhân sự các khối</span>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">

@@ -78,9 +78,14 @@ def check_role_permission(user, module, action='read'):
             'rooms': {'read': True, 'create': False, 'update': True, 'delete': False},
         },
         'cashier': {
-            'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
-            'finance': {'read': True, 'create': True, 'update': True, 'delete': False},
+            'overview': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'rooms': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'categories': {'read': True, 'create': False, 'update': False, 'delete': False},
             'bookings': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'services': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'finance': {'read': True, 'create': True, 'update': True, 'delete': False},
+            'reports': {'read': True, 'create': False, 'update': False, 'delete': False},
         },
         'housekeeper': {
             'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
@@ -182,6 +187,11 @@ class IsEmployeeManagementPermission(BasePermission):
             'DELETE': 'delete'
         }
         action = action_map.get(request.method, 'read')
+
+        # Cho phép nhân sự nội bộ (Thu ngân, Lễ tân, Quản lý) đọc danh sách nhân sự để phục vụ bàn giao ca & điều phối
+        if action == 'read' and getattr(request.user, 'role', '') in ['cashier', 'receptionist', 'manager']:
+            return True
+
         return check_role_permission(request.user, 'employees', action)
 
 
@@ -642,6 +652,15 @@ class AdminEmployeeListCreateView(APIView):
             is_active_bool = is_active.lower() in ['true', '1']
             queryset = queryset.filter(is_active=is_active_bool)
 
+        all_employees = User.objects.exclude(role='guest')
+        stats = {
+            'total': all_employees.count(),
+            'active': all_employees.filter(is_active=True).count(),
+            'inactive': all_employees.filter(is_active=False).count(),
+            'management': all_employees.filter(role__in=['admin', 'owner', 'manager']).count(),
+            'operations': all_employees.exclude(role__in=['admin', 'owner', 'manager']).count(),
+        }
+
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
         if page is not None:
@@ -656,7 +675,8 @@ class AdminEmployeeListCreateView(APIView):
                 'previous': paginator.get_previous_link(),
                 'results': serializer.data,
                 'employees': serializer.data,
-                'roles': get_all_roles_matrix()
+                'roles': get_all_roles_matrix(),
+                'stats': stats,
             }, status=status.HTTP_200_OK)
 
         serializer = AdminEmployeeSerializer(queryset, many=True, context={'request': request})
@@ -665,7 +685,8 @@ class AdminEmployeeListCreateView(APIView):
             'count': queryset.count(),
             'results': serializer.data,
             'employees': serializer.data,
-            'roles': get_all_roles_matrix()
+            'roles': get_all_roles_matrix(),
+            'stats': stats,
         }, status=status.HTTP_200_OK)
 
     def post(self, request):
