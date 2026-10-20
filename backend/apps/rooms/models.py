@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 # 1. BẢNG TIỆN NGHI (Amenities)
 class Amenity(models.Model):
@@ -149,4 +150,154 @@ class MaintenanceTicket(models.Model):
     class Meta:
         verbose_name = "Phiếu Bảo Trì & Sửa Chữa"
         verbose_name_plural = "4. Phiếu Bảo Trì Thiết Bị"
-        ordering = ['-start_date']
+        ordering = ['-start_date']
+
+
+# 6. BẢNG DANH MỤC ĐỒ UỐNG & ĐỒ ĂN VẶT MINIBAR TRONG PHÒNG
+class MinibarItem(models.Model):
+    CATEGORY_CHOICES = (
+        ('drink', 'Nước ngọt & Nước khoáng'),
+        ('alcohol', 'Bia & Rượu vang'),
+        ('snack', 'Đồ ăn vặt & Bánh kẹo'),
+        ('other', 'Khác'),
+    )
+
+    name = models.CharField(max_length=120, verbose_name="Tên mặt hàng Minibar")
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='drink', verbose_name="Phân loại")
+    price = models.DecimalField(max_digits=10, decimal_places=0, default=20000, verbose_name="Đơn giá (VND)")
+    standard_quantity = models.IntegerField(default=2, verbose_name="Định mức trong tủ lạnh mỗi phòng")
+    image_url = models.CharField(max_length=500, blank=True, default='', verbose_name="Đường dẫn ảnh trực tuyến")
+    is_active = models.BooleanField(default=True, verbose_name="Đang phục vụ")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.price:,.0f} đ"
+
+    class Meta:
+        verbose_name = "Mặt hàng Minibar"
+        verbose_name_plural = "5. Danh mục Minibar"
+        ordering = ['category', 'name']
+
+
+# 7. BẢNG PHIẾU KIỂM KÊ MINIBAR (KHI DỌN PHÒNG HOẶC CHECK-OUT)
+class MinibarCheck(models.Model):
+    check_code = models.CharField(max_length=25, unique=True, blank=True, verbose_name="Mã phiếu kiểm kê")
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='minibar_checks', verbose_name="Phòng kiểm tra")
+    booking = models.ForeignKey(
+        'bookings.Booking',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='minibar_checks',
+        verbose_name="Đơn đặt phòng liên quan"
+    )
+    inspector = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='inspected_minibar_checks',
+        verbose_name="Nhân viên kiểm tra"
+    )
+    items_consumed = models.JSONField(default=list, verbose_name="Danh sách đồ đã dùng")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tổng tiền đồ Minibar (VND)")
+    note = models.TextField(blank=True, default='', verbose_name="Ghi chú kiểm tra")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian kiểm tra")
+
+    def save(self, *args, **kwargs):
+        if not self.check_code:
+            import uuid
+            self.check_code = f"MB-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.check_code} - P.{self.room.room_number}: {self.total_amount:,.0f} đ"
+
+    class Meta:
+        verbose_name = "Phiếu Kiểm Kê Minibar"
+        verbose_name_plural = "6. Lịch sử Kiểm Kê Minibar"
+        ordering = ['-created_at']
+
+
+# 8. BẢNG QUẢN LÝ ĐỒ THẤT LẠC CỦA KHÁCH (LOST & FOUND)
+class LostAndFoundItem(models.Model):
+    CATEGORY_CHOICES = (
+        ('electronics', 'Thiết bị điện tử (Điện thoại, Laptop, Tai nghe, Sạc)'),
+        ('valuable', 'Đồ giá trị / Tiền mặt / Trang sức / Đồng hồ'),
+        ('documents', 'Giấy tờ tùy thân / Hộ chiếu / Ví tiền'),
+        ('clothing', 'Quần áo / Giày dép / Túi xách'),
+        ('accessories', 'Phụ kiện / Kính mắt / Mỹ phẩm'),
+        ('other', 'Khác'),
+    )
+
+    STATUS_CHOICES = (
+        ('stored', 'Đang lưu kho bảo quản'),
+        ('contacted', 'Đã liên hệ với khách'),
+        ('returned', 'Đã trao trả khách thành công'),
+        ('disposed', 'Đã thanh lý / Tiêu hủy'),
+    )
+
+    tracking_code = models.CharField(max_length=25, unique=True, blank=True, verbose_name="Mã đồ thất lạc")
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lost_and_found_items',
+        verbose_name="Phòng phát hiện"
+    )
+    location_found = models.CharField(max_length=200, verbose_name="Vị trí tìm thấy (Số phòng hoặc khu vực sảnh/bể bơi)")
+    item_name = models.CharField(max_length=150, verbose_name="Tên vật phẩm nhặt được")
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='other', verbose_name="Phân loại tài sản")
+    description = models.TextField(blank=True, default='', verbose_name="Mô tả chi tiết / Đặc điểm nhận dạng")
+    image = models.ImageField(upload_to='lost_found/', null=True, blank=True, verbose_name="Ảnh chụp đồ vật")
+    found_date = models.DateTimeField(default=timezone.now, verbose_name="Thời gian phát hiện")
+    finder = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='found_items',
+        verbose_name="Nhân viên nhặt được"
+    )
+    booking = models.ForeignKey(
+        'bookings.Booking',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lost_items',
+        verbose_name="Đơn đặt phòng liên quan"
+    )
+    guest_name = models.CharField(max_length=150, blank=True, default='', verbose_name="Tên khách hàng liên quan")
+    guest_phone = models.CharField(max_length=30, blank=True, default='', verbose_name="Số điện thoại khách")
+    storage_location = models.CharField(max_length=150, default='Két an toàn Lễ tân', verbose_name="Nơi cất giữ / Kho lưu trữ")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='stored', verbose_name="Trạng thái xử lý")
+
+    returned_date = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian trao trả")
+    returned_to = models.CharField(max_length=150, blank=True, default='', verbose_name="Người nhận lại (Họ tên & SĐT/CCCD)")
+    return_note = models.TextField(blank=True, default='', verbose_name="Ghi chú bàn giao / Biên bản trả đồ")
+    handled_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='handled_lost_items',
+        verbose_name="Nhân viên bàn giao cho khách"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.tracking_code:
+            import uuid
+            self.tracking_code = f"LF-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.tracking_code} - {self.item_name} ({self.get_status_display()})"
+
+    class Meta:
+        verbose_name = "Đồ Thất Lạc (Lost & Found)"
+        verbose_name_plural = "7. Quản lý Đồ Thất Lạc"
+        ordering = ['-found_date']

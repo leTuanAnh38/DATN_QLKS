@@ -26,7 +26,7 @@ export default function Sidebar({
 
     // Internal fallback states nếu không truyền từ component cha
     const [internalCatOpen, setInternalCatOpen] = useState(
-        activeTab === 'categories' || activeTab === 'amenities' || location.pathname === '/admin/amenities'
+        activeTab === 'categories' || activeTab === 'amenities' || activeTab === 'minibar' || location.pathname === '/admin/amenities' || location.pathname === '/admin/minibar'
     );
     const [internalBookingOpen, setInternalBookingOpen] = useState(
         ['bookings', 'booking-timeline'].includes(activeTab)
@@ -142,6 +142,31 @@ export default function Sidebar({
                                 </span>
                             </button>
                         )}
+
+                        {/* 3. Đồ thất lạc (Lost & Found) */}
+                        {canViewRooms && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('lost-and-found', '/admin/lost-and-found')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'lost-and-found' || location.pathname === '/admin/lost-and-found'
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <rect x="3" y="7" width="18" height="13" rx="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M9 11v5m6-5v5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    <span>Đồ Thất Lạc</span>
+                                </div>
+                                <span className="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-500/30">
+                                    L&F
+                                </span>
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -159,10 +184,10 @@ export default function Sidebar({
                             <button
                                 type="button"
                                 onClick={() => {
-                                    if (activeTab !== 'categories' && activeTab !== 'amenities') {
+                                    if (activeTab !== 'categories' && activeTab !== 'amenities' && activeTab !== 'minibar') {
                                         handleSelectTab('categories');
                                         setIsCategoryOpen(true);
-                                    } else if (activeTab === 'amenities') {
+                                    } else if (activeTab === 'amenities' || activeTab === 'minibar') {
                                         handleSelectTab('categories');
                                         setIsCategoryOpen(true);
                                     } else {
@@ -172,7 +197,7 @@ export default function Sidebar({
                                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${
                                     activeTab === 'categories'
                                         ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : activeTab === 'amenities'
+                                        : (activeTab === 'amenities' || activeTab === 'minibar')
                                             ? 'bg-slate-800 text-white'
                                             : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                 }`}
@@ -237,6 +262,27 @@ export default function Sidebar({
                                             </div>
                                             <span className="shrink-0 text-[10px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 ml-2">
                                                 Tiện ích
+                                            </span>
+                                        </button>
+
+                                        {/* MENU CON: MINIBAR */}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSelectTab('minibar', '/admin/minibar')}
+                                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
+                                                activeTab === 'minibar' || location.pathname === '/admin/minibar' || location.pathname === '/admin/minibar-items'
+                                                    ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                </svg>
+                                                <span className="truncate text-left">Đồ Minibar</span>
+                                            </div>
+                                            <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
+                                                Giá bán
                                             </span>
                                         </button>
                                     </div>

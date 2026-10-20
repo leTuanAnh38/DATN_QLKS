@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket
+from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket, MinibarItem, MinibarCheck, LostAndFoundItem
 
 
 class MaintenanceTicketSerializer(serializers.ModelSerializer):
@@ -189,7 +189,9 @@ class RoomSerializer(serializers.ModelSerializer):
     category_bed_type = serializers.CharField(source='category.bed_type', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     current_booking = serializers.SerializerMethodField()
+    recent_booking = serializers.SerializerMethodField()
     active_maintenance = serializers.SerializerMethodField()
+    latest_minibar_check = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
@@ -197,8 +199,24 @@ class RoomSerializer(serializers.ModelSerializer):
             'id', 'room_number', 'floor', 'status', 'status_display',
             'category', 'category_id', 'category_name',
             'category_base_price', 'category_bed_type',
-            'current_booking', 'active_maintenance'
+            'current_booking', 'recent_booking', 'active_maintenance',
+            'latest_minibar_check'
         ]
+
+    def get_latest_minibar_check(self, obj):
+        try:
+            check = obj.minibar_checks.order_by('-created_at').first()
+            if check:
+                return {
+                    'id': check.id,
+                    'check_code': check.check_code,
+                    'total_amount': float(check.total_amount),
+                    'created_at': check.created_at,
+                    'inspector_name': check.inspector.get_full_name() or check.inspector.username if check.inspector else 'Nhân viên buồng',
+                }
+            return None
+        except Exception:
+            return None
 
     def get_active_maintenance(self, obj):
         try:
@@ -209,38 +227,52 @@ class RoomSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
+    def _format_booking_data(self, bk, obj):
+        if not bk:
+            return None
+        guest = bk.guest
+        guest_name = f"{guest.first_name or ''} {guest.last_name or ''}".strip() if guest else "Khách lưu trú"
+        if not guest_name and guest:
+            guest_name = guest.username
+
+        id_card = bk.identity_card or ''
+        if not id_card and guest and hasattr(guest, 'guest_profile') and guest.guest_profile:
+            id_card = guest.guest_profile.id_card_number or ''
+
+        return {
+            'id': bk.id,
+            'booking_code': bk.booking_code,
+            'guest_id': bk.guest_id,
+            'guest_name': guest_name or (bk.guest_name or 'Khách lưu trú'),
+            'guest_phone': (guest.phone_number if guest else '') or (bk.guest_phone or ''),
+            'guest_email': (guest.email if guest else '') or (bk.guest_email or ''),
+            'identity_card': id_card,
+            'check_in_date': bk.check_in_date,
+            'check_out_date': bk.check_out_date,
+            'actual_check_in': bk.actual_check_in,
+            'actual_check_out': bk.actual_check_out,
+            'total_amount': float(bk.total_amount) if bk.total_amount else 0,
+            'status': bk.status,
+            'status_display': bk.get_status_display(),
+            'room_number': obj.room_number,
+            'room_name': obj.category.name if obj.category else 'Phòng tiêu chuẩn'
+        }
+
     def get_current_booking(self, obj):
         try:
             # Lấy đơn đặt phòng đang lưu trú (status='checked_in')
             bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
+            return self._format_booking_data(bk, obj)
+        except Exception:
+            return None
+
+    def get_recent_booking(self, obj):
+        try:
+            # Ưu tiên đơn đang ở, nếu không có lấy đơn vừa hoàn tất gần nhất (cho buồng phòng dọn kiểm kê)
+            bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
             if not bk:
-                return None
-            guest = bk.guest
-            guest_name = f"{guest.first_name or ''} {guest.last_name or ''}".strip() if guest else "Khách lưu trú"
-            if not guest_name and guest:
-                guest_name = guest.username
-
-            id_card = bk.identity_card or ''
-            if not id_card and guest and hasattr(guest, 'guest_profile') and guest.guest_profile:
-                id_card = guest.guest_profile.id_card_number or ''
-
-            return {
-                'id': bk.id,
-                'booking_code': bk.booking_code,
-                'guest_id': bk.guest_id,
-                'guest_name': guest_name or 'Khách lưu trú',
-                'guest_phone': guest.phone_number if guest else '',
-                'guest_email': guest.email if guest else '',
-                'identity_card': id_card,
-                'check_in_date': bk.check_in_date,
-                'check_out_date': bk.check_out_date,
-                'actual_check_in': bk.actual_check_in,
-                'total_amount': float(bk.total_amount) if bk.total_amount else 0,
-                'status': bk.status,
-                'status_display': bk.get_status_display(),
-                'room_number': obj.room_number,
-                'room_name': obj.category.name if obj.category else 'Phòng tiêu chuẩn'
-            }
+                bk = obj.bookings.filter(status__in=['completed', 'checked_in']).select_related('guest', 'category').order_by('-updated_at', '-id').first()
+            return self._format_booking_data(bk, obj)
         except Exception:
             return None
 
@@ -274,3 +306,82 @@ class RoomStatusUpdateSerializer(serializers.ModelSerializer):
         if value not in valid_statuses:
             raise serializers.ValidationError(f"Trạng thái '{value}' không hợp lệ. Chỉ chấp nhận: {', '.join(valid_statuses)}.")
         return value
+
+
+class MinibarItemSerializer(serializers.ModelSerializer):
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+
+    class Meta:
+        model = MinibarItem
+        fields = ['id', 'name', 'category', 'category_display', 'price', 'standard_quantity', 'image_url', 'is_active', 'created_at']
+
+
+class MinibarCheckSerializer(serializers.ModelSerializer):
+    room_number = serializers.CharField(source='room.room_number', read_only=True)
+    inspector_name = serializers.SerializerMethodField()
+    booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
+    guest_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MinibarCheck
+        fields = [
+            'id', 'check_code', 'room', 'room_number', 'booking', 'booking_code',
+            'guest_name', 'inspector', 'inspector_name', 'items_consumed',
+            'total_amount', 'note', 'created_at'
+        ]
+        read_only_fields = ['id', 'check_code', 'created_at']
+
+    def get_inspector_name(self, obj):
+        if obj.inspector:
+            return obj.inspector.get_full_name() or obj.inspector.username
+        return None
+
+    def get_guest_name(self, obj):
+        if obj.booking:
+            if obj.booking.guest:
+                return obj.booking.guest.get_full_name() or obj.booking.guest.username
+            elif getattr(obj.booking, 'guest_name', None):
+                return str(obj.booking.guest_name)
+            return "Khách lưu trú"
+        return None
+
+
+class LostAndFoundItemSerializer(serializers.ModelSerializer):
+    room_number = serializers.CharField(source='room.room_number', read_only=True)
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    finder_name = serializers.SerializerMethodField()
+    handled_by_name = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LostAndFoundItem
+        fields = [
+            'id', 'tracking_code', 'room', 'room_number', 'location_found',
+            'item_name', 'category', 'category_display', 'description',
+            'image', 'image_url', 'found_date', 'finder', 'finder_name',
+            'booking', 'guest_name', 'guest_phone', 'storage_location',
+            'status', 'status_display', 'returned_date', 'returned_to',
+            'return_note', 'handled_by', 'handled_by_name',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'tracking_code', 'created_at', 'updated_at']
+
+    def get_finder_name(self, obj):
+        if obj.finder:
+            return obj.finder.get_full_name() or obj.finder.username
+        return None
+
+    def get_handled_by_name(self, obj):
+        if obj.handled_by:
+            return obj.handled_by.get_full_name() or obj.handled_by.username
+        return None
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+

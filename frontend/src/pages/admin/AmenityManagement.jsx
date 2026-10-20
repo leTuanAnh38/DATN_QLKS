@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { amenityService } from '../../services/amenityService';
 import Pagination from '../../components/common/Pagination';
+import { useHasPermission } from '../../utils/permission';
+import { useAuth } from '../../store/authStore';
 
 // Danh sách gợi ý các icon / emoji tiện nghi phổ biến để Admin chọn nhanh
 const SUGGESTED_ICONS = [
@@ -42,6 +44,12 @@ const SUGGESTED_ICONS = [
 ];
 
 export default function AmenityManagement() {
+    const { user } = useAuth();
+    const isSuperOrManager = Boolean(user?.is_superuser || ['admin', 'owner', 'manager'].includes(user?.role));
+    const canCreate = useHasPermission('categories', 'create') || isSuperOrManager;
+    const canUpdate = useHasPermission('categories', 'update') || isSuperOrManager;
+    const canDelete = useHasPermission('categories', 'delete') || isSuperOrManager;
+
     // 1. STATE DỮ LIỆU
     const [amenities, setAmenities] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -125,6 +133,10 @@ export default function AmenityManagement() {
 
     // 7. MỞ MODAL THÊM MỚI
     const handleOpenCreateModal = () => {
+        if (!canCreate) {
+            showToast('error', 'Bạn không có quyền thêm mới tiện nghi.');
+            return;
+        }
         setModalMode('create');
         setEditingItem(null);
         setFormData({
@@ -137,6 +149,10 @@ export default function AmenityManagement() {
 
     // 8. MỞ MODAL CẬP NHẬT
     const handleOpenEditModal = (item) => {
+        if (!canUpdate) {
+            showToast('error', 'Bạn không có quyền chỉnh sửa tiện nghi.');
+            return;
+        }
         setModalMode('edit');
         setEditingItem(item);
         setFormData({
@@ -199,6 +215,10 @@ export default function AmenityManagement() {
 
     // 10. MỞ VÀ XÁC NHẬN XÓA (DELETE)
     const handleOpenDeleteModal = (item) => {
+        if (!canDelete) {
+            showToast('error', 'Bạn không có quyền xóa tiện nghi.');
+            return;
+        }
         setDeleteModal({
             isOpen: true,
             item,
@@ -207,7 +227,7 @@ export default function AmenityManagement() {
     };
 
     const handleConfirmDelete = async () => {
-        if (!deleteModal.item) return;
+        if (!deleteModal.item || !canDelete) return;
         setDeleteModal(prev => ({ ...prev, isDeleting: true }));
         try {
             const res = await amenityService.deleteAmenity(deleteModal.item.id);
@@ -286,14 +306,21 @@ export default function AmenityManagement() {
                     </button>
 
                     {/* Nút "+ Thêm tiện nghi" ở góc phải */}
-                    <button
-                        type="button"
-                        onClick={handleOpenCreateModal}
-                        className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span> Thêm tiện nghi</span>
-                    </button>
+                    {canCreate ? (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreateModal}
+                            className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span> Thêm tiện nghi</span>
+                        </button>
+                    ) : (
+                        <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-2xl border border-slate-200">
+                            <span>🔒</span>
+                            <span>Chỉ xem</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -399,25 +426,31 @@ export default function AmenityManagement() {
                                         {/* CỘT 5: HÀNH ĐỘNG (NÚT SỬA ✏️ VÀ NÚT XÓA 🗑️ ĐỒNG BỘ TOÀN HỆ THỐNG) */}
                                         <td className="py-4 px-6 text-center">
                                             <div className="flex items-center justify-center gap-1.5">
-                                                {/* Nút Sửa */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenEditModal(item)}
-                                                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
-                                                    title="Chỉnh sửa tiện nghi"
-                                                >
-                                                    ✏️
-                                                </button>
+                                                {canUpdate && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenEditModal(item)}
+                                                        className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
+                                                        title="Chỉnh sửa tiện nghi"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                )}
 
-                                                {/* Nút Xóa */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenDeleteModal(item)}
-                                                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
-                                                    title="Xóa tiện nghi"
-                                                >
-                                                    🗑️
-                                                </button>
+                                                {canDelete && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenDeleteModal(item)}
+                                                        className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
+                                                        title="Xóa tiện nghi"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                )}
+
+                                                {!canUpdate && !canDelete && (
+                                                    <span className="text-xs text-slate-400 italic font-medium">Chỉ xem</span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

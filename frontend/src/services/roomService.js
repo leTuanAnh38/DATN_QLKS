@@ -300,6 +300,237 @@ export const roomService = {
                 message: error.response?.data?.message || 'Không thể tải phiếu bảo trì.'
             };
         }
+    },
+
+    // =========================================================================
+    // QUẢN LÝ MINIBAR PHÒNG
+    // =========================================================================
+    /**
+     * Lấy danh mục đồ minibar chuẩn trong phòng
+     */
+    async getMinibarItems(params = {}) {
+        try {
+            const response = await api.get('/rooms/minibar-items/', { params });
+            const list = Array.isArray(response.data) ? response.data : (response.data?.results || []);
+            return {
+                success: true,
+                data: list
+            };
+        } catch (error) {
+            return {
+                success: false,
+                data: [],
+                message: error.response?.data?.message || 'Không thể tải danh mục Minibar.'
+            };
+        }
+    },
+
+    /**
+     * Thêm mới mặt hàng Minibar
+     * @param {Object} data - { name, category, price, standard_quantity, image_url, is_active }
+     */
+    async createMinibarItem(data) {
+        try {
+            const response = await api.post('/rooms/minibar-items/', data);
+            return {
+                success: true,
+                data: response.data,
+                message: 'Thêm mặt hàng Minibar thành công.'
+            };
+        } catch (error) {
+            const errData = error.response?.data;
+            let errMsg = 'Thêm mặt hàng Minibar thất bại.';
+            if (typeof errData === 'string') errMsg = errData;
+            else if (errData?.message) errMsg = errData.message;
+            else if (errData?.detail) errMsg = errData.detail;
+            else if (typeof errData === 'object') {
+                const firstKey = Object.keys(errData)[0];
+                if (firstKey) errMsg = `${firstKey}: ${errData[firstKey]}`;
+            }
+            return {
+                success: false,
+                message: errMsg
+            };
+        }
+    },
+
+    /**
+     * Cập nhật thông tin/giá mặt hàng Minibar
+     * @param {number|string} id
+     * @param {Object} data
+     */
+    async updateMinibarItem(id, data) {
+        try {
+            const response = await api.patch(`/rooms/minibar-items/${id}/`, data);
+            return {
+                success: true,
+                data: response.data,
+                message: 'Cập nhật mặt hàng Minibar thành công.'
+            };
+        } catch (error) {
+            const errData = error.response?.data;
+            let errMsg = 'Cập nhật mặt hàng Minibar thất bại.';
+            if (typeof errData === 'string') errMsg = errData;
+            else if (errData?.message) errMsg = errData.message;
+            else if (errData?.detail) errMsg = errData.detail;
+            return {
+                success: false,
+                message: errMsg
+            };
+        }
+    },
+
+    /**
+     * Xóa mặt hàng Minibar
+     * @param {number|string} id
+     */
+    async deleteMinibarItem(id) {
+        try {
+            await api.delete(`/rooms/minibar-items/${id}/`);
+            return {
+                success: true,
+                message: 'Đã xóa mặt hàng Minibar.'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Xóa mặt hàng Minibar thất bại.'
+            };
+        }
+    },
+
+    /**
+     * Gửi phiếu kiểm kê Minibar (tự động đẩy vào Folio/BookingExtraService nếu có đơn)
+     * @param {Object} data - { room_id, booking_id, items: [{ id, name, price, quantity }], note }
+     */
+    async createMinibarCheck(data) {
+        try {
+            const response = await api.post('/rooms/minibar-checks/', data);
+            return response.data;
+        } catch (error) {
+            const errData = error.response?.data;
+            let errMsg = 'Gửi kết quả kiểm kê Minibar thất bại.';
+            if (typeof errData === 'string') errMsg = errData;
+            else if (errData?.message) errMsg = errData.message;
+            else if (errData?.detail) errMsg = errData.detail;
+            return {
+                success: false,
+                message: errMsg
+            };
+        }
+    },
+
+    /**
+     * Lấy lịch sử kiểm kê Minibar
+     */
+    async getMinibarChecks(params = {}) {
+        try {
+            const response = await api.get('/rooms/minibar-checks/', { params });
+            const list = Array.isArray(response.data) ? response.data : (response.data?.results || []);
+            return {
+                success: true,
+                data: list
+            };
+        } catch (error) {
+            return {
+                success: false,
+                data: [],
+                message: error.response?.data?.message || 'Không thể tải lịch sử kiểm kê Minibar.'
+            };
+        }
+    },
+
+    // =========================================================================
+    // QUẢN LÝ ĐỒ THẤT LẠC (LOST & FOUND)
+    // =========================================================================
+    /**
+     * Lấy danh sách đồ thất lạc (hỗ trợ search, filter status, category, room_id)
+     */
+    async getLostAndFoundItems(params = {}) {
+        try {
+            const response = await api.get('/rooms/lost-and-found/', { params });
+            const list = Array.isArray(response.data) ? response.data : (response.data?.results || []);
+            return {
+                success: true,
+                data: list
+            };
+        } catch (error) {
+            return {
+                success: false,
+                data: [],
+                message: error.response?.data?.message || 'Không thể tải danh sách đồ thất lạc.'
+            };
+        }
+    },
+
+    /**
+     * Lấy thống kê số lượng đồ thất lạc theo trạng thái
+     */
+    async getLostAndFoundStats() {
+        try {
+            const response = await api.get('/rooms/lost-and-found/stats/');
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                total: 0,
+                stored: 0,
+                contacted: 0,
+                returned: 0,
+                disposed: 0,
+                return_rate: 0
+            };
+        }
+    },
+
+    /**
+     * Báo nhận đồ thất lạc mới (hỗ trợ ảnh FormData hoặc JSON)
+     */
+    async createLostAndFoundItem(payload) {
+        try {
+            const isFormData = payload instanceof FormData;
+            const headers = isFormData ? { 'Content-Type': 'multipart/form-data' } : {};
+            const response = await api.post('/rooms/lost-and-found/', payload, { headers });
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Báo nhận đồ thất lạc thất bại.'
+            };
+        }
+    },
+
+    /**
+     * Bàn giao trao trả đồ thất lạc cho khách
+     * @param {number|string} id
+     * @param {Object} data - { returned_to, return_note }
+     */
+    async returnLostAndFoundItem(id, data = {}) {
+        try {
+            const response = await api.post(`/rooms/lost-and-found/${id}/return/`, data);
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Bàn giao trao trả đồ thất lạc thất bại.'
+            };
+        }
+    },
+
+    /**
+     * Xóa vĩnh viễn phiếu đồ thất lạc (Chỉ Quản lý / Admin)
+     * @param {number|string} id
+     */
+    async deleteLostAndFoundItem(id) {
+        try {
+            const response = await api.delete(`/rooms/lost-and-found/${id}/`);
+            return response.data || { success: true, message: 'Đã xóa phiếu đồ thất lạc thành công.' };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Xóa phiếu đồ thất lạc thất bại.'
+            };
+        }
     }
 };
 

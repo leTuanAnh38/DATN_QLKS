@@ -7,6 +7,8 @@ import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
 import MaintenanceModal from '../../components/admin/modals/MaintenanceModal';
 import MaintenanceHistoryModal from '../../components/admin/modals/MaintenanceHistoryModal';
 import ChangeRoomModal from '../../components/admin/modals/ChangeRoomModal';
+import MinibarModal from '../../components/admin/modals/MinibarModal';
+import ReportLostItemModal from '../../components/admin/modals/ReportLostItemModal';
 import { useAuth } from '../../store/authStore';
 import { useHasPermission } from '../../utils/permission';
 
@@ -82,13 +84,22 @@ const ROOM_STATUSES = {
     },
 };
 
+const ISSUE_TYPE_MAP = {
+    ac: 'Điều hòa / Thông gió',
+    plumbing: 'Hệ thống nước / Thiết bị vệ sinh',
+    electric: 'Điện / Chiếu sáng',
+    electronics: 'Điện tử (TV, Tủ lạnh, Két)',
+    furniture: 'Nội thất & Khóa cửa',
+    other: 'Khác',
+};
+
 export default function RoomManagement({ onNavigateToBookings, onNavigateToCustomer }) {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const canCreateRoom = useHasPermission('rooms', 'create');
-    const canUpdateRoom = useHasPermission('rooms', 'update');
-    const canDeleteRoom = useHasPermission('rooms', 'delete');
-    const isManagerOrAdmin = canUpdateRoom;
+    const isManagerOrAdmin = Boolean(user?.is_superuser || ['admin', 'owner', 'manager'].includes(user?.role));
+    const canCreateRoom = useHasPermission('rooms', 'create') || isManagerOrAdmin;
+    const canUpdateRoom = useHasPermission('rooms', 'update') || isManagerOrAdmin;
+    const canDeleteRoom = useHasPermission('rooms', 'delete') || isManagerOrAdmin;
     const canManageBookings = useHasPermission('bookings', 'update');
 
     const [rooms, setRooms] = useState([]);
@@ -165,6 +176,32 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         equipment: '',
         issueType: 'ac',
     });
+
+    // Modal Kiểm kê Minibar
+    const [minibarModalData, setMinibarModalData] = useState({
+        isOpen: false,
+        room: null,
+    });
+
+    const handleOpenMinibar = (room) => {
+        setMinibarModalData({
+            isOpen: true,
+            room: room,
+        });
+    };
+
+    // Modal Báo đồ thất lạc (Lost & Found)
+    const [lostItemModalData, setLostItemModalData] = useState({
+        isOpen: false,
+        room: null,
+    });
+
+    const handleOpenLostItem = (room) => {
+        setLostItemModalData({
+            isOpen: true,
+            room: room,
+        });
+    };
 
     const handleOpenChangeRoom = ({ room, booking, reason = '', equipment = '', issueType = 'ac' }) => {
         setChangeRoomModalData({
@@ -1187,6 +1224,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             onOpenCheckOut={handleOpenCheckOut}
                                             onOpenAssign={handleOpenAssignModal}
                                             onViewOccupied={handleViewOccupied}
+                                            onOpenMinibar={handleOpenMinibar}
+                                            onOpenLostItem={handleOpenLostItem}
                                             onReportMaintenance={handleOpenReportMaintenance}
                                             onCompleteMaintenance={handleOpenCompleteMaintenance}
                                             onViewHistory={(r) => {
@@ -1222,6 +1261,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onOpenCheckOut={handleOpenCheckOut}
                                 onOpenAssign={handleOpenAssignModal}
                                 onViewOccupied={handleViewOccupied}
+                                onOpenMinibar={handleOpenMinibar}
+                                onOpenLostItem={handleOpenLostItem}
                                 onReportMaintenance={handleOpenReportMaintenance}
                                 onCompleteMaintenance={handleOpenCompleteMaintenance}
                                 onViewHistory={(r) => {
@@ -2093,6 +2134,39 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 formatCurrency={formatCurrency}
                 formatDate={formatDate}
             />
+
+            {/* ========================================================================= */}
+            {/* MODAL 8: KIỂM KÊ MINIBAR TRONG PHÒNG */}
+            {/* ========================================================================= */}
+            <MinibarModal
+                isOpen={minibarModalData.isOpen}
+                onClose={() => setMinibarModalData({ isOpen: false, room: null })}
+                room={minibarModalData.room}
+                onSuccess={(res) => {
+                    setAlertMessage({
+                        type: 'success',
+                        text: res.message || 'Kiểm kê Minibar thành công!',
+                    });
+                    fetchRooms(true);
+                    setTimeout(() => setAlertMessage(null), 3500);
+                }}
+            />
+
+            {/* ========================================================================= */}
+            {/* MODAL 9: BÁO ĐỒ THẤT LẠC (LOST & FOUND) */}
+            {/* ========================================================================= */}
+            <ReportLostItemModal
+                isOpen={lostItemModalData.isOpen}
+                onClose={() => setLostItemModalData({ isOpen: false, room: null })}
+                room={lostItemModalData.room}
+                onSuccess={(res) => {
+                    setAlertMessage({
+                        type: 'success',
+                        text: res.message || 'Đã ghi nhận đồ thất lạc thành công!',
+                    });
+                    setTimeout(() => setAlertMessage(null), 3500);
+                }}
+            />
         </div>
     );
 }
@@ -2108,6 +2182,8 @@ function RoomCard({
     onOpenCheckOut,
     onOpenAssign,
     onViewOccupied,
+    onOpenMinibar,
+    onOpenLostItem,
     onReportMaintenance,
     onCompleteMaintenance,
     onViewHistory,
@@ -2122,6 +2198,28 @@ function RoomCard({
 }) {
     const statusConfig = ROOM_STATUSES[room.status] || ROOM_STATUSES.available;
     const currentBk = room.current_booking;
+
+    // Phân quyền chuyên trách theo vai trò vận hành PMS:
+    // 1. Minibar: Buồng phòng, Lễ tân, Quản lý, Admin (Kỹ thuật & Phục vụ không có)
+    const canAccessMinibar = !['technician', 'service_staff', 'cashier'].includes(userRole);
+
+    // 2. Báo đồ bỏ quên: Buồng phòng, Kỹ thuật viên (khi vào sửa phòng nhặt được đồ rơi), Lễ tân, Quản lý, Admin
+    const canReportLostItem = !['service_staff', 'cashier'].includes(userRole);
+
+    // 3. Đã dọn xong -> Sẵn sàng: CHỈ Buồng phòng, Quản lý, Admin (Lễ tân chỉ theo dõi, không tự ý duyệt phòng sạch)
+    const canMarkCleaned = ['housekeeper', 'manager', 'owner', 'admin'].includes(userRole) || isManagerOrAdmin;
+
+    // 4. Báo hỏng thiết bị: Buồng phòng, Kỹ thuật viên, Lễ tân, Quản lý, Admin
+    const canReportMaintenance = !['service_staff', 'cashier'].includes(userRole);
+
+    // 5. Sửa xong -> Nghiệm thu & Bàn giao dọn: Kỹ thuật viên, Quản lý, Admin
+    const canCompleteMaintenance = ['technician', 'admin', 'owner', 'manager'].includes(userRole);
+
+    // 6. Dropdown đổi trạng thái phòng thủ công:
+    // - Buồng phòng: Chỉ đổi giữa Trống (available) và Đang dọn (cleaning)
+    // - Lễ tân, Quản lý, Admin: Toàn quyền
+    // - Kỹ thuật viên, Phục vụ, Thu ngân: KHÔNG ĐƯỢC ĐỔI (Không hiển thị dropdown)
+    const canUseStatusDropdown = canUpdateRoom && !['technician', 'service_staff', 'cashier'].includes(userRole);
 
     return (
         <div
@@ -2151,7 +2249,7 @@ function RoomCard({
                             {room.floor}F
                         </span>
                         {/* Nút Báo hỏng thiết bị (khi phòng chưa ở trạng thái bảo trì) */}
-                        {room.status !== 'maintenance' && userRole !== 'cashier' && onReportMaintenance && (
+                        {room.status !== 'maintenance' && canReportMaintenance && onReportMaintenance && (
                             <button
                                 type="button"
                                 onClick={() => onReportMaintenance(room)}
@@ -2161,7 +2259,7 @@ function RoomCard({
                                 🛠️
                             </button>
                         )}
-                        {canUpdateRoom && (
+                        {isManagerOrAdmin && (
                             <button
                                 type="button"
                                 onClick={() => onEdit(room)}
@@ -2249,9 +2347,9 @@ function RoomCard({
                             </span>
                         )}
                     </div>
-                    {room.active_maintenance?.issue_type && (
-                        <div className="text-[10px] text-slate-600 line-clamp-1">
-                            Lỗi: {room.active_maintenance.issue_type}
+                    {(room.active_maintenance?.issue_type_display || room.active_maintenance?.issue_type) && (
+                        <div className="text-[10px] text-slate-600 line-clamp-1" title={room.active_maintenance.issue_type_display || ISSUE_TYPE_MAP[room.active_maintenance.issue_type] || room.active_maintenance.issue_type}>
+                            Lỗi: <span className="font-semibold text-slate-700">{room.active_maintenance.issue_type_display || ISSUE_TYPE_MAP[room.active_maintenance.issue_type] || room.active_maintenance.issue_type}</span>
                         </div>
                     )}
                     {room.active_maintenance?.is_guest_fault && (
@@ -2268,6 +2366,28 @@ function RoomCard({
                         >
                             📋 Xem nhật ký sửa phòng {room.room_number}
                         </button>
+                    )}
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* THÔNG TIN PHÒNG ĐANG DỌN (DÀNH CHO PHÒNG CLEANING) */}
+            {/* ========================================================================= */}
+            {room.status === 'cleaning' && (room.recent_booking || room.latest_minibar_check) && (
+                <div className="mt-2 p-2 rounded-xl bg-amber-50/80 border border-amber-200 shadow-2xs space-y-1 text-[10px]">
+                    {room.recent_booking && (
+                        <div className="flex items-center justify-between gap-1 font-bold text-amber-900 truncate">
+                            <span className="truncate" title={room.recent_booking.guest_name}>👤 {room.recent_booking.guest_name}</span>
+                            <span className="font-mono text-[9px] text-amber-800 bg-white px-1 rounded border border-amber-300 shrink-0">
+                                #{room.recent_booking.booking_code}
+                            </span>
+                        </div>
+                    )}
+                    {room.latest_minibar_check && (
+                        <div className="flex items-center justify-between text-[10px] text-amber-800 font-semibold pt-0.5 border-t border-amber-200/60">
+                            <span className="text-amber-700">🍾 Tiêu thụ Minibar:</span>
+                            <strong className="text-amber-900 font-bold">{formatCurrency(room.latest_minibar_check.total_amount)}</strong>
+                        </div>
                     )}
                 </div>
             )}
@@ -2301,6 +2421,33 @@ function RoomCard({
                                 <span>Xem thông tin khách</span>
                             </button>
                         )}
+                        {/* Tiện ích buồng phòng cho phòng đang lưu trú */}
+                        {(canAccessMinibar || canReportLostItem) && (
+                            <div className={`grid ${canAccessMinibar && canReportLostItem ? 'grid-cols-2' : 'grid-cols-1'} gap-1 pt-0.5`}>
+                                {canAccessMinibar && onOpenMinibar && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenMinibar(room)}
+                                        className="py-1 px-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                        title="Kiểm kê Minibar phòng khách đang ở"
+                                    >
+                                        <span>🍾</span>
+                                        <span>Minibar</span>
+                                    </button>
+                                )}
+                                {canReportLostItem && onOpenLostItem && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenLostItem(room)}
+                                        className="py-1 px-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                        title="Báo đồ khách bỏ quên"
+                                    >
+                                        <span>🧳</span>
+                                        <span>Đồ thất lạc</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -2317,21 +2464,56 @@ function RoomCard({
                     </button>
                 )}
 
-                {/* 3. Nút cho phòng Cleaning: Xác nhận dọn dẹp xong */}
+                {/* 3. Nút cho phòng Cleaning: Minibar + Báo đồ bỏ quên + Xác nhận dọn dẹp xong */}
                 {room.status === 'cleaning' && (
-                    <button
-                        type="button"
-                        onClick={() => onStatusChange(room.id, 'available', room.room_number)}
-                        className="w-full py-2 px-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer animate-pulse"
-                        title="Xác nhận buồng phòng dọn xong để đưa phòng về trạng thái Sẵn sàng"
-                    >
-                        <span>✓</span>
-                        <span>Đã dọn xong → Sẵn sàng</span>
-                    </button>
+                    <div className="space-y-1">
+                        {(canAccessMinibar || canReportLostItem) && (
+                            <div className={`grid ${canAccessMinibar && canReportLostItem ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
+                                {canAccessMinibar && onOpenMinibar && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenMinibar(room)}
+                                        className="py-1.5 px-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
+                                        title="Kiểm kê đồ Minibar tủ lạnh để tính vào hóa đơn khách"
+                                    >
+                                        <span>🍾</span>
+                                        <span>Minibar</span>
+                                    </button>
+                                )}
+                                {canReportLostItem && onOpenLostItem && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenLostItem(room)}
+                                        className="py-1.5 px-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
+                                        title="Báo phát hiện đồ khách bỏ quên"
+                                    >
+                                        <span>🧳</span>
+                                        <span>Đồ bỏ quên</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                        {canMarkCleaned ? (
+                            <button
+                                type="button"
+                                onClick={() => onStatusChange(room.id, 'available', room.room_number)}
+                                className="w-full py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer animate-pulse"
+                                title="Xác nhận buồng phòng dọn xong để đưa phòng về trạng thái Sẵn sàng"
+                            >
+                                <span>✓</span>
+                                <span>Đã dọn xong → Sẵn sàng</span>
+                            </button>
+                        ) : (
+                            <div className="w-full py-1.5 px-2 bg-amber-100/90 text-amber-800 text-[10px] font-medium rounded-xl border border-amber-300 text-center flex items-center justify-center gap-1 shadow-2xs">
+                                <span>🧹</span>
+                                <span>Đang chờ Buồng phòng dọn dẹp</span>
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* 4. Nút cho phòng Maintenance: Nghiệm thu & Bàn giao dọn */}
-                {room.status === 'maintenance' && (
+                {room.status === 'maintenance' && canCompleteMaintenance && (
                     <button
                         type="button"
                         onClick={() => onCompleteMaintenance ? onCompleteMaintenance(room) : onStatusChange(room.id, 'cleaning', room.room_number)}
@@ -2344,7 +2526,7 @@ function RoomCard({
                 )}
 
                 {/* Dropdown chỉnh sửa trạng thái thủ công */}
-                {canUpdateRoom && userRole !== 'cashier' && (
+                {canUseStatusDropdown && (
                     <div className="pt-1 border-t border-slate-200/50">
                         <select
                             value={room.status}
@@ -2356,6 +2538,17 @@ function RoomCard({
                                 <>
                                     <option value="available">🟢 Trống (Available)</option>
                                     <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
+                                </>
+                            ) : userRole === 'receptionist' ? (
+                                <>
+                                    {room.status === 'cleaning' ? (
+                                        <option value="available" disabled>🟢 Trống (Chờ buồng dọn xong)</option>
+                                    ) : (
+                                        <option value="available">🟢 Trống (Available)</option>
+                                    )}
+                                    <option value="occupied">🔴 Có khách (Occupied)</option>
+                                    <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
+                                    <option value="maintenance">⚪ Bảo trì (Maintenance)</option>
                                 </>
                             ) : (
                                 <>

@@ -110,10 +110,10 @@ export const DEFAULT_ROLE_MATRIX = [
         badge_color: 'orange',
         color: 'orange',
         icon: '🧹',
-        description: 'Cập nhật trạng thái vệ sinh phòng (Đang dọn, Đã khử khuẩn, Sẵn sàng đón khách), kiểm kê mini bar.',
-        scope: 'Trạng thái dọn phòng, báo vật tư, báo đồ thất lạc',
+        description: 'Cập nhật trạng thái vệ sinh phòng (Đang dọn, Đã khử khuẩn, Sẵn sàng đón khách), kiểm kê Minibar, khai báo đồ thất lạc của khách.',
+        scope: 'Trạng thái dọn phòng, kiểm kê Minibar, bàn giao đồ thất lạc',
         permissions: {
-            rooms: 'Cập nhật dọn phòng',
+            rooms: 'Dọn phòng, Minibar & Đồ thất lạc',
             bookings: 'Xem giờ trả phòng',
             guests: 'Không có quyền',
             employees: 'Xem ca làm việc',
@@ -166,7 +166,7 @@ export const DEFAULT_ROLE_MATRIX = [
 // Danh sách các Module hệ thống (Cột dọc)
 export const SYSTEM_MODULES = [
     { key: 'overview', label: 'Tổng quan (Dashboard)', desc: 'Xem số liệu tổng hợp, thống kê nhanh tình trạng phòng' },
-    { key: 'rooms', label: 'Sơ đồ Phòng & Buồng phòng (PMS)', desc: 'Sơ đồ phòng, dọn phòng, khóa bảo trì phòng' },
+    { key: 'rooms', label: 'Sơ đồ Phòng & Buồng phòng (PMS)', desc: 'Sơ đồ phòng, dọn phòng, kiểm kê Minibar, đồ thất lạc (Lost & Found)' },
     { key: 'categories', label: 'Hạng phòng & Bảng giá', desc: 'Cấu hình loại phòng, tiện nghi, bảng giá niêm yết' },
     { key: 'bookings', label: 'Quản lý Đặt phòng', desc: 'Tiếp nhận đơn, xếp phòng, Check-in, Check-out' },
     { key: 'guests', label: 'Quản lý Khách hàng (CRM)', desc: 'Thông tin cá nhân, CCCD, phân hạng VIP, lịch sử lưu trú' },
@@ -256,7 +256,7 @@ export const INITIAL_CRUD_MATRIX = {
     housekeeper: {
         overview: { read: false, create: false, update: false, delete: false },
         rooms: { read: true, create: false, update: true, delete: false },
-        categories: { read: false, create: false, update: false, delete: false },
+        categories: { read: true, create: false, update: false, delete: false },
         bookings: { read: true, create: false, update: false, delete: false },
         guests: { read: false, create: false, update: false, delete: false },
         services: { read: true, create: false, update: true, delete: false },

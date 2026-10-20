@@ -4,6 +4,9 @@ from .views import (
     RoomCategoryViewSet,
     AmenityViewSet,
     MaintenanceTicketViewSet,
+    MinibarItemViewSet,
+    MinibarCheckViewSet,
+    LostAndFoundViewSet,
     AdminRoomListCreateView,
     AdminRoomDetailView,
     AdminRoomStatusUpdateView
@@ -13,6 +16,9 @@ router = DefaultRouter()
 router.register(r'categories', RoomCategoryViewSet, basename='room-category')
 router.register(r'amenities', AmenityViewSet, basename='amenity')
 router.register(r'maintenance-tickets', MaintenanceTicketViewSet, basename='maintenance-ticket')
+router.register(r'minibar-items', MinibarItemViewSet, basename='minibar-item')
+router.register(r'minibar-checks', MinibarCheckViewSet, basename='minibar-check')
+router.register(r'lost-and-found', LostAndFoundViewSet, basename='lost-and-found')
 
 urlpatterns = [
     # Router cho Hạng phòng: CRUD, upload-images, delete-image, set-feature-image

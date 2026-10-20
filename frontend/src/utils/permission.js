@@ -65,6 +65,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     housekeeper: {
         overview: { read: false, create: false, update: false, delete: false },
         rooms: { read: true, create: false, update: true, delete: false },
+        categories: { read: true, create: false, update: false, delete: false },
         bookings: { read: true, create: false, update: false, delete: false },
         services: { read: true, create: false, update: false, delete: false },
         finance: { read: false, create: false, update: false, delete: false },

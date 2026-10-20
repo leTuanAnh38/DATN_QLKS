@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Amenity, RoomCategory, RoomImage, Room, MaintenanceTicket
+from .models import Amenity, RoomCategory, RoomImage, Room, MaintenanceTicket, MinibarItem, MinibarCheck, LostAndFoundItem
 
 # Khối hỗ trợ up nhiều ảnh cùng lúc
 class RoomImageInline(admin.TabularInline):
@@ -24,8 +24,29 @@ class MaintenanceTicketAdmin(admin.ModelAdmin):
     search_fields = ('ticket_code', 'room__room_number', 'equipment_name', 'parts_replaced', 'description')
     readonly_fields = ('ticket_code', 'start_date')
 
+class MinibarItemAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'price', 'standard_quantity', 'is_active')
+    list_filter = ('category', 'is_active')
+    search_fields = ('name',)
+    list_editable = ('price', 'standard_quantity', 'is_active')
+
+class MinibarCheckAdmin(admin.ModelAdmin):
+    list_display = ('check_code', 'room', 'booking', 'inspector', 'total_amount', 'created_at')
+    list_filter = ('room__floor', 'created_at')
+    search_fields = ('check_code', 'room__room_number', 'note')
+    readonly_fields = ('check_code', 'created_at')
+
+class LostAndFoundItemAdmin(admin.ModelAdmin):
+    list_display = ('tracking_code', 'item_name', 'category', 'room', 'location_found', 'status', 'guest_name', 'found_date', 'storage_location')
+    list_filter = ('status', 'category', 'found_date')
+    search_fields = ('tracking_code', 'item_name', 'location_found', 'guest_name', 'guest_phone', 'description')
+    readonly_fields = ('tracking_code', 'created_at', 'updated_at')
+
 # Đăng ký lên Admin
 admin.site.register(Amenity)
 admin.site.register(RoomCategory, RoomCategoryAdmin)
 admin.site.register(Room, RoomAdmin)
 admin.site.register(MaintenanceTicket, MaintenanceTicketAdmin)
+admin.site.register(MinibarItem, MinibarItemAdmin)
+admin.site.register(MinibarCheck, MinibarCheckAdmin)
+admin.site.register(LostAndFoundItem, LostAndFoundItemAdmin)

@@ -12,14 +12,17 @@ from ..users.models import log_action, User
 from ..users.views import check_role_permission
 from ..bookings.models import Booking, BookingExtraService
 from ..notifications.models import Notification
-from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket
+from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket, MinibarItem, MinibarCheck, LostAndFoundItem
 from .serializers import (
     AmenitySerializer,
     RoomSerializer,
     RoomCategorySerializer,
     RoomImageSerializer,
     RoomStatusUpdateSerializer,
-    MaintenanceTicketSerializer
+    MaintenanceTicketSerializer,
+    MinibarItemSerializer,
+    MinibarCheckSerializer,
+    LostAndFoundItemSerializer
 )
 
 
@@ -639,6 +642,12 @@ class AdminRoomStatusUpdateView(APIView):
             }, status=status.HTTP_403_FORBIDDEN)
 
         user_role = getattr(request.user, 'role', '')
+        if user_role in ['technician', 'service_staff']:
+            return Response({
+                'success': False,
+                'message': 'Vai trò của bạn không được phép thay đổi trực tiếp trạng thái phòng. Kỹ thuật viên vui lòng thao tác qua phiếu Bảo trì.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         if user_role == 'housekeeper':
             new_status = request.data.get('status')
             if new_status not in ['available', 'cleaning']:
@@ -657,6 +666,13 @@ class AdminRoomStatusUpdateView(APIView):
 
         update_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
         requested_status = update_data.get('status')
+
+        # CHẶN LỄ TÂN TỰ Ý DUYỆT PHÒNG SẠCH: Chỉ Buồng phòng (housekeeper) hoặc Quản lý/Admin mới có quyền nghiệm thu dọn xong
+        if user_role == 'receptionist' and old_status == 'cleaning' and requested_status == 'available':
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên Buồng phòng (Housekeeping) hoặc Quản lý mới có quyền xác nhận hoàn tất dọn dẹp phòng.'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         # CHẶN LỖI NGHIỆP VỤ: Không cho phép đổi trực tiếp từ 'occupied' sang 'available' khi khách chưa check-out hoặc đổi phòng
         if active_booking and old_status == 'occupied' and requested_status == 'available':
@@ -774,11 +790,15 @@ class AmenityViewSet(viewsets.ModelViewSet):
     """
     API Quản lý Tiện nghi phòng (Amenities):
     - GET /api/rooms/amenities/: Lấy toàn bộ danh sách tiện nghi
-    - POST /api/rooms/amenities/: Tạo tiện nghi mới
+    - POST /api/rooms/amenities/: Tạo tiện nghi mới (Chỉ Manager/Admin)
     """
     queryset = Amenity.objects.all().order_by('id')
     serializer_class = AmenitySerializer
-    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsManagerOrAdminOnly()]
 
 
 # =========================================================================
@@ -1034,4 +1054,382 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
             'room': RoomSerializer(room).data,
             'stats': stats_data
         }, status=status.HTTP_200_OK)
+
+
+# =========================================================================
+# 7. QUẢN LÝ MINIBAR PHÒNG (Cho Buồng phòng kiểm kê & Lễ tân quyết toán)
+# =========================================================================
+
+class MinibarItemViewSet(viewsets.ModelViewSet):
+    """
+    CRUD danh mục đồ minibar trang bị trong phòng (Nước khoáng, Nước ngọt, Bia, Snack...).
+    """
+    queryset = MinibarItem.objects.filter(is_active=True).order_by('category', 'name')
+    serializer_class = MinibarItemSerializer
+
+    def get_permissions(self):
+        # Mọi nhân viên (Buồng phòng, Lễ tân) có thể xem danh mục minibar để kiểm kê
+        if self.request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return [IsHotelStaffOrAdmin()]
+        # Thêm mới, sửa giá, xóa món, bật/tắt bán: Chỉ Quản lý / Admin / Chủ KS
+        return [IsManagerOrAdminOnly()]
+
+    def get_queryset(self):
+        qs = MinibarItem.objects.all().order_by('category', 'name')
+        active_only = self.request.query_params.get('active_only')
+        if active_only == 'true':
+            qs = qs.filter(is_active=True)
+        category = self.request.query_params.get('category')
+        if category:
+            qs = qs.filter(category=category)
+        return qs
+
+
+class MinibarCheckViewSet(viewsets.ModelViewSet):
+    """
+    Quản lý Phiếu Kiểm Kê Minibar:
+    - GET /api/rooms/minibar-checks/?room_id=...
+    - POST /api/rooms/minibar-checks/: Buồng phòng gửi kết quả kiểm tra minibar -> Tự động đồng bộ vào Folio thanh toán!
+    """
+    queryset = MinibarCheck.objects.select_related('room', 'booking', 'inspector').order_by('-created_at')
+    serializer_class = MinibarCheckSerializer
+    permission_classes = [IsHotelStaffOrAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        room_id = self.request.query_params.get('room_id')
+        booking_id = self.request.query_params.get('booking_id')
+        if room_id:
+            qs = qs.filter(room_id=room_id)
+        if booking_id:
+            qs = qs.filter(booking_id=booking_id)
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        room_id = request.data.get('room_id') or request.data.get('room')
+        if not room_id:
+            return Response({'success': False, 'message': 'Thiếu thông tin số phòng kiểm kê.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            room = Room.objects.get(pk=room_id)
+        except Room.DoesNotExist:
+            return Response({'success': False, 'message': 'Không tìm thấy phòng tương ứng.'}, status=status.HTTP_404_NOT_FOUND)
+
+        items_consumed = request.data.get('items', [])
+        note = request.data.get('note', '').strip()
+        booking_id = request.data.get('booking_id') or request.data.get('booking')
+
+        booking = None
+        if booking_id:
+            booking = Booking.objects.filter(pk=booking_id).first()
+        else:
+            # Tự động tìm booking: ưu tiên checked_in, nếu không có lấy booking vừa completed gần nhất (trong vòng 24h)
+            booking = room.bookings.filter(status='checked_in').first()
+            if not booking:
+                booking = room.bookings.filter(status='completed').order_by('-actual_check_out', '-id').first()
+
+        # Tính tổng tiền và lọc các món có tiêu thụ
+        valid_consumed = []
+        total_amount = 0
+        for it in items_consumed:
+            qty = int(it.get('quantity') or 0)
+            if qty > 0:
+                price = float(it.get('price') or 0)
+                name = it.get('name') or 'Mặt hàng minibar'
+                subtotal = qty * price
+                total_amount += subtotal
+                valid_consumed.append({
+                    'item_id': it.get('id') or it.get('item_id'),
+                    'name': name,
+                    'price': price,
+                    'quantity': qty,
+                    'total': subtotal
+                })
+
+        check = MinibarCheck.objects.create(
+            room=room,
+            booking=booking,
+            inspector=request.user if request.user.is_authenticated else None,
+            items_consumed=valid_consumed,
+            total_amount=total_amount,
+            note=note
+        )
+
+        extra_services_created = 0
+        # Nếu có món đã dùng và có booking liên quan -> Tự động đẩy vào BookingExtraService
+        if booking and valid_consumed:
+            for it in valid_consumed:
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name=f"[Minibar] {it['name']}",
+                    quantity=it['quantity'],
+                    price=it['price'],
+                    is_paid=False
+                )
+                extra_services_created += 1
+
+        staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Buồng phòng"
+        guest_name_str = ""
+        if booking:
+            if booking.guest:
+                guest_name_str = booking.guest.get_full_name() or booking.guest.username
+            elif getattr(booking, 'guest_name', None):
+                guest_name_str = str(booking.guest_name)
+            elif getattr(booking, 'identity_card', None):
+                guest_name_str = f"CCCD {booking.identity_card}"
+            else:
+                guest_name_str = "Khách lưu trú"
+        guest_label = f" (Khách #{booking.booking_code} - {guest_name_str})" if booking else ""
+
+        # Gửi thông báo đến Lễ tân, Thu ngân, Quản lý
+        try:
+            consumed_desc = ", ".join([f"{it['name']} x{it['quantity']}" for it in valid_consumed]) if valid_consumed else "Không tiêu thụ đồ"
+            recipients = User.objects.filter(
+                Q(role__in=['receptionist', 'cashier', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+            ).distinct()
+            notif_title = f"🍾 [KIỂM KÊ MINIBAR] Phòng {room.room_number}{guest_label}"
+            notif_message = (
+                f"Nhân viên ({staff_name}) vừa hoàn tất kiểm tra minibar phòng {room.room_number}.\n"
+                f"• Mặt hàng tiêu thụ: {consumed_desc}\n"
+                f"• Tổng tiền minibar: {total_amount:,.0f} VNĐ\n"
+                + (f"• Đã tự động cập nhật vào Hóa đơn thanh toán của khách." if extra_services_created > 0 else "• Không phát sinh phụ phí minibar.")
+            )
+            for r in recipients:
+                Notification.objects.create(
+                    recipient=r,
+                    title=notif_title,
+                    message=notif_message
+                )
+        except Exception:
+            pass
+
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='ROOM',
+            description=f"Kiểm kê minibar #{check.check_code} phòng {room.room_number}. Tổng tiêu thụ: {total_amount:,.0f} VND ({len(valid_consumed)} món)",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f"Đã ghi nhận kiểm kê minibar phòng {room.room_number}! Tổng tiền: {total_amount:,.0f} đ" + (f" (Đã đồng bộ {extra_services_created} mục vào hóa đơn)." if extra_services_created > 0 else "."),
+            'check': MinibarCheckSerializer(check).data,
+            'extra_services_created': extra_services_created,
+            'booking_id': booking.id if booking else None
+        }, status=status.HTTP_201_CREATED)
+
+
+# =========================================================================
+# 8. QUẢN LÝ ĐỒ THẤT LẠC (LOST & FOUND MANAGEMENT)
+# =========================================================================
+
+class LostAndFoundViewSet(viewsets.ModelViewSet):
+    """
+    CRUD Quản lý Đồ thất lạc / Tài sản khách bỏ quên (Lost & Found):
+    - GET /api/rooms/lost-and-found/: Danh sách đồ thất lạc (tìm kiếm, lọc theo status, category, room)
+    - POST /api/rooms/lost-and-found/: Buồng phòng khai báo đồ thất lạc
+    - POST /api/rooms/lost-and-found/{id}/return/: Bàn giao trả khách
+    - GET /api/rooms/lost-and-found/stats/: Thống kê số lượng theo trạng thái
+    """
+    queryset = LostAndFoundItem.objects.select_related('room', 'booking', 'finder', 'handled_by').order_by('-found_date')
+    serializer_class = LostAndFoundItemSerializer
+    permission_classes = [IsHotelStaffOrAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status_param = self.request.query_params.get('status')
+        category_param = self.request.query_params.get('category')
+        room_id = self.request.query_params.get('room_id')
+        search = self.request.query_params.get('search', '').strip()
+
+        if status_param and status_param != 'all':
+            qs = qs.filter(status=status_param)
+        if category_param and category_param != 'all':
+            qs = qs.filter(category=category_param)
+        if room_id:
+            qs = qs.filter(room_id=room_id)
+        if search:
+            qs = qs.filter(
+                Q(tracking_code__icontains=search) |
+                Q(item_name__icontains=search) |
+                Q(location_found__icontains=search) |
+                Q(guest_name__icontains=search) |
+                Q(guest_phone__icontains=search) |
+                Q(description__icontains=search)
+            )
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        item_name = data.get('item_name', '').strip()
+        if not item_name:
+            return Response({'success': False, 'message': 'Vui lòng nhập tên đồ vật nhặt được.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        room_id = data.get('room_id') or data.get('room')
+        room = None
+        booking = None
+        guest_name = data.get('guest_name', '').strip()
+        guest_phone = data.get('guest_phone', '').strip()
+
+        if room_id:
+            try:
+                room = Room.objects.get(pk=room_id)
+                # Tự động gán booking và thông tin khách nếu không điền tay
+                active_bk = room.bookings.filter(status='checked_in').first()
+                if not active_bk:
+                    active_bk = room.bookings.filter(status='completed').order_by('-actual_check_out', '-id').first()
+                if active_bk:
+                    booking = active_bk
+                    if not guest_name:
+                        if active_bk.guest:
+                            guest_name = active_bk.guest.get_full_name() or active_bk.guest.username
+                        elif getattr(active_bk, 'guest_name', None):
+                            guest_name = str(active_bk.guest_name)
+                        else:
+                            guest_name = "Khách lưu trú"
+                    if not guest_phone and active_bk.guest:
+                        guest_phone = active_bk.guest.phone_number or ''
+            except Room.DoesNotExist:
+                pass
+
+        location_found = data.get('location_found', '').strip()
+        if not location_found:
+            location_found = f"Phòng {room.room_number}" if room else "Khu vực khách sạn"
+
+        finder = request.user if request.user.is_authenticated else None
+
+        item = LostAndFoundItem.objects.create(
+            room=room,
+            location_found=location_found,
+            item_name=item_name,
+            category=data.get('category', 'other'),
+            description=data.get('description', ''),
+            image=request.FILES.get('image'),
+            found_date=data.get('found_date') or timezone.now(),
+            finder=finder,
+            booking=booking,
+            guest_name=guest_name,
+            guest_phone=guest_phone,
+            storage_location=data.get('storage_location', 'Két an toàn Lễ tân'),
+            status='stored'
+        )
+
+        staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên"
+        try:
+            recipients = User.objects.filter(
+                Q(role__in=['receptionist', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+            ).distinct()
+            notif_title = f"🧳 [ĐỒ THẤT LẠC MỚI] #{item.tracking_code} - {item.item_name}"
+            guest_info = f"Khách: {guest_name} ({guest_phone})" if guest_name else "Chưa xác định chủ nhân"
+            notif_message = (
+                f"Nhân viên ({staff_name}) vừa phát hiện tài sản khách bỏ quên:\n"
+                f"• Món đồ: {item.item_name} ({item.get_category_display()})\n"
+                f"• Vị trí: {location_found}\n"
+                f"• {guest_info}\n"
+                f"• Nơi cất giữ: {item.storage_location}\n"
+                f"Lễ tân vui lòng rà soát hồ sơ để liên hệ trao trả khách."
+            )
+            for r in recipients:
+                Notification.objects.create(
+                    recipient=r,
+                    title=notif_title,
+                    message=notif_message
+                )
+        except Exception:
+            pass
+
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='ROOM',
+            description=f"Báo nhận đồ thất lạc #{item.tracking_code}: '{item.item_name}' tại {location_found}",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f"Đã ghi nhận đồ thất lạc #{item.tracking_code}: {item.item_name}.",
+            'item': LostAndFoundItemSerializer(item, context={'request': request}).data
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='return')
+    def return_to_guest(self, request, pk=None):
+        item = self.get_object()
+        if item.status == 'returned':
+            return Response({'success': False, 'message': 'Món đồ này đã được trao trả cho khách trước đó.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        returned_to = request.data.get('returned_to', '').strip()
+        if not returned_to:
+            return Response({'success': False, 'message': 'Vui lòng nhập họ tên hoặc thông tin liên hệ của người nhận lại đồ.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return_note = request.data.get('return_note', '').strip()
+
+        item.status = 'returned'
+        item.returned_date = timezone.now()
+        item.returned_to = returned_to
+        item.return_note = return_note
+        item.handled_by = request.user if request.user.is_authenticated else None
+        item.save()
+
+        staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
+        try:
+            recipients = User.objects.filter(
+                Q(role__in=['manager', 'admin', 'owner', 'housekeeper']) | Q(is_superuser=True)
+            ).distinct()
+            notif_title = f"✅ [ĐÃ TRẢ ĐỒ THẤT LẠC] #{item.tracking_code} - {item.item_name}"
+            notif_message = (
+                f"Món đồ '{item.item_name}' (#{item.tracking_code}) đã được bàn giao thành công cho: {returned_to}.\n"
+                f"• Nhân viên bàn giao: {staff_name}\n"
+                f"• Ghi chú: {return_note or 'Đầy đủ chữ ký/xác nhận.'}"
+            )
+            for r in recipients:
+                Notification.objects.create(
+                    recipient=r,
+                    title=notif_title,
+                    message=notif_message
+                )
+        except Exception:
+            pass
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='ROOM',
+            description=f"Bàn giao trao trả đồ thất lạc #{item.tracking_code} cho '{returned_to}'",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f"Đã hoàn tất bàn giao trao trả món đồ #{item.tracking_code} cho {returned_to}!",
+            'item': LostAndFoundItemSerializer(item, context={'request': request}).data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='stats')
+    def get_stats(self, request):
+        qs = LostAndFoundItem.objects.all()
+        total = qs.count()
+        stored = qs.filter(status='stored').count()
+        contacted = qs.filter(status='contacted').count()
+        returned = qs.filter(status='returned').count()
+        disposed = qs.filter(status='disposed').count()
+        return Response({
+            'success': True,
+            'total': total,
+            'stored': stored,
+            'contacted': contacted,
+            'returned': returned,
+            'disposed': disposed,
+            'return_rate': round((returned / total * 100), 1) if total > 0 else 0
+        }, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'delete')):
+            return Response(
+                {'success': False, 'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền xóa vĩnh viễn phiếu đồ thất lạc.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 

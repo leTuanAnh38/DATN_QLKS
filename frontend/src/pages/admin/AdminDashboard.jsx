@@ -40,6 +40,8 @@ import { bookingService } from '../../services/bookingService';
 import GuestManagement from './GuestManagement';
 import EmployeeManagement from './EmployeeManagement';
 import RoomManagement from './RoomManagement';
+import LostAndFoundManagement from './LostAndFoundManagement';
+import MinibarManagement from './MinibarManagement';
 import CategoryManagement from './CategoryManagement';
 import BookingManagement from './BookingManagement';
 import BookingTimeline from './BookingTimeline';
@@ -153,6 +155,8 @@ export default function HotelAdminDashboard({ initialTab }) {
         if (location.pathname === '/admin/amenities') return 'amenities';
         if (location.pathname === '/admin/posts') return 'posts';
         if (location.pathname === '/admin/promotions') return 'promotions';
+        if (location.pathname === '/admin/lost-and-found' || location.pathname === '/admin/lost-found') return 'lost-and-found';
+        if (location.pathname === '/admin/minibar' || location.pathname === '/admin/minibar-items') return 'minibar';
         const params = new URLSearchParams(location.search);
         return params.get('tab') || initialTab || 'overview';
     };
@@ -201,6 +205,11 @@ export default function HotelAdminDashboard({ initialTab }) {
         } else if (location.pathname === '/admin/promotions') {
             setActiveTab('promotions');
             setIsMarketingMenuOpen(true);
+        } else if (location.pathname === '/admin/lost-and-found' || location.pathname === '/admin/lost-found') {
+            setActiveTab('lost-and-found');
+        } else if (location.pathname === '/admin/minibar' || location.pathname === '/admin/minibar-items') {
+            setActiveTab('minibar');
+            setIsCategoryMenuOpen(true);
         } else if (location.pathname === '/admin/audit-logs' || location.pathname === '/admin/logs') {
             setActiveTab('audit-logs');
         } else {
@@ -227,7 +236,11 @@ export default function HotelAdminDashboard({ initialTab }) {
         setActiveTab(tab);
         if (tab === 'profile') {
             navigate('/admin/profile');
-        } else if (location.pathname === '/admin/profile' || location.pathname.startsWith('/admin/customers/')) {
+        } else if (tab === 'lost-and-found') {
+            navigate('/admin/lost-and-found');
+        } else if (tab === 'minibar') {
+            navigate('/admin/minibar');
+        } else if (location.pathname === '/admin/profile' || location.pathname.startsWith('/admin/customers/') || location.pathname.startsWith('/admin/lost-and-found') || location.pathname.startsWith('/admin/minibar')) {
             navigate('/admin?tab=' + (tab === 'overview' ? '' : tab));
         }
     };
@@ -728,16 +741,40 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </button>
                             )}
 
+                            {/* 4.1. Quản lý Đồ thất lạc (Lost & Found) */}
+                            {canViewRooms && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleSwitchTab('lost-and-found')}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition ${activeTab === 'lost-and-found'
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <rect x="3" y="7" width="18" height="13" rx="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M9 11v5m6-5v5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <span className="truncate text-left">Đồ thất lạc</span>
+                                    </div>
+                                    <span className="shrink-0 bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30 ml-2">
+                                        L&F
+                                    </span>
+                                </button>
+                            )}
+
                             {/* 5. Quản lý Hạng phòng & Bảng giá (Accordion / Collapsible Menu) */}
                             {canViewCategories && (
                                 <div className="space-y-1">
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            if (activeTab !== 'categories' && activeTab !== 'amenities') {
+                                            if (activeTab !== 'categories' && activeTab !== 'amenities' && activeTab !== 'minibar') {
                                                 setActiveTab('categories');
                                                 setIsCategoryMenuOpen(true);
-                                            } else if (activeTab === 'amenities') {
+                                            } else if (activeTab === 'amenities' || activeTab === 'minibar') {
                                                 setActiveTab('categories');
                                                 setIsCategoryMenuOpen(true);
                                             } else {
@@ -746,7 +783,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                         }}
                                         className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${activeTab === 'categories'
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                                : activeTab === 'amenities'
+                                                : (activeTab === 'amenities' || activeTab === 'minibar')
                                                     ? 'bg-slate-800 text-white'
                                                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                             }`}
@@ -813,6 +850,30 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                     </div>
                                                     <span className="shrink-0 text-[10px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 ml-2">
                                                         Tiện ích
+                                                    </span>
+                                                </button>
+
+                                                {/* Danh sách Menu Con: Minibar (link tới /admin/minibar) */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setActiveTab('minibar');
+                                                        setIsCategoryMenuOpen(true);
+                                                        navigate('/admin/minibar');
+                                                    }}
+                                                    className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${activeTab === 'minibar'
+                                                            ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                        </svg>
+                                                        <span className="truncate text-left">Đồ Minibar</span>
+                                                    </div>
+                                                    <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
+                                                        Giá bán
                                                     </span>
                                                 </button>
                                             </div>
@@ -1385,6 +1446,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                         ) : renderAccessDenied('Tài khoản của bạn không có quyền truy cập Sơ đồ Phòng.')
                     )}
 
+                    {/* TAB 3.1: QUẢN LÝ ĐỒ THẤT LẠC (LOST & FOUND) */}
+                    {activeTab === 'lost-and-found' && (
+                        canViewRooms ? <LostAndFoundManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Quản lý Đồ thất lạc.')
+                    )}
+
                     {/* TAB 4: QUẢN LÝ HẠNG PHÒNG & BẢNG GIÁ (CRUD + MULTI-IMAGE UPLOAD) */}
                     {activeTab === 'categories' && (
                         canViewCategories ? <CategoryManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Hạng phòng & Bảng giá.')
@@ -1393,6 +1459,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 4.1: QUẢN LÝ TIỆN NGHI PHÒNG (AMENITIES) */}
                     {activeTab === 'amenities' && (
                         canViewCategories ? <AmenityManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Tiện nghi phòng.')
+                    )}
+
+                    {/* TAB 4.2: QUẢN LÝ DANH MỤC MINIBAR & BẢNG GIÁ */}
+                    {activeTab === 'minibar' && (
+                        (canViewCategories || canViewRooms) ? <MinibarManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Danh mục Minibar.')
                     )}
 
                     {/* TAB 5: QUẢN LÝ DANH SÁCH ĐẶT PHÒNG (LỄ TÂN & ADMIN) */}
@@ -2496,7 +2567,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'categories', 'amenities', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings', 'audit-logs'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'lost-and-found', 'categories', 'amenities', 'minibar', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings', 'audit-logs'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️
