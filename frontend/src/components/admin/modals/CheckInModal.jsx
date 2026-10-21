@@ -77,7 +77,14 @@ const getServiceDeptMeta = (serviceName = '', categoryName = '') => {
     };
 };
 
-export default function CheckInModal({ booking, isOpen = true, onClose, onSuccess }) {
+export default function CheckInModal({ booking: initialBooking, isOpen = true, onClose, onSuccess }) {
+    // Lưu trữ booking state nội bộ để đồng bộ với chi tiết mới nhất từ backend
+    const [booking, setBooking] = useState(initialBooking);
+
+    useEffect(() => {
+        setBooking(initialBooking);
+    }, [initialBooking]);
+
     // 1. STATE DỮ LIỆU PHÒNG & THỦ TỤC
     const [availableRooms, setAvailableRooms] = useState([]);
     const [selectedRoomId, setSelectedRoomId] = useState('');
@@ -87,11 +94,11 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
 
     // Danh sách dịch vụ đặt kèm trước (Add-on Services)
     const [servicesList, setServicesList] = useState(() => {
-        if (booking?.selected_services && Array.isArray(booking.selected_services) && booking.selected_services.length > 0) {
-            return booking.selected_services;
+        if (initialBooking?.selected_services && Array.isArray(initialBooking.selected_services) && initialBooking.selected_services.length > 0) {
+            return initialBooking.selected_services;
         }
-        if (booking?.service_requests && Array.isArray(booking.service_requests) && booking.service_requests.length > 0) {
-            return booking.service_requests;
+        if (initialBooking?.service_requests && Array.isArray(initialBooking.service_requests) && initialBooking.service_requests.length > 0) {
+            return initialBooking.service_requests;
         }
         return [];
     });
@@ -591,10 +598,11 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                         account_name: (cData.account_name || '').toUpperCase()
                     });
                 }
-                // Tải chi tiết đơn đặt phòng để lấy danh sách dịch vụ đặt trước mới nhất
+                // Tải chi tiết đơn đặt phòng để lấy danh sách dịch vụ đặt trước và trạng thái thanh toán mới nhất
                 const bookingDetailRes = await api.get(`/bookings/${booking.id}/`);
                 const bDetail = bookingDetailRes.data?.data || bookingDetailRes.data;
                 if (isMounted && bDetail) {
+                    setBooking(prev => ({ ...prev, ...bDetail }));
                     if (Array.isArray(bDetail.selected_services) && bDetail.selected_services.length > 0) {
                         setServicesList(bDetail.selected_services);
                     } else if (Array.isArray(bDetail.service_requests) && bDetail.service_requests.length > 0) {
@@ -803,6 +811,9 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
 
     // C. Xử lý "Thu tiền & Check-in": Thu tiền mặt hoặc quét VietQR xong rồi Check-in
     const handleConfirmPaymentAndCheckIn = async () => {
+        if (effectiveRemainingBalance <= 0) {
+            return executeCheckIn();
+        }
         try {
             setIsProcessingPayment(true);
 
@@ -875,7 +886,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                     <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-slate-50/50 to-blue-50/30 border border-slate-200/80 shadow-2xs">
                         <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200/60">
                             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                                <span>💳</span>
+                               
                                 <span>Tóm tắt tài chính trước nhận phòng (Folio Balance)</span>
                             </span>
                             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
@@ -1063,7 +1074,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
-                                        <span className="text-base">⏰</span>
+                                        
                                         <span>Phát hiện Nhận phòng sớm trong ngày (Early Check-in) lúc {sameDayEarlyCheckInInfo.currentTime}</span>
                                         <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                             {sameDayEarlyCheckInInfo.rule}
@@ -1162,7 +1173,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                         <div className="pt-2 border-t border-slate-100">
                             <label className="text-[11px] font-bold text-slate-900 uppercase tracking-wider flex items-center justify-between mb-1.5">
                                 <span className="flex items-center gap-1.5">
-                                    <span>🚪</span>
+                                    
                                     <span>Gán phòng thực tế đón khách</span>
                                     <span className="text-rose-500">*</span>
                                 </span>
@@ -1421,7 +1432,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                     <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-3 shadow-2xs">
                         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                             <div className="flex items-center gap-2">
-                                <span className="text-base">📋</span>
+                                
                                 <div>
                                     <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
                                         Danh sách khách lưu trú ({guests.length} người)
@@ -1439,8 +1450,8 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                     className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 shadow-2xs"
                                     title="Dán nhanh danh sách đoàn từ Excel hoặc văn bản"
                                 >
-                                    <span>📋</span>
-                                    <span>Dán nhanh danh sách đoàn</span>
+                                    
+                                    <span>Dán nhanh danh sách</span>
                                 </button>
                                 <button
                                     type="button"
@@ -1614,7 +1625,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                         <div className="p-4 rounded-2xl border-2 border-amber-400 bg-amber-50/30 space-y-4 animate-in fade-in duration-200">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                                    <span>💰</span>
+                                    
                                     <span>Thu nốt phần tiền phòng còn thiếu:</span>
                                     <span className="text-rose-600 text-sm font-extrabold">{formatCurrency(effectiveRemainingBalance)}</span>
                                 </h4>
@@ -1799,7 +1810,7 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                 className="px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                                 title="Cho khách nhận phòng trước, ghi nhận nợ tiền phòng vào Folio và thu khi check-out"
                             >
-                                <span>📋</span>
+                                
                                 <span>Cho nợ & Check-in</span>
                             </button>
 
@@ -1850,7 +1861,8 @@ export default function CheckInModal({ booking, isOpen = true, onClose, onSucces
                                 className="px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                                 title="Cho khách nhận phòng trước, ghi nhận nợ tiền phòng vào Folio và thu khi check-out"
                             >
-                                <span>📋</span>
+                                
+                            
                                 <span>Cho nợ & Check-in</span>
                             </button>
 

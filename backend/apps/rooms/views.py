@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, When, Value, IntegerField
 from django.utils import timezone
 from django.utils.text import slugify
 from ..users.models import log_action, User
@@ -812,18 +812,30 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
     - POST /api/rooms/maintenance-tickets/: Báo hỏng thiết bị (Tự động chuyển phòng sang 'maintenance')
     - POST /api/rooms/maintenance-tickets/{id}/complete/: Hoàn thành sửa chữa (Tự động chuyển phòng sang 'cleaning' để buồng phòng dọn dẹp)
     """
-    queryset = MaintenanceTicket.objects.select_related('room', 'booking', 'technician', 'created_by').order_by('-start_date')
+    queryset = MaintenanceTicket.objects.select_related('room', 'booking', 'technician', 'created_by')
     serializer_class = MaintenanceTicketSerializer
     permission_classes = [IsHotelStaffOrAdmin]
 
     def get_queryset(self):
         qs = super().get_queryset()
-        room_id = self.request.query_params.get('room_id')
+        room_id = self.request.query_params.get('room_id') or self.request.query_params.get('room')
         status_param = self.request.query_params.get('status')
         if room_id:
             qs = qs.filter(room_id=room_id)
         if status_param:
             qs = qs.filter(status=status_param)
+
+        # Ưu tiên phiếu Đang sửa chữa (status='fixing') lên ĐẦU danh sách, Đã hoàn thành/Hủy xuống dưới
+        qs = qs.annotate(
+            status_priority=Case(
+                When(status='fixing', then=Value(0)),
+                When(status='completed', then=Value(1)),
+                When(status='cancelled', then=Value(2)),
+                default=Value(3),
+                output_field=IntegerField()
+            )
+        ).order_by('status_priority', '-start_date', '-id')
+
         return qs
 
     def create(self, request, *args, **kwargs):
@@ -1105,6 +1117,121 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             qs = qs.filter(booking_id=booking_id)
         return qs
 
+    @action(detail=False, methods=['post'], url_path='request-inspection')
+    def request_inspection(self, request):
+        """
+        API Lễ tân bấm 'Yêu cầu kiểm phòng' trước khi Check-out:
+        POST /api/rooms/minibar-checks/request-inspection/
+        Body: { room_id, booking_id, note }
+        """
+        room_id = request.data.get('room_id') or request.data.get('room')
+        if not room_id:
+            return Response({'success': False, 'message': 'Thiếu ID phòng cần kiểm tra.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            room = Room.objects.get(pk=room_id)
+        except Room.DoesNotExist:
+            return Response({'success': False, 'message': 'Không tìm thấy phòng tương ứng.'}, status=status.HTTP_404_NOT_FOUND)
+
+        booking_id = request.data.get('booking_id') or request.data.get('booking')
+        booking = None
+        if booking_id:
+            booking = Booking.objects.filter(pk=booking_id).first()
+        if not booking:
+            booking = room.bookings.filter(status='checked_in').first()
+
+        note = request.data.get('note', '').strip() or 'Lễ tân yêu cầu kiểm phòng Check-out (Minibar & Hư hại)'
+
+        # Kiểm tra xem phòng đã có phiếu check 'requested' nào đang chờ chưa
+        pending_check = room.minibar_checks.filter(status='requested').order_by('-created_at').first()
+        if pending_check:
+            pending_check.requested_by = request.user if request.user.is_authenticated else None
+            pending_check.note = note
+            if booking:
+                pending_check.booking = booking
+            pending_check.save()
+            check = pending_check
+        else:
+            check = MinibarCheck.objects.create(
+                room=room,
+                booking=booking,
+                requested_by=request.user if request.user.is_authenticated else None,
+                status='requested',
+                items_consumed=[],
+                total_amount=0,
+                note=note
+            )
+
+        receptionist_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
+        guest_name_str = ""
+        if booking:
+            if booking.guest:
+                guest_name_str = booking.guest.get_full_name() or booking.guest.username
+            elif getattr(booking, 'guest_name', None):
+                guest_name_str = str(booking.guest_name)
+            elif getattr(booking, 'identity_card', None):
+                guest_name_str = f"CCCD {booking.identity_card}"
+            else:
+                guest_name_str = "Khách lưu trú"
+        guest_label = f" (Khách #{booking.booking_code} - {guest_name_str})" if booking else ""
+
+        # Gửi thông báo đến Buồng phòng (housekeeper) và Quản lý (manager, admin)
+        try:
+            recipients = User.objects.filter(
+                Q(role__in=['housekeeper', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+            ).distinct()
+            notif_title = f"🛎️ [YÊU CẦU KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
+            notif_message = (
+                f"Lễ tân ({receptionist_name}) vừa gửi yêu cầu kiểm tra phòng {room.room_number}.\n"
+                f"Khách đang làm thủ tục trả phòng tại quầy. Vui lòng kiểm tra Minibar và Hư hại tài sản!"
+            )
+            for r in recipients:
+                Notification.objects.create(
+                    recipient=r,
+                    title=notif_title,
+                    message=notif_message
+                )
+        except Exception:
+            pass
+
+        log_action(
+            user=request.user,
+            action='CREATE',
+            module='ROOM',
+            description=f"Lễ tân {receptionist_name} yêu cầu kiểm phòng {room.room_number} trước khi Check-out.",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f"Đã gửi yêu cầu kiểm tra phòng {room.room_number} đến bộ phận Buồng phòng!",
+            'check': MinibarCheckSerializer(check).data,
+            'room_id': room.id,
+            'booking_id': booking.id if booking else None
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='latest')
+    def latest(self, request):
+        """
+        API Lấy phiếu kiểm tra phòng gần nhất:
+        GET /api/rooms/minibar-checks/latest/?room_id=...&booking_id=...
+        """
+        room_id = request.query_params.get('room_id')
+        booking_id = request.query_params.get('booking_id')
+        qs = self.get_queryset()
+        if booking_id:
+            qs = qs.filter(booking_id=booking_id)
+        elif room_id:
+            qs = qs.filter(room_id=room_id)
+        else:
+            return Response({'success': False, 'message': 'Thiếu tham số room_id hoặc booking_id.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        latest_check = qs.first()
+        if not latest_check:
+            return Response({'success': True, 'check': None}, status=status.HTTP_200_OK)
+
+        return Response({'success': True, 'check': MinibarCheckSerializer(latest_check).data}, status=status.HTTP_200_OK)
+
     def create(self, request, *args, **kwargs):
         room_id = request.data.get('room_id') or request.data.get('room')
         if not room_id:
@@ -1118,6 +1245,10 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         items_consumed = request.data.get('items', [])
         note = request.data.get('note', '').strip()
         booking_id = request.data.get('booking_id') or request.data.get('booking')
+        has_damage = bool(request.data.get('has_damage', False))
+        damage_desc = request.data.get('damage_description', '').strip()
+        damage_amt = float(request.data.get('damage_amount') or 0)
+        check_id = request.data.get('check_id')
 
         booking = None
         if booking_id:
@@ -1146,24 +1277,64 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                     'total': subtotal
                 })
 
-        check = MinibarCheck.objects.create(
-            room=room,
-            booking=booking,
-            inspector=request.user if request.user.is_authenticated else None,
-            items_consumed=valid_consumed,
-            total_amount=total_amount,
-            note=note
-        )
+        now = timezone.now()
+        # Tìm phiếu requested đang chờ (nếu có) để hoàn tất cập nhật
+        check = None
+        if check_id:
+            check = MinibarCheck.objects.filter(pk=check_id).first()
+        if not check:
+            check = room.minibar_checks.filter(status='requested').order_by('-created_at').first()
+
+        if check:
+            check.status = 'completed'
+            check.items_consumed = valid_consumed
+            check.total_amount = total_amount
+            check.has_damage = has_damage
+            check.damage_description = damage_desc if has_damage else ''
+            check.damage_amount = damage_amt if has_damage else 0
+            check.note = note
+            check.inspector = request.user if request.user.is_authenticated else None
+            check.completed_at = now
+            if booking and not check.booking:
+                check.booking = booking
+            check.save()
+        else:
+            check = MinibarCheck.objects.create(
+                room=room,
+                booking=booking,
+                inspector=request.user if request.user.is_authenticated else None,
+                status='completed',
+                items_consumed=valid_consumed,
+                total_amount=total_amount,
+                has_damage=has_damage,
+                damage_description=damage_desc if has_damage else '',
+                damage_amount=damage_amt if has_damage else 0,
+                note=note,
+                completed_at=now
+            )
 
         extra_services_created = 0
-        # Nếu có món đã dùng và có booking liên quan -> Tự động đẩy vào BookingExtraService
-        if booking and valid_consumed:
-            for it in valid_consumed:
+        if booking:
+            # 1. Tự động đồng bộ các món Minibar vào BookingExtraService
+            if valid_consumed:
+                for it in valid_consumed:
+                    BookingExtraService.objects.create(
+                        booking=booking,
+                        service_name=f"[Minibar] {it['name']}",
+                        quantity=it['quantity'],
+                        price=it['price'],
+                        is_paid=False
+                    )
+                    extra_services_created += 1
+
+            # 2. Tự động đồng bộ khoản Đền bù hư hại (nếu có) vào BookingExtraService
+            if has_damage and damage_amt > 0:
+                damage_label = damage_desc or "Bồi thường hư hại phòng"
                 BookingExtraService.objects.create(
                     booking=booking,
-                    service_name=f"[Minibar] {it['name']}",
-                    quantity=it['quantity'],
-                    price=it['price'],
+                    service_name=f"[Đền bù hư hại] {damage_label}",
+                    quantity=1,
+                    price=damage_amt,
                     is_paid=False
                 )
                 extra_services_created += 1
@@ -1183,16 +1354,17 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
 
         # Gửi thông báo đến Lễ tân, Thu ngân, Quản lý
         try:
-            consumed_desc = ", ".join([f"{it['name']} x{it['quantity']}" for it in valid_consumed]) if valid_consumed else "Không tiêu thụ đồ"
+            consumed_desc = ", ".join([f"{it['name']} x{it['quantity']}" for it in valid_consumed]) if valid_consumed else "Không dùng Minibar"
             recipients = User.objects.filter(
                 Q(role__in=['receptionist', 'cashier', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
             ).distinct()
-            notif_title = f"🍾 [KIỂM KÊ MINIBAR] Phòng {room.room_number}{guest_label}"
+            notif_title = f"✅ [HOÀN TẤT KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
+            damage_text = f"\n• Hư hại / Đền bù: {damage_amt:,.0f} đ ({damage_desc})" if (has_damage and damage_amt > 0) else "\n• Hư hại phòng: Không phát sinh"
             notif_message = (
-                f"Nhân viên ({staff_name}) vừa hoàn tất kiểm tra minibar phòng {room.room_number}.\n"
-                f"• Mặt hàng tiêu thụ: {consumed_desc}\n"
-                f"• Tổng tiền minibar: {total_amount:,.0f} VNĐ\n"
-                + (f"• Đã tự động cập nhật vào Hóa đơn thanh toán của khách." if extra_services_created > 0 else "• Không phát sinh phụ phí minibar.")
+                f"Buồng phòng ({staff_name}) đã hoàn tất kiểm tra phòng {room.room_number}.\n"
+                f"• Minibar: {consumed_desc} ({total_amount:,.0f} VNĐ)"
+                f"{damage_text}\n"
+                + (f"• Đã tự động cập nhật vào Hóa đơn thanh toán của khách." if extra_services_created > 0 else "• Phòng nguyên vẹn, sẵn sàng thanh toán.")
             )
             for r in recipients:
                 Notification.objects.create(
@@ -1207,13 +1379,19 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             user=request.user,
             action='CREATE',
             module='ROOM',
-            description=f"Kiểm kê minibar #{check.check_code} phòng {room.room_number}. Tổng tiêu thụ: {total_amount:,.0f} VND ({len(valid_consumed)} món)",
+            description=f"Kiểm tra phòng #{check.check_code} phòng {room.room_number}. Minibar: {total_amount:,.0f} đ, Hư hại: {damage_amt if has_damage else 0:,.0f} đ.",
             request=request
         )
 
+        summary_msg = f"Đã hoàn tất kiểm tra phòng {room.room_number}!"
+        if total_amount > 0 or (has_damage and damage_amt > 0):
+            summary_msg += f" Tổng phụ thu: {total_amount + (damage_amt if has_damage else 0):,.0f} đ (Đã đồng bộ vào hóa đơn)."
+        else:
+            summary_msg += " Phòng nguyên vẹn, không phát sinh phụ phí."
+
         return Response({
             'success': True,
-            'message': f"Đã ghi nhận kiểm kê minibar phòng {room.room_number}! Tổng tiền: {total_amount:,.0f} đ" + (f" (Đã đồng bộ {extra_services_created} mục vào hóa đơn)." if extra_services_created > 0 else "."),
+            'message': summary_msg,
             'check': MinibarCheckSerializer(check).data,
             'extra_services_created': extra_services_created,
             'booking_id': booking.id if booking else None

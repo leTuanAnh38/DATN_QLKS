@@ -50,9 +50,9 @@ export default function MaintenanceHistoryModal({
         }
     };
 
-    // Lọc dữ liệu theo search và bộ lọc
+    // Lọc dữ liệu theo search và bộ lọc, đồng thời đưa phiếu Đang sửa chữa lên ĐẦU danh sách
     const filteredTickets = useMemo(() => {
-        return tickets.filter((t) => {
+        const filtered = tickets.filter((t) => {
             const matchSearch =
                 !searchTerm ||
                 (t.ticket_code && t.ticket_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -71,6 +71,30 @@ export default function MaintenanceHistoryModal({
                 (isGuestFaultFilter === 'hotel' && !t.is_guest_fault);
 
             return matchSearch && matchStatus && matchFault;
+        });
+
+        // Sắp xếp: Phiếu Đang sửa chữa (fixing / pending / in_progress) lên ĐẦU danh sách, Đã hoàn tất/Hủy xuống dưới
+        return [...filtered].sort((a, b) => {
+            const getPriority = (status) => {
+                if (status === 'fixing' || status === 'pending' || status === 'in_progress') return 0;
+                if (status === 'completed') return 1;
+                return 2;
+            };
+
+            const pA = getPriority(a.status);
+            const pB = getPriority(b.status);
+
+            if (pA !== pB) {
+                return pA - pB;
+            }
+
+            // Nếu cùng trạng thái, phiếu mới nhất lên trước
+            const timeA = new Date(a.start_date || a.created_at || 0).getTime();
+            const timeB = new Date(b.start_date || b.created_at || 0).getTime();
+            if (timeB !== timeA) {
+                return timeB - timeA;
+            }
+            return (b.id || 0) - (a.id || 0);
         });
     }, [tickets, searchTerm, statusFilter, isGuestFaultFilter]);
 
@@ -262,7 +286,14 @@ export default function MaintenanceHistoryModal({
                                     {paginatedTickets.map((t) => {
                                         const isDone = t.status === 'completed';
                                         return (
-                                            <tr key={t.id} className="hover:bg-slate-50/80 transition">
+                                            <tr
+                                                key={t.id}
+                                                className={`${
+                                                    !isDone
+                                                        ? 'bg-amber-50/30 hover:bg-amber-50/60 border-l-2 border-amber-500'
+                                                        : 'hover:bg-slate-50/80'
+                                                } transition`}
+                                            >
                                                 {/* Mã phiếu */}
                                                 <td className="py-3 px-3.5 font-mono font-bold text-slate-800 whitespace-nowrap">
                                                     #{t.ticket_code}

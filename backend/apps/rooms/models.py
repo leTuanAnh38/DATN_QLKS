@@ -179,8 +179,13 @@ class MinibarItem(models.Model):
         ordering = ['category', 'name']
 
 
-# 7. BẢNG PHIẾU KIỂM KÊ MINIBAR (KHI DỌN PHÒNG HOẶC CHECK-OUT)
+# 7. BẢNG PHIẾU KIỂM KÊ PHÒNG & MINIBAR (KHI DỌN PHÒNG HOẶC CHECK-OUT)
 class MinibarCheck(models.Model):
+    STATUS_CHOICES = (
+        ('requested', 'Chờ buồng phòng kiểm tra'),
+        ('completed', 'Đã kiểm tra xong'),
+    )
+
     check_code = models.CharField(max_length=25, unique=True, blank=True, verbose_name="Mã phiếu kiểm kê")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='minibar_checks', verbose_name="Phòng kiểm tra")
     booking = models.ForeignKey(
@@ -199,10 +204,26 @@ class MinibarCheck(models.Model):
         related_name='inspected_minibar_checks',
         verbose_name="Nhân viên kiểm tra"
     )
+    requested_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requested_minibar_checks',
+        verbose_name="Lễ tân yêu cầu kiểm phòng"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed', verbose_name="Trạng thái kiểm phòng")
     items_consumed = models.JSONField(default=list, verbose_name="Danh sách đồ đã dùng")
     total_amount = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tổng tiền đồ Minibar (VND)")
+
+    # Bổ sung kiểm tra hư hại tài sản phòng (Damage)
+    has_damage = models.BooleanField(default=False, verbose_name="Có hư hại / vỡ đồ trong phòng?")
+    damage_description = models.CharField(max_length=255, blank=True, default='', verbose_name="Mô tả hư hại / tài sản đền bù")
+    damage_amount = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tiền bồi thường hư hại (VND)")
+
     note = models.TextField(blank=True, default='', verbose_name="Ghi chú kiểm tra")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian kiểm tra")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian hoàn tất kiểm tra")
 
     def save(self, *args, **kwargs):
         if not self.check_code:
@@ -211,7 +232,7 @@ class MinibarCheck(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.check_code} - P.{self.room.room_number}: {self.total_amount:,.0f} đ"
+        return f"{self.check_code} - P.{self.room.room_number}: {self.total_amount:,.0f} đ ({self.get_status_display()})"
 
     class Meta:
         verbose_name = "Phiếu Kiểm Kê Minibar"

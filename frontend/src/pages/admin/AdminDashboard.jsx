@@ -226,12 +226,19 @@ export default function HotelAdminDashboard({ initialTab }) {
     // Tự động chuyển tab phù hợp nếu vai trò hiện tại không có quyền xem Tổng quan (Overview)
     useEffect(() => {
         if (!canViewOverview && activeTab === 'overview') {
-            if (canViewRooms) setActiveTab('rooms');
-            else if (canViewServices) setActiveTab('services');
-            else if (canViewBookings) setActiveTab('bookings');
-            else if (canViewInvoices) setActiveTab('invoices');
+            if (user?.role === 'service_staff' && canViewServices) {
+                setActiveTab('services');
+            } else if (canViewRooms) {
+                setActiveTab('rooms');
+            } else if (canViewServices) {
+                setActiveTab('services');
+            } else if (canViewBookings) {
+                setActiveTab('bookings');
+            } else if (canViewInvoices) {
+                setActiveTab('invoices');
+            }
         }
-    }, [canViewOverview, activeTab, canViewRooms, canViewServices, canViewBookings, canViewInvoices]);
+    }, [canViewOverview, activeTab, canViewRooms, canViewServices, canViewBookings, canViewInvoices, user?.role]);
 
     // Chuyển tab và đồng bộ đường dẫn URL
     const handleSwitchTab = (tab) => {

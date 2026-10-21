@@ -207,12 +207,23 @@ class RoomSerializer(serializers.ModelSerializer):
         try:
             check = obj.minibar_checks.order_by('-created_at').first()
             if check:
+                inspector_name = (check.inspector.get_full_name() or check.inspector.username) if check.inspector else 'Nhân viên buồng'
+                requested_by_name = (check.requested_by.get_full_name() or check.requested_by.username) if check.requested_by else None
                 return {
                     'id': check.id,
                     'check_code': check.check_code,
+                    'status': check.status,
+                    'status_display': check.get_status_display(),
                     'total_amount': float(check.total_amount),
+                    'has_damage': check.has_damage,
+                    'damage_description': check.damage_description,
+                    'damage_amount': float(check.damage_amount),
+                    'items_consumed': check.items_consumed,
+                    'note': check.note,
                     'created_at': check.created_at,
-                    'inspector_name': check.inspector.get_full_name() or check.inspector.username if check.inspector else 'Nhân viên buồng',
+                    'completed_at': check.completed_at,
+                    'inspector_name': inspector_name,
+                    'requested_by_name': requested_by_name,
                 }
             return None
         except Exception:
@@ -319,21 +330,30 @@ class MinibarItemSerializer(serializers.ModelSerializer):
 class MinibarCheckSerializer(serializers.ModelSerializer):
     room_number = serializers.CharField(source='room.room_number', read_only=True)
     inspector_name = serializers.SerializerMethodField()
+    requested_by_name = serializers.SerializerMethodField()
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
     guest_name = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = MinibarCheck
         fields = [
             'id', 'check_code', 'room', 'room_number', 'booking', 'booking_code',
-            'guest_name', 'inspector', 'inspector_name', 'items_consumed',
-            'total_amount', 'note', 'created_at'
+            'guest_name', 'inspector', 'inspector_name', 'requested_by', 'requested_by_name',
+            'status', 'status_display', 'items_consumed', 'total_amount',
+            'has_damage', 'damage_description', 'damage_amount',
+            'note', 'created_at', 'completed_at'
         ]
         read_only_fields = ['id', 'check_code', 'created_at']
 
     def get_inspector_name(self, obj):
         if obj.inspector:
             return obj.inspector.get_full_name() or obj.inspector.username
+        return None
+
+    def get_requested_by_name(self, obj):
+        if obj.requested_by:
+            return obj.requested_by.get_full_name() or obj.requested_by.username
         return None
 
     def get_guest_name(self, obj):

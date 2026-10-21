@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { bookingService } from '../../../services/bookingService';
 import { paymentService } from '../../../services/paymentService';
 import hotelService from '../../../services/hotelService';
+import roomService from '../../../services/roomService';
 import api from '../../../services/api';
 
 // Helper format tiền tệ VNĐ
@@ -64,6 +65,15 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const [serviceActionLoading, setServiceActionLoading] = useState(null); // id of request or 'bulk'
     const [serviceActionMsg, setServiceActionMsg] = useState(null); // { type, text }
 
+    // =========================================================================
+    // QUY TRÌNH KIỂM PHÒNG CHECK-OUT (MINIBAR & HƯ HẠI TÀI SẢN)
+    // =========================================================================
+    const [inspectionStatus, setInspectionStatus] = useState('none'); // 'none' | 'requested' | 'completed'
+    const [inspectionData, setInspectionData] = useState(null);
+    const [isRequestingInspection, setIsRequestingInspection] = useState(false);
+    const [inspectionNote, setInspectionNote] = useState('');
+    const [inspectionFeedback, setInspectionFeedback] = useState(null);
+
     // Cấu hình ngân hàng VietQR động
     const [bankConfig, setBankConfig] = useState({
         bank_bin: '970422',
@@ -80,7 +90,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     });
     const [applyLateSurcharge, setApplyLateSurcharge] = useState(true);
 
-    // Hàm refresh lại bảng kê sau khi thao tác dịch vụ
+    // Hàm refresh lại bảng kê sau khi thao tác dịch vụ hoặc buồng phòng hoàn thành kiểm tra
     const refreshSummary = useCallback(async () => {
         if (!booking?.id) return;
         try {
@@ -94,6 +104,122 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             console.error('Lỗi khi cập nhật lại bảng kê Folio:', err);
         }
     }, [booking?.id]);
+
+    // Lấy thông tin trạng thái kiểm tra phòng gần nhất
+    const fetchInspectionStatus = useCallback(async () => {
+        const rId = booking?.room || booking?.room_id || summary?.room_id;
+        if (!rId && !booking?.id) return;
+        try {
+            const res = await roomService.getLatestInspection({
+                room_id: rId,
+                booking_id: booking?.id
+            });
+            if (res.success && res.check) {
+                setInspectionData(res.check);
+                setInspectionStatus(res.check.status || 'none');
+            } else {
+                setInspectionData(null);
+                setInspectionStatus('none');
+            }
+        } catch (err) {
+            console.error('Lỗi khi tải thông tin kiểm phòng:', err);
+        }
+    }, [booking?.id, booking?.room, booking?.room_id, summary?.room_id]);
+
+    // Gửi yêu cầu Buồng phòng kiểm tra phòng Check-out
+    const handleRequestInspection = async () => {
+        const rId = booking?.room || booking?.room_id || summary?.room_id;
+        if (!rId) {
+            alert('Không tìm thấy thông tin số phòng để gửi yêu cầu kiểm tra.');
+            return;
+        }
+
+        try {
+            setIsRequestingInspection(true);
+            setInspectionFeedback(null);
+            const res = await roomService.requestRoomInspection({
+                room_id: rId,
+                booking_id: booking?.id,
+                note: inspectionNote.trim() || 'Lễ tân yêu cầu kiểm phòng Check-out (Minibar & Hư hại)'
+            });
+
+            if (res.success) {
+                setInspectionStatus('requested');
+                setInspectionData(res.data);
+                setInspectionFeedback({
+                    type: 'success',
+                    message: 'Đã gửi thông báo yêu cầu kiểm phòng đến bộ phận Buồng phòng!'
+                });
+
+                // Phát tín hiệu đồng bộ realtime sang RoomManagement & các tab khác
+                try {
+                    localStorage.setItem('pms_last_minibar_event', Date.now().toString());
+                    window.dispatchEvent(new Event('pms_minibar_updated'));
+                    window.dispatchEvent(new Event('pms_room_updated'));
+                } catch { }
+
+                setTimeout(() => setInspectionFeedback(null), 4000);
+            } else {
+                alert(res.message || 'Không thể gửi yêu cầu kiểm phòng.');
+            }
+        } catch (err) {
+            console.error('Lỗi khi gửi yêu cầu kiểm phòng:', err);
+            alert('Đã xảy ra lỗi kết nối khi gửi yêu cầu kiểm phòng.');
+        } finally {
+            setIsRequestingInspection(false);
+        }
+    };
+
+    // Lễ tân xác nhận kiểm tra nhanh tại quầy (trường hợp khách vội, xác nhận không dùng và không hư hại)
+    const handleQuickSelfInspection = async () => {
+        const rId = booking?.room || booking?.room_id || summary?.room_id;
+        if (!rId) {
+            alert('Không tìm thấy thông tin phòng.');
+            return;
+        }
+
+        const isConfirm = window.confirm(
+            'Xác nhận kiểm tra nhanh tại quầy:\n\n• Khách không sử dụng đồ ăn/uống trong Minibar.\n• Trang thiết bị phòng nguyên vẹn, không có hư hại.\n\nBạn có muốn ghi nhận hoàn tất kiểm phòng ngay?'
+        );
+        if (!isConfirm) return;
+
+        try {
+            setIsRequestingInspection(true);
+            const res = await roomService.createMinibarCheck({
+                room_id: rId,
+                booking_id: booking?.id,
+                items_consumed: [],
+                has_damage: false,
+                damage_amount: 0,
+                note: 'Lễ tân xác nhận kiểm nhanh tại quầy (Phòng nguyên vẹn & Không tiêu thụ Minibar)'
+            });
+
+            if (res.success) {
+                setInspectionStatus('completed');
+                setInspectionData(res.data);
+                setInspectionFeedback({
+                    type: 'success',
+                    message: 'Đã xác nhận phòng nguyên vẹn và hoàn tất kiểm phòng!'
+                });
+                await refreshSummary();
+
+                try {
+                    localStorage.setItem('pms_last_minibar_event', Date.now().toString());
+                    window.dispatchEvent(new Event('pms_minibar_updated'));
+                    window.dispatchEvent(new Event('pms_room_updated'));
+                } catch { }
+
+                setTimeout(() => setInspectionFeedback(null), 4000);
+            } else {
+                alert(res.message || 'Không thể ghi nhận kiểm phòng.');
+            }
+        } catch (err) {
+            console.error('Lỗi kiểm nhanh tại quầy:', err);
+            alert('Đã xảy ra lỗi khi kết nối máy chủ.');
+        } finally {
+            setIsRequestingInspection(false);
+        }
+    };
 
     // 1. TẢI BẢNG KÊ CHI TIẾT TỪ BACKEND
     useEffect(() => {
@@ -156,11 +282,28 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         };
 
         fetchSummaryAndConfig();
+        fetchInspectionStatus();
 
         return () => {
             isMounted = false;
         };
-    }, [booking?.id]);
+    }, [booking?.id, fetchInspectionStatus]);
+
+    // Lắng nghe sự kiện buồng phòng kiểm tra xong (Realtime / Cross-tab synchronization)
+    useEffect(() => {
+        const handleSyncInspection = () => {
+            fetchInspectionStatus();
+            refreshSummary();
+        };
+        window.addEventListener('pms_minibar_updated', handleSyncInspection);
+        window.addEventListener('pms_room_updated', handleSyncInspection);
+        window.addEventListener('storage', handleSyncInspection);
+        return () => {
+            window.removeEventListener('pms_minibar_updated', handleSyncInspection);
+            window.removeEventListener('pms_room_updated', handleSyncInspection);
+            window.removeEventListener('storage', handleSyncInspection);
+        };
+    }, [fetchInspectionStatus, refreshSummary]);
 
     // Danh sách các dịch vụ chưa hoàn thành (chờ xử lý hoặc đang thực hiện)
     const uncompletedServices = useMemo(() => {
@@ -320,8 +463,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     }, [summary, booking]);
 
     const isGroupRoom = Boolean(
-        booking?.group_booking || 
-        booking?.group_booking_code || 
+        booking?.group_booking ||
+        booking?.group_booking_code ||
         booking?.group_booking_id
     );
 
@@ -445,7 +588,13 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
     // 5. GỬI YÊU CẦU HOÀN TẤT CHECK-OUT TỚI API POST /api/bookings/:id/check-out/
     const handleConfirmCheckOut = async () => {
-        if (!booking?.id || isSubmitting || !isPaymentSettled) return;
+        // Cảnh báo nếu Buồng phòng đang trong tiến trình kiểm phòng
+        if (inspectionStatus === 'requested') {
+            const confirmInspectionPending = window.confirm(
+                '⚠️ LƯU Ý TIẾN ĐỘ KIỂM PHÒNG:\n\nBộ phận Buồng phòng hiện đang kiểm tra phòng này.\n\nNếu check-out ngay, các phụ phí Minibar hoặc Bồi thường hư hại (nếu buồng phòng tìm thấy) sẽ không kịp cộng vào hóa đơn.\n\nBạn có muốn tiếp tục trả phòng ngay bây giờ?'
+            );
+            if (!confirmInspectionPending) return;
+        }
 
         // Cảnh báo lễ tân nếu còn dịch vụ chưa phục vụ hoặc chưa hủy
         if (uncompletedServices.length > 0) {
@@ -504,7 +653,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
             <div className="bg-white rounded-3xl border border-slate-200 max-w-3xl w-full p-6 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
-                
+
                 {/* ========================================================================= */}
                 {/* 1. MODAL HEADER                                                           */}
                 {/* ========================================================================= */}
@@ -718,14 +867,232 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         </div>
 
                         {/* ================================================================= */}
+                        {/* QUY TRÌNH KIỂM PHÒNG CHECK-OUT (MINIBAR & HƯ HẠI TÀI SẢN)        */}
+                        {/* ================================================================= */}
+                        <div className="p-4 rounded-2xl border transition-all bg-white shadow-2xs border-slate-200">
+                            {/* Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                                <div className="flex items-center gap-2.5">
+
+                                    <div>
+                                        <h4 className="font-serif font-bold text-sm text-slate-900 flex items-center gap-2">
+                                            <span>Quy Trình Kiểm Tra Phòng (Minibar & Hư Hại)</span>
+                                        </h4>
+                                        <p className="text-[11px] text-slate-500">
+                                            Thông báo bộ phận Buồng phòng kiểm tra thực tế trước khi thanh toán Check-out
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Trạng thái badge */}
+                                {inspectionStatus === 'completed' ? (
+                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-2xs self-start sm:self-auto">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                        <span>✓ Đã kiểm phòng xong</span>
+                                    </span>
+                                ) : inspectionStatus === 'requested' ? (
+                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 flex items-center gap-1.5 animate-pulse shadow-2xs self-start sm:self-auto">
+                                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                        <span>Đang đợi Buồng phòng kiểm</span>
+                                    </span>
+                                ) : (
+                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 self-start sm:self-auto">
+                                        ⚪ Chưa kiểm phòng Check-out
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Thông báo thao tác kiểm phòng */}
+                            {inspectionFeedback && (
+                                <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2 animate-in fade-in">
+                                    <span>✅</span>
+                                    <span className="font-medium">{inspectionFeedback.message}</span>
+                                </div>
+                            )}
+
+                            {/* Body theo từng trạng thái */}
+                            <div className="pt-3">
+                                {/* TRẠNG THÁI 1: CHƯA YÊU CẦU */}
+                                {inspectionStatus === 'none' && (
+                                    <div className="space-y-3">
+                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed">
+                                            Khách đang làm thủ tục trả phòng. Bấm nút <strong>"Yêu Cầu Kiểm Phòng"</strong> bên dưới để gửi thông báo tức thì đến nhân viên Buồng phòng đi kiểm tra đồ dùng Minibar và thiết bị phòng {summary?.room_number || booking.room_number}.
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Ghi chú thêm cho Buồng phòng (VD: Khách vội, cần kiểm nhanh)..."
+                                                value={inspectionNote}
+                                                onChange={(e) => setInspectionNote(e.target.value)}
+                                                className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-800"
+                                            />
+                                            <button
+                                                type="button"
+                                                disabled={isRequestingInspection}
+                                                onClick={handleRequestInspection}
+                                                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                                            >
+                                                <span>🛎️</span>
+                                                <span>{isRequestingInspection ? 'Đang gửi...' : 'Yêu Cầu Kiểm Phòng'}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isRequestingInspection}
+                                                onClick={handleQuickSelfInspection}
+                                                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 cursor-pointer shrink-0"
+                                                title="Khách cam kết không dùng đồ và phòng nguyên vẹn, kiểm nhanh để checkout"
+                                            >
+                                                <span>⚡</span>
+                                                <span>Kiểm nhanh tại quầy</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TRẠNG THÁI 2: ĐANG CHỜ BUỒNG PHÒNG */}
+                                {inspectionStatus === 'requested' && (
+                                    <div className="space-y-3">
+                                        <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                                                    <span>Đã gửi thông báo kiểm phòng tới bộ phận Buồng phòng!</span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-600 leading-relaxed">
+                                                    • Người yêu cầu: <strong className="text-slate-800">{inspectionData?.requested_by_name || 'Lễ tân'}</strong> lúc {formatDateTime(inspectionData?.created_at || new Date().toISOString())}
+                                                    {inspectionData?.note && <span className="block mt-0.5">• Ghi chú: <em className="text-slate-700">"{inspectionData.note}"</em></span>}
+                                                </p>
+                                                <p className="text-[11px] text-slate-500">
+                                                    Nhân viên Buồng phòng đang kiểm tra phòng. Bảng kê hóa đơn sẽ tự động nhảy số tiền khi buồng phòng xác nhận trên hệ thống.
+                                                </p>
+                                            </div>
+
+                                            <div className="flex sm:flex-col gap-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        await fetchInspectionStatus();
+                                                        await refreshSummary();
+                                                    }}
+                                                    className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs rounded-xl transition shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                                >
+                                                    <span>🔄</span>
+                                                    <span>Làm mới kết quả</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={isRequestingInspection}
+                                                    onClick={handleQuickSelfInspection}
+                                                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-2xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                                    title="Xác nhận khách không dùng đồ và tài sản nguyên vẹn"
+                                                >
+                                                    <span>⚡</span>
+                                                    <span>Khách xác nhận không dùng</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TRẠNG THÁI 3: ĐÃ KIỂM PHÒNG XONG */}
+                                {inspectionStatus === 'completed' && (
+                                    <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-2.5">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/80 pb-2">
+                                            <div className="text-xs text-emerald-950 font-bold flex items-center gap-2 flex-wrap">
+                                                <span>✓</span>
+                                                <span>
+                                                    Buồng phòng đã hoàn tất kiểm tra lúc {formatDateTime(inspectionData?.completed_at || inspectionData?.created_at)}
+                                                </span>
+                                                {inspectionData?.inspector_name && (
+                                                    <span className="text-[11px] font-medium text-emerald-800 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
+                                                        Nhân viên: {inspectionData.inspector_name}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    await fetchInspectionStatus();
+                                                    await refreshSummary();
+                                                }}
+                                                className="text-[11px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer self-start sm:self-auto"
+                                            >
+                                                🔄 Cập nhật lại
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                            {/* Báo cáo Minibar */}
+                                            <div className="bg-white p-2.5 rounded-xl border border-emerald-200/80 space-y-1">
+                                                <div className="font-bold text-slate-800 flex items-center justify-between">
+                                                    <span>🍾 Đồ uống / Đồ ăn Minibar:</span>
+                                                    <span className="font-mono text-emerald-700">
+                                                        {formatCurrency(inspectionData?.total_amount || 0)}
+                                                    </span>
+                                                </div>
+                                                {inspectionData?.items_consumed && inspectionData.items_consumed.length > 0 ? (
+                                                    <ul className="text-[11px] text-slate-600 space-y-0.5 pt-1 border-t border-slate-100">
+                                                        {inspectionData.items_consumed.map((it, idx) => (
+                                                            <li key={idx} className="flex justify-between">
+                                                                <span>• {it.item_name} (x{it.quantity})</span>
+                                                                <span className="font-medium text-slate-700">{formatCurrency(it.total_price)}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p className="text-[11px] text-slate-500 italic">
+                                                        Khách không sử dụng đồ trong minibar.
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Báo cáo Hư hại / Bồi thường */}
+                                            <div className="bg-white p-2.5 rounded-xl border border-emerald-200/80 space-y-1">
+                                                <div className="font-bold text-slate-800 flex items-center justify-between">
+                                                    <span>🛠️ Tình trạng tài sản phòng:</span>
+                                                    {inspectionData?.has_damage ? (
+                                                        <span className="font-mono text-rose-700 font-bold">
+                                                            +{formatCurrency(inspectionData?.damage_amount || 0)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[11px] text-emerald-700 font-bold">✓ Nguyên vẹn</span>
+                                                    )}
+                                                </div>
+                                                {inspectionData?.has_damage ? (
+                                                    <div className="text-[11px] text-rose-800 bg-rose-50 p-2 rounded-lg border border-rose-200 space-y-0.5">
+                                                        <p className="font-bold">⚠️ Có hư hại ghi nhận:</p>
+                                                        <p className="leading-relaxed">{inspectionData.damage_description || 'Hư hại đồ dùng trong phòng'}</p>
+                                                        <p className="font-semibold text-rose-900 mt-1">
+                                                            Đã cộng khoản đền bù <strong>{formatCurrency(inspectionData.damage_amount)}</strong> vào bảng kê Folio bên dưới.
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-[11px] text-slate-500 italic">
+                                                        Trang thiết bị và đồ dùng trong phòng đầy đủ, hoạt động bình thường.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {inspectionData?.note && (
+                                            <p className="text-[11px] text-slate-600 bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                                💬 <strong>Ghi chú:</strong> {inspectionData.note}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ================================================================= */}
                         {/* THÔNG BÁO TÁC VỤ DỊCH VỤ NHANH (NẾU CÓ)                          */}
                         {/* ================================================================= */}
                         {serviceActionMsg && (
-                            <div className={`p-3 rounded-2xl border text-xs flex items-center justify-between transition-all shadow-xs ${
-                                serviceActionMsg.type === 'success'
+                            <div className={`p-3 rounded-2xl border text-xs flex items-center justify-between transition-all shadow-xs ${serviceActionMsg.type === 'success'
                                     ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
                                     : 'bg-sky-50/90 border-sky-200 text-sky-900'
-                            }`}>
+                                }`}>
                                 <span className="flex items-center gap-2 font-medium">
                                     <span className="text-base">{serviceActionMsg.type === 'success' ? '✅' : 'ℹ️'}</span>
                                     <span>{serviceActionMsg.text}</span>
@@ -778,7 +1145,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="font-serif text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-                                    <span>📋</span>
+                                    
                                     <span>Bảng Kê Chi Tiết Folio Thanh Toán</span>
                                 </h3>
                                 <span className="text-[11px] text-slate-400">Đơn vị: VNĐ</span>
@@ -821,7 +1188,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             <tr className="bg-emerald-50/25 hover:bg-emerald-50/40 border-l-2 border-emerald-500">
                                                 <td className="py-2.5 px-4">
                                                     <div className="font-semibold text-emerald-900 flex items-center gap-1.5">
-                                                        <span>🎁</span>
+                                                        
                                                         <span>
                                                             Ưu đãi giảm giá {promoCode ? `(${promoCode})` : ''}
                                                         </span>
@@ -860,13 +1227,12 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 return (
                                                     <tr
                                                         key={svc.id || idx}
-                                                        className={`${
-                                                            isDamage
+                                                        className={`${isDamage
                                                                 ? 'bg-rose-50/30 hover:bg-rose-50/50 border-l-2 border-rose-400'
                                                                 : isUncompleted
                                                                     ? 'bg-amber-50/30 hover:bg-amber-50/50 border-l-2 border-amber-400'
                                                                     : 'hover:bg-slate-50/60'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <td className="py-2.5 px-4">
                                                             <div className="font-semibold text-slate-800 flex items-center gap-1.5 flex-wrap">
@@ -1080,9 +1446,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 </span>
                                             </td>
                                             <td className="py-3 px-4 text-right">
-                                                <span className={`text-xl font-black ${
-                                                    currentRemainingBalance > 0 ? 'text-rose-600 font-extrabold' : 'text-emerald-700 font-black'
-                                                }`}>
+                                                <span className={`text-xl font-black ${currentRemainingBalance > 0 ? 'text-rose-600 font-extrabold' : 'text-emerald-700 font-black'
+                                                    }`}>
                                                     {currentRemainingBalance > 0 ? formatCurrency(currentRemainingBalance) : (isGroupRoom ? '0đ (HĐ ĐOÀN ĐÃ BẢO LÃNH)' : '0đ (ĐÃ THANH TOÁN ĐỦ)')}
                                                 </span>
                                             </td>
@@ -1123,22 +1488,20 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         <button
                                             type="button"
                                             onClick={() => setPaymentMethod('bank_transfer')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                                                paymentMethod === 'bank_transfer'
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${paymentMethod === 'bank_transfer'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
-                                            }`}
+                                                }`}
                                         >
                                             🏦 Quét mã VietQR
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setPaymentMethod('cash')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                                                paymentMethod === 'cash'
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${paymentMethod === 'cash'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
-                                            }`}
+                                                }`}
                                         >
                                             💵 Tiền mặt tại quầy
                                         </button>
@@ -1391,11 +1754,10 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                     type="button"
                                     disabled={isSubmitting || !isPaymentSettled}
                                     onClick={handleConfirmCheckOut}
-                                    className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 text-white ${
-                                        !isPaymentSettled
+                                    className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 text-white ${!isPaymentSettled
                                             ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                                             : 'bg-slate-900 hover:bg-slate-800 text-white'
-                                    }`}
+                                        }`}
                                     title={!isPaymentSettled ? 'Vui lòng hoàn tất thanh toán số tiền còn thiếu trước khi Check-out.' : 'Nhấn để hoàn tất Check-out và trả phòng'}
                                 >
                                     {isSubmitting ? (

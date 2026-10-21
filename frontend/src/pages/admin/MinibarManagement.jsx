@@ -549,7 +549,7 @@ export default function MinibarManagement() {
                                                             title="Chỉnh sửa thông tin & giá"
                                                         >
                                                             <span>✏️</span>
-                                                            <span className="hidden sm:inline">Sửa</span>
+                                                            
                                                         </button>
                                                     )}
 
@@ -561,7 +561,7 @@ export default function MinibarManagement() {
                                                             title="Xóa khỏi danh mục"
                                                         >
                                                             <span>🗑️</span>
-                                                            <span className="hidden sm:inline">Xóa</span>
+                                                            
                                                         </button>
                                                     )}
 

@@ -256,7 +256,45 @@ class ConfirmPaymentView(APIView):
             # Khóa bi quan (Pessimistic Lock) bản ghi booking để tuần tự hóa các request thanh toán spam click cùng 1 đơn
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
 
-            # 4.1 Kiểm tra chống trùng giao dịch kép trong 30 giây (Idempotency check)
+            # 4.1 Kiểm tra xem đơn đặt phòng đã thanh toán đủ hay chưa (Idempotency & Overpayment Protection)
+            completed_payments = booking.payments.filter(payment_status='COMPLETED')
+            total_already_paid = sum(Decimal(str(p.amount)) for p in completed_payments)
+
+            # Nếu đơn đặt phòng đã được thanh toán đủ (hoặc vượt): trả về giao dịch gần nhất, không tạo mới trùng lặp
+            if total_already_paid >= grand_total and completed_payments.exists():
+                latest_payment = completed_payments.order_by('-id').first()
+                return Response(
+                    {
+                        "success": True,
+                        "message": f"Đơn đặt phòng {booking.booking_code} đã được thanh toán đủ ({total_already_paid:,.0f} VND).",
+                        "data": PaymentSerializer(latest_payment).data
+                    },
+                    status=status.HTTP_200_OK
+                )
+
+            # Nếu số tiền thanh toán gửi lên vượt quá số dư còn nợ thực tế
+            current_remaining = max(Decimal('0'), grand_total - total_already_paid)
+            if total_already_paid > Decimal('0') and amount_dec > (current_remaining + Decimal('1000')):
+                # Nếu đã trả đủ tiền phòng rồi và amount_dec bằng đúng tiền phòng (thao tác trùng từ modal cũ)
+                if total_already_paid >= pure_room_charge:
+                    latest_payment = completed_payments.order_by('-id').first()
+                    return Response(
+                        {
+                            "success": True,
+                            "message": f"Tiền phòng cho đơn {booking.booking_code} đã được ghi nhận trước đó ({latest_payment.transaction_id}). Dư nợ còn lại là {current_remaining:,.0f} VND.",
+                            "data": PaymentSerializer(latest_payment).data
+                        },
+                        status=status.HTTP_200_OK
+                    )
+                return Response(
+                    {
+                        "success": False,
+                        "message": f"Số tiền thanh toán ({amount_dec:,.0f} VND) vượt quá số dư còn thiếu của đơn ({current_remaining:,.0f} VND)."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # 4.2 Kiểm tra chống trùng giao dịch kép trong 30 giây (Idempotency check)
             thirty_seconds_ago = timezone.now() - timezone.timedelta(seconds=30)
             recent_duplicate = Payment.objects.filter(
                 booking=booking,

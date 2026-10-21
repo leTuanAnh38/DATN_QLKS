@@ -77,7 +77,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     service_staff: {
         overview: { read: false, create: false, update: false, delete: false },
         rooms: { read: true, create: false, update: false, delete: false },
-        services: { read: true, create: false, update: false, delete: false },
+        guests: { read: true, create: false, update: false, delete: false },
+        services: { read: true, create: true, update: true, delete: false },
         finance: { read: false, create: false, update: false, delete: false },
         employees: { read: false, create: false, update: false, delete: false },
     },

@@ -400,8 +400,8 @@ export const roomService = {
     },
 
     /**
-     * Gửi phiếu kiểm kê Minibar (tự động đẩy vào Folio/BookingExtraService nếu có đơn)
-     * @param {Object} data - { room_id, booking_id, items: [{ id, name, price, quantity }], note }
+     * Gửi phiếu kiểm kê Minibar & Hư hại (tự động đẩy vào Folio/BookingExtraService nếu có đơn)
+     * @param {Object} data - { room_id, booking_id, items: [{ id, name, price, quantity }], has_damage, damage_description, damage_amount, note }
      */
     async createMinibarCheck(data) {
         try {
@@ -416,6 +416,43 @@ export const roomService = {
             return {
                 success: false,
                 message: errMsg
+            };
+        }
+    },
+
+    /**
+     * Lễ tân gửi yêu cầu Buồng phòng kiểm tra phòng trước khi Check-out (Minibar & Hư hại tài sản)
+     * @param {Object} data - { room_id, booking_id, note }
+     */
+    async requestRoomInspection(data) {
+        try {
+            const response = await api.post('/rooms/minibar-checks/request-inspection/', data);
+            return response.data;
+        } catch (error) {
+            const errData = error.response?.data;
+            let errMsg = 'Gửi yêu cầu kiểm phòng thất bại.';
+            if (typeof errData === 'string') errMsg = errData;
+            else if (errData?.message) errMsg = errData.message;
+            else if (errData?.detail) errMsg = errData.detail;
+            return {
+                success: false,
+                message: errMsg
+            };
+        }
+    },
+
+    /**
+     * Lấy kết quả kiểm tra phòng gần nhất (cho Check-out modal & Sơ đồ phòng)
+     * @param {Object} params - { room_id, booking_id }
+     */
+    async getLatestInspection(params = {}) {
+        try {
+            const response = await api.get('/rooms/minibar-checks/latest/', { params });
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                check: null
             };
         }
     },

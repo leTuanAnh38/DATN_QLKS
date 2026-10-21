@@ -766,9 +766,7 @@ export default function Checkout() {
                                             <h2 className="font-serif font-bold text-lg text-slate-900">
                                                 Thời gian lưu trú
                                             </h2>
-                                            <p className="text-xs text-slate-500">
-                                                Nhận phòng từ {hotelSettings.check_in_time || '14:00'} • Trả phòng trước {hotelSettings.check_out_time || '12:00'}
-                                            </p>
+                                           
                                         </div>
                                     </div>
 
@@ -892,9 +890,7 @@ export default function Checkout() {
                                             <h2 className="font-serif font-bold text-lg text-slate-900">
                                                 Thông tin người liên hệ & nhận phòng
                                             </h2>
-                                            <p className="text-xs text-slate-500">
-                                                Thông tin cần thiết để lễ tân khách sạn làm thủ tục check-in
-                                            </p>
+                                            
                                         </div>
                                     </div>
 
@@ -1336,9 +1332,7 @@ export default function Checkout() {
                                                     Gợi ý HOT
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
-                                                Đặt kèm tiện ích cao cấp ngay hôm nay để thanh toán gộp 1 lần qua VietQR và được khách sạn phục vụ chu đáo nhất
-                                            </p>
+                                           
                                         </div>
                                     </div>
 
@@ -1561,9 +1555,7 @@ export default function Checkout() {
                                         <h2 className="font-serif font-bold text-lg text-slate-900">
                                             Mã giảm giá & Khuyến mãi (Promo Code)
                                         </h2>
-                                        <p className="text-xs text-slate-500">
-                                            Nhập mã ưu đãi độc quyền để nhận chiết khấu trực tiếp vào tổng tiền
-                                        </p>
+                                       
                                     </div>
                                 </div>
 
@@ -1653,9 +1645,7 @@ export default function Checkout() {
                                         <h2 className="font-serif font-bold text-lg text-slate-900">
                                             Yêu cầu đặc biệt & Ghi chú
                                         </h2>
-                                        <p className="text-xs text-slate-500">
-                                            Khách sạn sẽ cố gắng đáp ứng tùy theo tình trạng phòng thực tế
-                                        </p>
+                                    
                                     </div>
                                 </div>
 
@@ -1702,9 +1692,7 @@ export default function Checkout() {
                                         <h2 className="font-serif font-bold text-lg text-slate-900">
                                             Phương thức thanh toán
                                         </h2>
-                                        <p className="text-xs text-slate-500">
-                                            Quý khách có thể thanh toán trực tiếp hoặc qua chuyển khoản ngân hàng
-                                        </p>
+                                        
                                     </div>
                                 </div>
 

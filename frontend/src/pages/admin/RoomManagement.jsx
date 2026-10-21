@@ -231,16 +231,18 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     const [assignFilterMode, setAssignFilterMode] = useState('match_category'); // 'match_category' | 'all'
     const [isSubmittingAssignCheckIn, setIsSubmittingAssignCheckIn] = useState(false);
 
-    // Lắng nghe sự kiện realtime từ hệ thống PMS (đồng bộ khi check-in, check-out từ tab Quản lý Đặt phòng)
+    // Lắng nghe sự kiện realtime từ hệ thống PMS (đồng bộ khi check-in, check-out, kiểm tra minibar/hư hại)
     useEffect(() => {
         const handleSyncEvent = () => {
             fetchRooms(true);
         };
         window.addEventListener('pms_booking_created', handleSyncEvent);
         window.addEventListener('pms_room_updated', handleSyncEvent);
+        window.addEventListener('pms_minibar_updated', handleSyncEvent);
         return () => {
             window.removeEventListener('pms_booking_created', handleSyncEvent);
             window.removeEventListener('pms_room_updated', handleSyncEvent);
+            window.removeEventListener('pms_minibar_updated', handleSyncEvent);
         };
     }, []);
 
@@ -2198,19 +2200,21 @@ function RoomCard({
 }) {
     const statusConfig = ROOM_STATUSES[room.status] || ROOM_STATUSES.available;
     const currentBk = room.current_booking;
+    const isInspectionRequested = room.latest_minibar_check?.status === 'requested';
+    const isInspectionCompleted = room.latest_minibar_check?.status === 'completed' && room.status === 'occupied';
 
     // Phân quyền chuyên trách theo vai trò vận hành PMS:
     // 1. Minibar: Buồng phòng, Lễ tân, Quản lý, Admin (Kỹ thuật & Phục vụ không có)
     const canAccessMinibar = !['technician', 'service_staff', 'cashier'].includes(userRole);
 
-    // 2. Báo đồ bỏ quên: Buồng phòng, Kỹ thuật viên (khi vào sửa phòng nhặt được đồ rơi), Lễ tân, Quản lý, Admin
-    const canReportLostItem = !['service_staff', 'cashier'].includes(userRole);
+    // 2. Báo đồ bỏ quên: Buồng phòng, Phục vụ phòng (Room Service), Kỹ thuật viên, Lễ tân, Quản lý, Admin
+    const canReportLostItem = !['cashier'].includes(userRole);
 
     // 3. Đã dọn xong -> Sẵn sàng: CHỈ Buồng phòng, Quản lý, Admin (Lễ tân chỉ theo dõi, không tự ý duyệt phòng sạch)
     const canMarkCleaned = ['housekeeper', 'manager', 'owner', 'admin'].includes(userRole) || isManagerOrAdmin;
 
-    // 4. Báo hỏng thiết bị: Buồng phòng, Kỹ thuật viên, Lễ tân, Quản lý, Admin
-    const canReportMaintenance = !['service_staff', 'cashier'].includes(userRole);
+    // 4. Báo hỏng thiết bị: Buồng phòng, Phục vụ, Kỹ thuật viên, Lễ tân, Quản lý, Admin
+    const canReportMaintenance = !['cashier'].includes(userRole);
 
     // 5. Sửa xong -> Nghiệm thu & Bàn giao dọn: Kỹ thuật viên, Quản lý, Admin
     const canCompleteMaintenance = ['technician', 'admin', 'owner', 'manager'].includes(userRole);
@@ -2223,7 +2227,9 @@ function RoomCard({
 
     return (
         <div
-            className={`relative rounded-2xl border-2 p-3.5 flex flex-col justify-between transition-all duration-200 group ${statusConfig.cardClass}`}
+            className={`relative rounded-2xl border-2 p-3.5 flex flex-col justify-between transition-all duration-200 group ${statusConfig.cardClass} ${
+                isInspectionRequested ? 'ring-3 ring-amber-500 ring-offset-2 border-amber-500 shadow-md' : ''
+            }`}
         >
             {/* Loading Overlay khi đang đổi trạng thái */}
             {isLoading && (
@@ -2328,6 +2334,40 @@ function RoomCard({
                             Khách lưu trú vãng lai
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* THÔNG BÁO LỄ TÂN ĐỢI KIỂM TRA PHÒNG CHECK-OUT (MINIBAR & HƯ HẠI)           */}
+            {/* ========================================================================= */}
+            {isInspectionRequested && (
+                <div className="mt-2 p-2 rounded-xl bg-amber-500/10 border-2 border-amber-500 shadow-xs space-y-1.5 animate-in fade-in">
+                    <div className="flex items-center justify-between text-[10px] font-black text-amber-900">
+                        <span className="flex items-center gap-1">🛎️ LỄ TÂN ĐỢI KIỂM PHÒNG</span>
+                        <span className="px-1.5 py-0.2 bg-amber-500 text-white rounded text-[9px] font-mono tracking-wider animate-pulse">CHECK-OUT</span>
+                    </div>
+                    <p className="text-[10px] text-amber-950 font-medium leading-tight">
+                        Lễ tân đang đợi kiểm Minibar & Hư hại để quyết toán.
+                    </p>
+                    {canAccessMinibar && onOpenMinibar && (
+                        <button
+                            type="button"
+                            onClick={() => onOpenMinibar(room)}
+                            className="w-full py-1.5 px-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-[10px] font-bold rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                            <span>🔍</span>
+                            <span>Kiểm tra phòng Check-out</span>
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {isInspectionCompleted && (
+                <div className="mt-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-800 flex items-center justify-between font-semibold">
+                    <span>✓ Đã kiểm phòng</span>
+                    <span className="font-mono font-bold text-emerald-900">
+                        {room.latest_minibar_check.total_amount > 0 ? formatCurrency(room.latest_minibar_check.total_amount) : 'Nguyên vẹn'}
+                    </span>
                 </div>
             )}
 
