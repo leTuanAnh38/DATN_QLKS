@@ -55,11 +55,13 @@ export default function Sidebar({
     const canViewBookings = useHasPermission('bookings', 'read');
     const canViewGuests = useHasPermission('guests', 'read');
     const canViewServices = useHasPermission('services', 'read');
-    const canViewFinance = useHasPermission('finance', 'read');
-    const canViewReports = useHasPermission('reports', 'read');
+    const canViewInvoices = useHasPermission('finance', 'read');
+    const canViewAnalytics = useHasPermission('reports', 'read');
     const canViewEmployees = useHasPermission('employees', 'read');
     const canViewMarketing = useHasPermission('marketing', 'read');
     const canViewSettings = useHasPermission('settings', 'read');
+    const canViewReviews = useHasPermission('reviews', 'read');
+    const canViewContacts = useHasPermission('contacts', 'read');
 
     const isHighLevelManager = Boolean(
         user &&
@@ -72,7 +74,7 @@ export default function Sidebar({
     };
 
     return (
-        <aside className="w-64 bg-slate-900 border-r border-slate-800 text-white flex flex-col shrink-0 min-h-screen">
+        <aside className="w-80 bg-slate-900 border-r border-slate-800 text-white flex flex-col shrink-0 min-h-screen">
             {/* Logo Khách Sạn */}
             <div className="p-6 border-b border-slate-800/80 flex items-center justify-between">
                 <Link to="/admin" className="flex items-center gap-3">
@@ -92,12 +94,12 @@ export default function Sidebar({
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 text-sm">
 
                 {/* ================================================================= */}
-                {/* NHÓM 1: TỔNG QUAN & LỄ TÂN (BÀN LÀM VIỆC) */}
+                {/* NHÓM 1: VẬN HÀNH & TIỀN SẢNH (FO & PMS) */}
                 {/* ================================================================= */}
-                {(canViewOverview || canViewRooms) && (
+                {(canViewOverview || canViewRooms || canViewBookings || canViewServices || canViewInvoices) && (
                     <div className="space-y-1">
                         <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                            Bàn Làm Việc
+                            Vận hành & Tiền sảnh
                         </div>
 
                         {/* 1. Tổng quan */}
@@ -143,165 +145,7 @@ export default function Sidebar({
                             </button>
                         )}
 
-                        {/* 3. Đồ thất lạc (Lost & Found) */}
-                        {canViewRooms && (
-                            <button
-                                type="button"
-                                onClick={() => handleSelectTab('lost-and-found', '/admin/lost-and-found')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
-                                    activeTab === 'lost-and-found' || location.pathname === '/admin/lost-and-found'
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <rect x="3" y="7" width="18" height="13" rx="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        <path d="M9 11v5m6-5v5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                    <span>Đồ Thất Lạc</span>
-                                </div>
-                                <span className="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-500/30">
-                                    L&F
-                                </span>
-                            </button>
-                        )}
-                    </div>
-                )}
-
-                {/* ================================================================= */}
-                {/* NHÓM 2: PHÒNG & GIÁ (CÓ DROPDOWN TIỆN NGHI) */}
-                {/* ================================================================= */}
-                {canViewCategories && (
-                    <div className="space-y-1">
-                        <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                            Buồng Phòng
-                        </div>
-
-                        {/* DROPDOWN HẠNG PHÒNG & BẢNG GIÁ */}
-                        <div className="space-y-1">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (activeTab !== 'categories' && activeTab !== 'amenities' && activeTab !== 'minibar') {
-                                        handleSelectTab('categories');
-                                        setIsCategoryOpen(true);
-                                    } else if (activeTab === 'amenities' || activeTab === 'minibar') {
-                                        handleSelectTab('categories');
-                                        setIsCategoryOpen(true);
-                                    } else {
-                                        setIsCategoryOpen(!isCategoryOpen);
-                                    }
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${
-                                    activeTab === 'categories'
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                        : (activeTab === 'amenities' || activeTab === 'minibar')
-                                            ? 'bg-slate-800 text-white'
-                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                }`}
-                                title="Hạng phòng & Bảng giá"
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
-                                    <span className="truncate text-left">Hạng phòng & Bảng giá</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                    <span className="bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                                        Suites
-                                    </span>
-                                    <span
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsCategoryOpen(!isCategoryOpen);
-                                        }}
-                                        className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
-                                        title={isCategoryOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
-                                    >
-                                        <svg
-                                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${
-                                                isCategoryOpen ? 'rotate-180 text-white' : 'rotate-0'
-                                            }`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </span>
-                                </div>
-                            </button>
-
-                            {/* MENU CON: TIỆN NGHI */}
-                            <div
-                                className={`grid transition-all duration-300 ease-in-out overflow-hidden ${
-                                    isCategoryOpen
-                                        ? 'grid-rows-[1fr] opacity-100'
-                                        : 'grid-rows-[0fr] opacity-0'
-                                }`}
-                            >
-                                <div className="min-h-0">
-                                    <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSelectTab('amenities', '/admin/amenities')}
-                                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
-                                                activeTab === 'amenities' || location.pathname === '/admin/amenities'
-                                                    ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                                </svg>
-                                                <span className="truncate text-left">Tiện nghi</span>
-                                            </div>
-                                            <span className="shrink-0 text-[10px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 ml-2">
-                                                Tiện ích
-                                            </span>
-                                        </button>
-
-                                        {/* MENU CON: MINIBAR */}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSelectTab('minibar', '/admin/minibar')}
-                                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
-                                                activeTab === 'minibar' || location.pathname === '/admin/minibar' || location.pathname === '/admin/minibar-items'
-                                                    ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                                </svg>
-                                                <span className="truncate text-left">Đồ Minibar</span>
-                                            </div>
-                                            <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
-                                                Giá bán
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* ================================================================= */}
-                {/* NHÓM 3: ĐẶT PHÒNG & KHÁCH HÀNG */}
-                {/* ================================================================= */}
-                {(canViewBookings || canViewGuests || canViewServices) && (
-                    <div className="space-y-1">
-                        <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                            Giao dịch & Khách
-                        </div>
-
-                        {/* DROPDOWN QUẢN LÝ ĐẶT PHÒNG */}
+                        {/* 3. Dropdown Quản lý Đặt phòng */}
                         {canViewBookings && (
                             <div className="space-y-1">
                                 <button
@@ -390,30 +234,7 @@ export default function Sidebar({
                             </div>
                         )}
 
-                        {/* Quản lý Khách hàng */}
-                        {canViewGuests && (
-                            <button
-                                type="button"
-                                onClick={() => handleSelectTab('guests')}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
-                                    activeTab === 'guests'
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                    </svg>
-                                    <span>Quản lý Khách hàng</span>
-                                </div>
-                                <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/30">
-                                    VIP
-                                </span>
-                            </button>
-                        )}
-
-                        {/* Dịch vụ & Yêu cầu phòng */}
+                        {/* 4. Yêu cầu Dịch vụ */}
                         {canViewServices && (
                             <button
                                 type="button"
@@ -436,7 +257,178 @@ export default function Sidebar({
                             </button>
                         )}
 
-                        {/* Danh mục Thực đơn & Dịch vụ */}
+                        {/* 5. Hóa đơn & Thu ngân */}
+                        {canViewInvoices && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('invoices')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'invoices'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                                    </svg>
+                                    <span>Hóa đơn & Thu ngân</span>
+                                </div>
+                                <span className="bg-cyan-500/20 text-cyan-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-cyan-500/30">
+                                    VietQR
+                                </span>
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* ================================================================= */}
+                {/* NHÓM 2: BUỒNG PHÒNG & TIỆN ÍCH / DỊCH VỤ */}
+                {/* ================================================================= */}
+                {(canViewCategories || canViewRooms || canViewServices) && (
+                    <div className="space-y-1">
+                        <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            Buồng phòng & Tiện ích
+                        </div>
+
+                        {/* 1. DROPDOWN HẠNG PHÒNG & GIÁ */}
+                        {canViewCategories && (
+                            <div className="space-y-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (activeTab !== 'categories' && activeTab !== 'amenities' && activeTab !== 'minibar') {
+                                            handleSelectTab('categories');
+                                            setIsCategoryOpen(true);
+                                        } else if (activeTab === 'amenities' || activeTab === 'minibar') {
+                                            handleSelectTab('categories');
+                                            setIsCategoryOpen(true);
+                                        } else {
+                                            setIsCategoryOpen(!isCategoryOpen);
+                                        }
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${
+                                        activeTab === 'categories'
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : (activeTab === 'amenities' || activeTab === 'minibar')
+                                                ? 'bg-slate-800 text-white'
+                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                                    title="Hạng phòng & Giá"
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                        <span className="truncate text-left">Hạng phòng & Giá</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="bg-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                                            Suites
+                                        </span>
+                                        <span
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsCategoryOpen(!isCategoryOpen);
+                                            }}
+                                            className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
+                                            title={isCategoryOpen ? "Thu gọn menu con" : "Mở rộng menu con"}
+                                        >
+                                            <svg
+                                                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${
+                                                    isCategoryOpen ? 'rotate-180 text-white' : 'rotate-0'
+                                                }`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                </button>
+
+                                {/* MENU CON: TIỆN NGHI & MINIBAR */}
+                                <div
+                                    className={`grid transition-all duration-300 ease-in-out overflow-hidden ${
+                                        isCategoryOpen
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0'
+                                    }`}
+                                >
+                                    <div className="min-h-0">
+                                        <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectTab('amenities', '/admin/amenities')}
+                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
+                                                    activeTab === 'amenities' || location.pathname === '/admin/amenities'
+                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                    </svg>
+                                                    <span className="truncate text-left">Tiện nghi</span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 ml-2">
+                                                    Tiện ích
+                                                </span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectTab('minibar', '/admin/minibar')}
+                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
+                                                    activeTab === 'minibar' || location.pathname === '/admin/minibar' || location.pathname === '/admin/minibar-items'
+                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                    </svg>
+                                                    <span className="truncate text-left">Đồ Minibar</span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
+                                                    Giá bán
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2. Đồ Thất Lạc (Lost & Found) */}
+                        {canViewRooms && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('lost-and-found', '/admin/lost-and-found')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'lost-and-found' || location.pathname === '/admin/lost-and-found'
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <rect x="3" y="7" width="18" height="13" rx="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M9 11v5m6-5v5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    <span>Đồ Thất Lạc</span>
+                                </div>
+                                <span className="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-500/30">
+                                    L&F
+                                </span>
+                            </button>
+                        )}
+
+                        {/* 3. Danh mục Thực đơn & Dịch vụ */}
                         {canViewServices && (
                             <button
                                 type="button"
@@ -460,39 +452,195 @@ export default function Sidebar({
                 )}
 
                 {/* ================================================================= */}
-                {/* NHÓM 4: DOANH NGHIỆP, TÀI CHÍNH & NHÂN SỰ */}
+                {/* NHÓM 3: KHÁCH HÀNG & MARKETING */}
                 {/* ================================================================= */}
-                {(canViewFinance || canViewReports || canViewEmployees) && (
+                {(canViewGuests || canViewReviews || canViewMarketing || canViewContacts) && (
                     <div className="space-y-1">
                         <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                            Quản Trị Doanh Nghiệp
+                            Khách hàng & Marketing
                         </div>
 
-                        {/* 1. Hóa đơn & Thu ngân */}
-                        {canViewFinance && (
+                        {/* 1. Quản lý Khách hàng */}
+                        {canViewGuests && (
                             <button
                                 type="button"
-                                onClick={() => handleSelectTab('invoices')}
+                                onClick={() => handleSelectTab('guests')}
                                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
-                                    activeTab === 'invoices'
+                                    activeTab === 'guests'
                                         ? 'bg-blue-600 text-white shadow-md'
                                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                 }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
-                                    <span>Hóa đơn & Thu ngân</span>
+                                    <span>Quản lý Khách hàng</span>
                                 </div>
-                                <span className="bg-cyan-500/20 text-cyan-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-cyan-500/30">
-                                    VietQR
+                                <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/30">
+                                    VIP
                                 </span>
                             </button>
                         )}
 
-                        {/* 2. Báo cáo & Thống kê Doanh thu */}
-                        {canViewReports && (
+                        {/* 2. Đánh giá & Phản hồi */}
+                        {canViewReviews && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('reviews')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'reviews'
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                    </svg>
+                                    <span>Đánh giá & Phản hồi</span>
+                                </div>
+                                <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                                    Review
+                                </span>
+                            </button>
+                        )}
+
+                        {/* 3. Marketing & Ưu đãi (Dropdown: Khuyến mãi & Tin tức) */}
+                        {canViewMarketing && (
+                            <div className="space-y-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsMarketingOpen(!isMarketingOpen)}
+                                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${
+                                        ['posts', 'promotions'].includes(activeTab) || location.pathname === '/admin/posts' || location.pathname === '/admin/promotions'
+                                            ? 'bg-slate-800 text-white'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                                    title="Marketing & Ưu đãi"
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                        </svg>
+                                        <span className="truncate text-left">Marketing & Ưu đãi</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="bg-rose-500/30 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-400/30">
+                                            PROMO
+                                        </span>
+                                        <span
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsMarketingOpen(!isMarketingOpen);
+                                            }}
+                                            className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
+                                        >
+                                            <svg
+                                                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${
+                                                    isMarketingOpen ? 'rotate-180 text-white' : 'rotate-0'
+                                                }`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                </button>
+
+                                {/* Menu con: Khuyến mãi, Tin tức & Blog */}
+                                <div
+                                    className={`grid transition-all duration-300 ease-in-out overflow-hidden ${
+                                        isMarketingOpen
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0'
+                                    }`}
+                                >
+                                    <div className="min-h-0">
+                                        <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectTab('promotions', '/admin/promotions')}
+                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
+                                                    activeTab === 'promotions' || location.pathname === '/admin/promotions'
+                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                    </svg>
+                                                    <span className="truncate text-left">Khuyến mãi</span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-bold bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 ml-2">
+                                                    Voucher
+                                                </span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectTab('posts', '/admin/posts')}
+                                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
+                                                    activeTab === 'posts' || location.pathname === '/admin/posts'
+                                                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                                    </svg>
+                                                    <span className="truncate text-left">Tin tức & Blog</span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
+                                                    Blog
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 4. Liên hệ & Góp ý */}
+                        {canViewContacts && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('contacts')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'contacts'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>Liên hệ & Góp ý</span>
+                                </div>
+                                <span className="bg-sky-500/20 text-sky-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-500/30">
+                                    Inbox
+                                </span>
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* ================================================================= */}
+                {/* NHÓM 4: BÁO CÁO & HỆ THỐNG */}
+                {/* ================================================================= */}
+                {(canViewAnalytics || canViewEmployees || canViewSettings || isHighLevelManager) && (
+                    <div className="space-y-1">
+                        <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            Báo cáo & Hệ thống
+                        </div>
+
+                        {/* 1. Báo cáo & Thống kê Doanh thu */}
+                        {canViewAnalytics && (
                             <button
                                 type="button"
                                 onClick={() => handleSelectTab('analytics', '/admin?tab=analytics')}
@@ -514,7 +662,7 @@ export default function Sidebar({
                             </button>
                         )}
 
-                        {/* 3. Quản lý Nhân sự & Phân quyền (RBAC) */}
+                        {/* 2. Quản lý Nhân sự & Phân quyền (RBAC) */}
                         {canViewEmployees && (
                             <button
                                 type="button"
@@ -536,139 +684,53 @@ export default function Sidebar({
                                 </span>
                             </button>
                         )}
-                    </div>
-                )}
 
-                {/* ================================================================= */}
-                {/* NHÓM 5: MARKETING & KHUYẾN MÃI (DROPDOWN) */}
-                {/* ================================================================= */}
-                {canViewMarketing && (
-                    <div className="space-y-1">
-                        <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                            Truyền Thông
-                        </div>
-
-                        <div className="space-y-1">
+                        {/* 3. Cài đặt hệ thống */}
+                        {canViewSettings && (
                             <button
                                 type="button"
-                                onClick={() => setIsMarketingOpen(!isMarketingOpen)}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer select-none ${
-                                    ['posts', 'promotions'].includes(activeTab) || location.pathname === '/admin/posts' || location.pathname === '/admin/promotions'
-                                        ? 'bg-slate-800 text-white'
+                                onClick={() => handleSelectTab('settings', '/admin/settings')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'settings' || location.pathname === '/admin/settings'
+                                        ? 'bg-blue-600 text-white shadow-md'
                                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                 }`}
-                                title="Marketing & Khuyến mãi"
                             >
-                                <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                <div className="flex items-center gap-3">
                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
-                                    <span className="truncate text-left">Marketing & Khuyến mãi</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                    <span className="bg-rose-500/30 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-400/30">
-                                        PROMO
-                                    </span>
-                                    <span
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsMarketingOpen(!isMarketingOpen);
-                                        }}
-                                        className="shrink-0 p-1 rounded hover:bg-slate-700/60 transition cursor-pointer"
-                                    >
-                                        <svg
-                                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${
-                                                isMarketingOpen ? 'rotate-180 text-white' : 'rotate-0'
-                                            }`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </span>
+                                    <span>Cài đặt hệ thống</span>
                                 </div>
                             </button>
+                        )}
 
-                            {/* Menu con: Tin tức & Blog, Khuyến mãi */}
-                            <div
-                                className={`grid transition-all duration-300 ease-in-out overflow-hidden ${
-                                    isMarketingOpen
-                                        ? 'grid-rows-[1fr] opacity-100'
-                                        : 'grid-rows-[0fr] opacity-0'
+                        {/* 4. Nhật ký hệ thống (Audit Logs) */}
+                        {isHighLevelManager && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('audit-logs')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'audit-logs'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                 }`}
                             >
-                                <div className="min-h-0">
-                                    <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-slate-700/60 ml-4 my-1">
-                                        {/* 1. Tin tức & Blog */}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSelectTab('posts', '/admin/posts')}
-                                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
-                                                activeTab === 'posts' || location.pathname === '/admin/posts'
-                                                    ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                                </svg>
-                                                <span className="truncate text-left">Tin tức & Blog</span>
-                                            </div>
-                                            <span className="shrink-0 text-[10px] font-bold bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30 ml-2">
-                                                Blog
-                                            </span>
-                                        </button>
-
-                                        {/* 2. Khuyến mãi */}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSelectTab('promotions', '/admin/promotions')}
-                                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-left text-xs font-semibold transition cursor-pointer ${
-                                                activeTab === 'promotions' || location.pathname === '/admin/promotions'
-                                                    ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                                </svg>
-                                                <span className="truncate text-left">Khuyến mãi</span>
-                                            </div>
-                                            <span className="shrink-0 text-[10px] font-bold bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 ml-2">
-                                                Voucher
-                                            </span>
-                                        </button>
-                                    </div>
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>Nhật ký hệ thống</span>
                                 </div>
-                            </div>
-                        </div>
+                                <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-600">
+                                    Log
+                                </span>
+                            </button>
+                        )}
                     </div>
                 )}
-
-                {/* ================================================================= */}
-                {/* NHÓM 6: CÀI ĐẶT HỆ THỐNG */}
-                {/* ================================================================= */}
-                {canViewSettings && (
-                    <div className="space-y-1">
-                        <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                            Hệ Thống
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => handleSelectTab('settings', '/admin/settings')}
-                            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
-                                activeTab === 'settings' || location.pathname === '/admin/settings'
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                            }`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </div>keLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 <span>Cài đặt hệ thống</span>
                             </div>
