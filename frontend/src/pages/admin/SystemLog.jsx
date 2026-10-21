@@ -337,7 +337,8 @@ export default function SystemLog() {
 
       {/* Bảng Dữ Liệu (Audit Log Table) */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -421,6 +422,68 @@ export default function SystemLog() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View (< md) */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {loading ? (
+            <div className="py-12 text-center text-slate-400">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
+              <p className="text-xs font-semibold">Đang nạp nhật ký kiểm toán...</p>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 p-4">
+              <FileText className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-1" />
+              <p className="text-xs font-semibold">Không tìm thấy thao tác nào phù hợp.</p>
+            </div>
+          ) : (
+            logs.map((log) => (
+              <div key={log.id} className="p-3.5 space-y-2 hover:bg-slate-50/60 transition">
+                {/* Header: User & Action */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold border border-slate-200 shrink-0">
+                      {log.username ? log.username.charAt(0).toUpperCase() : 'S'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs text-slate-800 truncate">
+                        {log.user_full_name || log.username || 'Hệ thống'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 italic">
+                        {log.user_role_display || (log.user_role ? log.user_role.toUpperCase() : 'Hệ thống')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {renderActionBadge(log.action)}
+                  </div>
+                </div>
+
+                {/* Module & Time */}
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                  <div>
+                    {renderModuleBadge(log.module, log.module_display)}
+                  </div>
+                  <div className="flex items-center gap-1 font-mono text-[10px] text-slate-400">
+                    <Clock className="w-3 h-3 text-slate-400" />
+                    <span>{formatDateTime(log.created_at)}</span>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {log.description && (
+                  <p className="text-xs text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-100 leading-relaxed">
+                    {log.description}
+                  </p>
+                )}
+
+                {/* IP Address */}
+                <div className="text-right text-[10px] text-slate-400 font-mono">
+                  IP: {log.ip_address || '127.0.0.1'}
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Footer Phân Trang Nâng Cao */}

@@ -447,11 +447,11 @@ export default function InvoiceManagement() {
             {/* ================================================================= */}
             {/* 1.2 THANH CHUYỂN ĐỔI TAB: GIAO DỊCH vs LỊCH SỬ CA TRỰC (Z-REPORT)   */}
             {/* ================================================================= */}
-            <div className="flex items-center gap-2 border-b border-slate-200/80 pb-1.5">
+            <div className="flex items-center gap-2 border-b border-slate-200/80 pb-1.5 overflow-x-auto scrollbar-none max-w-full">
                 <button
                     type="button"
                     onClick={() => setActiveTab('TRANSACTIONS')}
-                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
                         activeTab === 'TRANSACTIONS'
                             ? 'bg-slate-900 text-white shadow-xs'
                             : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
@@ -464,7 +464,7 @@ export default function InvoiceManagement() {
                 <button
                     type="button"
                     onClick={() => setActiveTab('SHIFTS')}
-                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
                         activeTab === 'SHIFTS'
                             ? 'bg-slate-900 text-white shadow-xs'
                             : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
@@ -615,7 +615,8 @@ export default function InvoiceManagement() {
             {/* 3. BẢNG DỮ LIỆU GIAO DỊCH (DATA TABLE)                            */}
             {/* ================================================================= */}
             <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* BẢNG DỮ LIỆU GIAO DỊCH (CHỈ HIỂN THỊ TRÊN DESKTOP/TABLET) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs sm:text-sm border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
@@ -873,6 +874,204 @@ export default function InvoiceManagement() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* ================================================================= */}
+                {/* 3B. CHẾ ĐỘ THẺ GIAO DỊCH DI ĐỘNG (MOBILE CARD VIEW)               */}
+                {/* ================================================================= */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {isLoading ? (
+                        <div className="py-12 text-center text-slate-400">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                                <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+                                <span>Đang tải dữ liệu giao dịch...</span>
+                            </div>
+                        </div>
+                    ) : filteredPayments.length === 0 ? (
+                        <div className="py-12 text-center text-slate-400 p-4">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                                <Receipt className="w-8 h-8 text-slate-300" />
+                                <span className="font-medium text-slate-600">Không tìm thấy giao dịch nào</span>
+                                <span className="text-xs text-slate-400">Thử thay đổi bộ lọc tìm kiếm hoặc từ khóa</span>
+                            </div>
+                        </div>
+                    ) : (
+                        paginatedPayments.map((payment) => {
+                            const isCompleted = payment.payment_status === 'COMPLETED';
+                            const isPending = payment.payment_status === 'PENDING';
+                            const isFailed = payment.payment_status === 'FAILED';
+
+                            const isVietQR =
+                                payment.payment_method === 'TRANSFER' ||
+                                payment.payment_method === 'vietqr' ||
+                                payment.payment_method === 'bank_transfer';
+
+                            const isGroupOrCorp = Boolean(
+                                payment.is_group || 
+                                payment.group_booking_code || 
+                                payment.company_name || 
+                                (payment.transaction_id && payment.transaction_id.includes('GRP-'))
+                            );
+                            const phoneDisplay = payment.guest_phone || payment.booking?.guest?.phone;
+                            const codeDisplay = payment.group_booking_code || payment.booking_code || (
+                                payment.transaction_id && payment.transaction_id.includes('GRP-')
+                                    ? payment.transaction_id.replace('TXN-', '')
+                                    : (payment.booking_id ? `BK-${payment.booking_id}` : '—')
+                            );
+
+                            return (
+                                <div
+                                    key={payment.id}
+                                    className="p-3.5 sm:p-4 hover:bg-blue-50/20 transition space-y-2.5"
+                                >
+                                    {/* 1. Header: Mã giao dịch & Trạng thái */}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                                            <span className="font-bold text-slate-800">
+                                                {payment.transaction_id || `TXN-${payment.id}`}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyTxn(payment.transaction_id || `TXN-${payment.id}`)}
+                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition shrink-0 cursor-pointer"
+                                                title="Sao chép mã"
+                                            >
+                                                {copiedTxn === (payment.transaction_id || `TXN-${payment.id}`) ? (
+                                                    <Check className="w-3 h-3 text-emerald-600" />
+                                                ) : (
+                                                    <Copy className="w-3 h-3" />
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        <div>
+                                            {isCompleted && (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                                    <span>Thành công</span>
+                                                </span>
+                                            )}
+                                            {isPending && (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                    <Clock className="w-3 h-3 shrink-0" />
+                                                    <span>Chờ xử lý</span>
+                                                </span>
+                                            )}
+                                            {isFailed && (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                    <XCircle className="w-3 h-3 shrink-0" />
+                                                    <span>Thất bại</span>
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Khách hàng & Mã phòng */}
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            {isGroupOrCorp && (
+                                                <span className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider mb-0.5">
+                                                    🏢 Doanh nghiệp / Đoàn
+                                                </span>
+                                            )}
+                                            <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                                                {payment.guest_name || payment.company_name || 'Khách vãng lai'}
+                                            </div>
+                                            {phoneDisplay && (
+                                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                                    📞 {phoneDisplay}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="text-right shrink-0">
+                                            {isGroupOrCorp ? (
+                                                <div>
+                                                    <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 text-xs inline-block shadow-2xs">
+                                                        #{codeDisplay}
+                                                    </span>
+                                                    <div className="text-[10px] text-slate-600 font-medium mt-0.5">
+                                                        {payment.room_number || 'Đơn đặt đoàn'}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-xs inline-block">
+                                                        #{codeDisplay}
+                                                    </span>
+                                                    {payment.room_number && (
+                                                        <div className="text-[10px] text-slate-500 mt-0.5">
+                                                            Phòng {payment.room_number}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Số tiền, Hình thức & Ngày tạo */}
+                                    <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200/80 flex items-center justify-between">
+                                        <div>
+                                            <span className="text-[10px] text-slate-400 block font-medium">Số tiền thu</span>
+                                            <span className="font-mono font-black text-slate-900 text-sm">
+                                                {formatVND(payment.amount)}
+                                            </span>
+                                        </div>
+
+                                        <div className="text-right space-y-1">
+                                            <div>
+                                                {isVietQR ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                        <QrCode className="w-2.5 h-2.5 text-blue-600" />
+                                                        <span>VietQR</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                        <Banknote className="w-2.5 h-2.5 text-amber-600" />
+                                                        <span>Tiền mặt</span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400">
+                                                {formatDateTime(payment.created_at)}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 4. Cụm nút hành động */}
+                                    <div className="pt-1.5 flex items-center justify-end gap-2">
+                                        {isPending && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setConfirmingPayment(payment);
+                                                    setConfirmPaymentMethod(payment.payment_method || 'TRANSFER');
+                                                    setConfirmNote('');
+                                                }}
+                                                className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+                                            >
+                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                <span>Xác nhận thu</span>
+                                            </button>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedPayment(payment)}
+                                            className={`py-2 px-3.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                                                isPending
+                                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                                    : 'flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                                            }`}
+                                        >
+                                            <Printer className="w-3.5 h-3.5" />
+                                            <span>{isPending ? 'Xem' : 'In Hóa đơn'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
 
                 {/* Footer bảng dữ liệu: Phân trang chuẩn */}

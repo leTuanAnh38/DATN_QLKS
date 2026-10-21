@@ -108,8 +108,22 @@ export default function DetailRoom() {
     const [selectedPackage] = useState('standard'); // Gói cố định: 'standard' (đã bỏ lựa chọn gói kèm theo)
     const [guestCount, setGuestCount] = useState(2);
     const [similarRooms, setSimilarRooms] = useState([]);
-    const [lightboxImage, setLightboxImage] = useState(null);
+    const [lightboxIndex, setLightboxIndex] = useState(null);
     const [availability, setAvailability] = useState(null);
+
+    // Touch tracking refs cho thao tác vuốt ảnh trên thiết bị di động
+    const touchStartX = useRef(0);
+    const touchStartY = useRef(0);
+    const touchEndX = useRef(0);
+    const touchEndY = useRef(0);
+    const isSwiping = useRef(false);
+
+    // Touch tracking refs cho Lightbox modal
+    const lightboxTouchStartX = useRef(0);
+    const lightboxTouchStartY = useRef(0);
+    const lightboxTouchEndX = useRef(0);
+    const lightboxTouchEndY = useRef(0);
+    const isLightboxSwiping = useRef(false);
 
     const location = useLocation();
     const { user, isAuthenticated } = useAuth();
@@ -391,6 +405,125 @@ export default function DetailRoom() {
     }, [currentRoomId]);
 
     // =========================================================================
+    // DỮ LIỆU GALLERY & CÁC HÀM ĐIỀU HƯỚNG ẢNH (Khai báo trước các early return để tuân thủ Rules of Hooks)
+    // =========================================================================
+    const gallery = useMemo(() => {
+        if (!room) return FALLBACK_GALLERY;
+        const apiImageList = (room.images && room.images.length > 0)
+            ? room.images.map((img, idx) => ({
+                id: img.id || idx,
+                url: img.image_url || img.image,
+                title: img.is_feature
+                    ? `${room.name} - Ảnh đại diện chính`
+                    : `${room.name} - Góc nhìn ${idx + 1}`
+            }))
+            : (room.feature_image ? [{ id: 1, url: room.feature_image, title: room.name }] : []);
+        return apiImageList.length > 0 ? apiImageList : FALLBACK_GALLERY;
+    }, [room]);
+
+    const safeImageIndex = selectedImageIndex < gallery.length ? selectedImageIndex : 0;
+
+    // Các hàm điều hướng ảnh cho Mobile và Gallery
+    const handlePrevImage = () => {
+        if (gallery.length <= 1) return;
+        setSelectedImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+    };
+
+    const handleNextImage = () => {
+        if (gallery.length <= 1) return;
+        setSelectedImageIndex((prev) => (prev + 1) % gallery.length);
+    };
+
+    const handleTouchStart = (e) => {
+        isSwiping.current = false;
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+        touchEndX.current = e.touches[0].clientX;
+        touchEndY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e) => {
+        touchEndX.current = e.touches[0].clientX;
+        touchEndY.current = e.touches[0].clientY;
+        if (Math.abs(touchEndX.current - touchStartX.current) > 10) {
+            isSwiping.current = true;
+        }
+    };
+
+    const handleTouchEnd = () => {
+        const diffX = touchStartX.current - touchEndX.current;
+        const diffY = touchStartY.current - touchEndY.current;
+        // Kiểm tra vuốt ngang: chênh lệch X > 40px và theo phương ngang nhiều hơn dọc
+        if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0) {
+                // Vuốt sang trái -> Xem ảnh kế tiếp
+                handleNextImage();
+            } else {
+                // Vuốt sang phải -> Xem ảnh trước
+                handlePrevImage();
+            }
+        }
+        setTimeout(() => {
+            isSwiping.current = false;
+        }, 150);
+    };
+
+    const openLightbox = (index = safeImageIndex) => {
+        setLightboxIndex(index);
+    };
+
+    const closeLightbox = () => {
+        setLightboxIndex(null);
+    };
+
+    // Điều khiển cảm ứng & phím tắt trong Lightbox modal
+    const handleLightboxTouchStart = (e) => {
+        isLightboxSwiping.current = false;
+        lightboxTouchStartX.current = e.touches[0].clientX;
+        lightboxTouchStartY.current = e.touches[0].clientY;
+        lightboxTouchEndX.current = e.touches[0].clientX;
+        lightboxTouchEndY.current = e.touches[0].clientY;
+    };
+
+    const handleLightboxTouchMove = (e) => {
+        lightboxTouchEndX.current = e.touches[0].clientX;
+        lightboxTouchEndY.current = e.touches[0].clientY;
+        if (Math.abs(lightboxTouchEndX.current - lightboxTouchStartX.current) > 10) {
+            isLightboxSwiping.current = true;
+        }
+    };
+
+    const handleLightboxTouchEnd = () => {
+        const diffX = lightboxTouchStartX.current - lightboxTouchEndX.current;
+        const diffY = lightboxTouchStartY.current - lightboxTouchEndY.current;
+        if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0) {
+                setLightboxIndex((prev) => (prev + 1) % gallery.length);
+            } else {
+                setLightboxIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+            }
+        }
+        setTimeout(() => {
+            isLightboxSwiping.current = false;
+        }, 150);
+    };
+
+    useEffect(() => {
+        if (lightboxIndex === null) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setLightboxIndex(null);
+            if (e.key === 'ArrowLeft') {
+                setLightboxIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+            }
+            if (e.key === 'ArrowRight') {
+                setLightboxIndex((prev) => (prev + 1) % gallery.length);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxIndex, gallery.length]);
+
+    // =========================================================================
     // TRẠNG THÁI 1: LOADING STATE (Hiển thị Skeleton Loader chuẩn 5 sao)
     // =========================================================================
     if (loading) {
@@ -513,21 +646,6 @@ export default function DetailRoom() {
     // TRẠNG THÁI 3: SUCCESS STATE (Map dữ liệu động từ API vào giao diện)
     // =========================================================================
 
-    // 1. Map Hình ảnh: Lấy danh sách ảnh từ room.images của API
-    const apiImageList = (room.images && room.images.length > 0)
-        ? room.images.map((img, idx) => ({
-            id: img.id || idx,
-            url: img.image_url || img.image,
-            title: img.is_feature
-                ? `${room.name} - Ảnh đại diện chính`
-                : `${room.name} - Góc nhìn ${idx + 1}`
-        }))
-        : (room.feature_image ? [{ id: 1, url: room.feature_image, title: room.name }] : []);
-
-    // Chỉ dùng ảnh mẫu dự phòng (fallback) nếu phòng hoàn toàn chưa upload ảnh nào
-    const gallery = apiImageList.length > 0 ? apiImageList : FALLBACK_GALLERY;
-    const safeImageIndex = selectedImageIndex < gallery.length ? selectedImageIndex : 0;
-
     // 2. Map Thông tin cơ bản & Giá cả
     const basePriceNum = Number(room.base_price || 0);
     const promoPriceNum = room.promo_price ? Number(room.promo_price) : null;
@@ -648,33 +766,113 @@ export default function DetailRoom() {
             </section>
 
             {/* GALLERY TỰ ĐỘNG THÍCH ỨNG THEO SỐ LƯỢNG ẢNH THỰC TẾ */}
-            <section className="bg-white pb-8">
+            <section className="bg-white pb-6 sm:pb-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden relative">
-                        {/* Ảnh chính lớn (Tràn 100% nếu chỉ có 1 ảnh, hoặc 50% nếu có từ 2 ảnh trở lên) */}
+                    <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden relative select-none">
+                        {/* Ảnh chính lớn (Tràn 100% nếu chỉ có 1 ảnh hoặc trên mobile, hoặc 50% nếu có từ 2 ảnh trở lên trên desktop) */}
                         <div
-                            className={`${gallery.length === 1 ? 'col-span-12' : 'col-span-12 lg:col-span-6'} relative group overflow-hidden h-full cursor-pointer`}
-                            onClick={() => setLightboxImage(gallery[safeImageIndex]?.url || gallery[0]?.url)}
+                            className={`${gallery.length === 1 ? 'col-span-12' : 'col-span-12 lg:col-span-6'} relative group overflow-hidden h-full cursor-pointer touch-pan-y`}
+                            onClick={() => {
+                                if (!isSwiping.current) openLightbox(safeImageIndex);
+                            }}
+                            onTouchStart={handleTouchStart}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={handleTouchEnd}
                         >
                             <img
+                                key={safeImageIndex}
                                 src={gallery[safeImageIndex]?.url || gallery[0]?.url}
                                 alt={gallery[safeImageIndex]?.title || room.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex flex-col justify-end p-6 text-white pointer-events-none">
+
+                            {/* Lớp gradient bóng mờ và tiêu đề ảnh */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-5 sm:p-6 text-white pointer-events-none pb-12 sm:pb-6">
                                 <span className="text-[11px] uppercase tracking-widest text-amber-300 font-bold mb-1">
-                                    {gallery.length === 1 ? 'Hình ảnh phòng' : 'Góc nhìn chính'}
+                                    {gallery.length === 1 ? 'Hình ảnh phòng' : `Góc nhìn ${safeImageIndex + 1} / ${gallery.length}`}
                                 </span>
-                                <p className="font-serif text-lg sm:text-xl font-bold">
+                                <p className="font-serif text-base sm:text-xl font-bold pr-24 sm:pr-28 line-clamp-1">
                                     {gallery[safeImageIndex]?.title || room.name}
                                 </p>
                             </div>
-                            <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md p-2 rounded-full text-white cursor-pointer hover:bg-black/60 transition">
+
+                            {/* Badge đếm số thứ tự ảnh góc trên bên trái */}
+                            <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 shadow">
+                                <span>📷</span>
+                                <span>{safeImageIndex + 1} / {gallery.length}</span>
+                            </div>
+
+                            {/* Nút Phóng to ảnh góc trên bên phải */}
+                            <div
+                                className="absolute top-4 right-4 z-10 bg-black/40 backdrop-blur-md p-2 rounded-full text-white cursor-pointer hover:bg-black/60 transition"
+                                title="Xem toàn màn hình"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    openLightbox(safeImageIndex);
+                                }}
+                            >
                                 🔍
                             </div>
+
+                            {/* Nút Mũi tên chuyển ảnh Trái / Phải trên ảnh chính */}
+                            {gallery.length > 1 && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handlePrevImage();
+                                        }}
+                                        onTouchStart={(e) => e.stopPropagation()}
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
+                                        aria-label="Ảnh trước"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleNextImage();
+                                        }}
+                                        onTouchStart={(e) => e.stopPropagation()}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
+                                        aria-label="Ảnh tiếp theo"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </>
+                            )}
+
+                            {/* Dải chấm tròn phân trang ảnh trên Mobile (< lg) */}
+                            {gallery.length > 1 && (
+                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 lg:hidden bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                                    {gallery.map((_, dotIdx) => (
+                                        <button
+                                            key={dotIdx}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedImageIndex(dotIdx);
+                                            }}
+                                            onTouchStart={(e) => e.stopPropagation()}
+                                            className={`transition-all duration-300 rounded-full cursor-pointer ${
+                                                safeImageIndex === dotIdx
+                                                    ? 'w-5 h-2 bg-amber-400'
+                                                    : 'w-2 h-2 bg-white/60 hover:bg-white'
+                                            }`}
+                                            aria-label={`Xem ảnh ${dotIdx + 1}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Các ảnh phụ bên phải (Chỉ hiển thị khi có từ 2 ảnh trở lên) */}
+                        {/* Các ảnh phụ bên phải (Chỉ hiển thị trên Desktop >= lg khi có từ 2 ảnh trở lên) */}
                         {gallery.length >= 2 && (
                             <div className={`hidden lg:grid col-span-6 gap-3 h-full ${
                                 gallery.length === 2
@@ -712,13 +910,49 @@ export default function DetailRoom() {
                         {/* Nút Xem tất cả ảnh */}
                         <button
                             type="button"
-                            onClick={() => setLightboxImage(gallery[safeImageIndex]?.url || gallery[0]?.url)}
-                            className="absolute bottom-5 right-5 z-10 bg-white/95 hover:bg-white text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-2 transition hover:scale-105 cursor-pointer"
+                            onClick={() => openLightbox(safeImageIndex)}
+                            className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 z-20 bg-white/95 hover:bg-white text-slate-900 text-xs font-bold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-2 transition hover:scale-105 cursor-pointer"
                         >
                             <span>📷</span>
                             {gallery.length === 1 ? 'Xem ảnh' : `Tất cả ${gallery.length} ảnh`}
                         </button>
                     </div>
+
+                    {/* DẢI THUMBNAIL CUỘN NGANG DÀNH RIÊNG CHO MOBILE & TABLET (< lg) */}
+                    {gallery.length > 1 && (
+                        <div className="lg:hidden mt-3">
+                            <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none snap-x touch-pan-x">
+                                {gallery.map((img, idx) => {
+                                    const isSelected = safeImageIndex === idx;
+                                    return (
+                                        <button
+                                            key={img.id || idx}
+                                            type="button"
+                                            onClick={() => setSelectedImageIndex(idx)}
+                                            className={`relative shrink-0 w-20 h-16 sm:w-24 sm:h-18 rounded-xl overflow-hidden border-2 transition-all snap-start cursor-pointer ${
+                                                isSelected
+                                                    ? 'border-amber-500 ring-2 ring-amber-400/50 scale-102 shadow-md'
+                                                    : 'border-slate-200 opacity-60 hover:opacity-100'
+                                            }`}
+                                            aria-label={`Ảnh ${idx + 1}`}
+                                        >
+                                            <img
+                                                src={img.url}
+                                                alt={img.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <div className={`absolute inset-0 transition-opacity ${isSelected ? 'bg-transparent' : 'bg-black/20'}`} />
+                                            <span className={`absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded font-bold font-mono ${
+                                                isSelected ? 'bg-amber-500 text-white' : 'bg-black/70 text-white'
+                                            }`}>
+                                                {idx + 1}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -1018,8 +1252,8 @@ export default function DetailRoom() {
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Trải nghiệm khách hàng</span>
-                                        <span className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black uppercase">
-                                            Đã xác thực
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                                            ✓ Đã xác thực
                                         </span>
                                     </div>
                                     <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
@@ -1030,71 +1264,71 @@ export default function DetailRoom() {
                                     </p>
                                 </div>
 
-                                <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white px-5 py-3 rounded-2xl shadow-md shadow-amber-500/20 shrink-0">
+                                <div className="flex items-center gap-3.5 bg-white border border-slate-200 px-5 py-3 rounded-2xl shadow-xs shrink-0">
                                     <div className="text-right">
-                                        <div className="text-[11px] text-amber-100 font-semibold uppercase tracking-wider">
+                                        <div className="text-xs text-slate-800 font-bold uppercase tracking-wider">
                                             {parseFloat(reviewStats.average) >= 4.8 ? 'Tuyệt hảo' : (parseFloat(reviewStats.average) >= 4.0 ? 'Rất tốt' : 'Hài lòng')}
                                         </div>
-                                        <div className="text-[10px] text-amber-200">
+                                        <div className="text-[11px] text-slate-400 font-medium">
                                             {reviewStats.total} lượt đánh giá
                                         </div>
                                     </div>
-                                    <div className="border-l border-amber-400/40 pl-3">
-                                        <span className="font-black text-3xl">{reviewStats.average}</span>
-                                        <span className="text-xs text-amber-200"> /5.0</span>
+                                    <div className="border-l border-slate-200 pl-3.5 flex items-baseline gap-1">
+                                        <span className="font-black text-3xl text-slate-900">{reviewStats.average}</span>
+                                        <span className="text-xs font-semibold text-slate-400">/5.0</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* 2. THỐNG KÊ 4 TIÊU CHÍ ĐÁNH GIÁ (SẠCH SẼ, DỊCH VỤ, VỊ TRÍ, GIÁ TRỊ) */}
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                <div className="space-y-1.5 p-3 bg-white rounded-xl border border-slate-200/70 shadow-2xs">
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="font-semibold text-slate-700">Sạch sẽ</span>
                                         <span className="font-bold text-slate-900">{reviewStats.cleanliness}</span>
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.cleanliness) / 5) * 100}%` }}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                <div className="space-y-1.5 p-3 bg-white rounded-xl border border-slate-200/70 shadow-2xs">
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="font-semibold text-slate-700">Dịch vụ</span>
                                         <span className="font-bold text-slate-900">{reviewStats.service}</span>
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.service) / 5) * 100}%` }}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                <div className="space-y-1.5 p-3 bg-white rounded-xl border border-slate-200/70 shadow-2xs">
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="font-semibold text-slate-700">Vị trí</span>
                                         <span className="font-bold text-slate-900">{reviewStats.location}</span>
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-purple-500 h-full rounded-full transition-all duration-500"
+                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.location) / 5) * 100}%` }}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="space-y-1.5 p-2 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+                                <div className="space-y-1.5 p-3 bg-white rounded-xl border border-slate-200/70 shadow-2xs">
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="font-semibold text-slate-700">Giá trị</span>
                                         <span className="font-bold text-slate-900">{reviewStats.value}</span>
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.value) / 5) * 100}%` }}
                                         />
                                     </div>
@@ -1126,10 +1360,10 @@ export default function DetailRoom() {
 
                             {/* 4. FORM VIẾT ĐÁNH GIÁ (KHI CÓ BOOKING CẦN ĐÁNH GIÁ) */}
                             {bookingToReview && (
-                                <div className="p-6 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 rounded-3xl border-2 border-amber-400/60 shadow-lg shadow-amber-500/10 space-y-6">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-200/60">
+                                <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm shadow-amber-500/20">
+                                            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-lg shadow-xs">
                                                 ★
                                             </div>
                                             <div>
@@ -1137,7 +1371,7 @@ export default function DetailRoom() {
                                                     <span className="font-bold text-slate-900 text-sm sm:text-base">
                                                         Đánh giá kỳ nghỉ của quý khách
                                                     </span>
-                                                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-mono text-[11px] font-bold">
+                                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-mono text-[11px] font-bold">
                                                         #{bookingToReview.booking_code}
                                                     </span>
                                                 </div>
@@ -1158,7 +1392,7 @@ export default function DetailRoom() {
                                     </div>
 
                                     {/* Điểm tổng quan dự kiến */}
-                                    <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
+                                    <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-2xs">
                                         <div>
                                             <span className="text-xs font-semibold text-slate-500 block">
                                                 Điểm đánh giá trung bình:
@@ -1208,7 +1442,7 @@ export default function DetailRoom() {
                                                         </svg>
                                                     </button>
                                                 ))}
-                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{cleanlinessScore}.0</span>
+                                                <span className="text-xs font-bold text-slate-800 ml-1.5 w-6 text-right">{cleanlinessScore}.0</span>
                                             </div>
                                         </div>
 
@@ -1234,7 +1468,7 @@ export default function DetailRoom() {
                                                         </svg>
                                                     </button>
                                                 ))}
-                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{serviceScore}.0</span>
+                                                <span className="text-xs font-bold text-slate-800 ml-1.5 w-6 text-right">{serviceScore}.0</span>
                                             </div>
                                         </div>
 
@@ -1260,7 +1494,7 @@ export default function DetailRoom() {
                                                         </svg>
                                                     </button>
                                                 ))}
-                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{locationScore}.0</span>
+                                                <span className="text-xs font-bold text-slate-800 ml-1.5 w-6 text-right">{locationScore}.0</span>
                                             </div>
                                         </div>
 
@@ -1286,7 +1520,7 @@ export default function DetailRoom() {
                                                         </svg>
                                                     </button>
                                                 ))}
-                                                <span className="text-xs font-bold text-amber-600 ml-1.5 w-6 text-right">{valueScore}.0</span>
+                                                <span className="text-xs font-bold text-slate-800 ml-1.5 w-6 text-right">{valueScore}.0</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1301,7 +1535,7 @@ export default function DetailRoom() {
                                             value={reviewComment}
                                             onChange={(e) => setReviewComment(e.target.value)}
                                             placeholder="Phòng nghỉ, dịch vụ phòng, tầm nhìn và sự chu đáo của nhân viên đáp ứng kỳ vọng của bạn như thế nào?..."
-                                            className="w-full p-4 rounded-2xl border border-amber-200/90 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 text-xs sm:text-sm text-slate-800 outline-none transition bg-white"
+                                            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-xs sm:text-sm text-slate-800 outline-none transition bg-white"
                                         />
                                     </div>
 
@@ -1318,7 +1552,7 @@ export default function DetailRoom() {
                                             type="button"
                                             onClick={handleSubmitReview}
                                             disabled={isSubmittingReview}
-                                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs transition shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                                            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-2"
                                         >
                                             {isSubmittingReview ? (
                                                 <>
@@ -1338,16 +1572,16 @@ export default function DetailRoom() {
 
                             {/* 5. GỢI Ý ĐÁNH GIÁ NẾU KHÁCH CÓ ĐƠN COMPLETED CHƯA REVIEW */}
                             {!bookingToReview && eligibleBooking && (
-                                <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 rounded-2xl border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                                <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-50/60 via-slate-50 to-blue-50/40 rounded-2xl border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
                                             ✨
                                         </div>
                                         <div>
-                                            <strong className="text-xs sm:text-sm text-amber-950 block">
+                                            <strong className="text-xs sm:text-sm text-slate-900 block font-bold">
                                                 Quý khách vừa hoàn tất kỳ nghỉ tại phòng này (Mã đơn: #{eligibleBooking.booking_code})!
                                             </strong>
-                                            <p className="text-[11px] text-amber-800 mt-0.5">
+                                            <p className="text-[11px] text-slate-600 mt-0.5">
                                                 Hãy chia sẻ cảm nhận trải nghiệm của bạn để giúp cộng đồng du khách và hỗ trợ khách sạn hoàn thiện hơn.
                                             </p>
                                         </div>
@@ -1355,7 +1589,7 @@ export default function DetailRoom() {
                                     <button
                                         type="button"
                                         onClick={() => setBookingToReview(eligibleBooking)}
-                                        className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
                                     >
                                         <span>★</span>
                                         <span>Viết Đánh Giá Ngay</span>
@@ -1367,7 +1601,7 @@ export default function DetailRoom() {
                             <div className="space-y-4">
                                 {isLoadingReviews ? (
                                     <div className="py-12 text-center space-y-3">
-                                        <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                                         <p className="text-xs text-slate-500">Đang tải danh sách đánh giá thực tế...</p>
                                     </div>
                                 ) : reviews.length === 0 ? (
@@ -1405,7 +1639,7 @@ export default function DetailRoom() {
                                                                 <strong className="text-xs sm:text-sm text-slate-900 block font-bold">
                                                                     {guestFullName}
                                                                 </strong>
-                                                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[10px] font-bold">
                                                                     ✓ Đã lưu trú
                                                                 </span>
                                                             </div>
@@ -1431,7 +1665,7 @@ export default function DetailRoom() {
                                                                 </svg>
                                                             ))}
                                                         </div>
-                                                        <span className="font-bold text-xs text-amber-600">
+                                                        <span className="font-bold text-xs text-slate-800">
                                                             {parseFloat(rev.overall_rating || 5).toFixed(1)}
                                                         </span>
                                                     </div>
@@ -1715,8 +1949,14 @@ export default function DetailRoom() {
                                         <div className="p-6 flex-1 flex flex-col justify-between">
                                             <div>
                                                 <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                                                    <span className="flex items-center text-amber-500 font-bold">
-                                                        ★ 4.95
+                                                    <span className="flex items-center gap-1 text-amber-500 font-bold">
+                                                        <span>★</span>
+                                                        <span>{sRoom.rating ? Number(sRoom.rating).toFixed(1) : (sRoom.average_rating ? Number(sRoom.average_rating).toFixed(1) : '5.0')}</span>
+                                                        {sRoom.reviews_count > 0 && (
+                                                            <span className="text-slate-400 font-normal text-[11px]">
+                                                                ({sRoom.reviews_count})
+                                                            </span>
+                                                        )}
                                                     </span>
                                                     <span>👥 {sRoom.capacity || 2} khách</span>
                                                 </div>
@@ -1759,21 +1999,93 @@ export default function DetailRoom() {
             )}
 
             {/* LIGHTBOX MODAL XEM ẢNH FULL SIZE */}
-            {lightboxImage && (
+            {lightboxIndex !== null && gallery[lightboxIndex] && (
                 <div
-                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm cursor-zoom-out"
-                    onClick={() => setLightboxImage(null)}
+                    className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md select-none"
+                    onClick={closeLightbox}
                 >
-                    <div className="relative max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}>
-                        <img src={lightboxImage} alt="Phóng to" className="w-full h-full object-contain max-h-[85vh] rounded-2xl" />
+                    {/* Thanh tiêu đề trên cùng: Đếm số ảnh & nút đóng */}
+                    <div className="flex items-center justify-between text-white z-10 w-full max-w-5xl mx-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                            <span className="text-amber-400 font-bold text-sm sm:text-base">📷 Ảnh {lightboxIndex + 1} / {gallery.length}</span>
+                            <span className="text-slate-400 text-xs sm:text-sm hidden sm:inline">• {gallery[lightboxIndex]?.title}</span>
+                        </div>
                         <button
                             type="button"
-                            onClick={() => setLightboxImage(null)}
-                            className="absolute top-4 right-4 bg-black/60 text-white rounded-full w-10 h-10 flex items-center justify-center text-lg hover:bg-black transition"
+                            onClick={closeLightbox}
+                            className="bg-white/10 hover:bg-white/20 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl transition active:scale-95 cursor-pointer"
+                            aria-label="Đóng"
                         >
                             ✕
                         </button>
                     </div>
+
+                    {/* Vùng ảnh chính với vuốt cảm ứng và nút Mũi tên */}
+                    <div
+                        className="relative flex-1 flex items-center justify-center my-2 max-w-5xl mx-auto w-full overflow-hidden touch-pan-y"
+                        onClick={(e) => e.stopPropagation()}
+                        onTouchStart={handleLightboxTouchStart}
+                        onTouchMove={handleLightboxTouchMove}
+                        onTouchEnd={handleLightboxTouchEnd}
+                    >
+                        <img
+                            key={lightboxIndex}
+                            src={gallery[lightboxIndex]?.url}
+                            alt={gallery[lightboxIndex]?.title || 'Ảnh phóng to'}
+                            className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl transition duration-300"
+                        />
+
+                        {gallery.length > 1 && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+                                    }}
+                                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition border border-white/20 active:scale-95 cursor-pointer"
+                                    aria-label="Ảnh trước"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxIndex((prev) => (prev + 1) % gallery.length);
+                                    }}
+                                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition border border-white/20 active:scale-95 cursor-pointer"
+                                    aria-label="Ảnh tiếp theo"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Dải thumbnail xem nhanh bên dưới modal Lightbox */}
+                    {gallery.length > 1 && (
+                        <div className="w-full max-w-5xl mx-auto z-10 flex items-center justify-center gap-2 overflow-x-auto py-2" onClick={(e) => e.stopPropagation()}>
+                            {gallery.map((img, idx) => (
+                                <button
+                                    key={img.id || idx}
+                                    type="button"
+                                    onClick={() => setLightboxIndex(idx)}
+                                    className={`relative shrink-0 w-14 h-11 sm:w-16 sm:h-12 rounded-lg overflow-hidden border-2 transition cursor-pointer ${
+                                        lightboxIndex === idx
+                                            ? 'border-amber-400 ring-2 ring-amber-400/50 scale-105'
+                                            : 'border-white/20 opacity-50 hover:opacity-100'
+                                    }`}
+                                >
+                                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 

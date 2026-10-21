@@ -250,7 +250,8 @@ export default function ContactManagement() {
                     </h3>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-sm border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -341,6 +342,79 @@ export default function ContactManagement() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* B. MOBILE CARD VIEW (< md) */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {isLoading ? (
+                        <div className="p-12 text-center">
+                            <div className="inline-flex items-center gap-3 text-slate-400 text-xs font-medium">
+                                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                Đang tải danh sách liên hệ...
+                            </div>
+                        </div>
+                    ) : contacts.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                            <p className="text-xs text-slate-500 font-medium">Không có yêu cầu liên hệ nào.</p>
+                        </div>
+                    ) : (
+                        contacts.map((c) => (
+                            <div key={c.id} className="p-4 space-y-2.5 hover:bg-slate-50/50 transition">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <div className={`text-slate-900 truncate ${c.is_read ? 'font-semibold text-xs' : 'font-bold text-sm'}`}>{c.name}</div>
+                                        <a href={`mailto:${c.email}`} className="text-[11px] text-blue-600 hover:underline block truncate mt-0.5">{c.email}</a>
+                                    </div>
+                                    <StatusBadge isRead={c.is_read} />
+                                </div>
+
+                                <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                                    <span className="font-bold text-xs text-blue-700 block">{c.subject}</span>
+                                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{c.message}</p>
+                                </div>
+
+                                <div className="flex items-center justify-between text-[11px] pt-1">
+                                    <span className="text-slate-400">
+                                        {formatTime(c.created_at)} • {formatDate(c.created_at)}
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        {!c.is_read && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMarkRead(c)}
+                                                disabled={markingId === c.id}
+                                                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                                                title="Đánh dấu đã đọc"
+                                            >
+                                                {markingId === c.id ? (
+                                                    <div className="w-3 h-3 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                                                ) : (
+                                                    '✓ Đã đọc'
+                                                )}
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleView(c)}
+                                            className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                            title="Xem chi tiết"
+                                        >
+                                            👁️ Xem
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeleteTarget(c)}
+                                            className="p-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition cursor-pointer"
+                                            title="Xóa liên hệ"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {!isLoading && totalCount > 0 && (

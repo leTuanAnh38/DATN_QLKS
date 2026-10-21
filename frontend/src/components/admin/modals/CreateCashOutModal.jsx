@@ -350,9 +350,9 @@ export default function CreateCashOutModal({
                 }
             `}} />
 
-            <div className="cash-out-modal-card relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-6 animate-in fade-in zoom-in-95 duration-150 print:border-none print:shadow-none print:max-w-none">
+            <div className="cash-out-modal-card relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-2 sm:my-6 animate-in fade-in zoom-in-95 duration-150 print:border-none print:shadow-none print:max-w-none">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-slate-50/60">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100 shadow-2xs">
                             <ArrowDownCircle className="w-5 h-5" />
@@ -380,7 +380,7 @@ export default function CreateCashOutModal({
 
                 {/* THÀNH CÔNG: MÀN HÌNH XÁC NHẬN & IN PHIẾU CHI */}
                 {createdVoucher ? (
-                    <div className="p-6 sm:p-8 space-y-6">
+                    <div className="p-4 sm:p-8 space-y-4 sm:space-y-6">
                         <div id="cash-out-printable" className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-slate-800 space-y-4">
                             <div className="text-center pb-3 border-b border-slate-300">
                                 <h2 className="text-base font-black uppercase text-slate-900">PHIẾU CHI TIỀN & HOÀN CỌC</h2>
@@ -433,11 +433,11 @@ export default function CreateCashOutModal({
                         </div>
 
                         {/* Action footer */}
-                        <div className="no-print flex items-center justify-end gap-3 pt-2">
+                        <div className="no-print flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
                             <button
                                 type="button"
                                 onClick={handlePrintVoucher}
-                                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                             >
                                 <Printer className="w-4 h-4" />
                                 <span>In Phiếu Chi (Ctrl+P)</span>
@@ -445,7 +445,7 @@ export default function CreateCashOutModal({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                                className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer text-center"
                             >
                                 Hoàn tất & Đóng
                             </button>
@@ -453,7 +453,7 @@ export default function CreateCashOutModal({
                     </div>
                 ) : (
                     /* FORM NHẬP LIỆU LẬP PHIẾU CHI */
-                    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
                         {error && (
                             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -466,7 +466,7 @@ export default function CreateCashOutModal({
                             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                                 1. Mục Đích Chi Tiền
                             </label>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setVoucherType('REFUND_DEPOSIT')}
@@ -752,19 +752,19 @@ export default function CreateCashOutModal({
                         </div>
 
                         {/* Footer Buttons */}
-                        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 disabled={isSubmitting}
-                                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
+                                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition cursor-pointer text-center"
                             >
                                 Hủy bỏ
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-bold text-xs shadow-md shadow-rose-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-bold text-xs shadow-md shadow-rose-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                                 {isSubmitting ? 'Đang xuất quỹ...' : '✓ Xác Nhận Lập Phiếu Chi'}
                             </button>

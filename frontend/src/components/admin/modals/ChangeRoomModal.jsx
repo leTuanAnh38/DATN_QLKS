@@ -166,14 +166,14 @@ export default function ChangeRoomModal({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-indigo-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-between">
+                <div className="p-4 sm:px-6 sm:py-5 border-b border-indigo-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-300 text-indigo-700 flex items-center justify-center text-2xl font-bold shadow-xs">
-                            <ArrowRightLeft className="w-6 h-6" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-600/10 border border-indigo-300 text-indigo-700 flex items-center justify-center text-xl sm:text-2xl font-bold shadow-xs shrink-0">
+                            <ArrowRightLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg text-slate-900 tracking-tight">
+                                <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
                                     Đổi Phòng Cho Khách Lưu Trú
                                 </h3>
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">
@@ -188,7 +188,7 @@ export default function ChangeRoomModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                         title="Đóng cửa sổ"
                     >
                         ✕
@@ -196,7 +196,7 @@ export default function ChangeRoomModal({
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
                     {errorMessage && (
                         <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2 font-medium">
                             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
@@ -468,12 +468,12 @@ export default function ChangeRoomModal({
                 </form>
 
                 {/* Footer Buttons */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3">
+                <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer text-center"
                     >
                         Hủy bỏ
                     </button>
@@ -482,7 +482,7 @@ export default function ChangeRoomModal({
                         type="button"
                         onClick={handleSubmit}
                         disabled={isSubmitting || !selectedRoomId || availableRooms.length === 0}
-                        className={`px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-md transition flex items-center gap-2 cursor-pointer ${
+                        className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-md transition flex items-center justify-center gap-2 cursor-pointer ${
                             isSubmitting || !selectedRoomId || availableRooms.length === 0
                                 ? 'bg-slate-300 cursor-not-allowed text-slate-500'
                                 : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 active:scale-95 shadow-indigo-600/25'

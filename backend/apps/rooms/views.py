@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
-from django.db.models import Q, Count, Case, When, Value, IntegerField
+from django.db.models import Q, Count, Avg, Case, When, Value, IntegerField
 from django.utils import timezone
 from django.utils.text import slugify
 from ..users.models import log_action, User
@@ -97,6 +97,12 @@ class RoomCategoryViewSet(viewsets.ModelViewSet):
     queryset = RoomCategory.objects.prefetch_related('images', 'amenities', 'rooms').all().order_by('base_price')
     serializer_class = RoomCategorySerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):
+        return RoomCategory.objects.prefetch_related('images', 'amenities', 'rooms').annotate(
+            avg_rating=Avg('reviews__overall_rating', filter=Q(reviews__is_visible=True)),
+            total_reviews=Count('reviews', filter=Q(reviews__is_visible=True))
+        ).order_by('base_price')
 
     def get_permissions(self):
         # Khách vãng lai và Trang chủ có thể xem danh sách và chi tiết

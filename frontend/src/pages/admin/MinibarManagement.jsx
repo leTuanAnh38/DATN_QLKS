@@ -454,7 +454,8 @@ export default function MinibarManagement() {
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                    <div className="overflow-x-auto">
+                    {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-xs sm:text-sm">
                             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
@@ -549,7 +550,6 @@ export default function MinibarManagement() {
                                                             title="Chỉnh sửa thông tin & giá"
                                                         >
                                                             <span>✏️</span>
-                                                            
                                                         </button>
                                                     )}
 
@@ -561,7 +561,6 @@ export default function MinibarManagement() {
                                                             title="Xóa khỏi danh mục"
                                                         >
                                                             <span>🗑️</span>
-                                                            
                                                         </button>
                                                     )}
 
@@ -575,6 +574,94 @@ export default function MinibarManagement() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* B. MOBILE CARD VIEW (< md) */}
+                    <div className="block md:hidden divide-y divide-slate-100">
+                        {paginatedItems.map((item) => {
+                            const cat = getCategoryObj(item.category);
+                            return (
+                                <div key={item.id} className="p-3.5 space-y-2.5 hover:bg-slate-50/50 transition">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-lg shrink-0 shadow-2xs">
+                                                {cat.icon}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="font-bold text-slate-900 text-xs truncate">{item.name}</div>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className="text-[10px] text-slate-400">#{item.id}</span>
+                                                    <span className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold border ${cat.badge}`}>
+                                                        {cat.label}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <span className="font-bold text-amber-700 text-sm font-mono shrink-0">
+                                            {formatCurrency(item.price)}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[11px] text-slate-400">Định mức:</span>
+                                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px]">
+                                                {item.standard_quantity || 0} món
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {canUpdate ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleActive(item)}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition cursor-pointer ${
+                                                        item.is_active
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                                            : 'bg-slate-100 text-slate-500 border-slate-300'
+                                                    }`}
+                                                >
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                                    <span>{item.is_active ? 'Đang bán' : 'Tạm ẩn'}</span>
+                                                </button>
+                                            ) : (
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                                    item.is_active
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                                        : 'bg-slate-100 text-slate-500 border-slate-300'
+                                                }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                                    <span>{item.is_active ? 'Đang bán' : 'Tạm ẩn'}</span>
+                                                </span>
+                                            )}
+
+                                            {canUpdate && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenEdit(item)}
+                                                    className="p-1 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs transition cursor-pointer"
+                                                    title="Chỉnh sửa"
+                                                >
+                                                    ✏️
+                                                </button>
+                                            )}
+
+                                            {canDelete && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDeletingItem(item)}
+                                                    className="p-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition cursor-pointer"
+                                                    title="Xóa"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* Pagination Controls */}

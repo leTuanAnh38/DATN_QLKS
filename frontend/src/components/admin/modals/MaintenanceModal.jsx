@@ -132,32 +132,32 @@ export default function MaintenanceModal({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className={`px-6 py-5 border-b flex items-center justify-between ${
+                <div className={`p-4 sm:px-6 sm:py-5 border-b flex items-center justify-between ${
                     mode === 'create'
                         ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
                         : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
                 }`}>
                     <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-xs border ${
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-xl sm:text-2xl shadow-xs border shrink-0 ${
                             mode === 'create'
                                 ? 'bg-amber-500/10 border-amber-300 text-amber-700'
                                 : 'bg-blue-500/10 border-blue-300 text-blue-700'
                         }`}>
-                            <Wrench className="w-6 h-6" />
+                            <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg text-slate-900 tracking-tight">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
                                     {mode === 'create'
-                                        ? `Báo Hỏng & Bảo Trì Phòng ${room.room_number}`
-                                        : `Hoàn Tất Sửa Chữa Phòng ${room.room_number}`}
+                                        ? `Bảo Trì Phòng ${room.room_number}`
+                                        : `Hoàn Tất Sửa Chữa P.${room.room_number}`}
                                 </h3>
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                                     mode === 'create'
                                         ? 'bg-amber-100 text-amber-800 border-amber-300'
                                         : 'bg-blue-100 text-blue-800 border-blue-300'
                                 }`}>
-                                    {mode === 'create' ? '⚪ Tiếp nhận sự cố' : '🔧 Nghiệm thu kỹ thuật'}
+                                    {mode === 'create' ? '⚪ Sự cố' : '🔧 Nghiệm thu'}
                                 </span>
                             </div>
                             <p className="text-xs text-slate-500 mt-0.5">
@@ -168,7 +168,7 @@ export default function MaintenanceModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                         title="Đóng"
                     >
                         ✕
@@ -176,7 +176,7 @@ export default function MaintenanceModal({
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
                     {errorMessage && (
                         <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2 font-medium">
                             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
@@ -446,18 +446,18 @@ export default function MaintenanceModal({
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                    <div className="pt-3 sm:pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition cursor-pointer text-xs"
+                            className="w-full sm:w-auto px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition cursor-pointer text-xs text-center"
                         >
                             Hủy bỏ
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className={`px-5 py-2.5 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer flex items-center gap-2 text-xs ${
+                            className={`w-full sm:w-auto px-5 py-2.5 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-xs text-center ${
                                 mode === 'create'
                                     ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-600/20'
                                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-600/20'
@@ -467,12 +467,12 @@ export default function MaintenanceModal({
                                 <span>Đang xử lý...</span>
                             ) : mode === 'create' ? (
                                 <>
-                                    <Wrench className="w-4 h-4" />
+                                    <Wrench className="w-4 h-4 shrink-0" />
                                     <span>Xác nhận & Chuyển sang Bảo trì</span>
                                 </>
                             ) : (
                                 <>
-                                    <CheckCircle2 className="w-4 h-4" />
+                                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                                     <span>Hoàn tất & Bàn giao Buồng phòng</span>
                                 </>
                             )}

@@ -287,8 +287,10 @@ export default function Profile() {
                                     </Link>
                                 </div>
                             ) : (
-                                <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
-                                    ★ Hạng Hội Viên: {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200 shadow-xs inline-flex items-center gap-1.5">
+                                    <span className="text-blue-600">👑</span>
+                                    <span>Hạng Hội Viên:</span>
+                                    <strong className="font-bold text-slate-900">{user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}</strong>
                                 </span>
                             )}
                         </div>
@@ -391,7 +393,7 @@ export default function Profile() {
                             <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-2 gap-3 text-left">
                                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
                                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Hạng thẻ</span>
-                                    <span className="font-bold text-amber-600 text-sm flex items-center gap-1 mt-0.5">
+                                    <span className="font-bold text-slate-900 text-sm flex items-center gap-1 mt-0.5">
                                         👑 {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
                                     </span>
                                 </div>

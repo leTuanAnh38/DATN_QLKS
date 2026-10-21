@@ -345,11 +345,11 @@ export default function StaffProfile() {
             {/* ========================================================================= */}
             {/* GIAO DIỆN 2 CỘT (LAYOUT GRID) THEO YÊU CẦU */}
             {/* ========================================================================= */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                 {/* --------------------------------------------------------------------- */}
                 {/* CỘT TRÁI (Khu vực Ảnh & Chức vụ - Cột nhỏ lg:col-span-4)              */}
                 {/* --------------------------------------------------------------------- */}
-                <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-8 flex flex-col items-center text-center sticky top-24">
+                <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 flex flex-col items-center text-center lg:sticky lg:top-24">
                     {/* Input file ẩn, kết nối bằng useRef */}
                     <input
                         ref={fileInputRef}

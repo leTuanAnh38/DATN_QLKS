@@ -652,7 +652,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-3xl w-full p-6 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-3xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
 
                 {/* ========================================================================= */}
                 {/* 1. MODAL HEADER                                                           */}
@@ -1729,7 +1729,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                         {/* ================================================================= */}
                         {/* 4. FOOTER BUTTONS                                                 */}
                         {/* ================================================================= */}
-                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="text-[11px] text-slate-500">
                                 {!isPaymentSettled && (
                                     <span className="text-rose-600 font-bold flex items-center gap-1">
@@ -1739,12 +1739,12 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
                                 <button
                                     type="button"
                                     disabled={isSubmitting}
                                     onClick={onClose}
-                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
+                                    className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-50 text-center justify-center"
                                 >
                                     Hủy bỏ
                                 </button>
@@ -1754,7 +1754,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                     type="button"
                                     disabled={isSubmitting || !isPaymentSettled}
                                     onClick={handleConfirmCheckOut}
-                                    className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 text-white ${!isPaymentSettled
+                                    className={`w-full sm:w-auto justify-center px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 text-white ${!isPaymentSettled
                                             ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                                             : 'bg-slate-900 hover:bg-slate-800 text-white'
                                         }`}

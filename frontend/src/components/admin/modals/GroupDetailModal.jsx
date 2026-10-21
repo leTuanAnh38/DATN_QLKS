@@ -631,19 +631,19 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
     };
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full p-6 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[94vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
                 
                 <div>
                     {/* MODAL HEADER */}
-                    <div className="flex items-start justify-between pb-4 border-b border-slate-200 mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-200 mb-6 gap-3">
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
                                 🏢
                             </div>
                             <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-mono text-sm font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200">
+                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span className="font-mono text-xs sm:text-sm font-black text-indigo-700 bg-indigo-50 px-2 sm:px-2.5 py-0.5 rounded-md border border-indigo-200">
                                         #{groupData.group_code}
                                     </span>
                                     <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide flex items-center gap-1 ${
@@ -691,12 +691,12 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                             <button
                                 type="button"
                                 disabled={isActionLoading}
                                 onClick={handleResendEmail}
-                                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                                 title="Gửi thư xác nhận đặt đoàn qua Email Trưởng đoàn / Công ty"
                             >
                                 <span>✉️ Gửi Email Đoàn</span>
@@ -704,15 +704,15 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             <button
                                 type="button"
                                 onClick={() => setIsInvoiceModalOpen(true)}
-                                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                                 title="Xem và in hóa đơn thanh toán cho toàn đoàn"
                             >
-                                <span>🖨️ In Hóa Đơn Đoàn</span>
+                                <span>🖨️ In Hóa Đơn</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-base cursor-pointer shrink-0"
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-base cursor-pointer shrink-0"
                             >
                                 ✕
                             </button>
@@ -1118,17 +1118,17 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                 </div>
 
                 {/* MODAL FOOTER & BULK ACTIONS */}
-                <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
+                <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         {isCompleted && (
-                            <span className="px-3.5 py-2 bg-purple-50 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                            <span className="px-3.5 py-2 bg-purple-50 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 text-center">
                                 <span>✓</span>
                                 <span>Hợp đồng đoàn đã hoàn tất Check-out & Quyết toán</span>
                             </span>
                         )}
 
                         {isCancelled && (
-                            <span className="px-3.5 py-2 bg-rose-50 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                            <span className="px-3.5 py-2 bg-rose-50 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 text-center">
                                 <span>✕</span>
                                 <span>Đơn đặt đoàn này ĐÃ BỊ HỦY</span>
                             </span>
@@ -1139,7 +1139,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 type="button"
                                 disabled={isActionLoading}
                                 onClick={handleCheckInAll}
-                                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 text-center"
                             >
                                 <span>🔑</span>
                                 <span>Check-in Toàn Đoàn (1 chạm)</span>
@@ -1151,7 +1151,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 type="button"
                                 disabled={isActionLoading}
                                 onClick={() => setIsSettlementModalOpen(true)}
-                                className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 text-center"
                             >
                                 <span>🧾</span>
                                 <span>Check-out Toàn Đoàn & Quyết Toán</span>
@@ -1163,7 +1163,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 type="button"
                                 disabled={isActionLoading}
                                 onClick={handleCancelGroup}
-                                className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 text-center"
                                 title="Hủy toàn bộ đơn đoàn và đồng loạt hủy tất cả phòng con (chỉ áp dụng trước khi nhận phòng)"
                             >
                                 <span>✕</span>
@@ -1176,7 +1176,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer"
+                            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer text-center"
                         >
                             Đóng Cửa Sổ
                         </button>
@@ -1385,11 +1385,11 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             </div>
 
                             {/* HÀNH ĐỘNG XÁC NHẬN */}
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                            <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                                 <button
                                     type="button"
                                     onClick={() => setIsSettlementModalOpen(false)}
-                                    className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer"
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer text-center"
                                 >
                                     Quay lại
                                 </button>
@@ -1397,7 +1397,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     type="button"
                                     disabled={isActionLoading}
                                     onClick={handleConfirmGroupSettlement}
-                                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-black text-xs shadow-lg shadow-orange-500/20 transition cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-black text-xs shadow-lg shadow-orange-500/20 transition cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 text-center"
                                 >
                                     <span>🧾</span>
                                     <span>

@@ -98,14 +98,14 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-5 py-3.5 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-xl shrink-0 shadow-xs">
+                <div className="px-4 sm:px-5 py-3 sm:py-3.5 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-lg sm:text-xl shrink-0 shadow-xs">
                             🧳
                         </div>
                         <div>
-                            <h3 className="font-bold text-base text-slate-900">Báo Đồ Khách Thất Lạc (Lost & Found)</h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <h3 className="font-bold text-sm sm:text-base text-slate-900">Báo Đồ Khách Thất Lạc</h3>
+                            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
                                 {room ? `Ghi nhận đồ bỏ quên tại Phòng ${room.room_number}` : 'Tiếp nhận tài sản thất lạc tại khách sạn'}
                             </p>
                         </div>
@@ -113,14 +113,14 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer text-base"
+                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer text-base shrink-0"
                     >
                         ✕
                     </button>
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-3.5 text-xs">
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
                     {errorMessage && (
                         <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 flex items-center gap-2">
                             <span>⚠️</span>
@@ -291,19 +291,19 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                     </div>
 
                     {/* Footer */}
-                    <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+                    <div className="pt-3 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-semibold rounded-xl transition cursor-pointer"
+                            className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-semibold rounded-xl transition cursor-pointer text-center"
                         >
                             Hủy bỏ
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 text-center"
                         >
                             {isSubmitting ? (
                                 <>

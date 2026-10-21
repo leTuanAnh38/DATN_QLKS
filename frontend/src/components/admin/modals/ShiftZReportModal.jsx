@@ -287,29 +287,29 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
 
             <div className="z-report-modal-card relative w-full max-w-3xl my-6 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:border-none print:rounded-none">
                 {/* Header Action Bar (Ẩn khi in) */}
-                <div className="no-print flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+                <div className="no-print flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 bg-slate-50 shrink-0">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                            <FileText className="w-5 h-5" />
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-slate-900">Báo Cáo Kết Ca (Z-Report)</h3>
-                            <p className="text-xs text-slate-500">Mã ca: #{shift?.shift_code || shiftId}</p>
+                            <h3 className="text-sm sm:text-base font-bold text-slate-900">Báo Cáo Kết Ca (Z-Report)</h3>
+                            <p className="text-[11px] sm:text-xs text-slate-500">Mã ca: #{shift?.shift_code || shiftId}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             type="button"
                             onClick={handlePrint}
-                            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-xs cursor-pointer"
+                            className="px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 sm:gap-2 shadow-xs cursor-pointer"
                         >
-                            <Printer className="w-4 h-4" />
-                            <span>In Phiếu (Ctrl+P)</span>
+                            <Printer className="w-4 h-4 shrink-0" />
+                            <span>In Phiếu <span className="hidden sm:inline">(Ctrl+P)</span></span>
                         </button>
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition"
+                            className="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer shrink-0"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -317,7 +317,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                 </div>
 
                 {/* Nội dung Báo cáo Z-Report (In ấn) */}
-                <div className="p-6 sm:p-8 overflow-y-auto space-y-6 print:overflow-visible print:p-0" id="z-report-printable" ref={reportRef}>
+                <div className="p-4 sm:p-8 overflow-y-auto space-y-6 print:overflow-visible print:p-0" id="z-report-printable" ref={reportRef}>
                     {loading ? (
                         <div className="py-20 text-center">
                             <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -354,7 +354,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                             </div>
 
                             {/* Thông tin ca trực */}
-                            <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200">
                                 <div>
                                     <div className="text-slate-500">Thu ngân trực ca:</div>
                                     <div className="font-bold text-slate-900 text-sm mt-0.5">
@@ -439,7 +439,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                                         <ArrowDownCircle className="w-4 h-4 text-rose-600" />
                                         <span>Bảng Kê Chi Tiết Phiếu Chi & Hoàn Cọc Trong Ca</span>
                                     </h3>
-                                    <div className="border border-slate-300 rounded-xl overflow-hidden">
+                                    <div className="border border-slate-300 rounded-xl overflow-x-auto">
                                         <table className="w-full text-xs">
                                             <thead className="bg-slate-100 font-semibold text-slate-600 border-b border-slate-200">
                                                 <tr>
@@ -492,7 +492,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                                         <Coins className="w-4 h-4 text-amber-600" />
                                         <span>II. Bảng Kê Chi Tiết Mệnh Giá Tiền Kiểm Đếm</span>
                                     </h3>
-                                    <div className="border border-slate-300 rounded-xl overflow-hidden">
+                                    <div className="border border-slate-300 rounded-xl overflow-x-auto">
                                         <table className="w-full text-xs">
                                             <thead className="bg-slate-100 font-semibold text-slate-600 border-b border-slate-200">
                                                 <tr>
@@ -570,7 +570,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                             )}
 
                             {/* CHỮ KÝ XÁC NHẬN */}
-                            <div className="pt-6 grid grid-cols-3 gap-4 text-center text-xs text-slate-700">
+                            <div className="pt-6 grid grid-cols-3 gap-2 sm:gap-4 text-center text-[10px] sm:text-xs text-slate-700">
                                 <div>
                                     <div className="font-bold uppercase">Thu Ngân Trực Ca</div>
                                     <div className="text-[11px] text-slate-400 italic">(Ký, ghi rõ họ tên)</div>

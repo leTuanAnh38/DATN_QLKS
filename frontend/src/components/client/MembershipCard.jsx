@@ -72,6 +72,7 @@ export default function MembershipCard({ user }) {
 
     const theme = getCardTheme(currentTier.code || currentTier.name);
     const progressPercent = calculateProgress();
+    const discountVal = Number(currentTier.discount_percent) || 0;
 
     return (
         <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-100 relative overflow-hidden mb-8 sm:mb-10">
@@ -79,7 +80,7 @@ export default function MembershipCard({ user }) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100 mb-6">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                        <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
                             <Award className="w-5 h-5" />
                         </span>
                         <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
@@ -91,10 +92,17 @@ export default function MembershipCard({ user }) {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100/70 text-amber-800 border border-amber-200">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Ưu đãi -{currentTier.discount_percent}% phòng
-                    </span>
+                    {discountVal > 0 ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Ưu đãi giảm {discountVal}% phòng
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                            Hội viên khởi đầu • Tích điểm thăng hạng
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -153,7 +161,7 @@ export default function MembershipCard({ user }) {
                                 </div>
                                 <div className="text-right">
                                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${theme.badgeBg}`}>
-                                        Giảm {currentTier.discount_percent}% giá phòng
+                                        {discountVal > 0 ? `Giảm ${discountVal}% giá phòng` : 'Hội viên tích điểm'}
                                     </span>
                                 </div>
                             </div>
@@ -190,28 +198,28 @@ export default function MembershipCard({ user }) {
                                 <span className="font-bold text-slate-800 text-sm">
                                     Cấp bậc hội viên:
                                 </span>
-                                <span className="font-bold text-amber-600 text-sm">
+                                <span className="font-bold text-slate-900 text-sm">
                                     {currentTier.name}
                                 </span>
                             </div>
 
                             {nextTier ? (
-                                <span className="text-xs font-bold px-3 py-1 bg-amber-100 text-amber-800 rounded-full border border-amber-300/60 inline-flex items-center gap-1 self-start sm:self-auto">
-                                    <Zap className="w-3.5 h-3.5 text-amber-600" />
-                                    Cần thêm {nextTier.points_needed} điểm nữa để thăng hạng {nextTier.name}
+                                <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200/80 inline-flex items-center gap-1.5 self-start sm:self-auto">
+                                    <Zap className="w-3.5 h-3.5 text-blue-600" />
+                                    Cần thêm {nextTier.points_needed} điểm để thăng hạng {nextTier.name}
                                 </span>
                             ) : (
-                                <span className="text-xs font-bold px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 inline-flex items-center gap-1">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                    Hạng thành viên tối đa (VIP Diamond)
+                                    Hạng thành viên cao nhất (VIP Diamond)
                                 </span>
                             )}
                         </div>
 
                         {/* Thanh Progress Bar */}
-                        <div className="w-full bg-slate-200 h-3.5 rounded-full overflow-hidden shadow-inner relative p-0.5">
+                        <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden shadow-inner relative p-0.5">
                             <div
-                                className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 h-full rounded-full transition-all duration-700 ease-out shadow-sm"
+                                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-700 ease-out shadow-xs"
                                 style={{ width: `${progressPercent}%` }}
                             />
                         </div>
@@ -220,9 +228,9 @@ export default function MembershipCard({ user }) {
                         <div className="mt-3 text-xs text-slate-600 leading-relaxed">
                             {nextTier ? (
                                 <>
-                                    💡 Bạn đang có <strong className="text-slate-900 font-bold">{totalPoints}</strong> điểm. 
-                                    Cần thêm <strong className="text-amber-600 font-bold">{nextTier.points_needed}</strong> điểm nữa 
-                                    để thăng hạng <strong className="text-amber-700 font-bold">{nextTier.name}</strong> (Hưởng ưu đãi giảm {nextTier.discount_percent}% cho các lần đặt phòng tiếp theo).
+                                    💡 Quý khách đang có <strong className="text-slate-900 font-bold">{totalPoints}</strong> điểm. 
+                                    Cần thêm <strong className="text-blue-600 font-bold">{nextTier.points_needed}</strong> điểm nữa 
+                                    để thăng hạng <strong className="text-slate-900 font-bold">{nextTier.name}</strong> (Hưởng ưu đãi giảm {Number(nextTier.discount_percent)}% cho các lần đặt phòng tiếp theo).
                                 </>
                             ) : (
                                 <>
@@ -252,10 +260,15 @@ export default function MembershipCard({ user }) {
                             </div>
                             <div>
                                 <h4 className="text-xs font-bold text-slate-800">
-                                    Giảm trực tiếp {currentTier.discount_percent}% phòng
+                                    {discountVal > 0 ? `Giảm trực tiếp ${discountVal}% tiền phòng` : 'Ưu đãi tiền phòng khi thăng hạng'}
                                 </h4>
                                 <p className="text-[11px] text-slate-500 mt-0.5">
-                                    Áp dụng tự động trừ vào tổng tiền phòng tại bước xác nhận thanh toán đặt phòng.
+                                    {discountVal > 0
+                                        ? 'Áp dụng tự động trừ vào tổng tiền phòng tại bước xác nhận thanh toán đặt phòng.'
+                                        : (nextTier
+                                            ? `Thăng hạng ${nextTier.name} để nhận ngay ưu đãi giảm ${Number(nextTier.discount_percent)}% cho mọi đơn phòng.`
+                                            : 'Áp dụng chiết khấu đặc quyền cho mọi đơn đặt phòng.')
+                                    }
                                 </p>
                             </div>
                         </div>

@@ -470,12 +470,12 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-4 py-2 bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
+                            className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer text-center justify-center"
                         >
                             Đóng
                         </button>
@@ -483,7 +483,7 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                             type="button"
                             onClick={handleSubmit}
                             disabled={isSubmitting}
-                            className="px-5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
                         >
                             {isSubmitting ? (
                                 <>

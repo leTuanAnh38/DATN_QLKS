@@ -8,6 +8,8 @@ User = get_user_model()
 
 
 class MembershipTierSerializer(serializers.ModelSerializer):
+    discount_percent = serializers.FloatField()
+
     class Meta:
         model = MembershipTier
         fields = ('id', 'name', 'code', 'min_points', 'discount_percent', 'badge_color', 'description', 'order')

@@ -69,6 +69,8 @@ class RoomCategorySerializer(serializers.ModelSerializer):
     images = RoomImageSerializer(many=True, read_only=True)
     feature_image = serializers.SerializerMethodField()
     total_rooms_count = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    reviews_count = serializers.SerializerMethodField()
 
     class Meta:
         model = RoomCategory
@@ -76,9 +78,24 @@ class RoomCategorySerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'short_description', 'description',
             'cancellation_policy', 'size', 'bed_type', 'capacity',
             'base_price', 'promo_price', 'amenities', 'images',
-            'feature_image', 'total_rooms_count'
+            'feature_image', 'total_rooms_count', 'rating', 'reviews_count'
         ]
-        read_only_fields = ['id', 'slug', 'total_rooms_count']
+        read_only_fields = ['id', 'slug', 'total_rooms_count', 'rating', 'reviews_count']
+
+    def get_rating(self, obj):
+        if hasattr(obj, 'avg_rating') and obj.avg_rating is not None:
+            return round(float(obj.avg_rating), 1)
+        reviews = obj.reviews.filter(is_visible=True)
+        if not reviews.exists():
+            return 5.0
+        from django.db.models import Avg
+        avg_score = reviews.aggregate(Avg('overall_rating'))['overall_rating__avg']
+        return round(float(avg_score), 1) if avg_score is not None else 5.0
+
+    def get_reviews_count(self, obj):
+        if hasattr(obj, 'total_reviews'):
+            return obj.total_reviews
+        return obj.reviews.filter(is_visible=True).count()
 
     def to_internal_value(self, data):
         # Hỗ trợ parse amenities linh hoạt khi gửi qua FormData hoặc JSON

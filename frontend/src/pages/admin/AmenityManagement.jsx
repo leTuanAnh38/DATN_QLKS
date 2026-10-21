@@ -355,7 +355,7 @@ export default function AmenityManagement() {
 
             {/* BẢNG DỮ LIỆU (TABLE): ID, TÊN TIỆN NGHI, MÔ TẢ, ICON, HÀNH ĐỘNG */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -458,6 +458,76 @@ export default function AmenityManagement() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* GIAO DIỆN MOBILE CARDS (Hiển thị mượt mà trên điện thoại, ẩn trên tablet/desktop) */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {isLoading ? (
+                        <div className="py-12 text-center text-slate-400">
+                            <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
+                            <p className="font-semibold text-slate-600 text-xs">Đang tải danh sách tiện nghi...</p>
+                        </div>
+                    ) : filteredAmenities.length === 0 ? (
+                        <div className="py-12 px-4 text-center text-slate-400">
+                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
+                                🔍
+                            </div>
+                            <p className="font-semibold text-slate-700 text-sm">Không tìm thấy tiện nghi nào</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                                {searchTerm ? 'Thử tìm với từ khóa khác' : 'Chưa có tiện nghi nào được tạo.'}
+                            </p>
+                        </div>
+                    ) : (
+                        paginatedAmenities.map((item) => (
+                            <div key={item.id} className="p-4 space-y-2 hover:bg-slate-50/60 transition">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-11 h-11 shrink-0 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl shadow-2xs">
+                                            {item.icon || '✨'}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <strong className="text-slate-900 font-bold block text-sm truncate">
+                                                {item.name}
+                                            </strong>
+                                            <span className="font-mono text-[10px] text-slate-400">
+                                                ID #{item.id}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        {canUpdate && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenEditModal(item)}
+                                                className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                title="Sửa"
+                                            >
+                                                ✏️
+                                            </button>
+                                        )}
+                                        {canDelete && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenDeleteModal(item)}
+                                                className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                title="Xóa"
+                                            >
+                                                🗑️
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {item.description && (
+                                    <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
+                                        {item.description}
+                                    </p>
+                                )}
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {/* Phân trang (Pagination) */}

@@ -147,7 +147,7 @@ export default function AuthBookingPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
                         
                         {/* CỘT TRÁI: QUẢN LÝ KỲ NGHỈ & VOUCHER MOCKUP CAO CẤP */}
-                        <div className="lg:col-span-6 bg-slate-900/75 backdrop-blur-2xl border border-white/10 rounded-3xl p-7 sm:p-9 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
+                        <div className="order-2 lg:order-1 lg:col-span-6 bg-slate-900/75 backdrop-blur-2xl border border-white/10 rounded-3xl p-7 sm:p-9 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
                             <div className="relative z-10">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider mb-4">
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
@@ -295,7 +295,7 @@ export default function AuthBookingPage() {
                         </div>
 
                         {/* CỘT PHẢI: FORM ĐĂNG NHẬP / ĐĂNG KÝ HIỆN ĐẠI, THẨM MỸ, DỊU MẮT */}
-                        <div className="lg:col-span-6 bg-white/95 backdrop-blur-2xl rounded-3xl border border-slate-100 shadow-2xl p-7 sm:p-9 flex flex-col justify-between">
+                        <div className="order-1 lg:order-2 lg:col-span-6 bg-white/95 backdrop-blur-2xl rounded-3xl border border-slate-100 shadow-2xl p-7 sm:p-9 flex flex-col justify-between">
                             <div>
                                 {/* BANNER NẾU ĐÃ ĐĂNG NHẬP */}
                                 {isAuthenticated && (

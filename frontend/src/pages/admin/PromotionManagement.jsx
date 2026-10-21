@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { promotionService } from '../../services/promotionService';
 import { useHasPermission } from '../../utils/permission';
+import Pagination from '../../components/common/Pagination';
 
 export default function PromotionManagement() {
     // 0. PHÂN QUYỀN
@@ -30,6 +31,10 @@ export default function PromotionManagement() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'active' | 'expired'
+
+    // Phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     // 2. STATE MODAL THÊM MỚI / CHỈNH SỬA
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -152,6 +157,19 @@ export default function PromotionManagement() {
             return true;
         });
     }, [promotions, searchTerm, filterStatus]);
+
+    // Reset về trang 1 khi thay đổi bộ lọc hoặc từ khóa tìm kiếm
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterStatus]);
+
+    const totalPages = Math.ceil(filteredPromotions.length / pageSize) || 1;
+    const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+
+    const paginatedPromotions = useMemo(() => {
+        const start = (safePage - 1) * pageSize;
+        return filteredPromotions.slice(start, start + pageSize);
+    }, [filteredPromotions, safePage, pageSize]);
 
     // Format ngày giờ hiển thị DD/MM/YYYY
     const formatDate = (dateStr) => {
@@ -474,9 +492,10 @@ export default function PromotionManagement() {
                 </div>
             </div>
 
-            {/* BẢNG DỮ LIỆU (TABLE): ID, MÃ CODE, TÊN CHƯƠNG TRÌNH, MỨC GIẢM, TRẠNG THÁI, HÀNH ĐỘNG */}
+            {/* BẢNG DỮ LIỆU: DESKTOP TABLE + MOBILE CARDS */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -512,7 +531,7 @@ export default function PromotionManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredPromotions.map((item) => {
+                                paginatedPromotions.map((item) => {
                                     const status = getPromoStatus(item);
                                     const isPercentage = item.discount_type === 'percentage';
 
@@ -525,7 +544,7 @@ export default function PromotionManagement() {
                                                 </span>
                                             </td>
 
-                                            {/* CỘT 2: MÃ CODE (Ví dụ: SUMMER2026) */}
+                                            {/* CỘT 2: MÃ CODE */}
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono font-bold text-sm text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-lg tracking-wider">
@@ -559,7 +578,7 @@ export default function PromotionManagement() {
                                                 </div>
                                             </td>
 
-                                            {/* CỘT 4: MỨC GIẢM (%, hoặc VNĐ) */}
+                                            {/* CỘT 4: MỨC GIẢM */}
                                             <td className="py-4 px-6">
                                                 <div className="flex items-baseline gap-1">
                                                     <span className="text-base font-bold text-rose-600">
@@ -586,7 +605,7 @@ export default function PromotionManagement() {
                                                 </div>
                                             </td>
 
-                                            {/* CỘT 5: TRẠNG THÁI (Đang diễn ra / Hết hạn - Badge xanh / đỏ) */}
+                                            {/* CỘT 5: TRẠNG THÁI */}
                                             <td className="py-4 px-6 text-center whitespace-nowrap">
                                                 <span
                                                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${status.color}`}
@@ -603,11 +622,10 @@ export default function PromotionManagement() {
                                                 </span>
                                             </td>
 
-                                            {/* CỘT 6: HÀNH ĐỘNG (NÚT SỬA, NÚT XÓA) */}
+                                            {/* CỘT 6: HÀNH ĐỘNG */}
                                             <td className="py-4 px-6 text-center whitespace-nowrap">
                                                 {canUpdatePromo || canDeletePromo ? (
                                                     <div className="flex items-center justify-center gap-1.5">
-                                                        {/* Nút Sửa */}
                                                         {canUpdatePromo && (
                                                             <button
                                                                 type="button"
@@ -619,7 +637,6 @@ export default function PromotionManagement() {
                                                             </button>
                                                         )}
 
-                                                        {/* Nút Xóa */}
                                                         {canDeletePromo && (
                                                             <button
                                                                 type="button"
@@ -642,6 +659,143 @@ export default function PromotionManagement() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* B. MOBILE CARD VIEW (< md) */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {isLoading ? (
+                        <div className="p-12 text-center text-slate-400">
+                            <RefreshCw className="w-7 h-7 animate-spin text-blue-600 mx-auto mb-2" />
+                            <p className="font-semibold text-slate-600 text-xs">Đang tải danh sách khuyến mãi...</p>
+                        </div>
+                    ) : filteredPromotions.length === 0 ? (
+                        <div className="p-12 text-center text-slate-400">
+                            <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-xl mx-auto mb-2">
+                                🏷️
+                            </div>
+                            <p className="font-semibold text-slate-700 text-xs">Không tìm thấy mã khuyến mãi nào</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                {searchTerm ? 'Thử tìm kiếm với từ khóa khác' : 'Chưa có voucher nào được tạo.'}
+                            </p>
+                        </div>
+                    ) : (
+                        paginatedPromotions.map((item) => {
+                            const status = getPromoStatus(item);
+                            const isPercentage = item.discount_type === 'percentage';
+
+                            return (
+                                <div key={item.id} className="p-4 space-y-2.5 hover:bg-slate-50/50 transition">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-lg tracking-wider">
+                                                {item.code}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyCode(item.code)}
+                                                className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                                                title="Copy mã voucher"
+                                            >
+                                                {copiedCode === item.code ? (
+                                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                                ) : (
+                                                    <Copy className="w-3.5 h-3.5" />
+                                                )}
+                                            </button>
+                                            <span className="font-mono text-[10px] font-bold text-slate-400">#{item.id}</span>
+                                        </div>
+
+                                        <span
+                                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${status.color}`}
+                                        >
+                                            <span
+                                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.type === 'active'
+                                                    ? 'bg-emerald-500 animate-pulse'
+                                                    : status.type === 'upcoming'
+                                                        ? 'bg-amber-500'
+                                                        : 'bg-rose-500'
+                                                    }`}
+                                            />
+                                            <span>{status.label}</span>
+                                        </span>
+                                    </div>
+
+                                    <div>
+                                        <strong className="text-slate-900 font-bold block text-xs">
+                                            {item.name || `Khuyến mãi ${item.code}`}
+                                        </strong>
+                                        <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                            <span>Đã dùng: <strong>{item.used_count || 0}</strong>/{item.usage_limit || 100}</span>
+                                            {item.min_order_value > 0 && (
+                                                <span>• Tối thiểu: <strong>{Number(item.min_order_value).toLocaleString('vi-VN')} đ</strong></span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                                        <div>
+                                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Mức giảm</span>
+                                            <span className="text-xs font-bold text-rose-600 font-mono">
+                                                {isPercentage
+                                                    ? `-${item.discount_value}%`
+                                                    : `-${Number(item.discount_value).toLocaleString('vi-VN')} đ`}
+                                            </span>
+                                            {isPercentage && item.max_discount_amount && (
+                                                <span className="text-[10px] text-slate-400 block">
+                                                    Tối đa: {Number(item.max_discount_amount).toLocaleString('vi-VN')} đ
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="text-right">
+                                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Hiệu lực</span>
+                                            <span className="text-[11px] text-slate-600 font-medium">
+                                                {formatDate(item.valid_from)} → {formatDate(item.valid_to)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {(canUpdatePromo || canDeletePromo) && (
+                                        <div className="flex items-center justify-end gap-2 pt-1">
+                                            {canUpdatePromo && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenEditModal(item)}
+                                                    className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                                >
+                                                    <span>✏️</span>
+                                                    <span>Sửa</span>
+                                                </button>
+                                            )}
+                                            {canDeletePromo && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenDeleteModal(item)}
+                                                    className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                                >
+                                                    <span>🗑️</span>
+                                                    <span>Xóa</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Phân trang (Table Footer) */}
+                <Pagination
+                    currentPage={safePage}
+                    totalPages={totalPages}
+                    totalCount={filteredPromotions.length}
+                    pageSize={pageSize}
+                    onPageChange={(page) => setCurrentPage(page)}
+                    onPageSizeChange={(newSize) => {
+                        setPageSize(newSize);
+                        setCurrentPage(1);
+                    }}
+                />
             </div>
 
             {/* MODAL FORM: THÊM MỚI HOẶC CẬP NHẬT VOUCHER KHUYẾN MÃI */}

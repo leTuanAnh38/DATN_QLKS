@@ -1019,7 +1019,7 @@ export default function EmployeeManagement() {
                     </span>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -1189,6 +1189,159 @@ export default function EmployeeManagement() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* GIAO DIỆN MOBILE CARDS (Hiển thị mượt mà trên điện thoại, ẩn trên tablet/desktop) */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {isLoading ? (
+                        <div className="py-12 text-center text-slate-400">
+                            <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                            <div className="text-xs">Đang tải dữ liệu nhân sự...</div>
+                        </div>
+                    ) : employees.length === 0 ? (
+                        <div className="py-12 text-center text-slate-400 text-xs">
+                            Không tìm thấy nhân viên nào phù hợp với bộ lọc.
+                        </div>
+                    ) : (
+                        employees.map((emp) => (
+                            <div key={emp.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition">
+                                {/* Hàng 1: Avatar + Tên + Trạng thái */}
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <UserAvatar
+                                            avatar={emp.avatar}
+                                            name={emp.full_name || emp.username}
+                                            role={emp.role}
+                                            size="md"
+                                            border={false}
+                                        />
+                                        <div className="min-w-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenDetail(emp)}
+                                                className="font-bold text-slate-900 hover:text-blue-600 text-sm text-left truncate block cursor-pointer"
+                                            >
+                                                {emp.full_name || emp.username}
+                                            </button>
+                                            <span className="font-mono text-[11px] font-bold text-blue-600 block">
+                                                {emp.employee_profile?.employee_code || `NV-${emp.id}`}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="shrink-0 flex flex-col items-end gap-1">
+                                        {emp.is_active ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                Hoạt động
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                Đã khóa
+                                            </span>
+                                        )}
+                                        {getRoleBadge(emp.role)}
+                                    </div>
+                                </div>
+
+                                {/* Hàng 2: Phòng ban, Chức danh, Ca làm việc & Lương */}
+                                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div>
+                                        <span className="text-slate-400 text-[10px] block uppercase font-semibold">Chức danh / Khối</span>
+                                        <strong className="text-slate-800 text-xs block truncate">
+                                            {emp.employee_profile?.position || 'Nhân viên'}
+                                        </strong>
+                                        <span className="text-slate-500 text-[11px] block truncate">
+                                            {emp.employee_profile?.department || 'Chưa xếp phòng'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 text-[10px] block uppercase font-semibold">Ca trực & Lương</span>
+                                        <span className="text-slate-800 font-medium text-xs block truncate">
+                                            {emp.employee_profile?.shift || 'Chưa xếp ca'}
+                                        </span>
+                                        <span className="font-mono font-bold text-emerald-600 text-[11px] block">
+                                            {formatCurrency(emp.employee_profile?.base_salary)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Hàng 3: Email & SĐT */}
+                                <div className="flex items-center justify-between text-xs text-slate-500 gap-2">
+                                    <span className="truncate">✉️ {emp.email}</span>
+                                    {emp.phone_number ? (
+                                        <a href={`tel:${emp.phone_number}`} className="shrink-0 text-blue-600 font-semibold hover:underline">
+                                            📞 {emp.phone_number}
+                                        </a>
+                                    ) : (
+                                        <span className="text-slate-400 italic shrink-0">Chưa có SĐT</span>
+                                    )}
+                                </div>
+
+                                {/* Hàng 4: Nút thao tác ngón tay */}
+                                <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5 flex-wrap">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleOpenDetail(emp)}
+                                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <span>👁️</span> Xem
+                                    </button>
+
+                                    {isManager && ['admin', 'owner', 'manager'].includes(emp.role) ? (
+                                        <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
+                                            <span>🔒</span>
+                                            <span>Cấp trên</span>
+                                        </span>
+                                    ) : (
+                                        <>
+                                            {canUpdateEmployee && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenAssignRole(emp)}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
+                                                    >
+                                                        <span>🛡️</span> Quyền
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenEdit(emp)}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
+                                                    >
+                                                        <span>✏️</span> Sửa
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleStatus(emp)}
+                                                        className={`px-2.5 py-1.5 rounded-xl border font-semibold text-xs transition flex items-center gap-1 cursor-pointer ${
+                                                            emp.is_active
+                                                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                        }`}
+                                                    >
+                                                        <span>{emp.is_active ? '🔒' : '🔓'}</span>
+                                                        <span>{emp.is_active ? 'Khóa' : 'Mở'}</span>
+                                                    </button>
+                                                </>
+                                            )}
+                                            {canDeleteEmployee && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenDelete(emp)}
+                                                    className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition cursor-pointer"
+                                                    title="Xóa nhân viên"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {/* Phân trang (Pagination) */}

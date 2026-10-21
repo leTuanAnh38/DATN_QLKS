@@ -843,7 +843,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
 
     return (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-4xl w-full p-6 sm:p-7 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-4xl w-full p-4 sm:p-7 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
                 
                 {/* ========================================================================= */}
                 {/* 1. HEADER MODAL                                                           */}
@@ -1726,12 +1726,12 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                 {/* ========================================================================= */}
                 {/* 5. FOOTER BUTTONS - LOGIC THÔNG MINH THEO YÊU CẦU                         */}
                 {/* ========================================================================= */}
-                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <div className="pt-4 mt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                     <button
                         type="button"
                         disabled={isSubmitting || isProcessingPayment}
                         onClick={onClose}
-                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer text-center justify-center"
                     >
                         Hủy bỏ
                     </button>
@@ -1750,7 +1750,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                 (isLateCheckIn && !confirmLateCheckIn)
                             }
                             onClick={handleDirectCheckIn}
-                            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <>
@@ -1777,7 +1777,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                 (isLateCheckIn && !confirmLateCheckIn)
                             }
                             onClick={handleDirectCheckIn}
-                            className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <>
@@ -1807,10 +1807,9 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                     (isLateCheckIn && !confirmLateCheckIn)
                                 }
                                 onClick={handleDebtAndCheckIn}
-                                className="px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                                 title="Cho khách nhận phòng trước, ghi nhận nợ tiền phòng vào Folio và thu khi check-out"
                             >
-                                
                                 <span>Cho nợ & Check-in</span>
                             </button>
 
@@ -1827,7 +1826,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                     (isLateCheckIn && !confirmLateCheckIn)
                                 }
                                 onClick={handleConfirmPaymentAndCheckIn}
-                                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                                 {isProcessingPayment ? (
                                     <>
@@ -1858,11 +1857,9 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                     (isLateCheckIn && !confirmLateCheckIn)
                                 }
                                 onClick={handleDebtAndCheckIn}
-                                className="px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                                 title="Cho khách nhận phòng trước, ghi nhận nợ tiền phòng vào Folio và thu khi check-out"
                             >
-                                
-                            
                                 <span>Cho nợ & Check-in</span>
                             </button>
 
@@ -1879,7 +1876,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                     (isLateCheckIn && !confirmLateCheckIn)
                                 }
                                 onClick={() => setShowPaymentForm(true)}
-                                className="px-5 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/25 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                                 <span>💵</span>
                                 <span>Thu tiền & Check-in ({formatCurrency(effectiveRemainingBalance)})</span>

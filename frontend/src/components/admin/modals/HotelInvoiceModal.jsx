@@ -402,32 +402,33 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 }
             `}</style>
 
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden my-6">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden my-2 sm:my-6">
                 {/* THANH ĐIỀU KHIỂN (Ẩn khi in) - Sticky top */}
-                <div className="no-print sticky top-0 z-20 bg-slate-900 text-white px-6 py-3.5 flex items-center justify-between border-b border-slate-800 shadow-xs">
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm tracking-wide">
-                            Xem Trước Hóa Đơn Đặt Phòng
+                <div className="no-print sticky top-0 z-20 bg-slate-900 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between border-b border-slate-800 shadow-xs">
+                    <div className="flex items-center gap-1.5 sm:gap-2 truncate mr-2">
+                        <span className="font-bold text-xs sm:text-sm tracking-wide truncate">
+                            Xem Trước Hóa Đơn
                         </span>
-                        <span className="text-xs text-slate-400 font-mono">
+                        <span className="text-[11px] sm:text-xs text-slate-400 font-mono shrink-0">
                             ({bookingCodeDisplay})
                         </span>
                     </div>
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                         <button
                             type="button"
                             onClick={handlePrint}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
-                            <span>In hóa đơn (Ctrl + P)</span>
+                            <span className="hidden sm:inline">In hóa đơn (Ctrl + P)</span>
+                            <span className="inline sm:hidden">In</span>
                         </button>
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition cursor-pointer"
+                            className="px-3 sm:px-3.5 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition cursor-pointer"
                         >
                             Đóng
                         </button>
@@ -435,11 +436,12 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 </div>
 
                 {/* VÙNG NỘI DUNG HÓA ĐƠN IN ẤN (CHUẨN FORM ẢNH MẪU - ĐEN TRẮNG, KHÔNG ICON, KHÔNG CHỮ MÀU) */}
-                <div
-                    id="hotel-invoice-printable"
-                    className="p-8 sm:p-10 bg-white text-slate-900 font-sans"
-                    style={{ minHeight: '680px', color: '#111827' }}
-                >
+                <div className="overflow-x-auto w-full">
+                    <div
+                        id="hotel-invoice-printable"
+                        className="p-5 sm:p-10 bg-white text-slate-900 font-sans min-w-[620px] sm:min-w-0"
+                        style={{ minHeight: '680px', color: '#111827' }}
+                    >
                     {/* 1. HEADER: THÔNG TIN KHÁCH SẠN VÀ TIÊU ĐỀ HÓA ĐƠN */}
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4">
                         {/* Cột trái: Tên khách sạn & địa chỉ chính thức của Khách Sạn TA Đà Nẵng */}
@@ -1036,24 +1038,25 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         </div>
                     </div>
                 </div>
+            </div>
 
                 {/* FOOTER NÚT THAO TÁC Ở ĐÁY MODAL (Ẩn khi in) */}
-                <div className="no-print bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-                    <div>
+                <div className="no-print bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs text-slate-500">
+                    <div className="hidden sm:block">
                         <span>💡 Lưu ý: Trình duyệt hỗ trợ chọn <strong>"Save as PDF"</strong> (Lưu thành tệp PDF) hoặc in ra máy in A4 tiêu chuẩn.</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-lg transition cursor-pointer"
+                            className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-lg transition cursor-pointer text-center"
                         >
                             Đóng cửa sổ
                         </button>
                         <button
                             type="button"
                             onClick={handlePrint}
-                            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                            className="flex-1 sm:flex-none px-5 py-2.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />

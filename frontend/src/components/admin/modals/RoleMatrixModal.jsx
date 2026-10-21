@@ -324,14 +324,14 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
     if (!isOpen || !canManageRoleMatrix) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
             <div
                 className="relative w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 1. MODAL HEADER */}
-                <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
-                    <div className="flex items-center gap-3.5">
+                <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+                    <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
                         <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-600/30">
                             🛡️
                         </div>
@@ -389,9 +389,9 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                 </div>
 
                 {/* 2. THANH CHỌN ROLE & TOOLBAR TIỆN ÍCH */}
-                <div className="px-6 py-3 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div className="px-4 sm:px-6 py-3 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                     {/* Role Tabs */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
+                    <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full scrollbar-none">
                         <span className="text-xs font-bold text-slate-500 whitespace-nowrap mr-1">
                             Vai trò:
                         </span>
@@ -453,7 +453,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                 </div>
 
                 {/* Info Bar */}
-                <div className="px-6 py-2.5 bg-slate-50/60 border-b border-slate-200 flex flex-wrap items-center justify-between text-xs gap-2">
+                <div className="px-4 sm:px-6 py-2.5 bg-slate-50/60 border-b border-slate-200 flex flex-wrap items-center justify-between text-xs gap-2">
                     <div className="flex items-center gap-2">
                         <span className="text-base">{activeRoleMeta.icon}</span>
                         <span className="text-slate-500">Cấu hình cho:</span>
@@ -495,7 +495,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                 )}
 
                 {/* 3. MODAL BODY */}
-                <div className="p-6 overflow-y-auto flex-1 text-slate-800 text-xs">
+                <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 text-slate-800 text-xs">
                     {/* Cảnh báo khi chọn vai trò tối cao cố định */}
                     {isFixedSystemRole && (
                         <div className="mb-4 p-3.5 bg-amber-50 rounded-xl border border-amber-300 text-amber-900 text-xs font-semibold flex items-center gap-2.5">
@@ -679,18 +679,18 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                 </div>
 
                 {/* 4. MODAL FOOTER */}
-                <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50">
+                    <div className="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5">
                         <span className="text-amber-500 font-bold">⚠️</span>
                         <span>Dữ liệu lưu sẽ tự động đồng bộ sang bảng mã quyền của nhân viên tương ứng.</span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto justify-end">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSaving}
-                            className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition cursor-pointer"
+                            className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition cursor-pointer text-center"
                         >
                             Đóng cửa sổ
                         </button>
@@ -699,7 +699,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                             <button
                                 type="button"
                                 disabled
-                                className="px-6 py-2.5 bg-slate-200 text-slate-500 font-bold text-xs rounded-xl transition cursor-not-allowed flex items-center gap-2 border border-slate-300"
+                                className="w-full sm:w-auto px-6 py-2.5 bg-slate-200 text-slate-500 font-bold text-xs rounded-xl transition cursor-not-allowed flex items-center justify-center gap-2 border border-slate-300"
                             >
                                 <span>🔒</span>
                                 <span>Quyền hệ thống cố định (Không thể sửa)</span>
@@ -709,7 +709,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                 type="button"
                                 onClick={handleSavePermissions}
                                 disabled={isSaving}
-                                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/30 transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                                className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/30 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                                 {isSaving ? (
                                     <>

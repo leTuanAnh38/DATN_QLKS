@@ -419,7 +419,7 @@ export default function GuestManagement() {
 
             {/* Bảng Danh Sách Khách Hàng */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
@@ -580,6 +580,161 @@ export default function GuestManagement() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* GIAO DIỆN MOBILE CARDS (Hiển thị mượt mà trên điện thoại, ẩn trên tablet/desktop) */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {isLoading ? (
+                        <div className="p-8 text-center text-slate-400">
+                            <div className="flex items-center justify-center gap-2">
+                                <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span className="text-xs">Đang tải danh sách khách hàng...</span>
+                            </div>
+                        </div>
+                    ) : guests.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400 text-xs">
+                            Không tìm thấy khách hàng nào phù hợp với bộ lọc.
+                        </div>
+                    ) : (
+                        guests.map((g) => {
+                            const tierCode = mapTierCode(g.current_tier?.name || g.guest_profile?.vip_tier);
+                            const tierStyles = {
+                                Diamond: 'bg-purple-50 text-purple-700 border-purple-200',
+                                Gold: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+                                Silver: 'bg-slate-100 text-slate-700 border-slate-200',
+                                Bronze: 'bg-amber-50 text-amber-900 border-amber-300',
+                            }[tierCode] || 'bg-amber-50 text-amber-900 border-amber-300';
+
+                            return (
+                                <div key={g.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition">
+                                    {/* Hàng 1: Avatar + Tên khách + Trạng thái */}
+                                    <div className="flex items-start justify-between gap-2">
+                                        <Link
+                                            to={`/admin/customers/${g.id}`}
+                                            className="flex items-center gap-2.5 min-w-0 group"
+                                        >
+                                            <UserAvatar
+                                                avatar={g.avatar}
+                                                name={g.full_name || g.username}
+                                                role="guest"
+                                                size="md"
+                                                border={false}
+                                            />
+                                            <div className="min-w-0">
+                                                <strong className="block font-bold text-blue-600 group-hover:underline text-sm truncate">
+                                                    {g.full_name || g.username}
+                                                </strong>
+                                                <span className="text-[11px] text-slate-400 block truncate">
+                                                    @{g.username} • #{g.id}
+                                                </span>
+                                            </div>
+                                        </Link>
+
+                                        <div className="shrink-0">
+                                            {g.is_active ? (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Hoạt động
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                                    Tạm khóa
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Hàng 2: Hạng thẻ VIP & Điểm thưởng */}
+                                    <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${tierStyles}`}>
+                                            ★ {g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                        </span>
+                                        <div className="text-[11px] font-bold text-amber-600">
+                                            {g.total_points ?? g.guest_profile?.loyalty_points ?? 0} pts (TA Club)
+                                        </div>
+                                    </div>
+
+                                    {/* Hàng 3: Liên hệ & CCCD */}
+                                    <div className="space-y-1.5 text-xs text-slate-600">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-slate-400 text-[11px]">Điện thoại:</span>
+                                            {g.phone_number ? (
+                                                <a href={`tel:${g.phone_number}`} className="font-semibold text-blue-600 hover:underline">
+                                                    📞 {g.phone_number}
+                                                </a>
+                                            ) : (
+                                                <span className="text-slate-400 italic">Chưa có SĐT</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-slate-400 text-[11px]">Email:</span>
+                                            {g.email ? (
+                                                <a href={`mailto:${g.email}`} className="font-medium text-slate-700 truncate max-w-[200px] hover:text-blue-600">
+                                                    ✉️ {g.email}
+                                                </a>
+                                            ) : (
+                                                <span className="text-slate-400 italic">Chưa có email</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-slate-400 text-[11px]">CCCD / Passport:</span>
+                                            <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                                                {g.guest_profile?.id_card_number || 'Chưa cập nhật'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Hàng 4: Nút thao tác ngón tay */}
+                                    <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5 flex-wrap">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenDetail(g)}
+                                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
+                                        >
+                                            <span>👁️</span> Xem hồ sơ
+                                        </button>
+                                        {canUpdateGuest && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenEdit(g)}
+                                                className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
+                                            >
+                                                <span>✏️</span> Sửa
+                                            </button>
+                                        )}
+                                        {canUpdateGuest && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleToggleStatus(g)}
+                                                className={`px-3 py-1.5 rounded-xl border font-semibold text-xs transition flex items-center gap-1 cursor-pointer ${
+                                                    g.is_active
+                                                        ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                }`}
+                                            >
+                                                <span>{g.is_active ? '🔒' : '🔓'}</span>
+                                                <span>{g.is_active ? 'Khóa' : 'Mở khóa'}</span>
+                                            </button>
+                                        )}
+                                        {canDeleteGuest && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDelete(g)}
+                                                className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition cursor-pointer"
+                                                title="Xóa tài khoản"
+                                            >
+                                                🗑️
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
 
                 {/* Phân trang (Table Footer) */}

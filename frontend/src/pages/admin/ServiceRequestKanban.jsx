@@ -811,27 +811,63 @@ export default function ServiceRequestKanban() {
                     </p>
                 </div>
 
-                {/* 5 Mini Stat Badges */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Tổng yêu cầu</span>
-                        <strong className="text-base font-black text-slate-900">{stats.total || 0}</strong>
-                    </div>
-                    <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100 text-center">
+                {/* 5 Mini Stat Badges (Nhấp vào thẻ để lọc nhanh danh sách) */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5">
+                    <button
+                        type="button"
+                        onClick={() => { setViewMode('list'); setStatusTab('all'); }}
+                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
+                            viewMode === 'list' && statusTab === 'all'
+                                ? 'bg-slate-200/80 border-slate-300 ring-2 ring-slate-400/30'
+                                : 'bg-slate-50 hover:bg-slate-100 border-slate-100'
+                        }`}
+                        title="Xem toàn bộ yêu cầu dịch vụ"
+                    >
+                        <span className="text-[10px] text-slate-500 block font-bold uppercase">Tổng yêu cầu</span>
+                        <strong className="text-sm sm:text-base font-black text-slate-900">{stats.total || 0}</strong>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setViewMode('list'); setStatusTab('pending'); }}
+                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
+                            viewMode === 'list' && statusTab === 'pending'
+                                ? 'bg-amber-100 border-amber-300 ring-2 ring-amber-400/40'
+                                : 'bg-amber-50 hover:bg-amber-100 border-amber-100'
+                        }`}
+                        title="Lọc nhanh các đơn đang chờ xử lý"
+                    >
                         <span className="text-[10px] text-amber-700 block font-bold uppercase">Chờ xử lý</span>
-                        <strong className="text-base font-black text-amber-600">{stats.pending_count || 0}</strong>
-                    </div>
-                    <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100 text-center">
+                        <strong className="text-sm sm:text-base font-black text-amber-600">{stats.pending_count || 0}</strong>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setViewMode('list'); setStatusTab('in_progress'); }}
+                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
+                            viewMode === 'list' && statusTab === 'in_progress'
+                                ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-400/40'
+                                : 'bg-blue-50 hover:bg-blue-100 border-blue-100'
+                        }`}
+                        title="Lọc nhanh các đơn đang chuẩn bị / làm"
+                    >
                         <span className="text-[10px] text-blue-700 block font-bold uppercase">Đang làm</span>
-                        <strong className="text-base font-black text-blue-600">{stats.in_progress_count || 0}</strong>
-                    </div>
-                    <div className="p-3 bg-purple-50 rounded-2xl border border-purple-100 text-center">
+                        <strong className="text-sm sm:text-base font-black text-blue-600">{stats.in_progress_count || 0}</strong>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setViewMode('list'); setStatusTab('delivering'); }}
+                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
+                            viewMode === 'list' && statusTab === 'delivering'
+                                ? 'bg-purple-100 border-purple-300 ring-2 ring-purple-400/40'
+                                : 'bg-purple-50 hover:bg-purple-100 border-purple-100'
+                        }`}
+                        title="Lọc nhanh các đơn đang mang tới phòng"
+                    >
                         <span className="text-[10px] text-purple-700 block font-bold uppercase">Đang giao</span>
-                        <strong className="text-base font-black text-purple-600">{stats.delivering_count || 0}</strong>
-                    </div>
-                    <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center col-span-2 sm:col-span-1">
+                        <strong className="text-sm sm:text-base font-black text-purple-600">{stats.delivering_count || 0}</strong>
+                    </button>
+                    <div className="p-2 sm:p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center col-span-2 sm:col-span-1">
                         <span className="text-[10px] text-emerald-700 block font-bold uppercase">Doanh thu</span>
-                        <strong className="text-xs font-black text-emerald-600 block truncate">
+                        <strong className="text-xs sm:text-sm font-black text-emerald-600 block truncate">
                             {Number(stats.total_revenue || 0).toLocaleString('vi-VN')} đ
                         </strong>
                     </div>
@@ -929,8 +965,8 @@ export default function ServiceRequestKanban() {
             {/* CHẾ ĐỘ DANH SÁCH: MỖI YÊU CẦU 1 HÀNG (giống Quản lý đơn đặt phòng) */}
             {viewMode === 'list' && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                    {/* Tab lọc theo trạng thái */}
-                    <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 border-b border-slate-100">
+                    {/* Tab lọc theo trạng thái (Sticky trên Mobile để dễ chuyển tab khi cuộn) */}
+                    <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md flex items-center gap-2 overflow-x-auto px-4 py-3 border-b border-slate-100 scrollbar-none">
                         {statusTabs.map((tab) => {
                             const isActive = statusTab === tab.key;
                             const activeCls = tab.key === 'all' ? 'bg-blue-50 text-blue-700 border-blue-200' : STATUS_META[tab.key].tab;
@@ -955,7 +991,8 @@ export default function ServiceRequestKanban() {
                         })}
                     </div>
 
-                    <div id="service-request-list" className="overflow-x-auto scroll-mt-4">
+                    {/* BẢNG CHO MÀN HÌNH MÁY TÍNH (>= md) */}
+                    <div id="service-request-list" className="hidden md:block overflow-x-auto scroll-mt-4">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
@@ -1258,6 +1295,323 @@ export default function ServiceRequestKanban() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* DANH SÁCH THẺ TÁC NGHIỆP DI ĐỘNG (< md) - THUẬN TIỆN BẤM NÚT 1 CHẠM KHÔNG CẦN KÉO NGANG */}
+                    <div className="block md:hidden bg-slate-50/70 p-3 space-y-3">
+                        {isLoading && allListItems.length === 0 && (
+                            <div className="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+                                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                <span className="text-xs">Đang tải danh sách yêu cầu dịch vụ...</span>
+                            </div>
+                        )}
+
+                        {!isLoading && listItems.length === 0 && (
+                            <div className="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 p-5">
+                                <div className="text-3xl mb-2">📭</div>
+                                <p className="font-semibold text-slate-700 text-xs">Không có yêu cầu dịch vụ nào</p>
+                                <p className="text-[11px] text-slate-400 mt-1">
+                                    {searchKeyword ? 'Hãy thử tìm kiếm với từ khóa khác.' : 'Chưa có yêu cầu nào trong mục này.'}
+                                </p>
+                            </div>
+                        )}
+
+                        {paginatedListItems.map((item) => {
+                            const meta = STATUS_META[item.status];
+                            const isUpdatingThis = isUpdatingId === item.id;
+                            const totalAmt = Number(item.total_price) || 0;
+                            const needsCheckIn = checkRequiresCheckIn(item);
+                            const sla = getSlaStatus(item);
+                            const lockReason = getServiceLockReason(item);
+
+                            return (
+                                <div
+                                    key={item.id}
+                                    className={`bg-white rounded-2xl border p-3.5 shadow-xs transition duration-150 flex flex-col gap-2.5 relative ${
+                                        sla ? sla.borderGlow : 'border-slate-200'
+                                    } ${isUpdatingThis ? 'opacity-60 bg-slate-50 pointer-events-none' : ''}`}
+                                >
+                                    {/* 1. Header Thẻ: Số phòng, Mã đơn, Trạng thái */}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-mono font-black text-xs shadow-2xs">
+                                                <span>🚪</span>
+                                                <span>{item.room_number ? `Phòng ${item.room_number}` : 'Chờ xếp'}</span>
+                                            </div>
+                                            <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                                                #{item.booking_code}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${meta?.pill || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                                                {meta?.icon} {meta?.label}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Dòng cảnh báo (SLA hoặc Điều kiện phục vụ) & Thời gian */}
+                                    <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px]">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            {sla && (
+                                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${sla.pill}`}>
+                                                    <span>⏰</span>
+                                                    <span>{sla.label}</span>
+                                                </span>
+                                            )}
+                                            {item.status === 'pending' && (
+                                                <>
+                                                    {lockReason === 'NO_ROOM' && (
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 font-bold" title="Chưa gán số phòng cụ thể">
+                                                            ⚠️ Chưa gán phòng
+                                                        </span>
+                                                    )}
+                                                    {lockReason === 'WAIT_CHECKIN' && (
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 font-bold" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
+                                                            ⚠️ Chờ Check-in
+                                                        </span>
+                                                    )}
+                                                    {!lockReason && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-200 font-bold" title="Đã có số phòng! Có thể setup buồng phòng trước">
+                                                            🛏️ Setup phòng
+                                                        </span>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                        <div className="text-slate-400 font-medium ml-auto">
+                                            {formatTimeAgo(item.created_at)}
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Nội dung món ăn / Dịch vụ */}
+                                    <div className="flex items-start gap-2.5 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
+                                        {item.service_image ? (
+                                            <img
+                                                src={item.service_image}
+                                                alt={item.service_name}
+                                                className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-xl shrink-0 border border-slate-200/80">
+                                                🍽️
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">
+                                                {item.service_name}
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                <span className="px-1.5 py-0.5 rounded-md bg-white text-slate-600 text-[10px] font-semibold border border-slate-200/80">
+                                                    {item.category_name || 'Dịch vụ'}
+                                                </span>
+                                                <span className="px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold text-[10px]">
+                                                    x{item.quantity || 1} suất
+                                                </span>
+                                                <span className="font-black text-rose-600 text-xs">
+                                                    {totalAmt.toLocaleString('vi-VN')} đ
+                                                </span>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] text-slate-600">
+                                                <span>Khách: <strong className="text-slate-800">{item.guest_name || 'Khách lưu trú'}</strong></span>
+                                                <span>•</span>
+                                                {item.is_paid ? (
+                                                    <span className="text-emerald-700 font-semibold">🟢 Đã trả trước</span>
+                                                ) : (
+                                                    <span className="text-amber-700 font-semibold">🟠 Thu Check-out</span>
+                                                )}
+                                            </div>
+
+                                            {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
+                                                <div className="mt-1 text-[10px] font-bold text-indigo-700 flex items-center gap-1">
+                                                    <span>⏰ Hẹn giờ: {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            )}
+
+                                            {item.note && (
+                                                <div className="mt-1.5 text-[11px] bg-amber-50/90 text-amber-900 border border-amber-200/60 p-2 rounded-lg font-medium flex items-start gap-1">
+                                                    <span className="shrink-0">💬</span>
+                                                    <span className="italic">{item.note}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 4. Khung Thao Tác (Action Buttons to, rõ, dễ bấm bằng ngón cái) */}
+                                    <div className="pt-0.5">
+                                        {item.status === 'completed' && (
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    <span>✓ Hoàn thành (Cộng hóa đơn phòng)</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handlePrintSlip(item)}
+                                                        className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-bold cursor-pointer"
+                                                        title="In phiếu"
+                                                    >
+                                                        🖨️
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedItemForDetail(item)}
+                                                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-bold cursor-pointer"
+                                                        title="Xem chi tiết"
+                                                    >
+                                                        👁️
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {item.status === 'pending' && (
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateStatus(item.id, 'in_progress')}
+                                                    disabled={isUpdatingThis || needsCheckIn}
+                                                    className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition shadow-sm flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer ${
+                                                        needsCheckIn
+                                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/20'
+                                                    }`}
+                                                    title={
+                                                        lockReason === 'NO_ROOM'
+                                                            ? "Chưa gán số phòng cụ thể. Cần liên hệ Lễ tân gán phòng trước khi thực hiện."
+                                                            : (lockReason === 'WAIT_CHECKIN'
+                                                                ? "Khách chưa làm thủ tục Check-in nhận phòng. Dịch vụ ăn uống / spa yêu cầu khách có mặt tại phòng để phục vụ."
+                                                                : "Bắt đầu chuẩn bị")
+                                                    }
+                                                >
+                                                    {needsCheckIn ? <span>🔒</span> : <span>🚀</span>}
+                                                    <span>Bắt đầu làm</span>
+                                                    <span>➔</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handlePrintSlip(item)}
+                                                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                                                    title="In phiếu phục vụ"
+                                                >
+                                                    🖨️
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedItemForDetail(item)}
+                                                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                                                    title="Xem chi tiết"
+                                                >
+                                                    👁️
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateStatus(item.id, 'cancelled')}
+                                                    disabled={isUpdatingThis}
+                                                    className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition cursor-pointer"
+                                                    title="Hủy đơn"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {item.status === 'in_progress' && (
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateStatus(item.id, 'delivering')}
+                                                    disabled={isUpdatingThis}
+                                                    className="flex-1 py-2.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-black transition shadow-sm shadow-purple-500/20 active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
+                                                >
+                                                    <span>🛎️</span>
+                                                    <span>Giao phòng</span>
+                                                    <span>➔</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateStatus(item.id, 'pending')}
+                                                    disabled={isUpdatingThis}
+                                                    className="px-2.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                                                    title="Trả về Chờ xử lý"
+                                                >
+                                                    <span>↩</span>
+                                                    <span>Lùi</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handlePrintSlip(item)}
+                                                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                                                    title="In phiếu phục vụ"
+                                                >
+                                                    🖨️
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedItemForDetail(item)}
+                                                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                                                    title="Xem chi tiết"
+                                                >
+                                                    👁️
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {item.status === 'delivering' && (
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateStatus(item.id, 'completed')}
+                                                    disabled={isUpdatingThis}
+                                                    className="flex-1 py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black transition shadow-sm shadow-emerald-500/20 active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
+                                                >
+                                                    <span>✓</span>
+                                                    <span>Hoàn tất phục vụ</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateStatus(item.id, 'in_progress')}
+                                                    disabled={isUpdatingThis}
+                                                    className="px-2.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                                                    title="Trả về Đang chuẩn bị"
+                                                >
+                                                    <span>↩</span>
+                                                    <span>Lùi</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedItemForDetail(item)}
+                                                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                                                    title="Xem chi tiết"
+                                                >
+                                                    👁️
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {item.status === 'cancelled' && (
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
+                                                    ✕ Đã hủy
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateStatus(item.id, 'pending')}
+                                                    disabled={isUpdatingThis}
+                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                                                >
+                                                    <span>↩</span>
+                                                    <span>Khôi phục</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* PHÂN TRANG */}

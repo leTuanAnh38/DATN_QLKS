@@ -268,8 +268,9 @@ export default function MaintenanceHistoryModal({
                             <p className="text-xs text-slate-400 mt-1">Chưa có phiếu bảo trì nào được ghi nhận hoặc không khớp với bộ lọc.</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                            <table className="w-full text-left border-collapse text-xs">
+                        <>
+                        <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
+                            <table className="w-full min-w-[750px] text-left border-collapse text-xs">
                                 <thead>
                                     <tr className="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-bold uppercase text-[10px] tracking-wider">
                                         <th className="py-3 px-3.5">Mã phiếu</th>
@@ -307,7 +308,7 @@ export default function MaintenanceHistoryModal({
                                                 </td>
 
                                                 {/* Thiết bị & Sự cố */}
-                                                <td className="py-3 px-3.5">
+                                                <td className="py-3 px-3.5 min-w-[160px]">
                                                     <div className="font-bold text-slate-900 flex items-center gap-1.5">
                                                         <span>🛠️</span>
                                                         <span>{t.equipment_name}</span>
@@ -386,6 +387,109 @@ export default function MaintenanceHistoryModal({
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* DANH SÁCH THẺ PHIẾU BẢO TRÌ DI ĐỘNG (< md) - KHÔNG CẦN CUỘN NGANG */}
+                        <div className="block md:hidden space-y-3">
+                            {paginatedTickets.map((t) => {
+                                const isDone = t.status === 'completed';
+                                return (
+                                    <div
+                                        key={t.id}
+                                        className={`bg-white rounded-2xl border p-3.5 shadow-2xs space-y-2.5 transition ${
+                                            !isDone
+                                                ? 'border-amber-400 bg-amber-50/20 ring-1 ring-amber-400/30'
+                                                : 'border-slate-200'
+                                        }`}
+                                    >
+                                        {/* 1. Header Thẻ: Số phòng, Mã phiếu, Trạng thái */}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-black text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
+                                                    🚪 P.{t.room_number}
+                                                </span>
+                                                <span className="font-mono text-xs font-bold text-slate-500">
+                                                    #{t.ticket_code}
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                {isDone ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                        Đã xong
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                        Đang sửa
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 2. Thiết bị & Sự cố */}
+                                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                                <span>🛠️</span>
+                                                <span>{t.equipment_name}</span>
+                                                <span className="text-[10px] text-slate-500 font-semibold px-1.5 py-0.2 bg-white rounded border border-slate-200">
+                                                    {t.issue_type_display || t.issue_type}
+                                                </span>
+                                            </div>
+                                            {t.description && (
+                                                <p className="text-[11px] text-slate-600 mt-1 italic">
+                                                    {t.description}
+                                                </p>
+                                            )}
+                                            {t.parts_replaced && (
+                                                <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-700 flex items-start gap-1">
+                                                    <span className="font-bold text-slate-800 shrink-0">📦 Vật tư:</span>
+                                                    <span className="font-medium">{t.parts_replaced}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 3. Thời gian sửa chữa */}
+                                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                                            <div>
+                                                <span>Bắt đầu: </span>
+                                                <strong className="text-slate-700">{formatDate(t.start_date)}</strong>
+                                            </div>
+                                            <div>
+                                                {t.completed_date ? (
+                                                    <span>Xong: <strong className="text-emerald-700">{formatDate(t.completed_date)}</strong></span>
+                                                ) : (
+                                                    <span className="text-amber-600 font-bold italic animate-pulse">Đang khắc phục...</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 4. Chi phí & Nguồn chi phí */}
+                                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                            <div>
+                                                {t.is_guest_fault ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                        <span>⚠️ Khách bồi thường</span>
+                                                        {t.booking_code && <span className="font-mono">#{t.booking_code}</span>}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                        🏢 Khách sạn bảo dưỡng
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-[10px] text-slate-400 block font-semibold">Chi phí:</span>
+                                                <span className="font-black text-sm text-slate-900">
+                                                    {formatCurrency(t.cost)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        </>
                     )}
                 </div>
 

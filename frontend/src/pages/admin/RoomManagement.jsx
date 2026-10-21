@@ -874,11 +874,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* ========================================================================= */}
             {/* KPI STATS CARDS: BẢNG CHỈ SỐ TRẠNG THÁI TOÀN KHÁCH SẠN */}
             {/* ========================================================================= */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
                 {/* 1. Tổng số phòng */}
                 <div
                     onClick={() => setStatusFilter('all')}
-                    className={`rounded-2xl p-4 border transition cursor-pointer flex items-center justify-between ${
+                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer flex items-center justify-between active:scale-98 ${
                         statusFilter === 'all'
                             ? 'bg-blue-50/80 border-blue-400 shadow-md ring-2 ring-blue-500/20'
                             : 'bg-white border-slate-200 hover:border-blue-300 shadow-xs'
@@ -890,15 +890,15 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         }`}>
                             Tổng số phòng
                         </span>
-                        <div className="flex items-baseline gap-1.5 mt-1">
-                            <span className="text-2xl font-black text-slate-900">{stats.total}</span>
-                            <span className="text-[11px] text-slate-500 font-medium">phòng</span>
+                        <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
+                            <span className="text-xl sm:text-2xl font-black text-slate-900">{stats.total}</span>
+                            <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">phòng</span>
                         </div>
                         <span className="text-[10px] text-blue-600 font-bold block mt-0.5">
                             Công suất: {stats.occupancy_rate}%
                         </span>
                     </div>
-                    <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-xl font-bold shadow-xs">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
                         🏢
                     </div>
                 </div>
@@ -906,7 +906,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 2. Phòng Trống (Available) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'available' ? 'all' : 'available')}
-                    className={`rounded-2xl p-4 border transition cursor-pointer ${
+                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer active:scale-98 ${
                         statusFilter === 'available'
                             ? 'bg-emerald-100 border-emerald-400 shadow-md ring-2 ring-emerald-500/20'
                             : 'bg-white border-slate-200 hover:border-emerald-300 shadow-xs'
@@ -917,15 +917,15 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             <span className="text-[10px] font-bold uppercase text-emerald-700 block tracking-wider">
                                 Trống (Sẵn sàng)
                             </span>
-                            <div className="flex items-baseline gap-1.5 mt-1">
-                                <span className="text-2xl font-black text-emerald-800">{stats.available}</span>
-                                <span className="text-[11px] text-emerald-600 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
+                                <span className="text-xl sm:text-2xl font-black text-emerald-800">{stats.available}</span>
+                                <span className="text-[10px] sm:text-[11px] text-emerald-600 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-emerald-700 block mt-0.5 font-semibold">
+                            <span className="text-[10px] text-emerald-700 mt-0.5 font-semibold hidden sm:block">
                                 Có thể nhận khách ngay
                             </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-xl font-bold shadow-xs">
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
                             🟢
                         </div>
                     </div>
@@ -934,7 +934,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 3. Có khách (Occupied) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'occupied' ? 'all' : 'occupied')}
-                    className={`rounded-2xl p-4 border transition cursor-pointer ${
+                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer active:scale-98 ${
                         statusFilter === 'occupied'
                             ? 'bg-rose-100 border-rose-400 shadow-md ring-2 ring-rose-500/20'
                             : 'bg-white border-slate-200 hover:border-rose-300 shadow-xs'
@@ -945,15 +945,15 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             <span className="text-[10px] font-bold uppercase text-rose-700 block tracking-wider">
                                 Đang có khách
                             </span>
-                            <div className="flex items-baseline gap-1.5 mt-1">
-                                <span className="text-2xl font-black text-rose-800">{stats.occupied}</span>
-                                <span className="text-[11px] text-rose-600 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
+                                <span className="text-xl sm:text-2xl font-black text-rose-800">{stats.occupied}</span>
+                                <span className="text-[10px] sm:text-[11px] text-rose-600 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-rose-700 block mt-0.5 font-semibold">
+                            <span className="text-[10px] text-rose-700 mt-0.5 font-semibold hidden sm:block">
                                 Đang lưu trú tại khách sạn
                             </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-xl font-bold shadow-xs">
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
                             🔴
                         </div>
                     </div>
@@ -962,7 +962,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 4. Đang dọn dẹp (Cleaning) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'cleaning' ? 'all' : 'cleaning')}
-                    className={`rounded-2xl p-4 border transition cursor-pointer ${
+                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer active:scale-98 ${
                         statusFilter === 'cleaning'
                             ? 'bg-amber-100 border-amber-400 shadow-md ring-2 ring-amber-500/20'
                             : 'bg-white border-slate-200 hover:border-amber-300 shadow-xs'
@@ -973,15 +973,15 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             <span className="text-[10px] font-bold uppercase text-amber-700 block tracking-wider">
                                 Đang dọn dẹp
                             </span>
-                            <div className="flex items-baseline gap-1.5 mt-1">
-                                <span className="text-2xl font-black text-amber-800">{stats.cleaning}</span>
-                                <span className="text-[11px] text-amber-600 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
+                                <span className="text-xl sm:text-2xl font-black text-amber-800">{stats.cleaning}</span>
+                                <span className="text-[10px] sm:text-[11px] text-amber-600 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-amber-700 block mt-0.5 font-semibold">
+                            <span className="text-[10px] text-amber-700 mt-0.5 font-semibold hidden sm:block">
                                 Buồng phòng đang xử lý
                             </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-xl font-bold shadow-xs">
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
                             🟡
                         </div>
                     </div>
@@ -990,7 +990,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 5. Đang bảo trì (Maintenance) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'maintenance' ? 'all' : 'maintenance')}
-                    className={`rounded-2xl p-4 border transition cursor-pointer ${
+                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer col-span-2 sm:col-span-1 active:scale-98 ${
                         statusFilter === 'maintenance'
                             ? 'bg-slate-200 border-slate-400 shadow-md ring-2 ring-slate-500/20'
                             : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
@@ -1001,15 +1001,15 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             <span className="text-[10px] font-bold uppercase text-slate-600 block tracking-wider">
                                 Đang bảo trì
                             </span>
-                            <div className="flex items-baseline gap-1.5 mt-1">
-                                <span className="text-2xl font-black text-slate-800">{stats.maintenance}</span>
-                                <span className="text-[11px] text-slate-500 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
+                                <span className="text-xl sm:text-2xl font-black text-slate-800">{stats.maintenance}</span>
+                                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-slate-600 block mt-0.5 font-semibold">
+                            <span className="text-[10px] text-slate-600 mt-0.5 font-semibold hidden sm:block">
                                 Đang sửa chữa kỹ thuật
                             </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-600 border border-slate-300 flex items-center justify-center text-xl font-bold shadow-xs">
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-slate-100 text-slate-600 border border-slate-300 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
                             ⚪
                         </div>
                     </div>
@@ -1120,34 +1120,34 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 </div>
 
                 {/* Chú giải trạng thái màu sắc nhanh */}
-                <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px]">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-slate-400 font-bold uppercase text-[10px]">Quy chuẩn màu thẻ:</span>
-                        <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[11px]">
+                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5 sm:pb-0">
+                        <span className="text-slate-400 font-bold uppercase text-[10px] shrink-0">Quy chuẩn màu:</span>
+                        <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 shrink-0">
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span>Trống (Green)</span>
+                            <span>Trống</span>
                         </div>
-                        <div className="flex items-center gap-1.5 font-semibold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200">
+                        <div className="flex items-center gap-1.5 font-semibold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200 shrink-0">
                             <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                            <span>Có khách (Red/Rose)</span>
+                            <span>Có khách</span>
                         </div>
-                        <div className="flex items-center gap-1.5 font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-1.5 font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 shrink-0">
                             <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                            <span>Đang dọn (Yellow/Amber)</span>
+                            <span>Đang dọn</span>
                         </div>
-                        <div className="flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-300">
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-300 shrink-0">
                             <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                            <span>Bảo trì (Gray)</span>
+                            <span>Bảo trì</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
                         {isLoading && rooms.length > 0 && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-bold animate-pulse border border-blue-100">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
                                 Đang đồng bộ...
                             </span>
                         )}
-                        <span className="text-slate-400 italic text-xs">
+                        <span className="text-slate-400 italic text-[11px] sm:text-xs">
                             Hiển thị <strong>{rooms.length}</strong> / {stats.total} phòng
                         </span>
                     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import postService from '../../services/postService';
+import Pagination from '../../components/common/Pagination';
 
 const quillFormats = [
     'header',
@@ -30,6 +31,10 @@ export default function PostManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+
+    // Phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     // Modals
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -309,6 +314,33 @@ export default function PostManagement() {
     const draftCount = posts.filter((p) => p.status === 'draft').length;
     const totalViews = posts.reduce((sum, p) => sum + (p.view_count || 0), 0);
 
+    // Lọc danh sách bài viết thời gian thực
+    const filteredPosts = useMemo(() => {
+        return posts.filter((p) => {
+            const query = searchTerm.toLowerCase().trim();
+            const matchesSearch = !query ||
+                (p.title && p.title.toLowerCase().includes(query)) ||
+                (p.author && p.author.toLowerCase().includes(query)) ||
+                (p.summary && p.summary.toLowerCase().includes(query));
+            const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+            const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
+    }, [posts, searchTerm, categoryFilter, statusFilter]);
+
+    // Reset về trang 1 khi thay đổi bộ lọc hoặc từ khóa tìm kiếm
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, categoryFilter, statusFilter]);
+
+    const totalPages = Math.ceil(filteredPosts.length / pageSize) || 1;
+    const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+
+    const paginatedPosts = useMemo(() => {
+        const start = (safePage - 1) * pageSize;
+        return filteredPosts.slice(start, start + pageSize);
+    }, [filteredPosts, safePage, pageSize]);
+
     const formatDate = (dateStr) => {
         if (!dateStr) return '—';
         try {
@@ -490,9 +522,10 @@ export default function PostManagement() {
                 </form>
             </div>
 
-            {/* BẢNG DANH SÁCH BÀI VIẾT (TABLE) */}
+            {/* BẢNG DANH SÁCH BÀI VIẾT: DESKTOP TABLE + MOBILE CARDS */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -514,7 +547,7 @@ export default function PostManagement() {
                                         Đang tải dữ liệu bài viết...
                                     </td>
                                 </tr>
-                            ) : posts.length === 0 ? (
+                            ) : filteredPosts.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="py-12 text-center text-slate-500 font-medium">
                                         <div className="text-3xl mb-2">📭</div>
@@ -522,7 +555,7 @@ export default function PostManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                posts.map((post) => (
+                                paginatedPosts.map((post) => (
                                     <tr key={post.id} className="hover:bg-slate-50/60 transition group">
                                         {/* Ảnh bìa */}
                                         <td className="py-3 px-4 text-center">
@@ -632,6 +665,115 @@ export default function PostManagement() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* B. MOBILE CARD VIEW (< md) */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {isLoading ? (
+                        <div className="py-12 text-center text-slate-500 font-medium">
+                            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                            Đang tải dữ liệu bài viết...
+                        </div>
+                    ) : filteredPosts.length === 0 ? (
+                        <div className="py-12 text-center text-slate-500 font-medium">
+                            <div className="text-3xl mb-2">📭</div>
+                            Không tìm thấy bài viết nào phù hợp.
+                        </div>
+                    ) : (
+                        paginatedPosts.map((post) => (
+                            <div key={post.id} className="p-3.5 space-y-2.5 hover:bg-slate-50/50 transition">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-16 h-12 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                                        {post.thumbnail_url ? (
+                                            <img
+                                                src={post.thumbnail_url}
+                                                alt={post.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-base text-slate-400">🖼️</span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                        <div className="flex items-start justify-between gap-1.5">
+                                            <h4 className="font-bold text-xs text-slate-900 line-clamp-2 leading-snug">
+                                                {post.title}
+                                            </h4>
+                                            {post.status === 'published' ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Hiển thị
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    Bản nháp
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap">
+                                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-semibold">
+                                                {post.category_display || post.category}
+                                            </span>
+                                            <span>• 👁️ {post.view_count || 0}</span>
+                                            <span>• {formatDate(post.created_at)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                                    <span className="text-[10px] text-slate-400 truncate max-w-[150px]">
+                                        ✍️ {post.author || 'Ban Biên Tập'}
+                                    </span>
+
+                                    <div className="flex items-center gap-1.5">
+                                        {post.status === 'published' && (
+                                            <a
+                                                href={`/news/${post.slug}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="p-1 px-2 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                                title="Xem web khách"
+                                            >
+                                                👁️ Xem
+                                            </a>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenEdit(post)}
+                                            className="p-1 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                            title="Chỉnh sửa bài viết"
+                                        >
+                                            ✏️ Sửa
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenDelete(post)}
+                                            className="p-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition cursor-pointer"
+                                            title="Xóa bài viết"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Phân trang (Table Footer) */}
+                <Pagination
+                    currentPage={safePage}
+                    totalPages={totalPages}
+                    totalCount={filteredPosts.length}
+                    pageSize={pageSize}
+                    onPageChange={(page) => setCurrentPage(page)}
+                    onPageSizeChange={(newSize) => {
+                        setPageSize(newSize);
+                        setCurrentPage(1);
+                    }}
+                />
             </div>
 
             {/* ========================================================================= */}

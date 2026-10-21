@@ -1476,11 +1476,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 bg-slate-50/50">
                     <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                         {/* Thanh Lọc Nhanh Phân Hệ: Tất cả / Check-in hôm nay / Check-out hôm nay */}
-                        <div className="flex items-center p-1 bg-slate-200/70 rounded-xl">
+                        <div className="flex items-center p-1 bg-slate-200/70 rounded-xl max-w-full overflow-x-auto scrollbar-none shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setQuickFilterMode('all')}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'all'
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${quickFilterMode === 'all'
                                     ? 'bg-white text-slate-900 shadow-xs'
                                     : 'text-slate-600 hover:text-slate-900'
                                     }`}
@@ -1493,7 +1493,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             <button
                                 type="button"
                                 onClick={() => setQuickFilterMode('check-in-today')}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-in-today'
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${quickFilterMode === 'check-in-today'
                                     ? 'bg-emerald-600 text-white shadow-xs'
                                     : 'text-emerald-700 hover:text-emerald-800'
                                     }`}
@@ -1506,7 +1506,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             <button
                                 type="button"
                                 onClick={() => setQuickFilterMode('check-out-today')}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${quickFilterMode === 'check-out-today'
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${quickFilterMode === 'check-out-today'
                                     ? 'bg-purple-600 text-white shadow-xs'
                                     : 'text-purple-700 hover:text-purple-800'
                                     }`}
@@ -1524,7 +1524,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             onClick={handleTriggerDailyReminders}
                             disabled={isSendingReminders}
                             title="Quét và gửi thông báo nhắc nhở đến Khách hàng và Nhân viên/Quản lý về lịch Check-in và Check-out hôm nay"
-                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xs cursor-pointer ${isSendingReminders
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xs cursor-pointer whitespace-nowrap shrink-0 ${isSendingReminders
                                 ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
                                 : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 hover:border-amber-400'
                                 }`}
@@ -1592,8 +1592,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     </div>
                 </div>
 
-                {/* BẢNG DỮ LIỆU ĐẶT PHÒNG (DATA TABLE TỰ CO GIÃN VỪA KHÍT) */}
-                <div className="overflow-x-auto w-full">
+                {/* BẢNG DỮ LIỆU ĐẶT PHÒNG (DATA TABLE TỰ CO GIÃN VỪA KHÍT - CHỈ HIỆN TRÊN DESKTOP/TABLET) */}
+                <div className="hidden md:block overflow-x-auto w-full">
                     <table className="w-full text-left border-collapse text-xs">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
@@ -2043,6 +2043,334 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 })}
                         </tbody>
                     </table>
+                </div>
+
+                {/* ========================================================================= */}
+                {/* CHẾ ĐỘ THẺ DI ĐỘNG (MOBILE CARD VIEW - CHỈ HIỂN THỊ TRÊN MÀN HÌNH < MD)   */}
+                {/* ========================================================================= */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                    {/* Loading State */}
+                    {isLoading && (
+                        <div className="py-12 text-center text-slate-400">
+                            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                            <span>Đang tải danh sách đơn đặt phòng...</span>
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!isLoading && filteredBookings.length === 0 && (
+                        <div className="py-12 text-center text-slate-400 p-4">
+                            <div className="text-3xl mb-2">📭</div>
+                            <p className="font-semibold text-slate-700">Không tìm thấy đơn đặt phòng nào</p>
+                            <p className="text-[11px] text-slate-400 mt-1">
+                                {searchKeyword
+                                    ? 'Hãy thử tìm kiếm với từ khóa khác.'
+                                    : 'Chưa có đơn đặt phòng nào phù hợp với bộ lọc hiện tại.'}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Danh sách thẻ đơn đặt phòng */}
+                    {!isLoading &&
+                        paginatedBookings.map((booking) => {
+                            const isRowUpdating = updatingId === booking.id;
+                            const totalAmountNum = Number(booking.total_amount) || 0;
+                            const statusConfig =
+                                STATUS_OPTIONS.find((s) => s.value === booking.status) || {
+                                    color: 'bg-slate-100 text-slate-700 border-slate-200',
+                                    label: booking.status
+                                };
+                            const extraServicesNum = Number(booking.extra_services_total || 0);
+                            const isGroupRoom = Boolean(booking.group_booking || booking.group_booking_code || booking.group_booking_id);
+                            const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
+                            const isPaid = ['paid', 'PAID', 'completed', 'checked_out'].includes(booking.status) ||
+                                booking.payment_status === 'COMPLETED' ||
+                                booking.is_paid ||
+                                (booking.note && (
+                                    booking.note.toLowerCase().includes('vietqr: đã thanh toán') ||
+                                    booking.note.toLowerCase().includes('đã thanh toán thành công')
+                                ));
+
+                            return (
+                                <div
+                                    key={booking.id}
+                                    className={`p-3.5 sm:p-4 transition space-y-2.5 ${
+                                        isRowUpdating ? 'opacity-60 bg-slate-50' : 'hover:bg-blue-50/20'
+                                    }`}
+                                >
+                                    {/* 1. Header Card: Mã Booking & Trạng thái */}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-mono text-xs font-black text-blue-700 tracking-wider">
+                                                #{booking.booking_code}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyCode(booking.booking_code)}
+                                                className="text-slate-400 hover:text-blue-600 transition text-[11px] p-0.5 rounded cursor-pointer"
+                                                title="Sao chép mã"
+                                            >
+                                                {copiedCode === booking.booking_code ? '✓' : '📋'}
+                                            </button>
+                                        </div>
+                                        <span
+                                            className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border shadow-2xs ${statusConfig.color}`}
+                                        >
+                                            {statusConfig.label}
+                                        </span>
+                                    </div>
+
+                                    {/* 2. Khách hàng & SĐT & CCCD */}
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                                                {booking.guest_name}
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600 mt-0.5">
+                                                {booking.guest_phone ? (
+                                                    <a
+                                                        href={`tel:${booking.guest_phone}`}
+                                                        className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-0.5"
+                                                    >
+                                                        <span>📞</span>
+                                                        <span>{booking.guest_phone}</span>
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-slate-400 italic">Chưa có SĐT</span>
+                                                )}
+                                                {booking.identity_card && (
+                                                    <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-1 py-0.2 rounded border border-slate-200">
+                                                        CCCD: {booking.identity_card}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] text-slate-400 shrink-0">
+                                            {formatDateTimeDisplay(booking.created_at)}
+                                        </span>
+                                    </div>
+
+                                    {/* 3. Chi tiết Phòng & Lịch trình Check-in/out */}
+                                    <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200/80 space-y-1.5 text-xs">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="font-medium text-slate-700 truncate" title={booking.room_type || booking.room_name}>
+                                                🏨 {booking.room_type || booking.room_name || 'Phòng nghỉ'}
+                                            </span>
+                                            <div>
+                                                {booking.room_number ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                                                        🚪 Phòng {booking.room_number}
+                                                    </span>
+                                                ) : canManageBookings && ['pending', 'paid', 'PAID', 'confirmed'].includes(booking.status) ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPreAssignModalBooking(booking)}
+                                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 text-[10px] font-bold border border-teal-200 transition cursor-pointer"
+                                                    >
+                                                        <span>🚪</span>
+                                                        <span>+ Gán phòng</span>
+                                                    </button>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-medium border border-slate-200">
+                                                        Chờ gán phòng
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1 border-t border-slate-200/50">
+                                            <div className="font-semibold text-slate-800">
+                                                📅 {formatDateDisplay(booking.check_in_date)} → {formatDateDisplay(booking.check_out_date)}
+                                            </div>
+                                            <span className="px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 text-[9.5px] font-bold border border-blue-100">
+                                                🌙 {booking.nights || 1} đêm
+                                            </span>
+                                        </div>
+
+                                        {/* Hiển thị cảnh báo trễ nhận phòng nếu có */}
+                                        {(() => {
+                                            if (booking.status !== 'confirmed') return null;
+                                            const bCheckIn = booking.check_in_date ? String(booking.check_in_date).split('T')[0] : '';
+                                            const bCheckOut = booking.check_out_date ? String(booking.check_out_date).split('T')[0] : '';
+                                            const todayStr = new Date().toISOString().split('T')[0];
+                                            const currentHour = new Date().getHours();
+
+                                            if (bCheckOut && bCheckOut <= todayStr) {
+                                                return (
+                                                    <div className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                                        ⛔ Quá hạn trả phòng mà khách chưa check-in
+                                                    </div>
+                                                );
+                                            }
+                                            if (bCheckIn && bCheckIn < todayStr) {
+                                                const d1 = new Date(todayStr);
+                                                const d2 = new Date(bCheckIn);
+                                                d1.setHours(0, 0, 0, 0);
+                                                d2.setHours(0, 0, 0, 0);
+                                                const daysLate = Math.max(1, Math.round((d1 - d2) / (1000 * 60 * 60 * 24)));
+                                                return (
+                                                    <div className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                        ⏰ Khách chưa check-in, đã trễ {daysLate} ngày
+                                                    </div>
+                                                );
+                                            }
+                                            if (bCheckIn === todayStr && currentHour >= 18) {
+                                                return (
+                                                    <div className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                        ⏰ Đến muộn (&gt;18:00 khách chưa check-in)
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                    </div>
+
+                                    {/* 4. Tổng tiền & Thanh toán */}
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="font-extrabold text-xs sm:text-sm text-slate-900 tracking-tight">
+                                                    {Number(booking.grand_total_amount || totalAmountNum).toLocaleString('vi-VN')}
+                                                </span>
+                                                <span className="text-[10px] font-semibold text-slate-400">₫</span>
+                                                {extraServicesNum > 0 && (
+                                                    <span
+                                                        className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-200/80 ml-0.5"
+                                                        title={`Bao gồm +${extraServicesNum.toLocaleString('vi-VN')}đ tiền dịch vụ`}
+                                                    >
+                                                        <span>🛎️</span>
+                                                        <span>+{extraServicesNum >= 1000000 ? `${(extraServicesNum / 1000000).toFixed(1)}M` : `${(extraServicesNum / 1000).toLocaleString('vi-VN')}k`}</span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            {isCancelled ? (
+                                                <span className="text-[10px] font-medium text-slate-400">✕ Đã hủy đơn</span>
+                                            ) : isGroupRoom ? (
+                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-200/80">
+                                                    🏢 HĐ đoàn #{booking.group_booking_code || ''}
+                                                </span>
+                                            ) : isPaid ? (
+                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/80">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    <span>Đã thanh toán</span>
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/80">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                    <span>Chưa thanh toán</span>
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 5. CỤM NÚT THAO TÁC 1 CHẠM (THUMB-FRIENDLY ACTION BUTTONS) */}
+                                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                                        {/* Primary Status Actions */}
+                                        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                                            {canManageBookings && ['pending', 'paid', 'PAID'].includes(booking.status) && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        disabled={isRowUpdating}
+                                                        onClick={() => handleQuickStatusChange(booking.id, 'confirmed')}
+                                                        className="flex-1 min-w-[80px] py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1 cursor-pointer active:scale-95 disabled:opacity-50"
+                                                    >
+                                                        <span>✓</span>
+                                                        <span>Duyệt</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        disabled={isRowUpdating}
+                                                        onClick={() => setCancelConfirmBooking(booking)}
+                                                        className="py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 text-xs font-bold border border-slate-200 transition flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-50"
+                                                        title="Từ chối / Hủy đơn"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {canManageBookings && booking.status === 'confirmed' && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenCheckInModal(booking)}
+                                                        className="flex-1 min-w-[100px] py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                                    >
+                                                        <span>🔑</span>
+                                                        <span>Check-in</span>
+                                                    </button>
+                                                    {isCheckInDateReached(booking.check_in_date) ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setNoShowModalBooking(booking)}
+                                                            className="py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 text-xs font-bold border border-slate-200 transition flex items-center justify-center cursor-pointer active:scale-95"
+                                                            title="Đánh dấu No-show"
+                                                        >
+                                                            🚫
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="py-1.5 px-2 rounded-xl bg-slate-50 text-slate-300 text-xs font-bold border border-slate-200/60 cursor-not-allowed opacity-50 flex items-center justify-center"
+                                                            title={`Chưa tới ngày nhận phòng (${formatDateDisplay(booking.check_in_date)}).`}
+                                                        >
+                                                            🚫
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {(canManageBookings || canCheckOut) && booking.status === 'checked_in' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCheckOutModalBooking(booking)}
+                                                    className="flex-1 min-w-[110px] py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                                >
+                                                    <span>🧾</span>
+                                                    <span>Check-out</span>
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Secondary Tool Icons: Chi tiết, In hóa đơn, Nhắc nhở */}
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenDetailModal(booking)}
+                                                className="py-1.5 px-2.5 rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 text-xs font-bold"
+                                                title="Xem chi tiết"
+                                            >
+                                                👁️ <span className="ml-1 text-[11px]">Chi tiết</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setInvoiceModalBooking(booking)}
+                                                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-800 hover:text-white text-slate-700 border border-slate-200 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 text-xs"
+                                                title="In hóa đơn"
+                                            >
+                                                🖨️
+                                            </button>
+                                            {canManageBookings && ['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(booking.status) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSendReminderForBooking(booking.id)}
+                                                    disabled={remindingBookingId === booking.id}
+                                                    className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 border border-amber-200 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 text-xs"
+                                                    title="Nhắc khách"
+                                                >
+                                                    {remindingBookingId === booking.id ? '⏳' : '🔔'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                 </div>
 
                 {/* FOOTER BẢNG: PHÂN TRANG */}

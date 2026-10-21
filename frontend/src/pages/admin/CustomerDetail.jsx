@@ -430,12 +430,12 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
             {/* ========================================================================= */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
                 {/* Thanh Chuyển Tab */}
-                <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-1.5 p-1 bg-slate-200/60 rounded-2xl">
+                <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-1.5 p-1 bg-slate-200/60 rounded-2xl w-full sm:w-auto">
                         <button
                             type="button"
                             onClick={() => setActiveTab('bookings')}
-                            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                            className={`flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                                 activeTab === 'bookings'
                                     ? 'bg-white text-blue-600 shadow-sm'
                                     : 'text-slate-600 hover:text-slate-900'
@@ -453,7 +453,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                         <button
                             type="button"
                             onClick={() => setActiveTab('services')}
-                            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                            className={`flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                                 activeTab === 'services'
                                     ? 'bg-white text-blue-600 shadow-sm'
                                     : 'text-slate-600 hover:text-slate-900'
@@ -469,7 +469,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                         </button>
                     </div>
 
-                    <div className="text-xs text-slate-400 px-3">
+                    <div className="text-xs text-slate-400 px-1 text-center sm:text-right">
                         {activeTab === 'bookings' ? 'Dữ liệu các lượt lưu trú của khách' : 'Lịch sử gọi món & dịch vụ phòng'}
                     </div>
                 </div>
@@ -479,7 +479,8 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                 {/* ===================================================================== */}
                 {activeTab === 'bookings' && (
                     <div>
-                        <div className="overflow-x-auto">
+                        {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/80 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
@@ -599,6 +600,84 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                             </table>
                         </div>
 
+                        {/* B. MOBILE CARD VIEW (< md) */}
+                        <div className="block md:hidden divide-y divide-slate-100">
+                            {isLoadingBookings ? (
+                                <div className="p-8 text-center text-slate-400">
+                                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                    <span className="text-xs">Đang tải lịch sử đặt phòng của khách...</span>
+                                </div>
+                            ) : bookings.length === 0 ? (
+                                <div className="p-8 text-center text-slate-400 space-y-1">
+                                    <span className="text-3xl block">📭</span>
+                                    <p className="font-semibold text-slate-600 text-xs">Chưa có dữ liệu đặt phòng</p>
+                                    <p className="text-[11px] text-slate-400">Khách hàng này chưa thực hiện đơn đặt phòng nào trên hệ thống.</p>
+                                </div>
+                            ) : (
+                                bookings.map((b) => {
+                                    const statusCfg = BOOKING_STATUS_CONFIG[b.status] || {
+                                        label: b.status_display || b.status,
+                                        color: 'bg-slate-100 text-slate-800 border-slate-200'
+                                    };
+                                    const roomNum = b.room_number || b.room?.room_number;
+                                    const categoryName = b.room_name || b.category?.name || b.room?.category?.name || 'Tiêu chuẩn';
+
+                                    return (
+                                        <div key={b.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <span className="font-mono font-black text-blue-600 text-sm">#{b.booking_code}</span>
+                                                    <span className="block text-[10px] text-slate-400 mt-0.5">{formatDateTimeDisplay(b.created_at)}</span>
+                                                </div>
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${statusCfg.color}`}>
+                                                    {statusCfg.label}
+                                                </span>
+                                            </div>
+
+                                            <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-100 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <strong className="font-bold text-slate-900 text-xs">{categoryName}</strong>
+                                                    {roomNum ? (
+                                                        <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px] font-bold">
+                                                            P.{roomNum}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-400 text-[10px]">Chưa gán phòng</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="text-[11px] text-slate-600 flex items-center justify-between pt-1 border-t border-slate-200/50">
+                                                    <span>Lưu trú:</span>
+                                                    <div className="font-semibold text-slate-800 text-right">
+                                                        <span>{formatDateDisplay(b.check_in_date)}</span>
+                                                        <span className="text-slate-400 mx-1">→</span>
+                                                        <span>{formatDateDisplay(b.check_out_date)}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-[11px] flex items-center justify-between pt-1 border-t border-slate-200/50">
+                                                    <span className="text-slate-500">Tổng tiền:</span>
+                                                    <strong className="font-mono text-amber-600 font-bold text-xs">
+                                                        {Number(b.total_amount || 0).toLocaleString('vi-VN')} đ
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-end pt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate('/admin?tab=bookings')}
+                                                    className="w-full sm:w-auto px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition cursor-pointer text-center"
+                                                >
+                                                    Xem tại PMS →
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
                         {/* Phân trang Tab 1 */}
                         {bookingTotalCount > 0 && (
                             <Pagination
@@ -619,7 +698,8 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                 {/* ===================================================================== */}
                 {activeTab === 'services' && (
                     <div>
-                        <div className="overflow-x-auto">
+                        {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/80 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
@@ -733,6 +813,74 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* B. MOBILE CARD VIEW (< md) */}
+                        <div className="block md:hidden divide-y divide-slate-100">
+                            {isLoadingServices ? (
+                                <div className="p-8 text-center text-slate-400">
+                                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                    <span className="text-xs">Đang tải lịch sử sử dụng dịch vụ...</span>
+                                </div>
+                            ) : serviceRequests.length === 0 ? (
+                                <div className="p-8 text-center text-slate-400 space-y-1">
+                                    <span className="text-3xl block">🛎️</span>
+                                    <p className="font-semibold text-slate-600 text-xs">Chưa có yêu cầu dịch vụ nào</p>
+                                    <p className="text-[11px] text-slate-400">Khách hàng chưa gọi món hoặc yêu cầu dịch vụ tại phòng.</p>
+                                </div>
+                            ) : (
+                                serviceRequests.map((req) => {
+                                    const statusCfg = SERVICE_STATUS_CONFIG[req.status] || {
+                                        label: req.status_display || req.status,
+                                        color: 'bg-slate-100 text-slate-700 border-slate-200'
+                                    };
+                                    const serviceName = req.service_name || req.service?.name || 'Dịch vụ phòng';
+                                    const bookingCode = req.booking_code || req.booking?.booking_code || '—';
+                                    const roomNum = req.room_number || req.booking?.room?.room_number || '—';
+
+                                    return (
+                                        <div key={req.id} className="p-4 space-y-2.5 hover:bg-slate-50/50 transition">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base shrink-0 border border-blue-100">
+                                                        {req.category_icon || '🛎️'}
+                                                    </div>
+                                                    <div>
+                                                        <strong className="block font-bold text-slate-900 text-xs">{serviceName}</strong>
+                                                        <span className="text-[10px] text-slate-400">{formatDateTimeDisplay(req.created_at || req.request_time)}</span>
+                                                    </div>
+                                                </div>
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${statusCfg.color}`}>
+                                                    {statusCfg.label}
+                                                </span>
+                                            </div>
+
+                                            {req.note && (
+                                                <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                                    "{req.note}"
+                                                </p>
+                                            )}
+
+                                            <div className="flex items-center justify-between text-xs pt-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-mono text-blue-600 font-bold text-[11px]">#{bookingCode}</span>
+                                                    <span className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px] font-bold">
+                                                        P.{roomNum}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                                                        x{req.quantity || 1}
+                                                    </span>
+                                                    <strong className="font-mono text-amber-600 font-bold text-xs">
+                                                        {Number(req.total_price || 0).toLocaleString('vi-VN')} đ
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
 
                         {/* Phân trang Tab 2 */}

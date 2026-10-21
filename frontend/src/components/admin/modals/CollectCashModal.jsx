@@ -247,8 +247,8 @@ export default function CollectCashModal({ isOpen, onClose, onSuccess, initialBo
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full p-6 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
                 {/* 1. HEADER MODAL */}
                 <div className="flex items-start justify-between pb-4 border-b border-slate-200 mb-6">
                     <div className="flex items-center gap-3">
@@ -627,12 +627,12 @@ export default function CollectCashModal({ isOpen, onClose, onSuccess, initialBo
                     </div>
 
                     {/* 4. FOOTER ACTIONS */}
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm hover:bg-slate-100 transition cursor-pointer"
+                            className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm hover:bg-slate-100 transition cursor-pointer text-center"
                         >
                             Hủy bỏ
                         </button>
@@ -640,7 +640,7 @@ export default function CollectCashModal({ isOpen, onClose, onSuccess, initialBo
                         <button
                             type="submit"
                             disabled={isSubmitting || !selectedBooking || !collectAmount || Number(collectAmount) <= 0}
-                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <>

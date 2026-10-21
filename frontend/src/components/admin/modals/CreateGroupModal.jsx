@@ -306,20 +306,20 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-4xl w-full p-6 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-4xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[94vh] overflow-y-auto animate-in zoom-in-95 duration-200">
                 
                 {/* MODAL HEADER */}
                 <div className="flex items-start justify-between pb-4 border-b border-slate-200 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
                             🏢
                         </div>
                         <div>
-                            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 uppercase tracking-wide">
+                            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] sm:text-[11px] font-bold border border-blue-200 uppercase tracking-wide">
                                 Phân Hệ Khách Đoàn & Doanh Nghiệp (M.I.C.E / B2B)
                             </span>
-                            <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+                            <h2 className="font-serif text-lg sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">
                                 Tạo Đơn Đặt Phòng Theo Đoàn (Group Booking)
                             </h2>
                         </div>
@@ -835,12 +835,12 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         </div>
 
                         {/* FOOTER ACTIONS */}
-                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
                             <button
                                 type="button"
                                 disabled={isSubmitting}
                                 onClick={onClose}
-                                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer text-center"
                             >
                                 Hủy bỏ
                             </button>
@@ -848,7 +848,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isSubmitting || totalRoomsCount === 0}
-                                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-center"
                             >
                                 {isSubmitting ? (
                                     <>

@@ -1608,12 +1608,12 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </div>
 
                                 {/* Filter buttons & CTA */}
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold text-slate-600">
+                                <div className="flex items-center gap-3 max-w-full">
+                                    <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold text-slate-600 max-w-full overflow-x-auto scrollbar-none shrink-0">
                                         <button
                                             type="button"
                                             onClick={() => setTimeFilter('today')}
-                                            className={`px-3 py-1.5 rounded-lg transition ${
+                                            className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 cursor-pointer ${
                                                 timeFilter === 'today' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'
                                             }`}
                                         >
@@ -1622,7 +1622,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                         <button
                                             type="button"
                                             onClick={() => setTimeFilter('7days')}
-                                            className={`px-3 py-1.5 rounded-lg transition ${
+                                            className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 cursor-pointer ${
                                                 timeFilter === '7days' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'
                                             }`}
                                         >
@@ -1631,7 +1631,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                         <button
                                             type="button"
                                             onClick={() => setTimeFilter('month')}
-                                            className={`px-3 py-1.5 rounded-lg transition ${
+                                            className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 cursor-pointer ${
                                                 timeFilter === 'month' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'
                                             }`}
                                         >
@@ -1640,7 +1640,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                         <button
                                             type="button"
                                             onClick={() => setTimeFilter('year')}
-                                            className={`px-3 py-1.5 rounded-lg transition ${
+                                            className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap shrink-0 cursor-pointer ${
                                                 timeFilter === 'year' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'
                                             }`}
                                         >
