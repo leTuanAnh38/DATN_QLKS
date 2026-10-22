@@ -656,11 +656,10 @@ export default function DetailRoom() {
     const packageSurchargePerNight = selectedPackage === 'spa' ? 1200000 : 0;
     const totalPricePerNight = effectiveBasePrice + packageSurchargePerNight;
 
-    // Tính tổng tiền & điểm thưởng
+    // Tính tổng tiền & điểm thưởng (Giá niêm yết đã bao gồm thuế VAT & phí phục vụ đồng bộ với trang Checkout)
     const roomSubtotal = totalPricePerNight * nights;
-    const vatAndService = Math.round(roomSubtotal * 0.05); // 5% thuế & phí phục vụ
-    const finalTotal = roomSubtotal + vatAndService;
-    const earnedPoints = Math.round(finalTotal / 10000);
+    const finalTotal = roomSubtotal;
+    const earnedPoints = Math.floor(finalTotal / 100000);
 
     const discountPercent = hasPromo && basePriceNum > 0
         ? Math.round(((basePriceNum - promoPriceNum) / basePriceNum) * 100)
@@ -1821,11 +1820,11 @@ export default function DetailRoom() {
                                     <span>{roomSubtotal.toLocaleString('vi-VN')} VND</span>
                                 </div>
                                 <div className="flex justify-between text-slate-600">
-                                    <span>Thuế VAT & Phí phục vụ (5%)</span>
-                                    <span>{vatAndService.toLocaleString('vi-VN')} VND</span>
+                                    <span>Thuế VAT & Phí phục vụ</span>
+                                    <span className="text-emerald-600 font-semibold">Đã bao gồm</span>
                                 </div>
                                 <div className="flex justify-between text-blue-600 font-semibold pt-1 border-t border-slate-200">
-                                    <span> Tích lũy TA Club Points</span>
+                                    <span>⭐ Tích lũy điểm thưởng (+1 pt / 100.000đ)</span>
                                     <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                                 </div>
                                 <div className="flex justify-between items-baseline pt-2 border-t border-slate-200">

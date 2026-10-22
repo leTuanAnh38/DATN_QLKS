@@ -900,6 +900,16 @@ export default function BookingHistory() {
                                     const isTransfer = methodCode === 'TRANSFER';
                                     const grandTotalNum = Number(booking.grand_total_amount ?? booking.total_amount) || 0;
                                     const roomAmountNum = Number(booking.room_amount ?? booking.total_amount) || 0;
+                                    const paidAmountNum = Number(booking.paid_amount || 0);
+                                    const remainingBalanceNum = Number(
+                                        booking.remaining_balance != null 
+                                            ? booking.remaining_balance 
+                                            : (booking.remaining_amount != null 
+                                                ? booking.remaining_amount 
+                                                : Math.max(0, grandTotalNum - paidAmountNum))
+                                    );
+                                    const isNotCheckedOut = !['completed', 'checked_out', 'cancelled', 'no_show'].includes(booking.status);
+                                    const hasRemainingPayment = isNotCheckedOut && remainingBalanceNum > 0;
                                     const extraServices = (Array.isArray(booking.extra_services) && booking.extra_services.length > 0)
                                         ? booking.extra_services
                                         : (Array.isArray(booking.selected_services) && booking.selected_services.length > 0)
@@ -984,6 +994,21 @@ export default function BookingHistory() {
                                                             >
                                                                 <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                                                                 <span>🏢 Quyết toán qua HĐ Đoàn</span>
+                                                            </span>
+                                                        ) : (hasRemainingPayment && paidAmountNum > 0) ? (
+                                                            <span
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-xs"
+                                                                title={`Đã thanh toán trước ${paidAmountNum.toLocaleString('vi-VN')} đ. Còn phải thanh toán thêm ${remainingBalanceNum.toLocaleString('vi-VN')} đ khi trả phòng.`}
+                                                            >
+                                                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                                                <span>{isCash ? '✓ Tiền mặt (Còn thanh toán)' : (isTransfer ? '✓ VietQR (Còn thanh toán)' : '✓ Đã TT một phần')}</span>
+                                                            </span>
+                                                        ) : (hasRemainingPayment && paidAmountNum === 0) ? (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                                                                title="Chưa thanh toán tiền phòng"
+                                                            >
+                                                                <span>💵 Chưa TT</span>
                                                             </span>
                                                         ) : (booking.payment_status === 'COMPLETED' || isPaid) ? (
                                                             <span
@@ -1139,28 +1164,70 @@ export default function BookingHistory() {
                                                         ) : (
                                                             /* HIỂN THỊ TÀI CHÍNH CHO ĐƠN KHÁCH LẺ */
                                                             <div className="text-left lg:text-right">
-                                                                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                                                                    isCancelled ? 'text-rose-500' : (isPaid ? 'text-emerald-700' : 'text-slate-400')
-                                                                }`}>
-                                                                    {isCancelled
-                                                                        ? 'Đơn đã hủy'
-                                                                        : (isPaid ? (isCash ? '✓ Đã thanh toán (Tiền mặt)' : (isTransfer ? '✓ Đã thanh toán (VietQR)' : '✓ Đã thanh toán')) : 'Tổng tiền cần thanh toán')}
-                                                                </span>
-                                                                <div className={`text-xl sm:text-2xl font-black mt-0.5 ${
-                                                                    isCancelled ? 'text-slate-400 line-through' : (isPaid ? 'text-emerald-600' : 'text-rose-600')
-                                                                }`}>
-                                                                    {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
-                                                                </div>
-                                                                {hasExtraServices ? (
-                                                                    <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
-                                                                        <span className="text-slate-500">
-                                                                            Tiền phòng: <strong className="text-slate-700">{roomAmountNum.toLocaleString('vi-VN')} đ</strong>
+                                                                {isCancelled ? (
+                                                                    <>
+                                                                        <span className="text-[11px] font-bold uppercase tracking-wider block text-rose-500">
+                                                                            Đơn đã hủy
                                                                         </span>
-                                                                    </div>
+                                                                        <div className="text-xl sm:text-2xl font-black mt-0.5 text-slate-400 line-through">
+                                                                            {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
+                                                                        </div>
+                                                                    </>
+                                                                ) : hasRemainingPayment ? (
+                                                                    <>
+                                                                        <span className={`text-[11px] font-bold uppercase tracking-wider block ${paidAmountNum > 0 ? 'text-slate-500' : 'text-rose-500'}`}>
+                                                                            {paidAmountNum > 0 ? 'Tổng giá trị đơn' : 'Tổng tiền cần thanh toán'}
+                                                                        </span>
+                                                                        <div className={`text-xl sm:text-2xl font-black mt-0.5 ${paidAmountNum > 0 ? 'text-slate-900' : 'text-rose-600'}`}>
+                                                                            {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
+                                                                        </div>
+                                                                        <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
+                                                                            {hasExtraServices ? (
+                                                                                <span className="text-slate-500">
+                                                                                    Tiền phòng: <strong className="text-slate-700">{roomAmountNum.toLocaleString('vi-VN')} đ</strong>
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="text-[10px] text-slate-400 block">
+                                                                                    (Đã bao gồm thuế & phí phục vụ)
+                                                                                </span>
+                                                                            )}
+                                                                            {paidAmountNum > 0 && (
+                                                                                <span className="text-emerald-700 font-medium">
+                                                                                    Đã thanh toán trước: <strong>{paidAmountNum.toLocaleString('vi-VN')} đ</strong>
+                                                                                </span>
+                                                                            )}
+                                                                            {(paidAmountNum > 0 || booking.status === 'checked_in') && (
+                                                                                <div className="mt-1 flex items-center justify-between lg:justify-end gap-1.5 text-xs font-bold">
+                                                                                    <span className="text-amber-700">
+                                                                                        {booking.status === 'checked_in' ? 'Cần thanh toán khi Check-out:' : 'Cần thanh toán:'}
+                                                                                    </span>
+                                                                                    <span className="font-black text-amber-600">
+                                                                                        +{remainingBalanceNum.toLocaleString('vi-VN')} VND
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </>
                                                                 ) : (
-                                                                    <span className="text-[10px] text-slate-400 block">
-                                                                        (Đã bao gồm thuế & phí phục vụ)
-                                                                    </span>
+                                                                    <>
+                                                                        <span className="text-[11px] font-bold uppercase tracking-wider block text-emerald-700">
+                                                                            {isCash ? '✓ Đã thanh toán (Tiền mặt)' : (isTransfer ? '✓ Đã thanh toán (VietQR)' : '✓ Đã thanh toán')}
+                                                                        </span>
+                                                                        <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-600">
+                                                                            {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>
+                                                                        </div>
+                                                                        {hasExtraServices ? (
+                                                                            <div className="mt-1 flex flex-col items-start lg:items-end gap-1 text-[11px]">
+                                                                                <span className="text-slate-500">
+                                                                                    Tiền phòng: <strong className="text-slate-700">{roomAmountNum.toLocaleString('vi-VN')} đ</strong>
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <span className="text-[10px] text-slate-400 block">
+                                                                                (Đã bao gồm thuế & phí phục vụ)
+                                                                            </span>
+                                                                        )}
+                                                                    </>
                                                                 )}
                                                             </div>
                                                         )}
@@ -1241,10 +1308,11 @@ export default function BookingHistory() {
                                                                 </>
                                                             )}
 
-                                                            {booking.category_id && (
+                                                            {/* NÚT ĐẶT LẠI: Chỉ hiển thị khi đơn đặt phòng đã hoàn thành (completed) */}
+                                                            {booking.status === 'completed' && (booking.category_id || booking.room_category?.id || booking.category) && (
                                                                 <Link
-                                                                    to={`/checkout/${booking.category_id}`}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                                                    to={`/checkout/${booking.category_id || booking.room_category?.id || booking.category}`}
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
                                                                     <span>Đặt lại</span>
                                                                 </Link>

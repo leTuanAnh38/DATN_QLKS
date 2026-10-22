@@ -170,22 +170,34 @@ class ConfirmPaymentView(APIView):
 
         room_subtotal = daily_rate * Decimal(str(nights))
         mem_discount = Decimal(str(booking.membership_discount or 0))
+
+        # Tiền phòng thuần (pure_room_charge) xác định từ booking.total_amount
+        prepaid_service_requests_total = sum(
+            Decimal(str(r.total_price or 0)) 
+            for r in booking.service_requests.filter(is_paid=True)
+        )
+        if booking.total_amount:
+            pure_room_charge = max(Decimal('0'), Decimal(str(booking.total_amount)) - prepaid_service_requests_total)
+        else:
+            pure_room_charge = max(Decimal('0'), room_subtotal - mem_discount)
+
+        room_charge = pure_room_charge
+
         promo_discount = Decimal('0')
         if booking.applied_promotion:
-            if booking.applied_promotion.discount_type == 'percentage':
-                promo_discount = (room_subtotal * Decimal(str(booking.applied_promotion.discount_value))) / Decimal('100')
-                if getattr(booking.applied_promotion, 'max_discount_amount', None):
-                    promo_discount = min(promo_discount, Decimal(str(booking.applied_promotion.max_discount_amount)))
+            actual_promo = max(Decimal('0'), room_subtotal - room_charge - mem_discount)
+            if actual_promo > Decimal('0'):
+                promo_discount = actual_promo
             else:
-                promo_discount = min(room_subtotal, Decimal(str(booking.applied_promotion.discount_value)))
+                if booking.applied_promotion.discount_type == 'percentage':
+                    calc_promo = (room_subtotal * Decimal(str(booking.applied_promotion.discount_value))) / Decimal('100')
+                    if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                        calc_promo = min(calc_promo, Decimal(str(booking.applied_promotion.max_discount_amount)))
+                    promo_discount = calc_promo
+                else:
+                    promo_discount = min(room_subtotal, Decimal(str(booking.applied_promotion.discount_value)))
         elif getattr(booking, 'promotion_discount', None):
             promo_discount = Decimal(str(booking.promotion_discount))
-
-        pure_room_charge = max(Decimal('0'), room_subtotal - mem_discount - promo_discount)
-        if pure_room_charge <= Decimal('0') and booking.total_amount:
-            pre_ordered_total = sum(Decimal(str(r.total_price or 0)) for r in booking.service_requests.filter(is_paid=True))
-            pure_room_charge = max(Decimal('0'), Decimal(str(booking.total_amount)) - pre_ordered_total)
-        room_charge = pure_room_charge
 
         # Tính toán tiền dịch vụ phát sinh & đặt trước
         valid_requests = booking.service_requests.exclude(status='cancelled').select_related('service')

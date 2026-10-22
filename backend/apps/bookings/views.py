@@ -2674,23 +2674,38 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         room_subtotal = daily_rate * nights
         mem_discount = float(booking.membership_discount or 0)
-        promo_discount = 0.0
-        if booking.applied_promotion:
-            if booking.applied_promotion.discount_type == 'percentage':
-                promo_discount = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
-                if getattr(booking.applied_promotion, 'max_discount_amount', None):
-                    promo_discount = min(promo_discount, float(booking.applied_promotion.max_discount_amount))
-            else:
-                promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
-        elif getattr(booking, 'promotion_discount', None):
-            promo_discount = float(booking.promotion_discount)
 
-        pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
-        if pure_room_charge <= 0 and booking.total_amount:
-            pre_ordered_total = sum(float(r.total_price or 0) for r in booking.service_requests.all())
-            pure_room_charge = max(0.0, float(booking.total_amount) - pre_ordered_total)
+        # Tiền phòng thuần (pure_room_charge) xác định từ booking.total_amount
+        # (Đã phản ánh chính xác tiền phòng ban đầu sau giảm giá + tiền gia hạn phòng thêm nếu có,
+        # loại trừ các dịch vụ đặt kèm trước đã thanh toán nếu có trong booking.total_amount)
+        prepaid_service_requests_total = sum(
+            float(r.total_price or 0) 
+            for r in booking.service_requests.filter(is_paid=True)
+        )
+        if booking.total_amount:
+            pure_room_charge = max(0.0, float(booking.total_amount) - prepaid_service_requests_total)
+        else:
+            pure_room_charge = max(0.0, room_subtotal - mem_discount)
 
         room_charge = pure_room_charge
+
+        # Số tiền giảm giá khuyến mãi thực tế của booking
+        # Khi gia hạn phòng, mã giảm giá chỉ áp dụng cho lần đặt ban đầu, không tự động nhân thêm vào các đêm gia hạn
+        promo_discount = 0.0
+        if booking.applied_promotion:
+            actual_promo = max(0.0, room_subtotal - room_charge - mem_discount)
+            if actual_promo > 0:
+                promo_discount = actual_promo
+            else:
+                if booking.applied_promotion.discount_type == 'percentage':
+                    calc_promo = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
+                    if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                        calc_promo = min(calc_promo, float(booking.applied_promotion.max_discount_amount))
+                    promo_discount = calc_promo
+                else:
+                    promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
+        elif getattr(booking, 'promotion_discount', None):
+            promo_discount = float(booking.promotion_discount)
 
         # 2. Lấy extra_services (các ServiceRequest liên kết có status='completed')
         import re
@@ -2875,23 +2890,34 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             room_subtotal = daily_rate * nights
             mem_discount = float(booking.membership_discount or 0)
-            promo_discount = 0.0
-            if booking.applied_promotion:
-                if booking.applied_promotion.discount_type == 'percentage':
-                    promo_discount = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
-                    if getattr(booking.applied_promotion, 'max_discount_amount', None):
-                        promo_discount = min(promo_discount, float(booking.applied_promotion.max_discount_amount))
-                else:
-                    promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
-            elif getattr(booking, 'promotion_discount', None):
-                promo_discount = float(booking.promotion_discount)
 
-            pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
-            if pure_room_charge <= 0 and booking.total_amount:
-                pre_ordered_total = sum(float(r.total_price or 0) for r in booking.service_requests.all())
-                pure_room_charge = max(0.0, float(booking.total_amount) - pre_ordered_total)
+            # Tiền phòng thuần (pure_room_charge) xác định từ booking.total_amount
+            prepaid_service_requests_total = sum(
+                float(r.total_price or 0) 
+                for r in booking.service_requests.filter(is_paid=True)
+            )
+            if booking.total_amount:
+                pure_room_charge = max(0.0, float(booking.total_amount) - prepaid_service_requests_total)
+            else:
+                pure_room_charge = max(0.0, room_subtotal - mem_discount)
 
             room_charge = pure_room_charge
+
+            promo_discount = 0.0
+            if booking.applied_promotion:
+                actual_promo = max(0.0, room_subtotal - room_charge - mem_discount)
+                if actual_promo > 0:
+                    promo_discount = actual_promo
+                else:
+                    if booking.applied_promotion.discount_type == 'percentage':
+                        calc_promo = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
+                        if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                            calc_promo = min(calc_promo, float(booking.applied_promotion.max_discount_amount))
+                        promo_discount = calc_promo
+                    else:
+                        promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
+            elif getattr(booking, 'promotion_discount', None):
+                promo_discount = float(booking.promotion_discount)
 
             # Tính phí dịch vụ phát sinh & đặt trước
             valid_requests = booking.service_requests.exclude(status='cancelled').select_related('service')
