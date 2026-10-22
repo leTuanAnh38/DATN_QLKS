@@ -185,3 +185,18 @@ body {
 .scrollbar-thumb-gray-600::-webkit-scrollbar-thumb:hover {
   background-color: #6b7280;
 }
+
+/* =========================================================================
+   ẨN THANH CUỘN CHO CÁC TAB/PILL CUỘN NGANG TRÊN ĐIỆN THOẠI DI ĐỘNG
+   ========================================================================= */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+}
+
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch;
+}

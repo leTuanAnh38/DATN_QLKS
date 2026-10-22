@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     MessageSquare, 
     X, 
@@ -299,6 +299,8 @@ function renderFormattedContent(text) {
 
 export default function AIChatbotWidget() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const hasMobileStickyBar = location.pathname.startsWith('/rooms/') || location.pathname.startsWith('/room/') || location.pathname.startsWith('/checkout/');
     const { user, isAuthenticated } = useAuth();
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
@@ -726,10 +728,10 @@ export default function AIChatbotWidget() {
     return (
         <aside aria-label="Khung trò chuyện Trợ lý AI Khách Sạn TA Đà Nẵng">
             {/* 1. NÚT MỞ CHAT NỔI (FLOATING BUTTON) TÔNG SÁNG TRANG NHÃ DỊU MẮT */}
-            <div className="fixed bottom-6 right-6 z-50 select-none">
+            <div className={`fixed z-50 select-none ${hasMobileStickyBar ? 'bottom-20 right-4 sm:bottom-6 sm:right-6' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'}`}>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`relative group flex items-center gap-3 px-4 py-3 rounded-full 
+                    className={`relative group flex items-center gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full 
                         bg-white text-slate-800 font-medium shadow-xl
                         border-2 border-amber-300 hover:border-amber-400 hover:bg-amber-50/40
                         transition-all duration-300 ease-out cursor-pointer
@@ -783,9 +785,11 @@ export default function AIChatbotWidget() {
             {/* 2. CỬA SỔ CHAT WINDOW SANG TRỌNG DỊU MẮT */}
             {isOpen && (
                 <div 
-                    className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[420px] h-[610px] max-h-[85vh] 
-                        flex flex-col rounded-2xl bg-white shadow-2xl border border-amber-200/80 overflow-hidden 
-                        backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300"
+                    className={`fixed z-50 flex flex-col rounded-2xl bg-white shadow-2xl border border-amber-200/80 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 ${
+                        hasMobileStickyBar
+                            ? 'inset-x-2.5 bottom-20 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]'
+                            : 'inset-x-2.5 bottom-2.5 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]'
+                    }`}
                     style={{
                         boxShadow: '0 20px 50px -10px rgba(0, 0, 0, 0.12), 0 0 20px 2px rgba(245, 158, 11, 0.08)'
                     }}

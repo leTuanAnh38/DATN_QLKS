@@ -667,7 +667,7 @@ export default function DetailRoom() {
         : 0;
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white pb-20 lg:pb-0">
             <Navbar
                 actionText="Đặt phòng ngay"
                 actionLink="#dat-phong"
@@ -2088,6 +2088,44 @@ export default function DetailRoom() {
                     )}
                 </div>
             )}
+
+            {/* STICKY BOTTOM BAR DÀNH RIÊNG CHO ĐIỆN THOẠI DI ĐỘNG */}
+            <aside
+                aria-label="Thanh đặt phòng di động"
+                className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-[0_-8px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom duration-300"
+            >
+                <div className="min-w-0">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                        Giá phòng trực tiếp
+                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-black text-orange-600 truncate">
+                            {totalPricePerNight.toLocaleString('vi-VN')}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500">VND/đêm</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const el = document.getElementById('dat-phong');
+                            if (el) {
+                                el.scrollIntoView({ behavior: 'smooth' });
+                            } else {
+                                navigate(`/checkout/${room.id}`, {
+                                    state: { checkInDate, checkOutDate, guestCount, selectedPackage }
+                                });
+                            }
+                        }}
+                        className="px-4 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/30 active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <span>Đặt phòng ngay</span>
+                        <span>→</span>
+                    </button>
+                </div>
+            </aside>
 
             <Footer />
         </div>

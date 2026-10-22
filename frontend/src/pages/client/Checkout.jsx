@@ -717,8 +717,41 @@ export default function Checkout() {
                 </div>
             </header>
 
+            {/* MOBILE STICKY BOTTOM BAR: GIÁ + NÚT ĐẶT PHÒNG (Chỉ hiện trên mobile) */}
+            {!loadingRoom && room && !createdBooking && (
+                <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t border-slate-200 shadow-2xl shadow-slate-900/10 px-4 py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                        <div className="text-[11px] text-slate-500 truncate">{room.name} · {nights} đêm</div>
+                        <div className="font-black text-lg text-rose-600 leading-tight">
+                            {finalTotal.toLocaleString('vi-VN')}
+                            <span className="text-[11px] font-semibold text-slate-500 ml-1">VND</span>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={isSubmitting || availability?.is_sold_out}
+                        onClick={() => {
+                            const form = document.getElementById('checkout-form');
+                            if (form) form.requestSubmit();
+                        }}
+                        className={`flex-shrink-0 px-5 py-3 rounded-2xl text-white font-bold text-sm transition ${
+                            availability?.is_sold_out
+                                ? 'bg-slate-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/30 active:scale-95 cursor-pointer'
+                        }`}
+                    >
+                        {isSubmitting ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Đang xử lý...</span>
+                            </div>
+                        ) : availability?.is_sold_out ? 'Hết phòng' : '🏨 Đặt Phòng Ngay →'}
+                    </button>
+                </div>
+            )}
+
             {/* MAIN CONTENT: 2 CỘT CHUẨN TRAVELOKA / AGODA */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28 lg:pb-10">
                 {/* Lỗi không tìm thấy phòng */}
                 {!loadingRoom && roomError && (
                     <div className="bg-white rounded-3xl border border-rose-200 p-10 text-center max-w-lg mx-auto shadow-sm my-10">
@@ -750,7 +783,7 @@ export default function Checkout() {
 
                 {/* Form Đặt phòng & Tóm tắt đơn */}
                 {!loadingRoom && room && (
-                    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                    <form id="checkout-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                         {/* ========================================================================= */}
                         {/* CỘT TRÁI: FORM NHẬP LIỆU (8 COLS) */}
                         {/* ========================================================================= */}

@@ -643,7 +643,7 @@ export default function ServicesMenu() {
                 )}
 
                 {/* KHU VỰC MENU CHÍNH */}
-                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24 sm:pb-12 space-y-8">
                     {/* BỘ LỌC DANH MỤC & TÌM KIẾM */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
                         {/* Tabs danh mục */}
@@ -1064,7 +1064,7 @@ export default function ServicesMenu() {
                         fetchOrderHistory(false, targetBooking);
                         setIsHistoryModalOpen(true);
                     }}
-                    className="fixed bottom-6 left-6 z-40 px-4 py-3 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-2xl border border-slate-700/60 font-bold text-xs flex items-center gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+                    className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-2xl border border-slate-700/60 font-bold text-xs flex items-center gap-2 sm:gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
                     title="Xem lịch sử dịch vụ & tiến độ xử lý"
                 >
                     <span className="text-base">🛎️</span>

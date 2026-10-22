@@ -566,7 +566,7 @@ export default function BookingHistory() {
                     {/* HÀNG THỐNG KÊ NHANH (QUICK STATS) */}
                     {isAuthenticated && (
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
-                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
+                            <div className="col-span-2 sm:col-span-1 bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
                                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                                     Tổng số đơn
                                 </span>

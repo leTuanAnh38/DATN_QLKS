@@ -395,12 +395,12 @@ export default function Navbar({
                     <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-fadeIn">
                         {/* Mobile User Status */}
                         {isAuthenticated && (
-                            <div className="p-3 bg-slate-50 rounded-xl mb-3 border border-slate-200 space-y-2">
+                            <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-200/90 space-y-2.5 shadow-xs">
                                 <div className="flex items-center justify-between">
                                     <Link
                                         to="/profile"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-2.5 text-left"
+                                        className="flex items-center gap-2.5 text-left min-w-0"
                                     >
                                         <UserAvatar
                                             avatar={user?.avatar}
@@ -409,34 +409,66 @@ export default function Navbar({
                                             size="md"
                                             border={true}
                                         />
-                                        <div>
+                                        <div className="min-w-0">
                                             <div className="text-xs font-bold text-slate-900 truncate">
                                                 {user?.full_name || user?.username}
                                             </div>
-                                            <div className="text-[10px] text-slate-500">
+                                            <div className="text-[10px] text-slate-500 truncate">
                                                 {user?.email || user?.phone_number}
                                             </div>
                                         </div>
                                     </Link>
-                                    <button
-                                        type="button"
-                                        onClick={handleRequestLogout}
-                                        className="px-2.5 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
-                                    >
-                                        Đăng xuất
-                                    </button>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                            ★ {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={handleRequestLogout}
+                                            className="px-2 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                                        >
+                                            Thoát
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+
+                                {/* Menu tắt trên Mobile dành riêng cho khách hàng */}
+                                <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2 text-xs">
+                                    <Link
+                                        to="/booking-history"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center gap-1.5 p-2 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-blue-700 font-bold transition"
+                                    >
+                                        <span className="text-sm">📋</span>
+                                        <span className="truncate">Lịch sử đặt phòng</span>
+                                    </Link>
                                     <Link
                                         to="/profile"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="font-medium text-blue-600 hover:underline flex items-center gap-1"
+                                        className="flex items-center gap-1.5 p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition"
                                     >
-                                        <span>👤 Hồ sơ của tôi</span>
+                                        <span className="text-sm">👤</span>
+                                        <span className="truncate">Hồ sơ cá nhân</span>
                                     </Link>
-                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                                        ★ {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
-                                    </span>
+                                    <Link
+                                        to="/promotions"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
+                                    >
+                                        <span className="text-sm">🎟️</span>
+                                        <span className="truncate">Mã ưu đãi của tôi</span>
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setMobileMenuOpen(false);
+                                            setIsChangePasswordOpen(true);
+                                        }}
+                                        className="flex items-center gap-1.5 p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition text-left cursor-pointer"
+                                    >
+                                        <span className="text-sm">🔑</span>
+                                        <span className="truncate">Đổi mật khẩu</span>
+                                    </button>
                                 </div>
                             </div>
                         )}
