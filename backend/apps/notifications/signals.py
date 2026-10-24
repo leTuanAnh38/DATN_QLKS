@@ -6,40 +6,95 @@ from django.contrib.auth import get_user_model
 
 from ..bookings.models import Booking
 from ..services.models import ServiceRequest
+from ..payments.models import Payment, Invoice, CashOutVoucher
 from .models import Notification
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-def get_staff_and_admin_users(exclude_user_id=None, category_type=None):
+def get_staff_and_admin_users(exclude_user_id=None, category_type=None, event_type=None):
     """
-    Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên để gửi thông báo.
-    Hỗ trợ lọc chính xác theo nhóm nghiệp vụ:
-    - 'fnb': Quản lý, Lễ tân và Nhân viên phục vụ (service_staff)
-    - 'transport': Quản lý, Lễ tân và Nhân viên phục vụ/điều vận (service_staff)
-    - 'spa': Quản lý, Lễ tân, Nhân viên phục vụ (service_staff) và Kỹ thuật viên (technician)
-    - 'amenities': Quản lý, Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
-    - None: Toàn bộ nhân viên khách sạn
+    Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên theo đúng vai trò nghiệp vụ:
+    - event_type:
+      * 'booking_manage' (Tạo mới, xác nhận duyệt đơn, hủy đơn, no-show):
+          Lễ tân, Quản lý, Chủ khách sạn, Admin. (Loại bỏ Kỹ thuật, Buồng phòng, Phục vụ, Thu ngân để tránh spam)
+      * 'booking_checkin':
+          Lễ tân, Quản lý, Admin.
+      * 'booking_checkout':
+          Lễ tân, Buồng phòng (để chuẩn bị dọn phòng), Quản lý, Chủ khách sạn, Admin.
+    - category_type (Dịch vụ):
+      * 'fnb': Quản lý, Lễ tân và Nhân viên phục vụ ẩm thực (service_staff)
+      * 'transport': Quản lý, Lễ tân và Nhân viên phục vụ/điều vận (service_staff)
+      * 'spa': Quản lý, Lễ tân, Nhân viên phục vụ (service_staff) và Kỹ thuật viên (technician)
+      * 'laundry': Quản lý, Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
+      * 'amenities': Quản lý, Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
+      * 'maintenance': Kỹ thuật viên (technician), Lễ tân, Quản lý, Chủ khách sạn, Admin
     """
-    base_roles = ['admin', 'owner', 'manager', 'receptionist']
-    if category_type == 'amenities':
-        target_roles = base_roles + ['housekeeper', 'service_staff', 'staff']
+    if event_type == 'booking_manage':
+        target_roles = ['admin', 'owner', 'manager', 'receptionist']
+    elif event_type == 'booking_checkin':
+        target_roles = ['admin', 'manager', 'receptionist']
+    elif event_type == 'booking_checkout':
+        target_roles = ['admin', 'owner', 'manager', 'receptionist', 'housekeeper']
+    elif category_type == 'amenities':
+        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper', 'service_staff']
+    elif category_type == 'laundry':
+        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper', 'service_staff']
     elif category_type == 'spa':
-        target_roles = base_roles + ['service_staff', 'technician', 'staff']
+        target_roles = ['admin', 'manager', 'receptionist', 'service_staff', 'technician']
     elif category_type in ['fnb', 'transport']:
-        target_roles = base_roles + ['service_staff', 'staff']
+        target_roles = ['admin', 'manager', 'receptionist', 'service_staff']
+    elif category_type == 'maintenance':
+        target_roles = ['admin', 'owner', 'manager', 'receptionist', 'technician']
     else:
-        target_roles = base_roles + ['service_staff', 'housekeeper', 'technician', 'staff']
+        # Mặc định an toàn cho ban quản trị và lễ tân
+        target_roles = ['admin', 'owner', 'manager', 'receptionist']
 
     qs = User.objects.filter(
-        models.Q(is_staff=True) |
         models.Q(is_superuser=True) |
         models.Q(role__in=target_roles)
     )
     if exclude_user_id:
         qs = qs.exclude(id=exclude_user_id)
     return qs.distinct()
+
+
+def get_finance_and_cashier_users(exclude_user_id=None):
+    """
+    Lấy danh sách các tài khoản phụ trách Tài chính / Thu ngân để gửi thông báo dòng tiền:
+    - Thu ngân (cashier)
+    - Lễ tân (receptionist)
+    - Quản lý (manager)
+    - Chủ khách sạn (owner)
+    - Admin hệ thống (admin / is_superuser)
+    """
+    target_roles = ['cashier', 'receptionist', 'manager', 'owner', 'admin']
+    qs = User.objects.filter(
+        models.Q(is_superuser=True) |
+        models.Q(role__in=target_roles)
+    )
+    if exclude_user_id:
+        qs = qs.exclude(id=exclude_user_id)
+    return qs.distinct()
+
+
+def format_payment_method(method_code):
+    """
+    Chuyển đổi mã phương thức thanh toán sang chuỗi tiếng Việt thân thiện.
+    """
+    if not method_code:
+        return "Chuyển khoản"
+    code = str(method_code).strip().upper()
+    if code in ['CASH', 'TIỀN MẶT']:
+        return "Tiền mặt tại quầy"
+    elif code in ['TRANSFER', 'BANK_TRANSFER', 'VIETQR']:
+        return "Chuyển khoản VietQR"
+    elif code in ['CARD', 'CREDIT_CARD', 'POS']:
+        return "Quẹt thẻ POS"
+    elif code in ['MOMO', 'ZALOPAY']:
+        return "Ví điện tử"
+    return method_code
 
 
 # ==============================================================================
@@ -83,6 +138,13 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
         checkout_str = instance.check_out_date.strftime('%d/%m/%Y') if instance.check_out_date else ''
         time_desc = f" từ ngày {checkin_str} đến ngày {checkout_str}" if checkin_str and checkout_str else ""
         guest_name = instance.guest.get_full_name() or instance.guest.username if instance.guest else "Khách hàng"
+        guest_url = "/booking-history"
+        staff_url = f"/admin/bookings"
+
+        # Nếu phòng này thuộc Đơn Đặt Đoàn (GroupBooking), bỏ qua thông báo đơn lẻ
+        # để tránh spam hàng chục thông báo cho nhân viên. Quy trình đã có send_group_booking_notification gom nhóm!
+        if instance.group_booking_id:
+            return
 
         # ----------------------------------------------------------------------
         # TRƯỜNG HỢP 1: ĐƠN ĐẶT PHÒNG TẠO MỚI (created == True)
@@ -96,11 +158,14 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Đơn đặt phòng #{instance.booking_code}{room_desc}{time_desc} "
                         f"đã được gửi thành công. Khách sạn TA Đà Nẵng rất hân hạnh được đón tiếp và phục vụ quý khách."
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=guest_url,
+                    priority='normal'
                 )
 
             # 2. Thông báo cho Quản lý / Lễ tân / Nhân sự
-            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None, event_type='booking_manage')
             staff_notifications = [
                 Notification(
                     recipient=staff,
@@ -108,7 +173,10 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Khách hàng {guest_name} vừa tạo đơn đặt phòng #{instance.booking_code}{room_desc}{time_desc}. "
                         f"Vui lòng kiểm tra và duyệt đơn."
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=staff_url,
+                    priority='high'
                 )
                 for staff in staff_users
             ]
@@ -134,11 +202,14 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                         f"Khách sạn TA Đà Nẵng xin thông báo: Đơn đặt phòng #{instance.booking_code}{room_desc}{time_desc} "
                         f"của quý khách đã được phê duyệt và xác nhận thành công. "
                         f"Khách sạn đã sẵn sàng đón tiếp quý khách vào ngày nhận phòng!"
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=guest_url,
+                    priority='high'
                 )
 
             # 2. Thông báo cho Quản lý & Lễ tân
-            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None, event_type='booking_manage')
             staff_notifications = [
                 Notification(
                     recipient=staff,
@@ -146,7 +217,10 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name}{room_desc}{time_desc} "
                         f"đã được duyệt sang trạng thái Đã xác nhận."
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=staff_url,
+                    priority='normal'
                 )
                 for staff in staff_users
             ]
@@ -164,11 +238,14 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Quý khách đã hoàn tất thủ tục nhận {room_display} thành công (Mã đơn: #{instance.booking_code}). "
                         f"Khách sạn TA Đà Nẵng chúc quý khách có một kỳ nghỉ dưỡng tuyệt vời và trọn vẹn!"
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=guest_url,
+                    priority='high'
                 )
 
             # 2. Thông báo cho Quản lý & Lễ tân
-            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None, event_type='booking_checkin')
             staff_notifications = [
                 Notification(
                     recipient=staff,
@@ -176,7 +253,10 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Khách hàng {guest_name} đã hoàn tất thủ tục Check-in nhận phòng {room_label} "
                         f"(Mã đơn đặt phòng: #{instance.booking_code})."
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=staff_url,
+                    priority='normal'
                 )
                 for staff in staff_users
             ]
@@ -193,11 +273,14 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Quý khách đã trả phòng thành công cho {room_label} (Mã đơn: #{instance.booking_code}). "
                         f"Quý khách có thể đánh giá phòng và dịch vụ khách sạn để chia sẻ trải nghiệm kỳ nghỉ của mình nhé!"
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=guest_url,
+                    priority='normal'
                 )
 
             # Thông báo cho Quản lý, Lễ tân & Buồng phòng
-            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None, event_type='booking_checkout')
             staff_notifications = [
                 Notification(
                     recipient=staff,
@@ -205,7 +288,10 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Khách hàng {guest_name} đã làm thủ tục trả phòng {room_label} (Mã đơn: #{instance.booking_code}). "
                         f"Bộ phận buồng phòng chuẩn bị kiểm tra và làm sạch phòng."
-                    )
+                    ),
+                    notification_type='room' if getattr(staff, 'role', '') == 'housekeeper' else 'booking',
+                    action_url='/admin/rooms' if getattr(staff, 'role', '') == 'housekeeper' else staff_url,
+                    priority='normal'
                 )
                 for staff in staff_users
             ]
@@ -214,7 +300,7 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
 
         # 2.3. Đánh dấu NO-SHOW (status đổi sang 'no_show')
         elif instance.status == 'no_show':
-            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None, event_type='booking_manage')
             staff_notifications = [
                 Notification(
                     recipient=staff,
@@ -222,7 +308,10 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name} đã được đánh dấu No-show. "
                         f"Phòng {room_label} đã được giải phóng về trạng thái Sẵn sàng."
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=staff_url,
+                    priority='high'
                 )
                 for staff in staff_users
             ]
@@ -239,11 +328,14 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Đơn đặt phòng #{instance.booking_code}{room_desc} đã được hủy thành công. "
                         f"Khách sạn TA Đà Nẵng hy vọng sẽ có cơ hội được đón tiếp quý khách vào dịp lưu trú khác."
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=guest_url,
+                    priority='normal'
                 )
 
             # Thông báo cho Quản lý & Lễ tân
-            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None, event_type='booking_manage')
             staff_notifications = [
                 Notification(
                     recipient=staff,
@@ -251,7 +343,10 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                     message=(
                         f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name}{room_desc} đã được hủy. "
                         f"Phòng và lịch lưu trú đã được giải phóng trên hệ thống."
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url=staff_url,
+                    priority='high'
                 )
                 for staff in staff_users
             ]
@@ -314,6 +409,9 @@ def get_service_notification_data(service_name, category_name, room_label, statu
         elif cat_type == 'spa':
             guest_title = "💆 Đang chuẩn bị phòng trị liệu Spa"
             guest_msg = f"Bộ phận Spa đang chuẩn bị phòng trị liệu và kỹ thuật viên cho yêu cầu {service_name} (Phòng {room_label})."
+        elif cat_type == 'laundry':
+            guest_title = "🧺 Đang tiến hành giặt ủi đồ"
+            guest_msg = f"Bộ phận Giặt là đang tiến hành giặt sấy / ủi đồ cho phòng {room_label}."
         else:  # amenities / other
             guest_title = "⚙️ Buồng phòng đang chuẩn bị yêu cầu"
             guest_msg = f"Bộ phận Buồng phòng đang chuẩn bị yêu cầu {service_name} cho phòng {room_label}."
@@ -352,6 +450,14 @@ def get_service_notification_data(service_name, category_name, room_label, statu
                 f"Kỹ thuật viên và liệu trình \"{service_name}\" cho khách phòng {room_label} "
                 f"({guest_name}) đã sẵn sàng đón tiếp quý khách."
             )
+        elif cat_type == 'laundry':
+            guest_title = "🧺 Đồ giặt đã xong, đang mang lên phòng"
+            guest_msg = f"Đồ giặt ủi của quý khách ({service_name}) đã hoàn tất và đang được nhân viên mang lên phòng {room_label}."
+            staff_title = f"🧺 Đồ giặt đã sẵn sàng giao: Phòng {room_label}"
+            staff_msg = (
+                f"Đồ giặt ủi \"{service_name}\" (Số lượng: {quantity}) của phòng {room_label} "
+                f"(Khách: {guest_name}) đã giặt sấy xong. Nhân viên vui lòng giao lên phòng cho khách!"
+            )
         else:  # amenities / other
             guest_title = "🛎️ Tiện ích đang chuyển tới phòng"
             guest_msg = f"Nhân viên đang thực hiện / chuyển {service_name} đến phòng {room_label} của quý khách."
@@ -379,6 +485,9 @@ def get_service_notification_data(service_name, category_name, room_label, statu
         elif cat_type == 'spa':
             guest_title = "✅ Liệu trình Spa đã hoàn tất"
             guest_msg = f"Liệu trình {service_name} đã hoàn tất. Chúc quý khách có những giây phút thư giãn tuyệt vời!"
+        elif cat_type == 'laundry':
+            guest_title = "✅ Đồ giặt ủi đã giao thành công"
+            guest_msg = f"Dịch vụ giặt ủi {service_name} cho phòng {room_label} đã được bàn giao đầy đủ. Cảm ơn quý khách!"
         else:  # amenities / other
             guest_title = "✅ Yêu cầu dịch vụ đã hoàn tất"
             guest_msg = f"Yêu cầu dịch vụ {service_name} cho phòng {room_label} đã hoàn tất. Chúc quý khách kỳ nghỉ trọn vẹn tại TA Đà Nẵng!"
@@ -427,6 +536,9 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
         category_name = instance.service.category.name if (instance.service and instance.service.category) else ""
         cat_type = get_service_category_type(service_name, category_name)
 
+        guest_url = "/booking-history"
+        staff_url = "/admin/services"
+
         # ----------------------------------------------------------------------
         # TRƯỜNG HỢP 1: KHÁCH ĐẶT DỊCH VỤ MỚI (created == True)
         # ----------------------------------------------------------------------
@@ -458,6 +570,13 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                     f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
                     f"Bộ phận Spa vui lòng tiếp nhận và chuẩn bị kỹ thuật viên."
                 )
+            elif cat_type == 'laundry':
+                staff_title = f"🧺 Yêu cầu giặt ủi mới: Phòng {room_label}"
+                staff_message = (
+                    f"Phòng {room_label} (Khách: {guest_name}) vừa gửi yêu cầu giặt ủi: \"{service_name}\" "
+                    f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
+                    f"Bộ phận Buồng phòng / Giặt là vui lòng tiếp nhận và thu gom đồ giặt."
+                )
             else:  # amenities / other
                 staff_title = f"🛎️ Yêu cầu tiện ích mới: Phòng {room_label}"
                 staff_message = (
@@ -470,7 +589,10 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                 Notification(
                     recipient=staff,
                     title=staff_title,
-                    message=staff_message
+                    message=staff_message,
+                    notification_type='service',
+                    action_url=staff_url,
+                    priority='high'
                 )
                 for staff in staff_users
             ]
@@ -485,7 +607,10 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                     message=(
                         f"Yêu cầu dịch vụ \"{service_name}\" (Số lượng: {instance.quantity}) cho phòng {room_label} "
                         f"của quý khách đã được chuyển tới bộ phận phục vụ. Chúng tôi sẽ chuẩn bị ngay!"
-                    )
+                    ),
+                    notification_type='service',
+                    action_url=guest_url,
+                    priority='normal'
                 )
             return
 
@@ -511,7 +636,10 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                 Notification.objects.create(
                     recipient=guest,
                     title=notif_data['guest_title'],
-                    message=notif_data['guest_msg']
+                    message=notif_data['guest_msg'],
+                    notification_type='service',
+                    action_url=guest_url,
+                    priority='normal'
                 )
 
         elif instance.status == 'delivering':
@@ -520,7 +648,10 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                 Notification.objects.create(
                     recipient=guest,
                     title=notif_data['guest_title'],
-                    message=notif_data['guest_msg']
+                    message=notif_data['guest_msg'],
+                    notification_type='service',
+                    action_url=guest_url,
+                    priority='high'
                 )
 
             # 2. Thông báo cho Nhân viên phục vụ theo bộ phận & Quản trị / Lễ tân
@@ -533,7 +664,10 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                     Notification(
                         recipient=staff,
                         title=notif_data['staff_title'],
-                        message=notif_data['staff_msg']
+                        message=notif_data['staff_msg'],
+                        notification_type='service',
+                        action_url=staff_url,
+                        priority='normal'
                     )
                     for staff in staff_users
                 ]
@@ -546,7 +680,10 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                 Notification.objects.create(
                     recipient=guest,
                     title=notif_data['guest_title'],
-                    message=notif_data['guest_msg']
+                    message=notif_data['guest_msg'],
+                    notification_type='service',
+                    action_url=guest_url,
+                    priority='normal'
                 )
 
             # 2. Báo cho Quản trị viên / Lễ tân & Bộ phận phụ trách
@@ -561,7 +698,10 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                     message=(
                         f"Yêu cầu dịch vụ \"{service_name}\" (Đơn đặt phòng #{booking.booking_code if booking else 'N/A'}) "
                         f"tại phòng {room_label} đã được hoàn thành."
-                    )
+                    ),
+                    notification_type='service',
+                    action_url=staff_url,
+                    priority='normal'
                 )
                 for staff in staff_users
             ]
@@ -575,8 +715,261 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                     title="✕ Yêu cầu dịch vụ đã bị hủy",
                     message=(
                         f"Yêu cầu dịch vụ \"{service_name}\" cho phòng {room_label} đã bị hủy."
-                    )
+                    ),
+                    notification_type='service',
+                    action_url=guest_url,
+                    priority='normal'
                 )
 
     except Exception as e:
         logger.error(f"Lỗi khi tạo thông báo cho ServiceRequest #{getattr(instance, 'pk', 'N/A')}: {e}")
+
+
+# ==============================================================================
+# 3. SIGNAL CHO PAYMENT: THEO DÕI THANH TOÁN THÀNH CÔNG (VIETQR, TIỀN MẶT, HOÀN CỌC...)
+# ==============================================================================
+@receiver(pre_save, sender=Payment)
+def track_payment_previous_status(sender, instance, **kwargs):
+    """
+    Lưu lại payment_status cũ trước khi lưu để phát hiện khi giao dịch chuyển sang COMPLETED.
+    """
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'payment_status' not in update_fields and hasattr(instance, '_previous_payment_status'):
+        return
+
+    if instance.pk:
+        try:
+            old_obj = Payment.objects.get(pk=instance.pk)
+            instance._previous_payment_status = old_obj.payment_status
+        except Payment.DoesNotExist:
+            instance._previous_payment_status = None
+    else:
+        instance._previous_payment_status = None
+
+
+@receiver(post_save, sender=Payment)
+def notify_on_payment_events(sender, instance, created, **kwargs):
+    """
+    Gửi thông báo In-App khi có giao dịch thanh toán thành công (COMPLETED):
+    - Đơn phòng lẻ: Báo Khách hàng & Báo Thu ngân, Lễ tân, Quản lý
+    - Đơn đoàn doanh nghiệp: Báo Đại diện đoàn & Báo Thu ngân, Lễ tân, Quản lý
+    """
+    try:
+        prev_status = getattr(instance, '_previous_payment_status', None)
+        is_completed = (instance.payment_status == 'COMPLETED')
+        status_just_completed = is_completed and (created or prev_status != 'COMPLETED')
+
+        if not status_just_completed:
+            return
+
+        amount_str = f"{instance.amount:,.0f} VND" if instance.amount else "0 VND"
+        method_str = format_payment_method(instance.payment_method)
+        txn_str = f"Mã GD: {instance.transaction_id}" if instance.transaction_id else ""
+
+        # ----------------------------------------------------------------------
+        # TRƯỜNG HỢP 1: THANH TOÁN CHO ĐƠN PHÒNG LẺ (Booking)
+        # ----------------------------------------------------------------------
+        if instance.booking:
+            booking = instance.booking
+            room_label = (booking.room.room_number if booking.room else None) or \
+                         (booking.category.name if booking.category else "")
+            room_info = f" (Phòng {room_label})" if room_label else ""
+            guest_name = booking.guest.get_full_name() or booking.guest.username if booking.guest else "Khách hàng"
+
+            # 1. Thông báo cho Khách hàng
+            if booking.guest:
+                Notification.objects.create(
+                    recipient=booking.guest,
+                    title=f"💰 Thanh toán thành công: #{booking.booking_code}",
+                    message=(
+                        f"Giao dịch thanh toán {amount_str} cho đơn đặt phòng #{booking.booking_code}{room_info} "
+                        f"qua {method_str} đã được ghi nhận thành công. Khách sạn TA Đà Nẵng cảm ơn quý khách!"
+                    ),
+                    notification_type='payment',
+                    action_url='/booking-history',
+                    priority='normal'
+                )
+
+            # 2. Thông báo cho Thu ngân, Lễ tân, Quản lý
+            finance_staff = get_finance_and_cashier_users(
+                exclude_user_id=booking.guest_id if booking.guest else None
+            )
+            priority = 'high' if (instance.amount and instance.amount >= 10000000) else 'normal'
+            staff_notifications = [
+                Notification(
+                    recipient=staff,
+                    title=f"💵 Đã nhận thanh toán: #{booking.booking_code}",
+                    message=(
+                        f"Đã nhận thanh toán {amount_str} ({method_str}) cho đơn đặt phòng #{booking.booking_code}{room_info} "
+                        f"từ khách {guest_name}. {txn_str}".strip()
+                    ),
+                    notification_type='payment',
+                    action_url='/admin/finance',
+                    priority=priority
+                )
+                for staff in finance_staff
+            ]
+            if staff_notifications:
+                Notification.objects.bulk_create(staff_notifications)
+
+        # ----------------------------------------------------------------------
+        # TRƯỜNG HỢP 2: THANH TOÁN CHO ĐƠN ĐẶT ĐOÀN (GroupBooking)
+        # ----------------------------------------------------------------------
+        elif instance.group_booking:
+            group = instance.group_booking
+            leader_name = group.leader_name or (group.corporate_partner.company_name if group.corporate_partner else "Trưởng đoàn")
+
+            # 1. Tìm tài khoản người nhận đại diện đoàn (nếu có tài khoản)
+            leader_user = None
+            if hasattr(group, 'leader_user') and group.leader_user:
+                leader_user = group.leader_user
+            else:
+                first_sub = group.sub_bookings.first()
+                if first_sub and first_sub.guest:
+                    leader_user = first_sub.guest
+
+            if leader_user:
+                Notification.objects.create(
+                    recipient=leader_user,
+                    title=f"💰 Xác nhận thanh toán Đơn đoàn: #{group.group_code}",
+                    message=(
+                        f"Giao dịch thanh toán {amount_str} qua {method_str} cho đoàn \"{group.group_name}\" "
+                        f"(Mã đoàn: #{group.group_code}) đã được ghi nhận thành công."
+                    ),
+                    notification_type='payment',
+                    action_url='/booking-history',
+                    priority='high'
+                )
+
+            # 2. Thông báo cho Thu ngân, Quản lý, Lễ tân
+            finance_staff = get_finance_and_cashier_users(
+                exclude_user_id=leader_user.id if leader_user else None
+            )
+            staff_notifications = [
+                Notification(
+                    recipient=staff,
+                    title=f"💵 Đã nhận thanh toán Đơn đoàn: #{group.group_code}",
+                    message=(
+                        f"Đã ghi nhận thanh toán {amount_str} qua {method_str} cho đoàn \"{group.group_name}\" "
+                        f"(Đại diện: {leader_name} - #{group.group_code}). {txn_str}".strip()
+                    ),
+                    notification_type='payment',
+                    action_url='/admin/finance',
+                    priority='high'
+                )
+                for staff in finance_staff
+            ]
+            if staff_notifications:
+                Notification.objects.bulk_create(staff_notifications)
+
+    except Exception as e:
+        logger.error(f"Lỗi khi gửi thông báo thanh toán Payment #{getattr(instance, 'pk', 'N/A')}: {e}")
+
+
+# ==============================================================================
+# 4. SIGNAL CHO INVOICE: THÔNG BÁO YÊU CẦU XUẤT HÓA ĐƠN VAT DOANH NGHIỆP
+# ==============================================================================
+@receiver(pre_save, sender=Invoice)
+def track_invoice_previous_state(sender, instance, **kwargs):
+    """
+    Lưu lại cờ is_company_invoice trước khi lưu để phát hiện yêu cầu xuất hóa đơn đỏ mới.
+    """
+    if instance.pk:
+        try:
+            old_obj = Invoice.objects.get(pk=instance.pk)
+            instance._previous_is_company_invoice = old_obj.is_company_invoice
+        except Invoice.DoesNotExist:
+            instance._previous_is_company_invoice = False
+    else:
+        instance._previous_is_company_invoice = False
+
+
+@receiver(post_save, sender=Invoice)
+def notify_on_invoice_events(sender, instance, created, **kwargs):
+    """
+    Gửi thông báo In-App cho Thu ngân & Quản lý:
+    Khi có yêu cầu xuất Hóa Đơn Đỏ Doanh Nghiệp (VAT) cho đơn phòng hoặc đơn đoàn.
+    """
+    try:
+        prev_is_company = getattr(instance, '_previous_is_company_invoice', False)
+        # Chỉ kích hoạt khi is_company_invoice được bật mới (created hoặc vừa chuyển từ False sang True)
+        if instance.is_company_invoice and (created or not prev_is_company):
+            if instance.company_name or instance.company_tax_code:
+                code_ref = (
+                    instance.booking.booking_code if instance.booking else (
+                        instance.group_booking.group_code if instance.group_booking else instance.invoice_code
+                    )
+                )
+                total_str = f"{instance.total_amount:,.0f} VND" if instance.total_amount else ""
+                total_info = f" ({total_str})" if total_str else ""
+
+                finance_staff = get_finance_and_cashier_users()
+                staff_notifications = [
+                    Notification(
+                        recipient=staff,
+                        title=f"🧾 Yêu cầu xuất hóa đơn VAT: #{code_ref}",
+                        message=(
+                            f"Đơn #{code_ref}{total_info} yêu cầu xuất hóa đơn VAT Doanh nghiệp cho: "
+                            f"\"{instance.company_name or 'Chưa rõ'}\" (MST: {instance.company_tax_code or 'Chưa có'}). "
+                            f"Vui lòng kiểm tra thông tin và xuất hóa đơn điện tử."
+                        ),
+                        notification_type='payment',
+                        action_url='/admin/invoices',
+                        priority='high'
+                    )
+                    for staff in finance_staff
+                ]
+                if staff_notifications:
+                    Notification.objects.bulk_create(staff_notifications)
+
+    except Exception as e:
+        logger.error(f"Lỗi khi gửi thông báo Invoice #{getattr(instance, 'pk', 'N/A')}: {e}")
+
+
+# ==============================================================================
+# 5. SIGNAL CHO CASHOUTVOUCHER: THÔNG BÁO PHIẾU CHI KÉT & HOÀN CỌC
+# ==============================================================================
+@receiver(post_save, sender=CashOutVoucher)
+def notify_on_cash_out_voucher(sender, instance, created, **kwargs):
+    """
+    Gửi thông báo In-App cho Thu ngân, Quản lý, Chủ khách sạn khi có phiếu chi két / hoàn cọc mới.
+    """
+    try:
+        if not created:
+            return
+
+        creator_name = instance.user.get_full_name() or instance.user.username if instance.user else "Nhân viên"
+        amount_str = f"{instance.amount:,.0f} VND" if instance.amount else "0 VND"
+        voucher_type_name = instance.get_voucher_type_display() if hasattr(instance, 'get_voucher_type_display') else instance.voucher_type
+
+        code_ref = ""
+        if instance.booking:
+            code_ref = f" (Đơn #{instance.booking.booking_code})"
+        elif instance.group_booking:
+            code_ref = f" (Đoàn #{instance.group_booking.group_code})"
+
+        finance_staff = get_finance_and_cashier_users(
+            exclude_user_id=instance.user_id if instance.user else None
+        )
+        priority = 'high' if (instance.amount and instance.amount >= 5000000) else 'normal'
+
+        staff_notifications = [
+            Notification(
+                recipient=staff,
+                title=f"💸 Phiếu chi két: #{instance.voucher_code}",
+                message=(
+                    f"{creator_name} vừa lập phiếu chi #{instance.voucher_code} số tiền {amount_str} "
+                    f"({voucher_type_name}){code_ref} cho \"{instance.recipient_name}\". "
+                    f"Lý do: {instance.reason}."
+                ),
+                notification_type='payment',
+                action_url='/admin/finance',
+                priority=priority
+            )
+            for staff in finance_staff
+        ]
+        if staff_notifications:
+            Notification.objects.bulk_create(staff_notifications)
+
+    except Exception as e:
+        logger.error(f"Lỗi khi gửi thông báo CashOutVoucher #{getattr(instance, 'pk', 'N/A')}: {e}")

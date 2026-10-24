@@ -869,6 +869,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                     f"{time_notice} "
                     f"Vui lòng chuẩn bị phòng trị liệu và kỹ thuật viên!"
                 )
+            elif cat_type == 'laundry':
+                dept_name = "Buồng phòng & Giặt là"
+                dept_title = f"🧺 Báo Giặt là chuẩn bị đồ: Phòng {room_label}"
+                dept_message = (
+                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
+                    f"Dịch vụ giặt ủi: \"{service_name}\" (SL: {service_req.quantity})."
+                    f"{time_notice} "
+                    f"Vui lòng tiếp nhận và thu gom đồ giặt đúng giờ!"
+                )
             else:  # amenities / other
                 dept_name = "Buồng phòng"
                 dept_title = f"🛎️ Báo Buồng phòng chuẩn bị tiện ích: Phòng {room_label}"
@@ -884,7 +893,10 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 Notification(
                     recipient=staff,
                     title=dept_title,
-                    message=dept_message
+                    message=dept_message,
+                    notification_type='service',
+                    action_url='/admin/services',
+                    priority='normal'
                 )
                 for staff in staff_users
             ]

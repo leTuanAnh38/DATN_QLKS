@@ -6,6 +6,7 @@ from core_project.pagination import StandardResultsSetPagination
 from .models import Review
 from .serializers import ReviewSerializer, ReviewCreateSerializer
 from ..users.models import log_action
+from ..notifications.models import Notification
 
 
 class IsStaffOrAdminUser(permissions.BasePermission):
@@ -108,6 +109,53 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         review = serializer.save()
         output_serializer = ReviewSerializer(review, context={'request': request})
+
+        # Gửi thông báo cho Quản lý & Chủ khách sạn (ưu tiên cao nếu đánh giá <= 3 sao để kịp thời can thiệp)
+        try:
+            from django.contrib.auth import get_user_model
+            UserModel = get_user_model()
+            is_negative = bool(review.rating and review.rating <= 3)
+            rating_stars = "⭐" * int(review.rating or 5)
+            guest_name = review.guest.get_full_name() or review.guest.username if review.guest else "Khách hàng"
+            booking_code = review.booking.booking_code if review.booking else "N/A"
+            cat_name = review.room_category.name if review.room_category else ""
+
+            if is_negative:
+                notif_title = f"⚠️ [CẢNH BÁO ĐÁNH GIÁ THẤP] {guest_name} ({review.rating}⭐)"
+                notif_priority = 'urgent' if review.rating <= 2 else 'high'
+            else:
+                notif_title = f"🌟 [ĐÁNH GIÁ MỚI] {guest_name} ({review.rating}⭐)"
+                notif_priority = 'normal'
+
+            notif_msg = (
+                f"Khách hàng {guest_name} vừa gửi đánh giá {review.rating} sao {rating_stars} "
+                f"cho đơn đặt phòng #{booking_code}{f' ({cat_name})' if cat_name else ''}.\n"
+                f"• Tiêu đề: \"{review.title or 'Đánh giá kỳ nghỉ'}\"\n"
+                f"• Nội dung: \"{(review.comment or 'Không có lời nhắn')[:120]}\"\n"
+                f"Vui lòng xem chi tiết và phản hồi khách hàng."
+            )
+
+            supervisors = UserModel.objects.filter(
+                models.Q(is_superuser=True) |
+                models.Q(role__in=['owner', 'manager', 'admin'])
+            ).distinct()
+
+            notifs = [
+                Notification(
+                    recipient=sup,
+                    title=notif_title,
+                    message=notif_msg,
+                    notification_type='system',
+                    action_url='/admin',
+                    priority=notif_priority
+                )
+                for sup in supervisors
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
+        except Exception:
+            pass
+
         return Response(
             {
                 'success': True,
@@ -141,6 +189,24 @@ class ReviewViewSet(viewsets.ModelViewSet):
             description=f'Phản hồi đánh giá #{review.id} của khách {review.guest.username if review.guest else "Khách"}',
             request=request
         )
+
+        # Thông báo cho Khách hàng khi khách sạn gửi phản hồi
+        try:
+            if review.guest and review.admin_reply:
+                reply_preview = review.admin_reply[:100] + ('...' if len(review.admin_reply) > 100 else '')
+                Notification.objects.create(
+                    recipient=review.guest,
+                    title="Khách sạn đã phản hồi đánh giá của bạn!",
+                    message=(
+                        f"Khách sạn TA Đà Nẵng đã gửi phản hồi cho đánh giá của bạn: \"{reply_preview}\". "
+                        f"Cảm ơn quý khách đã đóng góp ý kiến để khách sạn nâng cao chất lượng dịch vụ!"
+                    ),
+                    notification_type='system',
+                    action_url='/booking-history',
+                    priority='normal'
+                )
+        except Exception:
+            pass
 
         return Response(
             {

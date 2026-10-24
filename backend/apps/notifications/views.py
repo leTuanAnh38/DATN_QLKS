@@ -50,6 +50,14 @@ class NotificationViewSet(viewsets.ModelViewSet):
             elif is_read_param.lower() in ['true', '1']:
                 qs = qs.filter(is_read=True)
 
+        # Hỗ trợ lọc theo loại thông báo: ?type=payment, ?type=booking, ?type=service, ?type=room
+        type_param = self.request.query_params.get('type')
+        if type_param:
+            if type_param in ['booking', 'bookings']:
+                qs = qs.filter(notification_type__in=['booking', 'group_booking', 'room'])
+            else:
+                qs = qs.filter(notification_type=type_param)
+
         return qs
 
     def list(self, request, *args, **kwargs):

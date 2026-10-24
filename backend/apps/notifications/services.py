@@ -14,14 +14,23 @@ User = get_user_model()
 _LAST_REMINDER_CHECK = None
 
 
-def get_staff_and_admin_users(exclude_user_id=None):
+def get_staff_and_admin_users(exclude_user_id=None, purpose='general'):
     """
-    Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên để gửi thông báo
+    Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên để gửi thông báo định kỳ:
+    - purpose='checkin_reminder': Lễ tân, Quản lý, Admin và Buồng phòng (để sẵn sàng phòng).
+    - purpose='checkout_reminder': Lễ tân, Quản lý, Admin, Buồng phòng (để dọn phòng) và Thu ngân (để chốt bill/minibar).
+    - purpose='general': Toàn bộ ban quản trị, lễ tân và buồng phòng.
     """
+    if purpose == 'checkin_reminder':
+        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper']
+    elif purpose == 'checkout_reminder':
+        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper', 'cashier']
+    else:
+        target_roles = ['admin', 'owner', 'manager', 'receptionist', 'housekeeper']
+
     qs = User.objects.filter(
-        models.Q(is_staff=True) |
         models.Q(is_superuser=True) |
-        models.Q(role__in=['admin', 'owner', 'manager', 'receptionist', 'service_staff', 'staff'])
+        models.Q(role__in=target_roles)
     )
     if exclude_user_id:
         qs = qs.exclude(id=exclude_user_id)
@@ -52,7 +61,8 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
     end_of_day = timezone.make_aware(datetime.datetime.combine(target_date, datetime.time.max), tz)
 
     date_str = target_date.strftime('%d/%m/%Y')
-    staff_users = list(get_staff_and_admin_users())
+    checkin_staff_users = list(get_staff_and_admin_users(purpose='checkin_reminder'))
+    checkout_staff_users = list(get_staff_and_admin_users(purpose='checkout_reminder'))
 
     guest_checkin_count = 0
     staff_checkin_count = 0
@@ -97,13 +107,16 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
                         f"(Mã đơn: #{booking.booking_code}, Hạng phòng: {category_name}). "
                         f"Giờ nhận phòng tiêu chuẩn bắt đầu từ 14:00. Quý khách vui lòng chuẩn bị CCCD/Hộ chiếu khi đến quầy Lễ tân để hoàn tất thủ tục nhận phòng. "
                         f"Khách sạn rất hân hạnh được đón tiếp và phục vụ quý khách!"
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url="/booking-history",
+                    priority='high'
                 )
             )
             guest_checkin_count += 1
 
         # 1.2. Thông báo cho Nhân viên & Quản lý
-        for staff in staff_users:
+        for staff in checkin_staff_users:
             if guest and staff.id == guest.id:
                 continue
             new_notifications.append(
@@ -114,7 +127,10 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
                         f"Hôm nay ({date_str}) có lịch đón khách {guest_name} đến nhận phòng "
                         f"(Mã đơn: #{booking.booking_code}, Hạng: {category_name}, Số phòng: {room_label}). "
                         f"Giờ check-in tiêu chuẩn từ 14:00. Bộ phận Lễ tân & Buồng phòng vui lòng kiểm tra phòng ốc sẵn sàng đón khách chu đáo."
-                    )
+                    ),
+                    notification_type='room' if getattr(staff, 'role', '') == 'housekeeper' else 'booking',
+                    action_url='/admin/rooms' if getattr(staff, 'role', '') == 'housekeeper' else '/admin/bookings',
+                    priority='normal'
                 )
             )
             staff_checkin_count += 1
@@ -154,13 +170,16 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
                         f"({room_label}, Mã đơn: #{booking.booking_code}). "
                         f"Giờ trả phòng tiêu chuẩn là trước 12:00 trưa. Nếu quý khách có nhu cầu gia hạn thời gian lưu trú "
                         f"hoặc cần hỗ trợ hành lý, xe đưa đón sân bay, vui lòng liên hệ quầy Lễ tân qua hotline khách sạn để được phục vụ tốt nhất!"
-                    )
+                    ),
+                    notification_type='booking',
+                    action_url="/booking-history",
+                    priority='high'
                 )
             )
             guest_checkout_count += 1
 
         # 2.2. Thông báo cho Nhân viên & Quản lý
-        for staff in staff_users:
+        for staff in checkout_staff_users:
             if guest and staff.id == guest.id:
                 continue
             new_notifications.append(
@@ -171,7 +190,10 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
                         f"{room_label} (Khách hàng: {guest_name}, Mã đơn: #{booking.booking_code}) "
                         f"có lịch trả phòng trong ngày hôm nay ({date_str}, tiêu chuẩn trước 12:00 trưa). "
                         f"Bộ phận Lễ tân rà soát phụ phí/minibar, chuẩn bị hóa đơn thanh toán và thông báo Buồng phòng sẵn sàng dọn phòng sau khi khách trả phòng."
-                    )
+                    ),
+                    notification_type='room' if getattr(staff, 'role', '') == 'housekeeper' else 'booking',
+                    action_url='/admin/rooms' if getattr(staff, 'role', '') == 'housekeeper' else '/admin/bookings',
+                    priority='normal'
                 )
             )
             staff_checkout_count += 1
@@ -230,12 +252,15 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
                     f"(Mã đơn: #{booking.booking_code}, Hạng phòng: {category_name}). "
                     f"Giờ nhận phòng tiêu chuẩn bắt đầu từ 14:00. Quý khách vui lòng chuẩn bị CCCD/Hộ chiếu khi đến quầy Lễ tân để làm thủ tục nhận phòng. "
                     f"Khách sạn rất hân hạnh được đón tiếp và phục vụ quý khách!"
-                )
+                ),
+                notification_type='booking',
+                action_url="/booking-history",
+                priority='high'
             )
             created_count += 1
 
         if notify_staff:
-            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None, purpose='checkin_reminder')
             staff_notifs = [
                 Notification(
                     recipient=staff,
@@ -243,7 +268,10 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
                     message=(
                         f"Nhắc nhở: Khách {guest_name} (Mã đơn: #{booking.booking_code}, Hạng: {category_name}, Số phòng: {room_label}) "
                         f"có lịch nhận phòng hôm nay ({date_str}). Bộ phận Lễ tân & Buồng phòng lưu ý sẵn sàng đón khách."
-                    )
+                    ),
+                    notification_type='room' if getattr(staff, 'role', '') == 'housekeeper' else 'booking',
+                    action_url='/admin/rooms' if getattr(staff, 'role', '') == 'housekeeper' else '/admin/bookings',
+                    priority='normal'
                 )
                 for staff in staff_users
             ]
@@ -261,12 +289,15 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
                     f"({room_label}, Mã đơn: #{booking.booking_code}). "
                     f"Giờ trả phòng tiêu chuẩn là trước 12:00 trưa. Nếu quý khách có nhu cầu gia hạn lưu trú "
                     f"hoặc cần hỗ trợ hành lý, vui lòng liên hệ quầy Lễ tân qua hotline khách sạn!"
-                )
+                ),
+                notification_type='booking',
+                action_url="/booking-history",
+                priority='high'
             )
             created_count += 1
 
         if notify_staff:
-            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None)
+            staff_users = get_staff_and_admin_users(exclude_user_id=guest.id if guest else None, purpose='checkout_reminder')
             staff_notifs = [
                 Notification(
                     recipient=staff,
@@ -274,7 +305,10 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
                     message=(
                         f"Nhắc nhở: {room_label} (Khách hàng: {guest_name}, Mã đơn: #{booking.booking_code}) "
                         f"có lịch trả phòng hôm nay ({date_str}, trước 12:00). Bộ phận Lễ tân rà soát dịch vụ và thông báo Buồng phòng sẵn sàng."
-                    )
+                    ),
+                    notification_type='room' if getattr(staff, 'role', '') == 'housekeeper' else 'booking',
+                    action_url='/admin/rooms' if getattr(staff, 'role', '') == 'housekeeper' else '/admin/bookings',
+                    priority='normal'
                 )
                 for staff in staff_users
             ]
@@ -306,4 +340,241 @@ def run_daily_reminders_if_needed():
         return send_checkin_checkout_reminders()
     except Exception as e:
         logger.error(f"Lỗi khi tự động gửi nhắc nhở checkin/checkout: {e}")
+        return None
+
+
+def send_group_booking_notification(group_booking, event_type, actor=None, extra_data=None):
+    """
+    Xử lý thông báo In-App tập trung cho Đơn Đặt Đoàn Doanh Nghiệp (Group Booking / M.I.C.E):
+    Hỗ trợ các sự kiện:
+    - 'created': Khi đoàn mới được tạo
+    - 'deposit_confirmed': Khi xác nhận tiền cọc thành công
+    - 'check_in': Khi Check-in đồng loạt toàn đoàn (1 thông báo gom, không spam phòng con)
+    - 'check_out': Khi Check-out đồng loạt toàn đoàn & Quyết toán Master Invoice
+    """
+    try:
+        from ..bookings.models import GroupBooking
+        if not isinstance(group_booking, GroupBooking):
+            group_booking = GroupBooking.objects.filter(pk=group_booking).first()
+        if not group_booking:
+            return None
+
+        extra_data = extra_data or {}
+        new_notifications = []
+
+        # 1. Tìm tài khoản User của Trưởng đoàn / Khách đại diện nếu có
+        leader_user = None
+        if hasattr(group_booking, 'sub_bookings') and group_booking.sub_bookings.exists():
+            first_sub = group_booking.sub_bookings.first()
+            if first_sub and first_sub.guest:
+                leader_user = first_sub.guest
+
+        if not leader_user and group_booking.leader_email:
+            leader_user = User.objects.filter(email__iexact=group_booking.leader_email).first()
+        if not leader_user and group_booking.leader_phone:
+            leader_user = User.objects.filter(phone_number=group_booking.leader_phone).first()
+
+        total_rooms = group_booking.sub_bookings.count()
+        total_amount = float(group_booking.total_amount or 0)
+        deposit_amount = float(group_booking.deposit_amount or 0)
+        corp_name = group_booking.corporate_partner.company_name if group_booking.corporate_partner else None
+        comp_display = f" ({corp_name})" if corp_name else ""
+
+        # ==============================================================================
+        # SỰ KIỆN 1: ĐOÀN ĐƯỢC TẠO MỚI ('created')
+        # ==============================================================================
+        if event_type == 'created':
+            # 1.1. Thông báo cho Trưởng đoàn
+            if leader_user:
+                new_notifications.append(
+                    Notification(
+                        recipient=leader_user,
+                        title=f"📋 Đã tiếp nhận yêu cầu đặt đoàn #{group_booking.group_code}",
+                        message=(
+                            f"Yêu cầu đặt đoàn cho '{group_booking.group_name}'{comp_display} ({total_rooms} phòng) "
+                            f"từ {group_booking.check_in_date.strftime('%d/%m/%Y')} đến {group_booking.check_out_date.strftime('%d/%m/%Y')} "
+                            f"đã được tiếp nhận. Tổng chi phí dự kiến: {total_amount:,.0f}đ (Tiền cọc: {deposit_amount:,.0f}đ). "
+                            f"Khách sạn TA sẽ sớm liên hệ xác nhận và hướng dẫn hoàn tất thủ tục!"
+                        ),
+                        notification_type='group_booking',
+                        action_url="/booking-history",
+                        priority='normal'
+                    )
+                )
+
+            # 1.2. Thông báo cho Lễ tân, Quản lý & Kinh doanh
+            staff_users = get_staff_and_admin_users(exclude_user_id=leader_user.id if leader_user else None)
+            for staff in staff_users:
+                new_notifications.append(
+                    Notification(
+                        recipient=staff,
+                        title=f"🏢 Đơn đặt đoàn mới: {group_booking.group_name} (#{group_booking.group_code})",
+                        message=(
+                            f"Đơn đặt đoàn '{group_booking.group_name}'{comp_display} vừa được tạo "
+                            f"với quy mô {total_rooms} phòng (Tổng tiền: {total_amount:,.0f}đ, Cọc: {deposit_amount:,.0f}đ). "
+                            f"Đại diện liên hệ: {group_booking.leader_name} ({group_booking.leader_phone}). "
+                            f"Lễ tân/Kinh doanh vui lòng rà soát quỹ phòng và liên hệ khách."
+                        ),
+                        notification_type='group_booking',
+                        action_url="/admin/bookings",
+                        priority='high'
+                    )
+                )
+
+        # ==============================================================================
+        # SỰ KIỆN 2: XÁC NHẬN ĐẶT CỌC THÀNH CÔNG ('deposit_confirmed')
+        # ==============================================================================
+        elif event_type == 'deposit_confirmed':
+            # 2.1. Thông báo cho Trưởng đoàn
+            if leader_user:
+                new_notifications.append(
+                    Notification(
+                        recipient=leader_user,
+                        title=f"🎉 Xác nhận cọc thành công: Đoàn #{group_booking.group_code}",
+                        message=(
+                            f"Khách sạn TA đã nhận đủ số tiền cọc {deposit_amount:,.0f}đ cho đoàn '{group_booking.group_name}'. "
+                            f"Quỹ phòng của quý khách đã được đảm bảo giữ chỗ thành công. "
+                            f"Quý khách vui lòng hoàn thiện danh sách phân phòng (Rooming List) trước ngày nhận phòng."
+                        ),
+                        notification_type='group_booking',
+                        action_url="/booking-history",
+                        priority='high'
+                    )
+                )
+
+            # 2.2. Thông báo cho Thu ngân, Lễ tân & Quản lý
+            staff_users = User.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True) |
+                models.Q(role__in=['admin', 'owner', 'manager', 'receptionist', 'cashier'])
+            ).distinct()
+            for staff in staff_users:
+                new_notifications.append(
+                    Notification(
+                        recipient=staff,
+                        title=f"💰 Đã nhận cọc đoàn #{group_booking.group_code}: {deposit_amount:,.0f}đ",
+                        message=(
+                            f"Đã xác nhận thanh toán tiền cọc {deposit_amount:,.0f}đ cho đoàn '{group_booking.group_name}'{comp_display}. "
+                            f"Trạng thái đoàn đã chuyển sang 'Đã xác nhận'. Quỹ phòng đã được khóa."
+                        ),
+                        notification_type='payment',
+                        action_url="/admin/bookings",
+                        priority='normal'
+                    )
+                )
+
+        # ==============================================================================
+        # SỰ KIỆN 3: CHECK-IN ĐỒNG LOẠT TOÀN ĐOÀN ('check_in')
+        # ==============================================================================
+        elif event_type == 'check_in':
+            checked_in_count = extra_data.get('checked_in_count', total_rooms)
+            # 3.1. Thông báo cho Trưởng đoàn
+            if leader_user:
+                new_notifications.append(
+                    Notification(
+                        recipient=leader_user,
+                        title=f"🔑 Chào mừng đoàn {group_booking.group_name} đến với TA Hotel!",
+                        message=(
+                            f"Đã hoàn tất thủ tục nhận phòng đồng loạt cho {checked_in_count} phòng của đoàn '{group_booking.group_name}'. "
+                            f"Thẻ phòng đã được bàn giao cho trưởng đoàn. Khách sạn TA Đà Nẵng chúc quý đoàn có kỳ nghỉ và chuyến công tác tuyệt vời!"
+                        ),
+                        notification_type='group_booking',
+                        action_url="/booking-history",
+                        priority='high'
+                    )
+                )
+
+            # 3.2. Thông báo cho Lễ tân, Buồng phòng & F&B
+            staff_users = User.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True) |
+                models.Q(role__in=['admin', 'manager', 'receptionist', 'housekeeper', 'service_staff'])
+            ).distinct()
+            for staff in staff_users:
+                new_notifications.append(
+                    Notification(
+                        recipient=staff,
+                        title=f"📥 Đoàn {group_booking.group_name} ({checked_in_count} phòng) đã Check-in",
+                        message=(
+                            f"Đoàn '{group_booking.group_name}'{comp_display} gồm {checked_in_count} phòng đã hoàn tất Check-in. "
+                            f"Bộ phận Lễ tân, Buồng phòng và F&B lưu ý phục vụ các dịch vụ kèm theo theo thỏa thuận hợp đồng."
+                        ),
+                        notification_type='group_booking',
+                        action_url="/admin/bookings",
+                        priority='normal'
+                    )
+                )
+
+        # ==============================================================================
+        # SỰ KIỆN 4: CHECK-OUT ĐỒNG LOẠT & QUYẾT TOÁN MASTER INVOICE ('check_out')
+        # ==============================================================================
+        elif event_type == 'check_out':
+            checked_out_count = extra_data.get('checked_out_count', total_rooms)
+            contract_total = extra_data.get('total_contract', total_amount)
+            # 4.1. Thông báo cho Trưởng đoàn
+            if leader_user:
+                new_notifications.append(
+                    Notification(
+                        recipient=leader_user,
+                        title=f"✨ Cảm ơn Quý đoàn {group_booking.group_name} đã lưu trú!",
+                        message=(
+                            f"Đoàn '{group_booking.group_name}' ({checked_out_count} phòng) đã làm thủ tục trả phòng thành công. "
+                            f"Hóa đơn thanh toán Master Invoice đã được xuất và gửi tới email đại diện. "
+                            f"Khách sạn rất hân hạnh được đồng hành và phục vụ quý công ty!"
+                        ),
+                        notification_type='group_booking',
+                        action_url="/booking-history",
+                        priority='normal'
+                    )
+                )
+
+            # 4.2. Thông báo cho Thu ngân & Kế toán (theo dõi công nợ B2B)
+            finance_users = User.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True) |
+                models.Q(role__in=['admin', 'owner', 'manager', 'cashier'])
+            ).distinct()
+            for staff in finance_users:
+                new_notifications.append(
+                    Notification(
+                        recipient=staff,
+                        title=f"📑 Quyết toán đoàn #{group_booking.group_code} ({contract_total:,.0f}đ)",
+                        message=(
+                            f"Đoàn '{group_booking.group_name}'{comp_display} đã hoàn tất Check-out ({checked_out_count} phòng). "
+                            f"Hóa đơn tổng Master Invoice giá trị {contract_total:,.0f}đ đã được tạo. "
+                            f"Kế toán lưu ý theo dõi công nợ đối tác theo thời hạn hợp đồng."
+                        ),
+                        notification_type='payment',
+                        action_url="/admin/finance",
+                        priority='high'
+                    )
+                )
+
+            # 4.3. Thông báo cho Buồng phòng (dọn dẹp đồng loạt các phòng)
+            housekeeping_users = User.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True) |
+                models.Q(role__in=['admin', 'manager', 'housekeeper'])
+            ).distinct()
+            for staff in housekeeping_users:
+                new_notifications.append(
+                    Notification(
+                        recipient=staff,
+                        title=f"🧹 Đoàn {group_booking.group_name} đã Check-out ({checked_out_count} phòng)",
+                        message=(
+                            f"Đoàn '{group_booking.group_name}' vừa trả phòng. "
+                            f"Toàn bộ {checked_out_count} phòng của đoàn đã chuyển sang trạng thái Đang dọn dẹp (Cleaning). "
+                            f"Bộ phận Buồng phòng vui lòng phân công nhân sự dọn phòng."
+                        ),
+                        notification_type='room',
+                        action_url="/admin/rooms",
+                        priority='high'
+                    )
+                )
+
+        # Lưu thông báo vào database
+        if new_notifications:
+            Notification.objects.bulk_create(new_notifications)
+            logger.info(f"[GROUP_NOTIF] Đã tạo {len(new_notifications)} thông báo cho sự kiện '{event_type}' đoàn #{group_booking.group_code}")
+            return len(new_notifications)
+
+        return 0
+    except Exception as e:
+        logger.error(f"[GROUP_NOTIF] Lỗi khi tạo thông báo đoàn #{getattr(group_booking, 'group_code', 'N/A')}: {e}", exc_info=True)
         return None

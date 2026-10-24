@@ -18,6 +18,7 @@ from ..users.views import check_role_permission
 from ..payments.models import Invoice, Payment
 from .serializers import GroupBookingSerializer, CorporatePartnerSerializer, BookingSerializer
 from .email_service import send_group_booking_email_async
+from ..notifications.services import send_group_booking_notification
 from core_project.pagination import StandardResultsSetPagination
 
 
@@ -603,6 +604,16 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
         except Exception:
             pass
 
+        # Gửi thông báo In-App cho đoàn mới tạo
+        try:
+            send_group_booking_notification(
+                group_booking=group_booking,
+                event_type='created',
+                actor=request.user if request.user.is_authenticated else None
+            )
+        except Exception:
+            pass
+
         serializer = GroupBookingSerializer(group_booking, context={'request': request})
         return Response({
             'success': True,
@@ -654,6 +665,17 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             group.save(update_fields=['status'])
 
         log_action(user, 'UPDATE', 'BOOKING', f"Check-in đồng loạt đoàn #{group.group_code} ({checked_in_count} phòng).", request=request)
+
+        # Gửi thông báo In-App gom toàn đoàn cho Check-in (không spam phòng lẻ)
+        try:
+            send_group_booking_notification(
+                group_booking=group,
+                event_type='check_in',
+                actor=user,
+                extra_data={'checked_in_count': checked_in_count}
+            )
+        except Exception:
+            pass
 
         return Response({
             'success': True,
@@ -768,6 +790,20 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                 )
 
         log_action(user, 'UPDATE', 'BOOKING', f"Check-out đoàn #{group.group_code} ({checked_out_count} phòng). Quyết toán Master Invoice {total_contract:,.0f} đ.", request=request)
+
+        # Gửi thông báo In-App gom toàn đoàn cho Check-out & Quyết toán Master Invoice
+        try:
+            send_group_booking_notification(
+                group_booking=group,
+                event_type='check_out',
+                actor=user,
+                extra_data={
+                    'checked_out_count': checked_out_count,
+                    'total_contract': total_contract
+                }
+            )
+        except Exception:
+            pass
 
         return Response({
             'success': True,
@@ -924,6 +960,16 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             send_group_booking_email_async(
                 group_booking=group,
                 email_type='payment_success'
+            )
+        except Exception:
+            pass
+
+        # Gửi thông báo In-App xác nhận tiền cọc đoàn
+        try:
+            send_group_booking_notification(
+                group_booking=group,
+                event_type='deposit_confirmed',
+                actor=user
             )
         except Exception:
             pass

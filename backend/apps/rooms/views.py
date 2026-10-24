@@ -748,7 +748,10 @@ class AdminRoomStatusUpdateView(APIView):
                         Notification.objects.create(
                             recipient=r,
                             title=notif_title,
-                            message=notif_message
+                            message=notif_message,
+                            notification_type='room',
+                            action_url='/admin/rooms',
+                            priority='normal'
                         )
                 except Exception:
                     pass
@@ -771,7 +774,10 @@ class AdminRoomStatusUpdateView(APIView):
                         Notification.objects.create(
                             recipient=r,
                             title=notif_title,
-                            message=notif_message
+                            message=notif_message,
+                            notification_type='room',
+                            action_url='/admin/rooms',
+                            priority='normal'
                         )
                 except Exception:
                     pass
@@ -917,7 +923,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         try:
             reporter_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên"
             tech_users = User.objects.filter(
-                Q(role__in=['technician', 'admin', 'owner', 'manager']) | Q(is_superuser=True)
+                Q(role__in=['technician', 'receptionist', 'admin', 'owner', 'manager']) | Q(is_superuser=True)
             ).distinct()
             fault_note = "Do khách làm hỏng (Bồi thường)" if is_guest_fault else "Bảo dưỡng khách sạn"
             issue_labels = {
@@ -944,7 +950,10 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                 Notification.objects.create(
                     recipient=recipient,
                     title=notif_title,
-                    message=notif_message
+                    message=notif_message,
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='high'
                 )
         except Exception as e:
             pass
@@ -1051,7 +1060,10 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                 Notification.objects.create(
                     recipient=recipient,
                     title=notif_title,
-                    message=notif_message
+                    message=notif_message,
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='normal'
                 )
         except Exception as e:
             pass
@@ -1195,7 +1207,10 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 Notification.objects.create(
                     recipient=r,
                     title=notif_title,
-                    message=notif_message
+                    message=notif_message,
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='high'
                 )
         except Exception:
             pass
@@ -1372,11 +1387,16 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 f"{damage_text}\n"
                 + (f"• Đã tự động cập nhật vào Hóa đơn thanh toán của khách." if extra_services_created > 0 else "• Phòng nguyên vẹn, sẵn sàng thanh toán.")
             )
+            target_action_url = '/admin/finance' if (total_amount > 0 or has_damage) else '/admin/rooms'
+            target_priority = 'high' if (has_damage or total_amount > 500000) else 'normal'
             for r in recipients:
                 Notification.objects.create(
                     recipient=r,
                     title=notif_title,
-                    message=notif_message
+                    message=notif_message,
+                    notification_type='room',
+                    action_url=target_action_url,
+                    priority=target_priority
                 )
         except Exception:
             pass
@@ -1519,7 +1539,10 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                 Notification.objects.create(
                     recipient=r,
                     title=notif_title,
-                    message=notif_message
+                    message=notif_message,
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='normal'
                 )
         except Exception:
             pass
@@ -1572,7 +1595,10 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                 Notification.objects.create(
                     recipient=r,
                     title=notif_title,
-                    message=notif_message
+                    message=notif_message,
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='normal'
                 )
         except Exception:
             pass

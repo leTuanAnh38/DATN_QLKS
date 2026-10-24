@@ -8,6 +8,10 @@ export const paymentService = {
     async confirmPayment(payload) {
         try {
             const response = await api.post('/payments/confirm/', payload);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('pms_payment_completed'));
+                try { localStorage.setItem('pms_last_payment_event', Date.now().toString()); } catch { }
+            }
             return response.data;
         } catch (error) {
             console.error('Lỗi khi xác nhận thanh toán:', error);
@@ -23,6 +27,10 @@ export const paymentService = {
     async confirmPaymentById(paymentId, payload = {}) {
         try {
             const response = await api.post(`/payments/${paymentId}/confirm/`, payload);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('pms_payment_completed'));
+                try { localStorage.setItem('pms_last_payment_event', Date.now().toString()); } catch { }
+            }
             return response.data;
         } catch (error) {
             console.error(`Lỗi khi xác nhận thanh toán #${paymentId}:`, error);
@@ -40,6 +48,10 @@ export const paymentService = {
                 payment_method: 'CASH',
                 ...payload
             });
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('pms_payment_completed'));
+                try { localStorage.setItem('pms_last_payment_event', Date.now().toString()); } catch { }
+            }
             return response.data;
         } catch (error) {
             console.error('Lỗi khi thu tiền mặt tại quầy:', error);
@@ -152,6 +164,10 @@ export const paymentService = {
     async createCashOut(payload) {
         try {
             const response = await api.post('/payments/cash-outs/', payload);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('pms_payment_completed'));
+                try { localStorage.setItem('pms_last_payment_event', Date.now().toString()); } catch { }
+            }
             return response.data;
         } catch (error) {
             console.error('Lỗi khi lập phiếu chi:', error);

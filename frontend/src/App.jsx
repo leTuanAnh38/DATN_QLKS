@@ -111,6 +111,12 @@ function App() {
         <Route path="/admin/minibar-items" element={<AdminDashboard initialTab="minibar" />} />
         <Route path="/admin/audit-logs" element={<AdminDashboard initialTab="audit-logs" />} />
         <Route path="/admin/system-logs" element={<AdminDashboard initialTab="audit-logs" />} />
+        <Route path="/admin/bookings" element={<AdminDashboard initialTab="bookings" />} />
+        <Route path="/admin/services" element={<AdminDashboard initialTab="services" />} />
+        <Route path="/admin/rooms" element={<AdminDashboard initialTab="rooms" />} />
+        <Route path="/admin/finance" element={<AdminDashboard initialTab="invoices" />} />
+        <Route path="/admin/invoices" element={<AdminDashboard initialTab="invoices" />} />
+        <Route path="/admin/groups" element={<AdminDashboard initialTab="bookings" />} />
       </Routes>
 
     </BrowserRouter>

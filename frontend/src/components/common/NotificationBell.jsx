@@ -1,10 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, CheckCheck, RefreshCw, X, Inbox, ChevronDown, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+    Bell,
+    CheckCheck,
+    RefreshCw,
+    Inbox,
+    ChevronDown,
+    Trash2,
+    ArrowRight,
+    Building2,
+    Utensils,
+    CreditCard,
+    Volume2,
+    VolumeX,
+    Wrench
+} from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import notificationService from '../../services/notificationService';
 
 export default function NotificationBell({ theme = 'light' }) {
-    const { isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -15,8 +31,45 @@ export default function NotificationBell({ theme = 'light' }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [isClearingRead, setIsClearingRead] = useState(false);
-    const [filter, setFilter] = useState('all'); // 'all' | 'unread'
+    const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'payment' | 'booking' | 'service'
     const popoverRef = useRef(null);
+    const prevUnreadRef = useRef(null);
+
+    const [soundEnabled, setSoundEnabled] = useState(() => {
+        try {
+            return localStorage.getItem('pms_notif_sound') !== 'false';
+        } catch {
+            return true;
+        }
+    });
+
+    const toggleSound = () => {
+        setSoundEnabled((prev) => {
+            const next = !prev;
+            try { localStorage.setItem('pms_notif_sound', String(next)); } catch { }
+            return next;
+        });
+    };
+
+    // Hàm phát âm thanh thông báo tinh tế bằng Web Audio API
+    const playChime = () => {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1318.51, ctx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.06, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+        } catch { }
+    };
 
     // Tải danh sách thông báo từ Backend API
     const fetchNotifications = async (isSilent = false, pageNum = 1, append = false, currentFilter = filter) => {
@@ -29,6 +82,12 @@ export default function NotificationBell({ theme = 'light' }) {
             };
             if (currentFilter === 'unread') {
                 params.unread_only = true;
+            } else if (currentFilter === 'payment') {
+                params.type = 'payment';
+            } else if (currentFilter === 'booking') {
+                params.type = 'booking';
+            } else if (currentFilter === 'service') {
+                params.type = 'service';
             }
 
             const res = await notificationService.getNotifications(params);
@@ -43,11 +102,18 @@ export default function NotificationBell({ theme = 'light' }) {
                     setNotifications(res.data);
                 }
 
-                setUnreadCount(
+                const nextUnread = (
                     res.unread_count !== undefined
                         ? res.unread_count
                         : res.data.filter((n) => !n.is_read).length
                 );
+
+                if (prevUnreadRef.current !== null && nextUnread > prevUnreadRef.current && soundEnabled) {
+                    playChime();
+                }
+                prevUnreadRef.current = nextUnread;
+
+                setUnreadCount(nextUnread);
                 setTotalCount(res.total_count !== undefined ? res.total_count : res.data.length);
                 setAllCount(res.all_count !== undefined ? res.all_count : res.total_count || res.data.length);
                 setHasNext(Boolean(res.has_next));
@@ -73,7 +139,7 @@ export default function NotificationBell({ theme = 'light' }) {
                     const year = date.getFullYear();
                     return `${hours}:${minutes} • ${day}/${month}/${year}`;
                 }
-            } catch (e) { }
+            } catch { }
         }
         return notif?.created_at_display || 'Vừa xong';
     };
@@ -90,16 +156,17 @@ export default function NotificationBell({ theme = 'light' }) {
             fetchNotifications(true, 1, false, filter);
         }, 30000);
 
-        // Lắng nghe sự kiện realtime khi có đơn phòng hoặc đơn dịch vụ thay đổi trạng thái
+        // Lắng nghe sự kiện realtime khi có đơn phòng, dịch vụ hoặc thanh toán thay đổi trạng thái
         const handleSyncEvent = () => {
             fetchNotifications(true, 1, false, filter);
         };
         window.addEventListener('pms_booking_created', handleSyncEvent);
         window.addEventListener('pms_service_created', handleSyncEvent);
         window.addEventListener('pms_service_updated', handleSyncEvent);
+        window.addEventListener('pms_payment_completed', handleSyncEvent);
 
         const handleStorage = (e) => {
-            if (e.key === 'pms_last_booking_event' || e.key === 'pms_last_service_event') {
+            if (e.key === 'pms_last_booking_event' || e.key === 'pms_last_service_event' || e.key === 'pms_last_payment_event') {
                 fetchNotifications(true, 1, false, filter);
             }
         };
@@ -110,6 +177,7 @@ export default function NotificationBell({ theme = 'light' }) {
             window.removeEventListener('pms_booking_created', handleSyncEvent);
             window.removeEventListener('pms_service_created', handleSyncEvent);
             window.removeEventListener('pms_service_updated', handleSyncEvent);
+            window.removeEventListener('pms_payment_completed', handleSyncEvent);
             window.removeEventListener('storage', handleStorage);
         };
     }, [isAuthenticated, filter]);
@@ -158,7 +226,41 @@ export default function NotificationBell({ theme = 'light' }) {
         }
     };
 
-    // Đánh dấu 1 thông báo đã đọc khi click
+    // Xác định đường dẫn điều hướng (hỗ trợ cả các thông báo cũ trong DB chưa có action_url)
+    const resolveTargetUrl = (notif) => {
+        if (notif?.action_url) return notif.action_url;
+
+        const isStaff = user && ['admin', 'owner', 'manager', 'receptionist', 'cashier', 'housekeeper', 'service_staff', 'technician'].includes(user.role);
+        const titleLower = (notif?.title || '').toLowerCase();
+        const messageLower = (notif?.message || '').toLowerCase();
+        const type = notif?.notification_type || '';
+
+        // Nếu là khách hàng
+        if (!isStaff) {
+            return '/booking-history';
+        }
+
+        // Nếu là nhân sự / quản lý
+        if (type === 'group_booking' || titleLower.includes('đoàn') || messageLower.includes('đoàn') || messageLower.includes('grp-')) {
+            return '/admin/bookings';
+        }
+        if (type === 'service' || titleLower.includes('dịch vụ') || titleLower.includes('bếp') || titleLower.includes('món ăn') || titleLower.includes('xe') || titleLower.includes('spa')) {
+            return '/admin/services';
+        }
+        if (type === 'payment' || titleLower.includes('thanh toán') || titleLower.includes('cọc') || titleLower.includes('hóa đơn') || titleLower.includes('master invoice')) {
+            return '/admin/finance';
+        }
+        if (type === 'room' || titleLower.includes('dọn dẹp') || titleLower.includes('buồng phòng') || titleLower.includes('cleaning') || titleLower.includes('sẵn sàng')) {
+            return '/admin/rooms';
+        }
+        if (type === 'booking' || titleLower.includes('check-in') || titleLower.includes('check-out') || titleLower.includes('đặt phòng') || messageLower.includes('bk-')) {
+            return '/admin/bookings';
+        }
+
+        return '/admin';
+    };
+
+    // Đánh dấu 1 thông báo đã đọc khi click & Điều hướng đến trang tương ứng
     const handleNotificationClick = async (notif) => {
         if (!notif.is_read) {
             // Optimistic update: cập nhật state giao diện ngay lập tức
@@ -168,8 +270,89 @@ export default function NotificationBell({ theme = 'light' }) {
             setUnreadCount((prev) => Math.max(0, prev - 1));
 
             // Gọi API lưu trạng thái backend
-            await notificationService.markAsRead(notif.id);
+            notificationService.markAsRead(notif.id).catch(console.error);
         }
+
+        // Tự động đóng popover và điều hướng
+        const targetUrl = resolveTargetUrl(notif);
+        if (targetUrl) {
+            setIsOpen(false);
+            navigate(targetUrl);
+        }
+    };
+
+    // Helper sinh nhãn Badge trực quan theo loại thông báo
+    const renderTypeBadge = (notif) => {
+        const type = notif.notification_type;
+        const title = notif.title || '';
+        const titleLower = title.toLowerCase();
+
+        if (type === 'group_booking' || titleLower.includes('đoàn')) {
+            return (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+                    <Building2 className="w-3 h-3 text-purple-600" />
+                    Đặt Đoàn
+                </span>
+            );
+        }
+        if (type === 'payment' || titleLower.includes('thanh toán') || titleLower.includes('cọc') || titleLower.includes('hóa đơn')) {
+            return (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                    <CreditCard className="w-3 h-3 text-emerald-600" />
+                    Thanh toán
+                </span>
+            );
+        }
+        if (type === 'service' || titleLower.includes('dịch vụ') || titleLower.includes('bếp') || titleLower.includes('món ăn')) {
+            return (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                    <Utensils className="w-3 h-3 text-amber-600" />
+                    Dịch vụ
+                </span>
+            );
+        }
+        if (title.includes('Check-in')) {
+            return (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-teal-100 text-teal-800 border border-teal-200 shrink-0">
+                    Check-in
+                </span>
+            );
+        }
+        if (title.includes('Check-out')) {
+            return (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
+                    Check-out
+                </span>
+            );
+        }
+        if (titleLower.includes('gia hạn')) {
+            return (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-200 shrink-0">
+                    Gia hạn
+                </span>
+            );
+        }
+        if (type === 'room' || titleLower.includes('dọn phòng') || titleLower.includes('bảo trì') || titleLower.includes('kiểm phòng') || titleLower.includes('sẵn sàng') || titleLower.includes('thất lạc')) {
+            const isMaint = titleLower.includes('bảo trì') || titleLower.includes('hỏng') || titleLower.includes('sửa');
+            return (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+                    isMaint
+                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                        : 'bg-cyan-100 text-cyan-800 border border-cyan-200'
+                }`}>
+                    <Wrench className="w-3 h-3" />
+                    {isMaint ? 'Bảo trì' : 'Buồng phòng'}
+                </span>
+            );
+        }
+        if (type === 'booking') {
+            return (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 border border-blue-200 shrink-0">
+                    Đặt phòng
+                </span>
+            );
+        }
+        return null;
     };
 
     // Đánh dấu tất cả thông báo đã đọc
@@ -270,8 +453,18 @@ export default function NotificationBell({ theme = 'light' }) {
                             )}
                             <button
                                 type="button"
+                                onClick={toggleSound}
+                                className={`p-1 rounded-lg transition cursor-pointer ${
+                                    soundEnabled ? 'text-blue-600 hover:bg-blue-100/60' : 'text-slate-400 hover:bg-slate-200/60'
+                                }`}
+                                title={soundEnabled ? 'Đang bật âm thanh thông báo (Click để tắt)' : 'Đang tắt âm thanh thông báo (Click để bật)'}
+                            >
+                                {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                                type="button"
                                 onClick={() => fetchNotifications(false, 1, false, filter)}
-                                className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition"
+                                className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer"
                                 title="Tải lại thông báo"
                             >
                                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
@@ -280,14 +473,14 @@ export default function NotificationBell({ theme = 'light' }) {
                     </div>
 
                     {/* Filter Tabs */}
-                    <div className="flex items-center border-b border-slate-100 bg-slate-50/60 px-3 pt-2 text-xs">
+                    <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-xs overflow-x-auto no-scrollbar">
                         <button
                             type="button"
                             onClick={() => handleFilterChange('all')}
-                            className={`pb-2 px-3 font-semibold transition border-b-2 cursor-pointer ${
+                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 ${
                                 filter === 'all'
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                                    ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
                             }`}
                         >
                             Tất cả ({allCount > 0 ? allCount : totalCount})
@@ -295,13 +488,49 @@ export default function NotificationBell({ theme = 'light' }) {
                         <button
                             type="button"
                             onClick={() => handleFilterChange('unread')}
-                            className={`pb-2 px-3 font-semibold transition border-b-2 cursor-pointer ${
+                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 ${
                                 filter === 'unread'
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                                    ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
                             }`}
                         >
-                            Chưa đọc ({unreadCount})
+                            Chưa đọc {unreadCount > 0 ? `(${unreadCount})` : ''}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('payment')}
+                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
+                                filter === 'payment'
+                                    ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                            }`}
+                        >
+                            <CreditCard className="w-3 h-3" />
+                            Thanh toán
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('booking')}
+                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
+                                filter === 'booking'
+                                    ? 'bg-purple-600 text-white shadow-xs font-semibold'
+                                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                            }`}
+                        >
+                            <Building2 className="w-3 h-3" />
+                            Phòng & Đoàn
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('service')}
+                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
+                                filter === 'service'
+                                    ? 'bg-amber-600 text-white shadow-xs font-semibold'
+                                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                            }`}
+                        >
+                            <Utensils className="w-3 h-3" />
+                            Dịch vụ
                         </button>
                     </div>
 
@@ -326,11 +555,15 @@ export default function NotificationBell({ theme = 'light' }) {
                             <>
                                 {notifications.map((notif) => {
                                     const isUnread = !notif.is_read;
+                                    const targetUrl = resolveTargetUrl(notif);
+                                    const hasLink = Boolean(targetUrl);
+                                    const isPriority = notif.priority === 'urgent' || notif.priority === 'high';
+
                                     return (
                                         <div
                                             key={notif.id}
                                             onClick={() => handleNotificationClick(notif)}
-                                            className={`p-3.5 transition-all duration-150 cursor-pointer relative ${
+                                            className={`p-3.5 transition-all duration-150 cursor-pointer relative group ${
                                                 isUnread
                                                     ? 'bg-blue-50/70 hover:bg-blue-100/60 border-l-3 border-blue-500'
                                                     : 'bg-white hover:bg-slate-50/90 text-slate-700'
@@ -342,23 +575,12 @@ export default function NotificationBell({ theme = 'light' }) {
                                                         {isUnread && (
                                                             <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
                                                         )}
-                                                        {notif.title?.includes('Check-in') ? (
-                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
-                                                                Check-in
+                                                        {renderTypeBadge(notif)}
+                                                        {isPriority && (
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 border border-rose-200 shrink-0">
+                                                                Ưu tiên
                                                             </span>
-                                                        ) : notif.title?.includes('Check-out') ? (
-                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 border border-purple-200 shrink-0">
-                                                                Check-out
-                                                            </span>
-                                                        ) : notif.title?.includes('Dịch vụ') ? (
-                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
-                                                                Dịch vụ
-                                                            </span>
-                                                        ) : notif.title?.includes('gia hạn') || notif.title?.includes('Gia hạn') ? (
-                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700 border border-indigo-200 shrink-0">
-                                                                Gia hạn
-                                                            </span>
-                                                        ) : null}
+                                                        )}
                                                         <h4
                                                             className={`text-xs leading-snug break-words flex-1 ${
                                                                 isUnread
@@ -376,9 +598,13 @@ export default function NotificationBell({ theme = 'light' }) {
                                                     >
                                                         {notif.message}
                                                     </p>
-                                                    <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                                                    <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
                                                         <span>{formatNotifTime(notif)}</span>
-                                                        {isUnread ? (
+                                                        {hasLink ? (
+                                                            <span className="inline-flex items-center gap-1 text-blue-600 font-bold group-hover:translate-x-0.5 transition-transform text-[11px]">
+                                                                Xem chi tiết <ArrowRight className="w-3 h-3" />
+                                                            </span>
+                                                        ) : isUnread ? (
                                                             <span className="text-blue-600 font-semibold text-[10px]">
                                                                 Nhấn để đọc
                                                             </span>

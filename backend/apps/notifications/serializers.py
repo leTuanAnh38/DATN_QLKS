@@ -12,11 +12,23 @@ class NotificationSerializer(serializers.ModelSerializer):
             'id',
             'title',
             'message',
+            'notification_type',
+            'priority',
+            'action_url',
             'is_read',
             'created_at',
             'created_at_display'
         ]
-        read_only_fields = ['id', 'title', 'message', 'created_at', 'created_at_display']
+        read_only_fields = [
+            'id',
+            'title',
+            'message',
+            'notification_type',
+            'priority',
+            'action_url',
+            'created_at',
+            'created_at_display'
+        ]
 
     def get_created_at_display(self, obj):
         if not obj.created_at:

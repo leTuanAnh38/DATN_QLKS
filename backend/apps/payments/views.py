@@ -11,6 +11,7 @@ from ..bookings.models import Booking, GroupBooking, HotelSetting
 from ..bookings.email_service import send_booking_email_async, send_group_booking_email_async
 from ..users.models import log_action
 from ..users.views import check_role_permission
+from ..notifications.models import Notification
 from .models import Payment, Invoice, PaymentConfig, CashierShift, CashOutVoucher
 from .serializers import PaymentSerializer, PaymentConfigSerializer, CashierShiftSerializer, CashOutVoucherSerializer
 
@@ -1287,6 +1288,69 @@ class CloseShiftView(APIView):
             description=f"Kết ca #{shift.shift_code} ({shift.get_shift_type_display()}): Dự kiến {shift.expected_cash:,.0f} VND, Thực kiểm {shift.actual_cash:,.0f} VND, Chênh lệch {diff_str}",
             request=request
         )
+
+        # Gửi thông báo kết ca & Báo cáo Z-Report cho Chủ KS, Quản lý, Admin và Thu ngân nhận bàn giao
+        try:
+            from django.contrib.auth import get_user_model
+            UserModel = get_user_model()
+            has_diff = (shift.difference != Decimal('0'))
+            diff_prefix = "🚨 CẢNH BÁO LỆCH KÉT" if has_diff else "📊 BÁO CÁO KẾT CA"
+            notif_priority = 'urgent' if shift.difference < 0 else ('high' if has_diff else 'normal')
+
+            shift_user_name = shift.user.get_full_name() or shift.user.username if shift.user else "Thu ngân"
+            total_rev = Decimal(str(summary.get('total_revenue', 0)))
+
+            if has_diff:
+                diff_desc = f"⚠️ Két tiền bị {diff_str}! (Thực tế: {shift.actual_cash:,.0f} VND vs Dự kiến: {shift.expected_cash:,.0f} VND)"
+            else:
+                diff_desc = f"Két tiền: Cân bằng ({shift.actual_cash:,.0f} VND khớp 100% hệ thống)."
+
+            notif_title = f"{diff_prefix}: #{shift.shift_code} ({shift.get_shift_type_display()})"
+            notif_msg = (
+                f"Thu ngân {shift_user_name} vừa kết thúc ca trực #{shift.shift_code}.\n"
+                f"• Doanh thu ghi nhận trong ca: {total_rev:,.0f} VND ({summary.get('payments_count', 0)} giao dịch).\n"
+                f"• Tiền mặt kiểm đếm: {shift.actual_cash:,.0f} VND.\n"
+                f"• {diff_desc}\n"
+                f"Vui lòng vào đối soát phiếu Z-Report."
+            )
+
+            supervisors = UserModel.objects.filter(
+                models.Q(is_superuser=True) |
+                models.Q(role__in=['owner', 'manager', 'admin'])
+            ).distinct()
+
+            shift_notifs = [
+                Notification(
+                    recipient=supervisor,
+                    title=notif_title,
+                    message=notif_msg,
+                    notification_type='payment',
+                    action_url='/admin/finance',
+                    priority=notif_priority
+                )
+                for supervisor in supervisors
+            ]
+            if shift_notifs:
+                Notification.objects.bulk_create(shift_notifs)
+
+            # Gửi thông báo nhận bàn giao cho Thu ngân ca sau (nếu có chọn handover_user)
+            if shift.handover_user and shift.handover_user != shift.user:
+                Notification.objects.create(
+                    recipient=shift.handover_user,
+                    title=f"🤝 [NHẬN BÀN GIAO CA] #{shift.shift_code} - {shift.get_shift_type_display()}",
+                    message=(
+                        f"Bạn vừa được nhân viên {shift_user_name} bàn giao ca trực #{shift.shift_code}.\n"
+                        f"• Số tiền mặt bàn giao trong két: {shift.actual_cash:,.0f} VND.\n"
+                        f"• Ghi chú bàn giao: {shift.notes or 'Không có ghi chú'}.\n"
+                        f"Vui lòng kiểm đếm lại quỹ két tiền mặt trước khi mở ca mới."
+                    ),
+                    notification_type='payment',
+                    action_url='/admin/finance',
+                    priority='high'
+                )
+
+        except Exception:
+            pass
 
         serializer = CashierShiftSerializer(shift)
         return Response({

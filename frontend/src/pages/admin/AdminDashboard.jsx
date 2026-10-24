@@ -214,6 +214,14 @@ export default function HotelAdminDashboard({ initialTab }) {
             setIsCategoryMenuOpen(true);
         } else if (location.pathname === '/admin/audit-logs' || location.pathname === '/admin/logs') {
             setActiveTab('audit-logs');
+        } else if (location.pathname === '/admin/bookings' || location.pathname === '/admin/groups') {
+            setActiveTab('bookings');
+        } else if (location.pathname === '/admin/services') {
+            setActiveTab('services');
+        } else if (location.pathname === '/admin/rooms') {
+            setActiveTab('rooms');
+        } else if (location.pathname === '/admin/finance' || location.pathname === '/admin/invoices') {
+            setActiveTab('invoices');
         } else {
             const params = new URLSearchParams(location.search);
             const tabParam = params.get('tab');
@@ -475,6 +483,35 @@ export default function HotelAdminDashboard({ initialTab }) {
     };
 
     // =========================================================================
+    // DỮ LIỆU ĐẶT PHÒNG THỜI GIAN THỰC CHO TAB TỔNG QUAN
+    // =========================================================================
+    const filteredBookings = useMemo(() => {
+        return realBookings.filter((item) => {
+            const matchFilter =
+                bookingFilter === 'all'
+                    ? true
+                    : bookingFilter === 'pending'
+                        ? ['pending', 'paid', 'PAID'].includes(item.status)
+                        : bookingFilter === 'checked_in'
+                            ? item.status === 'checked_in'
+                            : item.status === bookingFilter;
+
+            if (!searchTerm.trim()) return matchFilter;
+
+            const q = searchTerm.trim().toLowerCase();
+            const matchCode = item.booking_code?.toLowerCase().includes(q);
+            const matchGuest = item.guest_name?.toLowerCase().includes(q);
+            const matchEmail = item.guest_email?.toLowerCase().includes(q);
+            const matchPhone = item.guest_phone?.toLowerCase().includes(q);
+            const matchRoom = item.room_name?.toLowerCase().includes(q);
+            const matchRoomNum = String(item.room_number || '').toLowerCase().includes(q);
+            const matchCccd = String(item.identity_card || '').toLowerCase().includes(q);
+
+            return matchFilter && (matchCode || matchGuest || matchEmail || matchPhone || matchRoom || matchRoomNum || matchCccd);
+        });
+    }, [realBookings, bookingFilter, searchTerm]);
+
+    // =========================================================================
     // NẾU CHƯA ĐĂNG NHẬP HOẶC KHÔNG PHẢI PHÂN HỆ QUẢN LÝ -> HIỂN THỊ CHẶN BẢO MẬT
     // =========================================================================
     if (!isAuthenticated || !isManagerRole) {
@@ -591,34 +628,7 @@ export default function HotelAdminDashboard({ initialTab }) {
         );
     }
 
-    // =========================================================================
-    // DỮ LIỆU ĐẶT PHÒNG THỜI GIAN THỰC CHO TAB TỔNG QUAN
-    // =========================================================================
-    const filteredBookings = useMemo(() => {
-        return realBookings.filter((item) => {
-            const matchFilter =
-                bookingFilter === 'all'
-                    ? true
-                    : bookingFilter === 'pending'
-                        ? ['pending', 'paid', 'PAID'].includes(item.status)
-                        : bookingFilter === 'checked_in'
-                            ? item.status === 'checked_in'
-                            : item.status === bookingFilter;
 
-            if (!searchTerm.trim()) return matchFilter;
-
-            const q = searchTerm.trim().toLowerCase();
-            const matchCode = item.booking_code?.toLowerCase().includes(q);
-            const matchGuest = item.guest_name?.toLowerCase().includes(q);
-            const matchEmail = item.guest_email?.toLowerCase().includes(q);
-            const matchPhone = item.guest_phone?.toLowerCase().includes(q);
-            const matchRoom = item.room_name?.toLowerCase().includes(q);
-            const matchRoomNum = String(item.room_number || '').toLowerCase().includes(q);
-            const matchCccd = String(item.identity_card || '').toLowerCase().includes(q);
-
-            return matchFilter && (matchCode || matchGuest || matchEmail || matchPhone || matchRoom || matchRoomNum || matchCccd);
-        });
-    }, [realBookings, bookingFilter, searchTerm]);
 
     // Hàm phụ trợ hiển thị cảnh báo phân quyền khi truy cập tab không được cấp phép
     const renderAccessDenied = (message) => (
