@@ -865,24 +865,56 @@ export default function BookingHistory() {
 
                                     // Xác định phương thức thanh toán thực tế của đơn
                                     const getMethodCode = () => {
+                                        // 1. Kiểm tra danh sách các giao dịch thanh toán thành công
+                                        if (booking.payments && Array.isArray(booking.payments)) {
+                                            const completed = booking.payments.filter(p => p.payment_status === 'COMPLETED');
+                                            if (completed.length > 0) {
+                                                const normMethods = new Set();
+                                                completed.forEach(p => {
+                                                    const m = String(p.payment_method || '').trim().toLowerCase();
+                                                    if (['cash', 'tiền mặt', 'tien_mat', 'reception'].includes(m)) {
+                                                        normMethods.add('CASH');
+                                                    } else if (['transfer', 'vietqr', 'bank_transfer', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(m)) {
+                                                        normMethods.add('TRANSFER');
+                                                    } else if (['credit_card', 'card', 'the_tin_dung'].includes(m)) {
+                                                        normMethods.add('CREDIT_CARD');
+                                                    } else if (m) {
+                                                        normMethods.add(m.toUpperCase());
+                                                    }
+                                                });
+                                                if (normMethods.size > 1) {
+                                                    return 'MIXED';
+                                                }
+                                                if (normMethods.size === 1) {
+                                                    return Array.from(normMethods)[0];
+                                                }
+                                            }
+                                        }
+
                                         const raw = (
                                             booking.payment_method ||
-                                            (booking.payments && Array.isArray(booking.payments) && (
-                                                booking.payments.find(p => p.payment_status === 'COMPLETED')?.payment_method ||
-                                                booking.payments[0]?.payment_method
-                                            )) ||
                                             booking.invoice?.payment_method ||
                                             ''
                                         );
                                         const rawLower = String(raw).trim().toLowerCase();
+                                        if (rawLower === 'mixed' || rawLower.includes('hỗn hợp') || rawLower.includes('hon_hop')) {
+                                            return 'MIXED';
+                                        }
                                         if (['cash', 'tiền mặt', 'tien_mat', 'reception', 'tai_quay', 'tại quầy', 'tại lễ tân'].includes(rawLower)) {
                                             return 'CASH';
                                         }
                                         if (['transfer', 'vietqr', 'bank_transfer', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(rawLower)) {
                                             return 'TRANSFER';
                                         }
+                                        if (['credit_card', 'card', 'the_tin_dung', 'thẻ tín dụng'].includes(rawLower)) {
+                                            return 'CREDIT_CARD';
+                                        }
 
                                         const noteLower = (booking.note || '').toLowerCase();
+                                        if ((noteLower.includes('vietqr') || noteLower.includes('chuyển khoản')) && 
+                                            (noteLower.includes('tiền mặt') || noteLower.includes('tại quầy') || noteLower.includes('reception') || noteLower.includes('cash'))) {
+                                            return 'MIXED';
+                                        }
                                         if (noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer')) {
                                             return 'TRANSFER';
                                         }
@@ -896,6 +928,7 @@ export default function BookingHistory() {
                                     };
 
                                     const methodCode = getMethodCode();
+                                    const isMixed = methodCode === 'MIXED';
                                     const isCash = methodCode === 'CASH';
                                     const isTransfer = methodCode === 'TRANSFER';
                                     const grandTotalNum = Number(booking.grand_total_amount ?? booking.total_amount) || 0;
@@ -1001,7 +1034,7 @@ export default function BookingHistory() {
                                                                 title={`Đã thanh toán trước ${paidAmountNum.toLocaleString('vi-VN')} đ. Còn phải thanh toán thêm ${remainingBalanceNum.toLocaleString('vi-VN')} đ khi trả phòng.`}
                                                             >
                                                                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                                                <span>{isCash ? '✓ Tiền mặt (Còn thanh toán)' : (isTransfer ? '✓ VietQR (Còn thanh toán)' : '✓ Đã TT một phần')}</span>
+                                                                <span>{isMixed ? '✓ Hỗn hợp (Còn thanh toán)' : (isCash ? '✓ Tiền mặt (Còn thanh toán)' : (isTransfer ? '✓ VietQR (Còn thanh toán)' : '✓ Đã TT một phần'))}</span>
                                                             </span>
                                                         ) : (hasRemainingPayment && paidAmountNum === 0) ? (
                                                             <span
@@ -1013,10 +1046,10 @@ export default function BookingHistory() {
                                                         ) : (booking.payment_status === 'COMPLETED' || isPaid) ? (
                                                             <span
                                                                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs"
-                                                                title={isCash ? "Đã thanh toán bằng tiền mặt tại quầy lễ tân" : (isTransfer ? "Đã thanh toán thành công qua VietQR" : "Đã thanh toán")}
+                                                                title={isMixed ? "Đã thanh toán kết hợp tiền mặt & chuyển khoản VietQR" : (isCash ? "Đã thanh toán bằng tiền mặt tại quầy lễ tân" : (isTransfer ? "Đã thanh toán thành công qua VietQR" : "Đã thanh toán"))}
                                                             >
                                                                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                                                {isCash ? '✓ Tiền mặt (Đã TT)' : (isTransfer ? '✓ VietQR (Đã TT)' : '✓ Đã thanh toán')}
+                                                                {isMixed ? '✓ Hỗn hợp (Tiền mặt & VietQR)' : (isCash ? '✓ Tiền mặt (Đã TT)' : (isTransfer ? '✓ VietQR (Đã TT)' : '✓ Đã thanh toán'))}
                                                             </span>
                                                         ) : (
                                                             <span
@@ -1211,7 +1244,7 @@ export default function BookingHistory() {
                                                                 ) : (
                                                                     <>
                                                                         <span className="text-[11px] font-bold uppercase tracking-wider block text-emerald-700">
-                                                                            {isCash ? '✓ Đã thanh toán (Tiền mặt)' : (isTransfer ? '✓ Đã thanh toán (VietQR)' : '✓ Đã thanh toán')}
+                                                                            {isMixed ? '✓ Đã thanh toán (Hỗn hợp: Tiền mặt & VietQR)' : (isCash ? '✓ Đã thanh toán (Tiền mặt)' : (isTransfer ? '✓ Đã thanh toán (VietQR)' : '✓ Đã thanh toán'))}
                                                                         </span>
                                                                         <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-600">
                                                                             {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>

@@ -17,6 +17,7 @@ class Invoice(models.Model):
         ('credit_card', 'Thẻ tín dụng / Ghi nợ'),
         ('bank_transfer', 'Chuyển khoản ngân hàng'),
         ('momo', 'Ví điện tử (Momo/ZaloPay)'),
+        ('mixed', 'Thanh toán hỗn hợp'),
     )
 
     invoice_code = models.CharField(max_length=20, unique=True, blank=True, verbose_name="Mã Hóa Đơn")

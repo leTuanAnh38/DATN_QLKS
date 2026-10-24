@@ -100,6 +100,7 @@ class BookingSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     payment_method = serializers.SerializerMethodField()
     payment_method_display = serializers.SerializerMethodField()
+    payments = serializers.SerializerMethodField()
     customer_type_display = serializers.CharField(source='get_customer_type_display', read_only=True)
     group_booking_code = serializers.CharField(source='group_booking.group_code', read_only=True, default=None)
     group_booking_name = serializers.CharField(source='group_booking.group_name', read_only=True, default=None)
@@ -177,6 +178,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'payment_status',
             'payment_method',
             'payment_method_display',
+            'payments',
             'note',
             'internal_note',
             'created_at',
@@ -420,9 +422,12 @@ class BookingSerializer(serializers.ModelSerializer):
             direct_paid = self.get_paid_amount(obj)
             return float(max(0.0, service_charge - direct_paid))
 
+        if obj.status in ['completed', 'checked_out']:
+            return 0.0
+
         total = self.get_total_amount(obj)
         paid = self.get_paid_amount(obj)
-        return float(total - paid)
+        return float(max(0.0, total - paid))
 
     def get_promotion_discount(self, obj):
         if not obj.applied_promotion:
@@ -625,12 +630,44 @@ class BookingSerializer(serializers.ModelSerializer):
             return 'COMPLETED'
         return 'UNPAID'
 
-    def get_payment_method(self, obj):
-        # 1. Kiểm tra trực tiếp bảng Payment
+    def get_payments(self, obj):
         try:
-            completed_payment = obj.payments.filter(payment_status='COMPLETED').order_by('-created_at').first()
-            if completed_payment and completed_payment.payment_method:
-                return completed_payment.payment_method
+            return [
+                {
+                    'id': p.id,
+                    'amount': float(p.amount),
+                    'payment_method': p.payment_method,
+                    'payment_status': p.payment_status,
+                    'transaction_id': p.transaction_id,
+                    'created_at': p.created_at.isoformat() if p.created_at else None,
+                }
+                for p in obj.payments.all().order_by('created_at')
+            ]
+        except Exception:
+            return []
+
+    def get_payment_method(self, obj):
+        # 1. Kiểm tra trực tiếp bảng Payment: phát hiện thanh toán hỗn hợp (MIXED)
+        try:
+            completed_payments = list(obj.payments.filter(payment_status='COMPLETED').order_by('created_at'))
+            if completed_payments:
+                distinct_methods = set()
+                for p in completed_payments:
+                    m = str(p.payment_method or '').strip().upper()
+                    if m in ['CASH', 'TIEN_MAT']:
+                        distinct_methods.add('CASH')
+                    elif m in ['TRANSFER', 'VIETQR', 'BANK_TRANSFER', 'CHUYEN_KHOAN']:
+                        distinct_methods.add('TRANSFER')
+                    elif m in ['CARD', 'CREDIT_CARD', 'POS']:
+                        distinct_methods.add('CREDIT_CARD')
+                    elif m in ['MOMO', 'ZALOPAY']:
+                        distinct_methods.add('MOMO')
+                    elif m:
+                        distinct_methods.add(m)
+                
+                if len(distinct_methods) > 1:
+                    return 'MIXED'
+                return completed_payments[-1].payment_method
             any_payment = obj.payments.first()
             if any_payment and any_payment.payment_method:
                 return any_payment.payment_method
@@ -641,18 +678,25 @@ class BookingSerializer(serializers.ModelSerializer):
         try:
             if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.payment_method:
                 inv_m = str(obj.invoice.payment_method).lower()
+                if inv_m in ['mixed', 'hỗn hợp', 'hon_hop']:
+                    return 'MIXED'
                 if inv_m in ['cash', 'tiền mặt', 'tien_mat']:
                     return 'CASH'
-                if inv_m in ['bank_transfer', 'vietqr', 'transfer', 'chuyển khoản', 'momo']:
+                if inv_m in ['bank_transfer', 'vietqr', 'transfer', 'chuyển khoản']:
                     return 'TRANSFER'
                 if inv_m in ['credit_card', 'thẻ tín dụng']:
                     return 'CREDIT_CARD'
+                if inv_m in ['momo']:
+                    return 'MOMO'
                 return obj.invoice.payment_method.upper()
         except Exception:
             pass
 
         # 3. Phân tích ghi chú note
         note_lower = (obj.note or '').lower()
+        if (('vietqr' in note_lower or 'chuyển khoản' in note_lower) and 
+            ('tiền mặt' in note_lower or 'tại quầy' in note_lower or 'reception' in note_lower or 'cash' in note_lower)):
+            return 'MIXED'
         if 'vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower:
             return 'TRANSFER'
         if 'reception' in note_lower or 'tiền mặt' in note_lower or 'cash' in note_lower or 'tại lễ tân' in note_lower or 'tại quầy' in note_lower:
@@ -666,12 +710,16 @@ class BookingSerializer(serializers.ModelSerializer):
 
     def get_payment_method_display(self, obj):
         method = self.get_payment_method(obj)
+        if method == 'MIXED':
+            return 'Hỗn hợp (Tiền mặt & VietQR)'
         if method == 'CASH':
             return 'Tiền mặt'
         if method == 'TRANSFER':
             return 'VietQR'
         if method == 'CREDIT_CARD':
             return 'Thẻ tín dụng'
+        if method == 'MOMO':
+            return 'Ví MoMo'
         return 'Chưa xác định'
 
     def get_is_company_all_inclusive(self, obj):

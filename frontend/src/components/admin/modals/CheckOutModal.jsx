@@ -71,8 +71,51 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const [inspectionStatus, setInspectionStatus] = useState('none'); // 'none' | 'requested' | 'completed'
     const [inspectionData, setInspectionData] = useState(null);
     const [isRequestingInspection, setIsRequestingInspection] = useState(false);
-    const [inspectionNote, setInspectionNote] = useState('');
     const [inspectionFeedback, setInspectionFeedback] = useState(null);
+    const [inspectionNote, setInspectionNote] = useState('');
+
+    // Modal thông báo xác nhận màu trắng giữa màn hình (thay thế window.confirm mặc định)
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        bullets: [],
+        detail: '',
+        confirmText: 'Xác nhận',
+        cancelText: 'Huỷ',
+        confirmType: 'amber', // 'amber' | 'emerald' | 'rose' | 'indigo'
+        icon: '⚡',
+        onConfirm: null
+    });
+
+    const showConfirm = ({
+        title,
+        message = '',
+        bullets = [],
+        detail = '',
+        confirmText = 'Xác nhận',
+        cancelText = 'Huỷ',
+        confirmType = 'amber',
+        icon = '⚡',
+        onConfirm
+    }) => {
+        setConfirmDialog({
+            isOpen: true,
+            title,
+            message,
+            bullets,
+            detail,
+            confirmText,
+            cancelText,
+            confirmType,
+            icon,
+            onConfirm
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false, onConfirm: null }));
+    };
 
     // Cấu hình ngân hàng VietQR động
     const [bankConfig, setBankConfig] = useState({
@@ -171,54 +214,64 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     };
 
     // Lễ tân xác nhận kiểm tra nhanh tại quầy (trường hợp khách vội, xác nhận không dùng và không hư hại)
-    const handleQuickSelfInspection = async () => {
+    const handleQuickSelfInspection = () => {
         const rId = booking?.room || booking?.room_id || summary?.room_id;
         if (!rId) {
             alert('Không tìm thấy thông tin phòng.');
             return;
         }
 
-        const isConfirm = window.confirm(
-            'Xác nhận kiểm tra nhanh tại quầy:\n\n• Khách không sử dụng đồ ăn/uống trong Minibar.\n• Trang thiết bị phòng nguyên vẹn, không có hư hại.\n\nBạn có muốn ghi nhận hoàn tất kiểm phòng ngay?'
-        );
-        if (!isConfirm) return;
-
-        try {
-            setIsRequestingInspection(true);
-            const res = await roomService.createMinibarCheck({
-                room_id: rId,
-                booking_id: booking?.id,
-                items_consumed: [],
-                has_damage: false,
-                damage_amount: 0,
-                note: 'Lễ tân xác nhận kiểm nhanh tại quầy (Phòng nguyên vẹn & Không tiêu thụ Minibar)'
-            });
-
-            if (res.success) {
-                setInspectionStatus('completed');
-                setInspectionData(res.data);
-                setInspectionFeedback({
-                    type: 'success',
-                    message: 'Đã xác nhận phòng nguyên vẹn và hoàn tất kiểm phòng!'
-                });
-                await refreshSummary();
-
+        showConfirm({
+            title: 'Xác nhận kiểm tra nhanh tại quầy',
+            icon: '⚡',
+            confirmType: 'amber',
+            confirmText: 'Xác nhận hoàn tất',
+            cancelText: 'Huỷ',
+            bullets: [
+                'Khách không sử dụng đồ ăn/uống trong Minibar.',
+                'Trang thiết bị phòng nguyên vẹn, không có hư hại.'
+            ],
+            detail: 'Bạn có muốn ghi nhận hoàn tất kiểm phòng ngay?',
+            onConfirm: async () => {
+                closeConfirm();
                 try {
-                    localStorage.setItem('pms_last_minibar_event', Date.now().toString());
-                    window.dispatchEvent(new Event('pms_minibar_updated'));
-                    window.dispatchEvent(new Event('pms_room_updated'));
-                } catch { }
+                    setIsRequestingInspection(true);
+                    const res = await roomService.createMinibarCheck({
+                        room_id: rId,
+                        booking_id: booking?.id,
+                        items_consumed: [],
+                        has_damage: false,
+                        damage_amount: 0,
+                        note: 'Lễ tân xác nhận kiểm nhanh tại quầy (Phòng nguyên vẹn & Không tiêu thụ Minibar)'
+                    });
 
-                setTimeout(() => setInspectionFeedback(null), 4000);
-            } else {
-                alert(res.message || 'Không thể ghi nhận kiểm phòng.');
+                    if (res.success) {
+                        setInspectionStatus('completed');
+                        setInspectionData(res.data);
+                        setInspectionFeedback({
+                            type: 'success',
+                            message: 'Đã xác nhận phòng nguyên vẹn và hoàn tất kiểm phòng!'
+                        });
+                        await refreshSummary();
+
+                        try {
+                            localStorage.setItem('pms_last_minibar_event', Date.now().toString());
+                            window.dispatchEvent(new Event('pms_minibar_updated'));
+                            window.dispatchEvent(new Event('pms_room_updated'));
+                        } catch { }
+
+                        setTimeout(() => setInspectionFeedback(null), 4000);
+                    } else {
+                        alert(res.message || 'Không thể ghi nhận kiểm phòng.');
+                    }
+                } catch (err) {
+                    console.error('Lỗi kiểm nhanh tại quầy:', err);
+                    alert('Đã xảy ra lỗi khi kết nối máy chủ.');
+                } finally {
+                    setIsRequestingInspection(false);
+                }
             }
-        } catch (err) {
-            console.error('Lỗi kiểm nhanh tại quầy:', err);
-            alert('Đã xảy ra lỗi khi kết nối máy chủ.');
-        } finally {
-            setIsRequestingInspection(false);
-        }
+        });
     };
 
     // 1. TẢI BẢNG KÊ CHI TIẾT TỪ BACKEND
@@ -312,18 +365,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         );
     }, [summary]);
 
-    // Xử lý xác nhận đã hoàn thành hoặc hủy dịch vụ trực tiếp trong modal check-out
-    const handleQuickUpdateServiceStatus = async (serviceItem, newStatus) => {
-        const requestId = serviceItem.request_id || (typeof serviceItem.id === 'string' && serviceItem.id.startsWith('req_') ? serviceItem.id.replace('req_', '') : serviceItem.id);
-        if (!requestId) return;
-
-        if (newStatus === 'cancelled') {
-            const isConfirmed = window.confirm(
-                `Xác nhận khách KHÔNG sử dụng dịch vụ "${serviceItem.service_name}"?\n\n• Hệ thống sẽ hủy yêu cầu dịch vụ này.\n• Số tiền ${formatCurrency(serviceItem.total_price)} sẽ tự động TRỪ khỏi hóa đơn check-out ngay lập tức.`
-            );
-            if (!isConfirmed) return;
-        }
-
+    const executeServiceStatusUpdate = async (requestId, serviceItem, newStatus) => {
         try {
             setServiceActionLoading(requestId);
             setServiceActionMsg(null);
@@ -362,40 +404,76 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         }
     };
 
-    // Xác nhận nhanh TẤT CẢ các dịch vụ đang chờ thành hoàn tất
-    const handleCompleteAllServices = async () => {
-        if (!uncompletedServices.length) return;
-        const confirmAll = window.confirm(
-            `Xác nhận tất cả ${uncompletedServices.length} dịch vụ đang chờ đã được phục vụ cho khách?`
-        );
-        if (!confirmAll) return;
+    // Xử lý xác nhận đã hoàn thành hoặc hủy dịch vụ trực tiếp trong modal check-out
+    const handleQuickUpdateServiceStatus = (serviceItem, newStatus) => {
+        const requestId = serviceItem.request_id || (typeof serviceItem.id === 'string' && serviceItem.id.startsWith('req_') ? serviceItem.id.replace('req_', '') : serviceItem.id);
+        if (!requestId) return;
 
-        try {
-            setServiceActionLoading('bulk');
-            for (const svc of uncompletedServices) {
-                const reqId = svc.request_id || (typeof svc.id === 'string' && svc.id.startsWith('req_') ? svc.id.replace('req_', '') : svc.id);
-                if (reqId) {
-                    await hotelService.updateServiceRequestStatus(
-                        reqId,
-                        'completed',
-                        'Xác nhận hoàn thành hàng loạt tại bước Check-out'
-                    );
+        if (newStatus === 'cancelled') {
+            showConfirm({
+                title: 'Xác nhận khách không dùng dịch vụ',
+                icon: '🗑️',
+                confirmType: 'rose',
+                confirmText: 'Xác nhận hủy & Trừ tiền',
+                cancelText: 'Giữ lại',
+                message: `Khách KHÔNG sử dụng dịch vụ "${serviceItem.service_name}"?`,
+                bullets: [
+                    'Hệ thống sẽ hủy yêu cầu dịch vụ này.',
+                    `Số tiền ${formatCurrency(serviceItem.total_price)} sẽ tự động TRỪ khỏi hóa đơn check-out ngay lập tức.`
+                ],
+                detail: 'Khoản tiền này sẽ được trừ khỏi tổng tiền thanh toán của phòng.',
+                onConfirm: () => {
+                    closeConfirm();
+                    executeServiceStatusUpdate(requestId, serviceItem, newStatus);
+                }
+            });
+            return;
+        }
+
+        executeServiceStatusUpdate(requestId, serviceItem, newStatus);
+    };
+
+    // Xác nhận nhanh TẤT CẢ các dịch vụ đang chờ thành hoàn tất
+    const handleCompleteAllServices = () => {
+        if (!uncompletedServices.length) return;
+        showConfirm({
+            title: 'Xác nhận hoàn thành tất cả dịch vụ',
+            icon: '✓',
+            confirmType: 'emerald',
+            confirmText: 'Đã phục vụ tất cả',
+            cancelText: 'Huỷ',
+            message: `Xác nhận tất cả ${uncompletedServices.length} dịch vụ đang chờ đã được phục vụ cho khách?`,
+            detail: 'Toàn bộ các dịch vụ trên sẽ được chuyển sang trạng thái "Đã phục vụ" và tính vào hóa đơn.',
+            onConfirm: async () => {
+                closeConfirm();
+                try {
+                    setServiceActionLoading('bulk');
+                    for (const svc of uncompletedServices) {
+                        const reqId = svc.request_id || (typeof svc.id === 'string' && svc.id.startsWith('req_') ? svc.id.replace('req_', '') : svc.id);
+                        if (reqId) {
+                            await hotelService.updateServiceRequestStatus(
+                                reqId,
+                                'completed',
+                                'Xác nhận hoàn thành hàng loạt tại bước Check-out'
+                            );
+                        }
+                    }
+                    setServiceActionMsg({
+                        type: 'success',
+                        text: `Đã xác nhận hoàn thành tất cả ${uncompletedServices.length} dịch vụ!`
+                    });
+                    await refreshSummary();
+                    setTimeout(() => {
+                        setServiceActionMsg(null);
+                    }, 4000);
+                } catch (err) {
+                    console.error('Lỗi khi hoàn thành tất cả dịch vụ:', err);
+                    alert('Có lỗi xảy ra khi cập nhật dịch vụ.');
+                } finally {
+                    setServiceActionLoading(null);
                 }
             }
-            setServiceActionMsg({
-                type: 'success',
-                text: `Đã xác nhận hoàn thành tất cả ${uncompletedServices.length} dịch vụ!`
-            });
-            await refreshSummary();
-            setTimeout(() => {
-                setServiceActionMsg(null);
-            }, 4000);
-        } catch (err) {
-            console.error('Lỗi khi hoàn thành tất cả dịch vụ:', err);
-            alert('Có lỗi xảy ra khi cập nhật dịch vụ.');
-        } finally {
-            setServiceActionLoading(null);
-        }
+        });
     };
 
     // 2. TÍNH TOÁN CÁC KHOẢN MỤC TÀI CHÍNH (FOLIO BALANCE) TỪ BACKEND TRẢ VỀ
@@ -586,25 +664,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         }
     };
 
-    // 5. GỬI YÊU CẦU HOÀN TẤT CHECK-OUT TỚI API POST /api/bookings/:id/check-out/
-    const handleConfirmCheckOut = async () => {
-        // Cảnh báo nếu Buồng phòng đang trong tiến trình kiểm phòng
-        if (inspectionStatus === 'requested') {
-            const confirmInspectionPending = window.confirm(
-                '⚠️ LƯU Ý TIẾN ĐỘ KIỂM PHÒNG:\n\nBộ phận Buồng phòng hiện đang kiểm tra phòng này.\n\nNếu check-out ngay, các phụ phí Minibar hoặc Bồi thường hư hại (nếu buồng phòng tìm thấy) sẽ không kịp cộng vào hóa đơn.\n\nBạn có muốn tiếp tục trả phòng ngay bây giờ?'
-            );
-            if (!confirmInspectionPending) return;
-        }
-
-        // Cảnh báo lễ tân nếu còn dịch vụ chưa phục vụ hoặc chưa hủy
-        if (uncompletedServices.length > 0) {
-            const svcNames = uncompletedServices.map((s) => `• ${s.service_name} (${formatCurrency(s.total_price)})`).join('\n');
-            const confirmProceed = window.confirm(
-                `⚠️ LƯU Ý QUAN TRỌNG TRƯỚC KHI CHECK-OUT:\n\nHiện vẫn còn ${uncompletedServices.length} dịch vụ chưa được xác nhận hoàn thành:\n${svcNames}\n\nNếu tiếp tục check-out, toàn bộ tiền của các dịch vụ này VẪN SẼ ĐƯỢC TÍNH vào hóa đơn của khách.\n\nNếu khách KHÔNG sử dụng, vui lòng bấm nút "Khách không dùng" ở bảng kê trước để hủy và trừ tiền.\n\nBạn có chắc chắn muốn tiếp tục check-out ngay bây giờ?`
-            );
-            if (!confirmProceed) return;
-        }
-
+    const executeActualCheckOut = async () => {
         try {
             setIsSubmitting(true);
             const res = await bookingService.checkOut(booking.id, {
@@ -646,6 +706,60 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const checkUncompletedServicesThenCheckout = () => {
+        const svcNames = uncompletedServices.map((s) => `${s.service_name} (${formatCurrency(s.total_price)})`);
+        showConfirm({
+            title: 'Lưu ý dịch vụ chưa hoàn thành',
+            icon: '⚠️',
+            confirmType: 'amber',
+            confirmText: 'Chấp nhận & Tiếp tục',
+            cancelText: 'Kiểm tra lại',
+            message: `Hiện vẫn còn ${uncompletedServices.length} dịch vụ chưa được xác nhận hoàn thành:`,
+            bullets: svcNames,
+            detail: 'Toàn bộ tiền của các dịch vụ này VẪN SẼ ĐƯỢC TÍNH vào hóa đơn của khách. Bạn có chắc chắn muốn tiếp tục check-out ngay bây giờ?',
+            onConfirm: () => {
+                closeConfirm();
+                executeActualCheckOut();
+            }
+        });
+    };
+
+    // 5. GỬI YÊU CẦU HOÀN TẤT CHECK-OUT TỚI API POST /api/bookings/:id/check-out/
+    const handleConfirmCheckOut = () => {
+        // Cảnh báo nếu Buồng phòng đang trong tiến trình kiểm phòng
+        if (inspectionStatus === 'requested') {
+            showConfirm({
+                title: 'Lưu ý tiến độ kiểm phòng',
+                icon: '⚠️',
+                confirmType: 'amber',
+                confirmText: 'Tiếp tục trả phòng',
+                cancelText: 'Chờ buồng phòng',
+                message: 'Bộ phận Buồng phòng hiện đang kiểm tra phòng này.',
+                bullets: [
+                    'Nếu check-out ngay, các phụ phí Minibar hoặc Bồi thường hư hại (nếu buồng phòng tìm thấy) sẽ không kịp cộng vào hóa đơn.'
+                ],
+                detail: 'Bạn có muốn tiếp tục hoàn tất trả phòng ngay bây giờ?',
+                onConfirm: () => {
+                    closeConfirm();
+                    if (uncompletedServices.length > 0) {
+                        checkUncompletedServicesThenCheckout();
+                    } else {
+                        executeActualCheckOut();
+                    }
+                }
+            });
+            return;
+        }
+
+        // Cảnh báo lễ tân nếu còn dịch vụ chưa phục vụ hoặc chưa hủy
+        if (uncompletedServices.length > 0) {
+            checkUncompletedServicesThenCheckout();
+            return;
+        }
+
+        executeActualCheckOut();
     };
 
     if (!booking) return null;
@@ -1775,6 +1889,100 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                             </div>
                         </div>
 
+                    </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* MODAL THÔNG BÁO XÁC NHẬN MÀU TRẮNG GIỮA MÀN HÌNH (THAY THẾ WINDOW.CONFIRM) */}
+                {/* ========================================================================= */}
+                {confirmDialog.isOpen && (
+                    <div
+                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) closeConfirm();
+                        }}
+                    >
+                        <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-200 space-y-4">
+                            {/* ICON TRÒN / BO GÓC NỔI BẬT */}
+                            <div
+                                className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-xs border"
+                                style={{
+                                    backgroundColor:
+                                        confirmDialog.confirmType === 'emerald'
+                                            ? '#ecfdf5'
+                                            : confirmDialog.confirmType === 'amber'
+                                            ? '#fffbeb'
+                                            : confirmDialog.confirmType === 'rose'
+                                            ? '#fff1f2'
+                                            : '#eef2ff',
+                                    borderColor:
+                                        confirmDialog.confirmType === 'emerald'
+                                            ? '#a7f3d0'
+                                            : confirmDialog.confirmType === 'amber'
+                                            ? '#fde68a'
+                                            : confirmDialog.confirmType === 'rose'
+                                            ? '#fecdd3'
+                                            : '#c7d2fe',
+                                }}
+                            >
+                                <span>{confirmDialog.icon || '⚡'}</span>
+                            </div>
+
+                            {/* TIÊU ĐỀ & NỘI DUNG */}
+                            <div className="space-y-2">
+                                <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+                                    {confirmDialog.title}
+                                </h3>
+                                {confirmDialog.message && (
+                                    <p className="text-xs sm:text-sm font-semibold text-slate-700 leading-snug">
+                                        {confirmDialog.message}
+                                    </p>
+                                )}
+                                {confirmDialog.bullets && confirmDialog.bullets.length > 0 && (
+                                    <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/80 text-xs text-slate-700 text-left space-y-2 shadow-2xs">
+                                        {confirmDialog.bullets.map((b, idx) => (
+                                            <div key={idx} className="flex items-start gap-2.5">
+                                                <span className="text-amber-500 font-bold shrink-0 mt-0.5">•</span>
+                                                <span className="font-medium text-slate-800 leading-relaxed">{b}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {confirmDialog.detail && (
+                                    <p className="text-xs text-slate-500 font-medium italic pt-1">
+                                        {confirmDialog.detail}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* NÚT THAO TÁC: HUỶ VÀ ĐỒNG Ý */}
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={closeConfirm}
+                                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer active:scale-95 text-center justify-center"
+                                >
+                                    {confirmDialog.cancelText || 'Huỷ'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (typeof confirmDialog.onConfirm === 'function') {
+                                            confirmDialog.onConfirm();
+                                        }
+                                    }}
+                                    className={`w-full py-2.5 px-4 rounded-xl text-white font-extrabold text-xs transition shadow-md cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 ${
+                                        confirmDialog.confirmType === 'emerald'
+                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-600/20'
+                                            : confirmDialog.confirmType === 'rose'
+                                            ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 shadow-rose-600/20'
+                                            : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-amber-500/20'
+                                    }`}
+                                >
+                                    {confirmDialog.confirmText || 'Xác nhận'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 

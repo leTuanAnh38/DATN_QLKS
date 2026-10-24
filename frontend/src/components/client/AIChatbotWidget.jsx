@@ -26,7 +26,6 @@ import {
     VolumeX
 } from 'lucide-react';
 import { askChatbot } from '../../services/chatbotService';
-import { useAuth } from '../../store/authStore';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 
 const SESSION_STORAGE_KEY = 'ta_hotel_ai_chat_history_v3';
@@ -301,7 +300,6 @@ export default function AIChatbotWidget() {
     const navigate = useNavigate();
     const location = useLocation();
     const hasMobileStickyBar = location.pathname.startsWith('/rooms/') || location.pathname.startsWith('/room/') || location.pathname.startsWith('/checkout/');
-    const { user, isAuthenticated } = useAuth();
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
@@ -342,6 +340,7 @@ export default function AIChatbotWidget() {
     const [voiceError, setVoiceError] = useState(null);
     const [availableVoices, setAvailableVoices] = useState([]);
     
+    const chatContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const langDropdownRef = useRef(null);
@@ -549,39 +548,72 @@ export default function AIChatbotWidget() {
 
     // Tự động cuộn xuống tin nhắn mới nhất
     const scrollToBottom = (smooth = true) => {
-        if (messagesEndRef.current) {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        } else if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+        }
+    };
+
+    // Cuộn lên đầu để xem tin nhắn chào mừng từ đầu
+    const scrollToTop = () => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = 0;
         }
     };
 
     useEffect(() => {
         if (isOpen) {
-            scrollToBottom(false);
             setHasUnread(false);
+            if (messages.length <= 1) {
+                // Khi mở chatbot và chỉ có tin nhắn chào mừng: Luôn hiển thị từ đầu lời chào (không cuộn tụt xuống đáy)
+                scrollToTop();
+                requestAnimationFrame(() => scrollToTop());
+                setTimeout(() => scrollToTop(), 50);
+            } else {
+                // Nếu đã có cuộc hội thoại trước đó: Cuộn xuống tin nhắn gần nhất
+                scrollToBottom(false);
+            }
             setTimeout(() => {
-                inputRef.current?.focus();
+                inputRef.current?.focus({ preventScroll: true });
             }, 100);
         }
     }, [isOpen]);
 
     useEffect(() => {
-        if (isOpen) {
-            scrollToBottom(true);
-        }
         // Lưu lịch sử vào sessionStorage
         try {
             sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(messages));
         } catch (e) {
             console.error('Lỗi ghi chat history vào sessionStorage:', e);
         }
-    }, [messages, isOpen]);
+
+        if (isOpen) {
+            if (messages.length <= 1) {
+                scrollToTop();
+                requestAnimationFrame(() => scrollToTop());
+                setTimeout(() => scrollToTop(), 50);
+            } else {
+                scrollToBottom(true);
+            }
+        }
+    }, [messages]);
+
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            scrollToBottom(true);
+        }
+    }, [isLoading, isOpen]);
 
     // Chuyển đổi ngôn ngữ thủ công bởi người dùng
     const handleSwitchLang = (langCode) => {
         setSelectedLang(langCode);
         // Nếu cuộc trò chuyện chỉ có 1 lời chào ban đầu, cập nhật lời chào theo ngôn ngữ mới
         if (messages.length === 1 && messages[0].id.startsWith('welcome')) {
-            const welcomeText = WELCOME_MESSAGES[langCode] || WELCOME_MESSAGES.vi;
+            const welcomeText = welcomeMessages[langCode] || welcomeMessages.vi;
             setMessages([{
                 ...messages[0],
                 detected_lang: langCode,
@@ -911,27 +943,11 @@ export default function AIChatbotWidget() {
 
                     {/* C. KHUNG HIỂN THỊ TIN NHẮN (MESSAGES STREAM - TOÀN BỘ KHÔNG GIAN) */}
                     <div 
+                        ref={chatContainerRef}
                         className="flex-1 p-3.5 overflow-y-auto space-y-3.5 bg-gradient-to-b from-slate-50/50 to-white"
                         tabIndex={0}
                         aria-label="Danh sách tin nhắn cuộc trò chuyện"
                     >
-                        {/* Thông tin chào mừng hội viên nếu đã đăng nhập */}
-                        {isAuthenticated && user && (
-                            <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-900 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-[10px]">
-                                        VIP
-                                    </div>
-                                    <span>
-                                        Xin chào <strong>{user.first_name || user.username}</strong> ({user.current_tier?.name || 'Hội viên TA Club'})
-                                    </span>
-                                </div>
-                                <span className="font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full text-[10px]">
-                                    {user.total_points || 0} điểm
-                                </span>
-                            </div>
-                        )}
-
                         {messages.map((msg) => {
                             const isBot = msg.role === 'model';
                             const hasRooms = isBot && Array.isArray(msg.suggested_rooms) && msg.suggested_rooms.length > 0;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -60,9 +60,45 @@ export default function NewsList() {
         }
     };
 
-    // Bài viết nổi bật là bài đầu tiên nếu có
-    const featuredPost = posts.length > 0 && selectedCategory === 'all' && !searchTerm ? posts[0] : null;
-    const regularPosts = featuredPost ? posts.slice(1) : posts;
+    // Phân trang bài viết
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 6; // 6 bài viết mỗi trang (2 hàng x 3 cột chuẩn giao diện hiện đại)
+
+    // Tự động quay về trang 1 khi đổi chuyên mục hoặc tìm kiếm
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, searchTerm]);
+
+    // Bài viết nổi bật là bài đầu tiên nếu ở trang 1, chuyên mục 'Tất cả' và không tìm kiếm
+    const featuredPost = posts.length > 0 && selectedCategory === 'all' && !searchTerm && currentPage === 1 ? posts[0] : null;
+
+    // Nguồn bài viết cho danh sách grid:
+    // Khi ở chuyên mục 'Tất cả' và không tìm kiếm, bài đầu tiên được dùng làm Hero Featured nên grid lấy từ bài thứ 2 trở đi
+    const regularSourcePosts = useMemo(() => {
+        if (selectedCategory === 'all' && !searchTerm) {
+            return posts.slice(1);
+        }
+        return posts;
+    }, [posts, selectedCategory, searchTerm]);
+
+    const totalPages = Math.max(1, Math.ceil(regularSourcePosts.length / pageSize));
+    const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+    const paginatedPosts = useMemo(() => {
+        const start = (safeCurrentPage - 1) * pageSize;
+        return regularSourcePosts.slice(start, start + pageSize);
+    }, [regularSourcePosts, safeCurrentPage, pageSize]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > totalPages || newPage === safeCurrentPage) return;
+        setCurrentPage(newPage);
+        const section = document.getElementById('news-grid-section');
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            window.scrollTo({ top: 380, behavior: 'smooth' });
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
@@ -228,11 +264,22 @@ export default function NewsList() {
                 )}
 
                 {/* GRID CÁC THẺ BÀI VIẾT (CARDS) */}
-                <div>
-                    {featuredPost && (
+                <div id="news-grid-section" className="scroll-mt-8">
+                    {featuredPost ? (
                         <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                             <span>📚</span>
                             <span>Bài Viết Mới Nhất</span>
+                        </h3>
+                    ) : (
+                        <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                            <span>📚</span>
+                            <span>
+                                {selectedCategory !== 'all' 
+                                    ? `Bài Viết Thuộc Chuyên Mục "${categories.find(c => c.value === selectedCategory)?.label || ''}"` 
+                                    : searchTerm
+                                    ? `Kết Quả Tìm Kiếm Cho: "${searchTerm}"`
+                                    : `Tất Cả Bài Viết (Trang ${safeCurrentPage} / ${totalPages})`}
+                            </span>
                         </h3>
                     )}
 
@@ -247,7 +294,7 @@ export default function NewsList() {
                                 </div>
                             ))}
                         </div>
-                    ) : regularPosts.length === 0 ? (
+                    ) : regularSourcePosts.length === 0 ? (
                         <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto">
                             <div className="text-4xl mb-3">📰</div>
                             <h4 className="text-base font-bold text-slate-900 mb-1">
@@ -273,7 +320,7 @@ export default function NewsList() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {regularPosts.map((post) => (
+                            {paginatedPosts.map((post) => (
                                 <article
                                     key={post.id}
                                     className="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group"
@@ -335,6 +382,72 @@ export default function NewsList() {
                                     </div>
                                 </article>
                             ))}
+                        </div>
+                    )}
+
+                    {/* THANH ĐIỀU HƯỚNG PHÂN TRANG (PAGINATION) */}
+                    {!isLoading && totalPages > 1 && (
+                        <div className="mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200/80">
+                            {/* Thông tin số trang & bài viết */}
+                            <div className="text-xs text-slate-500 font-medium">
+                                Đang xem trang <span className="font-bold text-blue-600">{safeCurrentPage}</span> / <span className="font-bold text-slate-800">{totalPages}</span> (Tổng cộng <span className="font-semibold text-slate-700">{regularSourcePosts.length}</span> bài viết)
+                            </div>
+
+                            {/* Các nút bấm phân trang */}
+                            <nav className="flex items-center gap-1.5" aria-label="Phân trang tin tức">
+                                {/* Nút Trang Trước */}
+                                <button
+                                    type="button"
+                                    onClick={() => handlePageChange(safeCurrentPage - 1)}
+                                    disabled={safeCurrentPage === 1}
+                                    className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+                                        safeCurrentPage === 1
+                                            ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
+                                            : 'bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
+                                    }`}
+                                    title="Về trang trước"
+                                >
+                                    <span>←</span>
+                                    <span className="hidden sm:inline">Trước</span>
+                                </button>
+
+                                {/* Các số trang */}
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                                    const isActive = pageNum === safeCurrentPage;
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            type="button"
+                                            onClick={() => handlePageChange(pageNum)}
+                                            className={`w-9 h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                                                isActive
+                                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-2 ring-blue-600/20'
+                                                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-2xs hover:border-slate-300 active:scale-95'
+                                            }`}
+                                            aria-current={isActive ? 'page' : undefined}
+                                            title={`Trang ${pageNum}`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+
+                                {/* Nút Trang Kế Tiếp */}
+                                <button
+                                    type="button"
+                                    onClick={() => handlePageChange(safeCurrentPage + 1)}
+                                    disabled={safeCurrentPage === totalPages}
+                                    className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+                                        safeCurrentPage === totalPages
+                                            ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
+                                            : 'bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
+                                    }`}
+                                    title="Sang trang kế tiếp"
+                                >
+                                    <span className="hidden sm:inline">Sau</span>
+                                    <span>→</span>
+                                </button>
+                            </nav>
                         </div>
                     )}
                 </div>

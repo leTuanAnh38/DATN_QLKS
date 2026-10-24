@@ -47,7 +47,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         base_qs = Booking.objects.select_related(
             'guest', 'category', 'room', 'room__category', 'applied_promotion'
         ).prefetch_related(
-            'extra_services', 'service_requests', 'service_requests__service'
+            'extra_services', 'service_requests', 'service_requests__service', 'payments'
         ).all().order_by('-created_at')
 
         # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL, ưu tiên:
@@ -2987,11 +2987,26 @@ class BookingViewSet(viewsets.ModelViewSet):
             company_address = str(request.data.get('company_address') or '').strip() or None
             invoice_recipient_email = str(request.data.get('invoice_recipient_email') or '').strip() or None
 
+            # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền & thông tin VAT công ty
+            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+
+            # Kiểm tra xem đơn đã có đợt thanh toán trước đó với phương thức khác hay không (Thanh toán hỗn hợp)
+            inv_payment_method = payment_method
+            if hasattr(booking, 'payments') and booking.payments.filter(payment_status='COMPLETED').exists():
+                prior_methods = set()
+                for p in booking.payments.filter(payment_status='COMPLETED'):
+                    pm = 'TRANSFER' if str(p.payment_method).upper() in ['TRANSFER', 'VIETQR', 'BANK_TRANSFER'] else 'CASH'
+                    prior_methods.add(pm)
+                if remaining_amount > 0 and (method_code not in prior_methods or len(prior_methods) > 1):
+                    inv_payment_method = 'mixed'
+                elif len(prior_methods) > 1:
+                    inv_payment_method = 'mixed'
+
             inv_defaults = {
                 'room_charge': sub_room_charge,
                 'service_charge': total_service_charge,
                 'total_amount': sub_invoice_total,
-                'payment_method': payment_method,
+                'payment_method': inv_payment_method,
                 'status': 'paid',
                 'paid_at': timezone.now()
             }
@@ -3009,14 +3024,19 @@ class BookingViewSet(viewsets.ModelViewSet):
                 defaults=inv_defaults
             )
 
-            # 2.1 Đồng bộ bản ghi Payment
-            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+            # 2.1 Đồng bộ bản ghi Payment & gán vào Ca làm việc thu ngân hiện tại
+            from ..payments.models import CashierShift
+            active_shift = CashierShift.objects.filter(user=user, status='OPEN').first()
+            if not active_shift:
+                active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+
             if remaining_amount > 0:
                 Payment.objects.create(
                     booking=booking,
                     amount=remaining_amount,
                     payment_method=method_code,
                     payment_status='COMPLETED',
+                    shift=active_shift,
                     transaction_id=f"TXN-CHECKOUT-{invoice.invoice_code.replace('INV-', '')}"
                 )
             elif not is_group_sub_room and (not hasattr(booking, 'payments') or not booking.payments.filter(payment_status='COMPLETED').exists()):
@@ -3025,6 +3045,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     amount=grand_total,
                     payment_method=method_code,
                     payment_status='COMPLETED',
+                    shift=active_shift,
                     transaction_id=f"TXN-{invoice.invoice_code.replace('INV-', '')}"
                 )
 
