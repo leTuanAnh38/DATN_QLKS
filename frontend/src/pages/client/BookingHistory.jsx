@@ -1244,7 +1244,7 @@ export default function BookingHistory() {
                                                                 ) : (
                                                                     <>
                                                                         <span className="text-[11px] font-bold uppercase tracking-wider block text-emerald-700">
-                                                                            {isMixed ? '✓ Đã thanh toán (Hỗn hợp: Tiền mặt & VietQR)' : (isCash ? '✓ Đã thanh toán (Tiền mặt)' : (isTransfer ? '✓ Đã thanh toán (VietQR)' : '✓ Đã thanh toán'))}
+                                                                            Tổng thanh toán
                                                                         </span>
                                                                         <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-600">
                                                                             {grandTotalNum.toLocaleString('vi-VN')} <span className="text-xs font-bold text-slate-500">VND</span>

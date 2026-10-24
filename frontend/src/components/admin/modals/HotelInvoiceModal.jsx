@@ -189,6 +189,13 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         booking.group_booking_id
     );
 
+    const isCompanyAllInclusive = Boolean(
+        booking.is_company_all_inclusive ||
+        booking.group_billing_type === 'ALL_INCLUSIVE' ||
+        booking.billing_type === 'ALL_INCLUSIVE' ||
+        booking.group_booking?.billing_type === 'ALL_INCLUSIVE'
+    );
+
     // Trích xuất phương thức thanh toán hiển thị trên thông tin đặt phòng
     const getPaymentMethod = () => {
         if (isGroupMaster) {
@@ -357,7 +364,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         isGroupMaster
             ? (isCompleted ? 0 : Math.max(0, grandTotal - paidAmount))
             : (isGroupRoom
-                ? (isCompleted ? 0 : Math.max(0, extraServicesTotal - paidAmount))
+                ? (isCompleted || isCompanyAllInclusive ? 0 : Math.max(0, extraServicesTotal - paidAmount))
                 : (isCompleted ? 0 : Math.max(0, grandTotal - paidAmount)))
     );
     const bookingCodeDisplay = `#${String(booking.booking_code || booking.group_code || '').replace('-', '')}`;
@@ -1008,9 +1015,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             ) : isGroupRoom ? (
                                 <>
                                     <div className="flex justify-between sm:justify-end gap-6 text-indigo-700 font-semibold text-[11px] bg-indigo-50/60 p-1.5 rounded border border-indigo-100">
-                                        <span> Chuyển thanh toán vào Hóa đơn đoàn #{booking.group_booking_code || ''}:</span>
+                                        <span>{isCompanyAllInclusive ? ` Chuyển thanh toán TOÀN BỘ (Phòng & Dịch vụ) vào Hóa đơn đoàn #${booking.group_booking_code || ''}:` : ` Chuyển thanh toán vào Hóa đơn đoàn #${booking.group_booking_code || ''}:`}</span>
                                         <span className="w-36 text-right font-bold text-indigo-800">
-                                            -{formatCurrency(roomAmount)}
+                                            -{formatCurrency(isCompanyAllInclusive ? (roomAmount + extraServicesTotal) : roomAmount)}
                                         </span>
                                     </div>
                                     {completedPayments.length > 1 ? (
@@ -1036,7 +1043,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 Thực thu khách tại quầy:
                                             </span>
                                             <span className="text-[10px] text-slate-500 italic block font-normal">
-                                                (Tiền phòng quyết toán tập trung qua HĐ đoàn)
+                                                {isCompanyAllInclusive ? '(Công ty chi trả toàn bộ phòng & dịch vụ)' : '(Tiền phòng quyết toán tập trung qua HĐ đoàn)'}
                                             </span>
                                         </div>
                                         <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">

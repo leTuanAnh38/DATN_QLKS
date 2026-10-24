@@ -12,7 +12,7 @@ from rest_framework.decorators import action
 
 from .models import GroupBooking, CorporatePartner, Booking, BookingGuest, BookingExtraService, HotelSetting
 from ..services.models import ServiceItem, ServiceRequest
-from ..rooms.models import Room, RoomCategory
+from ..rooms.models import Room, RoomCategory, MinibarCheck
 from ..users.models import User, GuestProfile, log_action
 from ..users.views import check_role_permission
 from ..payments.models import Invoice, Payment
@@ -200,6 +200,14 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
         if not leader_phone:
             return Response({'success': False, 'message': 'Vui lòng cung cấp Số điện thoại người liên hệ.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if identity_card:
+            clean_id = ''.join(c for c in identity_card if c.isalnum())
+            clean_phone = ''.join(c for c in leader_phone if c.isdigit())
+            if clean_id and clean_id == clean_phone:
+                return Response({'success': False, 'message': 'Số CCCD / Hộ chiếu không thể trùng với Số điện thoại.'}, status=status.HTTP_400_BAD_REQUEST)
+            if len(identity_card) < 8 or len(identity_card) > 20:
+                return Response({'success': False, 'message': 'Số CCCD / Hộ chiếu phải từ 8 đến 20 ký tự hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
+
         if not check_in_str or not check_out_str:
             return Response({'success': False, 'message': 'Vui lòng chọn ngày Check-in và Check-out.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -240,15 +248,20 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
 
         # 3. Tạo / Gán User đại diện cho đoàn
         leader_user = None
-        if request.user and request.user.is_authenticated:
+        is_client_user = (
+            request.user and 
+            request.user.is_authenticated and 
+            getattr(request.user, 'role', 'guest') == 'guest'
+        )
+        if is_client_user:
             leader_user = request.user
         else:
             clean_phone = ''.join(c for c in str(leader_phone) if c.isdigit())
-            leader_user = User.objects.filter(phone_number=leader_phone).first()
+            leader_user = User.objects.filter(phone_number=leader_phone, role='guest', is_staff=False, is_superuser=False).first()
             if not leader_user and clean_phone:
-                leader_user = User.objects.filter(phone_number=clean_phone).first()
+                leader_user = User.objects.filter(phone_number=clean_phone, role='guest', is_staff=False, is_superuser=False).first()
             if not leader_user and leader_email:
-                leader_user = User.objects.filter(email=leader_email).first()
+                leader_user = User.objects.filter(email__iexact=leader_email, role='guest', is_staff=False, is_superuser=False).first()
 
         if not leader_user:
             clean_phone = ''.join(c for c in str(leader_phone) if c.isdigit())
@@ -811,6 +824,92 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             'group_booking': GroupBookingSerializer(group, context={'request': request}).data
         }, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'], url_path='request-inspection')
+    def request_group_inspection(self, request, pk=None):
+        """
+        API POST /api/bookings/groups/<id>/request-inspection/
+        Lễ tân gửi yêu cầu kiểm tra đón đầu Minibar & Hư hại toàn bộ các phòng trong đoàn trước giờ Check-out.
+        """
+        group = self.get_object()
+        user = request.user
+
+        active_sub_bookings = group.sub_bookings.filter(status='checked_in').select_related('room', 'guest')
+        if not active_sub_bookings.exists():
+            return Response({
+                'success': False,
+                'message': 'Đoàn không có phòng nào đang ở (checked-in) để kiểm tra.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        note = request.data.get('note', '').strip() or f"Lễ tân yêu cầu kiểm phòng đón đầu trước Check-out đoàn #{group.group_code} ({group.group_name})"
+        receptionist_name = (user.get_full_name() or user.username) if user.is_authenticated else "Lễ tân"
+
+        created_checks = []
+        room_numbers = []
+
+        with transaction.atomic():
+            for b in active_sub_bookings:
+                if not b.room:
+                    continue
+                room_numbers.append(str(b.room.room_number))
+                pending_check = b.room.minibar_checks.filter(status='requested').order_by('-created_at').first()
+                if pending_check:
+                    pending_check.requested_by = user if user.is_authenticated else None
+                    pending_check.booking = b
+                    pending_check.note = note
+                    pending_check.save()
+                    created_checks.append(pending_check)
+                else:
+                    check = MinibarCheck.objects.create(
+                        room=b.room,
+                        booking=b,
+                        requested_by=user if user.is_authenticated else None,
+                        status='requested',
+                        items_consumed=[],
+                        total_amount=0,
+                        note=note
+                    )
+                    created_checks.append(check)
+
+        # Gửi thông báo đến Buồng phòng và Quản lý
+        try:
+            from ..notifications.models import Notification
+            recipients = User.objects.filter(
+                Q(role__in=['housekeeper', 'manager', 'admin', 'receptionist']) | Q(is_superuser=True)
+            ).distinct()
+            rooms_str = ", ".join(room_numbers) if room_numbers else "các phòng"
+            notif_title = f"🛎️ [KIỂM PHÒNG ĐOÀN] Đoàn #{group.group_code} chuẩn bị Check-out ({len(room_numbers)} phòng)"
+            notif_message = (
+                f"Lễ tân ({receptionist_name}) vừa gửi yêu cầu kiểm tra toàn đoàn: {group.group_name}.\n"
+                f"Danh sách {len(room_numbers)} phòng: {rooms_str}.\n"
+                f"Vui lòng tiến hành kiểm tra Minibar và Hư hại tài sản trước khi đoàn rời đi!"
+            )
+            for r in recipients:
+                Notification.objects.create(
+                    recipient=r,
+                    title=notif_title,
+                    message=notif_message,
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='high'
+                )
+        except Exception:
+            pass
+
+        log_action(
+            user=user,
+            action='CREATE',
+            module='BOOKING',
+            description=f"Lễ tân {receptionist_name} yêu cầu kiểm phòng hàng loạt cho đoàn #{group.group_code} ({len(room_numbers)} phòng).",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f"Đã gửi yêu cầu kiểm tra {len(room_numbers)} phòng cho bộ phận Buồng phòng thành công!",
+            'requested_rooms': room_numbers,
+            'group_booking': GroupBookingSerializer(group, context={'request': request}).data
+        }, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'], url_path='rooming-list')
     def update_rooming_list(self, request, pk=None):
         """
@@ -989,13 +1088,21 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
         group = self.get_object()
         user = request.user
 
-        if not (user.is_superuser or check_role_permission(user, 'bookings', 'view')):
+        can_resend = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff'] or
+            check_role_permission(user, 'bookings', 'read') or
+            check_role_permission(user, 'bookings', 'update')
+        )
+        if not can_resend:
             return Response({'success': False, 'message': 'Bạn không có quyền thực hiện gửi lại email đoàn.'}, status=status.HTTP_403_FORBIDDEN)
 
         custom_email = (request.data.get('email') or '').strip()
-        recipient_target = custom_email or group.leader_email
-        if hasattr(group, 'master_invoice') and group.master_invoice and group.master_invoice.invoice_recipient_email:
-            recipient_target = custom_email or group.master_invoice.invoice_recipient_email
+        recipient_target = custom_email or (group.leader_email.strip() if group.leader_email else None)
+        if not recipient_target and hasattr(group, 'master_invoice') and group.master_invoice and group.master_invoice.invoice_recipient_email:
+            recipient_target = group.master_invoice.invoice_recipient_email.strip()
+        if not recipient_target and group.corporate_partner and group.corporate_partner.contact_email:
+            recipient_target = group.corporate_partner.contact_email.strip()
 
         if not recipient_target:
             return Response({

@@ -725,7 +725,7 @@ class AdminRoomStatusUpdateView(APIView):
                 try:
                     staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên Buồng phòng"
                     recipients = User.objects.filter(
-                        Q(role__in=['receptionist', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+                        Q(role__in=['receptionist', 'admin']) | Q(is_superuser=True)
                     ).distinct()
                     cat_name = updated_room.category.name if updated_room.category else 'Tiêu chuẩn'
                     
@@ -923,7 +923,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         try:
             reporter_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên"
             tech_users = User.objects.filter(
-                Q(role__in=['technician', 'receptionist', 'admin', 'owner', 'manager']) | Q(is_superuser=True)
+                Q(role__in=['technician', 'receptionist', 'admin', 'manager']) | Q(is_superuser=True)
             ).distinct()
             fault_note = "Do khách làm hỏng (Bồi thường)" if is_guest_fault else "Bảo dưỡng khách sạn"
             issue_labels = {
@@ -1037,7 +1037,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         try:
             tech_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Kỹ thuật viên"
             housekeeping_users = User.objects.filter(
-                Q(role__in=['housekeeper', 'receptionist', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+                Q(role__in=['housekeeper', 'receptionist', 'admin']) | Q(is_superuser=True)
             ).distinct()
             active_booking = room.bookings.filter(status='checked_in').select_related('guest').first()
             guest_display = (active_booking.guest.get_full_name() or active_booking.guest.username) if (active_booking and active_booking.guest) else "Khách lưu trú"
@@ -1196,7 +1196,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         # Gửi thông báo đến Buồng phòng (housekeeper) và Quản lý (manager, admin)
         try:
             recipients = User.objects.filter(
-                Q(role__in=['housekeeper', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+                Q(role__in=['housekeeper', 'receptionist', 'admin']) | Q(is_superuser=True)
             ).distinct()
             notif_title = f"🛎️ [YÊU CẦU KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
             notif_message = (
@@ -1376,8 +1376,11 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         # Gửi thông báo đến Lễ tân, Thu ngân, Quản lý
         try:
             consumed_desc = ", ".join([f"{it['name']} x{it['quantity']}" for it in valid_consumed]) if valid_consumed else "Không dùng Minibar"
+            target_roles = ['receptionist', 'cashier', 'admin']
+            if has_damage and damage_amt > 0:
+                target_roles.append('manager')
             recipients = User.objects.filter(
-                Q(role__in=['receptionist', 'cashier', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+                Q(role__in=target_roles) | Q(is_superuser=True)
             ).distinct()
             notif_title = f"✅ [HOÀN TẤT KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
             damage_text = f"\n• Hư hại / Đền bù: {damage_amt:,.0f} đ ({damage_desc})" if (has_damage and damage_amt > 0) else "\n• Hư hại phòng: Không phát sinh"
@@ -1523,7 +1526,7 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
         staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên"
         try:
             recipients = User.objects.filter(
-                Q(role__in=['receptionist', 'manager', 'admin', 'owner']) | Q(is_superuser=True)
+                Q(role__in=['receptionist', 'manager', 'admin']) | Q(is_superuser=True)
             ).distinct()
             notif_title = f"🧳 [ĐỒ THẤT LẠC MỚI] #{item.tracking_code} - {item.item_name}"
             guest_info = f"Khách: {guest_name} ({guest_phone})" if guest_name else "Chưa xác định chủ nhân"
@@ -1583,7 +1586,7 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
         staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
         try:
             recipients = User.objects.filter(
-                Q(role__in=['manager', 'admin', 'owner', 'housekeeper']) | Q(is_superuser=True)
+                Q(role__in=['manager', 'admin', 'housekeeper', 'receptionist']) | Q(is_superuser=True)
             ).distinct()
             notif_title = f"✅ [ĐÃ TRẢ ĐỒ THẤT LẠC] #{item.tracking_code} - {item.item_name}"
             notif_message = (

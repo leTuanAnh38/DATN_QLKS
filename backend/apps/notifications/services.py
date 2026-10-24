@@ -17,14 +17,14 @@ _LAST_REMINDER_CHECK = None
 def get_staff_and_admin_users(exclude_user_id=None, purpose='general'):
     """
     Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên để gửi thông báo định kỳ:
-    - purpose='checkin_reminder': Lễ tân, Quản lý, Admin và Buồng phòng (để sẵn sàng phòng).
-    - purpose='checkout_reminder': Lễ tân, Quản lý, Admin, Buồng phòng (để dọn phòng) và Thu ngân (để chốt bill/minibar).
+    - purpose='checkin_reminder': Lễ tân, Admin và Buồng phòng (để sẵn sàng phòng).
+    - purpose='checkout_reminder': Lễ tân, Admin, Buồng phòng (để dọn phòng) và Thu ngân (để chốt bill/minibar).
     - purpose='general': Toàn bộ ban quản trị, lễ tân và buồng phòng.
     """
     if purpose == 'checkin_reminder':
-        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper']
+        target_roles = ['admin', 'receptionist', 'housekeeper']
     elif purpose == 'checkout_reminder':
-        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper', 'cashier']
+        target_roles = ['admin', 'receptionist', 'housekeeper', 'cashier']
     else:
         target_roles = ['admin', 'owner', 'manager', 'receptionist', 'housekeeper']
 
@@ -96,8 +96,9 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
         category_name = booking.category.name if booking.category else "Tiêu chuẩn"
         room_label = f"Phòng {booking.room.room_number}" if booking.room else "Chờ gán số phòng"
 
-        # 1.1. Thông báo cho Khách hàng
-        if guest:
+        # 1.1. Thông báo cho Khách hàng (chỉ gửi cho tài khoản Khách hàng / Guest thực thụ)
+        is_client_guest = guest and getattr(guest, 'role', '') == 'guest' and not guest.is_staff and not guest.is_superuser
+        if is_client_guest:
             new_notifications.append(
                 Notification(
                     recipient=guest,
@@ -159,8 +160,9 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
         guest_name = guest.get_full_name() or guest.username if guest else "Quý khách"
         room_label = f"Phòng {booking.room.room_number}" if booking.room else "Phòng lưu trú"
 
-        # 2.1. Thông báo cho Khách hàng
-        if guest:
+        # 2.1. Thông báo cho Khách hàng (chỉ gửi cho tài khoản Khách hàng / Guest thực thụ)
+        is_client_guest = guest and getattr(guest, 'role', '') == 'guest' and not guest.is_staff and not guest.is_superuser
+        if is_client_guest:
             new_notifications.append(
                 Notification(
                     recipient=guest,
@@ -242,8 +244,10 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
 
     created_count = 0
 
+    is_client_guest = guest and getattr(guest, 'role', '') == 'guest' and not guest.is_staff and not guest.is_superuser
+
     if reminder_type == 'check_in':
-        if notify_guest and guest:
+        if notify_guest and is_client_guest:
             Notification.objects.create(
                 recipient=guest,
                 title="🔔 Nhắc nhở Check-in: Kỳ nghỉ của quý khách bắt đầu hôm nay!",
@@ -280,7 +284,7 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
                 created_count += len(staff_notifs)
 
     elif reminder_type == 'check_out':
-        if notify_guest and guest:
+        if notify_guest and is_client_guest:
             Notification.objects.create(
                 recipient=guest,
                 title="🔔 Nhắc nhở Check-out: Đến hạn trả phòng hôm nay",
@@ -362,17 +366,46 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
         extra_data = extra_data or {}
         new_notifications = []
 
-        # 1. Tìm tài khoản User của Trưởng đoàn / Khách đại diện nếu có
+        # 1. Tìm tài khoản User của Trưởng đoàn / Khách đại diện (CHỈ áp dụng cho Khách hàng / Guest thực thụ, KHÔNG gán Nhân viên)
+        def is_client_user(u):
+            return bool(u and getattr(u, 'role', '') == 'guest' and not u.is_staff and not u.is_superuser)
+
         leader_user = None
         if hasattr(group_booking, 'sub_bookings') and group_booking.sub_bookings.exists():
             first_sub = group_booking.sub_bookings.first()
-            if first_sub and first_sub.guest:
+            if first_sub and is_client_user(first_sub.guest):
                 leader_user = first_sub.guest
 
         if not leader_user and group_booking.leader_email:
-            leader_user = User.objects.filter(email__iexact=group_booking.leader_email).first()
+            matched = User.objects.filter(
+                email__iexact=group_booking.leader_email,
+                role='guest',
+                is_staff=False,
+                is_superuser=False
+            ).first()
+            if matched:
+                leader_user = matched
+
         if not leader_user and group_booking.leader_phone:
-            leader_user = User.objects.filter(phone_number=group_booking.leader_phone).first()
+            clean_p = ''.join(c for c in str(group_booking.leader_phone) if c.isdigit())
+            matched = User.objects.filter(
+                phone_number=group_booking.leader_phone,
+                role='guest',
+                is_staff=False,
+                is_superuser=False
+            ).first()
+            if not matched and clean_p:
+                matched = User.objects.filter(
+                    phone_number=clean_p,
+                    role='guest',
+                    is_staff=False,
+                    is_superuser=False
+                ).first()
+            if matched:
+                leader_user = matched
+
+        if leader_user and not is_client_user(leader_user):
+            leader_user = None
 
         total_rooms = group_booking.sub_bookings.count()
         total_amount = float(group_booking.total_amount or 0)
@@ -446,7 +479,10 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
             staff_users = User.objects.filter(
                 models.Q(is_staff=True) | models.Q(is_superuser=True) |
                 models.Q(role__in=['admin', 'owner', 'manager', 'receptionist', 'cashier'])
-            ).distinct()
+            )
+            if leader_user:
+                staff_users = staff_users.exclude(id=leader_user.id)
+            staff_users = staff_users.distinct()
             for staff in staff_users:
                 new_notifications.append(
                     Notification(
@@ -487,7 +523,10 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
             staff_users = User.objects.filter(
                 models.Q(is_staff=True) | models.Q(is_superuser=True) |
                 models.Q(role__in=['admin', 'manager', 'receptionist', 'housekeeper', 'service_staff'])
-            ).distinct()
+            )
+            if leader_user:
+                staff_users = staff_users.exclude(id=leader_user.id)
+            staff_users = staff_users.distinct()
             for staff in staff_users:
                 new_notifications.append(
                     Notification(
@@ -530,7 +569,10 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
             finance_users = User.objects.filter(
                 models.Q(is_staff=True) | models.Q(is_superuser=True) |
                 models.Q(role__in=['admin', 'owner', 'manager', 'cashier'])
-            ).distinct()
+            )
+            if leader_user:
+                finance_users = finance_users.exclude(id=leader_user.id)
+            finance_users = finance_users.distinct()
             for staff in finance_users:
                 new_notifications.append(
                     Notification(

@@ -38,6 +38,74 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
         qs = Notification.objects.filter(recipient=user).order_by('-created_at')
 
+        # Dành riêng cho Chủ Khách Sạn & Chủ Tịch HĐQT (Owner):
+        # Tự động lọc bỏ các thông báo tác nghiệp vi mô hàng ngày của nhân viên cấp dưới
+        # (dọn dẹp buồng phòng, kiểm tra minibar, đồ thất lạc, phục vụ món ăn nhỏ lẻ, nhắc lịch check-in/out khách lẻ)
+        if getattr(user, 'role', '') == 'owner':
+            from django.db.models import Q
+            excluded_keywords = [
+                'PHÒNG SẴN SÀNG',
+                'YÊU CẦU DỌN PHÒNG',
+                'DỌN PHÒNG HOÀN TẤT',
+                'BÀN GIAO DỌN DẸP',
+                'KIỂM PHÒNG',
+                'HOÀN TẤT KIỂM PHÒNG',
+                'KIỂM KÊ MINIBAR',
+                'ĐỒ THẤT LẠC',
+                'Tiện ích buồng phòng',
+                'Báo Buồng phòng',
+                'Yêu cầu tiện ích',
+                'Dịch vụ phòng',
+                'Món ăn',
+                'Đơn gọi món',
+                'đặt xe',
+                'Điều vận',
+                'Phương tiện đã sẵn sàng',
+                'Lịch Check-in hôm nay: Khách',
+                'Lịch Check-out hôm nay:',
+                'Khách đã Check-in:',
+                'Khách đã Check-out:'
+            ]
+            q_exclude = Q()
+            for kw in excluded_keywords:
+                q_exclude |= Q(title__icontains=kw)
+            qs = qs.exclude(q_exclude).exclude(notification_type='service')
+
+        # Dành riêng cho Quản Lý Khách Sạn (Manager):
+        # Tự động lọc bỏ các thông báo tác nghiệp vi mô (dọn dẹp thường, minibar thường 0đ hư hại, phục vụ món ăn/tiện ích, nhắc lịch phòng lẻ)
+        # Giữ lại trọn vẹn: Đền bù hư hại tài sản, Phiếu bảo trì sửa chữa phòng, Đơn đoàn & Master Invoice, Dòng tiền/Thanh toán/VAT/Chi quỹ, Đánh giá khách hàng, Đồ thất lạc.
+        elif getattr(user, 'role', '') == 'manager':
+            from django.db.models import Q
+            manager_excluded_keywords = [
+                'PHÒNG SẴN SÀNG',
+                'YÊU CẦU DỌN PHÒNG',
+                'DỌN PHÒNG HOÀN TẤT',
+                'BÀN GIAO DỌN DẸP',
+                'YÊU CẦU KIỂM PHÒNG',
+                'KIỂM KÊ MINIBAR',
+                'Tiện ích buồng phòng',
+                'Báo Buồng phòng',
+                'Yêu cầu tiện ích',
+                'Dịch vụ phòng',
+                'Món ăn',
+                'Đơn gọi món',
+                'đặt xe',
+                'Điều vận',
+                'Phương tiện đã sẵn sàng',
+                'Lịch Check-in hôm nay: Khách',
+                'Lịch Check-out hôm nay:',
+                'Khách đã Check-in:',
+                'Khách đã Check-out:'
+            ]
+            q_exclude = Q()
+            for kw in manager_excluded_keywords:
+                q_exclude |= Q(title__icontains=kw)
+            
+            # Kiểm phòng minibar chỉ hiện đối với các trường hợp có phát sinh hư hại / đền bù tài sản
+            q_routine_minibar = Q(title__icontains='HOÀN TẤT KIỂM PHÒNG') & ~Q(message__icontains='Hư hại / Đền bù')
+
+            qs = qs.exclude(q_exclude).exclude(q_routine_minibar).exclude(notification_type='service')
+
         # Hỗ trợ query params: ?unread_only=true hoặc ?is_read=false
         unread_only = self.request.query_params.get('unread_only')
         is_read_param = self.request.query_params.get('is_read')
@@ -64,9 +132,10 @@ class NotificationViewSet(viewsets.ModelViewSet):
         # Tự động quét và kích hoạt nhắc nhở Check-in & Check-out hôm nay nếu cần (tối đa 1 lần/15 phút)
         run_daily_reminders_if_needed()
 
-        queryset = self.filter_queryset(self.get_queryset())
-        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
-        all_count = Notification.objects.filter(recipient=request.user).count()
+        base_qs = self.get_queryset()
+        queryset = self.filter_queryset(base_qs)
+        unread_count = base_qs.filter(is_read=False).count()
+        all_count = base_qs.count()
         filtered_count = queryset.count()
 
         # Nếu có sử dụng pagination
@@ -101,11 +170,9 @@ class NotificationViewSet(viewsets.ModelViewSet):
         DELETE /api/notifications/clear-read/
         Xóa tất cả thông báo đã đọc của người dùng hiện tại
         """
-        deleted_count, _ = Notification.objects.filter(
-            recipient=request.user,
-            is_read=True
-        ).delete()
-        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        base_qs = self.get_queryset()
+        deleted_count, _ = base_qs.filter(is_read=True).delete()
+        unread_count = self.get_queryset().filter(is_read=False).count()
         return Response({
             'success': True,
             'message': f'Đã dọn dẹp {deleted_count} thông báo đã đọc',
@@ -124,7 +191,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
             notification.is_read = True
             notification.save(update_fields=['is_read'])
 
-        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        unread_count = self.get_queryset().filter(is_read=False).count()
         return Response({
             'success': True,
             'message': 'Đã đánh dấu thông báo đã đọc',
@@ -138,10 +205,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         PATCH /api/notifications/read-all/
         Đánh dấu tất cả thông báo của người dùng là đã đọc
         """
-        updated_count = Notification.objects.filter(
-            recipient=request.user,
-            is_read=False
-        ).update(is_read=True)
+        updated_count = self.get_queryset().filter(is_read=False).update(is_read=True)
 
         return Response({
             'success': True,
@@ -156,7 +220,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         GET /api/notifications/unread-count/
         Lấy nhanh số lượng thông báo chưa đọc để poll nhẹ nhàng
         """
-        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        count = self.get_queryset().filter(is_read=False).count()
         return Response({
             'success': True,
             'unread_count': count

@@ -9,6 +9,20 @@ const formatCurrency = (val) => {
     return `${num.toLocaleString('vi-VN')}đ`;
 };
 
+const getBankDisplayName = (bin) => {
+    const banks = {
+        '970422': 'MBBank (Quân Đội)',
+        '970436': 'Vietcombank',
+        '970407': 'Techcombank',
+        '970415': 'VietinBank',
+        '970418': 'BIDV',
+        '970405': 'Agribank',
+        '970423': 'TPBank',
+        '970432': 'VPBank'
+    };
+    return banks[String(bin)] || `Ngân hàng (${bin})`;
+};
+
 export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     const canCreateBookings = useHasPermission('bookings', 'create');
     const [categories, setCategories] = useState([]);
@@ -52,6 +66,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
 
     // Deposit
     const [customDeposit, setCustomDeposit] = useState('');
+    const [isDepositCustomized, setIsDepositCustomized] = useState(false);
 
     // VAT Invoice
     const [isCompanyInvoice, setIsCompanyInvoice] = useState(false);
@@ -66,12 +81,14 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         let isMounted = true;
         setIsLoadingInit(true);
         setError('');
+        setIsDepositCustomized(false);
 
         Promise.allSettled([
             roomService.getCategories(),
             bookingService.getCorporatePartners({ active_only: true }),
-            api.get('/hotel-settings/')
-        ]).then(([catRes, partnerRes, hotelRes]) => {
+            api.get('/hotel-settings/'),
+            api.get('/payments/config/')
+        ]).then(([catRes, partnerRes, hotelRes, payRes]) => {
             if (!isMounted) return;
             if (catRes.status === 'fulfilled' && catRes.value?.categories) {
                 setCategories(catRes.value.categories);
@@ -86,6 +103,16 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         ...prev,
                         group_deposit_percent: Number(hData.group_deposit_percent) || 50
                     }));
+                }
+            }
+            if (payRes?.status === 'fulfilled') {
+                const pData = payRes.value.data?.data || payRes.value.data;
+                if (pData?.bank_bin) {
+                    setBankConfig({
+                        bank_bin: pData.bank_bin,
+                        account_no: pData.account_no,
+                        account_name: (pData.account_name || '').toUpperCase()
+                    });
                 }
             }
             setIsLoadingInit(false);
@@ -193,6 +220,50 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         };
     }, [categories, selectedRooms, nights, discountPercent]);
 
+    // Tự động tính số tiền cọc mặc định (50%) khi tổng giá trị đoàn thay đổi (nếu chưa chỉnh sửa thủ công)
+    useEffect(() => {
+        if (!isDepositCustomized) {
+            const depRate = (Number(hotelSettings.group_deposit_percent) || 50) / 100;
+            setCustomDeposit(grandTotal > 0 ? String(Math.round(grandTotal * depRate)) : '');
+        }
+    }, [grandTotal, hotelSettings.group_deposit_percent, isDepositCustomized]);
+
+    // Cấu hình ngân hàng VietQR động
+    const [bankConfig, setBankConfig] = useState({
+        bank_bin: '970422',
+        account_no: '0344997778',
+        account_name: 'KHACH SAN TA DA NANG'
+    });
+    const [copiedField, setCopiedField] = useState('');
+
+    const depPercent = Number(hotelSettings.group_deposit_percent) || 50;
+    const depositVal = customDeposit !== '' ? Number(customDeposit) : Math.round(grandTotal * (depPercent / 100));
+
+    const transferDescription = useMemo(() => {
+        const removeAccents = (str) => {
+            return String(str || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        };
+        const phone = (leaderPhone || '').replace(/\D/g, '').slice(-6);
+        const namePart = removeAccents(leaderName.trim() || groupName.trim() || 'Doan').replace(/[^a-zA-Z0-9]/g, '');
+        return `Coc doan ${phone ? phone + ' ' : ''}${namePart}`.trim().slice(0, 25) || 'Coc giu cho doan';
+    }, [leaderPhone, leaderName, groupName]);
+
+    const vietQrUrl = useMemo(() => {
+        if (!bankConfig.bank_bin || !bankConfig.account_no || depositVal <= 0) return '';
+        const addInfo = encodeURIComponent(transferDescription);
+        return `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${depositVal}&addInfo=${addInfo}&accountName=${encodeURIComponent(bankConfig.account_name)}`;
+    }, [bankConfig, depositVal, transferDescription]);
+
+    const handleCopyText = (text, fieldName) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedField(fieldName);
+        setTimeout(() => setCopiedField(''), 2000);
+    };
+
     // Room quantity change
     const handleRoomQtyChange = (catId, delta) => {
         const catAvail = availabilities[catId]?.available_rooms;
@@ -230,6 +301,17 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         if (!leaderPhone.trim()) {
             setError('Vui lòng nhập Số điện thoại Trưởng đoàn.');
             return;
+        }
+
+        if (identityCard.trim()) {
+            if (identityCard.trim() === leaderPhone.trim()) {
+                setError('Số CCCD / Hộ chiếu không thể trùng với Số điện thoại.');
+                return;
+            }
+            if (identityCard.trim().length < 8 || identityCard.trim().length > 20) {
+                setError('Số CCCD / Hộ chiếu phải từ 8 đến 20 ký tự hợp lệ.');
+                return;
+            }
         }
 
         if (checkOutDate <= checkInDate) {
@@ -733,36 +815,251 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
 
                             {/* CỌC & PHƯƠNG THỨC THANH TOÁN */}
                             <div className="pt-2 border-t border-slate-100 space-y-3">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                                    <div>
-                                        <label className="text-[11px] text-slate-600 font-semibold block mb-1">
-                                            Tiền đặt cọc giữ chỗ (Mặc định {hotelSettings.group_deposit_percent || 50}%):
-                                        </label>
-                                        <input
-                                            type="number"
-                                            placeholder={String(Math.round(grandTotal * ((hotelSettings.group_deposit_percent || 50) / 100)))}
-                                            value={customDeposit}
-                                            onChange={(e) => setCustomDeposit(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
-                                        />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+                                    {/* CỘT 1: TIỀN ĐẶT CỌC GIỮ CHỖ */}
+                                    <div className="p-3 bg-amber-50/40 border border-amber-200/80 rounded-2xl space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                                <span>Tiền cọc giữ chỗ:</span>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border transition ${
+                                                    Number(customDeposit) === grandTotal && grandTotal > 0
+                                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                                        : isDepositCustomized
+                                                        ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                                        : 'bg-amber-100 text-amber-900 border-amber-300'
+                                                }`}>
+                                                    {Number(customDeposit) === grandTotal && grandTotal > 0
+                                                        ? '✓ 100% Trọn gói'
+                                                        : isDepositCustomized
+                                                        ? `Tùy chỉnh (${grandTotal > 0 ? Math.round((Number(customDeposit || 0) / grandTotal) * 100) : 0}%)`
+                                                        : `Mặc định ${hotelSettings.group_deposit_percent || 50}%`}
+                                                </span>
+                                            </label>
+
+                                            {/* Nút bấm nhanh 50% / 100% / Đặt lại */}
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsDepositCustomized(false);
+                                                        const depRate = (Number(hotelSettings.group_deposit_percent) || 50) / 100;
+                                                        setCustomDeposit(grandTotal > 0 ? String(Math.round(grandTotal * depRate)) : '');
+                                                    }}
+                                                    className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md border transition cursor-pointer active:scale-95 ${
+                                                        !isDepositCustomized
+                                                            ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                                                            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                                                    }`}
+                                                    title={`Áp dụng tỷ lệ cọc mặc định ${hotelSettings.group_deposit_percent || 50}%`}
+                                                >
+                                                    {hotelSettings.group_deposit_percent || 50}%
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsDepositCustomized(true);
+                                                        setCustomDeposit(String(grandTotal));
+                                                    }}
+                                                    className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md border transition cursor-pointer active:scale-95 ${
+                                                        Number(customDeposit) === grandTotal && grandTotal > 0
+                                                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                                            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                                                    }`}
+                                                    title="Thanh toán trước 100% toàn bộ hợp đồng"
+                                                >
+                                                    100%
+                                                </button>
+                                                {isDepositCustomized && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsDepositCustomized(false);
+                                                            const depRate = (Number(hotelSettings.group_deposit_percent) || 50) / 100;
+                                                            setCustomDeposit(grandTotal > 0 ? String(Math.round(grandTotal * depRate)) : '');
+                                                        }}
+                                                        className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
+                                                        title="Khôi phục lại số cọc mặc định"
+                                                    >
+                                                        Đặt lại
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max={grandTotal || undefined}
+                                                value={customDeposit}
+                                                onChange={(e) => {
+                                                    setIsDepositCustomized(true);
+                                                    setCustomDeposit(e.target.value);
+                                                }}
+                                                placeholder={String(Math.round(grandTotal * ((hotelSettings.group_deposit_percent || 50) / 100)))}
+                                                className="w-full pl-3.5 pr-14 py-2 bg-white border-2 border-amber-300 focus:border-amber-600 rounded-xl text-sm font-black text-amber-950 focus:outline-none focus:ring-4 focus:ring-amber-500/10 font-mono shadow-xs transition"
+                                            />
+                                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-amber-700 pointer-events-none select-none">
+                                                VNĐ
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-[11px] pt-0.5 px-0.5">
+                                            <span className="text-slate-600 font-medium">Quy đổi thành tiền:</span>
+                                            <span className="font-black text-amber-700 text-xs">
+                                                {formatCurrency(Number(customDeposit) || 0)}
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-[11px] text-slate-600 font-semibold block mb-1">
-                                            Phương thức thanh toán cọc:
-                                        </label>
+                                    {/* CỘT 2: PHƯƠNG THỨC THANH TOÁN CỌC */}
+                                    <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-2xl space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs font-bold text-slate-800">
+                                                Phương thức thanh toán cọc:
+                                            </label>
+                                            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                                                {depositPaymentMethod === 'TRANSFER'
+                                                    ? 'Tự động VietQR'
+                                                    : depositPaymentMethod === 'CASH'
+                                                    ? '💵 Tiền mặt tại quầy'
+                                                    : depositPaymentMethod === 'POS'
+                                                    ? '💳 Máy quẹt POS'
+                                                    : '🏢 Bảo lãnh B2B'}
+                                            </span>
+                                        </div>
+
                                         <select
                                             value={depositPaymentMethod}
                                             onChange={(e) => setDepositPaymentMethod(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
+                                            className="w-full px-3.5 py-2 bg-white border-2 border-slate-200 focus:border-indigo-600 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer shadow-xs transition"
                                         >
-                                            <option value="TRANSFER">📱 Chuyển khoản VietQR</option>
+                                            <option value="TRANSFER">📱 Chuyển khoản VietQR (Quét tại quầy / Email)</option>
                                             <option value="CASH">💵 Tiền mặt tại quầy lễ tân</option>
                                             <option value="POS">💳 Quẹt thẻ máy POS</option>
                                             <option value="CREDIT">🏢 Bảo lãnh công nợ B2B (Thanh toán sau)</option>
                                         </select>
+
+                                        <div className="text-[11px] text-slate-500 pt-0.5 px-0.5 truncate">
+                                            {depositPaymentMethod === 'TRANSFER'
+                                                ? '⚡ Quét mã VietQR trực tiếp tại quầy hoặc nhận qua Email'
+                                                : depositPaymentMethod === 'CASH'
+                                                ? '💵 Thu tiền mặt trực tiếp từ Trưởng đoàn tại quầy'
+                                                : depositPaymentMethod === 'POS'
+                                                ? '💳 Quẹt thẻ ngân hàng qua máy POS tại quầy lễ tân'
+                                                : '🏢 Ghi nhận công nợ đối tác doanh nghiệp thanh toán sau'}
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* KHUNG MÃ VIETQR TRỰC TIẾP TẠI QUẦY KHI CHỌN CHUYỂN KHOẢN */}
+                                {depositPaymentMethod === 'TRANSFER' && depositVal > 0 && (
+                                    <div className="p-4 bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-blue-50/70 rounded-2xl border-2 border-indigo-200 shadow-xs space-y-3 animate-in fade-in duration-200">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-indigo-100">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                <span className="text-xs font-bold uppercase tracking-wide text-indigo-950 flex items-center gap-1.5">
+                                                    <span>📱</span> Mã VietQR Quét Trả Cọc Trực Tiếp Tại Quầy
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-full border border-indigo-200 shadow-2xs self-start sm:self-auto">
+                                                ⚡ Tự động điền STK & Số tiền cọc
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                                            {/* Ảnh mã VietQR với viền đẹp */}
+                                            <div className="relative p-2 bg-white rounded-2xl border-2 border-indigo-300 shadow-xs shrink-0 max-w-[170px] w-full aspect-square flex items-center justify-center">
+                                                {vietQrUrl ? (
+                                                    <img
+                                                        src={vietQrUrl}
+                                                        alt={`VietQR cọc ${formatCurrency(depositVal)}`}
+                                                        className="w-full h-full object-contain rounded-xl"
+                                                    />
+                                                ) : (
+                                                    <div className="text-[11px] text-slate-400 text-center">Đang tải mã QR...</div>
+                                                )}
+                                            </div>
+
+                                            {/* Chi tiết thông tin chuyển khoản */}
+                                            <div className="space-y-1.5 text-xs text-slate-700 flex-1 w-full text-left">
+                                                <div className="flex justify-between items-baseline border-b border-indigo-100/80 pb-1.5">
+                                                    <span className="text-slate-500 font-medium">Số tiền cọc cần quét:</span>
+                                                    <strong className="text-base text-rose-600 font-black tracking-tight">{formatCurrency(depositVal)}</strong>
+                                                </div>
+                                                <div className="flex justify-between items-center border-b border-indigo-100/80 pb-1.5">
+                                                    <span className="text-slate-500 font-medium">Ngân hàng:</span>
+                                                    <strong className="text-slate-900 font-bold">{getBankDisplayName(bankConfig.bank_bin)}</strong>
+                                                </div>
+                                                <div className="flex justify-between items-center border-b border-indigo-100/80 pb-1.5">
+                                                    <span className="text-slate-500 font-medium">Số tài khoản:</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <strong className="font-mono font-bold text-indigo-900 bg-white px-2 py-0.5 rounded-md border border-indigo-200 select-all">
+                                                            {bankConfig.account_no}
+                                                        </strong>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCopyText(bankConfig.account_no, 'stk')}
+                                                            className="px-1.5 py-0.5 text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded border border-indigo-200 transition cursor-pointer"
+                                                        >
+                                                            {copiedField === 'stk' ? '✓ Đã chép' : 'Sao chép'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between items-center border-b border-indigo-100/80 pb-1.5">
+                                                    <span className="text-slate-500 font-medium">Chủ tài khoản:</span>
+                                                    <strong className="text-slate-900 font-bold">{bankConfig.account_name}</strong>
+                                                </div>
+                                                <div className="flex justify-between items-center pb-0.5">
+                                                    <span className="text-slate-500 font-medium">Nội dung CK:</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <strong className="font-mono text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 text-[11px] select-all">
+                                                            {transferDescription}
+                                                        </strong>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCopyText(transferDescription, 'content')}
+                                                            className="px-1.5 py-0.5 text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded border border-amber-300 transition cursor-pointer"
+                                                        >
+                                                            {copiedField === 'content' ? '✓ Đã chép' : 'Sao chép'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Nút thao tác nhanh xác nhận */}
+                                                <div className="pt-2 flex flex-col sm:flex-row gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsDepositPaidNow(true)}
+                                                        className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                                                            isDepositPaidNow
+                                                                ? 'bg-emerald-600 text-white shadow-xs'
+                                                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                                                        }`}
+                                                    >
+                                                        <span>{isDepositPaidNow ? '✓ Đã xác nhận khách quét xong' : '✓ Khách đã quét thanh toán xong'}</span>
+                                                    </button>
+                                                    {isDepositPaidNow && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsDepositPaidNow(false)}
+                                                            className="py-2 px-2.5 bg-white hover:bg-slate-100 text-slate-600 font-bold text-[11px] rounded-xl border border-slate-200 transition cursor-pointer"
+                                                            title="Chưa nhận được tiền, bỏ chọn"
+                                                        >
+                                                            Bỏ chọn
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p className="text-[10.5px] text-indigo-900/80 bg-white/80 p-2.5 rounded-xl border border-indigo-100 leading-relaxed">
+                                            💡 <strong>Khách tại quầy:</strong> Khách dùng App Ngân hàng quét trực tiếp mã QR trên màn hình. Sau khi tài khoản khách sạn báo nhận tiền, bấm nút <em>"Khách đã quét thanh toán xong"</em> để đơn được duyệt sang trạng thái <strong>Confirmed</strong> ngay lập tức.
+                                            <br />
+                                            Nếu khách đặt từ xa qua điện thoại, bạn không cần quét mã này. Hệ thống sẽ tự động gửi email kèm mã QR đến hòm thư <strong>{leaderEmail || '(chưa nhập email)'}</strong>.
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* CHÍNH SÁCH THANH TOÁN PHÁT SINH (BILLING ROUTING) */}
                                 <div className="space-y-1.5 pt-2 border-t border-slate-100">

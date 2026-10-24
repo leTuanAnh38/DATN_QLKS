@@ -1179,7 +1179,7 @@ export default function InvoiceManagement() {
                                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                         }`}
                                     >
-                                        💳 Đã nổi VietQR
+                                        💳 Đã chuyển VietQR
                                     </button>
                                     <button
                                         type="button"

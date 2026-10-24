@@ -2784,8 +2784,20 @@ class BookingViewSet(viewsets.ModelViewSet):
             elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
                 paid_amount = float(booking.total_amount or (room_charge + prepaid_services_total))
 
+        # Xác định chính sách thanh toán nếu là phòng thuộc đoàn (Master-Billing)
+        is_group_sub_room = bool(booking.group_booking_id and getattr(booking, 'is_master_billed', True))
+        group = booking.group_booking
+        is_company_all_inclusive = bool(is_group_sub_room and group and getattr(group, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE')
+
         # Số tiền còn lại cần thanh toán khi check-out (remaining_amount)
-        remaining_amount = max(0.0, float(grand_total - paid_amount))
+        if is_company_all_inclusive:
+            # Toàn bộ tiền phòng và chi phí dịch vụ/minibar phát sinh được công ty bảo lãnh trả trên Hóa đơn đoàn
+            remaining_amount = 0.0
+        elif is_group_sub_room:
+            # Tiền phòng chuyển HĐ đoàn, khách lẻ chỉ trả dịch vụ phát sinh cá nhân tại phòng
+            remaining_amount = max(0.0, float(total_service_charge - paid_amount))
+        else:
+            remaining_amount = max(0.0, float(grand_total - paid_amount))
 
         # 5. Thông tin hóa đơn đã có (nếu đơn đã từng lập hóa đơn)
         invoice_info = None
@@ -2808,6 +2820,12 @@ class BookingViewSet(viewsets.ModelViewSet):
             'success': True,
             'booking_id': booking.id,
             'booking_code': booking.booking_code,
+            'is_group_room': is_group_sub_room,
+            'is_company_all_inclusive': is_company_all_inclusive,
+            'group_booking_id': booking.group_booking_id,
+            'group_booking_code': group.group_code if group else None,
+            'group_booking_name': group.group_name if group else None,
+            'group_billing_type': getattr(group, 'billing_type', None) if group else None,
             'guest_name': booking.guest.get_full_name() or booking.guest.username,
             'guest_phone': getattr(booking.guest, 'phone_number', '') or '',
             'guest_email': booking.guest.email or '',
@@ -3070,8 +3088,10 @@ class BookingViewSet(viewsets.ModelViewSet):
             booking.save(update_fields=['status', 'actual_check_out', 'check_out_date', 'internal_note', 'updated_at'])
 
             # Đánh dấu toàn bộ dịch vụ của đơn sang is_paid = True khi check-out hoàn tất
-            booking.service_requests.filter(is_paid=False).update(is_paid=True)
-            booking.extra_services.filter(is_paid=False).update(is_paid=True)
+            # (Ngoại trừ trường hợp phòng thuộc đoàn ALL_INCLUSIVE: các dịch vụ này được bảo lãnh chuyển vào Master Invoice đoàn)
+            if not is_company_all_inclusive:
+                booking.service_requests.filter(is_paid=False).update(is_paid=True)
+                booking.extra_services.filter(is_paid=False).update(is_paid=True)
 
             # 4. Cập nhật bảng Room: Đổi trạng thái phòng thành cleaning (Đang dọn dẹp)
             room_info = None

@@ -20,36 +20,36 @@ def get_staff_and_admin_users(exclude_user_id=None, category_type=None, event_ty
       * 'booking_manage' (Tạo mới, xác nhận duyệt đơn, hủy đơn, no-show):
           Lễ tân, Quản lý, Chủ khách sạn, Admin. (Loại bỏ Kỹ thuật, Buồng phòng, Phục vụ, Thu ngân để tránh spam)
       * 'booking_checkin':
-          Lễ tân, Quản lý, Admin.
+          Lễ tân, Admin. (Khách check-in phòng lẻ do Lễ tân tiếp đón, không spam Quản lý)
       * 'booking_checkout':
-          Lễ tân, Buồng phòng (để chuẩn bị dọn phòng), Quản lý, Chủ khách sạn, Admin.
+          Lễ tân, Buồng phòng (để chuẩn bị dọn phòng), Admin.
     - category_type (Dịch vụ):
-      * 'fnb': Quản lý, Lễ tân và Nhân viên phục vụ ẩm thực (service_staff)
-      * 'transport': Quản lý, Lễ tân và Nhân viên phục vụ/điều vận (service_staff)
-      * 'spa': Quản lý, Lễ tân, Nhân viên phục vụ (service_staff) và Kỹ thuật viên (technician)
-      * 'laundry': Quản lý, Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
-      * 'amenities': Quản lý, Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
+      * 'fnb': Lễ tân và Nhân viên phục vụ ẩm thực (service_staff)
+      * 'transport': Lễ tân và Nhân viên phục vụ/điều vận (service_staff)
+      * 'spa': Lễ tân, Nhân viên phục vụ (service_staff) và Kỹ thuật viên (technician)
+      * 'laundry': Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
+      * 'amenities': Lễ tân, Buồng phòng (housekeeper) và Nhân viên phục vụ (service_staff)
       * 'maintenance': Kỹ thuật viên (technician), Lễ tân, Quản lý, Chủ khách sạn, Admin
     """
     if event_type == 'booking_manage':
         target_roles = ['admin', 'owner', 'manager', 'receptionist']
     elif event_type == 'booking_checkin':
-        target_roles = ['admin', 'manager', 'receptionist']
+        target_roles = ['admin', 'receptionist']
     elif event_type == 'booking_checkout':
-        target_roles = ['admin', 'owner', 'manager', 'receptionist', 'housekeeper']
+        target_roles = ['admin', 'receptionist', 'housekeeper']
     elif category_type == 'amenities':
-        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper', 'service_staff']
+        target_roles = ['admin', 'receptionist', 'housekeeper', 'service_staff']
     elif category_type == 'laundry':
-        target_roles = ['admin', 'manager', 'receptionist', 'housekeeper', 'service_staff']
+        target_roles = ['admin', 'receptionist', 'housekeeper', 'service_staff']
     elif category_type == 'spa':
-        target_roles = ['admin', 'manager', 'receptionist', 'service_staff', 'technician']
+        target_roles = ['admin', 'receptionist', 'service_staff', 'technician']
     elif category_type in ['fnb', 'transport']:
-        target_roles = ['admin', 'manager', 'receptionist', 'service_staff']
+        target_roles = ['admin', 'receptionist', 'service_staff']
     elif category_type == 'maintenance':
-        target_roles = ['admin', 'owner', 'manager', 'receptionist', 'technician']
+        target_roles = ['admin', 'manager', 'receptionist', 'technician']
     else:
         # Mặc định an toàn cho ban quản trị và lễ tân
-        target_roles = ['admin', 'owner', 'manager', 'receptionist']
+        target_roles = ['admin', 'receptionist']
 
     qs = User.objects.filter(
         models.Q(is_superuser=True) |

@@ -520,18 +520,20 @@ export default function NotificationBell({ theme = 'light' }) {
                             <Building2 className="w-3 h-3" />
                             Phòng & Đoàn
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFilterChange('service')}
-                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
-                                filter === 'service'
-                                    ? 'bg-amber-600 text-white shadow-xs font-semibold'
-                                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
-                            }`}
-                        >
-                            <Utensils className="w-3 h-3" />
-                            Dịch vụ
-                        </button>
+                        {!['owner', 'manager'].includes(user?.role) && (
+                            <button
+                                type="button"
+                                onClick={() => handleFilterChange('service')}
+                                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
+                                    filter === 'service'
+                                        ? 'bg-amber-600 text-white shadow-xs font-semibold'
+                                        : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                                }`}
+                            >
+                                <Utensils className="w-3 h-3" />
+                                Dịch vụ
+                            </button>
+                        )}
                     </div>
 
                     {/* Danh sách thông báo */}

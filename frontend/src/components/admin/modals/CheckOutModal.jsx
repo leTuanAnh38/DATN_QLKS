@@ -543,8 +543,19 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const isGroupRoom = Boolean(
         booking?.group_booking ||
         booking?.group_booking_code ||
-        booking?.group_booking_id
+        booking?.group_booking_id ||
+        summary?.is_group_room
     );
+
+    const isCompanyAllInclusive = Boolean(
+        summary?.is_company_all_inclusive ||
+        booking?.is_company_all_inclusive ||
+        summary?.group_billing_type === 'ALL_INCLUSIVE' ||
+        booking?.group_billing_type === 'ALL_INCLUSIVE' ||
+        booking?.billing_type === 'ALL_INCLUSIVE'
+    );
+
+    const groupBookingCode = summary?.group_booking_code || booking?.group_booking_code || booking?.group_code || '';
 
     // Dịch vụ phát sinh tại phòng (chưa thanh toán)
     const unpaidServiceCharge = useMemo(() => {
@@ -610,7 +621,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     // Số tiền còn thiếu ban đầu từ backend (Folio Balance Due)
     const initialRemainingBalance = useMemo(() => {
         if (isGroupRoom) {
-            // Đối với phòng thuộc đoàn công ty (Master-Billing), tiền phòng chuyển HĐ đoàn,
+            // Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE): công ty gánh cả tiền phòng và dịch vụ minibar/phát sinh
+            if (isCompanyAllInclusive) {
+                return 0;
+            }
+            // Đối với phòng thuộc đoàn công ty (ROOM_ONLY - Master-Billing), tiền phòng chuyển HĐ đoàn,
             // khách lẻ chỉ thanh toán phần dịch vụ phát sinh cá nhân tại phòng (nếu có)
             return Math.max(0, unpaidServiceCharge + lateChargeAmount - paidAmount);
         }
@@ -621,7 +636,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             return Number(summary.remaining_amount) + lateChargeAmount;
         }
         return Math.max(0, totalAmount + lateChargeAmount - paidAmount);
-    }, [isGroupRoom, unpaidServiceCharge, lateChargeAmount, summary, totalAmount, paidAmount]);
+    }, [isGroupRoom, isCompanyAllInclusive, unpaidServiceCharge, lateChargeAmount, summary, totalAmount, paidAmount]);
 
     // Số tiền còn thiếu thực tế (sau khi lễ tân vừa bấm xác nhận thanh toán nợ)
     const currentRemainingBalance = useMemo(() => {
@@ -766,7 +781,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-3xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-4xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
 
                 {/* ========================================================================= */}
                 {/* 1. MODAL HEADER                                                           */}
@@ -932,14 +947,18 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                             <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs space-y-1">
                                 <div className="flex items-center justify-between font-bold text-indigo-900">
                                     <span className="flex items-center gap-1.5">
-                                        <span>🏢</span> ĐƠN PHÒNG THUỘC ĐOÀN KHÁCH: {booking.group_booking_name || 'Khách đoàn Doanh nghiệp'}
+                                        <span>🏢</span> ĐƠN PHÒNG THUỘC ĐOÀN KHÁCH: {summary?.group_booking_name || booking.group_booking_name || 'Khách đoàn Doanh nghiệp'}
                                     </span>
                                     <span className="font-mono text-[10px] px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold">
-                                        MÃ ĐOÀN: #{booking.group_booking_code || ''}
+                                        MÃ ĐOÀN: #{groupBookingCode}
                                     </span>
                                 </div>
                                 <p className="text-[11px] text-indigo-800">
-                                    * <strong>Chính sách Master-Billing:</strong> Tiền phòng ({formatCurrency(roomCharge)}) được kết chuyển vào Hóa đơn tổng của Doanh nghiệp. Khách lưu trú chỉ thanh toán dịch vụ cá nhân phát sinh tại phòng (nếu có).
+                                    {isCompanyAllInclusive ? (
+                                        <>* <strong>Chính sách Công ty chi trả toàn bộ (All-Inclusive):</strong> Toàn bộ tiền phòng ({formatCurrency(roomCharge)}) và chi phí dịch vụ/minibar phát sinh được kết chuyển vào Hóa đơn tổng của Doanh nghiệp. Khách lưu trú không phải trả bất kỳ khoản phí nào tại quầy.</>
+                                    ) : (
+                                        <>* <strong>Chính sách Master-Billing (Room Only):</strong> Tiền phòng ({formatCurrency(roomCharge)}) được kết chuyển vào Hóa đơn tổng của Doanh nghiệp. Khách lưu trú chỉ thanh toán dịch vụ cá nhân phát sinh tại phòng (nếu có).</>
+                                    )}
                                 </p>
                             </div>
                         )}
@@ -1147,12 +1166,16 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 </div>
                                                 {inspectionData?.items_consumed && inspectionData.items_consumed.length > 0 ? (
                                                     <ul className="text-[11px] text-slate-600 space-y-0.5 pt-1 border-t border-slate-100">
-                                                        {inspectionData.items_consumed.map((it, idx) => (
-                                                            <li key={idx} className="flex justify-between">
-                                                                <span>• {it.item_name} (x{it.quantity})</span>
-                                                                <span className="font-medium text-slate-700">{formatCurrency(it.total_price)}</span>
-                                                            </li>
-                                                        ))}
+                                                        {inspectionData.items_consumed.map((it, idx) => {
+                                                            const itemName = it.name || it.item_name || it.service_name || 'Mặt hàng minibar';
+                                                            const itemTotal = it.total != null ? it.total : (it.total_price != null ? it.total_price : (Number(it.price || 0) * Number(it.quantity || 1)));
+                                                            return (
+                                                                <li key={idx} className="flex justify-between items-center">
+                                                                    <span>• {itemName} <strong className="text-slate-800 font-semibold">(x{it.quantity || 1})</strong></span>
+                                                                    <span className="font-semibold text-slate-700">{formatCurrency(itemTotal)}</span>
+                                                                </li>
+                                                            );
+                                                        })}
                                                     </ul>
                                                 ) : (
                                                     <p className="text-[11px] text-slate-500 italic">
@@ -1269,10 +1292,10 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 <table className="w-full text-xs text-left">
                                     <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
                                         <tr>
-                                            <th className="py-2.5 px-4">Khoản mục thanh toán</th>
-                                            <th className="py-2.5 px-3 text-center">Số lượng</th>
-                                            <th className="py-2.5 px-3 text-right">Đơn giá</th>
-                                            <th className="py-2.5 px-4 text-right">Thành tiền</th>
+                                            <th className="py-2.5 px-4 w-[52%]">Khoản mục thanh toán</th>
+                                            <th className="py-2.5 px-3 text-center w-[14%]">Số lượng</th>
+                                            <th className="py-2.5 px-3 text-right w-[17%]">Đơn giá</th>
+                                            <th className="py-2.5 px-4 text-right w-[17%]">Thành tiền</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -1349,19 +1372,23 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                             }`}
                                                     >
                                                         <td className="py-2.5 px-4">
-                                                            <div className="font-semibold text-slate-800 flex items-center gap-1.5 flex-wrap">
-                                                                <span>{isDamage ? '⚠️' : isPaid ? '🧺' : '🍽️'}</span>
-                                                                <span className={isDamage ? 'text-rose-900 font-bold' : ''}>
-                                                                    {svc.service_name}
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className={`font-semibold text-slate-800 inline-flex items-center gap-1.5 ${isDamage ? 'text-rose-900 font-bold' : ''}`}>
+                                                                    <span className="shrink-0">{isDamage ? '⚠️' : isPaid ? '🧺' : '🍽️'}</span>
+                                                                    <span>{svc.service_name}</span>
                                                                 </span>
 
                                                                 {/* Huy hiệu thanh toán */}
                                                                 {isPaid ? (
-                                                                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold">
+                                                                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold shrink-0">
                                                                         ✓ Đã trả trước
                                                                     </span>
+                                                                ) : isCompanyAllInclusive ? (
+                                                                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-bold shrink-0">
+                                                                        🏢 Công ty chi trả
+                                                                    </span>
                                                                 ) : (
-                                                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-semibold">
+                                                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-semibold shrink-0">
                                                                         Thu tại quầy
                                                                     </span>
                                                                 )}
@@ -1369,15 +1396,15 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                                 {/* Huy hiệu trạng thái phục vụ */}
                                                                 {isServiceRequest && (
                                                                     svc.status === 'completed' ? (
-                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300 text-[9px] font-bold">
+                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300 text-[9px] font-bold shrink-0">
                                                                             ✓ Đã phục vụ
                                                                         </span>
                                                                     ) : svc.status === 'in_progress' || svc.status === 'delivering' ? (
-                                                                        <span className="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-300 text-[9px] font-bold">
+                                                                        <span className="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-300 text-[9px] font-bold shrink-0">
                                                                             🚗 Đang thực hiện
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 text-[9px] font-bold animate-pulse">
+                                                                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 text-[9px] font-bold animate-pulse shrink-0">
                                                                             ⏳ Chờ phục vụ
                                                                         </span>
                                                                     )
@@ -1528,14 +1555,16 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             </tr>
                                         )}
 
-                                        {/* Khấu trừ tiền phòng gộp đoàn nếu là phòng thuộc đoàn */}
+                                        {/* Khấu trừ tiền phòng / chi phí gộp đoàn nếu là phòng thuộc đoàn */}
                                         {isGroupRoom && (
                                             <tr className="bg-slate-50 border-t border-slate-200">
                                                 <td colSpan={3} className="py-2 px-4 text-right font-bold text-slate-800 text-xs">
-                                                    🏢 Chuyển thanh toán vào Hóa đơn đoàn #{booking.group_booking_code || ''}:
+                                                    {isCompanyAllInclusive
+                                                        ? `🏢 Chuyển thanh toán TOÀN BỘ (Tiền phòng & Dịch vụ minibar) vào Hóa đơn đoàn #${groupBookingCode}:`
+                                                        : `🏢 Chuyển thanh toán vào Hóa đơn đoàn #${groupBookingCode}:`}
                                                 </td>
                                                 <td className="py-2 px-4 text-right font-bold text-slate-800 text-sm">
-                                                    -{formatCurrency(roomCharge)}
+                                                    -{formatCurrency(isCompanyAllInclusive ? (totalAmount + lateChargeAmount - paidAmount) : roomCharge)}
                                                 </td>
                                             </tr>
                                         )}
@@ -1562,7 +1591,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             <td className="py-3 px-4 text-right">
                                                 <span className={`text-xl font-black ${currentRemainingBalance > 0 ? 'text-rose-600 font-extrabold' : 'text-emerald-700 font-black'
                                                     }`}>
-                                                    {currentRemainingBalance > 0 ? formatCurrency(currentRemainingBalance) : (isGroupRoom ? '0đ (HĐ ĐOÀN ĐÃ BẢO LÃNH)' : '0đ (ĐÃ THANH TOÁN ĐỦ)')}
+                                                    {currentRemainingBalance > 0 ? formatCurrency(currentRemainingBalance) : (isGroupRoom ? (isCompanyAllInclusive ? '0đ (CÔNG TY CHI TRẢ TOÀN BỘ)' : '0đ (HĐ ĐOÀN ĐÃ BẢO LÃNH)') : '0đ (ĐÃ THANH TOÁN ĐỦ)')}
                                                 </span>
                                             </td>
                                         </tr>
@@ -1730,9 +1759,15 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             🏢
                                         </div>
                                         <div>
-                                            <strong className="text-sm text-slate-900 block">Quy chế Master-Billing: Tiền phòng chuyển HĐ Đoàn</strong>
+                                            <strong className="text-sm text-slate-900 block">
+                                                {isCompanyAllInclusive
+                                                    ? 'Quy chế Master-Billing: Công ty chi trả toàn bộ (All-Inclusive)'
+                                                    : 'Quy chế Master-Billing: Tiền phòng chuyển HĐ Đoàn'}
+                                            </strong>
                                             <span className="text-[11px] text-slate-500">
-                                                Tiền phòng đã được kết chuyển vào Hóa đơn tổng của Doanh nghiệp (#{booking.group_booking_code || ''}). Khách không nợ dịch vụ phát sinh tại phòng.
+                                                {isCompanyAllInclusive
+                                                    ? `Toàn bộ tiền phòng và phụ phí dịch vụ minibar đã được kết chuyển vào Hóa đơn tổng của Doanh nghiệp (#${groupBookingCode}). Khách không phải thanh toán tại quầy.`
+                                                    : `Tiền phòng đã được kết chuyển vào Hóa đơn tổng của Doanh nghiệp (#${groupBookingCode}). Khách không nợ dịch vụ phát sinh tại phòng.`}
                                             </span>
                                         </div>
                                     </div>

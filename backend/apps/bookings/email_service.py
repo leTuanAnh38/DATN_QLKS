@@ -1050,17 +1050,37 @@ def _send_group_booking_email_worker(group_booking_id, email_type='payment_succe
             return
 
         # 1. Xác định địa chỉ email người nhận
-        to_email = recipient_email
-        if not to_email and hasattr(group_booking, 'master_invoice') and group_booking.master_invoice and group_booking.master_invoice.invoice_recipient_email:
-            to_email = group_booking.master_invoice.invoice_recipient_email.strip()
+        # Trưởng đoàn (leader_email) là người nhận tiên quyết nhất để nhận mã VietQR & thông báo cọc.
+        # Nếu có email xuất hóa đơn công ty (invoice_recipient_email) hoặc email đối tác khác với Trưởng đoàn,
+        # hệ thống sẽ tự động gửi kèm (CC) để phòng kế toán / doanh nghiệp cùng nắm thông tin.
+        to_list = []
+        cc_list = []
 
-        if not to_email and group_booking.leader_email:
-            to_email = group_booking.leader_email.strip()
+        if recipient_email and str(recipient_email).strip():
+            to_list.append(str(recipient_email).strip())
 
-        if not to_email and group_booking.corporate_partner and group_booking.corporate_partner.contact_email:
-            to_email = group_booking.corporate_partner.contact_email.strip()
+        # Email Trưởng đoàn / Người đại diện
+        leader_mail = getattr(group_booking, 'leader_email', None)
+        if leader_mail and str(leader_mail).strip():
+            clean_leader = str(leader_mail).strip()
+            if clean_leader not in to_list:
+                to_list.append(clean_leader)
 
-        if not to_email:
+        # Email xuất hóa đơn công ty / đối tác doanh nghiệp
+        company_mail = None
+        if hasattr(group_booking, 'master_invoice') and group_booking.master_invoice and group_booking.master_invoice.invoice_recipient_email:
+            company_mail = str(group_booking.master_invoice.invoice_recipient_email).strip()
+        elif group_booking.corporate_partner and group_booking.corporate_partner.contact_email:
+            company_mail = str(group_booking.corporate_partner.contact_email).strip()
+
+        if company_mail and company_mail not in to_list and company_mail not in cc_list:
+            # Nếu đã có người nhận chính trong to_list thì đưa company_mail vào cc_list
+            if to_list:
+                cc_list.append(company_mail)
+            else:
+                to_list.append(company_mail)
+
+        if not to_list:
             logger.info(f"[EMAIL_SERVICE] Đơn đoàn #{group_booking.group_code} không có địa chỉ email người nhận. Bỏ qua gửi email.")
             return
 
@@ -1068,7 +1088,7 @@ def _send_group_booking_email_worker(group_booking_id, email_type='payment_succe
         if not _is_email_configured():
             logger.warning(
                 f"[EMAIL_SERVICE] Chưa cấu hình EMAIL_HOST_USER / EMAIL_HOST_PASSWORD hợp lệ trong .env (hoặc đang để mẫu). "
-                f"Bỏ qua gửi email thực tế cho Đơn Đoàn #{group_booking.group_code} tới {to_email}."
+                f"Bỏ qua gửi email thực tế cho Đơn Đoàn #{group_booking.group_code} tới {to_list}."
             )
             return
 
@@ -1100,12 +1120,27 @@ def _send_group_booking_email_worker(group_booking_id, email_type='payment_succe
             subject=subject,
             body=text_content,
             from_email=from_email,
-            to=[to_email]
+            to=to_list,
+            cc=cc_list
         )
         msg.attach_alternative(html_content, "text/html")
-        msg.send(fail_silently=False)
+        try:
+            msg.send(fail_silently=False)
+        except Exception as send_err:
+            if cc_list:
+                logger.warning(f"[EMAIL_SERVICE] Gửi email có CC thất bại ({str(send_err)}), thử gửi riêng cho {to_list}...")
+                msg_direct = EmailMultiAlternatives(
+                    subject=subject,
+                    body=text_content,
+                    from_email=from_email,
+                    to=to_list
+                )
+                msg_direct.attach_alternative(html_content, "text/html")
+                msg_direct.send(fail_silently=False)
+            else:
+                raise send_err
 
-        logger.info(f"[EMAIL_SERVICE] Gửi email Đơn Đoàn thành công tới {to_email} cho đoàn #{group_booking.group_code} (Tiêu đề: '{subject}')")
+        logger.info(f"[EMAIL_SERVICE] Gửi email Đơn Đoàn thành công tới {', '.join(to_list)} (CC: {', '.join(cc_list) if cc_list else 'Không'}) cho đoàn #{group_booking.group_code} (Tiêu đề: '{subject}')")
 
     except Exception as e:
         logger.error(f"[EMAIL_SERVICE] Lỗi ngoại lệ khi gửi email Đơn Đoàn id={group_booking_id}: {str(e)}", exc_info=True)

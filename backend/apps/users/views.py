@@ -58,6 +58,12 @@ def check_role_permission(user, module, action='read'):
     if user.is_superuser or getattr(user, 'role', '') in ['admin', 'owner']:
         return True
 
+    # Chuẩn hóa các alias hành động: 'view' -> 'read', 'edit' -> 'update'
+    if action == 'view':
+        action = 'read'
+    elif action == 'edit':
+        action = 'update'
+
     user_role = getattr(user, 'role', '')
     if not user_role or user_role == 'guest':
         return False

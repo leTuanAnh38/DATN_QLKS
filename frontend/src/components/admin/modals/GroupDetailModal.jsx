@@ -85,6 +85,21 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
     const isCancelled = groupData?.status === 'cancelled';
     const hasInHouseRoom = groupData?.status === 'checked_in' || subBookings.some(b => b.status === 'checked_in');
 
+    const inHouseSubBookings = useMemo(() => {
+        return (subBookings || []).filter(b => b.status === 'checked_in');
+    }, [subBookings]);
+
+    const inspectionStats = useMemo(() => {
+        const total = inHouseSubBookings.length;
+        const completed = inHouseSubBookings.filter(b => b.latest_inspection?.status === 'completed').length;
+        const requested = inHouseSubBookings.filter(b => b.latest_inspection?.status === 'requested').length;
+        const pending = Math.max(0, total - completed - requested);
+        const uninspectedRooms = inHouseSubBookings
+            .filter(b => b.latest_inspection?.status !== 'completed')
+            .map(b => b.room_number ? `P.${b.room_number}` : `#${b.booking_code}`);
+        return { total, completed, requested, pending, uninspectedRooms };
+    }, [inHouseSubBookings]);
+
     const totalContractAmount = useMemo(() => Number(groupData?.total_amount || 0), [groupData?.total_amount]);
     const depositAmount = useMemo(() => {
         if (groupData?.is_deposit_paid) {
@@ -285,6 +300,46 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             confirmType: 'amber',
             icon: '🚪',
             onConfirm: () => executeSingleRoomCheckOut(bookingId, roomNumber)
+        });
+    };
+
+    // Yêu cầu kiểm phòng toàn đoàn (Thực thi)
+    const executeRequestGroupInspection = async () => {
+        closeConfirm();
+        try {
+            setIsActionLoading(true);
+            const res = await bookingService.requestGroupInspection(groupData.id);
+            if (res.success) {
+                setActionMessage({
+                    type: 'success',
+                    text: res.message || `Đã gửi yêu cầu kiểm tra ${inHouseSubBookings.length} phòng cho bộ phận Buồng phòng!`
+                });
+                if (res.data) setLocalGroup(res.data);
+                if (typeof onRefresh === 'function') onRefresh(res.data, false);
+            } else {
+                setActionMessage({ type: 'error', text: res.message || 'Lỗi khi gửi yêu cầu kiểm phòng đoàn.' });
+            }
+        } catch (err) {
+            setActionMessage({ type: 'error', text: 'Lỗi kết nối máy chủ.' });
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    // Yêu cầu kiểm phòng toàn đoàn (Mở hộp thoại nền trắng)
+    const handleRequestGroupInspection = () => {
+        if (inHouseSubBookings.length === 0) {
+            alert('Không có phòng nào đang lưu trú (In-house) để gửi yêu cầu kiểm tra.');
+            return;
+        }
+        showConfirm({
+            title: 'Yêu Cầu Kiểm Phòng Toàn Đoàn',
+            message: `Gửi yêu cầu bộ phận Buồng phòng tiến hành kiểm tra đón đầu Minibar & Hư hại cho tất cả ${inHouseSubBookings.length} phòng đang ở?`,
+            detail: `Danh sách phòng: ${inHouseSubBookings.map(b => b.room_number ? `P.${b.room_number}` : `#${b.booking_code}`).join(', ')}. Thông báo ưu tiên cao sẽ được gửi ngay đến nhân viên buồng phòng để kiểm tra trước khi đoàn làm thủ tục Check-out.`,
+            confirmText: '🛎️ Gửi Yêu Cầu Kiểm Phòng',
+            confirmType: 'indigo',
+            icon: '🛎️',
+            onConfirm: executeRequestGroupInspection
         });
     };
 
@@ -906,6 +961,38 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                     {b.status === 'cancelled' ? '✕ Đã Hủy' : (b.status_display || b.status)}
                                                 </span>
 
+                                                {/* Badge trạng thái kiểm phòng Minibar & Hư hại */}
+                                                {b.status === 'checked_in' && (
+                                                    b.latest_inspection?.status === 'completed' ? (
+                                                        <span 
+                                                            className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 shadow-2xs"
+                                                            title={b.latest_inspection.has_damage ? `Đã kiểm tra. Phát hiện hư hại: ${b.latest_inspection.damage_description}` : 'Đã kiểm tra Minibar & Hư hại'}
+                                                        >
+                                                            <span>✓</span>
+                                                            <span>Đã kiểm phòng</span>
+                                                            {Number(b.latest_inspection.total_amount || 0) > 0 && (
+                                                                <span className="font-mono text-emerald-800 font-extrabold">({formatCurrency(b.latest_inspection.total_amount)})</span>
+                                                            )}
+                                                        </span>
+                                                    ) : b.latest_inspection?.status === 'requested' ? (
+                                                        <span 
+                                                            className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 animate-pulse shadow-2xs"
+                                                            title="Đã gửi yêu cầu, đang chờ Buồng phòng kiểm tra"
+                                                        >
+                                                            <span>⏳</span>
+                                                            <span>Đang kiểm tra...</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span 
+                                                            className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"
+                                                            title="Phòng chưa được kiểm tra Minibar & Hư hại"
+                                                        >
+                                                            <span>⚠️</span>
+                                                            <span>Chưa kiểm phòng</span>
+                                                        </span>
+                                                    )
+                                                )}
+
                                                 {/* Thao tác Check-in / Check-out / Hủy cho từng phòng lẻ trong đoàn */}
                                                 {!isEditingRoomingList && (
                                                     <div className="flex items-center gap-1.5">
@@ -1146,7 +1233,20 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             </button>
                         )}
 
-                        {!isCompleted && !isCancelled && groupData.status === 'checked_in' && (
+                        {!isCompleted && !isCancelled && hasInHouseRoom && (
+                            <button
+                                type="button"
+                                disabled={isActionLoading}
+                                onClick={handleRequestGroupInspection}
+                                className="w-full sm:w-auto px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 text-center shadow-xs"
+                                title="Gửi thông báo yêu cầu Buồng phòng kiểm tra đón đầu Minibar & Hư hại toàn bộ các phòng trong đoàn trước khi Check-out"
+                            >
+                                <span>🛎️</span>
+                                <span>Kiểm Phòng Đoàn ({inHouseSubBookings.length} phòng)</span>
+                            </button>
+                        )}
+
+                        {!isCompleted && !isCancelled && (groupData.status === 'checked_in' || hasInHouseRoom) && (
                             <button
                                 type="button"
                                 disabled={isActionLoading}
@@ -1213,6 +1313,49 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     ✕
                                 </button>
                             </div>
+
+                            {/* CẢNH BÁO TÌNH TRẠNG KIỂM PHÒNG MINIBAR & HƯ HẠI */}
+                            {inspectionStats.total > 0 && (
+                                inspectionStats.uninspectedRooms.length > 0 ? (
+                                    <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-xs space-y-2.5">
+                                        <div className="flex items-start gap-2.5 text-amber-900">
+                                            <span className="text-lg leading-none mt-0.5">⚠️</span>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <strong className="font-extrabold text-amber-950">
+                                                        Lưu ý: Còn {inspectionStats.uninspectedRooms.length}/{inspectionStats.total} phòng chưa kiểm tra Minibar & Hư hại
+                                                    </strong>
+                                                    <span className="px-2 py-0.5 bg-amber-200/80 text-amber-900 rounded font-bold text-[10px]">
+                                                        Chưa kiểm: {inspectionStats.uninspectedRooms.length}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-1 text-amber-800 leading-relaxed text-[11px]">
+                                                    Các phòng: <strong>{inspectionStats.uninspectedRooms.join(', ')}</strong> chưa được Buồng phòng kiểm kê đồ Minibar đã dùng hoặc tài sản hư hại. Nếu quý khách tiếp tục quyết toán ngay lúc này, các chi phí phát sinh chưa kiểm kê sẽ <strong>không được cộng vào Hóa đơn đoàn</strong>.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-2 border-t border-amber-200/70">
+                                            <span className="text-[11px] text-amber-700 italic">
+                                                Khuyến nghị: Yêu cầu buồng phòng kiểm tra trước khi chốt hóa đơn.
+                                            </span>
+                                            <button
+                                                type="button"
+                                                disabled={isActionLoading}
+                                                onClick={handleRequestGroupInspection}
+                                                className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl font-bold text-[11px] flex items-center gap-1.5 cursor-pointer transition shadow-2xs active:scale-95"
+                                            >
+                                                <span>🛎️</span>
+                                                <span>Gửi yêu cầu kiểm tra ngay</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-bold shadow-2xs">
+                                        <span className="text-sm">✓</span>
+                                        <span>Tất cả {inspectionStats.total} phòng lưu trú trong đoàn đã hoàn tất kiểm tra Minibar & Hư hại an toàn. Đủ điều kiện Check-out toàn đoàn!</span>
+                                    </div>
+                                )
+                            )}
 
                             {/* BẢNG KÊ QUYẾT TOÁN TÀI CHÍNH (FOLIO STATEMENT) */}
                             <div className="bg-gradient-to-br from-slate-50 to-indigo-50/40 rounded-2xl border border-indigo-100/70 p-4 space-y-3">

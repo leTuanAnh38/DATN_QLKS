@@ -824,6 +824,28 @@ export const bookingService = {
     },
 
     /**
+     * Yêu cầu Buồng phòng kiểm tra đón đầu Minibar & Hư hại toàn bộ các phòng trong đoàn trước Check-out
+     * POST /api/bookings/groups/:id/request-inspection/
+     */
+    async requestGroupInspection(id, payload = {}) {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/request-inspection/`, payload);
+            return {
+                success: true,
+                message: response.data?.message || 'Đã gửi yêu cầu kiểm tra phòng cho đoàn thành công!',
+                data: response.data?.group_booking,
+                requested_rooms: response.data?.requested_rooms
+            };
+        } catch (error) {
+            console.error('Lỗi khi gửi yêu cầu kiểm phòng đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể gửi yêu cầu kiểm phòng đoàn.'
+            };
+        }
+    },
+
+    /**
      * Cập nhật danh sách lưu trú Rooming List cho đoàn
      * POST /api/bookings/groups/:id/rooming-list/
      */

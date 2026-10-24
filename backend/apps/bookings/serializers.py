@@ -112,6 +112,7 @@ class BookingSerializer(serializers.ModelSerializer):
     group_total_amount = serializers.DecimalField(source='group_booking.total_amount', max_digits=12, decimal_places=0, read_only=True, default=0)
     group_deposit_status = serializers.SerializerMethodField()
     group_status = serializers.CharField(source='group_booking.status', read_only=True, default=None)
+    latest_inspection = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -135,6 +136,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'group_total_amount',
             'group_deposit_status',
             'group_status',
+            'latest_inspection',
             'review',
             'category',
             'room',
@@ -744,6 +746,29 @@ class BookingSerializer(serializers.ModelSerializer):
                 return '✓ Đã thanh toán 100% đoàn'
             return '✓ Đã cọc đoàn'
         return 'Chờ cọc đoàn'
+
+    def get_latest_inspection(self, obj):
+        try:
+            chk = obj.minibar_checks.order_by('-created_at').first()
+            if not chk and obj.room:
+                chk = obj.room.minibar_checks.order_by('-created_at').first()
+            if chk:
+                return {
+                    'id': chk.id,
+                    'check_code': chk.check_code,
+                    'status': chk.status,  # 'requested' | 'completed'
+                    'status_display': 'Đã kiểm tra' if chk.status == 'completed' else 'Đang kiểm tra',
+                    'has_damage': chk.has_damage,
+                    'damage_description': chk.damage_description,
+                    'damage_amount': float(chk.damage_amount or 0),
+                    'total_amount': float(chk.total_amount or 0),
+                    'items_count': len(chk.items_consumed or []) if isinstance(chk.items_consumed, list) else 0,
+                    'inspector_name': chk.inspector.get_full_name() or chk.inspector.username if chk.inspector else None,
+                    'completed_at': chk.completed_at.isoformat() if chk.completed_at else None,
+                }
+        except Exception:
+            pass
+        return None
 
 
 # ========================================================
