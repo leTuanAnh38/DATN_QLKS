@@ -52,6 +52,11 @@ class Notification(models.Model):
         ordering = ['-created_at']
         verbose_name = "Thông báo"
         verbose_name_plural = "Hệ thống Thông báo"
+        indexes = [
+            models.Index(fields=['recipient', '-created_at']),
+            models.Index(fields=['recipient', 'is_read']),
+            models.Index(fields=['recipient', 'notification_type']),
+        ]
 
     def __str__(self):
         status_text = "Đã đọc" if self.is_read else "Chưa đọc"

@@ -72,7 +72,7 @@ class BookingSerializer(serializers.ModelSerializer):
     guests = BookingGuestSerializer(many=True, read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     guest_name = serializers.SerializerMethodField()
-    guest_phone = serializers.CharField(source='guest.phone_number', read_only=True)
+    guest_phone = serializers.SerializerMethodField()
     guest_email = serializers.CharField(source='guest.email', read_only=True)
     guest_details = serializers.SerializerMethodField()
     promotion_code = serializers.CharField(source='applied_promotion.code', read_only=True, default=None)
@@ -536,6 +536,18 @@ class BookingSerializer(serializers.ModelSerializer):
             return full_name or obj.guest.username
         return "Khách vãng lai"
 
+    def get_guest_phone(self, obj):
+        if obj.guest and obj.guest.phone_number:
+            return obj.guest.phone_number
+        if obj.internal_note and 'SĐT:' in obj.internal_note:
+            import re
+            m = re.search(r'SĐT:\s*([0-9\+\-\s]+)', obj.internal_note)
+            if m:
+                raw = m.group(1).strip()
+                cleaned = ''.join(c for c in raw if c.isdigit() or c in '+- ')
+                return cleaned.split(' ')[0].strip()
+        return ''
+
     def get_guest_details(self, obj):
         if not obj.guest:
             return None
@@ -543,7 +555,7 @@ class BookingSerializer(serializers.ModelSerializer):
         return {
             'id': obj.guest.id,
             'full_name': self.get_guest_name(obj),
-            'phone_number': obj.guest.phone_number or '',
+            'phone_number': self.get_guest_phone(obj),
             'email': obj.guest.email or '',
             'id_type': (profile.id_type if profile and profile.id_type else 'CCCD'),
             'id_number': (profile.id_card_number if profile and profile.id_card_number else obj.identity_card) or '',

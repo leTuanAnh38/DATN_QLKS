@@ -27,6 +27,8 @@ export default function CorporateBooking() {
     const [availableServices, setAvailableServices] = useState([]);
     const [isLoadingServices, setIsLoadingServices] = useState(false);
     const [activeServicePickerRoomKey, setActiveServicePickerRoomKey] = useState(null);
+    const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+    const [selectedServiceCategory, setSelectedServiceCategory] = useState('all');
 
     // Hình thức thanh toán: 'DEPOSIT_50' (Cọc 50%) hoặc 'FULL' (Thanh toán tất cả 100%)
     const [paymentOption, setPaymentOption] = useState('DEPOSIT_50');
@@ -409,6 +411,43 @@ export default function CorporateBooking() {
             })
         );
     };
+
+    // Danh sách nhóm dịch vụ duy nhất để lọc
+    const serviceCategories = useMemo(() => {
+        const map = new Map();
+        availableServices.forEach((svc) => {
+            const catId = svc.category_id || svc.category?.id || svc.category_name || svc.category?.name || 'other';
+            const catName = svc.category_name || svc.category?.name || 'Tiện ích khác';
+            const catIcon = svc.category_icon || svc.category?.icon || '🛎️';
+            if (!map.has(catId)) {
+                map.set(catId, { id: catId, name: catName, icon: catIcon });
+            }
+        });
+        return Array.from(map.values());
+    }, [availableServices]);
+
+    // Danh sách dịch vụ sau khi lọc theo từ khóa tìm kiếm và nhóm dịch vụ
+    const filteredServices = useMemo(() => {
+        return availableServices.filter((svc) => {
+            if (selectedServiceCategory !== 'all') {
+                const catId = String(svc.category_id || svc.category?.id || '');
+                const catName = svc.category_name || svc.category?.name || '';
+                if (catId !== String(selectedServiceCategory) && catName !== selectedServiceCategory) {
+                    return false;
+                }
+            }
+            if (serviceSearchQuery.trim()) {
+                const q = serviceSearchQuery.trim().toLowerCase();
+                const nameMatch = (svc.name || '').toLowerCase().includes(q);
+                const descMatch = (svc.description || '').toLowerCase().includes(q);
+                const catMatch = ((svc.category_name || svc.category?.name || '')).toLowerCase().includes(q);
+                if (!nameMatch && !descMatch && !catMatch) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [availableServices, selectedServiceCategory, serviceSearchQuery]);
 
     const handleAllocatedGuestFieldChange = (roomKey, guestIdx, field, value) => {
         setRoomingList((prev) =>
@@ -1345,33 +1384,161 @@ export default function CorporateBooking() {
 
                                                     {/* Panel chọn dịch vụ cho phòng này */}
                                                     {activeServicePickerRoomKey === room.room_key && (
-                                                        <div className="p-3 bg-white rounded-xl border border-indigo-200 space-y-2 animate-in fade-in duration-150">
-                                                            <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                                                                <span>Chọn dịch vụ khách sạn muốn thêm vào phòng:</span>
-                                                                <span className="text-[10px] text-slate-400">Bấm (+) Thêm</span>
+                                                        <div className="p-3.5 bg-indigo-50/60 rounded-2xl border border-indigo-200/90 space-y-3 animate-in fade-in duration-150 shadow-2xs">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                                                                    
+                                                                    <span>Chọn dịch vụ khách sạn muốn thêm vào phòng #{room.global_index} ({room.category_name}):</span>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setActiveServicePickerRoomKey(null);
+                                                                        setServiceSearchQuery('');
+                                                                        setSelectedServiceCategory('all');
+                                                                    }}
+                                                                    className="text-slate-400 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold"
+                                                                >
+                                                                    ✕ Đóng
+                                                                </button>
                                                             </div>
-                                                            {availableServices.length === 0 ? (
-                                                                <p className="text-xs text-slate-400">Đang tải hoặc không có dịch vụ nào khả dụng.</p>
-                                                            ) : (
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-1">
-                                                                    {availableServices.map((item) => (
-                                                                        <div
-                                                                            key={item.id}
-                                                                            className="p-2 rounded-lg border border-slate-100 bg-slate-50/70 hover:bg-indigo-50/50 hover:border-indigo-200 transition flex items-center justify-between gap-2"
+
+                                                            {/* Thanh tìm kiếm & Lọc nhóm dịch vụ */}
+                                                            <div className="space-y-2">
+                                                                <div className="relative">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={serviceSearchQuery}
+                                                                        onChange={(e) => setServiceSearchQuery(e.target.value)}
+                                                                        placeholder="Tìm nhanh dịch vụ theo tên, tiện ích (Buffet, Spa, Xe, Giặt ủi...)"
+                                                                        className="w-full pl-8 pr-8 py-1.5 bg-white border border-indigo-200/80 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                                                    />
+                                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                                                                    {serviceSearchQuery && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setServiceSearchQuery('')}
+                                                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                                                                         >
-                                                                            <div className="min-w-0">
-                                                                                <div className="text-xs font-semibold text-slate-900 truncate">{item.name}</div>
-                                                                                <div className="text-[11px] text-indigo-700 font-bold">{formatCurrency(item.price)}</div>
-                                                                            </div>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleAddServiceToRoom(room.room_key, item)}
-                                                                                className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shrink-0 cursor-pointer shadow-2xs"
-                                                                            >
-                                                                                + Thêm
-                                                                            </button>
-                                                                        </div>
-                                                                    ))}
+                                                                            ✕
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Nhóm dịch vụ (Tabs / Pills) */}
+                                                                {serviceCategories.length > 0 && (
+                                                                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setSelectedServiceCategory('all')}
+                                                                            className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition cursor-pointer ${
+                                                                                selectedServiceCategory === 'all'
+                                                                                    ? 'bg-indigo-600 text-white shadow-2xs'
+                                                                                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                                                            }`}
+                                                                        >
+                                                                            Tất cả ({availableServices.length})
+                                                                        </button>
+                                                                        {serviceCategories.map((cat) => {
+                                                                            const countInCat = availableServices.filter(
+                                                                                (s) => String(s.category_id || s.category?.id || '') === String(cat.id) || (s.category_name || s.category?.name) === cat.name
+                                                                            ).length;
+                                                                            return (
+                                                                                <button
+                                                                                    key={cat.id}
+                                                                                    type="button"
+                                                                                    onClick={() => setSelectedServiceCategory(cat.id)}
+                                                                                    className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
+                                                                                        String(selectedServiceCategory) === String(cat.id)
+                                                                                            ? 'bg-indigo-600 text-white shadow-2xs'
+                                                                                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                                                                    }`}
+                                                                                >
+                                                                                    <span>{cat.icon || '🛎️'}</span>
+                                                                                    <span>{cat.name}</span>
+                                                                                    <span className="opacity-70 text-[10px]">({countInCat})</span>
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Lưới danh sách dịch vụ */}
+                                                            {availableServices.length > 0 ? (
+                                                                filteredServices.length > 0 ? (
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                                                                        {filteredServices.map((svcItem) => {
+                                                                            const existingInRoom = (room.services || []).find((s) => s.service_id === svcItem.id);
+                                                                            const qtyInRoom = existingInRoom ? existingInRoom.quantity : 0;
+                                                                            return (
+                                                                                <div
+                                                                                    key={svcItem.id}
+                                                                                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition ${
+                                                                                        qtyInRoom > 0
+                                                                                            ? 'bg-indigo-100/70 border-indigo-300 ring-1 ring-indigo-400/30'
+                                                                                            : 'bg-white border-slate-200 hover:border-indigo-300 shadow-2xs'
+                                                                                    }`}
+                                                                                >
+                                                                                    <div className="min-w-0">
+                                                                                        <div className="flex items-center justify-between gap-1 mb-1">
+                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[130px]">
+                                                                                                {svcItem.category_icon || '🛎️'} {svcItem.category?.name || svcItem.category_name || 'Tiện ích'}
+                                                                                            </span>
+                                                                                            {qtyInRoom > 0 && (
+                                                                                                <span className="text-[10px] font-black text-indigo-700 bg-indigo-200/80 px-1.5 py-0.2 rounded-full">
+                                                                                                    x{qtyInRoom}
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className="font-bold text-slate-900 text-xs truncate" title={svcItem.name}>
+                                                                                            {svcItem.name}
+                                                                                        </div>
+                                                                                        {svcItem.description && (
+                                                                                            <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5" title={svcItem.description}>
+                                                                                                {svcItem.description}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        <div className="text-xs font-black text-indigo-700 mt-1">
+                                                                                            {formatCurrency(svcItem.price)}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => handleAddServiceToRoom(room.room_key, svcItem)}
+                                                                                        className={`mt-2 w-full py-1.5 px-2 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1 active:scale-95 ${
+                                                                                            qtyInRoom > 0
+                                                                                                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xs'
+                                                                                                : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                                                                        }`}
+                                                                                    >
+                                                                                        <span>{qtyInRoom > 0 ? `✓ Thêm tiếp (+1)` : '➕ Thêm vào phòng'}</span>
+                                                                                    </button>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-center py-6 bg-white rounded-xl border border-dashed border-slate-200 space-y-1.5">
+                                                                        <div className="text-base">🔍</div>
+                                                                        <p className="text-xs font-semibold text-slate-600">
+                                                                            Không tìm thấy dịch vụ nào phù hợp với từ khóa "{serviceSearchQuery}".
+                                                                        </p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setServiceSearchQuery('');
+                                                                                setSelectedServiceCategory('all');
+                                                                            }}
+                                                                            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+                                                                        >
+                                                                            Đặt lại tìm kiếm & danh mục
+                                                                        </button>
+                                                                    </div>
+                                                                )
+                                                            ) : (
+                                                                <div className="text-center py-4 text-xs text-slate-400">
+                                                                    Đang tải danh mục dịch vụ khách sạn...
                                                                 </div>
                                                             )}
                                                         </div>

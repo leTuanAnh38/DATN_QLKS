@@ -22,6 +22,106 @@ from .email_service import send_booking_email_async
 from core_project.pagination import StandardResultsSetPagination
 
 
+def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, identity_card, create_account=False, is_walkin=True):
+    """
+    Tìm hoặc tạo tài khoản User và GuestProfile cho khách đặt phòng tại quầy (Walk-in) hoặc qua SĐT/Zalo.
+    - create_account=True: Khách muốn mở tài khoản thành viên web -> Tạo User is_active=True (hoặc kích hoạt nếu đã có).
+    - create_account=False: Khách vãng lai thông thường -> User offline (is_active=False) với tiền tố 'walkin_' hoặc 'phone_' để phân biệt.
+    - Chống nhầm lẫn tài khoản: Nếu SĐT trùng với User có họ tên hoàn toàn khác, không gán nhầm vào tài khoản người khác.
+    """
+    clean_phone = ''.join(c for c in str(guest_phone or '') if c.isdigit())
+    guest_name = (guest_name or '').strip()
+    name_parts = guest_name.split()
+    first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
+    last_name = name_parts[-1] if len(name_parts) > 1 else ''
+
+    # Tìm user hiện có theo SĐT hoặc Email
+    matched_user = None
+    if guest_phone:
+        matched_user = User.objects.filter(phone_number=guest_phone).first()
+    if not matched_user and clean_phone:
+        matched_user = User.objects.filter(phone_number=clean_phone).first()
+    if not matched_user and guest_email:
+        matched_user = User.objects.filter(email=guest_email).first()
+
+    # Kiểm tra xem có đúng là cùng một người hay không (tránh gán nhầm sang tài khoản của người khác khi trùng SĐT)
+    is_same_person = False
+    if matched_user:
+        matched_name = matched_user.get_full_name().strip().lower()
+        current_name = guest_name.strip().lower()
+        if not matched_name:
+            is_same_person = True
+        elif matched_name == current_name or matched_name in current_name or current_name in matched_name:
+            is_same_person = True
+
+    if matched_user and is_same_person:
+        guest_user = matched_user
+        if create_account and not guest_user.is_active:
+            guest_user.is_active = True
+            guest_user.save(update_fields=['is_active'])
+        if guest_name and not (guest_user.first_name or guest_user.last_name):
+            guest_user.first_name = first_name
+            guest_user.last_name = last_name
+            guest_user.save(update_fields=['first_name', 'last_name'])
+        if guest_email and not guest_user.email:
+            guest_user.email = guest_email
+            guest_user.save(update_fields=['email'])
+    else:
+        # Nếu không tìm thấy, hoặc SĐT bị trùng với người khác trong DB
+        phone_already_used = User.objects.filter(phone_number=guest_phone).exists() if guest_phone else False
+
+        if create_account:
+            # 1. Khách muốn đăng ký tài khoản thành viên chính thức (Active User)
+            base_username = f"guest_{clean_phone[-6:]}" if len(clean_phone) >= 6 else f"guest_{uuid.uuid4().hex[:6]}"
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{counter}"
+                counter += 1
+
+            email_to_use = guest_email or f"{username}@guest.hotel.local"
+            phone_to_save = None if phone_already_used else (guest_phone or None)
+
+            guest_user = User.objects.create_user(
+                username=username,
+                email=email_to_use,
+                phone_number=phone_to_save,
+                first_name=first_name,
+                last_name=last_name,
+                role='guest',
+                is_active=True
+            )
+        else:
+            # 2. Khách vãng lai thông thường (offline, không tạo tài khoản web)
+            unique_tag = uuid.uuid4().hex[:6]
+            prefix = "walkin" if is_walkin else "phone"
+            username = f"{prefix}_{clean_phone[-6:]}_{unique_tag}" if len(clean_phone) >= 6 else f"{prefix}_{unique_tag}"
+            email_to_use = f"{username}@walkin.hotel.local"
+            if guest_email and not User.objects.filter(email=guest_email).exists():
+                email_to_use = guest_email
+            phone_to_save = None if phone_already_used else (guest_phone or None)
+
+            guest_user = User.objects.create(
+                username=username,
+                email=email_to_use,
+                phone_number=phone_to_save,
+                first_name=first_name,
+                last_name=last_name,
+                role='guest',
+                is_active=False
+            )
+            guest_user.set_unusable_password()
+            guest_user.save(update_fields=['password'])
+
+    # Cập nhật hoặc tạo GuestProfile
+    profile, _ = GuestProfile.objects.get_or_create(user=guest_user)
+    if identity_card and profile.id_card_number != identity_card:
+        profile.id_card_number = identity_card
+        profile.save(update_fields=['id_card_number'])
+
+    return guest_user
+
+
 class BookingViewSet(viewsets.ModelViewSet):
     """
     API xử lý Đặt phòng cho Khách hàng & Quản lý đơn:
@@ -1746,7 +1846,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         try:
             from ..notifications.models import Notification
             notify_users = User.objects.filter(
-                Q(role__in=['receptionist', 'manager', 'admin', 'technician', 'housekeeper']) | Q(is_superuser=True)
+                Q(role__in=['receptionist', 'manager', 'admin', 'technician', 'housekeeper']) |
+                (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'service_staff', 'cashier']))
             ).distinct()
 
             old_status_text = "Đang bảo trì" if old_room_status == 'maintenance' else "Cần dọn dẹp"
@@ -1758,12 +1859,19 @@ class BookingViewSet(viewsets.ModelViewSet):
                 f"• Phòng mới: P.{new_room.room_number} (Tầng {new_room.floor})\n"
                 f"• Lý do: {reason}"
             )
-            for r in notify_users:
-                Notification.objects.create(
+            notifs = [
+                Notification(
                     recipient=r,
                     title=notif_title,
-                    message=notif_msg
+                    message=notif_msg,
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='normal'
                 )
+                for r in notify_users
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception:
             pass
 
@@ -1931,54 +2039,55 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'message': f'Phòng {target_room.room_number} không còn ở trạng thái sẵn sàng đón khách (vừa được gán cho khách khác).'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # 1. Tìm hoặc Tạo mới User và GuestProfile theo số điện thoại
-            clean_phone = ''.join(c for c in str(guest_phone) if c.isdigit())
-            guest_user = User.objects.filter(phone_number=guest_phone).first()
-            if not guest_user and clean_phone:
-                guest_user = User.objects.filter(phone_number=clean_phone).first()
-            if not guest_user and guest_email:
-                guest_user = User.objects.filter(email=guest_email).first()
+            # 1. Tìm hoặc Tạo mới User và GuestProfile theo tùy chọn mở tài khoản
+            create_account = bool(data.get('create_account', False))
+            guest_user = _resolve_or_create_booking_guest_user(
+                guest_name=guest_name,
+                guest_phone=guest_phone,
+                guest_email=guest_email,
+                identity_card=identity_card,
+                create_account=create_account,
+                is_walkin=True
+            )
 
-            if not guest_user:
-                base_username = f"walkin_{clean_phone[-6:]}" if len(clean_phone) >= 6 else f"walkin_{uuid.uuid4().hex[:6]}"
-                username = base_username
-                counter = 1
-                while User.objects.filter(username=username).exists():
-                    username = f"{base_username}_{counter}"
-                    counter += 1
+            # Xử lý dịch vụ đặt kèm nếu có
+            services_input = data.get('services') or []
+            services_to_create = []
+            total_services_amount = Decimal('0')
+            if isinstance(services_input, list):
+                for s_item in services_input:
+                    try:
+                        svc_id = s_item.get('service_id') or s_item.get('service') or s_item.get('id')
+                        qty = int(s_item.get('quantity') or 1)
+                        if not svc_id or qty <= 0:
+                            continue
+                        svc_obj = ServiceItem.objects.filter(id=svc_id, is_active=True).first()
+                        if not svc_obj:
+                            continue
+                        unit_price = Decimal(str(svc_obj.price or 0))
+                        item_total = unit_price * Decimal(str(qty))
+                        total_services_amount += item_total
+                        services_to_create.append({
+                            'service': svc_obj,
+                            'quantity': qty,
+                            'unit_price': unit_price,
+                            'total_price': item_total,
+                            'note': str(s_item.get('note') or '').strip()
+                        })
+                    except (ValueError, TypeError):
+                        continue
 
-                name_parts = guest_name.split()
-                first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
-                last_name = name_parts[-1] if len(name_parts) > 1 else ''
-                email_to_use = guest_email or f"{username}@walkin.hotel.local"
+            room_charge = total_amount
+            grand_total = room_charge + total_services_amount
 
-                guest_user = User.objects.create_user(
-                    username=username,
-                    email=email_to_use,
-                    phone_number=guest_phone,
-                    first_name=first_name,
-                    last_name=last_name,
-                    role='guest'
-                )
-            else:
-                # Cập nhật họ tên nếu tài khoản cũ chưa có họ tên
-                if guest_name and not (guest_user.first_name or guest_user.last_name):
-                    name_parts = guest_name.split()
-                    guest_user.first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
-                    guest_user.last_name = name_parts[-1] if len(name_parts) > 1 else ''
-                    guest_user.save(update_fields=['first_name', 'last_name'])
-
-            # Cập nhật hoặc tạo GuestProfile
-            profile, _ = GuestProfile.objects.get_or_create(user=guest_user)
-            if identity_card and profile.id_card_number != identity_card:
-                profile.id_card_number = identity_card
-                profile.save(update_fields=['id_card_number'])
-
-            # 2. Tạo bản ghi Booking với status='checked_in' và actual_check_in=now()
+            # 2. Tạo bản ghi Booking với status='confirmed' (Đã xác nhận giữ phòng tại quầy)
             receptionist_name = user.get_full_name() or user.username
             time_str = now.strftime('%H:%M • %d/%m/%Y')
             cat_name = category_instance.name if category_instance else 'Phòng tiêu chuẩn'
-            auto_log = f"[Khách Walk-in nhận phòng trực tiếp lúc {time_str} bởi Lễ tân {receptionist_name}]: Phòng {target_room.room_number} ({cat_name})."
+            auto_log = f"[Khách Walk-in đặt phòng tại quầy lúc {time_str} bởi Lễ tân {receptionist_name}]: Khách: {guest_name} - SĐT: {guest_phone} - CCCD: {identity_card}. Phòng {target_room.room_number} ({cat_name})."
+            if services_to_create:
+                svc_names = ", ".join([f"{s['service'].name} (x{s['quantity']})" for s in services_to_create])
+                auto_log += f" Dịch vụ đặt kèm: {svc_names}."
             if internal_note_input:
                 auto_log += f" Ghi chú: {internal_note_input}"
 
@@ -1993,9 +2102,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                 identity_card=identity_card,
                 check_in_date=check_in_date,
                 check_out_date=check_out_date,
-                actual_check_in=now,
-                status='checked_in',
-                total_amount=total_amount,
+                actual_check_in=None,
+                status='confirmed',
+                total_amount=grand_total,
                 note=note or 'Khách đặt trực tiếp tại quầy Lễ tân (Walk-in)',
                 internal_note=auto_log
             )
@@ -2010,14 +2119,34 @@ class BookingViewSet(viewsets.ModelViewSet):
                 is_primary=True
             )
 
+            # Lưu ServiceRequest và BookingExtraService gắn vào Booking
+            for s_info in services_to_create:
+                svc = s_info['service']
+                ServiceRequest.objects.create(
+                    booking=booking,
+                    service=svc,
+                    quantity=s_info['quantity'],
+                    unit_price=s_info['unit_price'],
+                    total_price=s_info['total_price'],
+                    status='pending',
+                    note=s_info['note'] or 'Dịch vụ đặt kèm tại quầy Walk-in',
+                    request_time=now
+                )
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name=f"{svc.name} [Đặt kèm]",
+                    quantity=s_info['quantity'],
+                    price=s_info['unit_price']
+                )
+
             # Tự động lập Hóa đơn
             is_corp_inv = (customer_type == 'CORPORATE') or bool(company_name)
             Invoice.objects.update_or_create(
                 booking=booking,
                 defaults={
-                    'room_charge': total_amount,
-                    'service_charge': 0,
-                    'total_amount': total_amount,
+                    'room_charge': room_charge,
+                    'service_charge': total_services_amount,
+                    'total_amount': grand_total,
                     'status': 'paid' if data.get('is_paid') else 'pending',
                     'is_company_invoice': is_corp_inv,
                     'company_name': company_name,
@@ -2026,10 +2155,6 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'invoice_recipient_email': data.get('invoice_recipient_email') or guest_email or None
                 }
             )
-
-            # 3. Cập nhật bảng Room sang occupied
-            target_room.status = 'occupied'
-            target_room.save(update_fields=['status'])
 
         # Lấy thông tin serialize đầy đủ
         serializer = self.get_serializer(booking, context={'request': request})
@@ -2041,13 +2166,13 @@ class BookingViewSet(viewsets.ModelViewSet):
             user=request.user,
             action='CREATE',
             module='BOOKING',
-            description=f"Tiếp đón khách Walk-in #{booking.booking_code} & Check-in ngay cho khách {guest_name} vào phòng {target_room.room_number}",
+            description=f"Tiếp đón khách Walk-in #{booking.booking_code} (Đã xác nhận) cho khách {guest_name} tại phòng {target_room.room_number}",
             request=request
         )
 
         return Response({
             'success': True,
-            'message': f'Hoàn tất tiếp đón khách Walk-in thành công! Đã Check-in khách "{guest_name}" vào Phòng {target_room.room_number}.',
+            'message': f'Tạo đơn khách Walk-in thành công! Đã xác nhận giữ Phòng {target_room.room_number} cho khách "{guest_name}". Vui lòng thêm người ở cùng và thực hiện thanh toán trước khi Check-in.',
             'booking': serializer.data,
             'room': room_data,
             **serializer.data
@@ -2191,56 +2316,57 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'message': f'Hạng phòng "{category_instance.name}" đã hết phòng trống trong khoảng thời gian từ {check_in_date.strftime("%d/%m/%Y")} đến {check_out_date.strftime("%d/%m/%Y")}. Vui lòng chọn hạng phòng khác.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Tìm hoặc tạo User khách hàng theo SĐT
-            clean_phone = ''.join(c for c in str(guest_phone) if c.isdigit())
-            guest_user = User.objects.filter(phone_number=guest_phone).first()
-            if not guest_user and clean_phone:
-                guest_user = User.objects.filter(phone_number=clean_phone).first()
-            if not guest_user and guest_email:
-                guest_user = User.objects.filter(email=guest_email).first()
-
-            if not guest_user:
-                base_username = f"guest_{clean_phone[-6:]}" if len(clean_phone) >= 6 else f"guest_{uuid.uuid4().hex[:6]}"
-                username = base_username
-                counter = 1
-                while User.objects.filter(username=username).exists():
-                    username = f"{base_username}_{counter}"
-                    counter += 1
-
-                name_parts = guest_name.split()
-                first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
-                last_name = name_parts[-1] if len(name_parts) > 1 else ''
-                email_to_use = guest_email or f"{username}@guest.hotel.local"
-
-                guest_user = User.objects.create_user(
-                    username=username,
-                    email=email_to_use,
-                    phone_number=guest_phone,
-                    first_name=first_name,
-                    last_name=last_name,
-                    role='guest'
-                )
-            else:
-                if guest_name and not (guest_user.first_name or guest_user.last_name):
-                    name_parts = guest_name.split()
-                    guest_user.first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
-                    guest_user.last_name = name_parts[-1] if len(name_parts) > 1 else ''
-                    guest_user.save(update_fields=['first_name', 'last_name'])
-
-            # Cập nhật hoặc tạo GuestProfile
-            profile, _ = GuestProfile.objects.get_or_create(user=guest_user)
-            if identity_card and profile.id_card_number != identity_card:
-                profile.id_card_number = identity_card
-                profile.save(update_fields=['id_card_number'])
+            # Tìm hoặc tạo User khách hàng theo tùy chọn mở tài khoản
+            create_account = bool(data.get('create_account', False))
+            guest_user = _resolve_or_create_booking_guest_user(
+                guest_name=guest_name,
+                guest_phone=guest_phone,
+                guest_email=guest_email,
+                identity_card=identity_card,
+                create_account=create_account,
+                is_walkin=False
+            )
 
             # Tính toán tiền phòng
             price_per_night = Decimal(str(category_instance.promo_price or category_instance.base_price))
-            total_amount = price_per_night * Decimal(str(nights))
+            room_charge = price_per_night * Decimal(str(nights))
+
+            # Xử lý dịch vụ đặt kèm nếu có
+            services_input = data.get('services') or []
+            services_to_create = []
+            total_services_amount = Decimal('0')
+            if isinstance(services_input, list):
+                for s_item in services_input:
+                    try:
+                        svc_id = s_item.get('service_id') or s_item.get('service') or s_item.get('id')
+                        qty = int(s_item.get('quantity') or 1)
+                        if not svc_id or qty <= 0:
+                            continue
+                        svc_obj = ServiceItem.objects.filter(id=svc_id, is_active=True).first()
+                        if not svc_obj:
+                            continue
+                        unit_price = Decimal(str(svc_obj.price or 0))
+                        item_total = unit_price * Decimal(str(qty))
+                        total_services_amount += item_total
+                        services_to_create.append({
+                            'service': svc_obj,
+                            'quantity': qty,
+                            'unit_price': unit_price,
+                            'total_price': item_total,
+                            'note': str(s_item.get('note') or '').strip()
+                        })
+                    except (ValueError, TypeError):
+                        continue
+
+            total_amount = room_charge + total_services_amount
 
             receptionist_name = user.get_full_name() or user.username
             now = timezone.now()
             time_str = now.strftime('%H:%M • %d/%m/%Y')
-            auto_internal_log = f"[Đặt trước qua Lễ tân {receptionist_name} lúc {time_str}]: Hạng {category_instance.name} ({nights} đêm)."
+            auto_internal_log = f"[Đặt trước qua Lễ tân {receptionist_name} lúc {time_str}]: Khách: {guest_name} - SĐT: {guest_phone} - CCCD: {identity_card}. Hạng {category_instance.name} ({nights} đêm)."
+            if services_to_create:
+                svc_names = ", ".join([f"{s['service'].name} (x{s['quantity']})" for s in services_to_create])
+                auto_internal_log += f" Dịch vụ đặt kèm: {svc_names}."
             if internal_note_input:
                 auto_internal_log += f" Ghi chú: {internal_note_input}"
 
@@ -2271,13 +2397,33 @@ class BookingViewSet(viewsets.ModelViewSet):
                 is_primary=True
             )
 
+            # Lưu ServiceRequest và BookingExtraService gắn vào Booking
+            for s_info in services_to_create:
+                svc = s_info['service']
+                ServiceRequest.objects.create(
+                    booking=booking,
+                    service=svc,
+                    quantity=s_info['quantity'],
+                    unit_price=s_info['unit_price'],
+                    total_price=s_info['total_price'],
+                    status='pending',
+                    note=s_info['note'] or 'Dịch vụ đặt kèm qua điện thoại/Zalo',
+                    request_time=now
+                )
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name=f"{svc.name} [Đặt kèm]",
+                    quantity=s_info['quantity'],
+                    price=s_info['unit_price']
+                )
+
             # Tự động lập Hóa đơn
             is_corp_inv = (customer_type == 'CORPORATE') or bool(company_name)
             Invoice.objects.update_or_create(
                 booking=booking,
                 defaults={
-                    'room_charge': total_amount,
-                    'service_charge': 0,
+                    'room_charge': room_charge,
+                    'service_charge': total_services_amount,
                     'total_amount': total_amount,
                     'status': 'pending',
                     'is_company_invoice': is_corp_inv,
@@ -2298,6 +2444,16 @@ class BookingViewSet(viewsets.ModelViewSet):
             description=f"Tạo đơn đặt phòng trước #{booking.booking_code} ({initial_status}) cho khách {guest_name} - Hạng {category_instance.name} ({check_in_date.strftime('%d/%m/%Y')} -> {check_out_date.strftime('%d/%m/%Y')})",
             request=request
         )
+
+        # Tự động gửi email xác nhận đặt trước kèm mã VietQR hướng dẫn thanh toán giữ chỗ (nếu khách cung cấp email)
+        recipient_target = guest_email or (guest_user.email if (guest_user and guest_user.email) else None)
+        if recipient_target and '@guest.hotel.local' not in recipient_target:
+            send_booking_email_async(
+                booking=booking,
+                email_type='booking_confirmation',
+                custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận đặt phòng trước #{booking.booking_code} - Hướng dẫn thanh toán giữ chỗ",
+                recipient_email=recipient_target
+            )
 
         return Response({
             'success': True,
@@ -2675,37 +2831,35 @@ class BookingViewSet(viewsets.ModelViewSet):
         room_subtotal = daily_rate * nights
         mem_discount = float(booking.membership_discount or 0)
 
-        # Tiền phòng thuần (pure_room_charge) xác định từ booking.total_amount
-        # (Đã phản ánh chính xác tiền phòng ban đầu sau giảm giá + tiền gia hạn phòng thêm nếu có,
-        # loại trừ các dịch vụ đặt kèm trước đã thanh toán nếu có trong booking.total_amount)
-        prepaid_service_requests_total = sum(
-            float(r.total_price or 0) 
-            for r in booking.service_requests.filter(is_paid=True)
-        )
-        if booking.total_amount:
-            pure_room_charge = max(0.0, float(booking.total_amount) - prepaid_service_requests_total)
-        else:
-            pure_room_charge = max(0.0, room_subtotal - mem_discount)
-
-        room_charge = pure_room_charge
-
         # Số tiền giảm giá khuyến mãi thực tế của booking
-        # Khi gia hạn phòng, mã giảm giá chỉ áp dụng cho lần đặt ban đầu, không tự động nhân thêm vào các đêm gia hạn
         promo_discount = 0.0
         if booking.applied_promotion:
-            actual_promo = max(0.0, room_subtotal - room_charge - mem_discount)
-            if actual_promo > 0:
-                promo_discount = actual_promo
+            if booking.applied_promotion.discount_type == 'percentage':
+                calc_promo = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
+                if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                    calc_promo = min(calc_promo, float(booking.applied_promotion.max_discount_amount))
+                promo_discount = calc_promo
             else:
-                if booking.applied_promotion.discount_type == 'percentage':
-                    calc_promo = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
-                    if getattr(booking.applied_promotion, 'max_discount_amount', None):
-                        calc_promo = min(calc_promo, float(booking.applied_promotion.max_discount_amount))
-                    promo_discount = calc_promo
-                else:
-                    promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
+                promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
         elif getattr(booking, 'promotion_discount', None):
             promo_discount = float(booking.promotion_discount)
+
+        # Tiền phòng thuần (pure_room_charge):
+        # 1. Ưu tiên lấy từ Invoice nếu đã có hóa đơn
+        if hasattr(booking, 'invoice') and booking.invoice and booking.invoice.room_charge is not None and float(booking.invoice.room_charge) > 0:
+            pure_room_charge = float(booking.invoice.room_charge)
+            actual_promo = max(0.0, room_subtotal - pure_room_charge - mem_discount)
+            if actual_promo > 0:
+                promo_discount = actual_promo
+        elif daily_rate > 0 and nights > 0:
+            pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
+        elif booking.total_amount:
+            all_services_total = sum(float(r.total_price or 0) for r in booking.service_requests.exclude(status='cancelled'))
+            pure_room_charge = max(0.0, float(booking.total_amount) - all_services_total)
+        else:
+            pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
+
+        room_charge = pure_room_charge
 
         # 2. Lấy extra_services (các ServiceRequest liên kết có status='completed')
         import re
@@ -2909,33 +3063,33 @@ class BookingViewSet(viewsets.ModelViewSet):
             room_subtotal = daily_rate * nights
             mem_discount = float(booking.membership_discount or 0)
 
-            # Tiền phòng thuần (pure_room_charge) xác định từ booking.total_amount
-            prepaid_service_requests_total = sum(
-                float(r.total_price or 0) 
-                for r in booking.service_requests.filter(is_paid=True)
-            )
-            if booking.total_amount:
-                pure_room_charge = max(0.0, float(booking.total_amount) - prepaid_service_requests_total)
-            else:
-                pure_room_charge = max(0.0, room_subtotal - mem_discount)
-
-            room_charge = pure_room_charge
-
             promo_discount = 0.0
             if booking.applied_promotion:
-                actual_promo = max(0.0, room_subtotal - room_charge - mem_discount)
-                if actual_promo > 0:
-                    promo_discount = actual_promo
+                if booking.applied_promotion.discount_type == 'percentage':
+                    calc_promo = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
+                    if getattr(booking.applied_promotion, 'max_discount_amount', None):
+                        calc_promo = min(calc_promo, float(booking.applied_promotion.max_discount_amount))
+                    promo_discount = calc_promo
                 else:
-                    if booking.applied_promotion.discount_type == 'percentage':
-                        calc_promo = (room_subtotal * float(booking.applied_promotion.discount_value)) / 100.0
-                        if getattr(booking.applied_promotion, 'max_discount_amount', None):
-                            calc_promo = min(calc_promo, float(booking.applied_promotion.max_discount_amount))
-                        promo_discount = calc_promo
-                    else:
-                        promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
+                    promo_discount = min(room_subtotal, float(booking.applied_promotion.discount_value))
             elif getattr(booking, 'promotion_discount', None):
                 promo_discount = float(booking.promotion_discount)
+
+            # Tiền phòng thuần (pure_room_charge)
+            if hasattr(booking, 'invoice') and booking.invoice and booking.invoice.room_charge is not None and float(booking.invoice.room_charge) > 0:
+                pure_room_charge = float(booking.invoice.room_charge)
+                actual_promo = max(0.0, room_subtotal - pure_room_charge - mem_discount)
+                if actual_promo > 0:
+                    promo_discount = actual_promo
+            elif daily_rate > 0 and nights > 0:
+                pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
+            elif booking.total_amount:
+                all_services_total = sum(float(r.total_price or 0) for r in booking.service_requests.exclude(status='cancelled'))
+                pure_room_charge = max(0.0, float(booking.total_amount) - all_services_total)
+            else:
+                pure_room_charge = max(0.0, room_subtotal - mem_discount - promo_discount)
+
+            room_charge = pure_room_charge
 
             # Tính phí dịch vụ phát sinh & đặt trước
             valid_requests = booking.service_requests.exclude(status='cancelled').select_related('service')
@@ -3427,11 +3581,14 @@ class BookingViewSet(viewsets.ModelViewSet):
                             f"Đơn đặt phòng #{booking.booking_code} ({room_label_str}) của quý khách đã được gia hạn "
                             f"đến ngày {date_display_str} (thêm {extra_nights} đêm, chi phí phát sinh: {extra_amount:,.0f} VND). "
                             f"Khách sạn TA chúc quý khách tiếp tục có kỳ nghỉ tuyệt vời!"
-                        )
+                        ),
+                        notification_type='booking',
+                        action_url='/booking-history',
+                        priority='normal'
                     )
             else:
-                # Khách tự làm trên web -> Thông báo cho Lễ tân / Nhân sự
-                staff_users = get_staff_and_admin_users(exclude_user_id=booking.guest_id)
+                # Khách tự làm trên web -> Thông báo cho Lễ tân / Quản lý
+                staff_users = get_staff_and_admin_users(exclude_user_id=booking.guest_id, event_type='booking_manage')
                 staff_notifs = [
                     Notification(
                         recipient=staff,
@@ -3440,7 +3597,10 @@ class BookingViewSet(viewsets.ModelViewSet):
                             f"Khách hàng {guest_name_str} ({room_label_str}) vừa gia hạn lưu trú trên website "
                             f"đến ngày {date_display_str} (thêm {extra_nights} đêm, phát sinh: {extra_amount:,.0f} VND). "
                             f"Vui lòng kiểm tra trên PMS."
-                        )
+                        ),
+                        notification_type='booking',
+                        action_url='/admin/bookings',
+                        priority='high'
                     )
                     for staff in staff_users
                 ]
@@ -3455,7 +3615,10 @@ class BookingViewSet(viewsets.ModelViewSet):
                         message=(
                             f"Yêu cầu gia hạn lưu trú #{booking.booking_code} ({room_label_str}) đến ngày {date_display_str} "
                             f"đã được hệ thống xác nhận thành công. Số tiền phát sinh: {extra_amount:,.0f} VND."
-                        )
+                        ),
+                        notification_type='booking',
+                        action_url='/booking-history',
+                        priority='normal'
                     )
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)

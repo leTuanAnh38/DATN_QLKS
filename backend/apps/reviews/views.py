@@ -201,7 +201,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
                         f"Khách sạn TA Đà Nẵng đã gửi phản hồi cho đánh giá của bạn: \"{reply_preview}\". "
                         f"Cảm ơn quý khách đã đóng góp ý kiến để khách sạn nâng cao chất lượng dịch vụ!"
                     ),
-                    notification_type='system',
+                    notification_type='booking',
                     action_url='/booking-history',
                     priority='normal'
                 )

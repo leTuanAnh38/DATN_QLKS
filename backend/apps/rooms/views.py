@@ -725,7 +725,7 @@ class AdminRoomStatusUpdateView(APIView):
                 try:
                     staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên Buồng phòng"
                     recipients = User.objects.filter(
-                        Q(role__in=['receptionist', 'admin']) | Q(is_superuser=True)
+                        Q(role__in=['receptionist', 'admin']) | (Q(is_superuser=True) & ~Q(role__in=['owner', 'manager', 'guest', 'housekeeper', 'technician', 'service_staff', 'cashier']))
                     ).distinct()
                     cat_name = updated_room.category.name if updated_room.category else 'Tiêu chuẩn'
                     
@@ -744,8 +744,8 @@ class AdminRoomStatusUpdateView(APIView):
                             f"• Trạng thái hiện tại: Trống (Sẵn sàng mở bán)\n"
                             f"Lễ tân có thể tiến hành Gán phòng hoặc Check-in đón khách ngay."
                         )
-                    for r in recipients:
-                        Notification.objects.create(
+                    notifs = [
+                        Notification(
                             recipient=r,
                             title=notif_title,
                             message=notif_message,
@@ -753,6 +753,10 @@ class AdminRoomStatusUpdateView(APIView):
                             action_url='/admin/rooms',
                             priority='normal'
                         )
+                        for r in recipients
+                    ]
+                    if notifs:
+                        Notification.objects.bulk_create(notifs)
                 except Exception:
                     pass
 
@@ -761,7 +765,7 @@ class AdminRoomStatusUpdateView(APIView):
                 try:
                     staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
                     recipients = User.objects.filter(
-                        Q(role__in=['housekeeper', 'manager', 'admin']) | Q(is_superuser=True)
+                        Q(role__in=['housekeeper', 'admin']) | (Q(is_superuser=True) & ~Q(role__in=['owner', 'manager', 'guest', 'technician', 'service_staff', 'cashier']))
                     ).distinct()
                     cat_name = updated_room.category.name if updated_room.category else 'Tiêu chuẩn'
                     notif_title = f"🧹 [YÊU CẦU DỌN PHÒNG] Phòng {updated_room.room_number} cần dọn dẹp!"
@@ -770,8 +774,8 @@ class AdminRoomStatusUpdateView(APIView):
                         f"• Người yêu cầu: {staff_name}\n"
                         f"Kính mời bộ phận Buồng phòng tiến hành vệ sinh và thay ga gối."
                     )
-                    for r in recipients:
-                        Notification.objects.create(
+                    notifs = [
+                        Notification(
                             recipient=r,
                             title=notif_title,
                             message=notif_message,
@@ -779,6 +783,10 @@ class AdminRoomStatusUpdateView(APIView):
                             action_url='/admin/rooms',
                             priority='normal'
                         )
+                        for r in recipients
+                    ]
+                    if notifs:
+                        Notification.objects.bulk_create(notifs)
                 except Exception:
                     pass
 
@@ -923,7 +931,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         try:
             reporter_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên"
             tech_users = User.objects.filter(
-                Q(role__in=['technician', 'receptionist', 'admin', 'manager']) | Q(is_superuser=True)
+                Q(role__in=['technician', 'receptionist', 'admin', 'manager']) |
+                (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'housekeeper', 'service_staff', 'cashier']))
             ).distinct()
             fault_note = "Do khách làm hỏng (Bồi thường)" if is_guest_fault else "Bảo dưỡng khách sạn"
             issue_labels = {
@@ -946,8 +955,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                 f"• Người báo: {reporter_name}\n"
                 f"• Mã phiếu: #{ticket.ticket_code}"
             )
-            for recipient in tech_users:
-                Notification.objects.create(
+            notifs = [
+                Notification(
                     recipient=recipient,
                     title=notif_title,
                     message=notif_message,
@@ -955,6 +964,10 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                     action_url='/admin/rooms',
                     priority='high'
                 )
+                for recipient in tech_users
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception as e:
             pass
 
@@ -1037,7 +1050,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         try:
             tech_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Kỹ thuật viên"
             housekeeping_users = User.objects.filter(
-                Q(role__in=['housekeeper', 'receptionist', 'admin']) | Q(is_superuser=True)
+                Q(role__in=['housekeeper', 'receptionist', 'admin']) |
+                (Q(is_superuser=True) & ~Q(role__in=['owner', 'manager', 'guest', 'technician', 'service_staff', 'cashier']))
             ).distinct()
             active_booking = room.bookings.filter(status='checked_in').select_related('guest').first()
             guest_display = (active_booking.guest.get_full_name() or active_booking.guest.username) if (active_booking and active_booking.guest) else "Khách lưu trú"
@@ -1056,8 +1070,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                 f"• Trạng thái mới: Đang dọn dẹp (Cleaning){guest_stay_note}\n"
                 f"{action_instruction}"
             )
-            for recipient in housekeeping_users:
-                Notification.objects.create(
+            notifs = [
+                Notification(
                     recipient=recipient,
                     title=notif_title,
                     message=notif_message,
@@ -1065,6 +1079,10 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                     action_url='/admin/rooms',
                     priority='normal'
                 )
+                for recipient in housekeeping_users
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception as e:
             pass
 
@@ -1196,15 +1214,16 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         # Gửi thông báo đến Buồng phòng (housekeeper) và Quản lý (manager, admin)
         try:
             recipients = User.objects.filter(
-                Q(role__in=['housekeeper', 'receptionist', 'admin']) | Q(is_superuser=True)
+                Q(role__in=['housekeeper', 'receptionist', 'admin']) |
+                (Q(is_superuser=True) & ~Q(role__in=['owner', 'manager', 'guest', 'technician', 'service_staff', 'cashier']))
             ).distinct()
             notif_title = f"🛎️ [YÊU CẦU KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
             notif_message = (
                 f"Lễ tân ({receptionist_name}) vừa gửi yêu cầu kiểm tra phòng {room.room_number}.\n"
                 f"Khách đang làm thủ tục trả phòng tại quầy. Vui lòng kiểm tra Minibar và Hư hại tài sản!"
             )
-            for r in recipients:
-                Notification.objects.create(
+            notifs = [
+                Notification(
                     recipient=r,
                     title=notif_title,
                     message=notif_message,
@@ -1212,6 +1231,10 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                     action_url='/admin/rooms',
                     priority='high'
                 )
+                for r in recipients
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception:
             pass
 
@@ -1380,7 +1403,8 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             if has_damage and damage_amt > 0:
                 target_roles.append('manager')
             recipients = User.objects.filter(
-                Q(role__in=target_roles) | Q(is_superuser=True)
+                Q(role__in=target_roles) |
+                (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'housekeeper', 'service_staff', 'technician']))
             ).distinct()
             notif_title = f"✅ [HOÀN TẤT KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
             damage_text = f"\n• Hư hại / Đền bù: {damage_amt:,.0f} đ ({damage_desc})" if (has_damage and damage_amt > 0) else "\n• Hư hại phòng: Không phát sinh"
@@ -1392,8 +1416,8 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             )
             target_action_url = '/admin/finance' if (total_amount > 0 or has_damage) else '/admin/rooms'
             target_priority = 'high' if (has_damage or total_amount > 500000) else 'normal'
-            for r in recipients:
-                Notification.objects.create(
+            notifs = [
+                Notification(
                     recipient=r,
                     title=notif_title,
                     message=notif_message,
@@ -1401,6 +1425,10 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                     action_url=target_action_url,
                     priority=target_priority
                 )
+                for r in recipients
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception:
             pass
 
@@ -1526,7 +1554,8 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
         staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên"
         try:
             recipients = User.objects.filter(
-                Q(role__in=['receptionist', 'manager', 'admin']) | Q(is_superuser=True)
+                Q(role__in=['receptionist', 'manager', 'admin']) |
+                (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'housekeeper', 'technician', 'service_staff', 'cashier']))
             ).distinct()
             notif_title = f"🧳 [ĐỒ THẤT LẠC MỚI] #{item.tracking_code} - {item.item_name}"
             guest_info = f"Khách: {guest_name} ({guest_phone})" if guest_name else "Chưa xác định chủ nhân"
@@ -1538,8 +1567,8 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                 f"• Nơi cất giữ: {item.storage_location}\n"
                 f"Lễ tân vui lòng rà soát hồ sơ để liên hệ trao trả khách."
             )
-            for r in recipients:
-                Notification.objects.create(
+            notifs = [
+                Notification(
                     recipient=r,
                     title=notif_title,
                     message=notif_message,
@@ -1547,6 +1576,10 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                     action_url='/admin/rooms',
                     priority='normal'
                 )
+                for r in recipients
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception:
             pass
 
@@ -1586,7 +1619,8 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
         staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
         try:
             recipients = User.objects.filter(
-                Q(role__in=['manager', 'admin', 'housekeeper', 'receptionist']) | Q(is_superuser=True)
+                Q(role__in=['manager', 'admin', 'housekeeper', 'receptionist']) |
+                (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'technician', 'service_staff', 'cashier']))
             ).distinct()
             notif_title = f"✅ [ĐÃ TRẢ ĐỒ THẤT LẠC] #{item.tracking_code} - {item.item_name}"
             notif_message = (
@@ -1594,8 +1628,8 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                 f"• Nhân viên bàn giao: {staff_name}\n"
                 f"• Ghi chú: {return_note or 'Đầy đủ chữ ký/xác nhận.'}"
             )
-            for r in recipients:
-                Notification.objects.create(
+            notifs = [
+                Notification(
                     recipient=r,
                     title=notif_title,
                     message=notif_message,
@@ -1603,6 +1637,10 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                     action_url='/admin/rooms',
                     priority='normal'
                 )
+                for r in recipients
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception:
             pass
 

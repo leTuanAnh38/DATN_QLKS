@@ -52,8 +52,8 @@ def get_staff_and_admin_users(exclude_user_id=None, category_type=None, event_ty
         target_roles = ['admin', 'receptionist']
 
     qs = User.objects.filter(
-        models.Q(is_superuser=True) |
-        models.Q(role__in=target_roles)
+        models.Q(role__in=target_roles) |
+        (models.Q(is_superuser=True) & ~models.Q(role__in=['owner', 'manager', 'guest', 'housekeeper', 'service_staff', 'technician', 'cashier']))
     )
     if exclude_user_id:
         qs = qs.exclude(id=exclude_user_id)
@@ -71,8 +71,8 @@ def get_finance_and_cashier_users(exclude_user_id=None):
     """
     target_roles = ['cashier', 'receptionist', 'manager', 'owner', 'admin']
     qs = User.objects.filter(
-        models.Q(is_superuser=True) |
-        models.Q(role__in=target_roles)
+        models.Q(role__in=target_roles) |
+        (models.Q(is_superuser=True) & ~models.Q(role__in=['guest', 'housekeeper', 'service_staff', 'technician']))
     )
     if exclude_user_id:
         qs = qs.exclude(id=exclude_user_id)
@@ -137,7 +137,13 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
         checkin_str = instance.check_in_date.strftime('%d/%m/%Y') if instance.check_in_date else ''
         checkout_str = instance.check_out_date.strftime('%d/%m/%Y') if instance.check_out_date else ''
         time_desc = f" từ ngày {checkin_str} đến ngày {checkout_str}" if checkin_str and checkout_str else ""
-        guest_name = instance.guest.get_full_name() or instance.guest.username if instance.guest else "Khách hàng"
+        primary_guest = instance.guests.filter(is_primary=True).first() or instance.guests.first() if hasattr(instance, 'guests') else None
+        if primary_guest and primary_guest.full_name:
+            guest_name = primary_guest.full_name.strip()
+        elif instance.guest:
+            guest_name = instance.guest.get_full_name() or instance.guest.username
+        else:
+            guest_name = "Khách hàng"
         guest_url = "/booking-history"
         staff_url = f"/admin/bookings"
 

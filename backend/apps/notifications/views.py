@@ -136,7 +136,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(base_qs)
         unread_count = base_qs.filter(is_read=False).count()
         all_count = base_qs.count()
-        filtered_count = queryset.count()
+        filtered_count = all_count if base_qs.query == queryset.query else queryset.count()
 
         # Nếu có sử dụng pagination
         page = self.paginate_queryset(queryset)

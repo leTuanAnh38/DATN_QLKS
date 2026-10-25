@@ -71,6 +71,209 @@ const STATUS_OPTIONS = [
     { value: 'cancelled', label: 'Đã Hủy (Cancelled)', color: 'bg-rose-50 text-rose-800 border-rose-300 focus:ring-rose-500' }
 ];
 
+// Component Chọn Dịch Vụ Đặt Kèm cho Modal Tiếp Đón Khách (Walk-in & Đặt phòng trước)
+function WalkInServicePicker({
+    serviceCatalog = [],
+    selectedServices = [],
+    onChangeServices,
+    isExpanded,
+    onToggleExpand,
+    accentColor = 'indigo'
+}) {
+    const [selectedServiceId, setSelectedServiceId] = useState('');
+    const [quantity, setQuantity] = useState(1);
+
+    const handleAdd = () => {
+        if (!selectedServiceId) return;
+        const item = serviceCatalog.find(s => String(s.id) === String(selectedServiceId));
+        if (!item) return;
+
+        const existingIdx = selectedServices.findIndex(s => String(s.service_id) === String(selectedServiceId));
+        let updated;
+        if (existingIdx >= 0) {
+            updated = [...selectedServices];
+            updated[existingIdx].quantity += Number(quantity) || 1;
+        } else {
+            updated = [
+                ...selectedServices,
+                {
+                    service_id: item.id,
+                    name: item.name,
+                    price: Number(item.price || 0),
+                    quantity: Number(quantity) || 1
+                }
+            ];
+        }
+        onChangeServices(updated);
+        setSelectedServiceId('');
+        setQuantity(1);
+    };
+
+    const handleRemove = (index) => {
+        const updated = selectedServices.filter((_, idx) => idx !== index);
+        onChangeServices(updated);
+    };
+
+    const handleUpdateQty = (index, delta) => {
+        const updated = [...selectedServices];
+        const newQty = (Number(updated[index].quantity) || 1) + delta;
+        if (newQty <= 0) {
+            handleRemove(index);
+        } else {
+            updated[index].quantity = newQty;
+            onChangeServices(updated);
+        }
+    };
+
+    const servicesSubtotal = selectedServices.reduce((sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)), 0);
+
+    return (
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs transition-all">
+            <div
+                onClick={onToggleExpand}
+                className="p-3 bg-slate-50/90 hover:bg-slate-100 flex items-center justify-between cursor-pointer transition select-none"
+            >
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm">🛎️</span>
+                    <span className="text-xs font-bold text-slate-800">
+                        Dịch Vụ Đặt Kèm
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal">
+                        (Ăn sáng, đón sân bay... nếu khách yêu cầu)
+                    </span>
+                    {selectedServices.length > 0 && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            accentColor === 'emerald'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                        }`}>
+                            {selectedServices.length} dịch vụ (+{servicesSubtotal.toLocaleString('vi-VN')}đ)
+                        </span>
+                    )}
+                </div>
+                <button
+                    type="button"
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded hover:bg-slate-200 transition ${
+                        accentColor === 'emerald' ? 'text-emerald-700' : 'text-indigo-700'
+                    }`}
+                >
+                    {isExpanded ? '▲ Thu gọn' : '▼ Chọn dịch vụ'}
+                </button>
+            </div>
+
+            {isExpanded && (
+                <div className="p-3.5 space-y-3 border-t border-slate-200 bg-slate-50/40">
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                        <div className="sm:col-span-7">
+                            <select
+                                value={selectedServiceId}
+                                onChange={(e) => setSelectedServiceId(e.target.value)}
+                                className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="">-- Chọn dịch vụ từ thực đơn khách sạn --</option>
+                                {serviceCatalog.map((s) => {
+                                    const p = Number(s.price || 0);
+                                    return (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name} — {p.toLocaleString('vi-VN')} VND {s.unit ? `(${s.unit})` : ''}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+                        <div className="sm:col-span-3 flex items-center gap-1">
+                            <span className="text-[11px] text-slate-500 font-bold shrink-0">SL:</span>
+                            <input
+                                type="number"
+                                min={1}
+                                max={99}
+                                value={quantity}
+                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-full px-2 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-center text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <button
+                                type="button"
+                                disabled={!selectedServiceId}
+                                onClick={handleAdd}
+                                className={`w-full py-2 px-2.5 rounded-lg text-xs font-bold text-white transition disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs flex items-center justify-center gap-1 ${
+                                    accentColor === 'emerald'
+                                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                                        : 'bg-indigo-600 hover:bg-indigo-700'
+                                }`}
+                            >
+                                <span>+ Thêm</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {selectedServices.length > 0 ? (
+                        <div className="space-y-1.5 pt-1">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                Dịch vụ đã thêm vào đơn:
+                            </div>
+                            <div className="divide-y divide-slate-100 bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                {selectedServices.map((item, idx) => {
+                                    const lineTotal = Number(item.price || 0) * Number(item.quantity || 1);
+                                    return (
+                                        <div key={idx} className="p-2 flex items-center justify-between gap-2 hover:bg-slate-50 text-xs">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-bold text-slate-800 truncate">
+                                                    ✦ {item.name}
+                                                </div>
+                                                <div className="text-[10px] text-slate-400">
+                                                    {Number(item.price || 0).toLocaleString('vi-VN')}đ / đơn vị
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <div className="flex items-center border border-slate-200 rounded-md overflow-hidden bg-slate-50">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleUpdateQty(idx, -1)}
+                                                        className="px-1.5 py-0.5 text-slate-600 hover:bg-slate-200 font-bold"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span className="px-2 py-0.5 font-bold text-slate-900 text-[11px] min-w-[20px] text-center">
+                                                        {item.quantity}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleUpdateQty(idx, 1)}
+                                                        className="px-1.5 py-0.5 text-slate-600 hover:bg-slate-200 font-bold"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                                <span className="font-mono font-bold text-slate-900 text-xs min-w-[70px] text-right">
+                                                    {lineTotal.toLocaleString('vi-VN')}đ
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemove(idx)}
+                                                    className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold transition"
+                                                    title="Xóa dịch vụ này"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-[11px] text-slate-400 italic text-center py-1">
+                            Chưa chọn dịch vụ nào. Nếu khách không yêu cầu, có thể bỏ qua bước này.
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function BookingManagement({ onBookingChanged, initialFilter = 'all' }) {
     // Phân quyền chi tiết theo Ma trận phân quyền RBAC
     const { user: currentUser } = useAuth();
@@ -160,14 +363,17 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         guest_phone: '',
         identity_card: '',
         guest_email: '',
+        create_account: false,
         room_id: '',
         category_id: '',
         check_in_date: new Date().toISOString().split('T')[0],
         check_out_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         initial_status: 'confirmed',
         note: '',
-        internal_note: ''
+        internal_note: '',
+        selected_services: []
     });
+    const [isServicesAccordionOpen, setIsServicesAccordionOpen] = useState(false);
 
     // 6. State Modal In Hóa Đơn Đặt Phòng (Check-in Invoice Voucher)
     const [invoiceModalBooking, setInvoiceModalBooking] = useState(null);
@@ -809,25 +1015,33 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             guest_phone: '',
             identity_card: '',
             guest_email: '',
+            create_account: false,
             room_id: '',
             category_id: '',
             check_in_date: todayStr,
             check_out_date: tomorrowStr,
             initial_status: 'confirmed',
             note: '',
-            internal_note: ''
+            internal_note: '',
+            selected_services: []
         });
+        setIsServicesAccordionOpen(false);
 
         setIsWalkInModalOpen(true);
         setIsLoadingWalkInRooms(true);
         setIsLoadingCategories(true);
 
         try {
-            const [roomsRes, catsRes, partnersRes] = await Promise.all([
+            const [roomsRes, catsRes, partnersRes, servicesRes] = await Promise.all([
                 roomService.getAdminRooms({ status: 'available' }),
                 roomService.getCategories(),
-                bookingService.getCorporatePartners().catch(() => ({ success: false, data: [] }))
+                bookingService.getCorporatePartners().catch(() => ({ success: false, data: [] })),
+                hotelService.getServiceItems({ status: 'active' }).catch(() => ({ success: false, items: [] }))
             ]);
+
+            if (servicesRes && servicesRes.success && servicesRes.items) {
+                setServiceCatalog(servicesRes.items);
+            }
 
             if (partnersRes && partnersRes.success) {
                 setCorporatePartners(partnersRes.data || []);
@@ -938,11 +1152,19 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         try {
             setIsSubmittingWalkIn(true);
             let res;
+            const payload = {
+                ...walkInForm,
+                services: (walkInForm.selected_services || []).map(s => ({
+                    service_id: s.service_id,
+                    quantity: s.quantity,
+                    note: s.note || ''
+                }))
+            };
             if (bookingTab === 'walk_in') {
-                res = await bookingService.createWalkInBooking(walkInForm);
+                res = await bookingService.createWalkInBooking(payload);
             } else {
                 res = await bookingService.createAdvanceReservation({
-                    ...walkInForm,
+                    ...payload,
                     status: walkInForm.initial_status || 'confirmed'
                 });
             }
@@ -954,7 +1176,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     const roomNum = assignedRoom?.room_number || 'đã chọn';
                     showToast(
                         'success',
-                        `✨ Tiếp đón khách Walk-in thành công! Đã Check-in khách "${walkInForm.guest_name}" vào Phòng ${roomNum}.`
+                        `✨ Tạo đơn Walk-in #${newBooking?.booking_code || ''} thành công! Đã xác nhận giữ Phòng ${roomNum} cho khách "${walkInForm.guest_name}".`
                     );
                 } else {
                     const catObj = advanceCategories.find((c) => String(c.id) === String(walkInForm.category_id));
@@ -3369,7 +3591,34 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                         />
                                     </div>
 
-                                    {/* 1.5 Ghi chú của khách */}
+                                    {/* 1.5 Tùy chọn Đăng ký tài khoản Thành viên */}
+                                    <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5 transition">
+                                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(walkInForm.create_account)}
+                                                onChange={(e) => setWalkInForm(prev => ({ ...prev, create_account: e.target.checked }))}
+                                                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                            />
+                                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                                <span>✨</span>
+                                                <span>Đăng ký tài khoản thành viên cho khách hàng</span>
+                                            </span>
+                                        </label>
+                                        <p className="text-[10px] text-slate-500 pl-6.5 leading-relaxed">
+                                            {walkInForm.create_account ? (
+                                                <span className="text-blue-700 font-medium">
+                                                    ✓ Hệ thống sẽ tạo tài khoản User để khách có thể đăng nhập trên Website, tích điểm loyalty và theo dõi lịch sử.
+                                                </span>
+                                            ) : (
+                                                <span>
+                                                    Không tích: Khách lưu trú vãng lai thông thường (không tạo tài khoản riêng trên web, tránh phát sinh tài khoản ảo).
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    {/* 1.6 Ghi chú của khách */}
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 mb-1">
                                             Yêu cầu của khách <span className="text-slate-400 font-normal">(Ghi chú)</span>
@@ -3493,6 +3742,18 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             )}
                                         </div>
 
+                                        {/* 2.2.1 Chọn Dịch Vụ Đặt Kèm */}
+                                        <WalkInServicePicker
+                                            serviceCatalog={serviceCatalog}
+                                            selectedServices={walkInForm.selected_services || []}
+                                            onChangeServices={(services) =>
+                                                setWalkInForm((prev) => ({ ...prev, selected_services: services }))
+                                            }
+                                            isExpanded={isServicesAccordionOpen}
+                                            onToggleExpand={() => setIsServicesAccordionOpen(!isServicesAccordionOpen)}
+                                            accentColor="emerald"
+                                        />
+
                                         {/* 2.3 Thẻ tóm tắt phòng được chọn & Tính toán tiền */}
                                         {(() => {
                                             const selectedRoom = walkInAvailableRooms.find(
@@ -3511,7 +3772,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 Number(selectedRoom.category?.base_price) ||
                                                 0
                                                 : 0;
-                                            const totalAmount = pricePerNight * nights;
+                                            const roomAmount = pricePerNight * nights;
+                                            const servicesTotal = (walkInForm.selected_services || []).reduce(
+                                                (sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)),
+                                                0
+                                            );
+                                            const grandTotal = roomAmount + servicesTotal;
 
                                             return (
                                                 <div className="space-y-3 pt-1">
@@ -3546,16 +3812,24 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         <div className="flex items-center justify-between text-xs text-slate-600">
                                                             <span>Thời gian lưu trú:</span>
                                                             <span className="font-bold text-emerald-700">
-                                                                🌙 {nights} đêm lưu trú
+                                                                🌙 {nights} đêm lưu trú ({roomAmount.toLocaleString('vi-VN')} VND)
                                                             </span>
                                                         </div>
+                                                        {servicesTotal > 0 && (
+                                                            <div className="flex items-center justify-between text-xs text-emerald-700 font-semibold pt-1 border-t border-slate-100">
+                                                                <span>🛎️ Dịch vụ đặt kèm ({(walkInForm.selected_services || []).length} món):</span>
+                                                                <span className="font-mono font-bold">
+                                                                    +{servicesTotal.toLocaleString('vi-VN')} VND
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                         <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
                                                             <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                                                                 Tổng tiền dự kiến:
                                                             </span>
                                                             <div className="text-right">
                                                                 <span className="font-black text-xl text-rose-600">
-                                                                    {totalAmount.toLocaleString('vi-VN')}
+                                                                    {grandTotal.toLocaleString('vi-VN')}
                                                                 </span>
                                                                 <span className="text-xs text-slate-500 font-bold ml-1">VND</span>
                                                             </div>
@@ -3703,6 +3977,18 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             )}
                                         </div>
 
+                                        {/* 2.2.1 Chọn Dịch Vụ Đặt Kèm */}
+                                        <WalkInServicePicker
+                                            serviceCatalog={serviceCatalog}
+                                            selectedServices={walkInForm.selected_services || []}
+                                            onChangeServices={(services) =>
+                                                setWalkInForm((prev) => ({ ...prev, selected_services: services }))
+                                            }
+                                            isExpanded={isServicesAccordionOpen}
+                                            onToggleExpand={() => setIsServicesAccordionOpen(!isServicesAccordionOpen)}
+                                            accentColor="indigo"
+                                        />
+
                                         {/* 2.3 Thẻ Preview Hạng Phòng & Tính Toán Tiền */}
                                         {(() => {
                                             const selectedCat = advanceCategories.find(
@@ -3718,7 +4004,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             const pricePerNight = selectedCat
                                                 ? Number(selectedCat.promo_price) || Number(selectedCat.base_price) || 0
                                                 : 0;
-                                            const totalAmount = pricePerNight * nights;
+                                            const roomAmount = pricePerNight * nights;
+                                            const servicesTotal = (walkInForm.selected_services || []).reduce(
+                                                (sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)),
+                                                0
+                                            );
+                                            const grandTotal = roomAmount + servicesTotal;
 
                                             const curAvail = selectedCat ? categoryAvailabilities[selectedCat.id] : null;
                                             const curAvailRooms = curAvail ? curAvail.available_rooms : (selectedCat?.available_rooms ?? null);
@@ -3804,16 +4095,24 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         <div className="flex items-center justify-between text-xs text-slate-600">
                                                             <span>Thời gian lưu trú:</span>
                                                             <span className="font-bold text-indigo-700">
-                                                                🌙 {nights} đêm lưu trú
+                                                                🌙 {nights} đêm lưu trú ({roomAmount.toLocaleString('vi-VN')} VND)
                                                             </span>
                                                         </div>
+                                                        {servicesTotal > 0 && (
+                                                            <div className="flex items-center justify-between text-xs text-indigo-700 font-semibold pt-1 border-t border-slate-100">
+                                                                <span>🛎️ Dịch vụ đặt kèm ({(walkInForm.selected_services || []).length} món):</span>
+                                                                <span className="font-mono font-bold">
+                                                                    +{servicesTotal.toLocaleString('vi-VN')} VND
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                         <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
                                                             <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                                                                 Tổng tiền giữ chỗ:
                                                             </span>
                                                             <div className="text-right">
                                                                 <span className="font-black text-xl text-rose-600">
-                                                                    {totalAmount.toLocaleString('vi-VN')}
+                                                                    {grandTotal.toLocaleString('vi-VN')}
                                                                 </span>
                                                                 <span className="text-xs text-slate-500 font-bold ml-1">VND</span>
                                                             </div>
@@ -3854,9 +4153,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 <div>
                                     {bookingTab === 'walk_in' ? (
                                         <>
-                                            Khi bấm <strong>"Hoàn tất Check-in Walk-in"</strong>, hệ thống sẽ thực thi Transaction đồng thời:
+                                            Khi bấm <strong>"Tạo Đơn Walk-in (Xác nhận)"</strong>, hệ thống sẽ thực thi:
                                             <span className="block mt-0.5 text-[10px] text-purple-800 font-medium">
-                                                • Tự động tìm/tạo hồ sơ khách hàng $\rightarrow$ Tạo đơn đặt phòng với trạng thái <strong>Đã Check-in (checked_in)</strong> $\rightarrow$ Cập nhật phòng thành <strong>Đang có khách (occupied)</strong> $\rightarrow$ Mở hóa đơn bàn giao ngay.
+                                                • Tự động tìm/tạo hồ sơ khách hàng $\rightarrow$ Tạo đơn với trạng thái <strong>Đã xác nhận (confirmed)</strong> và gán giữ phòng thực tế đã chọn. Lễ tân có thể bổ sung danh sách người ở cùng, thu tiền phòng (QR/Tiền mặt) rồi bấm <strong>Check-in</strong> trên danh sách để bàn giao chìa khóa.
                                             </span>
                                         </>
                                     ) : (
@@ -3900,12 +4199,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                     {isSubmittingWalkIn ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            <span>{bookingTab === 'walk_in' ? 'Đang tạo đơn & Check-in...' : 'Đang tạo đơn giữ chỗ...'}</span>
+                                            <span>{bookingTab === 'walk_in' ? 'Đang tạo đơn Walk-in...' : 'Đang tạo đơn giữ chỗ...'}</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span>{bookingTab === 'walk_in' ? '🔑' : '📅'}</span>
-                                            <span>{bookingTab === 'walk_in' ? 'Hoàn tất Check-in Walk-in' : 'Tạo Đơn Đặt Giữ Chỗ (Xác nhận)'}</span>
+                                            <span>{bookingTab === 'walk_in' ? '📋' : '📅'}</span>
+                                            <span>{bookingTab === 'walk_in' ? 'Tạo Đơn Walk-in (Xác nhận)' : 'Tạo Đơn Đặt Giữ Chỗ (Xác nhận)'}</span>
                                         </>
                                     )}
                                 </button>

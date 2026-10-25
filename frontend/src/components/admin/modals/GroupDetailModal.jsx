@@ -691,17 +691,21 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                 
                 <div>
                     {/* MODAL HEADER */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-200 mb-6 gap-3">
-                        <div className="flex items-center gap-2.5 sm:gap-3">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-200 mb-5 gap-3">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-indigo-500/20 shrink-0 mt-0.5">
                                 🏢
                             </div>
-                            <div>
-                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                    <span className="font-mono text-xs sm:text-sm font-black text-indigo-700 bg-indigo-50 px-2 sm:px-2.5 py-0.5 rounded-md border border-indigo-200">
+                            <div className="min-w-0 flex-1">
+                                {/* Hàng 1: Tiêu đề + Mã đoàn + Trạng thái */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="font-serif text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+                                        {groupData.group_name}
+                                    </h2>
+                                    <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 shrink-0">
                                         #{groupData.group_code}
                                     </span>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide flex items-center gap-1 ${
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide inline-flex items-center gap-1 shrink-0 ${
                                         isCancelled
                                             ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                             : isCompleted
@@ -713,8 +717,12 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                         <span>{isCancelled ? '✕' : isCompleted ? '✓' : groupData.status === 'checked_in' ? '🔑' : '📋'}</span>
                                         <span>{isCancelled ? 'ĐÃ HỦY TOÀN ĐOÀN' : isCompleted ? 'ĐÃ HOÀN THÀNH (ĐÃ QUYẾT TOÁN)' : (groupData.status_display || groupData.status)}</span>
                                     </span>
+                                </div>
+
+                                {/* Hàng 2: Đối tác Doanh nghiệp & Chính sách thanh toán (Sub-line tinh gọn) */}
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1.5">
                                     {groupData.corporate_partner_details && (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                        <span className="inline-flex items-center gap-1 font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 text-[11px]">
                                             🏢 {groupData.corporate_partner_details.company_name} (-{groupData.corporate_partner_details.discount_percent}%)
                                         </span>
                                     )}
@@ -723,35 +731,28 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                         disabled={isCompleted || isCancelled || isActionLoading}
                                         onClick={() => handleUpdateBillingType(groupData.billing_type === 'ALL_INCLUSIVE' ? 'ROOM_ONLY' : 'ALL_INCLUSIVE')}
                                         title="Bấm để chuyển đổi chính sách chi trả giữa Công ty chi trả toàn bộ và Khách tự trả phát sinh"
-                                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition flex items-center gap-1 cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
+                                        className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border transition inline-flex items-center gap-1 cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
                                             groupData.billing_type === 'ALL_INCLUSIVE'
-                                                ? 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200/80 shadow-2xs'
-                                                : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100 shadow-2xs'
+                                                ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 shadow-2xs'
+                                                : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 shadow-2xs'
                                         }`}
                                     >
-                                        <span>{groupData.billing_type === 'ALL_INCLUSIVE' ? '🏢' : '👤'}</span>
-                                        <span>
-                                            {groupData.billing_type === 'ALL_INCLUSIVE'
-                                                ? 'Công ty chi trả toàn bộ'
-                                                : 'Khách tự trả phát sinh'}
-                                        </span>
+                                        <span>{groupData.billing_type === 'ALL_INCLUSIVE' ? '🏢 Công ty chi trả toàn bộ' : '👤 Khách tự trả phát sinh'}</span>
                                         {!isCompleted && !isCancelled && (
                                             <span className="text-[10px] text-slate-400 font-normal underline ml-0.5">đổi</span>
                                         )}
                                     </button>
                                 </div>
-                                <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-1">
-                                    {groupData.group_name}
-                                </h2>
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                        {/* Cụm Action Buttons: Nằm ngang 1 hàng duy nhất, không bị gãy */}
+                        <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
                             <button
                                 type="button"
                                 disabled={isActionLoading}
                                 onClick={handleResendEmail}
-                                className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 whitespace-nowrap shadow-2xs"
                                 title="Gửi thư xác nhận đặt đoàn qua Email Trưởng đoàn / Công ty"
                             >
                                 <span>✉️ Gửi Email Đoàn</span>
@@ -759,7 +760,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             <button
                                 type="button"
                                 onClick={() => setIsInvoiceModalOpen(true)}
-                                className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shadow-2xs"
                                 title="Xem và in hóa đơn thanh toán cho toàn đoàn"
                             >
                                 <span>🖨️ In Hóa Đơn</span>
@@ -776,7 +777,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
                     {/* ACTION MESSAGE */}
                     {actionMessage && (
-                        <div className={`mb-6 p-4 rounded-2xl text-xs font-bold flex items-center gap-2 ${
+                        <div className={`mb-5 p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 ${
                             actionMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
                         }`}>
                             <span>{actionMessage.type === 'success' ? '✓' : '⚠️'}</span>
@@ -784,72 +785,75 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                         </div>
                     )}
 
-                    {/* OVERVIEW STATS */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                        <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Quy mô đoàn</span>
-                            <div className="text-base font-black text-slate-900 mt-0.5">{groupData.total_rooms || subBookings.length} phòng</div>
-                        </div>
-
-                        <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Lưu trú</span>
-                            <div className="text-xs font-bold text-slate-900 mt-0.5">
-                                {formatDate(groupData.check_in_date)} - {formatDate(groupData.check_out_date)} ({groupData.nights} đêm)
+                    {/* BẢNG TỔNG QUAN HỢP ĐỒNG & THÔNG TIN TRƯỞNG ĐOÀN */}
+                    <div className="bg-slate-50/90 rounded-2xl border border-slate-200 p-3.5 sm:p-4 mb-6">
+                        {/* 4 Thẻ KPI Thông số chính */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                            <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Quy mô đoàn</span>
+                                <div className="text-sm sm:text-base font-black text-slate-900 mt-0.5">{groupData.total_rooms || subBookings.length} phòng</div>
                             </div>
-                        </div>
 
-                        <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Tổng tiền hợp đồng</span>
-                            <div className="text-base font-black text-indigo-700 mt-0.5">{formatCurrency(groupData.total_amount)}</div>
-                        </div>
+                            <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lưu trú</span>
+                                <div className="text-xs font-bold text-slate-900 mt-0.5">
+                                    {formatDate(groupData.check_in_date)} - {formatDate(groupData.check_out_date)} ({groupData.nights} đêm)
+                                </div>
+                            </div>
 
-                        <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                {isCompleted ? 'Quyết toán hợp đồng' : (isFullPaid ? 'Thanh toán hợp đồng' : 'Đặt cọc')}
-                            </span>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-xs font-bold text-slate-900">
-                                    {formatCurrency(isCompleted ? groupData.total_amount : groupData.deposit_amount)}
+                            <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tổng tiền hợp đồng</span>
+                                <div className="text-sm sm:text-base font-black text-indigo-700 mt-0.5">{formatCurrency(groupData.total_amount)}</div>
+                            </div>
+
+                            <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    {isCompleted ? 'Quyết toán hợp đồng' : (isFullPaid ? 'Thanh toán hợp đồng' : 'Đặt cọc')}
                                 </span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                                    isCompleted
-                                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                                        : isFullPaid
-                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                        : groupData.is_deposit_paid
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-amber-100 text-amber-800'
-                                }`}>
-                                    {isCompleted ? '✓ Đã quyết toán 100%' : (isFullPaid ? '✓ Đã thanh toán 100%' : (groupData.is_deposit_paid ? 'Đã cọc' : 'Chờ cọc'))}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* LEADER INFO */}
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4 text-xs">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
-                                👤
-                            </div>
-                            <div>
-                                <span className="text-slate-400 block text-[10px] uppercase font-bold">Người đại diện / Trưởng đoàn</span>
-                                <strong className="text-slate-900">{groupData.leader_name}</strong>
-                                <span className="text-slate-500 ml-2">📞 {groupData.leader_phone}</span>
-                                {groupData.leader_email && <span className="text-slate-500 ml-2">✉️ {groupData.leader_email}</span>}
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-xs font-bold text-slate-900">
+                                        {formatCurrency(isCompleted ? groupData.total_amount : groupData.deposit_amount)}
+                                    </span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                        isCompleted
+                                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                            : isFullPaid
+                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                            : groupData.is_deposit_paid
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : 'bg-amber-100 text-amber-800'
+                                    }`}>
+                                        {isCompleted ? '✓ Đã quyết toán 100%' : (isFullPaid ? '✓ Đã thanh toán 100%' : (groupData.is_deposit_paid ? 'Đã cọc' : 'Chờ cọc'))}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        {!groupData.is_deposit_paid && (
-                            <button
-                                type="button"
-                                disabled={isActionLoading}
-                                onClick={handleConfirmDeposit}
-                                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95"
-                            >
-                                💰 Xác nhận đã nhận tiền cọc
-                            </button>
-                        )}
+                        {/* Thanh thông tin Trưởng đoàn liền mạch */}
+                        <div className="mt-3 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                    👤
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                                    <span className="text-slate-400 text-[11px] font-semibold">Trưởng đoàn:</span>
+                                    <strong className="text-slate-900 font-bold">{groupData.leader_name}</strong>
+                                    <span className="text-slate-600 flex items-center gap-1">📞 {groupData.leader_phone}</span>
+                                    {groupData.leader_email && <span className="text-slate-600 flex items-center gap-1">✉️ {groupData.leader_email}</span>}
+                                </div>
+                            </div>
+
+                            {!groupData.is_deposit_paid && (
+                                <button
+                                    type="button"
+                                    disabled={isActionLoading}
+                                    onClick={handleConfirmDeposit}
+                                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95"
+                                >
+                                    💰 Xác nhận đã nhận tiền cọc
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* DANH SÁCH CÁC PHÒNG CON (SUB-BOOKINGS) & ROOMING LIST */}
@@ -1241,7 +1245,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 className="w-full sm:w-auto px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 text-center shadow-xs"
                                 title="Gửi thông báo yêu cầu Buồng phòng kiểm tra đón đầu Minibar & Hư hại toàn bộ các phòng trong đoàn trước khi Check-out"
                             >
-                                <span>🛎️</span>
+                                
                                 <span>Kiểm Phòng Đoàn ({inHouseSubBookings.length} phòng)</span>
                             </button>
                         )}

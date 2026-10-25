@@ -105,7 +105,10 @@ def award_booking_loyalty_points(booking):
             Notification.objects.create(
                 recipient=user,
                 title="Tích lũy điểm thưởng thành viên",
-                message=notify_content
+                message=notify_content,
+                notification_type='booking',
+                action_url='/profile',
+                priority='normal'
             )
         except Exception as e:
             logger.warning(f"Không thể gửi thông báo tích điểm: {e}")

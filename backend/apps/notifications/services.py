@@ -19,22 +19,41 @@ def get_staff_and_admin_users(exclude_user_id=None, purpose='general'):
     Lấy danh sách các tài khoản Nhân viên, Lễ tân và Quản trị viên để gửi thông báo định kỳ:
     - purpose='checkin_reminder': Lễ tân, Admin và Buồng phòng (để sẵn sàng phòng).
     - purpose='checkout_reminder': Lễ tân, Admin, Buồng phòng (để dọn phòng) và Thu ngân (để chốt bill/minibar).
-    - purpose='general': Toàn bộ ban quản trị, lễ tân và buồng phòng.
+    - purpose='general': Lễ tân, Admin và Buồng phòng.
+    Chủ khách sạn (owner) và Quản lý (manager) không bị làm phiền bởi các lịch tác nghiệp đơn lẻ hàng ngày.
     """
     if purpose == 'checkin_reminder':
         target_roles = ['admin', 'receptionist', 'housekeeper']
     elif purpose == 'checkout_reminder':
         target_roles = ['admin', 'receptionist', 'housekeeper', 'cashier']
     else:
-        target_roles = ['admin', 'owner', 'manager', 'receptionist', 'housekeeper']
+        target_roles = ['admin', 'receptionist', 'housekeeper']
 
     qs = User.objects.filter(
-        models.Q(is_superuser=True) |
-        models.Q(role__in=target_roles)
+        models.Q(role__in=target_roles) |
+        (models.Q(is_superuser=True) & ~models.Q(role__in=['owner', 'manager', 'guest']))
     )
     if exclude_user_id:
         qs = qs.exclude(id=exclude_user_id)
     return qs.distinct()
+
+
+def _get_booking_guest_name(booking):
+    """Ưu tiên lấy tên khách lưu trú đại diện (BookingGuest) trước User account."""
+    if not booking:
+        return "Quý khách"
+    try:
+        primary = booking.guests.filter(is_primary=True).first() or booking.guests.first()
+        if primary and primary.full_name:
+            return primary.full_name.strip()
+    except Exception:
+        pass
+    if hasattr(booking, 'guest') and booking.guest:
+        full_name = booking.guest.get_full_name().strip()
+        if not full_name:
+            full_name = f"{booking.guest.first_name or ''} {booking.guest.last_name or ''}".strip()
+        return full_name or booking.guest.username
+    return "Quý khách"
 
 
 def send_checkin_checkout_reminders(target_date=None, force=False):
@@ -49,8 +68,8 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
        - Gửi thông báo đến Khách hàng: Giờ check-out tiêu chuẩn (trước 12:00 trưa), hỗ trợ hành lý / gia hạn.
        - Gửi thông báo đến Nhân viên & Quản lý: Rà soát phụ phí, minibar, chuẩn bị hóa đơn và báo Buồng phòng dọn dẹp.
     
-    Ngăn chặn spam (Cách 1): Kiểm tra .exists() trong bảng Notification theo ngày.
-    Nếu hôm nay đã gửi thông báo cho đơn này rồi thì lập tức bỏ qua (continue).
+    Tối ưu hóa: Lấy sẵn tập hợp các mã đơn đã gửi thông báo trong ngày (1 query duy nhất)
+    thay vì query database trong từng vòng lặp N+1.
     """
     if target_date is None:
         target_date = timezone.localdate()
@@ -71,6 +90,21 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
 
     new_notifications = []
 
+    # TỐI ƯU HIỆU NĂNG: Lấy trước toàn bộ message của các thông báo Check-in/Check-out đã gửi hôm nay
+    existing_checkin_messages = list(
+        Notification.objects.filter(
+            title__icontains="Check-in",
+            created_at__range=(start_of_day, end_of_day)
+        ).values_list('message', flat=True)
+    ) if not force else []
+
+    existing_checkout_messages = list(
+        Notification.objects.filter(
+            title__icontains="Check-out",
+            created_at__range=(start_of_day, end_of_day)
+        ).values_list('message', flat=True)
+    ) if not force else []
+
     # ==============================================================================
     # 1. XỬ LÝ NHẮC NHỞ CHECK-IN HÔM NAY
     # ==============================================================================
@@ -80,19 +114,17 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
     ).select_related('guest', 'category', 'room')
 
     for booking in checkin_bookings:
-        # CÁCH 1: KIỂM TRA TỒN TẠI TRONG BẢNG NOTIFICATION ĐỂ CHỐNG SPAM
-        already_notified_checkin = Notification.objects.filter(
-            title__icontains="Check-in",
-            message__contains=booking.booking_code,
-            created_at__range=(start_of_day, end_of_day)
-        ).exists()
+        # Kiểm tra nhanh trong bộ nhớ (O(1) lookups)
+        already_notified_checkin = not force and any(
+            booking.booking_code in msg for msg in existing_checkin_messages
+        )
 
-        if already_notified_checkin and not force:
+        if already_notified_checkin:
             logger.debug(f"[Check-in Reminder] Bỏ qua đơn #{booking.booking_code}: Đã gửi thông báo trong ngày {date_str}.")
             continue
 
         guest = booking.guest
-        guest_name = guest.get_full_name() or guest.username if guest else "Quý khách"
+        guest_name = _get_booking_guest_name(booking)
         category_name = booking.category.name if booking.category else "Tiêu chuẩn"
         room_label = f"Phòng {booking.room.room_number}" if booking.room else "Chờ gán số phòng"
 
@@ -116,7 +148,7 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
             )
             guest_checkin_count += 1
 
-        # 1.2. Thông báo cho Nhân viên & Quản lý
+        # 1.2. Thông báo cho Nhân viên Lễ tân & Buồng phòng
         for staff in checkin_staff_users:
             if guest and staff.id == guest.id:
                 continue
@@ -145,19 +177,17 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
     ).select_related('guest', 'category', 'room')
 
     for booking in checkout_bookings:
-        # CÁCH 1: KIỂM TRA TỒN TẠI TRONG BẢNG NOTIFICATION ĐỂ CHỐNG SPAM
-        already_notified_checkout = Notification.objects.filter(
-            title__icontains="Check-out",
-            message__contains=booking.booking_code,
-            created_at__range=(start_of_day, end_of_day)
-        ).exists()
+        # Kiểm tra nhanh trong bộ nhớ (O(1) lookups)
+        already_notified_checkout = not force and any(
+            booking.booking_code in msg for msg in existing_checkout_messages
+        )
 
-        if already_notified_checkout and not force:
+        if already_notified_checkout:
             logger.debug(f"[Check-out Reminder] Bỏ qua đơn #{booking.booking_code}: Đã gửi thông báo trong ngày {date_str}.")
             continue
 
         guest = booking.guest
-        guest_name = guest.get_full_name() or guest.username if guest else "Quý khách"
+        guest_name = _get_booking_guest_name(booking)
         room_label = f"Phòng {booking.room.room_number}" if booking.room else "Phòng lưu trú"
 
         # 2.1. Thông báo cho Khách hàng (chỉ gửi cho tài khoản Khách hàng / Guest thực thụ)
@@ -180,7 +210,7 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
             )
             guest_checkout_count += 1
 
-        # 2.2. Thông báo cho Nhân viên & Quản lý
+        # 2.2. Thông báo cho Nhân viên (Lễ tân, Buồng phòng, Thu ngân)
         for staff in checkout_staff_users:
             if guest and staff.id == guest.id:
                 continue
@@ -228,7 +258,7 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
 
     today = timezone.localdate()
     guest = booking.guest
-    guest_name = guest.get_full_name() or guest.username if guest else "Quý khách"
+    guest_name = _get_booking_guest_name(booking)
     category_name = booking.category.name if booking.category else "Tiêu chuẩn"
     room_label = f"Phòng {booking.room.room_number}" if booking.room else "Chờ gán số phòng"
     date_str = today.strftime('%d/%m/%Y')

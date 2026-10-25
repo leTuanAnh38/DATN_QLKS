@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { bookingService } from '../../../services/bookingService';
 import { roomService } from '../../../services/roomService';
+import { hotelService } from '../../../services/hotelService';
 import { useHasPermission } from '../../../utils/permission';
 import api from '../../../services/api';
 
@@ -33,6 +34,17 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     const [isLoadingInit, setIsLoadingInit] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+
+    // Dịch vụ khách sạn khả dụng để chọn kèm cho từng phòng
+    const [availableServices, setAvailableServices] = useState([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(false);
+    const [activeServicePickerRoomKey, setActiveServicePickerRoomKey] = useState(null);
+    const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+    const [selectedServiceCategory, setSelectedServiceCategory] = useState('all');
+
+    // Danh sách phân phòng & khách lưu trú từng phòng (Rooming List)
+    const [roomingList, setRoomingList] = useState([]);
+    const [isRoomingListOpen, setIsRoomingListOpen] = useState(true);
 
     // Dates
     const todayStr = new Date().toISOString().split('T')[0];
@@ -87,8 +99,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             roomService.getCategories(),
             bookingService.getCorporatePartners({ active_only: true }),
             api.get('/hotel-settings/'),
-            api.get('/payments/config/')
-        ]).then(([catRes, partnerRes, hotelRes, payRes]) => {
+            api.get('/payments/config/'),
+            hotelService.getServices({ status: 'active' })
+        ]).then(([catRes, partnerRes, hotelRes, payRes, svcRes]) => {
             if (!isMounted) return;
             if (catRes.status === 'fulfilled' && catRes.value?.categories) {
                 setCategories(catRes.value.categories);
@@ -114,6 +127,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         account_name: (pData.account_name || '').toUpperCase()
                     });
                 }
+            }
+            if (svcRes?.status === 'fulfilled' && svcRes.value?.success && Array.isArray(svcRes.value.items)) {
+                setAvailableServices(svcRes.value.items);
             }
             setIsLoadingInit(false);
         });
@@ -141,7 +157,8 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         let updated = false;
                         const next = { ...prev };
                         Object.entries(next).forEach(([catId, qty]) => {
-                            const maxAvail = res.availabilities[catId]?.available_rooms ?? 999;
+                            const aInfo = res.availabilities[catId] || res.availabilities[String(catId)];
+                            const maxAvail = aInfo?.available_rooms ?? 999;
                             if (qty > maxAvail) {
                                 next[catId] = Math.max(0, maxAvail);
                                 updated = true;
@@ -174,6 +191,220 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         }
     }, [checkInDate, checkOutDate]);
 
+    // Đồng bộ roomingList khi selectedRooms hoặc categories thay đổi
+    useEffect(() => {
+        setRoomingList((prevList) => {
+            const nextList = [];
+            let globalRoomIdx = 1;
+
+            categories.forEach((cat) => {
+                const qty = Number(selectedRooms[cat.id] || 0);
+                if (qty > 0) {
+                    const existingForCat = prevList.filter((r) => r.category_id === cat.id);
+                    for (let i = 0; i < qty; i++) {
+                        const roomKey = `${cat.id}_${i}`;
+                        const existingRoom = existingForCat[i];
+                        if (existingRoom) {
+                            nextList.push({
+                                ...existingRoom,
+                                room_key: roomKey,
+                                global_index: globalRoomIdx++,
+                                category_name: cat.name,
+                                capacity: Number(cat.capacity || 2),
+                                room_index: i + 1,
+                                services: existingRoom.services || []
+                            });
+                        } else {
+                            const isFirstRoom = (globalRoomIdx === 1);
+                            nextList.push({
+                                room_key: roomKey,
+                                global_index: globalRoomIdx++,
+                                category_id: cat.id,
+                                category_name: cat.name,
+                                capacity: Number(cat.capacity || 2),
+                                room_index: i + 1,
+                                guests: [
+                                    {
+                                        id: `guest_${roomKey}_0`,
+                                        full_name: isFirstRoom ? (leaderName || '') : '',
+                                        id_type: 'CCCD',
+                                        id_number: isFirstRoom ? (identityCard || '') : '',
+                                        date_of_birth: '',
+                                        gender: 'Nam',
+                                        nationality: 'Việt Nam',
+                                        is_primary: true
+                                    }
+                                ],
+                                services: []
+                            });
+                        }
+                    }
+                }
+            });
+
+            return nextList;
+        });
+    }, [selectedRooms, categories]);
+
+    const handleAddGuestToAllocatedRoom = (roomKey) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                if (room.guests.length >= room.capacity) {
+                    alert(`Hạng phòng "${room.category_name}" chỉ có sức chứa tối đa ${room.capacity} khách. Không thể thêm vượt quá sức chứa quy định!`);
+                    return room;
+                }
+                const newGuest = {
+                    id: `guest_${roomKey}_${Date.now()}`,
+                    full_name: '',
+                    id_type: 'CCCD',
+                    id_number: '',
+                    date_of_birth: '',
+                    gender: 'Nam',
+                    nationality: 'Việt Nam',
+                    is_primary: false
+                };
+                return {
+                    ...room,
+                    guests: [...room.guests, newGuest]
+                };
+            })
+        );
+    };
+
+    const handleRemoveGuestFromAllocatedRoom = (roomKey, guestIdx) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const nextGuests = room.guests.filter((_, idx) => idx !== guestIdx);
+                if (nextGuests.length > 0 && !nextGuests.some((g) => g.is_primary)) {
+                    nextGuests[0].is_primary = true;
+                }
+                return {
+                    ...room,
+                    guests: nextGuests
+                };
+            })
+        );
+    };
+
+    const handleAllocatedGuestFieldChange = (roomKey, guestIdx, field, value) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const nextGuests = [...room.guests];
+                nextGuests[guestIdx] = {
+                    ...nextGuests[guestIdx],
+                    [field]: value
+                };
+                return {
+                    ...room,
+                    guests: nextGuests
+                };
+            })
+        );
+    };
+
+    // Quản lý dịch vụ chọn kèm cho từng phòng
+    const handleAddServiceToRoom = (roomKey, serviceItem) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const existingServices = room.services || [];
+                const existIdx = existingServices.findIndex((s) => s.service_id === serviceItem.id);
+                if (existIdx >= 0) {
+                    const updated = [...existingServices];
+                    updated[existIdx] = {
+                        ...updated[existIdx],
+                        quantity: updated[existIdx].quantity + 1
+                    };
+                    return { ...room, services: updated };
+                } else {
+                    return {
+                        ...room,
+                        services: [
+                            ...existingServices,
+                            {
+                                service_id: serviceItem.id,
+                                name: serviceItem.name,
+                                price: Number(serviceItem.price || 0),
+                                quantity: 1,
+                                category_name: serviceItem.category?.name || serviceItem.category_name || ''
+                            }
+                        ]
+                    };
+                }
+            })
+        );
+    };
+
+    const handleUpdateServiceQtyInRoom = (roomKey, serviceId, delta) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                const existingServices = room.services || [];
+                const updated = existingServices
+                    .map((s) => {
+                        if (s.service_id === serviceId) {
+                            return { ...s, quantity: s.quantity + delta };
+                        }
+                        return s;
+                    })
+                    .filter((s) => s.quantity > 0);
+                return { ...room, services: updated };
+            })
+        );
+    };
+
+    const handleRemoveServiceFromRoom = (roomKey, serviceId) => {
+        setRoomingList((prev) =>
+            prev.map((room) => {
+                if (room.room_key !== roomKey) return room;
+                return {
+                    ...room,
+                    services: (room.services || []).filter((s) => s.service_id !== serviceId)
+                };
+            })
+        );
+    };
+
+    // Nhóm danh mục dịch vụ để lọc
+    const serviceCategories = useMemo(() => {
+        const map = new Map();
+        availableServices.forEach((svc) => {
+            const catId = svc.category_id || svc.category?.id || svc.category_name || svc.category?.name || 'other';
+            const catName = svc.category_name || svc.category?.name || 'Tiện ích khác';
+            const catIcon = svc.category_icon || svc.category?.icon || '🛎️';
+            if (!map.has(catId)) {
+                map.set(catId, { id: catId, name: catName, icon: catIcon });
+            }
+        });
+        return Array.from(map.values());
+    }, [availableServices]);
+
+    // Danh sách dịch vụ sau khi lọc tìm kiếm & nhóm
+    const filteredServices = useMemo(() => {
+        return availableServices.filter((svc) => {
+            if (selectedServiceCategory !== 'all') {
+                const catId = String(svc.category_id || svc.category?.id || '');
+                const catName = svc.category_name || svc.category?.name || '';
+                if (catId !== String(selectedServiceCategory) && catName !== selectedServiceCategory) {
+                    return false;
+                }
+            }
+            if (serviceSearchQuery.trim()) {
+                const q = serviceSearchQuery.trim().toLowerCase();
+                const nameMatch = (svc.name || '').toLowerCase().includes(q);
+                const descMatch = (svc.description || '').toLowerCase().includes(q);
+                const catMatch = ((svc.category_name || svc.category?.name || '')).toLowerCase().includes(q);
+                if (!nameMatch && !descMatch && !catMatch) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [availableServices, selectedServiceCategory, serviceSearchQuery]);
+
     // Active partner details
     const activePartner = useMemo(() => {
         if (!selectedPartnerId) return null;
@@ -197,7 +428,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     // Calculate totals
     const discountPercent = activePartner ? Number(activePartner.discount_percent || 0) : 0;
 
-    const { totalRoomsCount, subtotalAmount, totalDiscount, grandTotal } = useMemo(() => {
+    const { totalRoomsCount, subtotalAmount, totalServicesAmount, totalDiscount, grandTotal } = useMemo(() => {
         let count = 0;
         let subtotal = 0;
         categories.forEach((cat) => {
@@ -209,16 +440,25 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             }
         });
 
+        // Tính tổng tiền dịch vụ của tất cả các phòng
+        let svcTotal = 0;
+        roomingList.forEach((r) => {
+            (r.services || []).forEach((s) => {
+                svcTotal += Number(s.price || 0) * Number(s.quantity || 1);
+            });
+        });
+
         const discount = discountPercent > 0 ? (subtotal * discountPercent) / 100 : 0;
-        const total = Math.max(0, subtotal - discount);
+        const total = Math.max(0, subtotal - discount + svcTotal);
 
         return {
             totalRoomsCount: count,
             subtotalAmount: subtotal,
+            totalServicesAmount: svcTotal,
             totalDiscount: discount,
             grandTotal: total
         };
-    }, [categories, selectedRooms, nights, discountPercent]);
+    }, [categories, selectedRooms, nights, discountPercent, roomingList]);
 
     // Tự động tính số tiền cọc mặc định (50%) khi tổng giá trị đoàn thay đổi (nếu chưa chỉnh sửa thủ công)
     useEffect(() => {
@@ -266,8 +506,8 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
 
     // Room quantity change
     const handleRoomQtyChange = (catId, delta) => {
-        const catAvail = availabilities[catId]?.available_rooms;
-        const maxAvail = (catAvail !== undefined) ? catAvail : 999;
+        const aInfo = availabilities[catId] || availabilities[String(catId)];
+        const maxAvail = aInfo?.available_rooms ?? 999;
 
         setSelectedRooms((prev) => {
             const current = Number(prev[catId] || 0);
@@ -341,6 +581,17 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         const depPercent = Number(hotelSettings.group_deposit_percent) || 50;
         const depositVal = customDeposit !== '' ? Number(customDeposit) : Math.round(grandTotal * (depPercent / 100));
 
+        // Danh sách phân phòng & khách lưu trú & dịch vụ đi kèm từng phòng (Rooming List)
+        const roomingPayload = roomingList.map((r) => ({
+            category_id: r.category_id,
+            room_index: r.room_index,
+            guests: (r.guests || []).filter((g) => (g.full_name || '').trim()),
+            services: (r.services || []).map((s) => ({
+                service_id: s.service_id,
+                quantity: s.quantity
+            }))
+        })).filter((r) => r.guests.length > 0 || (r.services && r.services.length > 0));
+
         const payload = {
             group_name: groupName.trim() || `Đoàn khách ${leaderName.trim()}`,
             corporate_partner_id: selectedPartnerId ? Number(selectedPartnerId) : null,
@@ -353,6 +604,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             estimated_arrival_time: estimatedArrivalTime || null,
             total_guests_estimated: estimatedGuests ? Number(estimatedGuests) : null,
             rooms: roomsPayload,
+            rooming_list: roomingPayload,
             deposit_amount: depositVal,
             deposit_payment_method: depositPaymentMethod,
             is_deposit_paid: isDepositPaidNow,
@@ -389,7 +641,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-4xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[94vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[94vh] overflow-y-auto animate-in zoom-in-95 duration-200">
                 
                 {/* MODAL HEADER */}
                 <div className="flex items-start justify-between pb-4 border-b border-slate-200 mb-6">
@@ -627,9 +879,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                     const basePrice = Number(cat.promo_price || cat.base_price || 0);
                                     const discountedPrice = discountPercent > 0 ? basePrice * (1 - discountPercent / 100) : basePrice;
 
-                                    const availInfo = availabilities[cat.id];
+                                    const availInfo = availabilities[cat.id] || availabilities[String(cat.id)];
                                     const availRooms = availInfo ? availInfo.available_rooms : null;
-                                    const isSoldOut = availInfo ? availInfo.is_sold_out : false;
+                                    const isSoldOut = availInfo ? (availInfo.is_sold_out || availRooms <= 0) : false;
 
                                     return (
                                         <div
@@ -653,13 +905,15 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                                     <span className="text-[10px] text-slate-500">Sức chứa: {cat.capacity || 2} khách</span>
                                                     <span className="text-slate-300">•</span>
-                                                    {isSoldOut ? (
+                                                    {isLoadingAvail ? (
+                                                        <span className="text-[10px] text-indigo-600 animate-pulse font-medium">Đang kiểm tra...</span>
+                                                    ) : isSoldOut ? (
                                                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                                                            Hết phòng
+                                                            🔴 Hết phòng
                                                         </span>
                                                     ) : availRooms !== null ? (
                                                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                            Còn: <strong>{availRooms}</strong> phòng
+                                                            🟢 Còn: <strong>{availRooms}</strong> phòng
                                                         </span>
                                                     ) : null}
                                                 </div>
@@ -681,7 +935,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                     disabled={isSoldOut || (availRooms !== null && qty >= availRooms)}
                                                     onClick={() => handleRoomQtyChange(cat.id, 1)}
                                                     className="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95 shadow-xs"
-                                                    title={availRooms !== null && qty >= availRooms ? `Chỉ còn ${availRooms} phòng trống` : ''}
+                                                    title={availRooms !== null && qty >= availRooms ? `Chỉ còn ${availRooms} phòng trống, không thể chọn vượt quá số phòng trống!` : ''}
                                                 >
                                                     +
                                                 </button>
@@ -691,6 +945,429 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                 })}
                             </div>
                         </div>
+
+                        {/* KHỐI 3.5: DANH SÁCH KHÁCH LƯU TRÚ CHO TỪNG PHÒNG & DỊCH VỤ ĐI KÈM (ROOMING LIST) */}
+                        {totalRoomsCount > 0 && (
+                            <div className="p-4 sm:p-5 bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/30 border border-indigo-200 rounded-2xl shadow-xs space-y-4">
+                                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-indigo-100">
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                                            <span>👥</span>
+                                            <span>Danh Sách Khách Lưu Trú Cho Từng Phòng & Dịch Vụ Đặt Kèm</span>
+                                            <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                                {totalRoomsCount} phòng • {roomingList.reduce((acc, r) => acc + (r.guests?.length || 0), 0)} khách
+                                            </span>
+                                        </h3>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">
+                                            Khai báo trước danh sách người ở & dịch vụ tiện ích kèm theo từng phòng để hỗ trợ thủ tục nhận phòng (Fast Check-in) nhanh nhất.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRoomingListOpen(!isRoomingListOpen)}
+                                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <span>{isRoomingListOpen ? 'Thu gọn' : 'Mở rộng danh sách'}</span>
+                                        <span>{isRoomingListOpen ? '▲' : '▼'}</span>
+                                    </button>
+                                </div>
+
+                                {isRoomingListOpen && (
+                                    <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                                        {roomingList.map((room) => {
+                                            const roomCap = Number(room.capacity || 2);
+                                            const guestCount = room.guests.length;
+                                            const isFull = guestCount >= roomCap;
+
+                                            return (
+                                                <div
+                                                    key={room.room_key}
+                                                    className="p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-white shadow-2xs hover:border-indigo-200 transition space-y-3"
+                                                >
+                                                    {/* Header của từng phòng */}
+                                                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                                                                #{room.global_index}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                                                                    Phòng {room.global_index}: {room.category_name}
+                                                                </div>
+                                                                <span className="text-[10px] text-slate-500">
+                                                                    Sức chứa tối đa: <strong className="text-slate-700">{roomCap} khách/phòng</strong>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2">
+                                                            {/* Sức chứa badge */}
+                                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 border ${
+                                                                isFull
+                                                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                                                    : 'bg-slate-50 text-slate-700 border-slate-200'
+                                                            }`}>
+                                                                <span>👥</span>
+                                                                <span>{guestCount}/{roomCap} khách</span>
+                                                                {isFull && <span className="text-amber-600 font-semibold">(Tối đa)</span>}
+                                                            </span>
+
+                                                            <button
+                                                                type="button"
+                                                                disabled={isFull}
+                                                                onClick={() => handleAddGuestToAllocatedRoom(room.room_key)}
+                                                                title={isFull ? `Phòng đã đạt sức chứa tối đa (${roomCap} khách)` : 'Thêm người ở cùng phòng này'}
+                                                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition flex items-center gap-1 ${
+                                                                    isFull
+                                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                                                                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 cursor-pointer active:scale-95'
+                                                                }`}
+                                                            >
+                                                                <span>➕</span>
+                                                                <span>Thêm người ở</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Danh sách khách trong phòng */}
+                                                    <div className="space-y-2">
+                                                        {room.guests.map((guest, gIdx) => {
+                                                            const isPrimary = Boolean(guest.is_primary || gIdx === 0);
+
+                                                            return (
+                                                                <div
+                                                                    key={guest.id || gIdx}
+                                                                    className={`p-2.5 rounded-lg border transition ${
+                                                                        isPrimary
+                                                                            ? 'bg-indigo-50/40 border-indigo-200/80'
+                                                                            : 'bg-slate-50/60 border-slate-200'
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-center justify-between mb-1.5">
+                                                                        <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1">
+                                                                            <span>{isPrimary ? '⭐' : '👤'}</span>
+                                                                            <span>{isPrimary ? 'Khách đại diện phòng' : `Khách ở cùng #${gIdx}`}</span>
+                                                                        </span>
+
+                                                                        {!isPrimary && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleRemoveGuestFromAllocatedRoom(room.room_key, gIdx)}
+                                                                                className="text-rose-600 hover:text-rose-800 text-[10px] font-bold flex items-center gap-1 cursor-pointer p-0.5 hover:bg-rose-50 rounded transition"
+                                                                            >
+                                                                                <span>✕ Xóa</span>
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-[11px]">
+                                                                        {/* Họ và tên */}
+                                                                        <div className="sm:col-span-2">
+                                                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
+                                                                                Họ và tên
+                                                                            </label>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={guest.full_name || ''}
+                                                                                onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'full_name', e.target.value)}
+                                                                                placeholder={isPrimary && room.global_index === 1 ? leaderName || 'Nguyễn Văn A' : 'Nguyễn Văn A'}
+                                                                                className="w-full px-2 py-1 bg-white border border-slate-200 rounded-md text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                                            />
+                                                                        </div>
+
+                                                                        {/* Loại giấy tờ */}
+                                                                        <div>
+                                                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Loại giấy tờ</label>
+                                                                            <select
+                                                                                value={guest.id_type || 'CCCD'}
+                                                                                onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'id_type', e.target.value)}
+                                                                                className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                                                            >
+                                                                                <option value="CCCD">CCCD / CMND</option>
+                                                                                <option value="PASSPORT">Hộ chiếu</option>
+                                                                                <option value="OTHER">Trẻ em / Khác</option>
+                                                                            </select>
+                                                                        </div>
+
+                                                                        {/* Số giấy tờ */}
+                                                                        <div>
+                                                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Số CCCD / Hộ chiếu</label>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={guest.id_number || ''}
+                                                                                onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'id_number', e.target.value)}
+                                                                                placeholder={isPrimary && room.global_index === 1 ? identityCard || 'Số định danh...' : 'Số định danh...'}
+                                                                                className="w-full px-2 py-1 bg-white border border-slate-200 rounded-md text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                                            />
+                                                                        </div>
+
+                                                                        {/* Giới tính */}
+                                                                        <div>
+                                                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Giới tính</label>
+                                                                            <select
+                                                                                value={guest.gender || 'Nam'}
+                                                                                onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'gender', e.target.value)}
+                                                                                className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                                                            >
+                                                                                <option value="Nam">Nam</option>
+                                                                                <option value="Nữ">Nữ</option>
+                                                                                <option value="Khác">Khác</option>
+                                                                            </select>
+                                                                        </div>
+
+                                                                        {/* Ngày sinh */}
+                                                                        <div>
+                                                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">Ngày sinh</label>
+                                                                            <input
+                                                                                type="date"
+                                                                                value={guest.date_of_birth || ''}
+                                                                                onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'date_of_birth', e.target.value)}
+                                                                                className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Dịch vụ chọn kèm cho phòng này */}
+                                                    <div className="pt-2.5 border-t border-slate-100 space-y-2">
+                                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                                                <span>🛎️</span>
+                                                                <span>Dịch vụ tiện ích chọn kèm phòng này</span>
+                                                                {room.services && room.services.length > 0 && (
+                                                                    <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-bold text-[10px]">
+                                                                        {room.services.length} dịch vụ
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setActiveServicePickerRoomKey(activeServicePickerRoomKey === room.room_key ? null : room.room_key)}
+                                                                className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1 transition cursor-pointer active:scale-95"
+                                                            >
+                                                                <span>➕</span>
+                                                                <span>{activeServicePickerRoomKey === room.room_key ? 'Đóng menu dịch vụ' : 'Thêm dịch vụ'}</span>
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Danh sách dịch vụ đã chọn cho phòng */}
+                                                        {room.services && room.services.length > 0 ? (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                {room.services.map((svc) => (
+                                                                    <div key={svc.service_id} className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="text-xs font-bold text-slate-900 truncate">{svc.name}</div>
+                                                                            <div className="text-[10px] text-indigo-700 font-semibold">
+                                                                                {formatCurrency(svc.price)} / lần
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 shrink-0">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, -1)}
+                                                                                className="w-5 h-5 rounded bg-white hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer border border-slate-200"
+                                                                            >
+                                                                                -
+                                                                            </button>
+                                                                            <span className="w-5 text-center text-xs font-black text-slate-800">{svc.quantity}</span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, 1)}
+                                                                                className="w-5 h-5 rounded bg-white hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer border border-slate-200"
+                                                                            >
+                                                                                +
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleRemoveServiceFromRoom(room.room_key, svc.service_id)}
+                                                                                className="text-slate-400 hover:text-rose-600 text-xs ml-1 cursor-pointer p-0.5"
+                                                                                title="Xóa dịch vụ"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-[10px] text-slate-400 italic">
+                                                                Chưa chọn dịch vụ nào cho phòng này (như Buffet sáng, Spa, Đưa đón sân bay, Giặt ủi...).
+                                                            </div>
+                                                        )}
+
+                                                        {/* Panel chọn dịch vụ cho phòng này */}
+                                                        {activeServicePickerRoomKey === room.room_key && (
+                                                            <div className="p-3.5 bg-indigo-50/60 rounded-2xl border border-indigo-200/90 space-y-3 animate-in fade-in duration-150 shadow-2xs">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                                                                        
+                                                                        <span>Chọn dịch vụ khách sạn muốn thêm vào phòng #{room.global_index} ({room.category_name}):</span>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setActiveServicePickerRoomKey(null);
+                                                                            setServiceSearchQuery('');
+                                                                            setSelectedServiceCategory('all');
+                                                                        }}
+                                                                        className="text-slate-400 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold"
+                                                                    >
+                                                                        ✕ Đóng
+                                                                    </button>
+                                                                </div>
+
+                                                                {/* Thanh tìm kiếm & Lọc nhóm dịch vụ */}
+                                                                <div className="space-y-2">
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={serviceSearchQuery}
+                                                                            onChange={(e) => setServiceSearchQuery(e.target.value)}
+                                                                            placeholder="Tìm nhanh dịch vụ theo tên, tiện ích (Buffet, Spa, Xe, Giặt ủi...)"
+                                                                            className="w-full pl-8 pr-8 py-1.5 bg-white border border-indigo-200/80 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                                                        />
+                                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                                                                        {serviceSearchQuery && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setServiceSearchQuery('')}
+                                                                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Nhóm dịch vụ (Tabs / Pills) */}
+                                                                    {serviceCategories.length > 0 && (
+                                                                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setSelectedServiceCategory('all')}
+                                                                                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition cursor-pointer ${
+                                                                                    selectedServiceCategory === 'all'
+                                                                                        ? 'bg-indigo-600 text-white shadow-2xs'
+                                                                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                                                                }`}
+                                                                            >
+                                                                                Tất cả ({availableServices.length})
+                                                                            </button>
+                                                                            {serviceCategories.map((cat) => {
+                                                                                const countInCat = availableServices.filter(
+                                                                                    (s) => String(s.category_id || s.category?.id || '') === String(cat.id) || (s.category_name || s.category?.name) === cat.name
+                                                                                ).length;
+                                                                                return (
+                                                                                    <button
+                                                                                        key={cat.id}
+                                                                                        type="button"
+                                                                                        onClick={() => setSelectedServiceCategory(cat.id)}
+                                                                                        className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
+                                                                                            String(selectedServiceCategory) === String(cat.id)
+                                                                                                ? 'bg-indigo-600 text-white shadow-2xs'
+                                                                                                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                                                                        }`}
+                                                                                    >
+                                                                                        <span>{cat.icon || '🛎️'}</span>
+                                                                                        <span>{cat.name}</span>
+                                                                                        <span className="opacity-70 text-[10px]">({countInCat})</span>
+                                                                                    </button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Lưới hiển thị danh sách dịch vụ */}
+                                                                {availableServices.length > 0 ? (
+                                                                    filteredServices.length > 0 ? (
+                                                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                                                                            {filteredServices.map((svcItem) => {
+                                                                                const existingInRoom = (room.services || []).find((s) => s.service_id === svcItem.id);
+                                                                                const qtyInRoom = existingInRoom ? existingInRoom.quantity : 0;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={svcItem.id}
+                                                                                        className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition ${
+                                                                                            qtyInRoom > 0
+                                                                                                ? 'bg-indigo-100/70 border-indigo-300 ring-1 ring-indigo-400/30'
+                                                                                                : 'bg-white border-slate-200 hover:border-indigo-300 shadow-2xs'
+                                                                                        }`}
+                                                                                    >
+                                                                                        <div className="min-w-0">
+                                                                                            <div className="flex items-center justify-between gap-1 mb-1">
+                                                                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[130px]">
+                                                                                                    {svcItem.category_icon || '🛎️'} {svcItem.category?.name || svcItem.category_name || 'Tiện ích'}
+                                                                                                </span>
+                                                                                                {qtyInRoom > 0 && (
+                                                                                                    <span className="text-[10px] font-black text-indigo-700 bg-indigo-200/80 px-1.5 py-0.2 rounded-full">
+                                                                                                        x{qtyInRoom}
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <div className="font-bold text-slate-900 text-xs truncate" title={svcItem.name}>
+                                                                                                {svcItem.name}
+                                                                                            </div>
+                                                                                            {svcItem.description && (
+                                                                                                <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5" title={svcItem.description}>
+                                                                                                    {svcItem.description}
+                                                                                                </div>
+                                                                                            )}
+                                                                                            <div className="text-xs font-black text-indigo-700 mt-1">
+                                                                                                {formatCurrency(svcItem.price)}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleAddServiceToRoom(room.room_key, svcItem)}
+                                                                                            className={`mt-2 w-full py-1.5 px-2 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1 active:scale-95 ${
+                                                                                                qtyInRoom > 0
+                                                                                                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xs'
+                                                                                                    : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                                                                            }`}
+                                                                                        >
+                                                                                            <span>{qtyInRoom > 0 ? `✓ Thêm tiếp (+1)` : '➕ Thêm vào phòng'}</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-center py-6 bg-white rounded-xl border border-dashed border-slate-200 space-y-1.5">
+                                                                            <div className="text-base">🔍</div>
+                                                                            <p className="text-xs font-semibold text-slate-600">
+                                                                                Không tìm thấy dịch vụ nào phù hợp với từ khóa "{serviceSearchQuery}".
+                                                                            </p>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setServiceSearchQuery('');
+                                                                                    setSelectedServiceCategory('all');
+                                                                                }}
+                                                                                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+                                                                            >
+                                                                                Đặt lại tìm kiếm & danh mục
+                                                                            </button>
+                                                                        </div>
+                                                                    )
+                                                                ) : (
+                                                                    <div className="text-center py-4 text-xs text-slate-400">
+                                                                        Đang tải danh mục dịch vụ khách sạn...
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* KHỐI 4: GHI CHÚ YÊU CẦU CỦA ĐOÀN & GHI CHÚ NỘI BỘ LỄ TÂN */}
                         <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
@@ -805,6 +1482,13 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                 <div className="flex justify-between items-center text-xs text-emerald-600 font-semibold">
                                     <span>Chiết khấu Doanh nghiệp ({discountPercent}%):</span>
                                     <span>-{formatCurrency(totalDiscount)}</span>
+                                </div>
+                            )}
+
+                            {totalServicesAmount > 0 && (
+                                <div className="flex justify-between items-center text-xs text-indigo-600 font-semibold">
+                                    <span>Tổng dịch vụ tiện ích đặt kèm ({roomingList.reduce((acc, r) => acc + (r.services?.length || 0), 0)} dịch vụ):</span>
+                                    <span>+{formatCurrency(totalServicesAmount)}</span>
                                 </div>
                             )}
 
