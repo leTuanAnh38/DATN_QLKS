@@ -112,6 +112,8 @@ class BookingSerializer(serializers.ModelSerializer):
     group_total_amount = serializers.DecimalField(source='group_booking.total_amount', max_digits=12, decimal_places=0, read_only=True, default=0)
     group_deposit_status = serializers.SerializerMethodField()
     group_status = serializers.CharField(source='group_booking.status', read_only=True, default=None)
+    group_payment_method = serializers.SerializerMethodField()
+    group_payment_method_display = serializers.SerializerMethodField()
     latest_inspection = serializers.SerializerMethodField()
 
     class Meta:
@@ -136,6 +138,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'group_total_amount',
             'group_deposit_status',
             'group_status',
+            'group_payment_method',
+            'group_payment_method_display',
             'latest_inspection',
             'review',
             'category',
@@ -716,7 +720,13 @@ class BookingSerializer(serializers.ModelSerializer):
         if 'reception' in note_lower or 'tiền mặt' in note_lower or 'cash' in note_lower or 'tại lễ tân' in note_lower or 'tại quầy' in note_lower:
             return 'CASH'
 
-        # 4. Nếu đơn đã hoàn thành hoặc check-out mà không có thông tin VietQR, mặc định là thanh toán tại quầy (CASH)
+        # 4. Nếu là phòng thuộc đoàn (Sub-booking), thừa hưởng phương thức thanh toán từ hợp đồng đoàn / Master Invoice
+        if obj.group_booking_id and obj.group_booking:
+            grp_m = self.get_group_payment_method(obj)
+            if grp_m:
+                return grp_m
+
+        # 5. Nếu đơn đã hoàn thành hoặc check-out mà không có thông tin VietQR, mặc định là thanh toán tại quầy (CASH)
         if obj.status in ['completed', 'checked_out']:
             return 'CASH'
 
@@ -735,6 +745,79 @@ class BookingSerializer(serializers.ModelSerializer):
         if method == 'MOMO':
             return 'Ví MoMo'
         return 'Chưa xác định'
+
+    def get_group_payment_method(self, obj):
+        if not obj.group_booking_id or not obj.group_booking:
+            return None
+        grp = obj.group_booking
+        # Kiểm tra Payment đã hoàn thành của đoàn
+        try:
+            grp_payments = list(grp.payments.filter(payment_status='COMPLETED').order_by('created_at'))
+            if grp_payments:
+                distinct_methods = set()
+                for p in grp_payments:
+                    m = str(p.payment_method or '').strip().upper()
+                    if m in ['CASH', 'TIEN_MAT']:
+                        distinct_methods.add('CASH')
+                    elif m in ['TRANSFER', 'VIETQR', 'BANK_TRANSFER', 'CHUYEN_KHOAN']:
+                        distinct_methods.add('TRANSFER')
+                    elif m in ['CARD', 'CREDIT_CARD', 'POS']:
+                        distinct_methods.add('CREDIT_CARD')
+                    elif m in ['MOMO', 'ZALOPAY']:
+                        distinct_methods.add('MOMO')
+                    elif m:
+                        distinct_methods.add(m)
+                if len(distinct_methods) > 1:
+                    return 'MIXED'
+                return grp_payments[-1].payment_method
+        except Exception:
+            pass
+
+        # Kiểm tra Master Invoice của đoàn
+        try:
+            grp_inv = getattr(grp, 'master_invoice', None)
+            if not grp_inv:
+                from ..payments.models import Invoice
+                grp_inv = Invoice.objects.filter(group_booking=grp).first()
+            if grp_inv and grp_inv.payment_method:
+                inv_m = str(grp_inv.payment_method).lower()
+                if inv_m in ['mixed', 'hỗn hợp', 'hon_hop']:
+                    return 'MIXED'
+                if inv_m in ['cash', 'tiền mặt', 'tien_mat']:
+                    return 'CASH'
+                if inv_m in ['bank_transfer', 'vietqr', 'transfer', 'chuyển khoản']:
+                    return 'TRANSFER'
+                if inv_m in ['credit_card', 'thẻ tín dụng']:
+                    return 'CREDIT_CARD'
+                if inv_m in ['momo']:
+                    return 'MOMO'
+                return grp_inv.payment_method.upper()
+        except Exception:
+            pass
+
+        # Kiểm tra phương thức đặt cọc của đoàn
+        if getattr(grp, 'deposit_payment_method', None):
+            dep_m = str(grp.deposit_payment_method).upper()
+            if dep_m in ['TRANSFER', 'VIETQR', 'BANK_TRANSFER']:
+                return 'TRANSFER'
+            if dep_m in ['CASH']:
+                return 'CASH'
+
+        return None
+
+    def get_group_payment_method_display(self, obj):
+        m = self.get_group_payment_method(obj)
+        if m == 'MIXED':
+            return 'Hỗn hợp (Tiền mặt & VietQR)'
+        if m == 'CASH':
+            return 'Tiền mặt'
+        if m == 'TRANSFER':
+            return 'VietQR'
+        if m == 'CREDIT_CARD':
+            return 'Thẻ tín dụng'
+        if m == 'MOMO':
+            return 'Ví MoMo'
+        return None
 
     def get_is_company_all_inclusive(self, obj):
         if obj.group_booking:

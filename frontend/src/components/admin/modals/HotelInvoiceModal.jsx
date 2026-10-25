@@ -111,6 +111,23 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             }
         }
 
+        const isGroup = Boolean(
+            booking?.is_group_booking ||
+            booking?.is_group_master ||
+            booking?.group_booking ||
+            booking?.group_booking_code ||
+            booking?.group_booking_id
+        );
+
+        if (isGroup && booking?.group_payment_method) {
+            const gpm = String(booking.group_payment_method).trim().toUpperCase();
+            if (['TRANSFER', 'VIETQR', 'BANK_TRANSFER', 'CHUYEN_KHOAN'].includes(gpm)) return 'TRANSFER';
+            if (['CASH', 'TIEN_MAT'].includes(gpm)) return 'CASH';
+            if (['MIXED'].includes(gpm)) return 'MIXED';
+            if (['CREDIT_CARD', 'CARD'].includes(gpm)) return 'CREDIT_CARD';
+            if (['MOMO'].includes(gpm)) return 'MOMO';
+        }
+
         const raw = (
             paymentMethod ||
             payment?.payment_method ||
@@ -118,6 +135,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             transaction?.payment_method ||
             transaction?.method ||
             booking?.payment_method ||
+            booking?.group_payment_method ||
+            booking?.group_booking?.payment_method ||
+            booking?.group_booking?.master_invoice?.payment_method ||
             booking?.invoice?.payment_method ||
             ''
         );
@@ -150,6 +170,16 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         }
         if (noteLower.includes('reception') || noteLower.includes('tiền mặt') || noteLower.includes('cash') || noteLower.includes('tại lễ tân') || noteLower.includes('tại quầy')) {
             return 'CASH';
+        }
+
+        // Nếu là phòng thuộc đoàn, kiểm tra tiếp thanh toán của hợp đồng đoàn
+        if (isGroup) {
+            const grpRaw = String(booking?.group_payment_method || booking?.group_booking?.payment_method || '').toUpperCase();
+            if (['TRANSFER', 'VIETQR', 'BANK_TRANSFER'].includes(grpRaw)) {
+                return 'TRANSFER';
+            }
+            if (grpRaw === 'MIXED') return 'MIXED';
+            if (grpRaw === 'CASH') return 'CASH';
         }
 
         // Nếu đơn đã hoàn thành/check-out mà không có ghi chú VietQR -> Mặc định là Tiền mặt tại quầy
@@ -198,13 +228,14 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
     // Trích xuất phương thức thanh toán hiển thị trên thông tin đặt phòng
     const getPaymentMethod = () => {
+        const code = resolvePaymentMethodCode();
+        const methodDisplay = code === 'TRANSFER' ? 'VietQR' : code === 'CASH' ? 'Tiền mặt' : code === 'MIXED' ? 'Hỗn hợp (Tiền mặt & VietQR)' : '';
         if (isGroupMaster) {
-            return booking.payment_method || 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)';
+            return booking.payment_method_display || (methodDisplay ? `Hợp đồng Doanh nghiệp B2B (${methodDisplay})` : (booking.payment_method || 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'));
         }
         if (isGroupRoom) {
-            return `Gộp HĐ đoàn #${booking.group_booking_code || ''} (Master-Billing)`;
+            return `Gộp HĐ đoàn #${booking.group_booking_code || ''} (Master-Billing${methodDisplay ? ` • ${methodDisplay}` : ''})`;
         }
-        const code = resolvePaymentMethodCode();
         if (code === 'MIXED') return 'Hỗn hợp (Tiền mặt & Chuyển khoản VietQR)';
         if (code === 'CASH') return 'Tiền mặt (Tại quầy lễ tân)';
         if (code === 'TRANSFER') return 'Chuyển khoản VietQR';
@@ -355,10 +386,20 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         return `✓ Đợt ${index + 1} (${methodName}):`;
     };
 
+    const directGuestPaid = isCancelled ? 0 : (
+        completedPayments.length > 0
+            ? completedPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0)
+            : Number(booking.paid_amount || 0)
+    );
+
     const paidAmount = isCancelled ? 0 : (
         isGroupMaster
             ? (isCompleted ? grandTotal : (booking.is_deposit_paid ? Number(booking.deposit_amount || 0) : 0))
-            : (isCompleted ? grandTotal : Number(booking.paid_amount ?? (isRoomPaid ? roomAmount : 0)))
+            : isGroupRoom
+                ? (isCompanyAllInclusive 
+                    ? directGuestPaid 
+                    : (isCompleted ? (extraServicesTotal || directGuestPaid) : directGuestPaid))
+                : (isCompleted ? grandTotal : Number(booking.paid_amount ?? (isRoomPaid ? roomAmount : 0)))
     );
     const balanceDue = isCancelled ? 0 : (
         isGroupMaster
@@ -853,7 +894,12 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 <td className="py-2.5 text-center">
                                                     {serviceIsPaid || isCompleted ? (
                                                         <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                            {isGroupMaster ? '✓ Đã quyết toán' : `✓ ${getPaidMethodLabel()}`}
+                                                            {isGroupMaster 
+                                                                ? '✓ Đã quyết toán' 
+                                                                : (isGroupRoom && isCompanyAllInclusive)
+                                                                ? `✓ Gộp HĐ đoàn (${resolvePaymentMethodCode() === 'TRANSFER' ? 'VietQR' : resolvePaymentMethodCode() === 'MIXED' ? 'Hỗn hợp' : resolvePaymentMethodCode() === 'CASH' ? 'Tiền mặt' : 'Đã thanh toán'})`
+                                                                : `✓ ${getPaidMethodLabel()}`
+                                                            }
                                                         </span>
                                                     ) : (
                                                         <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black ${
@@ -1015,28 +1061,36 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             ) : isGroupRoom ? (
                                 <>
                                     <div className="flex justify-between sm:justify-end gap-6 text-indigo-700 font-semibold text-[11px] bg-indigo-50/60 p-1.5 rounded border border-indigo-100">
-                                        <span>{isCompanyAllInclusive ? ` Chuyển thanh toán TOÀN BỘ (Phòng & Dịch vụ) vào Hóa đơn đoàn #${booking.group_booking_code || ''}:` : ` Chuyển thanh toán vào Hóa đơn đoàn #${booking.group_booking_code || ''}:`}</span>
+                                        <span>
+                                            {isCompanyAllInclusive 
+                                                ? `🏢 Chuyển thanh toán TOÀN BỘ (Phòng & Dịch vụ) vào Hóa đơn đoàn #${booking.group_booking_code || ''}${resolvePaymentMethodCode() === 'TRANSFER' ? ' (Thanh toán qua VietQR)' : resolvePaymentMethodCode() === 'MIXED' ? ' (Thanh toán Hỗn hợp)' : ''}:` 
+                                                : `🏢 Chuyển thanh toán Tiền phòng vào Hóa đơn đoàn #${booking.group_booking_code || ''}:`
+                                            }
+                                        </span>
                                         <span className="w-36 text-right font-bold text-indigo-800">
                                             -{formatCurrency(isCompanyAllInclusive ? (roomAmount + extraServicesTotal) : roomAmount)}
                                         </span>
                                     </div>
-                                    {completedPayments.length > 1 ? (
-                                        completedPayments.map((p, idx) => (
-                                            <div key={p.id || idx} className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
-                                                <span>{getPaymentTrancheLabel(p, idx)}</span>
+                                    {/* Chỉ hiển thị các khoản khách lẻ tự thanh toán riêng tại phòng nếu phòng tự chi trả dịch vụ */}
+                                    {!isCompanyAllInclusive && (
+                                        completedPayments.length > 1 ? (
+                                            completedPayments.map((p, idx) => (
+                                                <div key={p.id || idx} className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                                    <span>{getPaymentTrancheLabel(p, idx)}</span>
+                                                    <span className="w-36 text-right font-bold">
+                                                        -{formatCurrency(p.amount)}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        ) : paidAmount > 0 ? (
+                                            <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                                <span>{getPaidAdvanceLabel()}</span>
                                                 <span className="w-36 text-right font-bold">
-                                                    -{formatCurrency(p.amount)}
+                                                    -{formatCurrency(paidAmount)}
                                                 </span>
                                             </div>
-                                        ))
-                                    ) : paidAmount > 0 ? (
-                                        <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
-                                            <span>{getPaidAdvanceLabel()}</span>
-                                            <span className="w-36 text-right font-bold">
-                                                -{formatCurrency(paidAmount)}
-                                            </span>
-                                        </div>
-                                    ) : null}
+                                        ) : null
+                                    )}
                                     <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
                                         <div>
                                             <span className="font-black text-xs sm:text-sm text-slate-900 uppercase block">
