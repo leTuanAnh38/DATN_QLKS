@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
     ChevronDown,
@@ -39,30 +39,31 @@ import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { useHasPermission } from '../../utils/permission';
 import { bookingService } from '../../services/bookingService';
-import GuestManagement from './GuestManagement';
-import EmployeeManagement from './EmployeeManagement';
-import RoomManagement from './RoomManagement';
-import LostAndFoundManagement from './LostAndFoundManagement';
-import MinibarManagement from './MinibarManagement';
-import CategoryManagement from './CategoryManagement';
-import BookingManagement from './BookingManagement';
-import BookingTimeline from './BookingTimeline';
-import ServiceRequestKanban from './ServiceRequestKanban';
-import ServiceManagement from './ServiceManagement';
-import ReviewManagement from './ReviewManagement';
+// Lazy-load các tab quản trị: chỉ tải code của tab khi người dùng mở tab đó
+const GuestManagement = lazy(() => import('./GuestManagement'));
+const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
+const RoomManagement = lazy(() => import('./RoomManagement'));
+const LostAndFoundManagement = lazy(() => import('./LostAndFoundManagement'));
+const MinibarManagement = lazy(() => import('./MinibarManagement'));
+const CategoryManagement = lazy(() => import('./CategoryManagement'));
+const BookingManagement = lazy(() => import('./BookingManagement'));
+const BookingTimeline = lazy(() => import('./BookingTimeline'));
+const ServiceRequestKanban = lazy(() => import('./ServiceRequestKanban'));
+const ServiceManagement = lazy(() => import('./ServiceManagement'));
+const ReviewManagement = lazy(() => import('./ReviewManagement'));
 import UserAvatar from '../../components/common/UserAvatar';
 import NotificationBell from '../../components/common/NotificationBell';
-import StaffProfile from './StaffProfile';
-import CustomerDetail from './CustomerDetail';
-import PostManagement from './PostManagement';
-import ContactManagement from './ContactManagement';
-import Analytics from './Analytics';
-import InvoiceManagement from './InvoiceManagement';
-import SystemSettings from './SystemSettings';
-import AmenityManagement from './AmenityManagement';
+const StaffProfile = lazy(() => import('./StaffProfile'));
+const CustomerDetail = lazy(() => import('./CustomerDetail'));
+const PostManagement = lazy(() => import('./PostManagement'));
+const ContactManagement = lazy(() => import('./ContactManagement'));
+const Analytics = lazy(() => import('./Analytics'));
+const InvoiceManagement = lazy(() => import('./InvoiceManagement'));
+const SystemSettings = lazy(() => import('./SystemSettings'));
+const AmenityManagement = lazy(() => import('./AmenityManagement'));
 import LogoutConfirmModal from '../../components/common/LogoutConfirmModal';
-import PromotionManagement from './PromotionManagement';
-import SystemLog from './SystemLog';
+const PromotionManagement = lazy(() => import('./PromotionManagement'));
+const SystemLog = lazy(() => import('./SystemLog'));
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -1514,6 +1515,14 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                 {/* Nội dung bảng điều khiển thay đổi theo Tab */}
                 <main className="p-3.5 sm:p-6 lg:p-8 space-y-6 flex-1 min-w-0 max-w-full print:p-0 print:m-0 print:w-full">
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center py-24">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-9 h-9 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
+                                <span className="text-xs text-slate-500">Đang tải dữ liệu...</span>
+                            </div>
+                        </div>
+                    }>
                     {/* TAB 1: QUẢN LÝ KHÁCH HÀNG (FEATURE 1) */}
                     {activeTab === 'guests' && (
                         canViewGuests ? <GuestManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem phân hệ Khách hàng.')
@@ -2703,6 +2712,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                             </div>
                         </div>
                     )}
+                    </Suspense>
                 </main>
             </div>
 

@@ -17,7 +17,7 @@ from ..services.models import ServiceItem, ServiceRequest
 from ..payments.models import Invoice, Payment
 from ..notifications.models import Notification
 from ..notifications.signals import get_staff_and_admin_users
-from .serializers import BookingSerializer, PromotionSerializer, HotelSettingSerializer
+from .serializers import BookingSerializer, PromotionSerializer, HotelSettingSerializer, optimize_booking_queryset
 from .email_service import send_booking_email_async
 from core_project.pagination import StandardResultsSetPagination
 
@@ -146,9 +146,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         # Luôn tạo mới QuerySet từ DB (.all()) để tránh lưu cache kết quả cũ trong bộ nhớ (QuerySet._result_cache)
         base_qs = Booking.objects.select_related(
             'guest', 'category', 'room', 'room__category', 'applied_promotion'
-        ).prefetch_related(
-            'extra_services', 'service_requests', 'service_requests__service', 'payments'
         ).all().order_by('-created_at')
+        # API danh sách (chỉ đọc): prefetch toàn bộ quan hệ để tránh N+1 query.
+        # Các action ghi (check-in, thêm dịch vụ, thanh toán...) không prefetch để luôn đọc dữ liệu mới nhất.
+        if getattr(self, 'action', None) == 'list':
+            base_qs = optimize_booking_queryset(base_qs)
 
         # Nếu là nhân viên, lễ tân, quản lý, admin -> xem tất cả đơn mới nhất từ CSDL, ưu tiên:
         # 1. Chờ duyệt (pending) lên đầu tiên
@@ -3650,11 +3652,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         - status chưa check-in (pending, confirmed)
         """
         today = timezone.localdate()
-        qs = Booking.objects.select_related(
-            'guest', 'category', 'room', 'room__category', 'applied_promotion'
-        ).prefetch_related(
-            'extra_services', 'service_requests'
-        ).filter(
+        qs = optimize_booking_queryset(Booking.objects.all()).filter(
             check_in_date=today,
             status__in=['pending', 'paid', 'PAID', 'confirmed']
         ).order_by('status', '-created_at')
@@ -3677,11 +3675,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         - status == 'checked_in'
         """
         today = timezone.localdate()
-        qs = Booking.objects.select_related(
-            'guest', 'category', 'room', 'room__category', 'applied_promotion'
-        ).prefetch_related(
-            'extra_services', 'service_requests'
-        ).filter(
+        qs = optimize_booking_queryset(Booking.objects.all()).filter(
             check_out_date=today,
             status='checked_in'
         ).order_by('-created_at')

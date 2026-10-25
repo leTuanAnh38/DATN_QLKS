@@ -1,8 +1,38 @@
 from rest_framework import serializers
+from django.db.models import Prefetch
 from .models import Booking, BookingExtraService, Promotion, BookingGuest, CorporatePartner, GroupBooking, HotelSetting
-from ..rooms.models import Room, RoomCategory
+from ..rooms.models import Room, RoomCategory, MinibarCheck
 from ..users.models import User
 import datetime
+
+
+def optimize_booking_queryset(qs):
+    """
+    Tối ưu QuerySet Booking cho các API dạng danh sách (tránh N+1 query khi serialize hàng trăm đơn).
+    Chỉ nên dùng cho API chỉ đọc (list / check-in-today / check-out-today): dữ liệu prefetch được cache
+    nên không dùng cho các action vừa ghi DB vừa serialize lại cùng một object.
+    """
+    minibar_qs = MinibarCheck.objects.select_related('inspector')
+    return qs.select_related(
+        'guest', 'guest__guest_profile', 'guest__current_tier',
+        'category', 'room', 'room__category', 'applied_promotion',
+        'invoice', 'review', 'group_booking', 'group_booking__master_invoice',
+    ).prefetch_related(
+        'extra_services',
+        'service_requests__service__category',
+        'payments',
+        'guests',
+        'category__images',
+        'room__category__images',
+        'group_booking__payments',
+        Prefetch('minibar_checks', queryset=minibar_qs),
+        Prefetch('room__minibar_checks', queryset=minibar_qs),
+    )
+
+
+def _ts(dt):
+    """Khóa sắp xếp an toàn theo thời gian (None đứng trước)."""
+    return dt.timestamp() if dt else 0
 
 
 class PromotionSerializer(serializers.ModelSerializer):
@@ -192,7 +222,18 @@ class BookingSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'booking_code', 'actual_check_in', 'actual_check_out', 'created_at', 'updated_at']
 
+    def _memo(self, key, obj, fn):
+        """Cache kết quả tính toán theo từng đơn trong phạm vi 1 lần serialize (tránh tính lặp nhiều lần)."""
+        store = self.__dict__.setdefault('_memo_store', {})
+        cache_key = (key, obj.pk)
+        if cache_key not in store:
+            store[cache_key] = fn(obj)
+        return store[cache_key]
+
     def get_extra_services(self, obj):
+        return self._memo('extra_services', obj, self._compute_extra_services)
+
+    def _compute_extra_services(self, obj):
         import re
         services_list = []
         synced_service_signatures = set()
@@ -207,7 +248,7 @@ class BookingSerializer(serializers.ModelSerializer):
             obj.invoice.status == 'paid'
         )
 
-        for req in obj.service_requests.exclude(status='cancelled').select_related('service').order_by('created_at'):
+        for req in sorted((r for r in obj.service_requests.all() if r.status != 'cancelled'), key=lambda r: _ts(r.created_at)):
             clean_item_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
             total = float(req.total_price or ((req.service.price if req.service else 0) * req.quantity))
             
@@ -230,7 +271,7 @@ class BookingSerializer(serializers.ModelSerializer):
 
         # 2. Lấy thêm các phụ phí phát sinh thủ công từ BookingExtraService (VD: Giặt ủi, đền bù, minibar)
         # Bỏ qua hoàn toàn các dòng trùng lặp đã được tính từ ServiceRequest
-        for bes in obj.extra_services.all().order_by('added_time'):
+        for bes in sorted(obj.extra_services.all(), key=lambda b: _ts(b.added_time)):
             raw_name = (bes.service_name or '').strip()
 
             # Nếu dòng này được sinh tự động từ ServiceRequest (chứa [Yêu cầu #ID]) -> bỏ qua vì đã nạp ở bước 1
@@ -273,7 +314,7 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_pending_services(self, obj):
         # Lấy các yêu cầu dịch vụ đang chuẩn bị hoặc chờ phục vụ để Lễ tân theo dõi tiến độ
         pending_list = []
-        for req in obj.service_requests.filter(status__in=['pending', 'in_progress']).select_related('service').order_by('created_at'):
+        for req in sorted((r for r in obj.service_requests.all() if r.status in ('pending', 'in_progress')), key=lambda r: _ts(r.created_at)):
             clean_item_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
             pending_list.append({
                 'id': f"req_{req.id}",
@@ -297,7 +338,7 @@ class BookingSerializer(serializers.ModelSerializer):
         """
         services_list = []
         request = self.context.get('request')
-        for req in obj.service_requests.select_related('service', 'service__category').all().order_by('created_at'):
+        for req in sorted(obj.service_requests.all(), key=lambda r: _ts(r.created_at)):
             svc = req.service
             if not svc:
                 continue
@@ -357,7 +398,7 @@ class BookingSerializer(serializers.ModelSerializer):
         # 3. Fallback: Nếu không có daily_rate, lấy model.total_amount trừ đi toàn bộ dịch vụ đặt kèm
         all_services_total = float(sum(
             float(r.total_price or ((getattr(r, 'unit_price', 0) or (r.service.price if r.service else 0)) * r.quantity))
-            for r in obj.service_requests.exclude(status='cancelled')
+            for r in obj.service_requests.all() if r.status != 'cancelled'
         ))
         model_total = getattr(obj, 'total_amount', None)
         if model_total is not None and float(model_total) > 0:
@@ -386,12 +427,10 @@ class BookingSerializer(serializers.ModelSerializer):
         Query SUM cột amount từ bảng Payment liên kết với booking này
         NHƯNG chỉ lấy những record có status là COMPLETED.
         """
-        from django.db.models import Sum
         try:
-            completed_payments = obj.payments.filter(payment_status='COMPLETED')
-            total = completed_payments.aggregate(total=Sum('amount'))['total']
-            if total is not None:
-                return float(total)
+            completed_payments = [p for p in obj.payments.all() if p.payment_status == 'COMPLETED']
+            if completed_payments:
+                return float(sum(p.amount for p in completed_payments))
         except Exception:
             pass
 
@@ -493,7 +532,8 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_room_image(self, obj):
         cat = obj.category or (obj.room.category if obj.room else None)
         if cat:
-            feature_img = cat.images.filter(is_feature=True).first() or cat.images.first()
+            imgs = list(cat.images.all())
+            feature_img = next((i for i in imgs if i.is_feature), None) or (imgs[0] if imgs else None)
             if feature_img and feature_img.image:
                 request = self.context.get('request')
                 if request:
@@ -526,7 +566,8 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_guest_name(self, obj):
         # 1. Ưu tiên lấy tên khách đại diện phòng từ danh sách BookingGuest
         try:
-            primary_guest = obj.guests.filter(is_primary=True).first() or obj.guests.first()
+            all_guests = list(obj.guests.all())
+            primary_guest = next((g for g in all_guests if g.is_primary), None) or (all_guests[0] if all_guests else None)
             if primary_guest and primary_guest.full_name:
                 return primary_guest.full_name
         except Exception:
@@ -610,7 +651,7 @@ class BookingSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         try:
-            if obj.payments.filter(payment_status='COMPLETED').exists():
+            if any(p.payment_status == 'COMPLETED' for p in obj.payments.all()):
                 return True
         except Exception:
             pass
@@ -627,9 +668,10 @@ class BookingSerializer(serializers.ModelSerializer):
             return 'NO_SHOW'
         # 1. Kiểm tra trực tiếp bảng Payment
         try:
-            if obj.payments.filter(payment_status='COMPLETED').exists():
+            all_payments = list(obj.payments.all())
+            if any(p.payment_status == 'COMPLETED' for p in all_payments):
                 return 'COMPLETED'
-            if obj.payments.filter(payment_status='PENDING').exists():
+            if any(p.payment_status == 'PENDING' for p in all_payments):
                 return 'PENDING'
         except Exception:
             pass
@@ -659,7 +701,7 @@ class BookingSerializer(serializers.ModelSerializer):
                     'transaction_id': p.transaction_id,
                     'created_at': p.created_at.isoformat() if p.created_at else None,
                 }
-                for p in obj.payments.all().order_by('created_at')
+                for p in sorted(obj.payments.all(), key=lambda p: _ts(p.created_at))
             ]
         except Exception:
             return []
@@ -667,7 +709,8 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_payment_method(self, obj):
         # 1. Kiểm tra trực tiếp bảng Payment: phát hiện thanh toán hỗn hợp (MIXED)
         try:
-            completed_payments = list(obj.payments.filter(payment_status='COMPLETED').order_by('created_at'))
+            all_payments = list(obj.payments.all())
+            completed_payments = sorted((p for p in all_payments if p.payment_status == 'COMPLETED'), key=lambda p: _ts(p.created_at))
             if completed_payments:
                 distinct_methods = set()
                 for p in completed_payments:
@@ -686,7 +729,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 if len(distinct_methods) > 1:
                     return 'MIXED'
                 return completed_payments[-1].payment_method
-            any_payment = obj.payments.first()
+            any_payment = max(all_payments, key=lambda p: _ts(p.created_at)) if all_payments else None
             if any_payment and any_payment.payment_method:
                 return any_payment.payment_method
         except Exception:
@@ -752,7 +795,7 @@ class BookingSerializer(serializers.ModelSerializer):
         grp = obj.group_booking
         # Kiểm tra Payment đã hoàn thành của đoàn
         try:
-            grp_payments = list(grp.payments.filter(payment_status='COMPLETED').order_by('created_at'))
+            grp_payments = sorted((p for p in grp.payments.all() if p.payment_status == 'COMPLETED'), key=lambda p: _ts(p.created_at))
             if grp_payments:
                 distinct_methods = set()
                 for p in grp_payments:
@@ -776,9 +819,6 @@ class BookingSerializer(serializers.ModelSerializer):
         # Kiểm tra Master Invoice của đoàn
         try:
             grp_inv = getattr(grp, 'master_invoice', None)
-            if not grp_inv:
-                from ..payments.models import Invoice
-                grp_inv = Invoice.objects.filter(group_booking=grp).first()
             if grp_inv and grp_inv.payment_method:
                 inv_m = str(grp_inv.payment_method).lower()
                 if inv_m in ['mixed', 'hỗn hợp', 'hon_hop']:
@@ -844,9 +884,11 @@ class BookingSerializer(serializers.ModelSerializer):
 
     def get_latest_inspection(self, obj):
         try:
-            chk = obj.minibar_checks.order_by('-created_at').first()
+            booking_checks = sorted(obj.minibar_checks.all(), key=lambda c: _ts(c.created_at), reverse=True)
+            chk = booking_checks[0] if booking_checks else None
             if not chk and obj.room:
-                chk = obj.room.minibar_checks.order_by('-created_at').first()
+                room_checks = sorted(obj.room.minibar_checks.all(), key=lambda c: _ts(c.created_at), reverse=True)
+                chk = room_checks[0] if room_checks else None
             if chk:
                 return {
                     'id': chk.id,

@@ -1,21 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import AdminDashboard from './pages/admin/AdminDashboard';
 import Home from './pages/client/Home';
-import Rooms from './pages/client/Rooms';
-import DetailRoom from './pages/client/DetailRoom';
-import Checkout from './pages/client/Checkout';
-import Promotions from './pages/client/Promotions';
-import Contact from './pages/client/Contact';
-import Profile from './pages/client/Profile';
-import BookingHistory from './pages/client/BookingHistory';
-import ServicesMenu from './pages/client/ServicesMenu';
-import NewsList from './pages/client/NewsList';
-import NewsDetail from './pages/client/NewsDetail';
-import CorporateBooking from './pages/client/CorporateBooking';
-import Login from './pages/auth/login';
 import { hotelSettingStore } from './store/hotelSettingStore';
-import AIChatbotWidget from './components/client/AIChatbotWidget';
+
+// Lazy-load các trang để tách bundle: chỉ tải code của trang khi người dùng truy cập
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const Rooms = lazy(() => import('./pages/client/Rooms'));
+const DetailRoom = lazy(() => import('./pages/client/DetailRoom'));
+const Checkout = lazy(() => import('./pages/client/Checkout'));
+const Promotions = lazy(() => import('./pages/client/Promotions'));
+const Contact = lazy(() => import('./pages/client/Contact'));
+const Profile = lazy(() => import('./pages/client/Profile'));
+const BookingHistory = lazy(() => import('./pages/client/BookingHistory'));
+const ServicesMenu = lazy(() => import('./pages/client/ServicesMenu'));
+const NewsList = lazy(() => import('./pages/client/NewsList'));
+const NewsDetail = lazy(() => import('./pages/client/NewsDetail'));
+const CorporateBooking = lazy(() => import('./pages/client/CorporateBooking'));
+const Login = lazy(() => import('./pages/auth/login'));
+const AIChatbotWidget = lazy(() => import('./components/client/AIChatbotWidget'));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-700 rounded-full animate-spin" />
+        <span className="text-sm text-slate-500">Đang tải...</span>
+      </div>
+    </div>
+  );
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -33,7 +46,11 @@ function CustomerChatbot() {
   if (pathname.startsWith('/admin')) {
     return null;
   }
-  return <AIChatbotWidget />;
+  return (
+    <Suspense fallback={null}>
+      <AIChatbotWidget />
+    </Suspense>
+  );
 }
 
 function App() {
@@ -46,6 +63,7 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <CustomerChatbot />
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Trang chủ */}
         <Route path="/" element={<Home />} />
@@ -118,6 +136,7 @@ function App() {
         <Route path="/admin/invoices" element={<AdminDashboard initialTab="invoices" />} />
         <Route path="/admin/groups" element={<AdminDashboard initialTab="bookings" />} />
       </Routes>
+      </Suspense>
 
     </BrowserRouter>
   );
