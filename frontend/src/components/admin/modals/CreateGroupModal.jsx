@@ -59,6 +59,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     const [leaderPhone, setLeaderPhone] = useState('');
     const [leaderEmail, setLeaderEmail] = useState('');
     const [identityCard, setIdentityCard] = useState('');
+    const [createAccount, setCreateAccount] = useState(false);
     const [note, setNote] = useState('');
     const [internalNote, setInternalNote] = useState('');
 
@@ -94,6 +95,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         setIsLoadingInit(true);
         setError('');
         setIsDepositCustomized(false);
+        setCreateAccount(false);
 
         Promise.allSettled([
             roomService.getCategories(),
@@ -599,6 +601,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             leader_phone: leaderPhone.trim(),
             leader_email: leaderEmail.trim() || null,
             identity_card: identityCard.trim() || '',
+            create_account: createAccount,
             check_in_date: checkInDate,
             check_out_date: checkOutDate,
             estimated_arrival_time: estimatedArrivalTime || null,
@@ -782,6 +785,33 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                         onChange={(e) => setIdentityCard(e.target.value)}
                                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                     />
+                                </div>
+
+                                {/* Tùy chọn Đăng ký tài khoản Thành viên cho Trưởng đoàn */}
+                                <div className="sm:col-span-4 p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5 transition">
+                                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(createAccount)}
+                                            onChange={(e) => setCreateAccount(e.target.checked)}
+                                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                        />
+                                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                            <span>✨</span>
+                                            <span>Đăng ký tài khoản thành viên cho Trưởng đoàn</span>
+                                        </span>
+                                    </label>
+                                    <p className="text-[11px] text-slate-500 pl-6.5 leading-relaxed">
+                                        {createAccount ? (
+                                            <span className="text-blue-700 font-medium">
+                                                ✓ Hệ thống sẽ tạo tài khoản User để Trưởng đoàn có thể đăng nhập trên Website, tích điểm loyalty và theo dõi đơn đặt đoàn.
+                                            </span>
+                                        ) : (
+                                            <span>
+                                                Không tích: Khách lưu trú vãng lai (không tạo tài khoản web riêng, tránh phát sinh tài khoản ảo).
+                                            </span>
+                                        )}
+                                    </p>
                                 </div>
                             </div>
                         </div>

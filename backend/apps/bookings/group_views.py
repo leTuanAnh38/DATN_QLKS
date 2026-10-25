@@ -247,6 +247,13 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             is_company_invoice = True
 
         # 3. Tạo / Gán User đại diện cho đoàn
+        is_internal_staff = bool(
+            user and 
+            user.is_authenticated and 
+            getattr(user, 'role', '') not in ['', 'guest']
+        )
+        create_account = bool(data.get('create_account', False)) if is_internal_staff else bool(data.get('create_account', True))
+
         leader_user = None
         is_client_user = (
             request.user and 
@@ -257,39 +264,83 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             leader_user = request.user
         else:
             clean_phone = ''.join(c for c in str(leader_phone) if c.isdigit())
-            leader_user = User.objects.filter(phone_number=leader_phone, role='guest', is_staff=False, is_superuser=False).first()
-            if not leader_user and clean_phone:
-                leader_user = User.objects.filter(phone_number=clean_phone, role='guest', is_staff=False, is_superuser=False).first()
-            if not leader_user and leader_email:
-                leader_user = User.objects.filter(email__iexact=leader_email, role='guest', is_staff=False, is_superuser=False).first()
+            # Tìm user hiện có theo SĐT hoặc Email
+            matched_user = None
+            if leader_phone:
+                matched_user = User.objects.filter(phone_number=leader_phone).first()
+            if not matched_user and clean_phone:
+                matched_user = User.objects.filter(phone_number=clean_phone).first()
+            if not matched_user and leader_email:
+                matched_user = User.objects.filter(email__iexact=leader_email).first()
 
-        if not leader_user:
-            clean_phone = ''.join(c for c in str(leader_phone) if c.isdigit())
-            base_username = f"group_{clean_phone[-6:]}" if len(clean_phone) >= 6 else f"group_{uuid.uuid4().hex[:6]}"
-            username = base_username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}_{counter}"
-                counter += 1
+            # Tránh gán nhầm sang tài khoản của người khác khi trùng SĐT
+            is_same_person = False
+            if matched_user:
+                matched_name = matched_user.get_full_name().strip().lower()
+                current_name = leader_name.strip().lower()
+                if not matched_name:
+                    is_same_person = True
+                elif matched_name == current_name or matched_name in current_name or current_name in matched_name:
+                    is_same_person = True
 
-            name_parts = leader_name.split()
-            first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else leader_name
-            last_name = name_parts[-1] if len(name_parts) > 1 else ''
+            if matched_user and is_same_person:
+                leader_user = matched_user
+                if create_account and not leader_user.is_active:
+                    leader_user.is_active = True
+                    leader_user.save(update_fields=['is_active'])
+            else:
+                phone_already_used = User.objects.filter(phone_number=leader_phone).exists() if leader_phone else False
 
-            email_to_use = leader_email
-            if email_to_use and User.objects.filter(email=email_to_use).exists():
-                email_to_use = f"{username}@group.hotel.local"
-            if not email_to_use:
-                email_to_use = f"{username}@group.hotel.local"
+                name_parts = leader_name.split()
+                first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else leader_name
+                last_name = name_parts[-1] if len(name_parts) > 1 else ''
 
-            leader_user = User.objects.create_user(
-                username=username,
-                email=email_to_use,
-                phone_number=leader_phone,
-                first_name=first_name,
-                last_name=last_name,
-                role='guest'
-            )
+                if create_account:
+                    # 1. Khách muốn đăng ký tài khoản thành viên chính thức (Active User)
+                    base_username = f"group_{clean_phone[-6:]}" if len(clean_phone) >= 6 else f"group_{uuid.uuid4().hex[:6]}"
+                    username = base_username
+                    counter = 1
+                    while User.objects.filter(username=username).exists():
+                        username = f"{base_username}_{counter}"
+                        counter += 1
+
+                    email_to_use = leader_email
+                    if email_to_use and User.objects.filter(email=email_to_use).exists():
+                        email_to_use = f"{username}@group.hotel.local"
+                    if not email_to_use:
+                        email_to_use = f"{username}@group.hotel.local"
+
+                    phone_to_save = None if phone_already_used else (leader_phone or None)
+
+                    leader_user = User.objects.create_user(
+                        username=username,
+                        email=email_to_use,
+                        phone_number=phone_to_save,
+                        first_name=first_name,
+                        last_name=last_name,
+                        role='guest',
+                        is_active=True
+                    )
+                else:
+                    # 2. Khách vãng lai thông thường (offline, không tạo tài khoản web)
+                    unique_tag = uuid.uuid4().hex[:6]
+                    username = f"walkin_group_{clean_phone[-6:]}_{unique_tag}" if len(clean_phone) >= 6 else f"walkin_group_{unique_tag}"
+                    email_to_use = f"{username}@walkin.hotel.local"
+                    if leader_email and not User.objects.filter(email=leader_email).exists():
+                        email_to_use = leader_email
+                    phone_to_save = None if phone_already_used else (leader_phone or None)
+
+                    leader_user = User.objects.create(
+                        username=username,
+                        email=email_to_use,
+                        phone_number=phone_to_save,
+                        first_name=first_name,
+                        last_name=last_name,
+                        role='guest',
+                        is_active=False
+                    )
+                    leader_user.set_unusable_password()
+                    leader_user.save(update_fields=['password'])
 
         if identity_card:
             profile, _ = GuestProfile.objects.get_or_create(user=leader_user)
