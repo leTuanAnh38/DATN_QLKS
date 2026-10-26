@@ -979,3 +979,31 @@ def notify_on_cash_out_voucher(sender, instance, created, **kwargs):
 
     except Exception as e:
         logger.error(f"Lỗi khi gửi thông báo CashOutVoucher #{getattr(instance, 'pk', 'N/A')}: {e}")
+
+
+# ==============================================================================
+# PUSH NOTIFICATION DISPATCHER (EXPO PUSH CHO MOBILE APP)
+# ==============================================================================
+
+@receiver(post_save, sender=Notification)
+def trigger_expo_push_on_notification_created(sender, instance, created, **kwargs):
+    """
+    Khi bất kỳ Notification nào được tạo, tự động đẩy Push Notification đến thiết bị (iPhone 14 Pro / Android) của người nhận.
+    """
+    if created and instance.recipient:
+        try:
+            from .services import push_notification_to_user
+            push_notification_to_user(
+                user=instance.recipient,
+                title=instance.title,
+                body=instance.message,
+                data={
+                    'notification_id': instance.id,
+                    'notification_type': instance.notification_type,
+                    'action_url': instance.action_url or '',
+                    'priority': instance.priority
+                }
+            )
+        except Exception as e:
+            logger.warning(f"[PUSH_SIGNAL] Lỗi đẩy push token: {e}")
+

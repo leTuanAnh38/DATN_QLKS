@@ -56,6 +56,15 @@ class ServiceRequest(models.Model):
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú (VD: Ít đường, Không hành...)")
     total_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tổng tiền (VND)")
     
+    assigned_staff = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_service_requests',
+        verbose_name="Nhân viên / Tài xế tiếp nhận thực hiện"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Giờ đặt lệnh")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Giờ cập nhật")
 

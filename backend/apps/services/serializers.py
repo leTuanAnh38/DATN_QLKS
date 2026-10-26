@@ -86,6 +86,9 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='service.category.name', read_only=True)
     category_icon = serializers.CharField(source='service.category.icon', read_only=True)
 
+    category_type = serializers.SerializerMethodField()
+    assigned_staff_name = serializers.SerializerMethodField()
+
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     total_price = serializers.DecimalField(max_digits=12, decimal_places=0, read_only=True)
 
@@ -107,6 +110,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'service_image',
             'category_name',
             'category_icon',
+            'category_type',
             'quantity',
             'total_price',
             'request_time',
@@ -114,11 +118,28 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'status_display',
             'is_paid',
             'is_scheduled',
+            'assigned_staff',
+            'assigned_staff_name',
             'note',
             'created_at',
             'updated_at',
         ]
         read_only_fields = ['id', 'unit_price', 'total_price', 'created_at', 'updated_at']
+
+    def get_category_type(self, obj):
+        try:
+            from ..notifications.signals import get_service_category_type
+            s_name = obj.service.name if obj.service else ""
+            c_name = obj.service.category.name if (obj.service and obj.service.category) else ""
+            return get_service_category_type(s_name, c_name)
+        except Exception:
+            return 'amenities'
+
+    def get_assigned_staff_name(self, obj):
+        if obj.assigned_staff:
+            name = obj.assigned_staff.get_full_name().strip()
+            return name if name else obj.assigned_staff.username
+        return ''
 
     def get_room_number(self, obj):
         if obj.booking and obj.booking.room:

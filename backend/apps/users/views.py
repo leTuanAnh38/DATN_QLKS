@@ -246,13 +246,17 @@ class LoginView(APIView):
                 request=request
             )
 
+            access_token_str = str(refresh.access_token)
+            refresh_token_str = str(refresh)
             return Response({
                 'success': True,
-                'message': f'Đăng nhập thành công! Kính chào Quý khách {user.first_name} {user.last_name}'.strip(),
+                'message': f'Đăng nhập thành công! Kính chào {user.get_full_name() or user.username}'.strip(),
                 'user': UserSerializer(user, context={'request': request}).data,
+                'access': access_token_str,
+                'refresh': refresh_token_str,
                 'tokens': {
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh),
+                    'access': access_token_str,
+                    'refresh': refresh_token_str,
                 }
             }, status=status.HTTP_200_OK)
 

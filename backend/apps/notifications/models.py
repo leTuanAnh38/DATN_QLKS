@@ -61,3 +61,33 @@ class Notification(models.Model):
     def __str__(self):
         status_text = "Đã đọc" if self.is_read else "Chưa đọc"
         return f"[{status_text}][{self.notification_type}] {self.recipient.username} - {self.title}"
+
+
+class UserDevice(models.Model):
+    """
+    Quản lý danh sách thiết bị di động (iPhone 14 Pro, Android...) đăng ký nhận Push Notification qua Expo
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='devices',
+        verbose_name="Người dùng"
+    )
+    expo_push_token = models.CharField(max_length=255, unique=True, verbose_name="Expo Push Token")
+    device_name = models.CharField(max_length=150, blank=True, default='', verbose_name="Tên thiết bị (VD: iPhone 14 Pro)")
+    platform = models.CharField(max_length=30, blank=True, default='ios', verbose_name="Hệ điều hành (ios/android/web)")
+    is_active = models.BooleanField(default=True, verbose_name="Đang kích hoạt nhận thông báo")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Thiết bị nhận thông báo"
+        verbose_name_plural = "Danh sách thiết bị (Push Tokens)"
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(fields=['expo_push_token']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.device_name or self.platform} ({self.expo_push_token[:20]}...)"
+

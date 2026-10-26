@@ -485,11 +485,12 @@ class RegisterSerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    identifier = serializers.CharField(required=True)
+    identifier = serializers.CharField(required=False, allow_blank=True)
+    username = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
-        identifier = attrs.get('identifier', '').strip()
+        identifier = (attrs.get('identifier') or attrs.get('username') or '').strip()
         password = attrs.get('password', '')
 
         if not identifier or not password:

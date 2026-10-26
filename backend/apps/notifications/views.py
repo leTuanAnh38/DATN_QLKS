@@ -263,3 +263,81 @@ class NotificationViewSet(viewsets.ModelViewSet):
             notify_staff=notify_staff
         )
         return Response(result, status=status.HTTP_200_OK if result.get('success') else status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='register-device')
+    def register_device(self, request):
+        """
+        POST /api/notifications/register-device/
+        Đăng ký thiết bị di động (Expo Push Token) để nhận thông báo đẩy
+        Body: {
+            "expo_push_token": "ExponentPushToken[xxxx]",
+            "device_name": "iPhone 14 Pro",
+            "platform": "ios"
+        }
+        """
+        token = request.data.get('expo_push_token', '').strip()
+        if not token:
+            return Response({
+                'success': False,
+                'message': 'Thiếu expo_push_token'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        device_name = request.data.get('device_name', '').strip() or 'Thiết bị di động'
+        platform = request.data.get('platform', 'ios').strip().lower()
+
+        from .models import UserDevice
+        device, created = UserDevice.objects.update_or_create(
+            expo_push_token=token,
+            defaults={
+                'user': request.user,
+                'device_name': device_name,
+                'platform': platform,
+                'is_active': True,
+            }
+        )
+        return Response({
+            'success': True,
+            'message': 'Đã đăng ký thiết bị nhận thông báo thành công.',
+            'device_id': device.id,
+            'created': created
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='unregister-device')
+    def unregister_device(self, request):
+        """
+        POST /api/notifications/unregister-device/
+        Hủy kích hoạt token khi người dùng logout khỏi app mobile
+        Body: { "expo_push_token": "ExponentPushToken[xxxx]" }
+        """
+        token = request.data.get('expo_push_token', '').strip()
+        if not token:
+            return Response({
+                'success': False,
+                'message': 'Thiếu expo_push_token'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        from .models import UserDevice
+        UserDevice.objects.filter(expo_push_token=token, user=request.user).update(is_active=False)
+        return Response({
+            'success': True,
+            'message': 'Đã hủy kích hoạt thiết bị nhận thông báo.'
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='test-push')
+    def test_push(self, request):
+        """
+        POST /api/notifications/test-push/
+        Gửi thử nghiệm 1 Push Notification đến iPhone của user hiện tại
+        """
+        from .services import push_notification_to_user
+        push_notification_to_user(
+            user=request.user,
+            title="🔔 Thử nghiệm Push Notification",
+            body="Hệ thống Khách sạn kết nối thành công với iPhone 14 Pro!",
+            data={"test": True}
+        )
+        return Response({
+            'success': True,
+            'message': 'Đã phát lệnh gửi thông báo đẩy thử nghiệm đến thiết bị của bạn!'
+        }, status=status.HTTP_200_OK)
+

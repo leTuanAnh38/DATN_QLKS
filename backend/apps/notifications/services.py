@@ -650,3 +650,84 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
     except Exception as e:
         logger.error(f"[GROUP_NOTIF] Lỗi khi tạo thông báo đoàn #{getattr(group_booking, 'group_code', 'N/A')}: {e}", exc_info=True)
         return None
+
+
+# =========================================================================
+# EXPO PUSH NOTIFICATIONS FOR MOBILE APP (IPHONE / ANDROID)
+# =========================================================================
+
+def send_expo_push_notification(tokens, title, body, data=None, sound='default'):
+    """
+    Gửi thông báo đẩy đến các thiết bị di động (iPhone 14 Pro / Android) qua Expo Push Notification API.
+    tokens: str hoặc list các chuỗi Expo Push Token (VD: 'ExponentPushToken[...]')
+    """
+    import threading
+    import requests
+
+    if not tokens:
+        return
+
+    if isinstance(tokens, str):
+        tokens = [tokens]
+
+    # Lọc bỏ token rỗng hoặc không đúng format Expo
+    valid_tokens = [t for t in tokens if t and (t.startswith('ExponentPushToken[') or t.startswith('ExpoPushToken['))]
+    if not valid_tokens:
+        return
+
+    def _worker():
+        try:
+            url = 'https://exp.host/--/api/v2/push/send'
+            headers = {
+                'Accept': 'application/json',
+                'Accept-Encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+            }
+            messages = [
+                {
+                    'to': token,
+                    'sound': sound,
+                    'title': title,
+                    'body': body,
+                    'data': data or {},
+                    'priority': 'high',
+                    'channelId': 'hotel-staff-alerts',
+                }
+                for token in valid_tokens
+            ]
+            response = requests.post(url, json=messages, headers=headers, timeout=6)
+            logger.info(f"[EXPO_PUSH] Đã gửi {len(messages)} push notification. Response code: {response.status_code}")
+        except Exception as ex:
+            logger.warning(f"[EXPO_PUSH] Lỗi gửi push notification qua Expo: {ex}")
+
+    # Chạy bất đồng bộ qua thread daemon để không làm chậm luồng xử lý API chính
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+
+def push_notification_to_user(user, title, body, data=None):
+    """
+    Tìm tất cả thiết bị active của 1 user và gửi push notification về điện thoại.
+    """
+    try:
+        from .models import UserDevice
+        tokens = list(UserDevice.objects.filter(user=user, is_active=True).values_list('expo_push_token', flat=True))
+        if tokens:
+            send_expo_push_notification(tokens, title, body, data=data)
+    except Exception as e:
+        logger.warning(f"[EXPO_PUSH] Lỗi đẩy notification tới user {getattr(user, 'username', 'N/A')}: {e}")
+
+
+def push_notification_to_users(users, title, body, data=None):
+    """
+    Tìm tất cả thiết bị active của danh sách user và gửi push notification về điện thoại.
+    """
+    try:
+        from .models import UserDevice
+        user_ids = [u.id if hasattr(u, 'id') else u for u in users]
+        tokens = list(UserDevice.objects.filter(user_id__in=user_ids, is_active=True).values_list('expo_push_token', flat=True))
+        if tokens:
+            send_expo_push_notification(tokens, title, body, data=data)
+    except Exception as e:
+        logger.warning(f"[EXPO_PUSH] Lỗi đẩy notification tới danh sách users: {e}")
+

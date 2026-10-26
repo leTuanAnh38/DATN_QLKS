@@ -73,8 +73,14 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core_project.urls'
-# Thêm cấu hình cấp phép cho ReactJS ở dưới cùng của file settings.py:
 CORS_ALLOW_ALL_ORIGINS = True # Dành cho lúc Dev (Làm đồ án)
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.dev',
+    'https://*.ngrok-free.app',
+    'https://*.ngrok.io',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

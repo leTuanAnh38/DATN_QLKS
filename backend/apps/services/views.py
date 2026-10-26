@@ -359,7 +359,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         # Luôn tạo mới QuerySet để tránh stale result_cache
         base_qs = ServiceRequest.objects.select_related(
             'booking', 'booking__room', 'booking__category', 'booking__guest',
-            'service', 'service__category'
+            'service', 'service__category', 'assigned_staff'
         ).all().order_by('-created_at')
 
         # Lọc theo guest_id nếu có trong query params (phục vụ CRM / Chi tiết khách hàng)
@@ -380,6 +380,66 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         status_param = self.request.query_params.get('status')
         if status_param:
             base_qs = base_qs.filter(status=status_param)
+
+        # Lọc theo Phân loại Nghiệp vụ Hiện trường (Mobile / Web):
+        # 1. transport: Xe đưa đón, đón tiễn sân bay
+        # 2. fnb: Ẩm thực & Đồ uống
+        # 3. spa: Dịch vụ Spa & Massage
+        # 4. laundry: Giặt ủi
+        # 5. amenities: Tiện ích phòng
+        category_type = self.request.query_params.get('category_type', '').strip().lower()
+        if category_type == 'transport':
+            base_qs = base_qs.filter(
+                Q(service__name__icontains='sân bay') | Q(service__name__icontains='xe') |
+                Q(service__name__icontains='đưa đón') | Q(service__name__icontains='transfer') |
+                Q(service__name__icontains='airport') | Q(service__name__icontains='taxi') |
+                Q(service__name__icontains='shuttle') | Q(service__name__icontains='đón tiễn') |
+                Q(service__category__name__icontains='sân bay') | Q(service__category__name__icontains='xe') |
+                Q(service__category__name__icontains='vận chuyển') | Q(service__category__name__icontains='transport')
+            )
+        elif category_type == 'spa':
+            base_qs = base_qs.filter(
+                Q(service__name__icontains='spa') | Q(service__name__icontains='massage') |
+                Q(service__name__icontains='trị liệu') | Q(service__name__icontains='xông hơi') |
+                Q(service__name__icontains='sauna') | Q(service__name__icontains='thư giãn') |
+                Q(service__name__icontains='wellness') | Q(service__category__name__icontains='spa')
+            )
+        elif category_type == 'laundry':
+            base_qs = base_qs.filter(
+                Q(service__name__icontains='giặt') | Q(service__name__icontains='ủi') |
+                Q(service__name__icontains='laundry') | Q(service__name__icontains='giặt sấy')
+            )
+        elif category_type == 'fnb':
+            base_qs = base_qs.filter(
+                Q(service__name__icontains='ẩm thực') | Q(service__name__icontains='đồ ăn') |
+                Q(service__name__icontains='món') | Q(service__name__icontains='bữa ăn') |
+                Q(service__name__icontains='đồ uống') | Q(service__name__icontains='f&b') |
+                Q(service__name__icontains='dining') | Q(service__name__icontains='bếp') |
+                Q(service__name__icontains='nhà hàng') | Q(service__name__icontains='bar') |
+                Q(service__name__icontains='cà phê') | Q(service__name__icontains='coffee') |
+                Q(service__name__icontains='trà') | Q(service__name__icontains='bánh') |
+                Q(service__name__icontains='buffet') | Q(service__name__icontains='rượu') |
+                Q(service__name__icontains='bia') | Q(service__category__name__icontains='ẩm thực') |
+                Q(service__category__name__icontains='nhà hàng') | Q(service__category__name__icontains='f&b')
+            )
+        elif category_type in ['amenities', 'room_amenity']:
+            # Loại trừ transport, spa, fnb, laundry
+            base_qs = base_qs.exclude(
+                Q(service__name__icontains='sân bay') | Q(service__name__icontains='xe') |
+                Q(service__name__icontains='đưa đón') | Q(service__name__icontains='transfer') |
+                Q(service__name__icontains='spa') | Q(service__name__icontains='massage') |
+                Q(service__name__icontains='ẩm thực') | Q(service__name__icontains='đồ ăn') |
+                Q(service__name__icontains='món') | Q(service__name__icontains='giặt')
+            )
+
+        # Lọc việc của tôi / chưa ai nhận
+        assigned_to_me = self.request.query_params.get('assigned_to_me', '').lower() in ['1', 'true', 'yes']
+        if assigned_to_me and user.is_authenticated:
+            base_qs = base_qs.filter(assigned_staff=user)
+
+        unassigned = self.request.query_params.get('unassigned', '').lower() in ['1', 'true', 'yes']
+        if unassigned:
+            base_qs = base_qs.filter(assigned_staff__isnull=True)
 
         if not user.is_authenticated:
             # Khách chưa đăng nhập (khách đoàn/vãng lai): chỉ cho phép tra cứu nếu truyền đúng mã booking cụ thể
@@ -924,5 +984,97 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'service_request_id': service_req.id,
             'status': service_req.status,
             'request_time': service_req.request_time,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='claim')
+    def claim(self, request, pk=None):
+        """
+        Nhân viên / Tài xế bấm nhận việc từ App Mobile:
+        POST /api/services/requests/<id>/claim/
+        """
+        service_req = self.get_object()
+        user = request.user
+        if not user.is_authenticated:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng đăng nhập để tiếp nhận công việc.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Gán nhân viên tiếp nhận
+        service_req.assigned_staff = user
+        update_fields = ['assigned_staff', 'updated_at']
+
+        # Nếu đang ở pending -> tự động chuyển sang in_progress
+        if service_req.status == 'pending':
+            service_req.status = 'in_progress'
+            update_fields.append('status')
+
+        service_req.save(update_fields=list(set(update_fields)))
+        service_req.refresh_from_db()
+
+        staff_name = user.get_full_name() or user.username
+        service_name = service_req.service.name if service_req.service else "Dịch vụ"
+        log_action(
+            user=user,
+            action='UPDATE',
+            module='SERVICE',
+            description=f"Nhân viên {staff_name} tiếp nhận yêu cầu #{service_req.id} ({service_name})",
+            request=request
+        )
+
+        serializer = self.get_serializer(service_req, context={'request': request})
+        return Response({
+            'success': True,
+            'message': f'Bạn đã tiếp nhận yêu cầu "{service_name}" (#{service_req.id}) thành công!',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='assign')
+    def assign_staff(self, request, pk=None):
+        """
+        Lễ tân / Quản lý phân công nhân viên / tài xế cho đơn:
+        POST /api/services/requests/<id>/assign/
+        Body: { "staff_id": 12 }
+        """
+        service_req = self.get_object()
+        staff_id = request.data.get('staff_id')
+        if not staff_id:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn nhân viên cần phân công.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        from ..users.models import User
+        target_staff = User.objects.filter(pk=staff_id).first()
+        if not target_staff:
+            return Response({
+                'success': False,
+                'message': 'Không tìm thấy nhân viên được chỉ định.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        service_req.assigned_staff = target_staff
+        update_fields = ['assigned_staff', 'updated_at']
+        if service_req.status == 'pending':
+            service_req.status = 'in_progress'
+            update_fields.append('status')
+
+        service_req.save(update_fields=list(set(update_fields)))
+        service_req.refresh_from_db()
+
+        staff_name = target_staff.get_full_name() or target_staff.username
+        service_name = service_req.service.name if service_req.service else "Dịch vụ"
+        log_action(
+            user=request.user if request.user.is_authenticated else None,
+            action='UPDATE',
+            module='SERVICE',
+            description=f"Phân công yêu cầu #{service_req.id} ({service_name}) cho nhân viên {staff_name}",
+            request=request
+        )
+
+        serializer = self.get_serializer(service_req, context={'request': request})
+        return Response({
+            'success': True,
+            'message': f'Đã phân công yêu cầu #{service_req.id} cho {staff_name} thành công!',
             'data': serializer.data
         }, status=status.HTTP_200_OK)
