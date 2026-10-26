@@ -490,6 +490,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         return Response({
             'success': True,
             'count': queryset.count(),
+            'results': serializer.data,
             'requests': serializer.data,
             'items': serializer.data,
             'data': serializer.data
@@ -604,6 +605,19 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_404_NOT_FOUND)
 
         # 4. Tạo ServiceRequest mới
+        # Tự động gán nhân viên phụ trách nếu đơn được tạo bởi nhân viên / lễ tân
+        assigned_to = None
+        if user.is_authenticated and is_staff_or_admin:
+            target_staff_id = data.get('assigned_staff') or data.get('staff_id')
+            if target_staff_id:
+                from ..users.models import User as UserModel
+                target_user = UserModel.objects.filter(pk=target_staff_id).first()
+                if target_user:
+                    assigned_to = target_user
+            else:
+                # Nhân viên phục vụ / Lái xe tạo đơn hộ khách -> tự động nhận phụ trách
+                assigned_to = user
+
         total_price = service_item.price * quantity
         service_request = ServiceRequest.objects.create(
             booking=booking,
@@ -611,6 +625,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             quantity=quantity,
             total_price=total_price,
             status='pending',
+            assigned_staff=assigned_to,
             note=note,
             request_time=timezone.now()
         )
@@ -775,6 +790,23 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                     ).delete()
                 except Exception as e:
                     print(f"Lỗi khi gỡ phụ phí BookingExtraService: {e}")
+
+        # Cập nhật nhân viên / tài xế phụ trách (nếu được truyền lên hoặc tự động gán khi nhân viên xử lý đơn)
+        assigned_staff_param = request.data.get('assigned_staff') or request.data.get('staff_id')
+        if assigned_staff_param is not None and is_staff_or_admin:
+            if assigned_staff_param in ['', 0, 'null', 'none']:
+                service_req.assigned_staff = None
+            else:
+                from ..users.models import User as UserModel
+                assign_target = UserModel.objects.filter(pk=assigned_staff_param).first()
+                if assign_target:
+                    service_req.assigned_staff = assign_target
+            update_fields.append('assigned_staff')
+        elif service_req.assigned_staff is None and is_staff_or_admin and user.is_authenticated:
+            # Tự động gán nhân viên đang thao tác xử lý đơn (bắt đầu chế biến, đi đón, giao món, hoàn thành)
+            if new_status in ['in_progress', 'delivering', 'completed']:
+                service_req.assigned_staff = user
+                update_fields.append('assigned_staff')
 
         if 'note' in request.data:
             service_req.note = request.data.get('note', '').strip()

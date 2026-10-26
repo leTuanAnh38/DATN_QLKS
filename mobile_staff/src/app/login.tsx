@@ -61,7 +61,7 @@ export default function LoginScreen() {
       if (role === 'technician') {
         router.replace('/(tabs)/maintenance');
       } else if (role === 'service_staff') {
-        router.replace('/(tabs)/transport');
+        router.replace('/(tabs)/services');
       } else {
         router.replace('/(tabs)/housekeeping');
       }

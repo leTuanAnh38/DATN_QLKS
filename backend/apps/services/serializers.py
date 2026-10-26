@@ -22,6 +22,7 @@ class ServiceItemSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_icon = serializers.CharField(source='category.icon', read_only=True)
     category_id = serializers.IntegerField(source='category.id', read_only=True)
+    category_type = serializers.SerializerMethodField()
     display_image = serializers.SerializerMethodField()
 
     class Meta:
@@ -32,6 +33,7 @@ class ServiceItemSerializer(serializers.ModelSerializer):
             'category_id',
             'category_name',
             'category_icon',
+            'category_type',
             'name',
             'description',
             'price',
@@ -63,6 +65,15 @@ class ServiceItemSerializer(serializers.ModelSerializer):
             except Exception:
                 pass
         return obj.image_url or ''
+
+    def get_category_type(self, obj):
+        try:
+            from ..notifications.signals import get_service_category_type
+            s_name = obj.name or ""
+            c_name = obj.category.name if obj.category else ""
+            return get_service_category_type(s_name, c_name)
+        except Exception:
+            return 'amenities'
 
 
 class ServiceRequestSerializer(serializers.ModelSerializer):

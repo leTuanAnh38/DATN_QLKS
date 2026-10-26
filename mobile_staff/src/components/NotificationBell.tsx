@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,16 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.88, 380);
 
 export interface NotificationItem {
   id: number;
@@ -31,6 +37,10 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  // Animation trượt từ bên phải qua
+  const slideAnim = useRef(new Animated.Value(DRAWER_WIDTH)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Tải danh sách thông báo & đếm chưa đọc
   const fetchNotifications = useCallback(async (isSilent = false) => {
@@ -66,6 +76,38 @@ export default function NotificationBell() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setModalVisible(true);
     fetchNotifications(false);
+    slideAnim.setValue(DRAWER_WIDTH);
+    fadeAnim.setValue(0);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const onCloseModal = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: DRAWER_WIDTH,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalVisible(false);
+    });
   };
 
   const onRefresh = () => {
@@ -177,16 +219,31 @@ export default function NotificationBell() {
         )}
       </TouchableOpacity>
 
-      {/* 2. Modal Hiển Thị Danh Sách Thông Báo PMS Chuẩn Web */}
+      {/* 2. Drawer Hiển Thị Danh Sách Thông Báo PMS Trượt Từ Bên Phải Qua */}
       <Modal
         visible={modalVisible}
         transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+        animationType="none"
+        onRequestClose={onCloseModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Header Modal */}
+          {/* Backdrop tối mờ dần - chạm vào để đóng */}
+          <Animated.View style={[styles.backdropTouchable, { opacity: fadeAnim }]}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              onPress={onCloseModal}
+              activeOpacity={1}
+            />
+          </Animated.View>
+
+          {/* Drawer trượt từ bên phải */}
+          <Animated.View
+            style={[
+              styles.drawerContent,
+              { width: DRAWER_WIDTH, transform: [{ translateX: slideAnim }] },
+            ]}
+          >
+            {/* Header Drawer */}
             <View style={styles.headerRow}>
               <View style={styles.headerTitleBox}>
                 <View style={styles.bellIconCircle}>
@@ -204,10 +261,10 @@ export default function NotificationBell() {
 
               <TouchableOpacity
                 style={styles.closeBtn}
-                onPress={() => setModalVisible(false)}
+                onPress={onCloseModal}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={20} color="#94A3B8" />
+                <Ionicons name="arrow-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
             </View>
 
@@ -335,7 +392,7 @@ export default function NotificationBell() {
                 <Text style={styles.clearReadText}>Dọn dẹp các thông báo đã đọc</Text>
               </TouchableOpacity>
             )}
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </>
@@ -375,19 +432,30 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    flexDirection: 'row',
     justifyContent: 'flex-end',
   },
-  modalContent: {
+  backdropTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+  },
+  drawerContent: {
+    height: '100%',
     backgroundColor: '#0F172A',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    maxHeight: '85%',
+    borderLeftWidth: 1,
+    borderLeftColor: '#1E293B',
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: Platform.OS === 'ios' ? 52 : 24,
     paddingBottom: 24,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 20,
   },
   headerRow: {
     flexDirection: 'row',

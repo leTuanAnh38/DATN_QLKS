@@ -15,14 +15,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import apiClient from '../../api/client';
 import NotificationBell from '../../components/NotificationBell';
+import CustomerCrmModal from '../../components/CustomerCrmModal';
+import BookingManagementModal from '../../components/BookingManagementModal';
 
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
+
+  // Modal Hồ Sơ Khách Hàng (CRM & Lịch Sử)
+  const [crmModalVisible, setCrmModalVisible] = useState(false);
+  const [crmGuestId, setCrmGuestId] = useState<number | null>(null);
+
+  // Modal Quản Lý Đặt Phòng & Lịch Lưu Trú
+  const [bookingModalVisible, setBookingModalVisible] = useState(false);
 
   // Modal Đổi Mật Khẩu
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
@@ -42,6 +52,75 @@ export default function ProfileScreen() {
   // Modal Cấu Hình Máy Chủ API
   const [serverModalVisible, setServerModalVisible] = useState(false);
   const [tempUrl, setTempUrl] = useState(apiUrl);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const uploadAvatar = async (asset: ImagePicker.ImagePickerAsset) => {
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      const uri = asset.uri;
+      const filename = uri.split('/').pop() || 'avatar.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+      // @ts-ignore
+      formData.append('avatar', {
+        uri,
+        name: filename,
+        type,
+      });
+
+      await apiClient.patch('/users/me/', formData);
+      await refreshProfile();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện mới!');
+    } catch (err: any) {
+      Alert.alert('Lỗi', 'Không thể tải lên ảnh đại diện.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleChangeAvatar = () => {
+    Alert.alert('Đổi ảnh đại diện 📸', 'Chọn phương thức cập nhật ảnh:', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Chụp ảnh mới',
+        onPress: async () => {
+          const perm = await ImagePicker.requestCameraPermissionsAsync();
+          if (!perm.granted) {
+            Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Camera để chụp ảnh.');
+            return;
+          }
+          const res = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+          if (!res.canceled && res.assets && res.assets.length > 0) {
+            uploadAvatar(res.assets[0]);
+          }
+        },
+      },
+      {
+        text: 'Chọn từ Thư viện',
+        onPress: async () => {
+          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!perm.granted) {
+            Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Thư viện ảnh để chọn ảnh.');
+            return;
+          }
+          const res = await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+          if (!res.canceled && res.assets && res.assets.length > 0) {
+            uploadAvatar(res.assets[0]);
+          }
+        },
+      },
+    ]);
+  };
 
   useEffect(() => {
     refreshProfile();
@@ -219,6 +298,18 @@ export default function ProfileScreen() {
                   <Ionicons name="person" size={32} color="#F59E0B" />
                 </View>
               )}
+              <TouchableOpacity
+                style={styles.changeAvatarBtn}
+                onPress={handleChangeAvatar}
+                disabled={uploadingAvatar}
+                activeOpacity={0.8}
+              >
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#0A0F1D" />
+                ) : (
+                  <Ionicons name="camera" size={13} color="#0A0F1D" />
+                )}
+              </TouchableOpacity>
             </View>
 
             <View style={{ flex: 1, marginLeft: 14 }}>
@@ -342,6 +433,52 @@ export default function ProfileScreen() {
               <Text style={styles.kpiLabel}>Đúng giờ ca trực</Text>
             </View>
           </View>
+        </View>
+
+        {/* 4b. Nghiệp Vụ Vận Hành Khách Sạn (PMS & CRM) */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>🏛️ Vận Hành Khách Sạn & Tra Cứu (PMS / CRM)</Text>
+
+          {/* Hồ sơ khách hàng CRM */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => {
+              setCrmGuestId(null);
+              setCrmModalVisible(true);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
+              <Ionicons name="people-outline" size={18} color="#38BDF8" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.actionTitle}>Tra Cứu Khách Hàng (CRM & Lịch Sử)</Text>
+              <Text style={styles.actionDesc}>Tra cứu hạng thẻ VIP, lịch sử lưu trú & dùng dịch vụ</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#64748B" />
+          </TouchableOpacity>
+
+          <View style={styles.detailDivider} />
+
+          {/* Quản lý đặt phòng & Lịch lưu trú */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => {
+              setBookingModalVisible(true);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+              <Ionicons name="calendar-outline" size={18} color="#F59E0B" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.actionTitle}>Quản Lý Đặt Phòng & Lịch Lưu Trú</Text>
+              <Text style={styles.actionDesc}>Xem danh sách đơn phòng & sơ đồ timeline tháng</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#64748B" />
+          </TouchableOpacity>
         </View>
 
         {/* 5. Cài Đặt Tài Khoản & Tiện Ích */}
@@ -596,6 +733,24 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Hồ Sơ Khách Hàng (CRM & Lịch Sử) */}
+      <CustomerCrmModal
+        visible={crmModalVisible}
+        onClose={() => setCrmModalVisible(false)}
+        initialGuestId={crmGuestId}
+      />
+
+      {/* Modal Quản Lý Đặt Phòng & Lịch Lưu Trú (Timeline) */}
+      <BookingManagementModal
+        visible={bookingModalVisible}
+        onClose={() => setBookingModalVisible(false)}
+        onSelectGuest={(guestId) => {
+          setCrmGuestId(guestId);
+          setBookingModalVisible(false);
+          setCrmModalVisible(true);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -670,6 +825,20 @@ const styles = StyleSheet.create({
     padding: 3,
     borderRadius: 32,
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    position: 'relative',
+  },
+  changeAvatarBtn: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#111827',
   },
   avatarFallback: {
     width: 58,

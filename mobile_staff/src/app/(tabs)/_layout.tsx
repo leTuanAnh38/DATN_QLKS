@@ -11,8 +11,8 @@ export default function TabLayout() {
   const isManagerOrAdmin = ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(role);
 
   // Phân quyền truy cập các Tab theo từng vai trò nhân viên:
-  const canAccessHousekeeping = isManagerOrAdmin || role === 'housekeeper';
-  const canAccessLostFound = isManagerOrAdmin || role === 'housekeeper';
+  const canAccessHousekeeping = isManagerOrAdmin || ['housekeeper', 'service_staff', 'technician'].includes(role);
+  const canAccessLostFound = isManagerOrAdmin || ['housekeeper', 'technician', 'service_staff'].includes(role);
   const canAccessTransport = isManagerOrAdmin || role === 'service_staff';
   const canAccessServices = isManagerOrAdmin || role === 'service_staff';
   const canAccessMaintenance = isManagerOrAdmin || role === 'technician';

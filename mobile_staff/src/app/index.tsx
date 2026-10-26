@@ -15,7 +15,7 @@ export default function IndexRedirect() {
     } else {
       // Điều hướng thông minh theo vai trò tác nghiệp
       if (user.role === 'service_staff') {
-        router.replace('/(tabs)/transport');
+        router.replace('/(tabs)/services');
       } else if (user.role === 'technician') {
         router.replace('/(tabs)/maintenance');
       } else {

@@ -12,6 +12,7 @@ import {
   TextInput,
   ScrollView,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -144,6 +145,7 @@ export default function LostFoundScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
+    setVisibleCount(15);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     fetchLostItems();
   };
@@ -177,6 +179,54 @@ export default function LostFoundScreen() {
       return matchStatus && matchSearch;
     });
   }, [items, filterStatus, searchQuery]);
+
+  // Infinite Scroll
+  const [visibleCount, setVisibleCount] = useState(15);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    setVisibleCount(15);
+  }, [filterStatus, searchQuery]);
+
+  const displayedItems = useMemo(() => {
+    return filteredItems.slice(0, visibleCount);
+  }, [filteredItems, visibleCount]);
+
+  const handleLoadMore = () => {
+    if (loadingMore || visibleCount >= filteredItems.length) return;
+    setLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + 15, filteredItems.length));
+      setLoadingMore(false);
+    }, 250);
+  };
+
+  const renderFooter = () => {
+    if (filteredItems.length <= 15) return <View style={{ height: 20 }} />;
+    if (loadingMore) {
+      return (
+        <View style={styles.loadMoreFooter}>
+          <ActivityIndicator size="small" color="#F59E0B" />
+          <Text style={styles.loadMoreText}>Đang tải thêm tài sản cũ hơn...</Text>
+        </View>
+      );
+    }
+    if (visibleCount >= filteredItems.length) {
+      return (
+        <View style={styles.endOfListFooter}>
+          <Ionicons name="checkmark-circle-outline" size={15} color="#64748B" style={{ marginRight: 6 }} />
+          <Text style={styles.endOfListText}>Đã hiển thị toàn bộ {filteredItems.length} tài sản</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.endOfListFooter}>
+        <Text style={styles.loadMoreHintText}>
+          Đang xem {visibleCount}/{filteredItems.length} món • Cuộn xuống để xem thêm
+        </Text>
+      </View>
+    );
+  };
 
   // Khai báo đồ thất lạc mới
   const handleCreate = async () => {
@@ -264,11 +314,57 @@ export default function LostFoundScreen() {
     }
   };
 
+  const handleMarkContacted = async (item: LostFoundItem) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await apiClient.patch(`/rooms/lost-and-found/${item.id}/`, {
+        status: 'contacted',
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Đã cập nhật', `Đã đánh dấu đã liên hệ báo khách cho đồ #${item.tracking_code}!`);
+      fetchLostItems();
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+    }
+  };
+
   const renderItem = ({ item }: { item: LostFoundItem }) => {
-    const isStored = item.status === 'stored' || item.status === 'contacted';
+    const isStored = item.status === 'stored';
+    const isContacted = item.status === 'contacted';
+    const isReturned = item.status === 'returned';
+
+    const getStatusStyle = () => {
+      if (isStored) {
+        return {
+          bg: 'rgba(245, 158, 11, 0.12)',
+          border: 'rgba(245, 158, 11, 0.4)',
+          text: '#FBBF24',
+          label: 'Đang lưu kho',
+          icon: 'archive' as const,
+        };
+      }
+      if (isContacted) {
+        return {
+          bg: 'rgba(56, 189, 248, 0.12)',
+          border: 'rgba(56, 189, 248, 0.4)',
+          text: '#38BDF8',
+          label: 'Đã báo khách',
+          icon: 'call' as const,
+        };
+      }
+      return {
+        bg: 'rgba(16, 185, 129, 0.12)',
+        border: 'rgba(16, 185, 129, 0.4)',
+        text: '#34D399',
+        label: 'Đã trao trả',
+        icon: 'checkmark-circle' as const,
+      };
+    };
+
+    const statusObj = getStatusStyle();
 
     return (
-      <View style={[styles.card, isStored && styles.cardStored]}>
+      <View style={[styles.card, (isStored || isContacted) && styles.cardStored]}>
         {/* Header thẻ */}
         <View style={styles.cardHeader}>
           <View style={styles.locationTag}>
@@ -282,24 +378,24 @@ export default function LostFoundScreen() {
             style={[
               styles.statusBadge,
               {
-                backgroundColor: isStored ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                borderColor: isStored ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)',
+                backgroundColor: statusObj.bg,
+                borderColor: statusObj.border,
               },
             ]}
           >
             <Ionicons
-              name={isStored ? 'archive' : 'checkmark-circle'}
+              name={statusObj.icon}
               size={12}
-              color={isStored ? '#FBBF24' : '#34D399'}
+              color={statusObj.text}
               style={{ marginRight: 4 }}
             />
             <Text
               style={[
                 styles.statusBadgeText,
-                { color: isStored ? '#FBBF24' : '#34D399' },
+                { color: statusObj.text },
               ]}
             >
-              {isStored ? 'Đang lưu kho' : 'Đã trao trả'}
+              {statusObj.label}
             </Text>
           </View>
         </View>
@@ -346,9 +442,21 @@ export default function LostFoundScreen() {
         {item.guest_name ? (
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Khách liên quan:</Text>
-            <Text style={[styles.infoValue, { color: '#60A5FA', fontWeight: '700' }]}>
-              {item.guest_name} {item.guest_phone ? `(${item.guest_phone})` : ''}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <Text style={[styles.infoValue, { color: '#60A5FA', fontWeight: '700' }]}>
+                {item.guest_name}
+              </Text>
+              {item.guest_phone ? (
+                <TouchableOpacity
+                  style={styles.callGuestMiniBtn}
+                  onPress={() => Linking.openURL(`tel:${item.guest_phone}`)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="call" size={11} color="#34D399" style={{ marginRight: 3 }} />
+                  <Text style={styles.callGuestMiniText}>{item.guest_phone}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
         ) : null}
 
@@ -366,20 +474,33 @@ export default function LostFoundScreen() {
         </View>
 
         {/* Nút hành động */}
-        {isStored ? (
-          <TouchableOpacity
-            style={styles.returnActionBtn}
-            onPress={() => {
-              setSelectedItem(item);
-              setReturnedTo(item.guest_name || '');
-              setReturnNote('');
-              setReturnModalVisible(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="hand-left" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-            <Text style={styles.returnActionBtnText}>BÀN GIAO TRẢ KHÁCH</Text>
-          </TouchableOpacity>
+        {(isStored || isContacted) ? (
+          <View style={styles.actionRowLF}>
+            {isStored && (
+              <TouchableOpacity
+                style={styles.contactActionBtn}
+                onPress={() => handleMarkContacted(item)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="call-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+                <Text style={styles.contactActionBtnText}>Đã gọi khách</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.returnActionBtn}
+              onPress={() => {
+                setSelectedItem(item);
+                setReturnedTo(item.guest_name || '');
+                setReturnNote('');
+                setReturnModalVisible(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="hand-left" size={14} color="#0A0F1D" style={{ marginRight: 5 }} />
+              <Text style={styles.returnActionBtnText}>BÀN GIAO TRẢ KHÁCH</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.returnedInfoBox}>
             <Ionicons name="shield-checkmark" size={14} color="#34D399" style={{ marginRight: 6 }} />
@@ -491,11 +612,14 @@ export default function LostFoundScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredItems}
+          data={displayedItems}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.2}
+          ListFooterComponent={renderFooter}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />
           }
@@ -1203,5 +1327,69 @@ const styles = StyleSheet.create({
   fullImage: {
     width: '92%',
     height: '75%',
+  },
+  callGuestMiniBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  callGuestMiniText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#34D399',
+  },
+  actionRowLF: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 6,
+  },
+  contactActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  contactActionBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#38BDF8',
+  },
+  loadMoreFooter: {
+    paddingVertical: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  loadMoreText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+  endOfListFooter: {
+    paddingVertical: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endOfListText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  loadMoreHintText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
 });
