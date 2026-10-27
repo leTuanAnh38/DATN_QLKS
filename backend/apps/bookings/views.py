@@ -3817,6 +3817,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             booking_item = {
                 'id': b.id,
+                'guest_id': b.guest_id,
                 'booking_code': b.booking_code,
                 'guest_name': guest_name,
                 'booker_name': b.guest.get_full_name() if b.guest else '',

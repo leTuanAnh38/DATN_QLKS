@@ -13,6 +13,7 @@ import {
   ScrollView,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
+import { DEFAULT_API_URL } from '../../api/config';
 
 interface ServiceRequestItem {
   id: number;
@@ -28,6 +30,7 @@ interface ServiceRequestItem {
   guest_name: string;
   guest_phone: string;
   service_name: string;
+  service_image?: string;
   quantity: number;
   total_price: string;
   request_time: string | null;
@@ -38,6 +41,38 @@ interface ServiceRequestItem {
   note: string;
   created_at: string;
 }
+
+// Helper lấy URL ảnh xe đưa đón / vận chuyển
+const getVehicleImage = (item: any): string => {
+  const raw =
+    item?.service_image ||
+    item?.service?.image ||
+    item?.service?.image_url ||
+    item?.image_url ||
+    item?.image;
+  if (!raw || typeof raw !== 'string') {
+    return 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80';
+  }
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return raw;
+  }
+  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
+  return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
+};
+
+// Helper định dạng ngày giờ đặt cuốc xe & giờ đón
+const formatDateTime = (dateStr?: string | null): string => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dateFormatted = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    return `${timeStr} • ${dateFormatted}`;
+  } catch {
+    return dateStr;
+  }
+};
 
 export default function TransportScreen() {
   const { user } = useAuth();
@@ -403,33 +438,66 @@ export default function TransportScreen() {
           </View>
         </View>
 
-        {/* Tiêu đề Dịch vụ xe */}
+        {/* Tiêu đề Dịch vụ xe & Ảnh xe */}
         <View style={styles.serviceRow}>
-          <View style={styles.carIconBox}>
-            <Ionicons name="car-sport" size={20} color="#F59E0B" />
+          <View style={styles.carThumbBox}>
+            <Image
+              source={{ uri: getVehicleImage(item) }}
+              style={styles.carThumbImg}
+              resizeMode="cover"
+            />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.serviceName}>{item.service_name}</Text>
-            <Text style={styles.bookingCode}>Mã đặt: #{item.booking_code}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+              <Text style={styles.bookingCode}>Mã: #{item.booking_code}</Text>
+              {item.total_price ? (
+                <>
+                  <Text style={styles.dotSeparator}>•</Text>
+                  <Text style={styles.priceTagText}>
+                    {parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ
+                  </Text>
+                </>
+              ) : null}
+            </View>
           </View>
         </View>
 
-        {/* Thông tin khách hàng & Giờ hẹn */}
+        {/* Thông tin khách hàng */}
         <View style={styles.passengerBox}>
           <View style={styles.passengerRow}>
             <Ionicons name="person" size={14} color="#CBD5E1" />
             <Text style={styles.passengerName}>{item.guest_name || 'Khách sạn'}</Text>
           </View>
 
+          {item.guest_phone ? (
+            <TouchableOpacity
+              style={styles.guestPhonePill}
+              onPress={() => callGuest(item.guest_phone)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="call" size={12} color="#10B981" style={{ marginRight: 4 }} />
+              <Text style={styles.guestPhoneText}>{item.guest_phone}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Thời gian đặt cuốc xe & Giờ hẹn đón */}
+        <View style={styles.transportTimingBox}>
+          {item.created_at ? (
+            <View style={styles.transportTimingItem}>
+              <Ionicons name="time-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+              <Text style={styles.transportTimingLabel}>Đặt lúc:</Text>
+              <Text style={styles.transportTimingValue}>{formatDateTime(item.created_at)}</Text>
+            </View>
+          ) : null}
+
           {item.request_time ? (
-            <View style={styles.timeBadge}>
-              <Ionicons name="alarm" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-              <Text style={styles.timeBadgeText}>
-                {new Date(item.request_time).toLocaleTimeString('vi-VN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}{' '}
-                - {new Date(item.request_time).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+            <View style={[styles.transportTimingItem, styles.transportTimingScheduled]}>
+              <Ionicons name="alarm-outline" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
+              <Text style={[styles.transportTimingLabel, { color: '#F59E0B' }]}>Giờ đón:</Text>
+              <Text style={[styles.transportTimingValue, { color: '#FBBF24', fontWeight: '800' }]}>
+                {formatDateTime(item.request_time)}
               </Text>
             </View>
           ) : null}
@@ -734,11 +802,11 @@ export default function TransportScreen() {
                         }}
                         activeOpacity={0.7}
                       >
-                        <View style={[styles.serviceCarIcon, isSel && { backgroundColor: '#F59E0B' }]}>
-                          <Ionicons
-                            name="car-sport"
-                            size={20}
-                            color={isSel ? '#0A0F1D' : '#F59E0B'}
+                        <View style={styles.serviceCarThumbBox}>
+                          <Image
+                            source={{ uri: getVehicleImage(svc) }}
+                            style={styles.serviceCarThumbImg}
+                            resizeMode="cover"
                           />
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -1064,6 +1132,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  carThumbBox: {
+    width: 60,
+    height: 50,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  carThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
   carIconBox: {
     width: 40,
     height: 40,
@@ -1083,7 +1165,66 @@ const styles = StyleSheet.create({
   bookingCode: {
     fontSize: 11,
     color: '#64748B',
-    marginTop: 2,
+  },
+  dotSeparator: {
+    color: '#475569',
+    marginHorizontal: 6,
+  },
+  priceTagText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#34D399',
+  },
+  guestPhonePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  guestPhoneText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#34D399',
+  },
+  transportTimingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    backgroundColor: '#0A0F1D',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#1F2937',
+  },
+  transportTimingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  transportTimingScheduled: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  transportTimingLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  transportTimingValue: {
+    fontSize: 11.5,
+    color: '#F1F5F9',
+    fontWeight: '700',
   },
   passengerBox: {
     flexDirection: 'row',
@@ -1401,6 +1542,19 @@ const styles = StyleSheet.create({
   serviceSelectCardActive: {
     borderColor: '#F59E0B',
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
+  },
+  serviceCarThumbBox: {
+    width: 48,
+    height: 40,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#0A0F1D',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  serviceCarThumbImg: {
+    width: '100%',
+    height: '100%',
   },
   serviceCarIcon: {
     width: 40,

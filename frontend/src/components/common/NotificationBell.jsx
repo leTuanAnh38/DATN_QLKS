@@ -108,8 +108,10 @@ export default function NotificationBell({ theme = 'light' }) {
                         : res.data.filter((n) => !n.is_read).length
                 );
 
-                if (prevUnreadRef.current !== null && nextUnread > prevUnreadRef.current && soundEnabled) {
-                    playChime();
+                if (prevUnreadRef.current !== null && nextUnread > prevUnreadRef.current) {
+                    if (soundEnabled) playChime();
+                    window.dispatchEvent(new CustomEvent('pms_room_updated'));
+                    window.dispatchEvent(new CustomEvent('pms_booking_created'));
                 }
                 prevUnreadRef.current = nextUnread;
 
@@ -151,10 +153,10 @@ export default function NotificationBell({ theme = 'light' }) {
         // Fetch ngay khi mount
         fetchNotifications(false, 1, false, filter);
 
-        // Đặt interval 30 giây: chỉ làm mới trang 1 ở chế độ silent
+        // Đặt interval 12 giây: chỉ làm mới trang 1 ở chế độ silent
         const intervalId = setInterval(() => {
             fetchNotifications(true, 1, false, filter);
-        }, 30000);
+        }, 12000);
 
         // Lắng nghe sự kiện realtime khi có đơn phòng, dịch vụ hoặc thanh toán thay đổi trạng thái
         const handleSyncEvent = () => {

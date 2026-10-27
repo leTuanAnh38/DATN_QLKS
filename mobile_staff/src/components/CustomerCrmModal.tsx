@@ -16,6 +16,26 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
+import { DEFAULT_API_URL } from '../api/config';
+
+// Helper lấy URL ảnh dịch vụ / món ăn
+const getServiceItemImage = (item: any): string => {
+  const raw =
+    item?.service_image ||
+    item?.service?.image ||
+    item?.service?.image_url ||
+    item?.display_image ||
+    item?.image_url ||
+    item?.image;
+  if (!raw || typeof raw !== 'string') {
+    return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80';
+  }
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return raw;
+  }
+  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
+  return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
+};
 
 interface CustomerCrmModalProps {
   visible: boolean;
@@ -58,14 +78,16 @@ export default function CustomerCrmModal({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedGuest(guestItem);
     setActiveTab('bookings');
+    setVisibleHistoryBookingsCount(10);
+    setVisibleHistoryServicesCount(10);
     setLoadingDetail(true);
     setLoadingHistory(true);
 
     try {
       const [resDetail, resBookings, resServices] = await Promise.all([
         apiClient.get(`/users/${guestItem.id}/`).catch(() => null),
-        apiClient.get(`/bookings/?guest_id=${guestItem.id}&page_size=20`).catch(() => null),
-        apiClient.get(`/services/requests/?guest_id=${guestItem.id}&page_size=20`).catch(() => null),
+        apiClient.get(`/bookings/?guest_id=${guestItem.id}&no_page=true`).catch(() => null),
+        apiClient.get(`/services/requests/?guest_id=${guestItem.id}&no_page=true`).catch(() => null),
       ]);
 
       if (resDetail && resDetail.data) {
@@ -157,11 +179,79 @@ export default function CustomerCrmModal({
       );
     }
     return (
-      <View style={styles.endOfListFooter}>
+      <TouchableOpacity
+        style={styles.endOfListFooter}
+        activeOpacity={0.7}
+        onPress={handleLoadMore}
+      >
         <Text style={styles.loadMoreHintText}>
-          Đang xem {visibleCount}/{filteredGuests.length} khách • Cuộn xuống để xem thêm
+          Đang xem {visibleCount}/{filteredGuests.length} khách • Cuộn hoặc chạm để tải thêm
         </Text>
-      </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Infinite Scroll cho Lịch sử Đặt phòng & Dịch vụ trong chi tiết khách
+  const [visibleHistoryBookingsCount, setVisibleHistoryBookingsCount] = useState(10);
+  const [visibleHistoryServicesCount, setVisibleHistoryServicesCount] = useState(10);
+  const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
+
+  const displayedBookingHistory = useMemo(() => {
+    return bookingHistory.slice(0, visibleHistoryBookingsCount);
+  }, [bookingHistory, visibleHistoryBookingsCount]);
+
+  const displayedServiceHistory = useMemo(() => {
+    return serviceHistory.slice(0, visibleHistoryServicesCount);
+  }, [serviceHistory, visibleHistoryServicesCount]);
+
+  const handleLoadMoreHistory = () => {
+    if (loadingMoreHistory) return;
+
+    if (activeTab === 'bookings') {
+      if (visibleHistoryBookingsCount >= bookingHistory.length) return;
+      setLoadingMoreHistory(true);
+      setTimeout(() => {
+        setVisibleHistoryBookingsCount((prev) => Math.min(prev + 10, bookingHistory.length));
+        setLoadingMoreHistory(false);
+      }, 250);
+    } else {
+      if (visibleHistoryServicesCount >= serviceHistory.length) return;
+      setLoadingMoreHistory(true);
+      setTimeout(() => {
+        setVisibleHistoryServicesCount((prev) => Math.min(prev + 10, serviceHistory.length));
+        setLoadingMoreHistory(false);
+      }, 250);
+    }
+  };
+
+  const renderHistoryFooter = (visibleCount: number, totalCount: number, label: string) => {
+    if (totalCount <= 10) return <View style={{ height: 15 }} />;
+    if (loadingMoreHistory) {
+      return (
+        <View style={styles.loadMoreFooter}>
+          <ActivityIndicator size="small" color="#F59E0B" />
+          <Text style={styles.loadMoreText}>Đang tải thêm {label} cũ hơn...</Text>
+        </View>
+      );
+    }
+    if (visibleCount >= totalCount) {
+      return (
+        <View style={styles.endOfListFooter}>
+          <Ionicons name="checkmark-circle-outline" size={15} color="#64748B" style={{ marginRight: 6 }} />
+          <Text style={styles.endOfListText}>Đã hiển thị toàn bộ {totalCount} {label}</Text>
+        </View>
+      );
+    }
+    return (
+      <TouchableOpacity
+        style={styles.endOfListFooter}
+        activeOpacity={0.7}
+        onPress={handleLoadMoreHistory}
+      >
+        <Text style={styles.loadMoreHintText}>
+          Đang xem {visibleCount}/{totalCount} {label} • Cuộn hoặc chạm để tải thêm
+        </Text>
+      </TouchableOpacity>
     );
   };
 
@@ -338,7 +428,20 @@ export default function CustomerCrmModal({
             </View>
           ) : (
             /* VIEW 2: GUEST PROFILE DETAIL & HISTORY */
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 35 }}
+              onScroll={({ nativeEvent }) => {
+                const paddingToBottom = 80;
+                const isCloseToBottom =
+                  nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+                  nativeEvent.contentSize.height - paddingToBottom;
+                if (isCloseToBottom) {
+                  handleLoadMoreHistory();
+                }
+              }}
+              scrollEventThrottle={200}
+            >
               {/* Profile Header Card */}
               <View style={styles.profileHeaderCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -458,61 +561,78 @@ export default function CustomerCrmModal({
                   <Text style={styles.loadingText}>Đang tải lịch sử...</Text>
                 </View>
               ) : activeTab === 'bookings' ? (
-                bookingHistory.length === 0 ? (
+                displayedBookingHistory.length === 0 ? (
                   <View style={styles.centerBox}>
                     <Text style={styles.emptyText}>Chưa có lịch sử đặt phòng nào.</Text>
                   </View>
                 ) : (
-                  bookingHistory.map((b) => (
-                    <View key={b.id || b.booking_code} style={styles.historyCard}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={styles.historyCode}>#{b.booking_code}</Text>
-                        <View style={styles.historyStatusBadge}>
-                          <Text style={styles.historyStatusText}>{b.status_display || b.status}</Text>
+                  <>
+                    {displayedBookingHistory.map((b) => (
+                      <View key={b.id || b.booking_code} style={styles.historyCard}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={styles.historyCode}>#{b.booking_code}</Text>
+                          <View style={styles.historyStatusBadge}>
+                            <Text style={styles.historyStatusText}>{b.status_display || b.status}</Text>
+                          </View>
                         </View>
+                        <Text style={styles.historyRoomName}>
+                          Phòng: {b.room_number ? `P.${b.room_number}` : 'Chưa xếp'} • {b.room_name || 'Phòng Deluxe'}
+                        </Text>
+                        <Text style={styles.historyDates}>
+                          📅 {b.check_in_date} ➔ {b.check_out_date}
+                        </Text>
+                        <Text style={styles.historyPrice}>
+                          Tổng tiền: {b.total_amount ? `${parseInt(b.total_amount, 10).toLocaleString('vi-VN')} đ` : '—'}
+                        </Text>
                       </View>
-                      <Text style={styles.historyRoomName}>
-                        Phòng: {b.room_number ? `P.${b.room_number}` : 'Chưa xếp'} • {b.room_name || 'Phòng Deluxe'}
-                      </Text>
-                      <Text style={styles.historyDates}>
-                        📅 {b.check_in_date} ➔ {b.check_out_date}
-                      </Text>
-                      <Text style={styles.historyPrice}>
-                        Tổng tiền: {b.total_amount ? `${parseInt(b.total_amount, 10).toLocaleString('vi-VN')} đ` : '—'}
-                      </Text>
-                    </View>
-                  ))
+                    ))}
+                    {renderHistoryFooter(visibleHistoryBookingsCount, bookingHistory.length, 'lịch đặt')}
+                  </>
                 )
               ) : (
-                serviceHistory.length === 0 ? (
+                displayedServiceHistory.length === 0 ? (
                   <View style={styles.centerBox}>
                     <Text style={styles.emptyText}>Chưa có lịch sử dùng dịch vụ nào.</Text>
                   </View>
                 ) : (
-                  serviceHistory.map((s) => (
-                    <View key={s.id} style={styles.historyCard}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={styles.historyServiceName}>{s.service_name}</Text>
-                        <Text style={styles.historyQty}>x{s.quantity}</Text>
+                  <>
+                    {displayedServiceHistory.map((s) => (
+                      <View key={s.id} style={styles.historyCard}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <View style={styles.historyThumbBox}>
+                            <Image
+                              source={{ uri: getServiceItemImage(s) }}
+                              style={styles.historyThumbImg}
+                              resizeMode="cover"
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Text style={styles.historyServiceName}>{s.service_name}</Text>
+                              <Text style={styles.historyQty}>x{s.quantity}</Text>
+                            </View>
+                            <Text style={styles.historySub}>
+                              Phòng: P.{s.room_number || '—'} • {s.category_name || 'Dịch vụ'}
+                            </Text>
+                            {s.created_at ? (
+                              <Text style={styles.historyDates}>
+                                ⏰ Đặt: {new Date(s.created_at).toLocaleString('vi-VN')}
+                              </Text>
+                            ) : null}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                              <Text style={styles.historyPrice}>
+                                {s.total_price ? `${parseInt(s.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
+                              </Text>
+                              <Text style={[styles.historyStatusText, { color: '#34D399' }]}>
+                                {s.status_display || s.status}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
                       </View>
-                      <Text style={styles.historySub}>
-                        Phòng: P.{s.room_number || '—'} • {s.category_name || 'Dịch vụ'}
-                      </Text>
-                      {s.created_at ? (
-                        <Text style={styles.historyDates}>
-                          ⏰ {new Date(s.created_at).toLocaleString('vi-VN')}
-                        </Text>
-                      ) : null}
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                        <Text style={styles.historyPrice}>
-                          {s.total_price ? `${parseInt(s.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
-                        </Text>
-                        <Text style={[styles.historyStatusText, { color: '#34D399' }]}>
-                          {s.status_display || s.status}
-                        </Text>
-                      </View>
-                    </View>
-                  ))
+                    ))}
+                    {renderHistoryFooter(visibleHistoryServicesCount, serviceHistory.length, 'dịch vụ')}
+                  </>
                 )
               )}
             </ScrollView>
@@ -823,6 +943,20 @@ const styles = StyleSheet.create({
     color: '#34D399',
     fontWeight: '800',
     marginTop: 4,
+  },
+  historyThumbBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  historyThumbImg: {
+    width: '100%',
+    height: '100%',
   },
   historyServiceName: {
     fontSize: 13,

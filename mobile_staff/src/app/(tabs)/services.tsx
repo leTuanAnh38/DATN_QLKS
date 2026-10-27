@@ -20,6 +20,7 @@ import apiClient from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
+import { DEFAULT_API_URL } from '../../api/config';
 
 interface ServiceOrder {
   id: number;
@@ -27,6 +28,7 @@ interface ServiceOrder {
   room_number: string;
   guest_name: string;
   service_name: string;
+  service_image?: string;
   category_name: string;
   category_type: string;
   quantity: number;
@@ -57,17 +59,38 @@ const isTransportService = (item: any) => {
     text.includes('đón tiễn')
   );
 };
+
 // Helper lấy đường dẫn ảnh đầy đủ cho dịch vụ / món ăn (đồng bộ với Web)
 const getServiceItemImage = (item: any): string => {
-  const raw = item?.display_image || item?.image_url || item?.image;
+  const raw =
+    item?.service_image ||
+    item?.service?.image ||
+    item?.service?.image_url ||
+    item?.display_image ||
+    item?.image_url ||
+    item?.image;
   if (!raw || typeof raw !== 'string') {
     return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80';
   }
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
     return raw;
   }
-  const base = apiClient.defaults.baseURL ? apiClient.defaults.baseURL.replace(/\/api\/?$/, '') : '';
+  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
   return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
+};
+
+// Helper định dạng ngày giờ đặt đơn & giờ hẹn giao
+const formatOrderTime = (dateStr?: string | null): string => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dateFormatted = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    return `${timeStr} • ${dateFormatted}`;
+  } catch {
+    return dateStr;
+  }
 };
 
 export default function ServicesScreen() {
@@ -531,9 +554,16 @@ export default function ServicesScreen() {
       <View style={[styles.card, isMyTask && styles.cardMyTask]}>
         {/* Header Đơn */}
         <View style={styles.cardHeader}>
-          <View style={styles.roomTag}>
-            <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={styles.roomTagText}>P.{item.room_number || '?'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+            <View style={styles.roomTag}>
+              <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
+              <Text style={styles.roomTagText}>P.{item.room_number || '?'}</Text>
+            </View>
+            {item.booking_code ? (
+              <View style={styles.bookingCodeTag}>
+                <Text style={styles.bookingCodeTagText}>#{item.booking_code}</Text>
+              </View>
+            ) : null}
           </View>
 
           <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
@@ -543,10 +573,14 @@ export default function ServicesScreen() {
           </View>
         </View>
 
-        {/* Tên Món & Số lượng */}
+        {/* Tên Món, Ảnh Món & Số lượng */}
         <View style={styles.foodRow}>
-          <View style={styles.foodIconBox}>
-            <Ionicons name="restaurant" size={20} color="#F59E0B" />
+          <View style={styles.foodThumbBox}>
+            <Image
+              source={{ uri: getServiceItemImage(item) }}
+              style={styles.foodThumbImg}
+              resizeMode="cover"
+            />
           </View>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -579,6 +613,27 @@ export default function ServicesScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+
+        {/* Thời gian đặt & Giờ hẹn giao */}
+        <View style={styles.orderTimingBox}>
+          {item.created_at ? (
+            <View style={styles.orderTimingItem}>
+              <Ionicons name="time-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+              <Text style={styles.orderTimingLabel}>Đặt lúc:</Text>
+              <Text style={styles.orderTimingValue}>{formatOrderTime(item.created_at)}</Text>
+            </View>
+          ) : null}
+
+          {item.request_time ? (
+            <View style={[styles.orderTimingItem, styles.orderTimingScheduled]}>
+              <Ionicons name="alarm-outline" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
+              <Text style={[styles.orderTimingLabel, { color: '#F59E0B' }]}>Hẹn giao:</Text>
+              <Text style={[styles.orderTimingValue, { color: '#FBBF24', fontWeight: '800' }]}>
+                {formatOrderTime(item.request_time)}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Ghi chú yêu cầu đặc biệt của khách */}
@@ -1449,10 +1504,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
+  bookingCodeTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  bookingCodeTagText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   foodRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  foodThumbBox: {
+    width: 54,
+    height: 54,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  foodThumbImg: {
+    width: '100%',
+    height: '100%',
   },
   foodIconBox: {
     width: 42,
@@ -1464,6 +1546,42 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  orderTimingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    backgroundColor: '#0A0F1D',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#1F2937',
+  },
+  orderTimingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  orderTimingScheduled: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  orderTimingLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  orderTimingValue: {
+    fontSize: 11.5,
+    color: '#F1F5F9',
+    fontWeight: '700',
   },
   serviceName: {
     fontSize: 15,

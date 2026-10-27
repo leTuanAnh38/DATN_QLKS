@@ -235,6 +235,36 @@ export const roomService = {
     },
 
     /**
+     * Yêu cầu dọn phòng lưu trú (Make-up room) cho phòng đang có khách ở
+     */
+    async requestRoomCleaning(roomId, note = '') {
+        try {
+            const response = await api.post(`/rooms/admin/rooms/${roomId}/request-cleaning/`, { note });
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể gửi yêu cầu dọn phòng.'
+            };
+        }
+    },
+
+    /**
+     * Xác nhận hoàn tất dọn dẹp phòng lưu trú (Make-up room)
+     */
+    async completeRoomCleaning(roomId) {
+        try {
+            const response = await api.post(`/rooms/admin/rooms/${roomId}/complete-cleaning/`);
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể xác nhận hoàn tất dọn phòng.'
+            };
+        }
+    },
+
+    /**
      * Xóa phòng khỏi sơ đồ
      */
     async deleteRoom(id) {

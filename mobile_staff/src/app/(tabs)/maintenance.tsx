@@ -35,25 +35,53 @@ interface MaintenanceTicket {
   start_date: string;
 }
 
-const ISSUE_TYPES = [
-  { key: 'ac', label: 'Điều hòa / Gió', icon: 'snow' },
-  { key: 'electric', label: 'Điện / Đèn', icon: 'flash' },
-  { key: 'plumbing', label: 'Nước / Bồn cầu', icon: 'water' },
-  { key: 'furniture', label: 'Khóa / Nội thất', icon: 'key' },
-  { key: 'electronics', label: 'Tivi / Tủ lạnh', icon: 'tv' },
-  { key: 'other', label: 'Sự cố khác', icon: 'build' },
+const MAINTENANCE_ISSUE_TYPES = [
+  { key: 'ac', label: 'Điều hòa / Không khí', icon: 'snow', color: '#38BDF8' },
+  { key: 'plumbing', label: 'Cấp thoát nước', icon: 'water', color: '#06B6D4' },
+  { key: 'electric', label: 'Điện & Chiếu sáng', icon: 'flash', color: '#F59E0B' },
+  { key: 'electronics', label: 'Điện tử / Smart TV', icon: 'tv', color: '#A855F7' },
+  { key: 'furniture', label: 'Nội thất & Khóa', icon: 'key', color: '#F97316' },
+  { key: 'other', label: 'Sự cố tiện ích khác', icon: 'construct', color: '#F472B6' },
 ];
 
-const COMMON_EQUIPMENTS = [
-  'Điều hòa Daikin',
-  'Đèn chiếu sáng trần',
-  'Khóa thẻ từ phòng',
-  'Vòi sen / Bồn cầu',
-  'Tivi thông minh',
-  'Bình nóng lạnh',
-  'Tủ lạnh mini',
-  'Cửa kính ban công',
-];
+const EQUIPMENT_SUGGESTIONS: { [key: string]: string[] } = {
+  ac: ['Điều hòa Daikin', 'Điều hòa âm trần', 'Điều khiển máy lạnh', 'Quạt hút thông gió'],
+  plumbing: ['Vòi sen tắm đứng', 'Bồn cầu / Vòi xịt', 'Bình nóng lạnh', 'Chậu rửa mặt (Lavabo)', 'Ống thoát nước sàn'],
+  electric: ['Đèn chiếu sáng chính', 'Đèn ngủ đầu giường', 'Ổ cắm điện / Công tắc', 'Cầu dao điện (Aptomat)'],
+  electronics: ['Smart TV / Remote', 'Tủ lạnh Minibar', 'Két sắt điện tử', 'Ấm siêu tốc', 'Máy sấy tóc'],
+  furniture: ['Khóa thẻ từ phòng', 'Cửa phòng / Cửa ban công', 'Bàn ghế / Tủ quần áo', 'Giường / Đệm lò xo'],
+  other: ['Gương kính nứt', 'Rèm cửa sổ', 'Tường ố / Thấm nước', 'Mùi lạ trong phòng'],
+};
+
+const getRoomStatusColor = (status?: string) => {
+  switch (status) {
+    case 'occupied':
+      return { bg: 'rgba(56, 189, 248, 0.15)', dot: '#38BDF8', text: '#38BDF8' };
+    case 'available':
+      return { bg: 'rgba(16, 185, 129, 0.15)', dot: '#10B981', text: '#10B981' };
+    case 'cleaning':
+      return { bg: 'rgba(245, 158, 11, 0.15)', dot: '#F59E0B', text: '#F59E0B' };
+    case 'maintenance':
+      return { bg: 'rgba(239, 68, 68, 0.15)', dot: '#EF4444', text: '#EF4444' };
+    default:
+      return { bg: 'rgba(148, 163, 184, 0.15)', dot: '#94A3B8', text: '#94A3B8' };
+  }
+};
+
+const getRoomStatusLabel = (status?: string) => {
+  switch (status) {
+    case 'occupied':
+      return 'Có khách';
+    case 'available':
+      return 'Sẵn sàng';
+    case 'cleaning':
+      return 'Đang dọn';
+    case 'maintenance':
+      return 'Bảo trì';
+    default:
+      return status || 'Trống';
+  }
+};
 
 export default function MaintenanceScreen() {
   const { user } = useAuth();
@@ -81,8 +109,15 @@ export default function MaintenanceScreen() {
   const [equipmentName, setEquipmentName] = useState('Điều hòa Daikin');
   const [issueType, setIssueType] = useState('ac');
   const [breakdownDesc, setBreakdownDesc] = useState('');
+  const [createPartsReplaced, setCreatePartsReplaced] = useState('');
+  const [createCost, setCreateCost] = useState('');
+  const [createIsGuestFault, setCreateIsGuestFault] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
   const [submittingCreate, setSubmittingCreate] = useState(false);
+
+  const selectedRoom = useMemo(() => {
+    return roomsList.find((r) => r.id === selectedRoomId) || null;
+  }, [roomsList, selectedRoomId]);
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -236,6 +271,9 @@ export default function MaintenanceScreen() {
       setRoomsList(roomsArr);
       if (roomsArr.length > 0 && !selectedRoomId) {
         setSelectedRoomId(roomsArr[0].id);
+        if (roomsArr[0].status === 'occupied') {
+          setCreateIsGuestFault(true);
+        }
       }
     } catch (e) {
       console.warn('Lỗi lấy danh sách phòng:', e);
@@ -249,12 +287,23 @@ export default function MaintenanceScreen() {
     setEquipmentName('Điều hòa Daikin');
     setIssueType('ac');
     setBreakdownDesc('');
+    setCreatePartsReplaced('');
+    setCreateCost('');
     setIsUrgent(false);
     setRoomFilterText('');
     setCreateModalVisible(true);
     if (roomsList.length === 0) {
       fetchRoomsList();
+    } else {
+      const cur = roomsList.find((r) => r.id === selectedRoomId);
+      setCreateIsGuestFault(cur?.status === 'occupied');
     }
+  };
+
+  const handleSelectRoom = (room: any) => {
+    setSelectedRoomId(room.id);
+    setCreateIsGuestFault(room.status === 'occupied');
+    Haptics.selectionAsync();
   };
 
   const handleCreateTicket = async () => {
@@ -271,6 +320,9 @@ export default function MaintenanceScreen() {
       return;
     }
 
+    const parsedCost = parseInt(createCost.replace(/\D/g, '') || '0', 10);
+    const activeBooking = selectedRoom?.current_booking;
+
     setSubmittingCreate(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -280,6 +332,10 @@ export default function MaintenanceScreen() {
         equipment_name: equipmentName.trim(),
         issue_type: issueType,
         description: breakdownDesc.trim(),
+        parts_replaced: createPartsReplaced.trim(),
+        cost: parsedCost,
+        is_guest_fault: createIsGuestFault,
+        booking_id: (createIsGuestFault && activeBooking) ? activeBooking.id : null,
         priority: isUrgent ? 'high' : 'medium',
       });
 
@@ -287,7 +343,11 @@ export default function MaintenanceScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           'Đã tạo phiếu bảo trì',
-          'Phòng đã được chuyển sang trạng thái "Bảo trì" và cách ly trên sơ đồ khách sạn!'
+          `Phòng ${selectedRoom?.room_number || ''} đã chuyển sang trạng thái "Bảo trì" & được cách ly!${
+            createIsGuestFault && parsedCost > 0
+              ? `\nĐã lập mục bồi thường ${parsedCost.toLocaleString('vi-VN')} đ vào tài khoản lưu trú của khách.`
+              : ''
+          }`
         );
         setCreateModalVisible(false);
         fetchTickets();
@@ -665,6 +725,7 @@ export default function MaintenanceScreen() {
                       .slice(0, 30)
                       .map((r) => {
                         const isSelected = selectedRoomId === r.id;
+                        const statusColor = getRoomStatusColor(r.status);
                         return (
                           <TouchableOpacity
                             key={r.id}
@@ -672,20 +733,28 @@ export default function MaintenanceScreen() {
                               styles.roomSelectChip,
                               isSelected && styles.roomSelectChipActive,
                             ]}
-                            onPress={() => {
-                              setSelectedRoomId(r.id);
-                              Haptics.selectionAsync();
-                            }}
+                            onPress={() => handleSelectRoom(r)}
                             activeOpacity={0.7}
                           >
-                            <Text
-                              style={[
-                                styles.roomSelectChipText,
-                                isSelected && styles.roomSelectChipTextActive,
-                              ]}
-                            >
-                              P.{r.room_number}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <View
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: 3,
+                                  backgroundColor: isSelected ? '#0A0F1D' : statusColor.dot,
+                                  marginRight: 5,
+                                }}
+                              />
+                              <Text
+                                style={[
+                                  styles.roomSelectChipText,
+                                  isSelected && styles.roomSelectChipTextActive,
+                                ]}
+                              >
+                                P.{r.room_number}
+                              </Text>
+                            </View>
                           </TouchableOpacity>
                         );
                       })}
@@ -693,35 +762,101 @@ export default function MaintenanceScreen() {
                 </>
               )}
 
+              {/* Thông tin phòng đã chọn & Cảnh báo khách đang ở */}
+              {selectedRoom && (
+                <View style={styles.selectedRoomSummaryCard}>
+                  <View style={styles.selectedRoomSummaryTop}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
+                      <View style={styles.selectedRoomIconWrap}>
+                        <Ionicons name="bed" size={13} color="#F59E0B" />
+                      </View>
+                      <Text style={styles.selectedRoomNumberText}>
+                        Phòng {selectedRoom.room_number}
+                      </Text>
+                      <Text style={styles.selectedRoomCategoryText} numberOfLines={1}>
+                        • {selectedRoom.category_name || 'Phòng'} (T.{selectedRoom.floor})
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.selectedRoomStatusBadge,
+                        { backgroundColor: getRoomStatusColor(selectedRoom.status).bg },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.statusDot,
+                          { backgroundColor: getRoomStatusColor(selectedRoom.status).dot },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.selectedRoomStatusText,
+                          { color: getRoomStatusColor(selectedRoom.status).text },
+                        ]}
+                      >
+                        {selectedRoom.status_display || getRoomStatusLabel(selectedRoom.status)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {selectedRoom.status === 'occupied' && selectedRoom.current_booking && (
+                    <View style={styles.guestAlertBanner}>
+                      <View style={styles.guestAlertHeader}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
+                          <Ionicons name="person" size={12} color="#38BDF8" style={{ marginRight: 4 }} />
+                          <Text style={styles.guestAlertTitle} numberOfLines={1}>
+                            Khách: {selectedRoom.current_booking.guest_name}
+                          </Text>
+                        </View>
+                        <View style={styles.guestBookingTag}>
+                          <Text style={styles.guestBookingTagText}>
+                            #{selectedRoom.current_booking.booking_code}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.guestAlertNote}>
+                        ⚠️ Lưu ý: Khách đang lưu trú tại phòng. Vui lòng liên hệ Lễ tân hoặc gõ cửa xin phép trước khi vào sửa chữa.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
               {/* 2. Loại sự cố */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>2. Phân loại sự cố:</Text>
-              <View style={styles.issueTypesWrap}>
-                {ISSUE_TYPES.map((it) => {
+              <Text style={[styles.inputLabel, { marginTop: 14 }]}>2. Phân loại sự cố kỹ thuật *:</Text>
+              <View style={styles.issueTypeGrid}>
+                {MAINTENANCE_ISSUE_TYPES.map((it) => {
                   const isSelected = issueType === it.key;
                   return (
                     <TouchableOpacity
                       key={it.key}
                       style={[
-                        styles.issueTypeChip,
-                        isSelected && styles.issueTypeChipActive,
+                        styles.issueTypeGridCard,
+                        isSelected && { borderColor: it.color, backgroundColor: `${it.color}15` },
                       ]}
                       onPress={() => {
                         setIssueType(it.key);
+                        const suggestions = EQUIPMENT_SUGGESTIONS[it.key] || [];
+                        if (suggestions.length > 0) {
+                          setEquipmentName(suggestions[0]);
+                        }
                         Haptics.selectionAsync();
                       }}
                       activeOpacity={0.7}
                     >
                       <Ionicons
                         name={it.icon as any}
-                        size={13}
-                        color={isSelected ? '#F59E0B' : '#94A3B8'}
-                        style={{ marginRight: 4 }}
+                        size={14}
+                        color={isSelected ? it.color : '#94A3B8'}
+                        style={{ marginRight: 6 }}
                       />
                       <Text
                         style={[
-                          styles.issueTypeChipText,
-                          isSelected && styles.issueTypeChipTextActive,
+                          styles.issueTypeGridLabel,
+                          isSelected && { color: it.color, fontWeight: '800' },
                         ]}
+                        numberOfLines={1}
                       >
                         {it.label}
                       </Text>
@@ -734,33 +869,46 @@ export default function MaintenanceScreen() {
               <Text style={[styles.inputLabel, { marginTop: 14 }]}>3. Tên thiết bị hỏng *:</Text>
               <TextInput
                 style={styles.modalInput}
-                placeholder="VD: Điều hòa Daikin, Tivi Samsung..."
+                placeholder="VD: Điều hòa Daikin, Tivi Samsung, Khóa từ..."
                 placeholderTextColor="#64748B"
                 value={equipmentName}
                 onChangeText={setEquipmentName}
               />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 6, marginVertical: 6 }}
-              >
-                {COMMON_EQUIPMENTS.map((eq) => (
-                  <TouchableOpacity
-                    key={eq}
-                    style={styles.quickEquipChip}
-                    onPress={() => {
-                      setEquipmentName(eq);
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.quickEquipChipText}>{eq}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <View style={styles.suggestionRow}>
+                <Text style={styles.suggestionTitle}>Gợi ý nhanh:</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 6 }}
+                >
+                  {(EQUIPMENT_SUGGESTIONS[issueType] || []).map((eq) => (
+                    <TouchableOpacity
+                      key={eq}
+                      style={[
+                        styles.quickEquipChip,
+                        equipmentName === eq && styles.quickEquipChipActive,
+                      ]}
+                      onPress={() => {
+                        setEquipmentName(eq);
+                        Haptics.selectionAsync();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.quickEquipChipText,
+                          equipmentName === eq && styles.quickEquipChipTextActive,
+                        ]}
+                      >
+                        + {eq}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
               {/* 4. Mô tả chi tiết hiện tượng */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>4. Mô tả chi tiết sự cố *:</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }]}>4. Mô tả chi tiết sự cố & Hiện tượng *:</Text>
               <TextInput
                 style={[styles.modalInput, { height: 70 }]}
                 placeholder="Hiện tượng: chảy nước, không mát, chập điện, có tiếng kêu to..."
@@ -770,7 +918,68 @@ export default function MaintenanceScreen() {
                 onChangeText={setBreakdownDesc}
               />
 
-              {/* 5. Mức độ khẩn cấp */}
+              {/* 5. Phụ tùng / Vật tư thay thế mang theo dự kiến */}
+              <Text style={[styles.inputLabel, { marginTop: 14 }]}>5. Phụ tùng / Dụng cụ mang theo dự kiến:</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="VD: 1 Tụ kích 35uF, 1 Dây cấp inox, 2 Pin AAA, Cầu chì 10A..."
+                placeholderTextColor="#64748B"
+                value={createPartsReplaced}
+                onChangeText={setCreatePartsReplaced}
+              />
+
+              {/* 6. Phân loại trách nhiệm chi phí & Đền bù */}
+              <View style={styles.costFaultBox}>
+                <TouchableOpacity
+                  style={styles.faultCheckboxRow}
+                  onPress={() => {
+                    setCreateIsGuestFault(!createIsGuestFault);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name={createIsGuestFault ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={createIsGuestFault ? '#F59E0B' : '#64748B'}
+                  />
+                  <View style={{ marginLeft: 8, flex: 1 }}>
+                    <Text style={styles.faultCheckboxTitle}>
+                      Do khách làm hư hỏng (Tính phí bồi thường)?
+                    </Text>
+                    <Text style={styles.faultCheckboxSub}>
+                      {createIsGuestFault
+                        ? (selectedRoom?.current_booking
+                            ? `Khoản đền bù sẽ tự động cộng vào hóa đơn khách #${selectedRoom.current_booking.booking_code} tại Lễ tân.`
+                            : 'Khoản đền bù sẽ ghi nhận vào phiếu để Lễ tân đối soát thu tiền.')
+                        : 'Hao mòn tự nhiên trong vận hành (Khách sạn chịu chi phí bảo trì).'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {createIsGuestFault && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={styles.costInputLabel}>Chi phí bồi thường / sửa chữa (VNĐ):</Text>
+                    <View style={styles.costInputWrapper}>
+                      <TextInput
+                        style={styles.costInput}
+                        placeholder="0"
+                        placeholderTextColor="#64748B"
+                        keyboardType="numeric"
+                        value={
+                          createCost
+                            ? Number(createCost.replace(/\D/g, '')).toLocaleString('vi-VN')
+                            : ''
+                        }
+                        onChangeText={(t) => setCreateCost(t.replace(/\D/g, ''))}
+                      />
+                      <Text style={styles.costCurrencyUnit}>VNĐ</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* 7. Mức độ khẩn cấp */}
               <TouchableOpacity
                 style={[
                   styles.urgentToggleBox,
@@ -782,16 +991,23 @@ export default function MaintenanceScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
                   <Ionicons
                     name={isUrgent ? 'flame' : 'shield-outline'}
                     size={18}
                     color={isUrgent ? '#EF4444' : '#94A3B8'}
                     style={{ marginRight: 8 }}
                   />
-                  <Text style={[styles.urgentToggleLabel, isUrgent && { color: '#F87171', fontWeight: '800' }]}>
-                    {isUrgent ? 'Sự cố KHẨN CẤP (Xử lý ngay)' : 'Mức độ bình thường'}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.urgentToggleLabel, isUrgent && { color: '#F87171', fontWeight: '800' }]}>
+                      {isUrgent ? 'Sự cố KHẨN CẤP (Ưu tiên xử lý ngay)' : 'Mức độ bình thường'}
+                    </Text>
+                    <Text style={{ fontSize: 10.5, color: isUrgent ? '#FCA5A5' : '#64748B', marginTop: 2 }}>
+                      {isUrgent
+                        ? 'Kích hoạt cảnh báo đỏ mức độ cao trên toàn hệ thống'
+                        : 'Tiến hành theo quy trình bảo trì tiêu chuẩn'}
+                    </Text>
+                  </View>
                 </View>
                 <Ionicons
                   name={isUrgent ? 'checkbox' : 'square-outline'}
@@ -799,6 +1015,13 @@ export default function MaintenanceScreen() {
                   color={isUrgent ? '#EF4444' : '#64748B'}
                 />
               </TouchableOpacity>
+
+              <View style={styles.alertNoteBox}>
+                <Ionicons name="information-circle" size={17} color="#F59E0B" style={{ marginRight: 8 }} />
+                <Text style={styles.alertNoteText}>
+                  Sau khi gửi phiếu, phòng sẽ tự động chuyển sang trạng thái <Text style={{ color: '#F87171', fontWeight: '800' }}>"Bảo trì"</Text> để cách ly trên sơ đồ khách sạn cho đến khi bạn hoàn tất sửa chữa.
+                </Text>
+              </View>
 
               <TouchableOpacity
                 style={[styles.modalConfirmBtn, submittingCreate && { opacity: 0.6 }]}
@@ -811,7 +1034,7 @@ export default function MaintenanceScreen() {
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="construct" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
-                    <Text style={styles.modalConfirmBtnText}>TẠO PHIẾU BẢO TRÌ & CÁCH LY</Text>
+                    <Text style={styles.modalConfirmBtnText}>TẠO PHIẾU BẢO TRÌ & CÁCH LY PHÒNG</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1211,46 +1434,194 @@ const styles = StyleSheet.create({
   roomSelectChipTextActive: {
     color: '#0A0F1D',
   },
-  issueTypesWrap: {
+  selectedRoomSummaryCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginVertical: 6,
+  },
+  selectedRoomSummaryTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectedRoomIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  selectedRoomNumberText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginRight: 4,
+  },
+  selectedRoomCategoryText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    flexShrink: 1,
+  },
+  selectedRoomStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 4,
+  },
+  selectedRoomStatusText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  guestAlertBanner: {
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    padding: 8,
+    marginTop: 8,
+  },
+  guestAlertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  guestAlertTitle: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
+  guestBookingTag: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  guestBookingTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#38BDF8',
+  },
+  guestAlertNote: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    marginTop: 4,
+    lineHeight: 14,
+  },
+  issueTypeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
     marginVertical: 4,
   },
-  issueTypeChip: {
+  issueTypeGridCard: {
+    width: '48.5%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: '#1E293B',
     borderWidth: 1,
     borderColor: '#334155',
   },
-  issueTypeChipActive: {
-    borderColor: '#F59E0B',
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-  },
-  issueTypeChipText: {
-    fontSize: 11,
+  issueTypeGridLabel: {
+    fontSize: 11.5,
     fontWeight: '600',
     color: '#94A3B8',
+    flexShrink: 1,
   },
-  issueTypeChipTextActive: {
-    color: '#F59E0B',
-    fontWeight: '800',
+  suggestionRow: {
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  suggestionTitle: {
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 4,
   },
   quickEquipChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
     backgroundColor: 'rgba(51, 65, 85, 0.6)',
     borderWidth: 1,
     borderColor: '#334155',
   },
+  quickEquipChipActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderColor: '#F59E0B',
+  },
   quickEquipChipText: {
     fontSize: 11,
     color: '#94A3B8',
+  },
+  quickEquipChipTextActive: {
+    color: '#F59E0B',
+    fontWeight: '700',
+  },
+  costFaultBox: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 12,
+    marginTop: 12,
+  },
+  faultCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  faultCheckboxTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  faultCheckboxSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  costInputLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#CBD5E1',
+    marginBottom: 6,
+  },
+  costInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    paddingHorizontal: 12,
+  },
+  costInput: {
+    flex: 1,
+    height: 42,
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  costCurrencyUnit: {
+    color: '#F59E0B',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
   },
   urgentToggleBox: {
     flexDirection: 'row',

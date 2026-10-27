@@ -59,7 +59,28 @@ interface RoomItem {
   recent_booking?: BookingSummary | null;
   active_maintenance?: MaintenanceSummary | null;
   latest_minibar_check?: any | null;
+  is_cleaning_requested?: boolean;
+  cleaning_request_note?: string;
+  cleaning_requested_at?: string;
 }
+
+const MAINTENANCE_ISSUE_TYPES = [
+  { key: 'ac', label: 'Điều hòa / Thông gió', icon: 'snow', color: '#38BDF8' },
+  { key: 'plumbing', label: 'Nước & Vệ sinh', icon: 'water', color: '#60A5FA' },
+  { key: 'electric', label: 'Điện & Chiếu sáng', icon: 'flash', color: '#FBBF24' },
+  { key: 'electronics', label: 'Điện tử (TV, Tủ lạnh)', icon: 'tv', color: '#A78BFA' },
+  { key: 'furniture', label: 'Nội thất & Khóa thẻ', icon: 'key', color: '#34D399' },
+  { key: 'other', label: 'Sự cố khác', icon: 'construct', color: '#F472B6' },
+];
+
+const EQUIPMENT_SUGGESTIONS: { [key: string]: string[] } = {
+  ac: ['Điều hòa Daikin', 'Điều hòa âm trần', 'Điều khiển máy lạnh', 'Quạt hút thông gió'],
+  plumbing: ['Vòi sen tắm đứng', 'Bồn cầu / Vòi xịt', 'Bình nóng lạnh', 'Chậu rửa mặt (Lavabo)', 'Ống thoát nước sàn'],
+  electric: ['Đèn chiếu sáng chính', 'Đèn ngủ đầu giường', 'Ổ cắm điện / Công tắc', 'Cầu dao điện (Aptomat)'],
+  electronics: ['Smart TV / Remote', 'Tủ lạnh Minibar', 'Két sắt điện tử', 'Ấm siêu tốc', 'Máy sấy tóc'],
+  furniture: ['Khóa thẻ từ phòng', 'Cửa phòng / Cửa ban công', 'Bàn ghế / Tủ quần áo', 'Giường / Đệm lò xo'],
+  other: ['Gương kính nứt', 'Rèm cửa sổ', 'Tường ố / Thấm nước', 'Mùi lạ trong phòng'],
+};
 
 export default function HousekeepingScreen() {
   const { user } = useAuth();
@@ -99,11 +120,15 @@ export default function HousekeepingScreen() {
   const [checkNote, setCheckNote] = useState('');
   const [submittingCheck, setSubmittingCheck] = useState(false);
 
-  // Modal Báo hỏng thiết bị sang Kỹ thuật
+  // Modal Báo hỏng thiết bị sang Kỹ thuật (Chuẩn PMS Khách Sạn)
   const [breakdownModalVisible, setBreakdownModalVisible] = useState(false);
   const [breakdownRoom, setBreakdownRoom] = useState<RoomItem | null>(null);
+  const [breakdownIssueType, setBreakdownIssueType] = useState('ac');
   const [breakdownEquipment, setBreakdownEquipment] = useState('Điều hòa Daikin');
   const [breakdownDesc, setBreakdownDesc] = useState('');
+  const [breakdownPartsReplaced, setBreakdownPartsReplaced] = useState('');
+  const [breakdownCost, setBreakdownCost] = useState('');
+  const [isGuestFault, setIsGuestFault] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
   const [submittingBreakdown, setSubmittingBreakdown] = useState(false);
 
@@ -150,6 +175,13 @@ export default function HousekeepingScreen() {
   useEffect(() => {
     setLoading(true);
     fetchRooms();
+
+    // Tự động đồng bộ ngầm mỗi 8 giây (không kích hoạt lại spinner loading)
+    const interval = setInterval(() => {
+      fetchRooms();
+    }, 8000);
+
+    return () => clearInterval(interval);
   }, [fetchRooms]);
 
   const onRefresh = () => {
@@ -247,9 +279,44 @@ export default function HousekeepingScreen() {
     ]);
   };
 
+  // Xác nhận hoàn tất dọn dẹp phòng lưu trú (Make-up room) cho khách đang ở
+  const handleCompleteMakeUpCleaning = async (room: RoomItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Hoàn tất dọn phòng khách ở',
+      `Xác nhận đã lau dọn, thay ga gối sạch sẽ cho Phòng ${room.room_number}? Trạng thái phòng tiếp tục là Có khách.`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đã xong ✨',
+          style: 'default',
+          onPress: async () => {
+            try {
+              const res = await apiClient.post(`/rooms/admin/rooms/${room.id}/complete-cleaning/`);
+              if (res.data.success) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                fetchRooms();
+              }
+            } catch (err: any) {
+              const msg = err.response?.data?.message || 'Không thể cập nhật.';
+              Alert.alert('Lỗi', msg);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const openMinibarCheck = async (room: RoomItem) => {
     if (!canAccessMinibar) {
       Alert.alert('Không có quyền', 'Nghiệp vụ kiểm kê Minibar thuộc thẩm quyền của nhân viên Buồng phòng.');
+      return;
+    }
+    if (room.status === 'available') {
+      Alert.alert(
+        'Phòng đang trống',
+        `Phòng ${room.room_number} hiện đang trống và chưa có khách lưu trú nên không phát sinh kiểm kê Minibar.`
+      );
       return;
     }
     setSelectedRoom(room);
@@ -328,8 +395,12 @@ export default function HousekeepingScreen() {
 
   const openBreakdownModal = (room: RoomItem) => {
     setBreakdownRoom(room);
+    setBreakdownIssueType('ac');
     setBreakdownEquipment('Điều hòa Daikin');
     setBreakdownDesc('');
+    setBreakdownPartsReplaced('');
+    setBreakdownCost('');
+    setIsGuestFault(room.status === 'occupied');
     setIsUrgent(false);
     setBreakdownModalVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -337,27 +408,40 @@ export default function HousekeepingScreen() {
 
   const submitBreakdownTicket = async () => {
     if (!breakdownRoom) return;
+    if (!breakdownEquipment.trim()) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên thiết bị bị hư hỏng.');
+      return;
+    }
     if (!breakdownDesc.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập mô tả hiện tượng sự cố thiết bị.');
       return;
     }
+
     setSubmittingBreakdown(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const numCost = parseInt(breakdownCost.replace(/\D/g, ''), 10) || 0;
+    const currentBk = breakdownRoom.current_booking || breakdownRoom.recent_booking;
 
     try {
       const res = await apiClient.post('/rooms/maintenance-tickets/', {
         room_id: breakdownRoom.id,
-        equipment_name: breakdownEquipment,
+        equipment_name: breakdownEquipment.trim(),
+        issue_type: breakdownIssueType,
         description: breakdownDesc.trim(),
-        issue_type: 'repair',
+        parts_replaced: breakdownPartsReplaced.trim(),
+        cost: numCost,
+        is_guest_fault: isGuestFault,
+        booking_id: isGuestFault && currentBk ? currentBk.id : null,
         priority: isUrgent ? 'high' : 'medium',
       });
 
       if (res.data.success || res.data.id) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        const ticketCode = res.data.ticket_code || res.data.ticket?.ticket_code || 'MT';
         Alert.alert(
-          'Đã báo kỹ thuật',
-          `Phòng ${breakdownRoom.room_number} đã chuyển sang trạng thái Bảo trì và bắn chuông báo cho Đội Kỹ thuật!`
+          'Đã lập phiếu bảo trì thành công 🛠️',
+          `Đã tạo phiếu #${ticketCode} cho Phòng ${breakdownRoom.room_number}.\nPhòng đã chuyển sang trạng thái "Bảo trì" và gửi chuông báo cho Đội Kỹ thuật!`
         );
         setBreakdownModalVisible(false);
         fetchRooms();
@@ -380,6 +464,13 @@ export default function HousekeepingScreen() {
   ];
 
   const openLostFoundModal = (room: RoomItem) => {
+    if (room.status === 'available') {
+      Alert.alert(
+        'Phòng đã dọn sạch',
+        `Phòng ${room.room_number} hiện đang trống và đã được dọn sạch sẽ, sẵn sàng đón khách.`
+      );
+      return;
+    }
     setLostFoundRoom(room);
     setLfItemName('');
     setLfCategory('valuable');
@@ -603,7 +694,9 @@ export default function HousekeepingScreen() {
           </View>
           <View style={[styles.statusPill, { backgroundColor: config.bg, borderColor: config.border }]}>
             <View style={[styles.pulseDot, { backgroundColor: config.dot }]} />
-            <Text style={[styles.statusPillText, { color: config.text }]}>{config.label}</Text>
+            <Text style={[styles.statusPillText, { color: config.text }]} numberOfLines={1} ellipsizeMode="tail">
+              {config.label}
+            </Text>
           </View>
         </View>
 
@@ -647,6 +740,14 @@ export default function HousekeepingScreen() {
                 <Text style={styles.checkoutDateText}>Trả: {formatDateShort(checkOutDate)}</Text>
               ) : null}
             </View>
+            {item.is_cleaning_requested && (
+              <View style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.5)', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginTop: 5, flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="sparkles" size={12} color="#38BDF8" style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 10, color: '#38BDF8', fontWeight: '700', flex: 1 }} numberOfLines={1}>
+                  🧹 Yêu cầu dọn: {item.cleaning_request_note || 'Dọn phòng lưu trú'}
+                </Text>
+              </View>
+            )}
           </View>
         ) : isCleaning ? (
           <View style={styles.cleaningInfoCard}>
@@ -680,9 +781,21 @@ export default function HousekeepingScreen() {
         {isMaintenance ? (
           <View style={styles.cardToolBarSingle}>
             <View style={[styles.cardToolBtnSingle, { borderColor: 'rgba(239, 68, 68, 0.25)', backgroundColor: 'rgba(239, 68, 68, 0.08)' }]}>
-              <Ionicons name="time" size={11} color="#EF4444" />
-              <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]}>Kỹ thuật đang xử lý</Text>
+              <Ionicons name="time" size={12} color="#EF4444" />
+              <Text style={[styles.cardToolBtnTextSingle, { color: '#EF4444' }]}>Kỹ thuật đang xử lý</Text>
             </View>
+          </View>
+        ) : isAvailable ? (
+          /* PHÒNG SẠCH / TRỐNG: Chỉ hiển thị nút Báo hỏng thiết bị (Tuyệt đối không có Minibar và Đồ quên vì phòng trống không có khách!) */
+          <View style={styles.cardToolBarSingle}>
+            <TouchableOpacity
+              style={styles.cardToolBtnSingle}
+              onPress={() => openBreakdownModal(item)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="construct" size={12} color="#EF4444" />
+              <Text style={[styles.cardToolBtnTextSingle, { color: '#EF4444' }]}>Báo hỏng thiết bị</Text>
+            </TouchableOpacity>
           </View>
         ) : isCleaning && canMarkCleaned ? (
           /* BUỒNG PHÒNG ĐANG DỌN: Dọn xong 1 chạm + Hàng công cụ */
@@ -693,24 +806,24 @@ export default function HousekeepingScreen() {
                 onPress={() => openMinibarCheck(item)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="wine" size={11} color="#F59E0B" />
-                <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]}>Minibar</Text>
+                <Ionicons name="wine" size={13} color="#F59E0B" />
+                <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]} numberOfLines={1}>Minibar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.cardToolBtn}
                 onPress={() => openLostFoundModal(item)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="briefcase" size={11} color="#A78BFA" />
-                <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]}>Đồ quên</Text>
+                <Ionicons name="briefcase" size={13} color="#A78BFA" />
+                <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]} numberOfLines={1}>Đồ quên</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.cardToolBtn}
                 onPress={() => openBreakdownModal(item)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="construct" size={11} color="#EF4444" />
-                <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]}>Báo hỏng</Text>
+                <Ionicons name="construct" size={13} color="#EF4444" />
+                <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]} numberOfLines={1}>Báo hỏng</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -723,63 +836,65 @@ export default function HousekeepingScreen() {
             </TouchableOpacity>
           </View>
         ) : canAccessMinibar ? (
-          /* BUỒNG PHÒNG (PHÒNG KHÁC): 3 nút tiện ích chuẩn web */
-          <View style={styles.cardToolBar}>
-            <TouchableOpacity
-              style={styles.cardToolBtn}
-              onPress={() => openMinibarCheck(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="wine" size={11} color="#F59E0B" />
-              <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]}>Minibar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cardToolBtn}
-              onPress={() => openLostFoundModal(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="briefcase" size={11} color="#A78BFA" />
-              <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]}>Đồ quên</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cardToolBtn}
-              onPress={() => openBreakdownModal(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="construct" size={11} color="#EF4444" />
-              <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]}>Báo hỏng</Text>
-            </TouchableOpacity>
-          </View>
-        ) : isAvailable ? (
-          /* PHỤC VỤ (PHÒNG SẠCH / TRỐNG): 1 nút Báo hỏng thiết bị */
-          <View style={styles.cardToolBarSingle}>
-            <TouchableOpacity
-              style={styles.cardToolBtnSingle}
-              onPress={() => openBreakdownModal(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="construct" size={11} color="#EF4444" />
-              <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]}>Báo hỏng thiết bị</Text>
-            </TouchableOpacity>
+          /* BUỒNG PHÒNG (PHÒNG CÓ KHÁCH): 3 nút tiện ích chuẩn web + Nút Dọn phòng nếu khách yêu cầu */
+          <View>
+            <View style={styles.cardToolBar}>
+              <TouchableOpacity
+                style={styles.cardToolBtn}
+                onPress={() => openMinibarCheck(item)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="wine" size={13} color="#F59E0B" />
+                <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]} numberOfLines={1}>Minibar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cardToolBtn}
+                onPress={() => openLostFoundModal(item)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="briefcase" size={13} color="#A78BFA" />
+                <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]} numberOfLines={1}>Đồ quên</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cardToolBtn}
+                onPress={() => openBreakdownModal(item)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="construct" size={13} color="#EF4444" />
+                <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]} numberOfLines={1}>Báo hỏng</Text>
+              </TouchableOpacity>
+            </View>
+            {item.is_cleaning_requested && (
+              <TouchableOpacity
+                style={[styles.actionFullBtn, { backgroundColor: '#38BDF8', marginTop: 6 }]}
+                onPress={() => handleCompleteMakeUpCleaning(item)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="sparkles" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
+                <Text style={[styles.actionFullBtnText, { color: '#0A0F1D', fontWeight: 'bold' }]}>
+                  Đã dọn xong phòng khách ở ✨
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
-          /* PHỤC VỤ (PHÒNG CÓ KHÁCH / ĐANG DỌN): 2 Nút Báo đồ quên & Báo hỏng (Không Minibar, Không Dọn phòng) */
+          /* PHỤC VỤ (PHÒNG CÓ KHÁCH / ĐANG DỌN): 2 Nút Báo đồ quên & Báo hỏng */
           <View style={styles.cardToolBar}>
             <TouchableOpacity
               style={styles.cardToolBtn}
               onPress={() => openLostFoundModal(item)}
               activeOpacity={0.7}
             >
-              <Ionicons name="briefcase" size={11} color="#A78BFA" />
-              <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]}>Báo đồ quên</Text>
+              <Ionicons name="briefcase" size={13} color="#A78BFA" />
+              <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]} numberOfLines={1}>Đồ quên</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.cardToolBtn}
               onPress={() => openBreakdownModal(item)}
               activeOpacity={0.7}
             >
-              <Ionicons name="construct" size={11} color="#EF4444" />
-              <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]}>Báo hỏng</Text>
+              <Ionicons name="construct" size={13} color="#EF4444" />
+              <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]} numberOfLines={1}>Báo hỏng</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1162,14 +1277,22 @@ export default function HousekeepingScreen() {
         </View>
       </Modal>
 
-      {/* Modal Báo Hỏng Thiết Bị Sang Kỹ Thuật */}
+      {/* Modal Báo Hỏng Thiết Bị Sang Kỹ Thuật (Chuẩn PMS Khách Sạn) */}
       <Modal visible={breakdownModalVisible} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={styles.modalCardLarge}>
+            {/* Top Header Bar */}
             <View style={styles.modalTopBar}>
-              <View>
-                <Text style={styles.modalRoomTitle}>Phòng {breakdownRoom?.room_number}</Text>
-                <Text style={styles.modalRoomSubtitle}>Báo hỏng thiết bị sang Đội Kỹ thuật</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                <View style={styles.modalIconCircle}>
+                  <Ionicons name="construct" size={20} color="#EF4444" />
+                </View>
+                <View style={{ marginLeft: 10, flex: 1 }}>
+                  <Text style={styles.modalRoomTitle}>Báo Hỏng Phòng {breakdownRoom?.room_number}</Text>
+                  <Text style={styles.modalRoomSubtitle} numberOfLines={1}>
+                    Tầng {breakdownRoom?.floor} • {breakdownRoom?.category_name || 'Phòng Deluxe'}
+                  </Text>
+                </View>
               </View>
               <TouchableOpacity
                 style={styles.modalCloseCircle}
@@ -1179,74 +1302,215 @@ export default function HousekeepingScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalSectionLabel}>1. Chọn nhanh thiết bị gặp sự cố:</Text>
-              <View style={styles.equipmentChipsWrap}>
-                {[
-                  'Điều hòa Daikin',
-                  'Vòi sen / Nước',
-                  'Khóa thẻ từ',
-                  'Tủ lạnh Minibar',
-                  'Bình nóng lạnh',
-                  'Đèn chiếu sáng',
-                  'Tivi / Cáp',
-                  'Thiết bị khác',
-                ].map((eq) => (
-                  <TouchableOpacity
-                    key={eq}
-                    style={[
-                      styles.equipmentChip,
-                      breakdownEquipment === eq && styles.equipmentChipActive,
-                    ]}
-                    onPress={() => setBreakdownEquipment(eq)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 25 }}>
+              {/* 1. Banner cảnh báo nếu phòng đang có khách */}
+              {breakdownRoom?.current_booking && (
+                <View style={styles.occupiedNoticeBanner}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
+                      <Ionicons name="person" size={13} color="#F59E0B" style={{ marginRight: 5 }} />
+                      <Text style={styles.occupiedNoticeGuest} numberOfLines={1}>
+                        Khách: {breakdownRoom.current_booking.guest_name}
+                      </Text>
+                    </View>
+                    <Text style={styles.occupiedNoticeCode}>#{breakdownRoom.current_booking.booking_code}</Text>
+                  </View>
+                  <Text style={styles.occupiedNoticeSub}>
+                    💡 Lưu ý: Khách đang ở trong phòng. Kỹ thuật viên cần liên hệ quầy Lễ tân hoặc gõ cửa xin phép trước khi vào sửa chữa.
+                  </Text>
+                </View>
+              )}
+
+              {/* 2. Phân loại sự cố kỹ thuật */}
+              <Text style={styles.modalSectionLabel}>1. Phân loại sự cố kỹ thuật (*):</Text>
+              <View style={styles.issueTypeGrid}>
+                {MAINTENANCE_ISSUE_TYPES.map((t) => {
+                  const isSelected = breakdownIssueType === t.key;
+                  return (
+                    <TouchableOpacity
+                      key={t.key}
                       style={[
-                        styles.equipmentChipText,
-                        breakdownEquipment === eq && styles.equipmentChipTextActive,
+                        styles.issueTypeCard,
+                        isSelected && styles.issueTypeCardActive,
                       ]}
+                      onPress={() => {
+                        setBreakdownIssueType(t.key);
+                        const suggestions = EQUIPMENT_SUGGESTIONS[t.key] || [];
+                        if (suggestions.length > 0) {
+                          setBreakdownEquipment(suggestions[0]);
+                        }
+                        Haptics.selectionAsync();
+                      }}
+                      activeOpacity={0.7}
                     >
-                      {eq}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Ionicons
+                        name={t.icon as any}
+                        size={15}
+                        color={isSelected ? t.color : '#94A3B8'}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        style={[
+                          styles.issueTypeText,
+                          isSelected && { color: t.color, fontWeight: '800' },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {t.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
+              {/* 3. Tên thiết bị hư hỏng */}
               <Text style={[styles.modalSectionLabel, { marginTop: 14 }]}>
-                2. Mô tả hiện tượng sự cố (*):
+                2. Tên thiết bị hư hỏng (*):
               </Text>
               <TextInput
-                style={[styles.modalTextInput, { height: 60 }]}
-                placeholder="VD: Điều hòa chảy nước xuống sàn, khóa từ không nhận thẻ..."
+                style={styles.modalTextInputSingle}
+                placeholder="VD: Điều hòa Daikin, Vòi sen tắm, Khóa từ..."
+                placeholderTextColor="#64748B"
+                value={breakdownEquipment}
+                onChangeText={setBreakdownEquipment}
+              />
+
+              {/* Gợi ý nhanh các thiết bị thông dụng */}
+              <View style={styles.suggestionRow}>
+                <Text style={styles.suggestionTitle}>Gợi ý nhanh:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  {(EQUIPMENT_SUGGESTIONS[breakdownIssueType] || []).map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      style={[
+                        styles.suggestionChip,
+                        breakdownEquipment === item && styles.suggestionChipActive,
+                      ]}
+                      onPress={() => {
+                        setBreakdownEquipment(item);
+                        Haptics.selectionAsync();
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.suggestionChipText,
+                          breakdownEquipment === item && styles.suggestionChipTextActive,
+                        ]}
+                      >
+                        + {item}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* 4. Mô tả hiện tượng sự cố */}
+              <Text style={[styles.modalSectionLabel, { marginTop: 14 }]}>
+                3. Mô tả hiện tượng sự cố chi tiết (*):
+              </Text>
+              <TextInput
+                style={[styles.modalTextInput, { height: 75 }]}
+                placeholder="VD: Máy lạnh không phả hơi lạnh, quạt gió kêu to, vòi sen bị nứt cần gạt, khóa thẻ từ quét nhấp nháy đỏ không nhận..."
                 placeholderTextColor="#64748B"
                 multiline
                 value={breakdownDesc}
                 onChangeText={setBreakdownDesc}
               />
 
+              {/* 5. Phụ tùng / Vật tư thay thế cần mang theo */}
+              <Text style={[styles.modalSectionLabel, { marginTop: 14 }]}>
+                4. Phụ tùng / Dụng cụ mang theo dự kiến:
+              </Text>
+              <TextInput
+                style={styles.modalTextInputSingle}
+                placeholder="VD: 1 Củ sen Inax, 1 Dây xịt vệ sinh, 2 Pin AAA, 1 Tụ 35uF..."
+                placeholderTextColor="#64748B"
+                value={breakdownPartsReplaced}
+                onChangeText={setBreakdownPartsReplaced}
+              />
+
+              {/* 6. Trách nhiệm bồi thường & Chi phí */}
+              <View style={styles.costFaultBox}>
+                <TouchableOpacity
+                  style={styles.faultCheckboxRow}
+                  onPress={() => {
+                    setIsGuestFault(!isGuestFault);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name={isGuestFault ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={isGuestFault ? '#F59E0B' : '#64748B'}
+                  />
+                  <View style={{ marginLeft: 8, flex: 1 }}>
+                    <Text style={styles.faultCheckboxTitle}>
+                      Do khách làm hỏng (Khách bồi thường)?
+                    </Text>
+                    <Text style={styles.faultCheckboxSub}>
+                      {isGuestFault
+                        ? 'Khoản đền bù sẽ được tự động cộng vào hóa đơn thanh toán của khách.'
+                        : 'Khách sạn chịu chi phí hao mòn / sửa chữa thông thường.'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {isGuestFault && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={styles.costInputLabel}>Chi phí bồi thường / sửa chữa (VND):</Text>
+                    <View style={styles.costInputWrapper}>
+                      <TextInput
+                        style={styles.costInput}
+                        placeholder="0"
+                        placeholderTextColor="#64748B"
+                        keyboardType="numeric"
+                        value={
+                          breakdownCost
+                            ? Number(breakdownCost.replace(/\D/g, '')).toLocaleString('vi-VN')
+                            : ''
+                        }
+                        onChangeText={(t) => setBreakdownCost(t.replace(/\D/g, ''))}
+                      />
+                      <Text style={styles.costCurrencyUnit}>VNĐ</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* 7. Mức độ ưu tiên khẩn cấp */}
               <TouchableOpacity
-                style={styles.urgentCheckboxRow}
-                onPress={() => setIsUrgent(!isUrgent)}
+                style={[styles.urgentCheckboxCard, isUrgent && styles.urgentCheckboxCardActive]}
+                onPress={() => {
+                  setIsUrgent(!isUrgent);
+                  Haptics.selectionAsync();
+                }}
                 activeOpacity={0.8}
               >
                 <Ionicons
-                  name={isUrgent ? 'checkbox' : 'square-outline'}
+                  name={isUrgent ? 'alert-circle' : 'square-outline'}
                   size={20}
                   color={isUrgent ? '#EF4444' : '#64748B'}
                 />
-                <Text style={styles.urgentCheckboxText}>
-                  Khẩn cấp (Ưu tiên sửa chữa ngay)
-                </Text>
+                <View style={{ marginLeft: 8, flex: 1 }}>
+                  <Text style={[styles.urgentCheckboxTitle, isUrgent && { color: '#EF4444' }]}>
+                    SỰ CỐ KHẨN CẤP (Ưu tiên sửa chữa ngay)
+                  </Text>
+                  <Text style={styles.urgentCheckboxDesc}>
+                    Bắn thông báo cảnh báo đỏ âm lượng cao tới toàn bộ Kỹ thuật viên.
+                  </Text>
+                </View>
               </TouchableOpacity>
 
+              {/* Thông báo cách ly */}
               <View style={styles.breakdownNoticeBox}>
-                <Ionicons name="alert-circle" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
+                <Ionicons name="information-circle" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
                 <Text style={styles.breakdownNoticeText}>
-                  Phòng sẽ tự động chuyển sang "Bảo trì" và phát chuông báo cho Kỹ thuật viên!
+                  Sau khi gửi phiếu, phòng sẽ tự động chuyển sang trạng thái <Text style={{ color: '#F87171', fontWeight: '800' }}>"Bảo trì"</Text> để cách ly và thông báo Đội Kỹ thuật lập tức tiếp nhận.
                 </Text>
               </View>
 
+              {/* Nút gửi phiếu */}
               <TouchableOpacity
                 style={[styles.breakdownSubmitBtn, submittingBreakdown && { opacity: 0.6 }]}
                 onPress={submitBreakdownTicket}
@@ -1257,8 +1521,8 @@ export default function HousekeepingScreen() {
                   <ActivityIndicator color="#0A0F1D" />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="paper-plane" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-                    <Text style={styles.breakdownSubmitBtnText}>GỬI SANG ĐỘI KỸ THUẬT</Text>
+                    <Ionicons name="construct" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
+                    <Text style={styles.breakdownSubmitBtnText}>LẬP PHIẾU BẢO TRÌ & BÁO KỸ THUẬT</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1594,81 +1858,141 @@ export default function HousekeepingScreen() {
                   )}
 
                   {/* Hành động nhanh theo phân quyền */}
-                  <Text style={styles.detailActionsHeading}>
-                    {canMarkCleaned ? 'Thao tác nhanh cho Buồng phòng' : 'Thao tác cho Phục vụ phòng'}
-                  </Text>
-                  <View style={styles.detailActionsGrid}>
-                    {canMarkCleaned && (
-                      <TouchableOpacity
-                        style={[styles.detailActionBtn, { backgroundColor: config.actionBg }]}
-                        onPress={() => {
-                          setDetailModalVisible(false);
-                          handleToggleCleaning(detailRoom);
-                        }}
-                      >
-                        <Ionicons
-                          name={config.actionIcon as any}
-                          size={18}
-                          color={config.actionColor}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text style={[styles.detailActionBtnText, { color: config.actionColor }]}>
-                          {config.actionText}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                  {detailRoom.status === 'maintenance' ? (
+                    <View style={styles.maintenanceIsolatedBox}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                        <Ionicons name="construct" size={18} color="#EF4444" style={{ marginRight: 6 }} />
+                        <Text style={styles.maintenanceIsolatedTitle}>Phòng đang cách ly sửa chữa 🛠️</Text>
+                      </View>
+                      <Text style={styles.maintenanceIsolatedDesc}>
+                        Thiết bị trong phòng đang được Đội Kỹ thuật khắc phục theo phiếu #{detailRoom.active_maintenance?.ticket_code || 'Bảo trì'}.
+                        {isTechnician || isManagerOrAdmin
+                          ? ' Bạn có thể chuyển sang tab Kỹ thuật để nghiệm thu hoặc hoàn tất sửa chữa.'
+                          : ' Sau khi kỹ thuật viên sửa xong, phòng sẽ tự động chuyển sang "Đang dọn dẹp" để buồng phòng vào làm vệ sinh đón khách.'}
+                      </Text>
 
-                    {canAccessMinibar && (
-                      <TouchableOpacity
-                        style={styles.detailToolBtn}
-                        onPress={() => {
-                          setDetailModalVisible(false);
-                          openMinibarCheck(detailRoom);
-                        }}
-                      >
-                        <Ionicons name="wine" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
-                        <Text style={[styles.detailToolBtnText, { color: '#F59E0B' }]}>Kiểm Minibar</Text>
-                      </TouchableOpacity>
-                    )}
+                      {(isTechnician || isManagerOrAdmin) && (
+                        <TouchableOpacity
+                          style={styles.maintenanceGoBtn}
+                          onPress={() => {
+                            setDetailModalVisible(false);
+                            router.navigate('/(tabs)/maintenance');
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="build" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
+                          <Text style={styles.maintenanceGoBtnText}>Đi đến Phiếu bảo trì & Nghiệm thu 🛠️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={styles.detailActionsHeading}>
+                        {isTechnician
+                          ? 'Thao tác cho Kỹ thuật viên'
+                          : canMarkCleaned
+                          ? 'Thao tác nhanh cho Buồng phòng'
+                          : 'Thao tác cho Phục vụ phòng'}
+                      </Text>
+                      <View style={styles.detailActionsGrid}>
+                        {/* 1. Nút Đổi trạng thái Dọn phòng: CHỈ HIỆN khi phòng đang 'cleaning' hoặc 'available' */}
+                        {canMarkCleaned && (detailRoom.status === 'cleaning' || detailRoom.status === 'available') && (
+                          <TouchableOpacity
+                            style={[styles.detailActionBtn, { backgroundColor: config.actionBg }]}
+                            onPress={() => {
+                              setDetailModalVisible(false);
+                              handleToggleCleaning(detailRoom);
+                            }}
+                          >
+                            <Ionicons
+                              name={config.actionIcon as any}
+                              size={18}
+                              color={config.actionColor}
+                              style={{ marginRight: 6 }}
+                            />
+                            <Text style={[styles.detailActionBtnText, { color: config.actionColor }]}>
+                              {config.actionText}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
 
-                    {detailRoom.status === 'occupied' && (
-                      <TouchableOpacity
-                        style={[
-                          styles.detailToolBtn,
-                          { borderColor: 'rgba(245, 158, 11, 0.4)', backgroundColor: 'rgba(245, 158, 11, 0.08)' },
-                        ]}
-                        onPress={() => {
-                          setDetailModalVisible(false);
-                          router.navigate('/(tabs)/transport');
-                        }}
-                      >
-                        <Ionicons name="car-sport" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
-                        <Text style={[styles.detailToolBtnText, { color: '#F59E0B' }]}>Đặt xe đưa đón 🚗</Text>
-                      </TouchableOpacity>
-                    )}
+                        {/* 2. Kiểm Minibar: CHỈ khi phòng có khách (occupied) hoặc vừa trả phòng đang dọn (cleaning) */}
+                        {canAccessMinibar && (detailRoom.status === 'occupied' || detailRoom.status === 'cleaning') && (
+                          <TouchableOpacity
+                            style={styles.detailToolBtn}
+                            onPress={() => {
+                              setDetailModalVisible(false);
+                              openMinibarCheck(detailRoom);
+                            }}
+                          >
+                            <Ionicons name="wine" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
+                            <Text style={[styles.detailToolBtnText, { color: '#F59E0B' }]}>Kiểm Minibar</Text>
+                          </TouchableOpacity>
+                        )}
 
-                    <TouchableOpacity
-                      style={styles.detailToolBtn}
-                      onPress={() => {
-                        setDetailModalVisible(false);
-                        openLostFoundModal(detailRoom);
-                      }}
-                    >
-                      <Ionicons name="briefcase" size={16} color="#A78BFA" style={{ marginRight: 6 }} />
-                      <Text style={[styles.detailToolBtnText, { color: '#A78BFA' }]}>Báo đồ bỏ quên</Text>
-                    </TouchableOpacity>
+                        {/* 3. Thêm dịch vụ & Đặt xe: CHỈ cho phòng có khách và KHÔNG PHẢI Kỹ thuật */}
+                        {!isTechnician && detailRoom.status === 'occupied' && (
+                          <TouchableOpacity
+                            style={[
+                              styles.detailToolBtn,
+                              { borderColor: 'rgba(56, 189, 248, 0.4)', backgroundColor: 'rgba(56, 189, 248, 0.08)' },
+                            ]}
+                            onPress={() => {
+                              setDetailModalVisible(false);
+                              router.navigate('/(tabs)/services');
+                            }}
+                          >
+                            <Ionicons name="restaurant" size={16} color="#38BDF8" style={{ marginRight: 6 }} />
+                            <Text style={[styles.detailToolBtnText, { color: '#38BDF8' }]}>Thêm dịch vụ & Gọi món 🍽️</Text>
+                          </TouchableOpacity>
+                        )}
 
-                    <TouchableOpacity
-                      style={styles.detailToolBtn}
-                      onPress={() => {
-                        setDetailModalVisible(false);
-                        openBreakdownModal(detailRoom);
-                      }}
-                    >
-                      <Ionicons name="construct" size={16} color="#EF4444" style={{ marginRight: 6 }} />
-                      <Text style={[styles.detailToolBtnText, { color: '#EF4444' }]}>Báo hỏng thiết bị</Text>
-                    </TouchableOpacity>
-                  </View>
+                        {!isTechnician && detailRoom.status === 'occupied' && (
+                          <TouchableOpacity
+                            style={[
+                              styles.detailToolBtn,
+                              { borderColor: 'rgba(245, 158, 11, 0.4)', backgroundColor: 'rgba(245, 158, 11, 0.08)' },
+                            ]}
+                            onPress={() => {
+                              setDetailModalVisible(false);
+                              router.navigate('/(tabs)/transport');
+                            }}
+                          >
+                            <Ionicons name="car-sport" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
+                            <Text style={[styles.detailToolBtnText, { color: '#F59E0B' }]}>Đặt xe đưa đón 🚗</Text>
+                          </TouchableOpacity>
+                        )}
+
+                        {/* 4. Báo đồ bỏ quên: CHỈ cho phòng có khách hoặc đang dọn (tránh phòng trống/bảo trì) */}
+                        {canReportLostItem && (detailRoom.status === 'occupied' || detailRoom.status === 'cleaning') && (
+                          <TouchableOpacity
+                            style={styles.detailToolBtn}
+                            onPress={() => {
+                              setDetailModalVisible(false);
+                              openLostFoundModal(detailRoom);
+                            }}
+                          >
+                            <Ionicons name="briefcase" size={16} color="#A78BFA" style={{ marginRight: 6 }} />
+                            <Text style={[styles.detailToolBtnText, { color: '#A78BFA' }]}>Báo đồ bỏ quên</Text>
+                          </TouchableOpacity>
+                        )}
+
+                        {/* 5. Báo hỏng thiết bị: Phòng chưa ở trạng thái Bảo trì */}
+                        {canReportMaintenance && (
+                          <TouchableOpacity
+                            style={styles.detailToolBtn}
+                            onPress={() => {
+                              setDetailModalVisible(false);
+                              openBreakdownModal(detailRoom);
+                            }}
+                          >
+                            <Ionicons name="construct" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                            <Text style={[styles.detailToolBtnText, { color: '#EF4444' }]}>Báo hỏng thiết bị</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </>
+                  )}
                 </ScrollView>
               );
             })()}
@@ -1822,7 +2146,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#111827',
     borderRadius: 16,
-    padding: 12,
+    padding: 10,
     margin: 5,
     borderWidth: 1,
     borderColor: '#1F2937',
@@ -1933,34 +2257,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
+    gap: 4,
   },
   roomBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1E293B',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#334155',
-    gap: 4,
+    gap: 3,
+    flexShrink: 0,
   },
   roomNumber: {
-    fontSize: 16,
+    fontSize: 14.5,
     fontWeight: '900',
     color: '#F8FAFC',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   floorPill: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 4,
+    paddingHorizontal: 3.5,
     paddingVertical: 1,
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: 'rgba(245, 158, 11, 0.3)',
   },
   floorPillText: {
-    fontSize: 8.5,
+    fontSize: 8,
     fontWeight: '800',
     color: '#FBBF24',
   },
@@ -1970,20 +2296,22 @@ const styles = StyleSheet.create({
   },
   cardToolBtn: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#1E293B',
     borderRadius: 8,
-    paddingVertical: 6,
+    paddingVertical: 5,
     paddingHorizontal: 2,
     borderWidth: 1,
     borderColor: '#334155',
-    gap: 3,
+    minHeight: 40,
   },
   cardToolBtnText: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'center',
   },
   cardToolBarSingle: {
     flexDirection: 'row',
@@ -1995,11 +2323,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#1E293B',
     borderRadius: 8,
-    paddingVertical: 6,
+    paddingVertical: 7,
     paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: '#334155',
-    gap: 5,
+    gap: 6,
+  },
+  cardToolBtnTextSingle: {
+    fontSize: 10.5,
+    fontWeight: '700',
   },
   actionGroupCleaning: {
     gap: 6,
@@ -2097,20 +2429,21 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 7,
     borderWidth: 1,
+    flexShrink: 1,
   },
   pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 3.5,
   },
   statusPillText: {
-    fontSize: 10.5,
-    fontWeight: '800',
+    fontSize: 9.5,
+    fontWeight: '700',
   },
   roomType: {
     fontSize: 11,
@@ -2275,6 +2608,53 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
   },
+  modalCardLarge: {
+    backgroundColor: '#0F172A',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+    maxHeight: '92%',
+  },
+  modalIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  occupiedNoticeBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 12,
+  },
+  occupiedNoticeGuest: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#F59E0B',
+  },
+  occupiedNoticeCode: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#FDE68A',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  occupiedNoticeSub: {
+    fontSize: 10.5,
+    color: '#CBD5E1',
+    marginTop: 4,
+    lineHeight: 14,
+  },
   equipmentChipsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2289,28 +2669,155 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1F2937',
   },
-  equipmentChipActive: {
-    borderColor: '#EF4444',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-  },
   equipmentChipText: {
     fontSize: 11,
     color: '#94A3B8',
     fontWeight: '700',
   },
-  equipmentChipTextActive: {
-    color: '#FCA5A5',
+  issueTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
   },
-  urgentCheckboxRow: {
+  issueTypeCard: {
+    width: '48.5%',
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
-  urgentCheckboxText: {
-    fontSize: 12,
-    color: '#EF4444',
+  issueTypeCardActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: '#F59E0B',
+  },
+  issueTypeText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+    flex: 1,
+  },
+  modalTextInputSingle: {
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    color: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+  },
+  suggestionTitle: {
+    fontSize: 10.5,
+    color: '#64748B',
     fontWeight: '700',
-    marginLeft: 8,
+  },
+  suggestionChip: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  suggestionChipActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor: '#38BDF8',
+  },
+  suggestionChipText: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  suggestionChipTextActive: {
+    color: '#38BDF8',
+    fontWeight: '800',
+  },
+  costFaultBox: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 12,
+    marginTop: 14,
+  },
+  faultCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  faultCheckboxTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  faultCheckboxSub: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 14,
+  },
+  costInputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#CBD5E1',
+    marginBottom: 4,
+  },
+  costInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#475569',
+    paddingHorizontal: 10,
+  },
+  costInput: {
+    flex: 1,
+    color: '#F59E0B',
+    fontSize: 14,
+    fontWeight: '900',
+    paddingVertical: 6,
+  },
+  costCurrencyUnit: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+  },
+  urgentCheckboxCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#1E293B',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginTop: 14,
+  },
+  urgentCheckboxCardActive: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: '#EF4444',
+  },
+  urgentCheckboxTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#94A3B8',
+  },
+  urgentCheckboxDesc: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 14,
   },
   breakdownNoticeBox: {
     flexDirection: 'row',
@@ -2330,12 +2837,16 @@ const styles = StyleSheet.create({
   },
   breakdownSubmitBtn: {
     backgroundColor: '#EF4444',
-    height: 46,
+    height: 48,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 16,
     marginBottom: 20,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   breakdownSubmitBtnText: {
     color: '#0A0F1D',
@@ -2618,6 +3129,39 @@ const styles = StyleSheet.create({
   detailToolBtnText: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  maintenanceIsolatedBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    padding: 14,
+    marginBottom: 10,
+  },
+  maintenanceIsolatedTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#EF4444',
+  },
+  maintenanceIsolatedDesc: {
+    fontSize: 11.5,
+    color: '#CBD5E1',
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  maintenanceGoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  maintenanceGoBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0A0F1D',
   },
   floorFilterWrapper: {
     marginBottom: 8,

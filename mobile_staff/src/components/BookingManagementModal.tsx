@@ -41,6 +41,10 @@ export default function BookingManagementModal({
   const [timelineYear, setTimelineYear] = useState<number>(now.getFullYear());
   const [timelineData, setTimelineData] = useState<any | null>(null);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
+  const [timelineSearchText, setTimelineSearchText] = useState('');
+  const [timelineFloorFilter, setTimelineFloorFilter] = useState<number | 'all'>('all');
+  const [timelineStatusFilter, setTimelineStatusFilter] = useState<'all' | 'occupied' | 'has_booking' | 'empty'>('all');
+  const [expandedRoomIds, setExpandedRoomIds] = useState<number[]>([]);
 
   // Fetch Booking List
   const fetchBookings = useCallback(async () => {
@@ -80,6 +84,11 @@ export default function BookingManagementModal({
       }
     }
   }, [visible, activeMainTab, timelineMonth, timelineYear, fetchBookings, fetchTimeline]);
+
+  // Reset expanded rooms on month/year change
+  useEffect(() => {
+    setExpandedRoomIds([]);
+  }, [timelineMonth, timelineYear]);
 
   // Quick stats
   const stats = useMemo(() => {
@@ -179,6 +188,115 @@ export default function BookingManagementModal({
     }
     setTimelineMonth(m);
     setTimelineYear(y);
+  };
+
+  // Timeline unique floors
+  const timelineFloors = useMemo(() => {
+    if (!timelineData?.rooms) return [];
+    const floors = new Set<number>();
+    timelineData.rooms.forEach((r: any) => {
+      if (r.floor !== undefined && r.floor !== null) {
+        floors.add(Number(r.floor));
+      }
+    });
+    return Array.from(floors).sort((a, b) => a - b);
+  }, [timelineData]);
+
+  // Timeline room statistics
+  const timelineStats = useMemo(() => {
+    if (!timelineData?.rooms) return { total: 0, occupied: 0, hasBooking: 0, empty: 0 };
+    let total = timelineData.rooms.length;
+    let occupied = 0;
+    let hasBooking = 0;
+    let empty = 0;
+    timelineData.rooms.forEach((r: any) => {
+      const bks = r.bookings || [];
+      if (bks.some((b: any) => b.status === 'checked_in')) {
+        occupied++;
+      }
+      if (bks.length > 0) {
+        hasBooking++;
+      } else {
+        empty++;
+      }
+    });
+    return { total, occupied, hasBooking, empty };
+  }, [timelineData]);
+
+  // Filtered Timeline rooms
+  const filteredTimelineRooms = useMemo(() => {
+    if (!timelineData?.rooms) return [];
+    return timelineData.rooms.filter((room: any) => {
+      // 1. Floor filter
+      if (timelineFloorFilter !== 'all' && Number(room.floor) !== timelineFloorFilter) {
+        return false;
+      }
+
+      // 2. Status filter
+      const bks = room.bookings || [];
+      const hasCheckedIn = bks.some((b: any) => b.status === 'checked_in');
+      const hasBookings = bks.length > 0;
+      if (timelineStatusFilter === 'occupied' && !hasCheckedIn) return false;
+      if (timelineStatusFilter === 'has_booking' && !hasBookings) return false;
+      if (timelineStatusFilter === 'empty' && hasBookings) return false;
+
+      // 3. Search query
+      if (timelineSearchText.trim()) {
+        const q = timelineSearchText.trim().toLowerCase();
+        const roomNum = String(room.room_number || '').toLowerCase();
+        const cat = (room.category_name || room.category?.name || '').toLowerCase();
+        const guestNames = bks.map((b: any) => (b.guest_name || '').toLowerCase()).join(' ');
+        const bookingCodes = bks.map((b: any) => (b.booking_code || '').toLowerCase()).join(' ');
+        if (!roomNum.includes(q) && !cat.includes(q) && !guestNames.includes(q) && !bookingCodes.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [timelineData, timelineFloorFilter, timelineStatusFilter, timelineSearchText]);
+
+  // Accordion Expand/Collapse Helpers
+  const toggleRoomExpand = (roomId: number) => {
+    Haptics.selectionAsync();
+    setExpandedRoomIds((prev) =>
+      prev.includes(roomId) ? prev.filter((id) => id !== roomId) : [...prev, roomId]
+    );
+  };
+
+  const areAllExpanded = useMemo(() => {
+    const roomsWithMulti = filteredTimelineRooms.filter((r: any) => (r.bookings?.length || 0) > 1);
+    if (roomsWithMulti.length === 0) return false;
+    return roomsWithMulti.every((r: any) => expandedRoomIds.includes(r.id));
+  }, [filteredTimelineRooms, expandedRoomIds]);
+
+  const handleToggleExpandAll = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (areAllExpanded) {
+      setExpandedRoomIds([]);
+    } else {
+      const multiIds = filteredTimelineRooms
+        .filter((r: any) => (r.bookings?.length || 0) > 1)
+        .map((r: any) => r.id);
+      setExpandedRoomIds(multiIds);
+    }
+  };
+
+  const getCategorizedBookings = (bookings: any[]) => {
+    if (!bookings || bookings.length === 0) return { activeBooking: null, otherBookings: [] };
+    if (bookings.length === 1) return { activeBooking: bookings[0], otherBookings: [] };
+
+    let activeIdx = bookings.findIndex((b: any) => b.status === 'checked_in');
+    if (activeIdx === -1) {
+      activeIdx = bookings.findIndex((b: any) => b.status === 'confirmed');
+    }
+    if (activeIdx === -1) {
+      activeIdx = 0;
+    }
+
+    const activeBooking = bookings[activeIdx];
+    const otherBookings = bookings.filter((_: any, idx: number) => idx !== activeIdx);
+    return { activeBooking, otherBookings };
   };
 
   const getStatusBadge = (status: string) => {
@@ -429,6 +547,110 @@ export default function BookingManagementModal({
                 </TouchableOpacity>
               </View>
 
+              {/* Quick Search in Timeline */}
+              <View style={styles.timelineSearchBox}>
+                <Ionicons name="search-outline" size={16} color="#64748B" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.timelineSearchInput}
+                  placeholder="Tìm số phòng, tên khách, loại phòng, mã đơn..."
+                  placeholderTextColor="#64748B"
+                  value={timelineSearchText}
+                  onChangeText={setTimelineSearchText}
+                />
+                {timelineSearchText ? (
+                  <TouchableOpacity onPress={() => setTimelineSearchText('')}>
+                    <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* Filter Row: Floors & Status */}
+              <View style={styles.filterBarContainer}>
+                {timelineFloors.length > 1 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.chipScrollView}
+                    contentContainerStyle={{ paddingHorizontal: 2 }}
+                  >
+                    <TouchableOpacity
+                      style={[styles.floorChip, timelineFloorFilter === 'all' && styles.floorChipActive]}
+                      onPress={() => {
+                        setTimelineFloorFilter('all');
+                        Haptics.selectionAsync();
+                      }}
+                    >
+                      <Text style={[styles.floorChipText, timelineFloorFilter === 'all' && styles.floorChipTextActive]}>
+                        🏢 Tất cả tầng
+                      </Text>
+                    </TouchableOpacity>
+                    {timelineFloors.map((floor) => (
+                      <TouchableOpacity
+                        key={`floor-${floor}`}
+                        style={[styles.floorChip, timelineFloorFilter === floor && styles.floorChipActive]}
+                        onPress={() => {
+                          setTimelineFloorFilter(floor);
+                          Haptics.selectionAsync();
+                        }}
+                      >
+                        <Text style={[styles.floorChipText, timelineFloorFilter === floor && styles.floorChipTextActive]}>
+                          Tầng {floor}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+
+                <View style={styles.statusChipRow}>
+                  {[
+                    { key: 'all', label: `Tất cả (${timelineStats.total})` },
+                    { key: 'occupied', label: `🟢 Đang ở (${timelineStats.occupied})` },
+                    { key: 'has_booking', label: `🟡 Có lịch (${timelineStats.hasBooking})` },
+                    { key: 'empty', label: `⚪ Trống (${timelineStats.empty})` },
+                  ].map((item) => {
+                    const isSelected = timelineStatusFilter === item.key;
+                    return (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={[styles.statusChip, isSelected && styles.statusChipActive]}
+                        onPress={() => {
+                          setTimelineStatusFilter(item.key as any);
+                          Haptics.selectionAsync();
+                        }}
+                      >
+                        <Text style={[styles.statusChipText, isSelected && styles.statusChipTextActive]}>
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Sub-bar: Room counter and Expand/Collapse All toggle */}
+              <View style={styles.timelineSubBar}>
+                <Text style={styles.timelineCountSummary}>
+                  Hiển thị <Text style={{ color: '#F8FAFC', fontWeight: '800' }}>{filteredTimelineRooms.length}</Text> / {timelineData?.rooms?.length || 0} phòng
+                </Text>
+                {filteredTimelineRooms.some((r: any) => (r.bookings?.length || 0) > 1) && (
+                  <TouchableOpacity
+                    style={styles.expandAllBtn}
+                    onPress={handleToggleExpandAll}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={areAllExpanded ? 'contract-outline' : 'expand-outline'}
+                      size={13}
+                      color="#38BDF8"
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text style={styles.expandAllBtnText}>
+                      {areAllExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
               {/* Timeline Content */}
               {loadingTimeline ? (
                 <View style={styles.centerBox}>
@@ -440,72 +662,288 @@ export default function BookingManagementModal({
                   <Ionicons name="calendar-outline" size={48} color="#475569" />
                   <Text style={styles.emptyText}>Chưa có dữ liệu lịch đặt phòng tháng này.</Text>
                 </View>
+              ) : filteredTimelineRooms.length === 0 ? (
+                <View style={styles.centerBox}>
+                  <Ionicons name="search-outline" size={48} color="#475569" />
+                  <Text style={styles.emptyText}>Không tìm thấy phòng phù hợp với bộ lọc.</Text>
+                </View>
               ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
-                  {timelineData.rooms.map((room: any) => {
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 35 }}>
+                  {filteredTimelineRooms.map((room: any) => {
                     const roomBookings = room.bookings || [];
+                    const { activeBooking, otherBookings } = getCategorizedBookings(roomBookings);
+                    const isExpanded = expandedRoomIds.includes(room.id);
+                    const canExpand = otherBookings.length > 0;
+
                     return (
                       <View key={room.id} style={styles.timelineRoomCard}>
                         {/* Room Info Header */}
-                        <View style={styles.timelineRoomHeader}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity
+                          style={styles.timelineRoomHeader}
+                          activeOpacity={canExpand ? 0.7 : 1}
+                          onPress={() => {
+                            if (canExpand) toggleRoomExpand(room.id);
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
                             <View style={styles.timelineRoomBadge}>
                               <Text style={styles.timelineRoomBadgeText}>P.{room.room_number}</Text>
                             </View>
-                            <View style={{ marginLeft: 8 }}>
-                              <Text style={styles.timelineRoomName}>
+                            <View style={{ marginLeft: 8, flex: 1 }}>
+                              <Text style={styles.timelineRoomName} numberOfLines={1}>
                                 {room.category_name || room.category?.name || 'Phòng Deluxe'}
                               </Text>
-                              <Text style={styles.timelineRoomSub}>Tầng {room.floor} • Trạng thái: {room.status_display || room.status}</Text>
+                              <Text style={styles.timelineRoomSub} numberOfLines={1}>
+                                Tầng {room.floor} • Trạng thái: {room.status_display || room.status}
+                              </Text>
                             </View>
                           </View>
-                          <Text style={styles.bookingCountBadge}>
-                            {roomBookings.length} lịch đặt
-                          </Text>
-                        </View>
+
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View
+                              style={[
+                                styles.bookingCountBadge,
+                                roomBookings.length === 0 && styles.bookingCountBadgeEmpty,
+                                roomBookings.length > 1 && styles.bookingCountBadgeMulti,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.bookingCountBadgeText,
+                                  roomBookings.length === 0 && { color: '#64748B' },
+                                  roomBookings.length > 1 && { color: '#38BDF8' },
+                                ]}
+                              >
+                                {roomBookings.length === 0 ? 'Trống' : `${roomBookings.length} lịch đặt`}
+                              </Text>
+                            </View>
+
+                            {canExpand && (
+                              <Ionicons
+                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                size={15}
+                                color="#38BDF8"
+                                style={{ marginLeft: 6 }}
+                              />
+                            )}
+                          </View>
+                        </TouchableOpacity>
 
                         {/* Stays in this room */}
                         {roomBookings.length === 0 ? (
                           <View style={styles.timelineEmptyBox}>
-                            <Text style={styles.timelineEmptyText}>Phòng trống suốt tháng {timelineMonth}</Text>
+                            <Ionicons name="sparkles" size={12} color="#10B981" style={{ marginRight: 6 }} />
+                            <Text style={styles.timelineEmptyText}>Phòng trống trong suốt tháng {timelineMonth}</Text>
                           </View>
                         ) : (
-                          roomBookings.map((bk: any) => {
-                            const badge = getStatusBadge(bk.status);
-                            return (
-                              <View key={bk.id || bk.booking_code} style={styles.stayItemCard}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Text style={styles.stayGuestName}>
-                                    👤 {bk.guest_name}
-                                  </Text>
-                                  <View style={[styles.statusBadgeSmall, { backgroundColor: badge.bg, borderColor: badge.border }]}>
-                                    <Text style={[styles.statusBadgeSmallText, { color: badge.text }]}>
-                                      {bk.status_display || badge.label}
+                          <View>
+                            {/* Primary Active Stay */}
+                            {activeBooking && (
+                              <View style={styles.activeBookingWrapper}>
+                                <View style={styles.priorityBanner}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Ionicons
+                                      name={
+                                        activeBooking.status === 'checked_in'
+                                          ? 'radio-button-on'
+                                          : activeBooking.status === 'confirmed'
+                                          ? 'time'
+                                          : 'calendar'
+                                      }
+                                      size={12}
+                                      color={
+                                        activeBooking.status === 'checked_in'
+                                          ? '#34D399'
+                                          : activeBooking.status === 'confirmed'
+                                          ? '#F59E0B'
+                                          : '#38BDF8'
+                                      }
+                                      style={{ marginRight: 5 }}
+                                    />
+                                    <Text
+                                      style={[
+                                        styles.priorityBannerText,
+                                        activeBooking.status === 'checked_in' && { color: '#34D399' },
+                                        activeBooking.status === 'confirmed' && { color: '#F59E0B' },
+                                        activeBooking.status !== 'checked_in' && activeBooking.status !== 'confirmed' && { color: '#38BDF8' },
+                                      ]}
+                                    >
+                                      {activeBooking.status === 'checked_in'
+                                        ? 'ĐANG LƯU TRÚ HÔM NAY'
+                                        : activeBooking.status === 'confirmed'
+                                        ? 'SẮP NHẬN PHÒNG'
+                                        : 'LỊCH ĐẶT GẦN NHẤT'}
+                                    </Text>
+                                  </View>
+
+                                  <View
+                                    style={[
+                                      styles.statusBadgeSmall,
+                                      {
+                                        backgroundColor: getStatusBadge(activeBooking.status).bg,
+                                        borderColor: getStatusBadge(activeBooking.status).border,
+                                      },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.statusBadgeSmallText,
+                                        { color: getStatusBadge(activeBooking.status).text },
+                                      ]}
+                                    >
+                                      {activeBooking.status_display || getStatusBadge(activeBooking.status).label}
                                     </Text>
                                   </View>
                                 </View>
 
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                                  <Ionicons name="time-outline" size={12} color="#94A3B8" style={{ marginRight: 4 }} />
-                                  <Text style={styles.stayDates}>
-                                    {bk.check_in_date} ➔ {bk.check_out_date} ({bk.nights} đêm)
+                                <View style={styles.primaryStayBody}>
+                                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
+                                      <Text style={styles.primaryGuestName} numberOfLines={1}>
+                                        👤 {activeBooking.guest_name}
+                                      </Text>
+                                      {activeBooking.booking_code && (
+                                        <Text style={styles.stayBookingCode}>#{activeBooking.booking_code}</Text>
+                                      )}
+                                    </View>
+
+                                    {activeBooking.group_name ? (
+                                      <View style={styles.groupTag}>
+                                        <Ionicons name="people" size={10} color="#F59E0B" style={{ marginRight: 3 }} />
+                                        <Text style={styles.groupTagText} numberOfLines={1}>
+                                          {activeBooking.group_name}
+                                        </Text>
+                                      </View>
+                                    ) : null}
+                                  </View>
+
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, justifyContent: 'space-between' }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                      <Ionicons name="calendar-outline" size={12} color="#94A3B8" style={{ marginRight: 4 }} />
+                                      <Text style={styles.stayDates}>
+                                        {activeBooking.check_in_date} ➔ {activeBooking.check_out_date} ({activeBooking.nights} đêm)
+                                      </Text>
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                      {activeBooking.guest_phone ? (
+                                        <TouchableOpacity
+                                          style={styles.phonePillSmall}
+                                          onPress={() => Linking.openURL(`tel:${activeBooking.guest_phone}`)}
+                                        >
+                                          <Ionicons name="call" size={10} color="#34D399" style={{ marginRight: 3 }} />
+                                          <Text style={styles.phonePillSmallText}>{activeBooking.guest_phone}</Text>
+                                        </TouchableOpacity>
+                                      ) : null}
+
+                                      {activeBooking.guest_id && onSelectGuest ? (
+                                        <TouchableOpacity
+                                          style={styles.crmShortcutBtnSmall}
+                                          onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            onSelectGuest(activeBooking.guest_id);
+                                          }}
+                                        >
+                                          <Ionicons name="person-circle-outline" size={12} color="#F59E0B" />
+                                          <Text style={styles.crmShortcutTextSmall}>CRM</Text>
+                                        </TouchableOpacity>
+                                      ) : null}
+                                    </View>
+                                  </View>
+                                </View>
+                              </View>
+                            )}
+
+                            {/* Expanded Other Stays */}
+                            {canExpand && isExpanded && (
+                              <View style={styles.otherBookingsContainer}>
+                                <View style={styles.otherBookingsHeader}>
+                                  <Text style={styles.otherBookingsHeaderText}>
+                                    Các lịch đặt khác trong tháng ({otherBookings.length}):
                                   </Text>
                                 </View>
+                                {otherBookings.map((bk: any) => {
+                                  const badge = getStatusBadge(bk.status);
+                                  return (
+                                    <View key={bk.id || bk.booking_code} style={styles.stayItemCard}>
+                                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                                          <Text style={styles.stayGuestName} numberOfLines={1}>
+                                            👤 {bk.guest_name}
+                                          </Text>
+                                          {bk.booking_code ? (
+                                            <Text style={styles.stayBookingCode}>#{bk.booking_code}</Text>
+                                          ) : null}
+                                        </View>
+                                        <View style={[styles.statusBadgeSmall, { backgroundColor: badge.bg, borderColor: badge.border }]}>
+                                          <Text style={[styles.statusBadgeSmallText, { color: badge.text }]}>
+                                            {bk.status_display || badge.label}
+                                          </Text>
+                                        </View>
+                                      </View>
 
-                                {bk.guest_phone ? (
-                                  <TouchableOpacity
-                                    style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}
-                                    onPress={() => Linking.openURL(`tel:${bk.guest_phone}`)}
-                                  >
-                                    <Ionicons name="call" size={11} color="#34D399" style={{ marginRight: 4 }} />
-                                    <Text style={[styles.stayDates, { color: '#38BDF8' }]}>
-                                      {bk.guest_phone}
-                                    </Text>
-                                  </TouchableOpacity>
-                                ) : null}
+                                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5, justifyContent: 'space-between' }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                          <Ionicons name="calendar-outline" size={11} color="#94A3B8" style={{ marginRight: 4 }} />
+                                          <Text style={styles.stayDates}>
+                                            {bk.check_in_date} ➔ {bk.check_out_date} ({bk.nights} đêm)
+                                          </Text>
+                                        </View>
+
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                          {bk.guest_phone ? (
+                                            <TouchableOpacity
+                                              style={{ flexDirection: 'row', alignItems: 'center' }}
+                                              onPress={() => Linking.openURL(`tel:${bk.guest_phone}`)}
+                                            >
+                                              <Ionicons name="call" size={10} color="#34D399" style={{ marginRight: 3 }} />
+                                              <Text style={[styles.stayDates, { color: '#38BDF8', fontSize: 10.5 }]}>
+                                                {bk.guest_phone}
+                                              </Text>
+                                            </TouchableOpacity>
+                                          ) : null}
+
+                                          {bk.guest_id && onSelectGuest ? (
+                                            <TouchableOpacity
+                                              style={styles.crmShortcutBtnSmall}
+                                              onPress={() => {
+                                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                onSelectGuest(bk.guest_id);
+                                              }}
+                                            >
+                                              <Ionicons name="person-circle-outline" size={11} color="#F59E0B" />
+                                              <Text style={styles.crmShortcutTextSmall}>CRM</Text>
+                                            </TouchableOpacity>
+                                          ) : null}
+                                        </View>
+                                      </View>
+                                    </View>
+                                  );
+                                })}
                               </View>
-                            );
-                          })
+                            )}
+
+                            {/* Accordion Toggle Button for other bookings */}
+                            {canExpand && (
+                              <TouchableOpacity
+                                style={[styles.roomExpandToggle, isExpanded && styles.roomExpandToggleExpanded]}
+                                onPress={() => toggleRoomExpand(room.id)}
+                                activeOpacity={0.7}
+                              >
+                                <Ionicons
+                                  name={isExpanded ? 'chevron-up-circle-outline' : 'chevron-down-circle-outline'}
+                                  size={14}
+                                  color={isExpanded ? '#94A3B8' : '#38BDF8'}
+                                  style={{ marginRight: 6 }}
+                                />
+                                <Text style={[styles.roomExpandToggleText, isExpanded && { color: '#94A3B8' }]}>
+                                  {isExpanded
+                                    ? `Thu gọn (ẩn ${otherBookings.length} đơn khác)`
+                                    : `Xem thêm ${otherBookings.length} lịch đặt khác trong tháng`}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
                         )}
                       </View>
                     );
@@ -790,6 +1228,103 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 2,
   },
+  timelineSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  timelineSearchInput: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 12.5,
+  },
+  filterBarContainer: {
+    marginBottom: 6,
+  },
+  chipScrollView: {
+    marginBottom: 6,
+  },
+  floorChip: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  floorChipActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor: '#38BDF8',
+  },
+  floorChipText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  floorChipTextActive: {
+    color: '#38BDF8',
+    fontWeight: '800',
+  },
+  statusChipRow: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+  statusChip: {
+    flex: 1,
+    backgroundColor: '#1E293B',
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  statusChipActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: '#F59E0B',
+  },
+  statusChipText: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  statusChipTextActive: {
+    color: '#F59E0B',
+    fontWeight: '800',
+  },
+  timelineSubBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  timelineCountSummary: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  expandAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  expandAllBtnText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
   timelineRoomCard: {
     backgroundColor: '#1E293B',
     borderRadius: 14,
@@ -830,22 +1365,155 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   bookingCountBadge: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#F59E0B',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  bookingCountBadgeMulti: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  bookingCountBadgeEmpty: {
+    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  bookingCountBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#F59E0B',
   },
   timelineEmptyBox: {
-    paddingVertical: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
   },
   timelineEmptyText: {
     fontSize: 11,
     color: '#64748B',
     fontStyle: 'italic',
+  },
+  activeBookingWrapper: {
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  priorityBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#172033',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  priorityBannerText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  primaryStayBody: {
+    padding: 10,
+  },
+  primaryGuestName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginRight: 6,
+  },
+  stayBookingCode: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  phonePillSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    borderWidth: 0.5,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  phonePillSmallText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#34D399',
+  },
+  groupTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    borderWidth: 0.5,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  groupTagText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#F59E0B',
+    maxWidth: 90,
+  },
+  crmShortcutBtnSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    borderWidth: 0.5,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    gap: 3,
+  },
+  crmShortcutTextSmall: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#F59E0B',
+  },
+  otherBookingsContainer: {
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  otherBookingsHeader: {
+    paddingVertical: 3,
+    paddingHorizontal: 2,
+    marginBottom: 2,
+  },
+  otherBookingsHeaderText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  roomExpandToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    marginTop: 4,
+  },
+  roomExpandToggleExpanded: {
+    backgroundColor: 'rgba(148, 163, 184, 0.06)',
+    borderColor: 'rgba(148, 163, 184, 0.18)',
+  },
+  roomExpandToggleText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#38BDF8',
   },
   stayItemCard: {
     backgroundColor: '#0F172A',
@@ -856,7 +1524,7 @@ const styles = StyleSheet.create({
     borderColor: '#1E293B',
   },
   stayGuestName: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#CBD5E1',
   },
@@ -871,7 +1539,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   stayDates: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#94A3B8',
   },
   loadMoreFooter: {

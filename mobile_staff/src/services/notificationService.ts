@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import apiClient from '../api/client';
 
@@ -40,8 +41,17 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
 
     try {
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ??
+        Constants?.easConfig?.projectId;
+
+      if (!projectId) {
+        console.log('[PUSH_SERVICE] Đang chạy Expo Go (chưa liên kết EAS Project ID). Bỏ qua push token.');
+        return null;
+      }
+
       // Lấy Expo push token
-      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
       token = tokenData.data;
 
       if (token) {
@@ -54,7 +64,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         console.log('[PUSH_SERVICE] Đăng ký Push Token thành công:', token);
       }
     } catch (err) {
-      console.warn('[PUSH_SERVICE] Lỗi lấy Push Token (có thể do đang chạy simulator):', err);
+      console.log('[PUSH_SERVICE] Không lấy được Push Token:', err);
     }
   } else {
     console.log('[PUSH_SERVICE] Cần chạy trên thiết bị vật lý thật (iPhone 14 Pro) để nhận Push Notification.');

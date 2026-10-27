@@ -680,16 +680,21 @@ class AdminRoomStatusUpdateView(APIView):
                 'message': 'Chỉ nhân viên Buồng phòng (Housekeeping) hoặc Quản lý mới có quyền xác nhận hoàn tất dọn dẹp phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        # CHẶN LỖI NGHIỆP VỤ: Không cho phép đổi trực tiếp từ 'occupied' sang 'available' khi khách chưa check-out hoặc đổi phòng
-        if active_booking and old_status == 'occupied' and requested_status == 'available':
+        # CHẶN LỖI NGHIỆP VỤ: Không cho phép đổi trạng thái thủ công khi phòng đang có khách lưu trú
+        # Bắt buộc phải qua quy trình "Trả phòng & Quyết toán" (Check-out) hoặc "Đổi phòng" (Room Move)
+        if (old_status == 'occupied' or active_booking) and requested_status != 'occupied':
+            bk_code = f" (#{active_booking.booking_code})" if active_booking else ""
             return Response({
                 'success': False,
-                'message': f'Phòng {room.room_number} hiện đang có khách lưu trú (#{active_booking.booking_code}). Không thể chuyển trực tiếp sang "Phòng trống" khi khách chưa làm thủ tục Check-out hoặc Đổi phòng.'
+                'message': f'Phòng {room.room_number} hiện đang có khách lưu trú{bk_code}. Không thể đổi trạng thái trực tiếp. Vui lòng thực hiện thủ tục "Trả phòng & Quyết toán" hoặc "Đổi phòng" theo quy trình PMS.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # BẢO VỆ PHÒNG CÓ KHÁCH: Khi dọn dẹp xong phòng (từ cleaning) mà phòng đang có khách ở, tự động về 'occupied'
-        if active_booking and requested_status == 'available':
-            update_data['status'] = 'occupied'
+        # CHẶN TỰ Ý CHUYỂN SANG OCCUPIED: Muốn chuyển phòng sang 'occupied' bắt buộc phải qua quy trình Check-in có hồ sơ khách
+        if requested_status == 'occupied' and not active_booking:
+            return Response({
+                'success': False,
+                'message': f'Không thể tự ý chuyển phòng {room.room_number} sang "Có khách" bằng thao tác nhanh. Vui lòng dùng nút "Gán phòng & Check-in ngay" để tạo hồ sơ khách và lưu trú hợp lệ.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = RoomStatusUpdateSerializer(room, data=update_data, partial=True)
         if serializer.is_valid():
@@ -804,6 +809,165 @@ class AdminRoomStatusUpdateView(APIView):
             'message': error_msg,
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminRoomRequestCleaningView(APIView):
+    """
+    Tiếp nhận yêu cầu dọn dẹp phòng lưu trú (Make-up room / Stay-over cleaning) cho phòng đang có khách.
+    Trạng thái phòng vẫn giữ nguyên 'occupied'.
+    """
+    permission_classes = [IsHotelStaffOrAdmin]
+
+    def post(self, request, pk):
+        try:
+            room = Room.objects.select_related('category').get(pk=pk)
+        except Room.DoesNotExist:
+            return Response({'success': False, 'message': 'Không tìm thấy phòng.'}, status=status.HTTP_404_NOT_FOUND)
+
+        active_booking = room.bookings.filter(status='checked_in').select_related('guest').first()
+        if not active_booking and room.status != 'occupied':
+            return Response({
+                'success': False,
+                'message': f'Phòng {room.room_number} hiện không có khách đang lưu trú. Yêu cầu dọn phòng lưu trú chỉ áp dụng cho phòng đang có khách.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        note = request.data.get('note', '').strip() or 'Khách yêu cầu dọn phòng lưu trú (Make-up room)'
+        room.is_cleaning_requested = True
+        room.cleaning_request_note = note
+        room.cleaning_requested_at = timezone.now()
+        room.save(update_fields=['is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
+
+        # Đồng thời tạo ServiceRequest (Dịch vụ buồng phòng) để theo dõi xuyên suốt
+        if active_booking:
+            try:
+                from ..services.models import ServiceCategory, ServiceItem, ServiceRequest
+                cat, _ = ServiceCategory.objects.get_or_create(
+                    name='Dịch vụ Buồng phòng',
+                    defaults={'icon': '🧹', 'description': 'Dọn phòng lưu trú, giặt là, tiện ích phòng'}
+                )
+                svc_item, _ = ServiceItem.objects.get_or_create(
+                    category=cat,
+                    name='Dọn dẹp phòng lưu trú (Make-up Room)',
+                    defaults={'price': 0, 'description': 'Dọn phòng, thay khăn, ga gối cho khách đang ở', 'is_active': True}
+                )
+                ServiceRequest.objects.create(
+                    booking=active_booking,
+                    service=svc_item,
+                    quantity=1,
+                    unit_price=0,
+                    total_price=0,
+                    status='pending',
+                    note=note,
+                    request_time=timezone.now()
+                )
+            except Exception:
+                pass
+
+        # Gửi thông báo đến nhân viên Buồng phòng & Quản lý
+        try:
+            staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
+            housekeepers = User.objects.filter(
+                Q(role__in=['housekeeper', 'manager', 'admin']) | Q(is_superuser=True)
+            ).distinct()
+            guest_str = active_booking.guest.get_full_name() if active_booking and active_booking.guest else (active_booking.guest_name if active_booking else "Khách lưu trú")
+            notifs = [
+                Notification(
+                    recipient=u,
+                    title=f"🧹 [YÊU CẦU DỌN PHÒNG] Phòng {room.room_number}",
+                    message=f"Phòng {room.room_number} (Khách: {guest_str}) vừa yêu cầu dọn phòng lưu trú.\n• Ghi chú: {note}\n• Người tiếp nhận: {staff_name}",
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='high'
+                )
+                for u in housekeepers
+            ]
+            Notification.objects.bulk_create(notifs)
+        except Exception:
+            pass
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='ROOM',
+            description=f"Tiếp nhận yêu cầu dọn phòng lưu trú cho phòng {room.room_number}: {note}",
+            request=request
+        )
+
+        serializer = RoomSerializer(room)
+        return Response({
+            'success': True,
+            'message': f'Đã tiếp nhận yêu cầu dọn phòng {room.room_number} thành công! Hệ thống đã gửi thông báo đến bộ phận Buồng phòng.',
+            'room': serializer.data
+        })
+
+
+class AdminRoomCompleteCleaningView(APIView):
+    """
+    Xác nhận hoàn tất dọn dẹp phòng lưu trú (Make-up room).
+    Phòng vẫn tiếp tục giữ nguyên trạng thái 'occupied'.
+    """
+    permission_classes = [IsHotelStaffOrAdmin]
+
+    def post(self, request, pk):
+        try:
+            room = Room.objects.select_related('category').get(pk=pk)
+        except Room.DoesNotExist:
+            return Response({'success': False, 'message': 'Không tìm thấy phòng.'}, status=status.HTTP_404_NOT_FOUND)
+
+        active_booking = room.bookings.filter(status='checked_in').select_related('guest').first()
+        room.is_cleaning_requested = False
+        room.cleaning_request_note = ''
+        room.cleaning_requested_at = None
+        room.save(update_fields=['is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
+
+        # Cập nhật các ServiceRequest dọn phòng đang chờ của booking này sang completed
+        if active_booking:
+            try:
+                from..services.models import ServiceRequest
+                ServiceRequest.objects.filter(
+                    booking=active_booking,
+                    service__name__icontains='Make-up',
+                    status__in=['pending', 'in_progress']
+                ).update(status='completed')
+            except Exception:
+                pass
+
+        # Gửi thông báo đến Lễ tân & Quản lý
+        try:
+            staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Nhân viên Buồng phòng"
+            receptionists = User.objects.filter(
+                Q(role__in=['receptionist', 'manager', 'admin']) | Q(is_superuser=True)
+            ).distinct()
+            guest_str = active_booking.guest.get_full_name() if active_booking and active_booking.guest else (active_booking.guest_name if active_booking else "Khách lưu trú")
+            notifs = [
+                Notification(
+                    recipient=u,
+                    title=f"✨ [DỌN PHÒNG XONG] Phòng {room.room_number}",
+                    message=f"Nhân viên ({staff_name}) đã hoàn tất dọn phòng lưu trú cho Phòng {room.room_number} (Khách: {guest_str}). Phòng tiếp tục ở trạng thái Có khách.",
+                    notification_type='room',
+                    action_url='/admin/rooms',
+                    priority='normal'
+                )
+                for u in receptionists
+            ]
+            Notification.objects.bulk_create(notifs)
+        except Exception:
+            pass
+
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='ROOM',
+            description=f"Xác nhận hoàn tất dọn phòng lưu trú cho phòng {room.room_number}",
+            request=request
+        )
+
+        serializer = RoomSerializer(room)
+        return Response({
+            'success': True,
+            'message': f'Phòng {room.room_number} đã được dọn dẹp sạch sẽ! Trạng thái phòng vẫn tiếp tục "Có khách".',
+            'room': serializer.data
+        })
 
 
 class AmenityViewSet(viewsets.ModelViewSet):

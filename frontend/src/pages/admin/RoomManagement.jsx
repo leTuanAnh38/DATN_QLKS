@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import roomService from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
@@ -203,6 +203,62 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         });
     };
 
+    // Modal / Yêu cầu dọn phòng lưu trú (Make-up room)
+    const [makeUpModalRoom, setMakeUpModalRoom] = useState(null);
+    const [makeUpNote, setMakeUpNote] = useState('');
+    const [isSubmittingMakeUp, setIsSubmittingMakeUp] = useState(false);
+
+    const handleOpenMakeUpModal = (room) => {
+        setMakeUpModalRoom(room);
+        setMakeUpNote('Khách yêu cầu dọn phòng, thay ga gối & khăn tắm');
+    };
+
+    const handleConfirmRequestCleaning = async (e) => {
+        if (e) e.preventDefault();
+        if (!makeUpModalRoom) return;
+        setIsSubmittingMakeUp(true);
+        try {
+            const res = await roomService.requestRoomCleaning(makeUpModalRoom.id, makeUpNote);
+            if (res.success) {
+                setAlertMessage({
+                    type: 'success',
+                    text: res.message || `Đã tiếp nhận yêu cầu dọn phòng ${makeUpModalRoom.room_number}. Hệ thống đã gửi thông báo đến bộ phận Buồng phòng!`,
+                });
+                setMakeUpModalRoom(null);
+                setMakeUpNote('');
+                await fetchRooms(true);
+                setTimeout(() => setAlertMessage(null), 3500);
+            } else {
+                alert(res.message || 'Không thể gửi yêu cầu dọn phòng.');
+            }
+        } catch (err) {
+            console.error('Lỗi yêu cầu dọn phòng:', err);
+        } finally {
+            setIsSubmittingMakeUp(false);
+        }
+    };
+
+    const handleCompleteCleaning = async (room) => {
+        setQuickStatusLoadingId(room.id);
+        try {
+            const res = await roomService.completeRoomCleaning(room.id);
+            if (res.success) {
+                setAlertMessage({
+                    type: 'success',
+                    text: `Phòng ${room.room_number} đã được xác nhận dọn dẹp sạch sẽ! Trạng thái phòng vẫn tiếp tục "Có khách".`,
+                });
+                await fetchRooms(true);
+                setTimeout(() => setAlertMessage(null), 3500);
+            } else {
+                alert(res.message || 'Không thể xác nhận hoàn tất dọn phòng.');
+            }
+        } catch (err) {
+            console.error('Lỗi hoàn tất dọn phòng:', err);
+        } finally {
+            setQuickStatusLoadingId(null);
+        }
+    };
+
     const handleOpenChangeRoom = ({ room, booking, reason = '', equipment = '', issueType = 'ac' }) => {
         setChangeRoomModalData({
             isOpen: true,
@@ -232,29 +288,21 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     const [isSubmittingAssignCheckIn, setIsSubmittingAssignCheckIn] = useState(false);
     const [checkInWarningModal, setCheckInWarningModal] = useState(null);
 
-    // Lắng nghe sự kiện realtime từ hệ thống PMS (đồng bộ khi check-in, check-out, kiểm tra minibar/hư hại)
+    // Lưu trữ bộ lọc hiện tại vào ref để polling ngầm đọc đúng giá trị mới nhất (chống stale closure)
+    const filtersRef = useRef({ searchTerm, floorFilter, statusFilter, categoryFilter });
     useEffect(() => {
-        const handleSyncEvent = () => {
-            fetchRooms(true);
-        };
-        window.addEventListener('pms_booking_created', handleSyncEvent);
-        window.addEventListener('pms_room_updated', handleSyncEvent);
-        window.addEventListener('pms_minibar_updated', handleSyncEvent);
-        return () => {
-            window.removeEventListener('pms_booking_created', handleSyncEvent);
-            window.removeEventListener('pms_room_updated', handleSyncEvent);
-            window.removeEventListener('pms_minibar_updated', handleSyncEvent);
-        };
-    }, []);
+        filtersRef.current = { searchTerm, floorFilter, statusFilter, categoryFilter };
+    }, [searchTerm, floorFilter, statusFilter, categoryFilter]);
 
     // 1. Tải danh sách phòng từ API (hỗ trợ silent mode để không unmount UI khi cập nhật ngầm)
-    const fetchRooms = async (silent = false) => {
+    const fetchRooms = useCallback(async (silent = false) => {
         if (!silent) setIsLoading(true);
+        const { searchTerm: q, floorFilter: f, statusFilter: s, categoryFilter: c } = filtersRef.current;
         const params = {};
-        if (searchTerm) params.q = searchTerm;
-        if (floorFilter !== 'all') params.floor = floorFilter;
-        if (statusFilter !== 'all') params.status = statusFilter;
-        if (categoryFilter !== 'all') params.category = categoryFilter;
+        if (q) params.q = q;
+        if (f !== 'all') params.floor = f;
+        if (s !== 'all') params.status = s;
+        if (c !== 'all') params.category = c;
 
         try {
             const res = await roomService.getAdminRooms(params);
@@ -269,7 +317,37 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         } finally {
             if (!silent) setIsLoading(false);
         }
-    };
+    }, []);
+
+    // Lắng nghe sự kiện realtime từ hệ thống PMS & Chu kỳ polling ngầm (đồng bộ khi App/Web khác thao tác)
+    useEffect(() => {
+        const handleSyncEvent = () => {
+            fetchRooms(true);
+        };
+
+        // 1. Tự động đồng bộ ngay khi người dùng click quay lại tab trình duyệt này
+        window.addEventListener('focus', handleSyncEvent);
+        // 2. Nhận tín hiệu khi có thay đổi từ tab khác
+        window.addEventListener('storage', handleSyncEvent);
+        // 3. Các sự kiện PMS Custom Events
+        window.addEventListener('pms_booking_created', handleSyncEvent);
+        window.addEventListener('pms_room_updated', handleSyncEvent);
+        window.addEventListener('pms_minibar_updated', handleSyncEvent);
+
+        // 4. Chu kỳ Polling tự động mỗi 5 giây (silent=true, chạy ngầm mượt mà không nhấp nháy giao diện)
+        const interval = setInterval(() => {
+            fetchRooms(true);
+        }, 5000);
+
+        return () => {
+            window.removeEventListener('focus', handleSyncEvent);
+            window.removeEventListener('storage', handleSyncEvent);
+            window.removeEventListener('pms_booking_created', handleSyncEvent);
+            window.removeEventListener('pms_room_updated', handleSyncEvent);
+            window.removeEventListener('pms_minibar_updated', handleSyncEvent);
+            clearInterval(interval);
+        };
+    }, [fetchRooms]);
 
     // Tải danh mục loại phòng khi mở form nếu cần
     const fetchCategories = async () => {
@@ -281,7 +359,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
 
     useEffect(() => {
         fetchRooms();
-    }, [floorFilter, statusFilter, categoryFilter]);
+    }, [floorFilter, statusFilter, categoryFilter, fetchRooms]);
 
     useEffect(() => {
         fetchCategories();
@@ -603,6 +681,26 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         const currentRoom = rooms.find((r) => r.id === roomId);
         const oldStatus = currentRoom ? currentRoom.status : null;
         if (oldStatus === newStatus) return;
+
+        // BẢO VỆ PHÒNG CÓ KHÁCH: Chặn tuyệt đối đổi trạng thái trực tiếp khi phòng đang có khách lưu trú
+        if (oldStatus === 'occupied') {
+            setAlertMessage({
+                type: 'error',
+                text: `Phòng ${roomNumber} hiện đang có khách lưu trú. Vui lòng thực hiện thủ tục "Trả phòng & Quyết toán" theo đúng quy trình PMS.`,
+            });
+            setTimeout(() => setAlertMessage(null), 4000);
+            return;
+        }
+
+        // Chặn chuyển thủ công sang 'occupied' mà không có khách
+        if (newStatus === 'occupied') {
+            setAlertMessage({
+                type: 'error',
+                text: `Không thể chuyển phòng ${roomNumber} sang "Có khách" bằng thao tác nhanh. Vui lòng bấm "Gán phòng & Check-in ngay" để tạo hồ sơ khách.`,
+            });
+            setTimeout(() => setAlertMessage(null), 4000);
+            return;
+        }
 
         // Nếu chuyển sang Bảo trì: Mở Modal Báo hỏng thiết bị để lưu thông tin chi tiết
         if (newStatus === 'maintenance') {
@@ -1262,6 +1360,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             onViewOccupied={handleViewOccupied}
                                             onOpenMinibar={handleOpenMinibar}
                                             onOpenLostItem={handleOpenLostItem}
+                                            onRequestCleaning={handleOpenMakeUpModal}
+                                            onCompleteCleaning={handleCompleteCleaning}
                                             onReportMaintenance={handleOpenReportMaintenance}
                                             onCompleteMaintenance={handleOpenCompleteMaintenance}
                                             onViewHistory={(r) => {
@@ -1299,6 +1399,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onViewOccupied={handleViewOccupied}
                                 onOpenMinibar={handleOpenMinibar}
                                 onOpenLostItem={handleOpenLostItem}
+                                onRequestCleaning={handleOpenMakeUpModal}
+                                onCompleteCleaning={handleCompleteCleaning}
                                 onReportMaintenance={handleOpenReportMaintenance}
                                 onCompleteMaintenance={handleOpenCompleteMaintenance}
                                 onViewHistory={(r) => {
@@ -2302,6 +2404,111 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                     setTimeout(() => setAlertMessage(null), 3500);
                 }}
             />
+
+            {/* ========================================================================= */}
+            {/* MODAL 10: YÊU CẦU DỌN PHÒNG LƯU TRÚ (MAKE-UP ROOM) */}
+            {/* ========================================================================= */}
+            {makeUpModalRoom && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                    <div
+                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white text-slate-900">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl shadow-xs">
+                                    🧹
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base text-slate-900 tracking-tight">
+                                        Yêu Cầu Dọn Phòng {makeUpModalRoom.room_number}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Dọn dẹp phòng lưu trú (Make-up room) cho khách đang ở
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setMakeUpModalRoom(null)}
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleConfirmRequestCleaning} className="p-6 space-y-4 text-xs">
+                            <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-1.5">
+                                <div className="flex justify-between items-center text-slate-600">
+                                    <span>Khách lưu trú:</span>
+                                    <span className="font-bold text-slate-900">
+                                        {makeUpModalRoom.current_booking?.guest_name || 'Khách lưu trú'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-600">
+                                    <span>Mã đặt phòng:</span>
+                                    <span className="font-mono font-bold text-blue-700">
+                                        #{makeUpModalRoom.current_booking?.booking_code || 'BK'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-600">
+                                    <span>Trạng thái phòng:</span>
+                                    <span className="font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                                        ● Có khách (Bảo lưu dữ liệu phòng)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block font-bold text-slate-700 mb-1">
+                                    Ghi chú yêu cầu của khách
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    value={makeUpNote}
+                                    onChange={(e) => setMakeUpNote(e.target.value)}
+                                    placeholder="VD: Khách nhờ thay ga gối, bổ sung 2 khăn tắm và dọn rác..."
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white text-slate-800 text-xs font-medium"
+                                />
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {[
+                                        'Dọn phòng tổng quát',
+                                        'Thay ga gối & khăn tắm',
+                                        'Bổ sung nước uống & đồ dùng',
+                                        'Dọn rác & hút bụi'
+                                    ].map((quickText) => (
+                                        <button
+                                            key={quickText}
+                                            type="button"
+                                            onClick={() => setMakeUpNote(quickText)}
+                                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-medium transition cursor-pointer"
+                                        >
+                                            + {quickText}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setMakeUpModalRoom(null)}
+                                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmittingMakeUp}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition cursor-pointer flex items-center gap-1.5"
+                                >
+                                    {isSubmittingMakeUp ? 'Đang gửi...' : '🧹 Gửi Yêu Cầu Buồng Phòng'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -2319,6 +2526,8 @@ function RoomCard({
     onViewOccupied,
     onOpenMinibar,
     onOpenLostItem,
+    onRequestCleaning,
+    onCompleteCleaning,
     onReportMaintenance,
     onCompleteMaintenance,
     onViewHistory,
@@ -2333,8 +2542,9 @@ function RoomCard({
 }) {
     const statusConfig = ROOM_STATUSES[room.status] || ROOM_STATUSES.available;
     const currentBk = room.current_booking;
-    const isInspectionRequested = room.latest_minibar_check?.status === 'requested';
-    const isInspectionCompleted = room.latest_minibar_check?.status === 'completed' && room.status === 'occupied';
+    const isCheckMatchCurrentBooking = !room.latest_minibar_check?.booking_id || !currentBk?.id || String(room.latest_minibar_check.booking_id) === String(currentBk.id);
+    const isInspectionRequested = isCheckMatchCurrentBooking && room.latest_minibar_check?.status === 'requested';
+    const isInspectionCompleted = isCheckMatchCurrentBooking && room.latest_minibar_check?.status === 'completed' && room.status === 'occupied';
 
     // Phân quyền chuyên trách theo vai trò vận hành PMS:
     // 1. Minibar: Buồng phòng, Lễ tân, Quản lý, Admin (Kỹ thuật & Phục vụ không có)
@@ -2504,6 +2714,28 @@ function RoomCard({
                 </div>
             )}
 
+            {/* THÔNG BÁO KHÁCH ĐANG Ở YÊU CẦU DỌN PHÒNG LƯU TRÚ (MAKE-UP ROOM) */}
+            {room.status === 'occupied' && room.is_cleaning_requested && (
+                <div className="mt-2 p-2 rounded-xl bg-blue-500/10 border-2 border-blue-500 shadow-xs space-y-1.5 animate-in fade-in">
+                    <div className="flex items-center justify-between text-[10px] font-black text-blue-900">
+                        <span className="flex items-center gap-1">🧹 YÊU CẦU DỌN PHÒNG</span>
+                        <span className="px-1.5 py-0.2 bg-blue-600 text-white rounded text-[9px] font-mono tracking-wider animate-pulse">MAKE-UP</span>
+                    </div>
+                    <p className="text-[10px] text-blue-950 font-medium leading-tight">
+                        {room.cleaning_request_note || 'Khách yêu cầu dọn phòng lưu trú'}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => onCompleteCleaning && onCompleteCleaning(room)}
+                        className="w-full py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[10px] font-bold rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        title="Xác nhận buồng phòng đã dọn dẹp xong cho khách đang ở"
+                    >
+                        <span>✓</span>
+                        <span>Xác nhận đã dọn xong</span>
+                    </button>
+                </div>
+            )}
+
             {/* ========================================================================= */}
             {/* THÔNG TIN BẢO TRÌ THIẾT BỊ (DÀNH CHO PHÒNG MAINTENANCE) */}
             {/* ========================================================================= */}
@@ -2570,59 +2802,83 @@ function RoomCard({
             {/* ========================================================================= */}
             <div className="mt-2.5 space-y-1.5">
                 {/* 1. Nút cho phòng Occupied: Check-out trực tiếp & Xem chi tiết */}
-                {room.status === 'occupied' && (
-                    <div className="space-y-1">
-                        {canManageBookings && (
-                            <button
-                                type="button"
-                                onClick={() => onOpenCheckOut(room)}
-                                className="w-full py-1.5 px-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                                title="Thực hiện thủ tục Check-out & Lập Hóa Đơn Quyết Toán"
-                            >
-                                <span>🧾</span>
-                                <span>Trả phòng & Quyết toán</span>
-                            </button>
-                        )}
-                        {currentBk && (
-                            <button
-                                type="button"
-                                onClick={() => onViewOccupied(room)}
-                                className="w-full py-1 px-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-semibold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
-                                title="Xem đầy đủ hồ sơ khách & thông tin lưu trú"
-                            >
-                                <span>👁️</span>
-                                <span>Xem thông tin khách</span>
-                            </button>
-                        )}
-                        {/* Tiện ích buồng phòng cho phòng đang lưu trú */}
-                        {(canAccessMinibar || canReportLostItem) && (
-                            <div className={`grid ${canAccessMinibar && canReportLostItem ? 'grid-cols-2' : 'grid-cols-1'} gap-1 pt-0.5`}>
-                                {canAccessMinibar && onOpenMinibar && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenMinibar(room)}
-                                        className="py-1 px-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
-                                        title="Kiểm kê Minibar phòng khách đang ở"
-                                    >
-                                        <span>🍾</span>
-                                        <span>Minibar</span>
-                                    </button>
-                                )}
-                                {canReportLostItem && onOpenLostItem && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenLostItem(room)}
-                                        className="py-1 px-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
-                                        title="Báo đồ khách bỏ quên"
-                                    >
-                                        <span>🧳</span>
-                                        <span>Đồ thất lạc</span>
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
+                {room.status === 'occupied' && (() => {
+                    const showCleaningBtn = !room.is_cleaning_requested && Boolean(onRequestCleaning);
+                    const showMinibarBtn = canAccessMinibar && Boolean(onOpenMinibar);
+                    const showLostItemBtn = canReportLostItem && Boolean(onOpenLostItem);
+
+                    return (
+                        <div className="space-y-1">
+                            {canManageBookings && (
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenCheckOut(room)}
+                                    className="w-full py-1.5 px-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                    title="Thực hiện thủ tục Check-out & Lập Hóa Đơn Quyết Toán"
+                                >
+                                    <span>🧾</span>
+                                    <span className="truncate whitespace-nowrap">Trả phòng & Quyết toán</span>
+                                </button>
+                            )}
+
+                            {/* Hàng 2: Xem thông tin khách & Yêu cầu dọn phòng (Make-up room) */}
+                            {(currentBk || showCleaningBtn) && (
+                                <div className={`grid ${currentBk && showCleaningBtn ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
+                                    {currentBk && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onViewOccupied(room)}
+                                            className="py-1 px-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-semibold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            title="Xem đầy đủ hồ sơ khách & thông tin lưu trú"
+                                        >
+                                            <span>👁️</span>
+                                            <span className="truncate whitespace-nowrap">{showCleaningBtn ? 'Xem khách' : 'Xem thông tin khách'}</span>
+                                        </button>
+                                    )}
+                                    {showCleaningBtn && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onRequestCleaning(room)}
+                                            className="py-1 px-1 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            title="Khách đang ở yêu cầu dọn phòng lưu trú (Make-up room)"
+                                        >
+                                            <span>🧹</span>
+                                            <span className="truncate whitespace-nowrap">Dọn phòng</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Hàng 3: Tiện ích buồng phòng (Minibar & Đồ thất lạc) */}
+                            {(showMinibarBtn || showLostItemBtn) && (
+                                <div className={`grid ${showMinibarBtn && showLostItemBtn ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
+                                    {showMinibarBtn && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onOpenMinibar(room)}
+                                            className="py-1 px-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            title="Kiểm kê Minibar phòng khách đang ở"
+                                        >
+                                            <span>🍾</span>
+                                            <span className="truncate whitespace-nowrap">Minibar</span>
+                                        </button>
+                                    )}
+                                    {showLostItemBtn && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onOpenLostItem(room)}
+                                            className="py-1 px-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            title="Báo đồ khách bỏ quên (Lost & Found)"
+                                        >
+                                            <span>🧳</span>
+                                            <span className="truncate whitespace-nowrap">Đồ thất lạc</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* 2. Nút cho phòng Available: Gán phòng đón khách (Check-in) */}
                 {room.status === 'available' && canManageBookings && (
@@ -2650,7 +2906,7 @@ function RoomCard({
                                         title="Kiểm kê đồ Minibar tủ lạnh để tính vào hóa đơn khách"
                                     >
                                         <span>🍾</span>
-                                        <span>Minibar</span>
+                                        <span className="truncate whitespace-nowrap">Minibar</span>
                                     </button>
                                 )}
                                 {canReportLostItem && onOpenLostItem && (
@@ -2658,10 +2914,10 @@ function RoomCard({
                                         type="button"
                                         onClick={() => onOpenLostItem(room)}
                                         className="py-1.5 px-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
-                                        title="Báo phát hiện đồ khách bỏ quên"
+                                        title="Báo phát hiện đồ khách bỏ quên (Lost & Found)"
                                     >
                                         <span>🧳</span>
-                                        <span>Đồ bỏ quên</span>
+                                        <span className="truncate whitespace-nowrap">Đồ thất lạc</span>
                                     </button>
                                 )}
                             </div>
@@ -2698,8 +2954,10 @@ function RoomCard({
                     </button>
                 )}
 
-                {/* Dropdown chỉnh sửa trạng thái thủ công */}
-                {canUseStatusDropdown && (
+                {/* Dropdown chỉnh sửa trạng thái thủ công:
+                    CHỈ hiển thị cho phòng Trống (Available), Đang dọn (Cleaning), hoặc Bảo trì (Maintenance).
+                    KHÔNG hiển thị cho phòng Đang có khách (Occupied) nhằm bảo vệ dữ liệu lưu trú, chống bấm nhầm làm hỏng luồng Check-out PMS. */}
+                {canUseStatusDropdown && room.status !== 'occupied' && (
                     <div className="pt-1 border-t border-slate-200/50">
                         <select
                             value={room.status}
@@ -2719,14 +2977,12 @@ function RoomCard({
                                     ) : (
                                         <option value="available">🟢 Trống (Available)</option>
                                     )}
-                                    <option value="occupied">🔴 Có khách (Occupied)</option>
                                     <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
                                     <option value="maintenance">⚪ Bảo trì (Maintenance)</option>
                                 </>
                             ) : (
                                 <>
                                     <option value="available">🟢 Trống (Available)</option>
-                                    <option value="occupied">🔴 Có khách (Occupied)</option>
                                     <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
                                     <option value="maintenance">⚪ Bảo trì (Maintenance)</option>
                                 </>

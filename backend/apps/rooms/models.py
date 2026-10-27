@@ -67,6 +67,11 @@ class Room(models.Model):
     category = models.ForeignKey(RoomCategory, on_delete=models.CASCADE, related_name='rooms', verbose_name="Thuộc loại phòng")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', verbose_name="Trạng thái")
     floor = models.IntegerField(verbose_name="Tầng")
+    
+    # Yêu cầu dọn phòng giữa kỳ lưu trú (Make-up room / Stay-over cleaning)
+    is_cleaning_requested = models.BooleanField(default=False, verbose_name="Khách đang yêu cầu dọn phòng lưu trú")
+    cleaning_request_note = models.CharField(max_length=255, blank=True, default='', verbose_name="Ghi chú yêu cầu dọn phòng")
+    cleaning_requested_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian yêu cầu dọn phòng")
 
     def __str__(self):
         return f"Phòng {self.room_number}"

@@ -9,7 +9,9 @@ from .views import (
     LostAndFoundViewSet,
     AdminRoomListCreateView,
     AdminRoomDetailView,
-    AdminRoomStatusUpdateView
+    AdminRoomStatusUpdateView,
+    AdminRoomRequestCleaningView,
+    AdminRoomCompleteCleaningView
 )
 
 router = DefaultRouter()
@@ -32,4 +34,8 @@ urlpatterns = [
 
     # Nút bấm đổi nhanh trạng thái phòng (available, occupied, cleaning, maintenance)
     path('admin/rooms/<int:pk>/status/', AdminRoomStatusUpdateView.as_view(), name='admin-room-status-update'),
+
+    # Yêu cầu dọn phòng lưu trú (Make-up room) và Xác nhận hoàn tất dọn dẹp
+    path('admin/rooms/<int:pk>/request-cleaning/', AdminRoomRequestCleaningView.as_view(), name='admin-room-request-cleaning'),
+    path('admin/rooms/<int:pk>/complete-cleaning/', AdminRoomCompleteCleaningView.as_view(), name='admin-room-complete-cleaning'),
 ]

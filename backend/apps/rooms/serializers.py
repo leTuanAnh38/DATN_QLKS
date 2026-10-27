@@ -217,18 +217,41 @@ class RoomSerializer(serializers.ModelSerializer):
             'category', 'category_id', 'category_name',
             'category_base_price', 'category_bed_type',
             'current_booking', 'recent_booking', 'active_maintenance',
-            'latest_minibar_check'
+            'latest_minibar_check',
+            'is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'
         ]
 
     def get_latest_minibar_check(self, obj):
         try:
-            check = obj.minibar_checks.order_by('-created_at').first()
+            # Nếu phòng đang có khách lưu trú (occupied hoặc có đơn checked_in),
+            # CHỈ lấy phiếu kiểm kê thuộc đơn lưu trú hiện tại!
+            current_bk = obj.bookings.filter(status='checked_in').first()
+            if current_bk:
+                check = obj.minibar_checks.filter(booking=current_bk).order_by('-created_at').first()
+                if not check and current_bk.actual_check_in:
+                    check = obj.minibar_checks.filter(created_at__gte=current_bk.actual_check_in).order_by('-created_at').first()
+                if not check:
+                    return None
+            elif obj.status == 'cleaning':
+                # Phòng đang dọn dẹp sau khi khách trả phòng: lấy phiếu của đơn vừa hoàn tất gần nhất
+                recent_bk = obj.bookings.filter(status='completed').order_by('-actual_check_out', '-updated_at', '-id').first()
+                if recent_bk:
+                    check = obj.minibar_checks.filter(booking=recent_bk).order_by('-created_at').first()
+                else:
+                    check = obj.minibar_checks.order_by('-created_at').first()
+            else:
+                # Phòng trống (available) hoặc bảo trì: chỉ trả về nếu có yêu cầu kiểm phòng đang chờ xử lý
+                check = obj.minibar_checks.filter(status='requested').order_by('-created_at').first()
+                if not check:
+                    return None
+
             if check:
                 inspector_name = (check.inspector.get_full_name() or check.inspector.username) if check.inspector else 'Nhân viên buồng'
                 requested_by_name = (check.requested_by.get_full_name() or check.requested_by.username) if check.requested_by else None
                 return {
                     'id': check.id,
                     'check_code': check.check_code,
+                    'booking_id': check.booking_id,
                     'status': check.status,
                     'status_display': check.get_status_display(),
                     'total_amount': float(check.total_amount),
