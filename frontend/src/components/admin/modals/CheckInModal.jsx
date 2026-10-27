@@ -179,6 +179,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
 
     // Thông báo màu trắng giữa màn hình (thay thế browser alert mặc định)
     const [centerModalNotice, setCenterModalNotice] = useState(null);
+    const [showDebtConfirmModal, setShowDebtConfirmModal] = useState(false);
 
     const showCenterNotice = ({ title = 'Thông Báo', message, type = 'info', icon = null }) => {
         setCenterModalNotice({ title, message, type, icon });
@@ -803,10 +804,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
 
     // B. Xử lý "Cho nợ & Check-in": Khách chưa trả đủ nhưng được phép lên phòng trước
     const handleDebtAndCheckIn = () => {
-        const confirmMsg = `Khách còn thiếu ${formatCurrency(effectiveRemainingBalance)}. Bạn có chắc chắn muốn cho khách nợ và hoàn tất nhận phòng? Phần nợ sẽ được dồn vào Folio để thu khi Check-out.`;
-        if (window.confirm(confirmMsg)) {
-            executeCheckIn(`[Lễ tân cho nợ tiền phòng]: Còn thiếu ${formatCurrency(effectiveRemainingBalance)} khi Check-in, sẽ thu khi Check-out`);
-        }
+        setShowDebtConfirmModal(true);
     };
 
     // C. Xử lý "Thu tiền & Check-in": Thu tiền mặt hoặc quét VietQR xong rồi Check-in
@@ -1939,6 +1937,82 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                         >
                             Đã hiểu
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL XÁC NHẬN CHO NỢ & CHECK-IN (MODERN WHITE MODAL) */}
+            {showDebtConfirmModal && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3.5">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 text-xl font-bold">
+                                💳
+                            </div>
+                            <div>
+                                <h3 className="text-base font-black text-slate-800 tracking-tight">
+                                    Xác Nhận Cho Nợ Tiền Phòng
+                                </h3>
+                                <p className="text-xs font-semibold text-slate-400">
+                                    Check-in ghi nợ vào Folio khách hàng
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-medium">Khách hàng:</span>
+                                <span className="font-bold text-slate-800">{booking?.guest_name}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-medium">Mã đặt phòng:</span>
+                                <span className="font-mono font-bold text-slate-800">#{booking?.booking_code}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-medium">Phòng nhận:</span>
+                                <span className="font-bold text-indigo-600">P.{targetRoomNumber || 'Chưa gán'}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-amber-800 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200">
+                                <span className="font-medium">Số tiền còn thiếu:</span>
+                                <span className="font-black text-base text-rose-600">{formatCurrency(effectiveRemainingBalance)}</span>
+                            </div>
+                        </div>
+
+                        <div className="text-xs text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-100">
+                            <span>💡 Khách chưa thanh toán đủ số tiền phòng nhưng được phép lên phòng trước. Toàn bộ số nợ <b>{formatCurrency(effectiveRemainingBalance)}</b> sẽ tự động được dồn vào <b>Folio</b> để thu khi khách làm thủ tục Check-out.</span>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() => setShowDebtConfirmModal(false)}
+                                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                            >
+                                Hủy Bỏ
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() => {
+                                    setShowDebtConfirmModal(false);
+                                    executeCheckIn(`[Lễ tân cho nợ tiền phòng]: Còn thiếu ${formatCurrency(effectiveRemainingBalance)} khi Check-in, sẽ thu khi Check-out`);
+                                }}
+                                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 transition cursor-pointer flex items-center gap-1.5"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <span className="animate-spin text-sm">⏳</span>
+                                        <span>Đang xử lý...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>✓</span>
+                                        <span>Cho Nợ & Hoàn Tất Check-in</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

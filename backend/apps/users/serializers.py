@@ -644,6 +644,10 @@ class AdminGuestSerializer(serializers.ModelSerializer):
     total_spent = serializers.SerializerMethodField()
     has_usable_password = serializers.SerializerMethodField()
     is_auto_created = serializers.SerializerMethodField()
+    guest_type = serializers.SerializerMethodField()
+    guest_type_display = serializers.SerializerMethodField()
+    display_email = serializers.SerializerMethodField()
+    has_real_email = serializers.SerializerMethodField()
     id_type = serializers.CharField(write_only=True, required=False, allow_blank=True)
     id_card_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
     date_of_birth = serializers.DateField(write_only=True, required=False, allow_null=True)
@@ -678,6 +682,10 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             'total_spent',
             'has_usable_password',
             'is_auto_created',
+            'guest_type',
+            'guest_type_display',
+            'display_email',
+            'has_real_email',
             'id_type',
             'id_card_number',
             'date_of_birth',
@@ -697,7 +705,27 @@ class AdminGuestSerializer(serializers.ModelSerializer):
     def get_is_auto_created(self, obj):
         uname = (obj.username or '').lower()
         email = (obj.email or '').lower()
-        return uname.startswith('guest_') or uname.startswith('walkin_') or email.endswith('.local') or not obj.has_usable_password()
+        return uname.startswith('walkin_') or email.endswith('.local') or not obj.has_usable_password()
+
+    def get_guest_type(self, obj):
+        uname = (obj.username or '').lower()
+        email = (obj.email or '').lower()
+        if uname.startswith('walkin_') or email.endswith('@walkin.hotel.local') or not obj.has_usable_password():
+            return 'walkin'
+        return 'member'
+
+    def get_guest_type_display(self, obj):
+        if self.get_guest_type(obj) == 'walkin':
+            return 'Khách vãng lai (Tại quầy)'
+        return 'Thành viên Web'
+
+    def get_display_email(self, obj):
+        email = obj.email or ''
+        return '' if email.lower().endswith('.local') else email
+
+    def get_has_real_email(self, obj):
+        email = (obj.email or '').lower()
+        return bool(email and not email.endswith('.local'))
 
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()

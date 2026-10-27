@@ -423,11 +423,17 @@ class AdminGuestListCreateView(APIView):
         if vip_tier and vip_tier != 'all':
             queryset = queryset.filter(guest_profile__vip_tier=vip_tier)
 
-        # Lọc theo trạng thái hoạt động
-        is_active = request.query_params.get('is_active')
+        # Lọc theo trạng thái hoạt động / Phân loại khách
+        is_active = request.query_params.get('is_active') or request.query_params.get('status')
         if is_active is not None and is_active != 'all':
-            is_active_bool = is_active.lower() in ['true', '1']
-            queryset = queryset.filter(is_active=is_active_bool)
+            val = str(is_active).strip().lower()
+            walkin_q = Q(username__startswith='walkin_') | Q(email__endswith='.local') | Q(password__startswith='!')
+            if val in ['true', '1', 'active']:
+                queryset = queryset.filter(is_active=True).exclude(walkin_q)
+            elif val == 'walkin':
+                queryset = queryset.filter(walkin_q)
+            elif val in ['false', '0', 'locked']:
+                queryset = queryset.filter(is_active=False).exclude(walkin_q)
 
         # Tính toán thống kê trên toàn bộ tập dữ liệu (không bị giới hạn bởi phân trang)
         total_guests = queryset.count()

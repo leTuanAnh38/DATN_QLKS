@@ -50,6 +50,8 @@ export default function GuestManagement() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedGuest, setSelectedGuest] = useState(null);
+    const [statusModalGuest, setStatusModalGuest] = useState(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
     // Form data for Edit
     const [editFormData, setEditFormData] = useState({
@@ -131,7 +133,7 @@ export default function GuestManagement() {
         setShowEditPassword(false);
         setEditFormData({
             full_name: guest.full_name || '',
-            email: guest.email || '',
+            email: guest.email?.endsWith('.local') ? '' : (guest.email || ''),
             phone_number: guest.phone_number || '',
             address: guest.address || '',
             id_type: guest.id_type || guest.guest_profile?.id_type || 'CCCD',
@@ -163,6 +165,11 @@ export default function GuestManagement() {
             delete payload.new_password;
         } else {
             payload.new_password = payload.new_password.trim();
+        }
+        if (!payload.email || !payload.email.trim()) {
+            if (selectedGuest?.email?.endsWith('.local')) {
+                delete payload.email;
+            }
         }
         const res = await adminUserService.updateGuest(selectedGuest.id, payload);
         setIsSubmitting(false);
@@ -203,22 +210,56 @@ export default function GuestManagement() {
         }
     };
 
-    // Đổi nhanh trạng thái Khóa / Mở khóa
-    const handleToggleStatus = async (guest) => {
+    // Mở modal xác nhận đổi trạng thái (Khóa / Mở khóa / Kích hoạt)
+    const handleToggleStatus = (guest) => {
+        setStatusModalGuest(guest);
+    };
+
+    // Xác nhận đổi trạng thái và cập nhật CỤC BỘ dòng đó (KHÔNG tải lại cả trang/bảng)
+    const handleConfirmStatusChange = async () => {
+        if (!statusModalGuest) return;
+        const guest = statusModalGuest;
+        const isWalkin = guest.guest_type === 'walkin' || 
+                         (guest.email && guest.email.endsWith('.local')) || 
+                         (guest.username && guest.username.startsWith('walkin_'));
         const nextStatus = !guest.is_active;
-        const confirmMsg = nextStatus
-            ? `Quý khách có chắc chắn muốn MỞ KHÓA tài khoản "${guest.full_name || guest.username}"?`
-            : `Quý khách có chắc chắn muốn TẠM KHÓA tài khoản "${guest.full_name || guest.username}"?`;
 
-        if (!window.confirm(confirmMsg)) return;
-
+        setIsUpdatingStatus(true);
         const res = await adminUserService.updateGuest(guest.id, { is_active: nextStatus });
+        setIsUpdatingStatus(false);
+        setStatusModalGuest(null);
+
         if (res.success) {
+            // Cập nhật TRỰC TIẾP dòng đó trong state guests (KHÔNG gọi fetchGuests để không load lại cả bảng)
+            setGuests(prevGuests => prevGuests.map(item => {
+                if (item.id === guest.id) {
+                    return {
+                        ...item,
+                        is_active: nextStatus,
+                        // Nếu vừa kích hoạt từ vãng lai -> chuyển thành member
+                        guest_type: nextStatus ? 'member' : item.guest_type,
+                    };
+                }
+                return item;
+            }));
+
+            // Cập nhật bộ đếm thống kê cục bộ
+            setStats(prevStats => {
+                if (!prevStats) return prevStats;
+                return {
+                    ...prevStats,
+                    active_guests: nextStatus 
+                        ? (prevStats.active_guests || 0) + 1 
+                        : Math.max(0, (prevStats.active_guests || 0) - 1)
+                };
+            });
+
             setAlertMessage({
                 type: 'success',
-                text: `Đã ${nextStatus ? 'mở khóa' : 'tạm khóa'} tài khoản thành công!`
+                text: nextStatus 
+                    ? (isWalkin ? 'Đã kích hoạt tài khoản thành viên thành công!' : 'Đã mở khóa tài khoản thành công!')
+                    : 'Đã tạm khóa tài khoản thành công!'
             });
-            fetchGuests();
             setTimeout(() => setAlertMessage(null), 3000);
         } else {
             setAlertMessage({ type: 'error', text: res.message || 'Thao tác thất bại.' });
@@ -401,17 +442,18 @@ export default function GuestManagement() {
                         </select>
                     </div>
 
-                    {/* Trạng thái */}
+                    {/* Phân loại & Trạng thái */}
                     <div className="flex items-center gap-1.5">
-                        <span className="text-slate-500 font-semibold">Trạng thái:</span>
+                        <span className="text-slate-500 font-semibold">Phân loại & Trạng thái:</span>
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-blue-600 cursor-pointer"
                         >
-                            <option value="all">Tất cả trạng thái</option>
-                            <option value="true">Đang hoạt động</option>
-                            <option value="false">Tạm khóa</option>
+                            <option value="all">Tất cả khách hàng</option>
+                            <option value="true">Thành viên đang hoạt động</option>
+                            <option value="walkin">Khách vãng lai (Tại quầy)</option>
+                            <option value="false">Tài khoản bị tạm khóa</option>
                         </select>
                     </div>
                 </div>
@@ -491,8 +533,12 @@ export default function GuestManagement() {
                                                     <div className="font-semibold text-slate-800">
                                                         📞 {g.phone_number || 'Chưa có SĐT'}
                                                     </div>
-                                                    <div className="text-slate-500 text-[11px]">
-                                                        ✉️ {g.email || 'Chưa có Email'}
+                                                    <div className="text-slate-500 text-[11px] truncate max-w-[200px]" title={g.email}>
+                                                        ✉️ {g.email && !g.email.endsWith('.local') ? (
+                                                            g.email
+                                                        ) : (
+                                                            <span className="text-slate-400 italic">Chưa có Email (Vãng lai)</span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
@@ -518,17 +564,45 @@ export default function GuestManagement() {
 
                                             {/* Trạng thái */}
                                             <td className="p-4">
-                                                {g.is_active ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                        Hoạt động
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                                        Tạm khóa
-                                                    </span>
-                                                )}
+                                                {(() => {
+                                                    const isWalkin = g.guest_type === 'walkin' || 
+                                                                     (g.email && g.email.endsWith('.local')) || 
+                                                                     (g.username && g.username.startsWith('walkin_')) ||
+                                                                     (!g.has_usable_password && Boolean(g.is_auto_created));
+
+                                                    if (isWalkin) {
+                                                        if (!g.is_active) {
+                                                            return (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200" title="Khách vãng lai tại quầy (tài khoản đang tạm khóa)">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                                    Khách vãng lai (Tạm khóa)
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200" title="Khách lưu trú trực tiếp tại quầy (chưa kích hoạt tài khoản web)">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                                Khách vãng lai
+                                                            </span>
+                                                        );
+                                                    }
+
+                                                    if (g.is_active) {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                Hoạt động
+                                                            </span>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200" title="Tài khoản bị Quản trị viên tạm khóa">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                                            Tạm khóa
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
 
                                             {/* Thao tác */}
@@ -557,7 +631,7 @@ export default function GuestManagement() {
                                                             type="button"
                                                             onClick={() => handleToggleStatus(g)}
                                                             className={`p-1.5 rounded-lg transition ${g.is_active ? 'text-slate-600 hover:text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
-                                                            title={g.is_active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+                                                            title={g.is_active ? 'Khóa tài khoản' : (g.guest_type === 'walkin' || g.email?.endsWith('.local') ? 'Kích hoạt tài khoản thành viên' : 'Mở khóa tài khoản')}
                                                         >
                                                             {g.is_active ? '🔒' : '🔓'}
                                                         </button>
@@ -634,17 +708,35 @@ export default function GuestManagement() {
                                         </Link>
 
                                         <div className="shrink-0">
-                                            {g.is_active ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                    Hoạt động
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                                    Tạm khóa
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                const isWalkin = g.guest_type === 'walkin' || 
+                                                                 (g.email && g.email.endsWith('.local')) || 
+                                                                 (g.username && g.username.startsWith('walkin_')) ||
+                                                                 (!g.has_usable_password && Boolean(g.is_auto_created));
+
+                                                if (isWalkin) {
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                            {g.is_active ? 'Khách vãng lai' : 'Vãng lai (Khóa)'}
+                                                        </span>
+                                                    );
+                                                }
+                                                if (g.is_active) {
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                            Hoạt động
+                                                        </span>
+                                                    );
+                                                }
+                                                return (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                                        Tạm khóa
+                                                    </span>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
 
@@ -672,12 +764,12 @@ export default function GuestManagement() {
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="text-slate-400 text-[11px]">Email:</span>
-                                            {g.email ? (
+                                            {g.email && !g.email.endsWith('.local') ? (
                                                 <a href={`mailto:${g.email}`} className="font-medium text-slate-700 truncate max-w-[200px] hover:text-blue-600">
                                                     ✉️ {g.email}
                                                 </a>
                                             ) : (
-                                                <span className="text-slate-400 italic">Chưa có email</span>
+                                                <span className="text-slate-400 italic">Chưa có email (Vãng lai)</span>
                                             )}
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
@@ -804,14 +896,22 @@ export default function GuestManagement() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block font-bold text-slate-700 mb-1">Địa chỉ Email *</label>
+                                    <label className="block font-bold text-slate-700 mb-1">
+                                        Địa chỉ Email {selectedGuest?.email?.endsWith('.local') ? <span className="text-slate-400 font-normal">(Chưa có)</span> : <span className="text-rose-500">*</span>}
+                                    </label>
                                     <input
                                         type="email"
-                                        required
+                                        required={!selectedGuest?.email?.endsWith('.local')}
+                                        placeholder={selectedGuest?.email?.endsWith('.local') ? 'VD: khachhang@gmail.com (Tùy chọn)' : 'VD: khachhang@gmail.com'}
                                         value={editFormData.email}
                                         onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white"
                                     />
+                                    {selectedGuest?.email?.endsWith('.local') && (
+                                        <span className="text-[10px] text-amber-600 mt-1 block">
+                                            Khách vãng lai chưa đăng ký email riêng. Bạn có thể nhập email thật tại đây để cập nhật cho khách.
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block font-bold text-slate-700 mb-1">Giấy tờ định danh</label>
@@ -913,15 +1013,14 @@ export default function GuestManagement() {
                             {/* KHỐI CẬP NHẬT MẬT KHẨU (ĐẶC BIỆT CHO KHÁCH TẠO TỰ ĐỘNG / CHƯA ĐĂNG KÝ QUA WEB) */}
                             {(() => {
                                 const isNotWebRegistered = Boolean(
-                                    selectedGuest?.is_auto_created ||
-                                    selectedGuest?.username?.startsWith('guest_') ||
+                                    selectedGuest?.guest_type === 'walkin' ||
                                     selectedGuest?.username?.startsWith('walkin_') ||
                                     selectedGuest?.email?.includes('@walkin.') ||
                                     selectedGuest?.has_usable_password === false
                                 );
 
                                 return (
-                                    <div className={`p-4 rounded-2xl border transition ${isNotWebRegistered ? 'bg-amber-50/70 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`p-4 rounded-2xl border transition ${isNotWebRegistered ? 'bg-white border-amber-300/80 shadow-2xs' : 'bg-white border-slate-200 shadow-2xs'}`}>
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-base">{isNotWebRegistered ? '🔑' : '🔒'}</span>
@@ -930,7 +1029,7 @@ export default function GuestManagement() {
                                                         {isNotWebRegistered ? 'Thiết lập mật khẩu đăng nhập web' : 'Cập nhật mật khẩu mới'}
                                                     </label>
                                                     {isNotWebRegistered && (
-                                                        <span className="ml-2 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-[10px] border border-amber-300">
+                                                        <span className="ml-2 px-2 py-0.5 rounded-md bg-white text-amber-800 font-bold text-[10px] border border-amber-300">
                                                             Chưa đăng ký qua web
                                                         </span>
                                                     )}
@@ -946,7 +1045,7 @@ export default function GuestManagement() {
                                         </div>
 
                                         {isNotWebRegistered && (
-                                            <p className="text-[11px] text-amber-700 mb-2.5 leading-relaxed">
+                                            <p className="text-[11px] text-amber-800 mb-2.5 leading-relaxed">
                                                 Khách hàng này được tạo qua đơn đặt phòng / tại quầy (chưa có tài khoản web). Bạn có thể thiết lập mật khẩu tại đây để cấp tài khoản đăng nhập website cho khách (khách có thể dùng Số điện thoại hoặc Email để đăng nhập).
                                             </p>
                                         )}
@@ -957,7 +1056,7 @@ export default function GuestManagement() {
                                                 placeholder={isNotWebRegistered ? 'Nhập mật khẩu mới để cấp cho khách (VD: Password123)...' : 'Để trống nếu không muốn đổi mật khẩu khách hàng...'}
                                                 value={editFormData.new_password}
                                                 onChange={(e) => setEditFormData({ ...editFormData, new_password: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 pr-10 font-mono text-xs"
+                                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white pr-10 font-mono text-xs"
                                             />
                                             <button
                                                 type="button"
@@ -1323,6 +1422,125 @@ export default function GuestManagement() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* MODAL 5: XÁC NHẬN KHÓA / MỞ KHÓA / KÍCH HOẠT TÀI KHOẢN (MÀU TRẮNG HIỆN ĐẠI) */}
+            {/* ========================================================================= */}
+            {statusModalGuest && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+                    onClick={() => !isUpdatingStatus && setStatusModalGuest(null)}
+                >
+                    <div
+                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {(() => {
+                            const isWalkin = statusModalGuest.guest_type === 'walkin' || 
+                                             (statusModalGuest.email && statusModalGuest.email.endsWith('.local')) || 
+                                             (statusModalGuest.username && statusModalGuest.username.startsWith('walkin_'));
+                            const willBeActive = !statusModalGuest.is_active;
+
+                            let icon = '🔒';
+                            let iconBg = 'bg-rose-50 text-rose-600 border-rose-200';
+                            let title = 'Xác Nhận Tạm Khóa Tài Khoản?';
+                            let desc = `Bạn có chắc chắn muốn TẠM KHÓA tài khoản của khách hàng "${statusModalGuest.full_name || statusModalGuest.username}"? Khách sẽ tạm thời không thể đăng nhập vào hệ thống website.`;
+                            let confirmBtnText = 'Xác Nhận Tạm Khóa';
+                            let confirmBtnClass = 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30';
+
+                            if (willBeActive) {
+                                if (isWalkin) {
+                                    icon = '✨';
+                                    iconBg = 'bg-blue-50 text-blue-600 border-blue-200';
+                                    title = 'Kích Hoạt Tài Khoản Thành Viên?';
+                                    desc = `Khách hàng "${statusModalGuest.full_name || statusModalGuest.username}" đang là Khách vãng lai (Offline). Bạn có muốn KÍCH HOẠT tài khoản thành viên web để khách có thể tích điểm và đăng nhập không?`;
+                                    confirmBtnText = 'Xác Nhận Kích Hoạt';
+                                    confirmBtnClass = 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30';
+                                } else {
+                                    icon = '🔓';
+                                    iconBg = 'bg-emerald-50 text-emerald-600 border-emerald-200';
+                                    title = 'Xác Nhận Mở Khóa Tài Khoản?';
+                                    desc = `Bạn có chắc chắn muốn MỞ KHÓA tài khoản cho khách hàng "${statusModalGuest.full_name || statusModalGuest.username}"? Tài khoản sẽ hoạt động trở lại bình thường.`;
+                                    confirmBtnText = 'Xác Nhận Mở Khóa';
+                                    confirmBtnClass = 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30';
+                                }
+                            }
+
+                            return (
+                                <div className="p-6 text-center space-y-4">
+                                    {/* Icon tròn */}
+                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-inner border ${iconBg}`}>
+                                        {icon}
+                                    </div>
+
+                                    {/* Tiêu đề & Mô tả */}
+                                    <div>
+                                        <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                            {title}
+                                        </h3>
+                                        <p className="text-xs text-slate-500 mt-1.5 leading-relaxed px-2">
+                                            {desc}
+                                        </p>
+                                    </div>
+
+                                    {/* Card tóm tắt thông tin khách hàng */}
+                                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-left flex items-center gap-3">
+                                        <UserAvatar
+                                            avatar={statusModalGuest.avatar}
+                                            name={statusModalGuest.full_name || statusModalGuest.username}
+                                            role="guest"
+                                            size="md"
+                                            border={false}
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="font-bold text-slate-900 text-xs truncate">
+                                                {statusModalGuest.full_name || statusModalGuest.username}
+                                            </div>
+                                            <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                                                {statusModalGuest.phone_number ? `📞 ${statusModalGuest.phone_number}` : `@${statusModalGuest.username}`}
+                                                {statusModalGuest.email && !statusModalGuest.email.endsWith('.local') ? ` • ✉️ ${statusModalGuest.email}` : ''}
+                                            </div>
+                                        </div>
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                            {statusModalGuest.current_tier?.name || statusModalGuest.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                        </span>
+                                    </div>
+
+                                    {/* Nút hành động */}
+                                    <div className="flex items-center justify-end gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStatusModalGuest(null)}
+                                            disabled={isUpdatingStatus}
+                                            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer disabled:opacity-50"
+                                        >
+                                            Hủy Bỏ
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleConfirmStatusChange}
+                                            disabled={isUpdatingStatus}
+                                            className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5 ${confirmBtnClass}`}
+                                        >
+                                            {isUpdatingStatus ? (
+                                                <>
+                                                    <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    <span>Đang xử lý...</span>
+                                                </>
+                                            ) : (
+                                                confirmBtnText
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
             )}

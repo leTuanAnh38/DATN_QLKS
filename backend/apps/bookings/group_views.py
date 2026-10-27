@@ -288,8 +288,16 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                 if create_account and not leader_user.is_active:
                     leader_user.is_active = True
                     leader_user.save(update_fields=['is_active'])
+                if leader_email:
+                    curr_email = (leader_user.email or '').strip().lower()
+                    if not curr_email or curr_email.endswith('.local') or curr_email != leader_email.lower():
+                        conflict = User.objects.filter(email__iexact=leader_email).exclude(pk=leader_user.pk).exists()
+                        if not conflict:
+                            leader_user.email = leader_email
+                            leader_user.save(update_fields=['email'])
             else:
                 phone_already_used = User.objects.filter(phone_number=leader_phone).exists() if leader_phone else False
+                email_conflict = User.objects.filter(email__iexact=leader_email).exists() if leader_email else False
 
                 name_parts = leader_name.split()
                 first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else leader_name
@@ -304,12 +312,7 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                         username = f"{base_username}_{counter}"
                         counter += 1
 
-                    email_to_use = leader_email
-                    if email_to_use and User.objects.filter(email=email_to_use).exists():
-                        email_to_use = f"{username}@group.hotel.local"
-                    if not email_to_use:
-                        email_to_use = f"{username}@group.hotel.local"
-
+                    email_to_use = leader_email if (leader_email and not email_conflict) else f"{username}@group.hotel.local"
                     phone_to_save = None if phone_already_used else (leader_phone or None)
 
                     leader_user = User.objects.create_user(
@@ -325,9 +328,7 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                     # 2. Khách vãng lai thông thường (offline, không tạo tài khoản web)
                     unique_tag = uuid.uuid4().hex[:6]
                     username = f"walkin_group_{clean_phone[-6:]}_{unique_tag}" if len(clean_phone) >= 6 else f"walkin_group_{unique_tag}"
-                    email_to_use = f"{username}@walkin.hotel.local"
-                    if leader_email and not User.objects.filter(email=leader_email).exists():
-                        email_to_use = leader_email
+                    email_to_use = leader_email if (leader_email and not email_conflict) else f"{username}@walkin.hotel.local"
                     phone_to_save = None if phone_already_used else (leader_phone or None)
 
                     leader_user = User.objects.create(
@@ -337,7 +338,7 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                         first_name=first_name,
                         last_name=last_name,
                         role='guest',
-                        is_active=False
+                        is_active=True
                     )
                     leader_user.set_unusable_password()
                     leader_user.save(update_fields=['password'])

@@ -34,6 +34,7 @@ export default function PreAssignRoomModal({
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
 
     const currentRoomId = booking?.room_id || (typeof booking?.room === 'object' ? booking?.room?.id : booking?.room);
     const currentRoomNumber = booking?.room_number || (typeof booking?.room === 'object' ? booking?.room?.room_number : null);
@@ -116,26 +117,29 @@ export default function PreAssignRoomModal({
         }
     };
 
-    const handleUnassign = async () => {
-        if (!window.confirm(`Bạn có chắc chắn muốn hủy gán phòng ${currentRoomNumber ? `P.${currentRoomNumber}` : ''} cho đơn này?`)) {
-            return;
-        }
+    const handleUnassign = () => {
+        setShowUnassignConfirm(true);
+    };
 
+    const executeUnassign = async () => {
         setIsSubmitting(true);
         setErrorMessage('');
         try {
             const res = await bookingService.preAssignRoom(booking.id, null);
             if (res.success) {
+                setShowUnassignConfirm(false);
                 if (onSuccess) {
                     onSuccess(res.data);
                 }
                 onClose();
             } else {
                 setErrorMessage(res.message || 'Không thể hủy gán phòng.');
+                setShowUnassignConfirm(false);
             }
         } catch (err) {
             console.error('Lỗi khi hủy gán phòng:', err);
             setErrorMessage('Đã xảy ra lỗi khi hủy gán phòng.');
+            setShowUnassignConfirm(false);
         } finally {
             setIsSubmitting(false);
         }
@@ -372,6 +376,75 @@ export default function PreAssignRoomModal({
                     </div>
                 </div>
             </div>
+
+            {/* MODAL XÁC NHẬN HỦY GÁN PHÒNG (MODERN WHITE MODAL) */}
+            {showUnassignConfirm && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3.5">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 text-xl font-bold">
+                                ⚠️
+                            </div>
+                            <div>
+                                <h3 className="text-base font-black text-slate-800 tracking-tight">
+                                    Xác Nhận Hủy Gán Phòng
+                                </h3>
+                                <p className="text-xs font-semibold text-slate-400">
+                                    Pre-assigned room cancellation
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-medium">Mã đặt phòng:</span>
+                                <span className="font-mono font-bold text-slate-800">#{booking?.booking_code}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-medium">Khách hàng:</span>
+                                <span className="font-bold text-slate-800">{booking?.guest_name}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span className="font-medium">Phòng đang gán trước:</span>
+                                <span className="font-black text-rose-600">P.{currentRoomNumber}</span>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-100">
+                            💡 Sau khi hủy, phòng <b>P.{currentRoomNumber}</b> sẽ quay về trạng thái sẵn sàng cho các đơn đặt khác. Đơn này sẽ trở thành trạng thái chờ xếp phòng lúc khách đến nhận.
+                        </p>
+
+                        <div className="flex items-center justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() => setShowUnassignConfirm(false)}
+                                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                            >
+                                Giữ Lại
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={executeUnassign}
+                                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition cursor-pointer flex items-center gap-1.5"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <RefreshCw size={14} className="animate-spin" />
+                                        <span>Đang hủy...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 size={14} />
+                                        <span>Xác Nhận Hủy Gán</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

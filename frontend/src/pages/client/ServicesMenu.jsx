@@ -149,6 +149,7 @@ export default function ServicesMenu() {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled'
     const [cancellingRequestId, setCancellingRequestId] = useState(null);
+    const [orderToCancel, setOrderToCancel] = useState(null);
 
     const showToast = (type, message) => {
         setToast({ type, message });
@@ -410,8 +411,13 @@ export default function ServicesMenu() {
     };
 
     // Khách hàng hủy yêu cầu dịch vụ khi còn chờ xử lý (status === 'pending')
-    const handleCancelOrder = async (requestId) => {
-        if (!window.confirm('Quý khách có chắc chắn muốn hủy yêu cầu đặt món này không?')) return;
+    const handleCancelOrder = (order) => {
+        setOrderToCancel(order);
+    };
+
+    const executeCancelOrder = async () => {
+        if (!orderToCancel) return;
+        const requestId = orderToCancel.id;
         try {
             setCancellingRequestId(requestId);
             const res = await hotelService.cancelServiceRequest(requestId);
@@ -424,6 +430,7 @@ export default function ServicesMenu() {
                             : o
                     )
                 );
+                setOrderToCancel(null);
             } else {
                 showToast('error', res.message || 'Không thể hủy yêu cầu đặt món.');
             }
@@ -1389,7 +1396,7 @@ export default function ServicesMenu() {
                                                                         <button
                                                                             type="button"
                                                                             disabled={cancellingRequestId === item.id}
-                                                                            onClick={() => handleCancelOrder(item.id)}
+                                                                            onClick={() => handleCancelOrder(item)}
                                                                             className="text-rose-600 hover:text-rose-700 font-bold text-xs underline cursor-pointer disabled:opacity-50"
                                                                         >
                                                                             {cancellingRequestId === item.id ? 'Đang hủy...' : '✕ Hủy yêu cầu'}
@@ -1462,6 +1469,79 @@ export default function ServicesMenu() {
                                     className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition cursor-pointer"
                                 >
                                     Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL XÁC NHẬN HỦY ĐẶT MÓN / DỊCH VỤ (MODERN WHITE MODAL) */}
+                {orderToCancel && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+                        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-3.5">
+                                <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 text-xl font-bold">
+                                    ✕
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-black text-slate-800 tracking-tight">
+                                        Hủy Yêu Cầu Dịch Vụ
+                                    </h3>
+                                    <p className="text-xs font-semibold text-slate-400">
+                                        Xác nhận hủy đơn đặt món / dịch vụ
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                                <div className="flex justify-between items-center text-slate-600">
+                                    <span className="font-medium">Dịch vụ yêu cầu:</span>
+                                    <span className="font-bold text-slate-800">{orderToCancel.service_name || orderToCancel.custom_service_name || 'Dịch vụ'}</span>
+                                </div>
+                                {orderToCancel.quantity && (
+                                    <div className="flex justify-between items-center text-slate-600">
+                                        <span className="font-medium">Số lượng:</span>
+                                        <span className="font-bold text-slate-800">x{orderToCancel.quantity}</span>
+                                    </div>
+                                )}
+                                {orderToCancel.booking_code && (
+                                    <div className="flex justify-between items-center text-slate-600">
+                                        <span className="font-medium">Mã phòng / đơn:</span>
+                                        <span className="font-mono font-bold text-indigo-600">#{orderToCancel.booking_code}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <p className="text-xs text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-100">
+                                💡 Quý khách có chắc chắn muốn hủy yêu cầu này? Sau khi hủy, yêu cầu sẽ không được xử lý và không phát sinh bất kỳ khoản phí nào.
+                            </p>
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    disabled={cancellingRequestId === orderToCancel.id}
+                                    onClick={() => setOrderToCancel(null)}
+                                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                                >
+                                    Giữ Lại
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={cancellingRequestId === orderToCancel.id}
+                                    onClick={executeCancelOrder}
+                                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition cursor-pointer flex items-center gap-1.5"
+                                >
+                                    {cancellingRequestId === orderToCancel.id ? (
+                                        <>
+                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Đang hủy...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>✕</span>
+                                            <span>Xác Nhận Hủy</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>

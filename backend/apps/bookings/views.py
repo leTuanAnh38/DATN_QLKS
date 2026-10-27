@@ -28,9 +28,11 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
     - create_account=True: Khách muốn mở tài khoản thành viên web -> Tạo User is_active=True (hoặc kích hoạt nếu đã có).
     - create_account=False: Khách vãng lai thông thường -> User offline (is_active=False) với tiền tố 'walkin_' hoặc 'phone_' để phân biệt.
     - Chống nhầm lẫn tài khoản: Nếu SĐT trùng với User có họ tên hoàn toàn khác, không gán nhầm vào tài khoản người khác.
+    - Email: Nếu khách cung cấp email, kiểm tra trùng lặp minh bạch. Cho phép cập nhật email thật cho khách đang mang email tạm (.local).
     """
     clean_phone = ''.join(c for c in str(guest_phone or '') if c.isdigit())
     guest_name = (guest_name or '').strip()
+    guest_email = (guest_email or '').strip()
     name_parts = guest_name.split()
     first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
     last_name = name_parts[-1] if len(name_parts) > 1 else ''
@@ -42,7 +44,7 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
     if not matched_user and clean_phone:
         matched_user = User.objects.filter(phone_number=clean_phone).first()
     if not matched_user and guest_email:
-        matched_user = User.objects.filter(email=guest_email).first()
+        matched_user = User.objects.filter(email__iexact=guest_email).first()
 
     # Kiểm tra xem có đúng là cùng một người hay không (tránh gán nhầm sang tài khoản của người khác khi trùng SĐT)
     is_same_person = False
@@ -63,12 +65,24 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
             guest_user.first_name = first_name
             guest_user.last_name = last_name
             guest_user.save(update_fields=['first_name', 'last_name'])
-        if guest_email and not guest_user.email:
-            guest_user.email = guest_email
-            guest_user.save(update_fields=['email'])
+
+        # Cập nhật email nếu khách cung cấp email mới
+        if guest_email:
+            curr_email = (guest_user.email or '').strip().lower()
+            if not curr_email or curr_email.endswith('.local') or curr_email != guest_email.lower():
+                # Kiểm tra email có bị người khác sử dụng không
+                email_conflict = User.objects.filter(email__iexact=guest_email).exclude(pk=guest_user.pk).exists()
+                if email_conflict:
+                    raise ValueError(f"Địa chỉ email '{guest_email}' đã được liên kết với một tài khoản khách hàng khác. Vui lòng kiểm tra lại hoặc để trống nếu khách không có email riêng.")
+                guest_user.email = guest_email
+                guest_user.save(update_fields=['email'])
     else:
         # Nếu không tìm thấy, hoặc SĐT bị trùng với người khác trong DB
+        email_conflict = User.objects.filter(email__iexact=guest_email).exists() if guest_email else False
         phone_already_used = User.objects.filter(phone_number=guest_phone).exists() if guest_phone else False
+
+        if guest_email and email_conflict:
+            raise ValueError(f"Địa chỉ email '{guest_email}' đã được đăng ký bởi một tài khoản khác trong hệ thống. Vui lòng kiểm tra lại hoặc để trống nếu khách không dùng email.")
 
         if create_account:
             # 1. Khách muốn đăng ký tài khoản thành viên chính thức (Active User)
@@ -96,9 +110,7 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
             unique_tag = uuid.uuid4().hex[:6]
             prefix = "walkin" if is_walkin else "phone"
             username = f"{prefix}_{clean_phone[-6:]}_{unique_tag}" if len(clean_phone) >= 6 else f"{prefix}_{unique_tag}"
-            email_to_use = f"{username}@walkin.hotel.local"
-            if guest_email and not User.objects.filter(email=guest_email).exists():
-                email_to_use = guest_email
+            email_to_use = guest_email if guest_email else f"{username}@walkin.hotel.local"
             phone_to_save = None if phone_already_used else (guest_phone or None)
 
             guest_user = User.objects.create(
@@ -108,7 +120,7 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
                 first_name=first_name,
                 last_name=last_name,
                 role='guest',
-                is_active=False
+                is_active=True
             )
             guest_user.set_unusable_password()
             guest_user.save(update_fields=['password'])
@@ -2043,14 +2055,20 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             # 1. Tìm hoặc Tạo mới User và GuestProfile theo tùy chọn mở tài khoản
             create_account = bool(data.get('create_account', False))
-            guest_user = _resolve_or_create_booking_guest_user(
-                guest_name=guest_name,
-                guest_phone=guest_phone,
-                guest_email=guest_email,
-                identity_card=identity_card,
-                create_account=create_account,
-                is_walkin=True
-            )
+            try:
+                guest_user = _resolve_or_create_booking_guest_user(
+                    guest_name=guest_name,
+                    guest_phone=guest_phone,
+                    guest_email=guest_email,
+                    identity_card=identity_card,
+                    create_account=create_account,
+                    is_walkin=True
+                )
+            except ValueError as ve:
+                return Response({
+                    'success': False,
+                    'message': str(ve)
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Xử lý dịch vụ đặt kèm nếu có
             services_input = data.get('services') or []
@@ -2320,14 +2338,20 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             # Tìm hoặc tạo User khách hàng theo tùy chọn mở tài khoản
             create_account = bool(data.get('create_account', False))
-            guest_user = _resolve_or_create_booking_guest_user(
-                guest_name=guest_name,
-                guest_phone=guest_phone,
-                guest_email=guest_email,
-                identity_card=identity_card,
-                create_account=create_account,
-                is_walkin=False
-            )
+            try:
+                guest_user = _resolve_or_create_booking_guest_user(
+                    guest_name=guest_name,
+                    guest_phone=guest_phone,
+                    guest_email=guest_email,
+                    identity_card=identity_card,
+                    create_account=create_account,
+                    is_walkin=False
+                )
+            except ValueError as ve:
+                return Response({
+                    'success': False,
+                    'message': str(ve)
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Tính toán tiền phòng
             price_per_night = Decimal(str(category_instance.promo_price or category_instance.base_price))
