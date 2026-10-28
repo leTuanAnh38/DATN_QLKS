@@ -365,6 +365,49 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         );
     }, [summary]);
 
+    // Chuẩn hóa và tối ưu danh sách dịch vụ phát sinh hiển thị trên Bảng kê Folio
+    // Gom gọn các lượt dọn phòng Make-up Room miễn phí (0đ) đã hoàn tất để tránh làm rối bảng kê tính tiền
+    const displayExtraServices = useMemo(() => {
+        const rawList = summary?.extra_services || [];
+        if (!rawList.length) return [];
+
+        const result = [];
+        const cleaningCompletedGroup = [];
+
+        rawList.forEach((svc) => {
+            const isCleaning = (svc.service_name || '').toLowerCase().includes('make-up') || (svc.service_name || '').toLowerCase().includes('dọn dẹp');
+            const isZeroPrice = Number(svc.price || 0) === 0 && Number(svc.total_price || 0) === 0;
+
+            // Nếu là dọn phòng lưu trú miễn phí đã hoàn tất: gom lại
+            if (isCleaning && isZeroPrice && svc.status === 'completed') {
+                cleaningCompletedGroup.push(svc);
+            } else {
+                result.push(svc);
+            }
+        });
+
+        if (cleaningCompletedGroup.length > 0) {
+            if (cleaningCompletedGroup.length === 1) {
+                result.push(cleaningCompletedGroup[0]);
+            } else {
+                const first = cleaningCompletedGroup[0];
+                result.push({
+                    ...first,
+                    id: 'grouped_cleaning',
+                    service_name: `Dọn dẹp phòng lưu trú (Make-up Room) — ${cleaningCompletedGroup.length} lượt`,
+                    quantity: cleaningCompletedGroup.length,
+                    price: 0,
+                    total_price: 0,
+                    is_grouped: true,
+                    grouped_items: cleaningCompletedGroup,
+                    created_at: cleaningCompletedGroup[cleaningCompletedGroup.length - 1].created_at
+                });
+            }
+        }
+
+        return result;
+    }, [summary?.extra_services]);
+
     const executeServiceStatusUpdate = async (requestId, serviceItem, newStatus) => {
         try {
             setServiceActionLoading(requestId);
@@ -1353,9 +1396,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                                         {/* 2. DỊCH VỤ PHÁT SINH */}
                                         {/* 2. DỊCH VỤ ĐẶT KÈM & PHÁT SINH */}
-                                        {summary?.extra_services && summary.extra_services.length > 0 ? (
-                                            summary.extra_services.map((svc, idx) => {
+                                        {displayExtraServices && displayExtraServices.length > 0 ? (
+                                            displayExtraServices.map((svc, idx) => {
                                                 const isDamage = svc.service_name?.includes('Bồi thường');
+                                                const isCleaning = (svc.service_name || '').toLowerCase().includes('dọn') || (svc.service_name || '').toLowerCase().includes('make-up');
+                                                const isZeroPrice = Number(svc.price || 0) === 0 && Number(svc.total_price || 0) === 0;
                                                 const isPaid = Boolean(svc.is_paid);
                                                 const isServiceRequest = svc.source === 'service_request';
                                                 const isUncompleted = isServiceRequest && ['pending', 'in_progress', 'delivering'].includes(svc.status);
@@ -1368,18 +1413,24 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                                 ? 'bg-rose-50/30 hover:bg-rose-50/50 border-l-2 border-rose-400'
                                                                 : isUncompleted
                                                                     ? 'bg-amber-50/30 hover:bg-amber-50/50 border-l-2 border-amber-400'
-                                                                    : 'hover:bg-slate-50/60'
+                                                                    : isZeroPrice
+                                                                        ? 'bg-slate-50/40 hover:bg-slate-50/70'
+                                                                        : 'hover:bg-slate-50/60'
                                                             }`}
                                                     >
                                                         <td className="py-2.5 px-4">
                                                             <div className="flex items-center gap-2 flex-wrap">
                                                                 <span className={`font-semibold text-slate-800 inline-flex items-center gap-1.5 ${isDamage ? 'text-rose-900 font-bold' : ''}`}>
-                                                                    <span className="shrink-0">{isDamage ? '⚠️' : isPaid ? '🧺' : '🍽️'}</span>
+                                                                    <span className="shrink-0">{isDamage ? '⚠️' : isCleaning ? '🧹' : isPaid ? '🧺' : '🍽️'}</span>
                                                                     <span>{svc.service_name}</span>
                                                                 </span>
 
                                                                 {/* Huy hiệu thanh toán */}
-                                                                {isPaid ? (
+                                                                {isZeroPrice ? (
+                                                                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold shrink-0">
+                                                                        🎁 Miễn phí (FOC)
+                                                                    </span>
+                                                                ) : isPaid ? (
                                                                     <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold shrink-0">
                                                                         ✓ Đã trả trước
                                                                     </span>
@@ -1411,9 +1462,13 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                                 )}
                                                             </div>
 
-                                                            {/* Dòng thao tác nhanh nếu dịch vụ chưa hoàn thành */}
+                                                            {/* Dòng thao tác nhanh nếu dịch vụ chưa hoàn thành hoặc chi tiết dọn phòng */}
                                                             <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
-                                                                {svc.created_at ? (
+                                                                {svc.is_grouped ? (
+                                                                    <div className="text-[10px] text-slate-500 font-medium">
+                                                                        Đã phục vụ {svc.quantity} lượt trong kỳ lưu trú (Lần gần nhất: {formatDateTime(svc.created_at)})
+                                                                    </div>
+                                                                ) : svc.created_at ? (
                                                                     <div className="text-[10px] text-slate-400">
                                                                         Thời gian đặt: {formatDateTime(svc.created_at)}
                                                                     </div>

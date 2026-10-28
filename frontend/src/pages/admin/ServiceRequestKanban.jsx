@@ -209,8 +209,8 @@ const handlePrintSlip = (item) => {
         <body>
             <div class="header">
                 <h1 class="hotel-name">TA LUXURY HOTEL DA NANG</h1>
-                <div class="hotel-sub">Dịch vụ Ẩm thực & Phục vụ phòng (In-Room Dining)</div>
-                <div class="title">PHIẾU PHỤC VỤ TẠI PHÒNG</div>
+                <div class="hotel-sub">${(item.category_name || '').toLowerCase().includes('buồng') || (item.service_name || '').toLowerCase().includes('dọn') ? 'Bộ phận Buồng phòng & Tiện ích lưu trú (Housekeeping)' : 'Dịch vụ Ẩm thực & Phục vụ phòng (In-Room Dining)'}</div>
+                <div class="title">${(item.category_name || '').toLowerCase().includes('buồng') || (item.service_name || '').toLowerCase().includes('dọn') ? 'PHIẾU YÊU CẦU BUỒNG PHÒNG' : 'PHIẾU PHỤC VỤ TẠI PHÒNG'}</div>
                 <div class="room-badge">🚪 PHÒNG ${item.room_number || 'Chưa gán'}</div>
             </div>
 
@@ -800,89 +800,101 @@ export default function ServiceRequestKanban() {
                 </div>
             )}
 
-            {/* HEADER & THỐNG KÊ NHANH 4 CHỈ SỐ */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+            {/* HEADER CHÍNH: TIÊU ĐỀ + DOANH THU & NÚT THAO TÁC (TINH GỌN, SANG TRỌNG) */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs">
                 <div>
-                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
-                        Quản Lý Yêu Cầu Dịch Vụ Tại Phòng
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                        Điều phối gọi món, đồ uống, trị liệu spa và tiện ích buồng phòng — xem dạng danh sách 1 hàng hoặc bảng Kanban kéo thả.
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                            Quản Lý Yêu Cầu Dịch Vụ Tại Phòng
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+                            {stats.total || 0} yêu cầu
+                        </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Điều phối gọi món ăn uống (In-Room Dining), spa trị liệu và tiện ích phục vụ khách lưu trú
                     </p>
                 </div>
 
-                {/* 5 Mini Stat Badges (Nhấp vào thẻ để lọc nhanh danh sách) */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5">
-                    <button
-                        type="button"
-                        onClick={() => { setViewMode('list'); setStatusTab('all'); }}
-                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
-                            viewMode === 'list' && statusTab === 'all'
-                                ? 'bg-slate-200/80 border-slate-300 ring-2 ring-slate-400/30'
-                                : 'bg-slate-50 hover:bg-slate-100 border-slate-100'
-                        }`}
-                        title="Xem toàn bộ yêu cầu dịch vụ"
-                    >
-                        <span className="text-[10px] text-slate-500 block font-bold uppercase">Tổng yêu cầu</span>
-                        <strong className="text-sm sm:text-base font-black text-slate-900">{stats.total || 0}</strong>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setViewMode('list'); setStatusTab('pending'); }}
-                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
-                            viewMode === 'list' && statusTab === 'pending'
-                                ? 'bg-amber-100 border-amber-300 ring-2 ring-amber-400/40'
-                                : 'bg-amber-50 hover:bg-amber-100 border-amber-100'
-                        }`}
-                        title="Lọc nhanh các đơn đang chờ xử lý"
-                    >
-                        <span className="text-[10px] text-amber-700 block font-bold uppercase">Chờ xử lý</span>
-                        <strong className="text-sm sm:text-base font-black text-amber-600">{stats.pending_count || 0}</strong>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setViewMode('list'); setStatusTab('in_progress'); }}
-                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
-                            viewMode === 'list' && statusTab === 'in_progress'
-                                ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-400/40'
-                                : 'bg-blue-50 hover:bg-blue-100 border-blue-100'
-                        }`}
-                        title="Lọc nhanh các đơn đang chuẩn bị / làm"
-                    >
-                        <span className="text-[10px] text-blue-700 block font-bold uppercase">Đang làm</span>
-                        <strong className="text-sm sm:text-base font-black text-blue-600">{stats.in_progress_count || 0}</strong>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setViewMode('list'); setStatusTab('delivering'); }}
-                        className={`p-2 sm:p-3 rounded-2xl border text-center transition cursor-pointer active:scale-95 ${
-                            viewMode === 'list' && statusTab === 'delivering'
-                                ? 'bg-purple-100 border-purple-300 ring-2 ring-purple-400/40'
-                                : 'bg-purple-50 hover:bg-purple-100 border-purple-100'
-                        }`}
-                        title="Lọc nhanh các đơn đang mang tới phòng"
-                    >
-                        <span className="text-[10px] text-purple-700 block font-bold uppercase">Đang giao</span>
-                        <strong className="text-sm sm:text-base font-black text-purple-600">{stats.delivering_count || 0}</strong>
-                    </button>
-                    <div className="p-2 sm:p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center col-span-2 sm:col-span-1">
-                        <span className="text-[10px] text-emerald-700 block font-bold uppercase">Doanh thu</span>
-                        <strong className="text-xs sm:text-sm font-black text-emerald-600 block truncate">
-                            {Number(stats.total_revenue || 0).toLocaleString('vi-VN')} đ
-                        </strong>
+                {/* Cụm Thống kê Doanh thu & Nhóm nút Hành động */}
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                    {/* Thẻ Doanh thu nổi bật - Hiển thị đầy đủ số tiền, không bị cắt chữ */}
+                    <div className="flex items-center gap-2.5 px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl shadow-2xs">
+                        <span className="text-base sm:text-lg"></span>
+                        <div className="min-w-0">
+                            <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider block">
+                                Doanh thu hoàn tất
+                            </span>
+                            <span className="text-xs sm:text-sm font-black text-emerald-900 whitespace-nowrap">
+                                {Number(stats.total_revenue || 0).toLocaleString('vi-VN')} đ
+                            </span>
+                        </div>
                     </div>
+
+                    {/* Bộ chuyển chế độ xem: Danh sách vs Kanban */}
+                    <div className="bg-slate-100 p-1 rounded-2xl flex items-center text-xs font-semibold text-slate-600 border border-slate-200/60">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('list')}
+                            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                                viewMode === 'list'
+                                    ? 'bg-white text-blue-600 shadow-xs font-bold'
+                                    : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                            title="Chế độ xem bảng danh sách 1 hàng"
+                        >
+                            <span>📋</span>
+                            <span className="hidden sm:inline">Danh sách</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('board')}
+                            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                                viewMode === 'board'
+                                    ? 'bg-white text-blue-600 shadow-xs font-bold'
+                                    : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                            title="Chế độ xem bảng Kanban kéo thả"
+                        >
+                            <span>🗂️</span>
+                            <span className="hidden sm:inline">Kanban</span>
+                        </button>
+                    </div>
+
+                    {/* Nút Làm mới */}
+                    <button
+                        type="button"
+                        onClick={() => fetchKanbanData(false)}
+                        disabled={isLoading}
+                        className="p-2 sm:px-3 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-slate-200/60"
+                        title="Đồng bộ lại dữ liệu mới nhất"
+                    >
+                        <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
+                        <span className="hidden md:inline">Làm mới</span>
+                    </button>
+
+                    {/* Nút Tạo đơn / Đặt món cho khách */}
+                    <button
+                        type="button"
+                        onClick={handleOpenCreateModal}
+                        className="px-3.5 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-blue-600/25 cursor-pointer active:scale-95"
+                        title="Đặt món ăn / đồ uống / dịch vụ cho phòng đang lưu trú"
+                    >
+                        <span className="text-sm font-black">+</span>
+                        <span className="whitespace-nowrap">Đặt món tại phòng</span>
+                    </button>
                 </div>
             </div>
 
-            {/* BỘ LỌC TÌM KIẾM & NÚT THAO TÁC */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200 shadow-xs text-xs">
-                {/* Search Input */}
-                <div className="relative w-full sm:w-80">
+            {/* THANH TÌM KIẾM & BỘ LỌC CHUYÊN MÔN NGHIỆP VỤ (GỌN GÀNG, 1 HÀNG DUY NHẤT) */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 shadow-xs text-xs">
+                {/* Ô tìm kiếm nhanh */}
+                <div className="relative w-full md:w-80">
                     <input
                         type="text"
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
-                        placeholder="Tìm số phòng, mã đơn, tên khách, món..."
+                        placeholder="Tìm số phòng, tên khách, món ăn, mã đơn..."
                         className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
@@ -890,70 +902,43 @@ export default function ServiceRequestKanban() {
                         <button
                             type="button"
                             onClick={() => setSearchKeyword('')}
-                            className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                            className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
                         >
                             ✕
                         </button>
                     )}
                 </div>
 
-                {/* Filter & Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
-                    {/* Nút Tạo yêu cầu / Đặt món cho khách */}
-                    <button
-                        type="button"
-                        onClick={handleOpenCreateModal}
-                        className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-blue-600/25 cursor-pointer active:scale-95"
-                        title="Đặt món ăn / đồ uống / dịch vụ cho phòng đang lưu trú"
-                    >
-                        <span className="text-sm font-black">+</span>
-                        <span>Đặt món tại phòng</span>
-                    </button>
-
-                    {/* Chuyển chế độ xem */}
-                    <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold text-slate-600">
+                {/* Nhóm nút lọc Danh mục nghiệp vụ - Xếp đều 1 hàng, không bị rớt dòng */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                    {[
+                        { key: 'all', label: 'Tất cả' },
+                        { key: 'ẩm thực', label: '🍽️ Ẩm thực (F&B)' },
+                        { key: 'spa', label: '💆 Spa & Trị liệu' },
+                        { key: 'giặt', label: '🧺 tiện ích & Giặt ủi' },
+                    ].map((cat) => (
                         <button
+                            key={cat.key}
                             type="button"
-                            onClick={() => setViewMode('list')}
-                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer ${
-                                viewMode === 'list' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                            onClick={() => setSelectedCategoryFilter(cat.key)}
+                            className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer text-xs whitespace-nowrap border ${
+                                selectedCategoryFilter === cat.key
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/80'
                             }`}
-                            title="Mỗi yêu cầu 1 hàng, dễ thao tác"
                         >
-                            <span>📋</span>
-                            <span>Danh sách</span>
+                            {cat.label}
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setViewMode('board')}
-                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer ${
-                                viewMode === 'board' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
-                            }`}
-                            title="Bảng Kanban kéo thả theo cột"
-                        >
-                            <span>🗂️</span>
-                            <span>Kanban</span>
-                        </button>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => fetchKanbanData(false)}
-                        disabled={isLoading}
-                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-                    >
-                        <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
-                        <span>Làm mới</span>
-                    </button>
+                    ))}
 
                     {viewMode === 'board' && (
                         <button
                             type="button"
                             onClick={() => setShowCancelled(!showCancelled)}
-                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border whitespace-nowrap ml-1 ${
                                 showCancelled
                                     ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                             }`}
                         >
                             <span>✕ Đơn đã hủy ({kanbanData.cancelled?.length || 0})</span>
@@ -1108,7 +1093,11 @@ export default function ServiceRequestKanban() {
                                                             <span className="inline-block px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200/70">
                                                                 {item.category_name || 'Dịch vụ'}
                                                             </span>
-                                                            {item.is_paid ? (
+                                                            {totalAmt === 0 ? (
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold shadow-2xs">
+                                                                    <span>🎁 Tiện ích miễn phí</span>
+                                                                </span>
+                                                            ) : item.is_paid ? (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold shadow-2xs">
                                                                     <span>🟢 Đã trả trước</span>
                                                                 </span>
@@ -1156,11 +1145,11 @@ export default function ServiceRequestKanban() {
                                                 <div className="flex items-center justify-center">
                                                     {item.status === 'completed' && (
                                                         <span
-                                                            title="Yêu cầu dịch vụ đã hoàn thành và được tự động hạch toán vào hóa đơn phòng"
+                                                            title={totalAmt === 0 ? "Tiện ích buồng phòng miễn phí đã hoàn thành" : "Yêu cầu dịch vụ đã hoàn thành và được tự động hạch toán vào hóa đơn phòng"}
                                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs select-none"
                                                         >
                                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                            <span>✓ Hoàn thành (Đã tính vào phòng)</span>
+                                                            <span>{totalAmt === 0 ? '✓ Hoàn thành (Tiện ích miễn phí)' : '✓ Hoàn thành (Đã tính vào phòng)'}</span>
                                                         </span>
                                                     )}
 
@@ -1797,7 +1786,11 @@ export default function ServiceRequestKanban() {
                                                             <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
                                                                 {item.category_name || 'Dịch vụ'}
                                                             </span>
-                                                            {item.is_paid ? (
+                                                            {totalAmt === 0 ? (
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold whitespace-nowrap shadow-2xs" title="Tiện ích buồng phòng miễn phí">
+                                                                    <span>🎁 Tiện ích miễn phí</span>
+                                                                </span>
+                                                            ) : item.is_paid ? (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold whitespace-nowrap shadow-2xs" title="Khách đã thanh toán trước khi đặt phòng">
                                                                     <span>🟢 Đã trả trước</span>
                                                                 </span>

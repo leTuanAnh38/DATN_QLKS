@@ -360,7 +360,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         base_qs = ServiceRequest.objects.select_related(
             'booking', 'booking__room', 'booking__category', 'booking__guest',
             'service', 'service__category', 'assigned_staff'
-        ).all().order_by('-created_at')
+        ).exclude(
+            Q(service__name__icontains='Make-up') | Q(service__name__icontains='dọn dẹp phòng lưu trú')
+        ).order_by('-created_at')
 
         # Lọc theo guest_id nếu có trong query params (phục vụ CRM / Chi tiết khách hàng)
         guest_id = self.request.query_params.get('guest_id') or self.request.query_params.get('guest')

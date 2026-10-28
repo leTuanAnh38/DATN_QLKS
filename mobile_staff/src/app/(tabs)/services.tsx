@@ -61,6 +61,13 @@ const isTransportService = (item: any) => {
   );
 };
 
+// Helper kiểm tra tác vụ dọn dẹp phòng lưu trú (Make-up room) thuộc nghiệp vụ riêng của Buồng phòng (đã có tab Buồng phòng riêng)
+const isHousekeepingService = (item: any) => {
+  if (!item) return false;
+  const text = `${item.name || item.service_name || ''} ${item.category_name || ''} ${item.description || ''}`.toLowerCase();
+  return text.includes('make-up') || text.includes('dọn dẹp phòng lưu trú') || text.includes('dọn phòng');
+};
+
 // Helper lấy đường dẫn ảnh đầy đủ cho dịch vụ / món ăn (đồng bộ với Web)
 const getServiceItemImage = (item: any): string => {
   const raw =
@@ -264,11 +271,11 @@ export default function ServicesScreen() {
       const res = await apiClient.get('/services/requests/?no_page=true');
       const data = res.data;
       const list = data.results || data.requests || data.data || [];
-      // Lọc bỏ vận chuyển (vì đã có tab riêng của đội xe)
-      const nonTransport = (Array.isArray(list) ? list : []).filter(
-        (it: any) => !isTransportService(it)
+      // Lọc bỏ vận chuyển (đã có tab riêng của đội xe) và dọn dẹp phòng (đã có tab riêng của Buồng phòng)
+      const validOrders = (Array.isArray(list) ? list : []).filter(
+        (it: any) => !isTransportService(it) && !isHousekeepingService(it)
       );
-      setOrders(nonTransport);
+      setOrders(validOrders);
     } catch (err: any) {
       console.warn('Lỗi tải danh sách dịch vụ:', err);
     } finally {
@@ -285,10 +292,10 @@ export default function ServicesScreen() {
         apiClient.get('/services/categories/'),
       ]);
       const items = resItems.data.results || resItems.data.items || resItems.data.data || resItems.data || [];
-      const nonTransport = (Array.isArray(items) ? items : []).filter(
-        (s: any) => !isTransportService(s) && s.is_active !== false
+      const validCatalog = (Array.isArray(items) ? items : []).filter(
+        (s: any) => !isTransportService(s) && !isHousekeepingService(s) && s.is_active !== false
       );
-      setCatalogItems(nonTransport);
+      setCatalogItems(validCatalog);
 
       const cats = resCats.data.categories || resCats.data.results || resCats.data.data || resCats.data || [];
       setCatalogCategories(Array.isArray(cats) ? cats : []);

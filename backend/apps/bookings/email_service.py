@@ -109,6 +109,10 @@ def render_booking_email_html(booking, custom_message=None):
             unit_price = Decimal(str(sr.unit_price or 0))
             qty = sr.quantity or 1
             tot = Decimal(str(sr.total_price or (unit_price * qty)))
+            # Bỏ qua các tiện ích dọn phòng miễn phí (0đ / Make-up Room) khỏi hóa đơn email
+            if tot == 0 and unit_price == 0 and ('make-up' in svc_name.lower() or 'dọn dẹp' in svc_name.lower() or 'dọn phòng' in svc_name.lower()):
+                continue
+
             total_services_amount += tot
             services_list.append({
                 'name': svc_name,

@@ -2894,6 +2894,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         # 2.1. Từ ServiceRequest (Yêu cầu gọi món & dịch vụ tại phòng)
         valid_requests = booking.service_requests.exclude(
             status='cancelled'
+        ).exclude(
+            Q(service__name__icontains='Make-up') | Q(service__name__icontains='dọn dẹp')
         ).select_related('service').order_by('created_at')
 
         for req in valid_requests:

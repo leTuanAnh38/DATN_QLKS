@@ -837,32 +837,6 @@ class AdminRoomRequestCleaningView(APIView):
         room.cleaning_requested_at = timezone.now()
         room.save(update_fields=['is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
 
-        # Đồng thời tạo ServiceRequest (Dịch vụ buồng phòng) để theo dõi xuyên suốt
-        if active_booking:
-            try:
-                from ..services.models import ServiceCategory, ServiceItem, ServiceRequest
-                cat, _ = ServiceCategory.objects.get_or_create(
-                    name='Dịch vụ Buồng phòng',
-                    defaults={'icon': '🧹', 'description': 'Dọn phòng lưu trú, giặt là, tiện ích phòng'}
-                )
-                svc_item, _ = ServiceItem.objects.get_or_create(
-                    category=cat,
-                    name='Dọn dẹp phòng lưu trú (Make-up Room)',
-                    defaults={'price': 0, 'description': 'Dọn phòng, thay khăn, ga gối cho khách đang ở', 'is_active': True}
-                )
-                ServiceRequest.objects.create(
-                    booking=active_booking,
-                    service=svc_item,
-                    quantity=1,
-                    unit_price=0,
-                    total_price=0,
-                    status='pending',
-                    note=note,
-                    request_time=timezone.now()
-                )
-            except Exception:
-                pass
-
         # Gửi thông báo đến nhân viên Buồng phòng & Quản lý
         try:
             staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Lễ tân"
@@ -919,18 +893,6 @@ class AdminRoomCompleteCleaningView(APIView):
         room.cleaning_request_note = ''
         room.cleaning_requested_at = None
         room.save(update_fields=['is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
-
-        # Cập nhật các ServiceRequest dọn phòng đang chờ của booking này sang completed
-        if active_booking:
-            try:
-                from..services.models import ServiceRequest
-                ServiceRequest.objects.filter(
-                    booking=active_booking,
-                    service__name__icontains='Make-up',
-                    status__in=['pending', 'in_progress']
-                ).update(status='completed')
-            except Exception:
-                pass
 
         # Gửi thông báo đến Lễ tân & Quản lý
         try:

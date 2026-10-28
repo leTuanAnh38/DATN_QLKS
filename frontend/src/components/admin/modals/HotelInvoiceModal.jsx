@@ -283,9 +283,22 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     }, [groupSubExtraServices]);
 
     // Phụ phí dịch vụ phát sinh tại phòng (In-Room Dining / Services)
-    const extraServices = isGroupMaster
+    const rawExtraServices = isGroupMaster
         ? (isGroupAllInclusive ? groupSubExtraServices : [])
         : (Array.isArray(booking.extra_services) ? booking.extra_services : []);
+
+    // Trên Hóa đơn thanh toán: Chỉ hiển thị các khoản có phát sinh chi phí (>0đ) hoặc bồi thường thiệt hại.
+    // Loại bỏ hoàn toàn các tiện ích dọn phòng miễn phí 0đ (Make-up Room) để hóa đơn chuẩn mực, không in chữ "Chưa thanh toán 0đ".
+    const extraServices = React.useMemo(() => {
+        return rawExtraServices.filter((s) => {
+            const name = (s.service_name || s.name || '').toLowerCase();
+            const price = Number(s.price || s.unit_price || 0);
+            const total = Number(s.total_price != null ? s.total_price : (price * Number(s.quantity || 1)));
+            const isFreeCleaning = name.includes('make-up') || name.includes('dọn dẹp') || name.includes('dọn phòng');
+            if (isFreeCleaning && total === 0) return false;
+            return total > 0 || price > 0 || name.includes('bồi thường');
+        });
+    }, [rawExtraServices]);
 
     const extraServicesTotal = isGroupMaster
         ? (isGroupAllInclusive ? groupSubServicesTotal : 0)
