@@ -54,21 +54,21 @@ export default function ShiftStatusWidget({
     // Trường hợp 1: Chưa mở ca
     if (!activeShift) {
         return (
-            <div className="bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-gradient-to-r from-amber-50/70 via-white to-amber-50/30 px-5 py-3.5 rounded-2xl border border-amber-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 border border-slate-200">
-                        <Clock className="w-4 h-4" />
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200 shadow-2xs">
+                        <Clock className="w-4 h-4 text-amber-700" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
                             <h3 className="text-xs sm:text-sm font-bold text-slate-900">
                                 {isManagerRole ? 'Quầy Thu Ngân Hiện Chưa Có Ca Trực Nào Mở' : 'Chưa Có Ca Làm Việc Nào Đang Mở'}
                             </h3>
-                            <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
                                 {isManagerRole ? 'Trống ca trực' : 'Cần mở ca'}
                             </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-[11px] text-slate-500 mt-0.5">
                             {isManagerRole
                                 ? 'Hiện chưa có nhân viên nào mở ca trực tại quầy. Bạn có thể mở ca trực tiếp hoặc đợi nhân viên nhận ca.'
                                 : 'Mở ca trực để quản lý quỹ tiền mặt thối ban đầu, ghi nhận thu chi và kết xuất báo cáo Z-Report khi bàn giao.'
@@ -80,7 +80,7 @@ export default function ShiftStatusWidget({
                 <button
                     type="button"
                     onClick={onOpenShift}
-                    className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl shadow-xs shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
                 >
                     <PlusCircle className="w-4 h-4" />
                     <span>Mở Ca Trực Thu Ngân</span>

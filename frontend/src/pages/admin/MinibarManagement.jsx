@@ -1,4 +1,21 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+    Package,
+    CheckCircle2,
+    PauseCircle,
+    Coins,
+    Search,
+    Plus,
+    Edit3,
+    Trash2,
+    Wine,
+    Lock,
+    Check,
+    AlertTriangle,
+    X,
+    Sparkles,
+    Loader2
+} from 'lucide-react';
 import roomService from '../../services/roomService';
 import { useHasPermission } from '../../utils/permission';
 import { useAuth } from '../../store/authStore';
@@ -270,13 +287,17 @@ export default function MinibarManagement() {
                                 : 'bg-rose-50 text-rose-800 border-rose-200'
                         }`}
                     >
-                        <span>{alertMessage.type === 'success' ? '✓' : '⚠️'}</span>
+                        {alertMessage.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
                         <span>{alertMessage.text}</span>
                         <button
                             onClick={() => setAlertMessage(null)}
                             className="ml-2 text-slate-400 hover:text-slate-600 cursor-pointer"
                         >
-                            ✕
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -286,7 +307,6 @@ export default function MinibarManagement() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                       
                         <span>Quản Lý Danh Mục Minibar & Bảng Giá</span>
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -298,14 +318,14 @@ export default function MinibarManagement() {
                     <button
                         type="button"
                         onClick={handleOpenCreate}
-                        className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2 cursor-pointer shrink-0 active:scale-95"
                     >
-                        <span className="text-base font-bold">+</span>
+                        <Plus className="w-4 h-4" />
                         <span>Thêm Món Minibar Mới</span>
                     </button>
                 ) : (
                     <div className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl border border-slate-200 shrink-0">
-                        <span>🔒</span>
+                        <Lock className="w-3.5 h-3.5 text-slate-500" />
                         <span>Chế độ xem bảng giá (Chỉ đọc)</span>
                     </div>
                 )}
@@ -314,57 +334,57 @@ export default function MinibarManagement() {
             {/* 4 Stat KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* 1. Tổng số món */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-blue-200 transition">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng mặt hàng</span>
-                        <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
-                            📦
-                        </span>
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center">
+                            <Package className="w-5 h-5 stroke-[1.75]" />
+                        </div>
                     </div>
                     <div className="mt-2 flex items-baseline gap-2">
-                        <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">{stats.total}</span>
-                        <span className="text-xs text-slate-400">món</span>
+                        <span className="text-2xl sm:text-3xl font-black text-slate-900">{stats.total}</span>
+                        <span className="text-xs text-slate-400">món đang quản lý</span>
                     </div>
                 </div>
 
                 {/* 2. Đang kinh doanh */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-emerald-200 transition">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Đang bán</span>
-                        <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
-                            ✓
-                        </span>
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
+                            <CheckCircle2 className="w-5 h-5 stroke-[1.75]" />
+                        </div>
                     </div>
                     <div className="mt-2 flex items-baseline gap-2">
-                        <span className="text-2xl sm:text-3xl font-extrabold text-emerald-700">{stats.active}</span>
+                        <span className="text-2xl sm:text-3xl font-black text-emerald-700">{stats.active}</span>
                         <span className="text-xs text-emerald-600">món hiển thị</span>
                     </div>
                 </div>
 
                 {/* 3. Tạm ẩn / Ngừng bán */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-slate-300 transition">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tạm ẩn</span>
-                        <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-sm font-bold">
-                            ⏸
-                        </span>
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center">
+                            <PauseCircle className="w-5 h-5 stroke-[1.75]" />
+                        </div>
                     </div>
                     <div className="mt-2 flex items-baseline gap-2">
-                        <span className="text-2xl sm:text-3xl font-extrabold text-slate-600">{stats.inactive}</span>
-                        <span className="text-xs text-slate-400">món hết hàng</span>
+                        <span className="text-2xl sm:text-3xl font-black text-slate-600">{stats.inactive}</span>
+                        <span className="text-xs text-slate-400">món ngừng bán</span>
                     </div>
                 </div>
 
                 {/* 4. Giá trung bình */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-200 transition">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Giá trung bình</span>
-                        <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold">
-                            💰
-                        </span>
+                        <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
+                            <Coins className="w-5 h-5 stroke-[1.75]" />
+                        </div>
                     </div>
                     <div className="mt-2 flex items-baseline gap-1">
-                        <span className="text-xl sm:text-2xl font-extrabold text-amber-700">
+                        <span className="text-xl sm:text-2xl font-black text-amber-700">
                             {formatCurrency(Math.round(stats.avgPrice))}
                         </span>
                     </div>
@@ -377,7 +397,7 @@ export default function MinibarManagement() {
                     {/* Search Input */}
                     <div className="relative flex-1">
                         <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
-                            🔍
+                            <Search className="w-4 h-4" />
                         </span>
                         <input
                             type="text"
@@ -392,7 +412,7 @@ export default function MinibarManagement() {
                                 onClick={() => setSearchTerm('')}
                                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs"
                             >
-                                ✕
+                                <X className="w-3.5 h-3.5" />
                             </button>
                         )}
                     </div>
@@ -438,14 +458,14 @@ export default function MinibarManagement() {
 
             {/* Main Table / Grid List */}
             {isLoading ? (
-                <div className="py-20 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">
-                    <span className="inline-block animate-spin mr-2">⏳</span>
-                    Đang tải danh mục Minibar...
+                <div className="py-20 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-200 flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                    <span>Đang tải danh mục Minibar...</span>
                 </div>
             ) : filteredItems.length === 0 ? (
                 <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-slate-300">
-                    <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mx-auto mb-3">
-                        🍾
+                    <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                        <Wine className="w-8 h-8 stroke-[1.5]" />
                     </div>
                     <h4 className="text-base font-bold text-slate-800">Không tìm thấy món Minibar nào</h4>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
@@ -464,7 +484,7 @@ export default function MinibarManagement() {
                                     <th className="py-3.5 px-4 text-right">Đơn giá niêm yết</th>
                                     <th className="py-3.5 px-4 text-center">Định mức / phòng</th>
                                     <th className="py-3.5 px-4 text-center">Trạng thái bán</th>
-                                    <th className="py-3.5 px-4 text-right">Thao tác</th>
+                                    <th className="py-3.5 px-4 text-center">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -480,7 +500,7 @@ export default function MinibarManagement() {
                                                     </div>
                                                     <div>
                                                         <div className="font-bold text-slate-900">{item.name}</div>
-                                                        <div className="text-[11px] text-slate-400">Mã món: #{item.id}</div>
+                                                        <div className="text-[11px] text-slate-400 font-mono">Mã món: #{item.id}</div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -540,16 +560,16 @@ export default function MinibarManagement() {
                                             </td>
 
                                             {/* Action Buttons */}
-                                            <td className="py-3.5 px-4 text-right">
-                                                <div className="flex items-center justify-end gap-1.5">
+                                            <td className="py-3.5 px-4 text-center">
+                                                <div className="flex items-center justify-center gap-2">
                                                     {canUpdate && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenEdit(item)}
-                                                            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition cursor-pointer font-semibold text-xs flex items-center gap-1"
+                                                            className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                                                             title="Chỉnh sửa thông tin & giá"
                                                         >
-                                                            <span>✏️</span>
+                                                            <Edit3 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
 
@@ -557,10 +577,10 @@ export default function MinibarManagement() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setDeletingItem(item)}
-                                                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition cursor-pointer font-semibold text-xs flex items-center gap-1"
+                                                            className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                                                             title="Xóa khỏi danh mục"
                                                         >
-                                                            <span>🗑️</span>
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
 
@@ -640,10 +660,10 @@ export default function MinibarManagement() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEdit(item)}
-                                                    className="p-1 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs transition cursor-pointer"
+                                                    className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition cursor-pointer"
                                                     title="Chỉnh sửa"
                                                 >
-                                                    ✏️
+                                                    <Edit3 className="w-3.5 h-3.5" />
                                                 </button>
                                             )}
 
@@ -651,10 +671,10 @@ export default function MinibarManagement() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setDeletingItem(item)}
-                                                    className="p-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition cursor-pointer"
+                                                    className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition cursor-pointer"
                                                     title="Xóa"
                                                 >
-                                                    🗑️
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             )}
                                         </div>
@@ -763,8 +783,8 @@ export default function MinibarManagement() {
                         {/* Header */}
                         <div className="px-5 py-4 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-xl shrink-0">
-                                    {editingItem ? '✏️' : '🍾'}
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+                                    {editingItem ? <Edit3 className="w-5 h-5 text-blue-600" /> : <Wine className="w-5 h-5 text-blue-600" />}
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base text-slate-900">
@@ -780,7 +800,7 @@ export default function MinibarManagement() {
                                 onClick={() => setIsModalOpen(false)}
                                 className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -788,7 +808,7 @@ export default function MinibarManagement() {
                         <form onSubmit={handleSubmitForm} className="p-5 space-y-4 text-xs sm:text-sm">
                             {formError && (
                                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
-                                    <span>⚠️</span>
+                                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                                     <span>{formError}</span>
                                 </div>
                             )}
@@ -900,7 +920,7 @@ export default function MinibarManagement() {
                                     disabled={isSubmitting}
                                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
-                                    {isSubmitting && <span className="animate-spin">⏳</span>}
+                                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                     <span>{editingItem ? 'Lưu thay đổi' : 'Thêm vào danh mục'}</span>
                                 </button>
                             </div>
@@ -913,8 +933,8 @@ export default function MinibarManagement() {
             {deletingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4">
-                        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto">
-                            🗑️
+                        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100">
+                            <Trash2 className="w-6 h-6" />
                         </div>
                         <div className="text-center">
                             <h3 className="font-bold text-base text-slate-900">Xóa món Minibar này?</h3>
@@ -937,7 +957,7 @@ export default function MinibarManagement() {
                                 onClick={handleConfirmDelete}
                                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                             >
-                                {isDeleting && <span className="animate-spin">⏳</span>}
+                                {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                 <span>Xác nhận Xóa</span>
                             </button>
                         </div>

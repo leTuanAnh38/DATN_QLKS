@@ -1,4 +1,27 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+    Users,
+    UserCheck,
+    Crown,
+    Briefcase,
+    ShieldCheck,
+    Plus,
+    Search,
+    RotateCcw,
+    Filter,
+    Eye,
+    Pencil,
+    Lock,
+    Unlock,
+    Trash2,
+    X,
+    AlertTriangle,
+    CheckCircle2,
+    Loader2,
+    Mail,
+    Phone,
+    Shield
+} from 'lucide-react';
 import adminUserService from '../../services/adminUserService';
 import RoleMatrixModal from '../../components/admin/modals/RoleMatrixModal';
 import { DEFAULT_ROLE_MATRIX } from '../../data/roleMatrixData';
@@ -799,9 +822,9 @@ export default function EmployeeManagement() {
                         <button
                             type="button"
                             onClick={() => setIsRoleMatrixOpen(true)}
-                            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer"
+                            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer active:scale-95"
                         >
-                            <span>🛡️</span>
+                            <ShieldCheck className="w-4 h-4 text-indigo-400" />
                             <span>Ma Trận Phân Quyền</span>
                         </button>
                     )}
@@ -809,9 +832,9 @@ export default function EmployeeManagement() {
                         <button
                             type="button"
                             onClick={handleOpenCreate}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95"
                         >
-                            <span>＋</span>
+                            <Plus className="w-4 h-4" />
                             <span>Thêm Nhân Viên Mới</span>
                         </button>
                     )}
@@ -828,70 +851,74 @@ export default function EmployeeManagement() {
                     }`}
                 >
                     <div className="flex items-center gap-2.5">
-                        <span className="text-base">{alertMessage.type === 'success' ? '✅' : '⚠️'}</span>
+                        {alertMessage.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
                         <span>{alertMessage.text}</span>
                     </div>
                     <button
                         onClick={() => setAlertMessage(null)}
-                        className="text-slate-400 hover:text-slate-600 text-xs px-2 py-0.5 rounded cursor-pointer"
+                        className="text-slate-400 hover:text-slate-600 text-xs p-1 rounded-md cursor-pointer"
                     >
-                        ✕
+                        <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
             )}
 
             {/* 4 Thẻ Thống Kê Nhanh */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             TỔNG NHÂN SỰ
                         </span>
-                        <div className="text-2xl font-bold text-slate-900 mt-1">{totalDisplay}</div>
-                        <span className="text-[11px] text-slate-500">Toàn bộ nhân sự các khối</span>
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <Users className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
-                        👥
-                    </div>
+                    <div className="text-2xl font-black text-slate-900 tracking-tight">{totalDisplay}</div>
+                    <span className="text-[11px] text-slate-400 font-medium">Toàn bộ nhân sự các khối</span>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             ĐANG HOẠT ĐỘNG
                         </span>
-                        <div className="text-2xl font-bold text-emerald-600 mt-1">{activeCount}</div>
-                        <span className="text-[11px] text-emerald-700 font-medium">Tài khoản làm việc</span>
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <UserCheck className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
-                        🟢
-                    </div>
+                    <div className="text-2xl font-black text-emerald-600 tracking-tight">{activeCount}</div>
+                    <span className="text-[11px] text-emerald-700/80 font-medium">Tài khoản làm việc</span>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             BAN QUẢN LÝ
                         </span>
-                        <div className="text-2xl font-bold text-purple-600 mt-1">{managementCount}</div>
-                        <span className="text-[11px] text-purple-700 font-medium">Admin • Owner • Manager</span>
+                        <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <Crown className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
-                        👑
-                    </div>
+                    <div className="text-2xl font-black text-purple-600 tracking-tight">{managementCount}</div>
+                    <span className="text-[11px] text-purple-700/80 font-medium">Admin • Owner • Manager</span>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-                    <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             ĐỘI NGŨ VẬN HÀNH
                         </span>
-                        <div className="text-2xl font-bold text-amber-600 mt-1">{operationsCount}</div>
-                        <span className="text-[11px] text-amber-700 font-medium">Lễ tân • Thu ngân • Buồng phòng...</span>
+                        <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <Briefcase className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
-                        🛎️
-                    </div>
+                    <div className="text-2xl font-black text-amber-600 tracking-tight">{operationsCount}</div>
+                    <span className="text-[11px] text-amber-700/80 font-medium">Lễ tân • Thu ngân • Buồng phòng...</span>
                 </div>
             </div>
 
@@ -900,17 +927,24 @@ export default function EmployeeManagement() {
                 <form onSubmit={handleSearchSubmit} className="space-y-3">
                     <div className="flex flex-col lg:flex-row items-center gap-3">
                         {/* Search Input */}
-                        <div className="relative flex-1 w-full">
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                🔍
-                            </span>
+                        <div className="relative flex-1 w-full min-w-[240px]">
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <input
                                 type="text"
                                 placeholder="Tìm kiếm theo Tên, Mã NV, Email, SĐT, Chức danh..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                             />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
                         </div>
 
                         {/* Lọc theo Vai trò */}
@@ -980,9 +1014,10 @@ export default function EmployeeManagement() {
 
                         <button
                             type="submit"
-                            className="w-full lg:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 cursor-pointer"
+                            className="w-full lg:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                         >
-                            Lọc dữ liệu
+                            <Filter className="w-3.5 h-3.5" />
+                            <span>Lọc dữ liệu</span>
                         </button>
                         <button
                             type="button"
@@ -994,10 +1029,10 @@ export default function EmployeeManagement() {
                                 setStatusFilter('all');
                                 setCurrentPage(1);
                             }}
-                            className="w-full lg:w-auto px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition shrink-0 cursor-pointer"
+                            className="w-full lg:w-auto px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition shrink-0 cursor-pointer flex items-center justify-center"
                             title="Đặt lại bộ lọc"
                         >
-                            🔄
+                            <RotateCcw className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </form>
@@ -1029,15 +1064,17 @@ export default function EmployeeManagement() {
                                 <th className="py-3.5 px-4">PHÒNG BAN & CHỨC DANH</th>
                                 <th className="py-3.5 px-4">CA LÀM VIỆC & LƯƠNG</th>
                                 <th className="py-3.5 px-4 min-w-[110px] whitespace-nowrap">TRẠNG THÁI</th>
-                                <th className="py-3.5 px-4 text-right">THAO TÁC</th>
+                                <th className="sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10 py-3.5 px-4 pr-6 text-right min-w-[210px]">THAO TÁC</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {isLoading ? (
                                 <tr>
                                     <td colSpan="7" className="py-12 text-center text-slate-400">
-                                        <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                                        <div>Đang tải dữ liệu nhân sự...</div>
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                            <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                                            <div>Đang tải dữ liệu nhân sự...</div>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : employees.length === 0 ? (
@@ -1048,7 +1085,7 @@ export default function EmployeeManagement() {
                                 </tr>
                             ) : (
                                 employees.map((emp) => (
-                                    <tr key={emp.id} className="hover:bg-blue-50/20 transition">
+                                    <tr key={emp.id} className="hover:bg-blue-50/30 transition group">
                                         {/* Avatar & Name */}
                                         <td className="py-3.5 px-4">
                                             <div className="flex items-center gap-3">
@@ -1120,19 +1157,19 @@ export default function EmployeeManagement() {
                                         </td>
 
                                         {/* Actions */}
-                                        <td className="py-3.5 px-4 text-right">
+                                        <td className="sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10 py-3.5 px-4 pr-6 text-right whitespace-nowrap">
                                             <div className="flex items-center justify-end gap-1.5">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenDetail(emp)}
-                                                    className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] transition cursor-pointer"
+                                                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer shadow-2xs"
                                                     title="Xem chi tiết hồ sơ"
                                                 >
-                                                    👁️ Xem
+                                                    <Eye className="w-3.5 h-3.5" />
                                                 </button>
                                                 {isManager && ['admin', 'owner', 'manager'].includes(emp.role) ? (
                                                     <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
-                                                        <span>🔒</span>
+                                                        <Lock className="w-3 h-3" />
                                                         <span>Cấp trên (Chỉ xem)</span>
                                                     </span>
                                                 ) : (
@@ -1142,31 +1179,31 @@ export default function EmployeeManagement() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenAssignRole(emp)}
-                                                                    className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer"
+                                                                    className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-2xs"
                                                                     title="Phân quyền vai trò chi tiết"
                                                                 >
-                                                                    <span>🛡️</span>
+                                                                    <ShieldCheck className="w-3.5 h-3.5" />
                                                                     <span>Phân quyền</span>
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenEdit(emp)}
-                                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] transition cursor-pointer"
+                                                                    className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 flex items-center justify-center transition cursor-pointer shadow-2xs"
                                                                     title="Chỉnh sửa hồ sơ"
                                                                 >
-                                                                    ✏️ Sửa
+                                                                    <Pencil className="w-3.5 h-3.5" />
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleToggleStatus(emp)}
-                                                                    className={`px-2 py-1 rounded-lg font-medium text-[11px] transition cursor-pointer ${
+                                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition cursor-pointer shadow-2xs ${
                                                                         emp.is_active
                                                                             ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
                                                                             : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
                                                                     }`}
                                                                     title={emp.is_active ? 'Khóa tài khoản' : 'Mở khóa'}
                                                                 >
-                                                                    {emp.is_active ? '🔒 Khóa' : '🔓 Mở'}
+                                                                    {emp.is_active ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                                                                 </button>
                                                             </>
                                                         )}
@@ -1174,10 +1211,10 @@ export default function EmployeeManagement() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenDelete(emp)}
-                                                                className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium text-[11px] transition cursor-pointer"
+                                                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
                                                                 title="Xóa tài khoản nhân viên"
                                                             >
-                                                                🗑️
+                                                                <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
                                                         )}
                                                     </>
@@ -1195,8 +1232,10 @@ export default function EmployeeManagement() {
                 <div className="block md:hidden divide-y divide-slate-100">
                     {isLoading ? (
                         <div className="py-12 text-center text-slate-400">
-                            <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                            <div className="text-xs">Đang tải dữ liệu nhân sự...</div>
+                            <div className="flex flex-col items-center justify-center gap-2">
+                                <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                                <div className="text-xs">Đang tải dữ liệu nhân sự...</div>
+                            </div>
                         </div>
                     ) : employees.length === 0 ? (
                         <div className="py-12 text-center text-slate-400 text-xs">
@@ -1269,10 +1308,14 @@ export default function EmployeeManagement() {
 
                                 {/* Hàng 3: Email & SĐT */}
                                 <div className="flex items-center justify-between text-xs text-slate-500 gap-2">
-                                    <span className="truncate">✉️ {emp.email}</span>
+                                    <span className="truncate flex items-center gap-1">
+                                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        {emp.email}
+                                    </span>
                                     {emp.phone_number ? (
-                                        <a href={`tel:${emp.phone_number}`} className="shrink-0 text-blue-600 font-semibold hover:underline">
-                                            📞 {emp.phone_number}
+                                        <a href={`tel:${emp.phone_number}`} className="shrink-0 text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                                            <Phone className="w-3.5 h-3.5 shrink-0" />
+                                            {emp.phone_number}
                                         </a>
                                     ) : (
                                         <span className="text-slate-400 italic shrink-0">Chưa có SĐT</span>
@@ -1286,12 +1329,13 @@ export default function EmployeeManagement() {
                                         onClick={() => handleOpenDetail(emp)}
                                         className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
                                     >
-                                        <span>👁️</span> Xem
+                                        <Eye className="w-3.5 h-3.5" />
+                                        <span>Xem</span>
                                     </button>
 
                                     {isManager && ['admin', 'owner', 'manager'].includes(emp.role) ? (
                                         <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
-                                            <span>🔒</span>
+                                            <Lock className="w-3 h-3" />
                                             <span>Cấp trên</span>
                                         </span>
                                     ) : (
@@ -1303,14 +1347,16 @@ export default function EmployeeManagement() {
                                                         onClick={() => handleOpenAssignRole(emp)}
                                                         className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
                                                     >
-                                                        <span>🛡️</span> Quyền
+                                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                                        <span>Quyền</span>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenEdit(emp)}
                                                         className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
                                                     >
-                                                        <span>✏️</span> Sửa
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                        <span>Sửa</span>
                                                     </button>
                                                     <button
                                                         type="button"
@@ -1321,7 +1367,7 @@ export default function EmployeeManagement() {
                                                                 : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                                                         }`}
                                                     >
-                                                        <span>{emp.is_active ? '🔒' : '🔓'}</span>
+                                                        {emp.is_active ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                                                         <span>{emp.is_active ? 'Khóa' : 'Mở'}</span>
                                                     </button>
                                                 </>
@@ -1333,7 +1379,7 @@ export default function EmployeeManagement() {
                                                     className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition cursor-pointer"
                                                     title="Xóa nhân viên"
                                                 >
-                                                    🗑️
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             )}
                                         </>
@@ -1469,7 +1515,7 @@ export default function EmployeeManagement() {
                             {/* Khối 2: Phân quyền vai trò, Phòng ban, Chức danh & Ca làm việc */}
                             <div className="pt-2 border-t border-slate-100">
                                 <h4 className="font-bold text-xs uppercase tracking-wider text-indigo-700 mb-3 flex items-center gap-1.5">
-                                    <span>🛡️</span>
+                                    <ShieldCheck className="w-4 h-4 text-indigo-600" />
                                     <span>2. Phân quyền & Vị trí công tác</span>
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1633,8 +1679,8 @@ export default function EmployeeManagement() {
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl shadow-xs">
-                                    ✏️
+                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs">
+                                    <Pencil className="w-6 h-6 text-amber-600" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base text-slate-900 tracking-tight">
@@ -1908,8 +1954,8 @@ export default function EmployeeManagement() {
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center text-xl shadow-xs">
-                                    🛡️
+                                <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-xs">
+                                    <ShieldCheck className="w-6 h-6 text-indigo-600" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base text-slate-900 tracking-tight">
@@ -2041,9 +2087,9 @@ export default function EmployeeManagement() {
                                 <button
                                     type="button"
                                     onClick={() => setIsRoleMatrixOpen(true)}
-                                    className="text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                                    className="text-blue-600 font-bold hover:underline flex items-center gap-1.5 cursor-pointer text-xs"
                                 >
-                                    <span>🛡️</span>
+                                    <ShieldCheck className="w-4 h-4 text-blue-600" />
                                     <span>Xem chi tiết ma trận toàn quyền</span>
                                 </button>
                                 <div className="flex items-center gap-2">
@@ -2078,8 +2124,8 @@ export default function EmployeeManagement() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 text-center space-y-4">
-                            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-3xl mx-auto shadow-inner border border-rose-200">
-                                🗑️
+                            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner border border-rose-200">
+                                <Trash2 className="w-8 h-8 text-rose-600" />
                             </div>
                             <div>
                                 <h3 className="text-base font-bold text-slate-900">
@@ -2113,7 +2159,7 @@ export default function EmployeeManagement() {
                             </div>
 
                             <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-200 text-rose-800 text-[11px] text-left flex items-start gap-2">
-                                <span>⚠️</span>
+                                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                                 <div>
                                     Lưu ý: Không thể phục hồi tài khoản sau khi xóa. Nếu chỉ muốn ngưng làm việc tạm thời, bạn nên chọn chức năng <strong>"Khóa tài khoản"</strong>.
                                 </div>
@@ -2131,9 +2177,16 @@ export default function EmployeeManagement() {
                                     type="button"
                                     onClick={handleConfirmDelete}
                                     disabled={isSubmitting}
-                                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-600/30 transition disabled:opacity-50 cursor-pointer"
+                                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-600/30 transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
                                 >
-                                    {isSubmitting ? 'Đang xóa...' : 'Xóa Vĩnh Viễn'}
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                            <span>Đang xóa...</span>
+                                        </>
+                                    ) : (
+                                        'Xóa Vĩnh Viễn'
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -2300,9 +2353,10 @@ export default function EmployeeManagement() {
                                                     setIsDetailModalOpen(false);
                                                     handleOpenAssignRole(selectedEmployee);
                                                 }}
-                                                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                                                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
                                             >
-                                                🛡️ Phân quyền vai trò
+                                                <ShieldCheck className="w-3.5 h-3.5" />
+                                                <span>Phân quyền vai trò</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -2310,9 +2364,10 @@ export default function EmployeeManagement() {
                                                     setIsDetailModalOpen(false);
                                                     handleOpenEdit(selectedEmployee);
                                                 }}
-                                                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                                                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
                                             >
-                                                ✏️ Sửa hồ sơ
+                                                <Pencil className="w-3.5 h-3.5" />
+                                                <span>Sửa hồ sơ</span>
                                             </button>
                                         </>
                                     )}

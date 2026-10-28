@@ -1,5 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import {
+    Users,
+    Gem,
+    Crown,
+    UserCheck,
+    RotateCw,
+    UserPlus,
+    Search,
+    X,
+    Phone,
+    Mail,
+    Star,
+    Eye,
+    EyeOff,
+    Edit2,
+    Lock,
+    Unlock,
+    Trash2,
+    CheckCircle2,
+    AlertTriangle,
+    Loader2,
+    User,
+    Sparkles
+} from 'lucide-react';
 import adminUserService from '../../services/adminUserService';
 import UserAvatar from '../../components/common/UserAvatar';
 import Pagination from '../../components/common/Pagination';
@@ -318,8 +342,9 @@ export default function GuestManagement() {
             {/* Header & Quick stats */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
-                        Quản Lý Hồ Sơ Khách Hàng (Guests)
+                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                        <Users className="w-6 h-6 text-blue-600" />
+                        <span>Quản Lý Hồ Sơ Khách Hàng (Guests)</span>
                     </h2>
                     <p className="text-xs text-slate-500 mt-1">
                         Danh sách hội viên lưu trú, quản lý điểm tích lũy TA Club và phân hạng VIP
@@ -329,9 +354,11 @@ export default function GuestManagement() {
                     <button
                         type="button"
                         onClick={() => fetchGuests()}
-                        className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                        title="Tải lại danh sách"
                     >
-                        <span>🔄</span> Tải lại
+                        <RotateCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+                        <span>Tải lại</span>
                     </button>
                     {canCreateGuest && (
                         <button
@@ -339,7 +366,8 @@ export default function GuestManagement() {
                             onClick={() => setIsCreateModalOpen(true)}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition flex items-center gap-1.5 cursor-pointer"
                         >
-                            <span>＋</span> Thêm Khách Hàng Mới
+                            <UserPlus className="w-4 h-4" />
+                            <span>Thêm Khách Hàng Mới</span>
                         </button>
                     )}
                 </div>
@@ -347,12 +375,16 @@ export default function GuestManagement() {
 
             {/* Alert Notification */}
             {alertMessage && (
-                <div className={`p-4 rounded-2xl text-xs sm:text-sm font-medium border flex items-center gap-2 animate-fadeIn ${
+                <div className={`p-4 rounded-2xl text-xs sm:text-sm font-medium border flex items-center gap-2.5 animate-fadeIn ${
                     alertMessage.type === 'success'
                         ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                         : 'bg-red-50 text-red-700 border-red-200'
                 }`}>
-                    <span>{alertMessage.type === 'success' ? '✅' : '⚠️'}</span>
+                    {alertMessage.type === 'success' ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                    )}
                     <span>{alertMessage.text}</span>
                 </div>
             )}
@@ -365,8 +397,8 @@ export default function GuestManagement() {
                         <strong className="text-2xl font-bold text-slate-900 mt-1 block">{totalGuests}</strong>
                         <span className="text-[11px] text-blue-600 font-medium">Hội viên đăng ký</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
-                        👥
+                    <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                        <Users className="w-5 h-5" />
                     </div>
                 </div>
 
@@ -376,8 +408,8 @@ export default function GuestManagement() {
                         <strong className="text-2xl font-bold text-slate-900 mt-1 block">{vipDiamondCount}</strong>
                         <span className="text-[11px] text-purple-600 font-medium">Hạng thẻ cao cấp nhất</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
-                        💎
+                    <div className="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
+                        <Gem className="w-5 h-5" />
                     </div>
                 </div>
 
@@ -387,8 +419,8 @@ export default function GuestManagement() {
                         <strong className="text-2xl font-bold text-slate-900 mt-1 block">{vipGoldSilverCount}</strong>
                         <span className="text-[11px] text-amber-600 font-medium">Hội viên hạng Vàng & Bạc</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
-                        🏆
+                    <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                        <Crown className="w-5 h-5" />
                     </div>
                 </div>
 
@@ -398,8 +430,8 @@ export default function GuestManagement() {
                         <strong className="text-2xl font-bold text-slate-900 mt-1 block">{activeCount}/{totalGuests}</strong>
                         <span className="text-[11px] text-emerald-600 font-medium">Tỷ lệ {totalGuests > 0 ? Math.round((activeCount / totalGuests) * 100) : 0}%</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
-                        🟢
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                        <UserCheck className="w-5 h-5" />
                     </div>
                 </div>
             </div>
@@ -407,19 +439,32 @@ export default function GuestManagement() {
             {/* Bộ Lọc & Tìm Kiếm */}
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
                 <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[280px]">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        🔍
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                        <Search className="w-4 h-4" />
                     </span>
                     <input
                         type="text"
                         placeholder="Tìm theo Tên, Email, Số điện thoại, CCCD/Passport..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-20 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                        className="w-full pl-9 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                     />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearchTerm('');
+                                fetchGuests(1);
+                            }}
+                            className="absolute right-16 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                            title="Xóa tìm kiếm"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                     <button
                         type="submit"
-                        className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition"
+                        className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
                     >
                         Tìm
                     </button>
@@ -476,19 +521,16 @@ export default function GuestManagement() {
                         <tbody className="divide-y divide-slate-100">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-slate-400">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            <span>Đang tải danh sách khách hàng...</span>
+                                    <td colSpan={6} className="p-12 text-center text-slate-400">
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                            <Loader2 className="h-7 w-7 text-blue-600 animate-spin" />
+                                            <span className="text-xs font-semibold text-slate-600">Đang tải danh sách khách hàng...</span>
                                         </div>
                                     </td>
                                 </tr>
                             ) : guests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-slate-400">
+                                    <td colSpan={6} className="p-12 text-center text-slate-400 text-xs">
                                         Không tìm thấy khách hàng nào phù hợp với bộ lọc.
                                     </td>
                                 </tr>
@@ -529,13 +571,15 @@ export default function GuestManagement() {
 
                                             {/* Liên hệ */}
                                             <td className="p-4">
-                                                <div className="space-y-0.5">
-                                                    <div className="font-semibold text-slate-800">
-                                                        📞 {g.phone_number || 'Chưa có SĐT'}
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs">
+                                                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                        <span>{g.phone_number || <span className="text-slate-400 font-normal italic">Chưa có SĐT</span>}</span>
                                                     </div>
-                                                    <div className="text-slate-500 text-[11px] truncate max-w-[200px]" title={g.email}>
-                                                        ✉️ {g.email && !g.email.endsWith('.local') ? (
-                                                            g.email
+                                                    <div className="flex items-center gap-1.5 text-slate-500 text-[11px] truncate max-w-[200px]" title={g.email}>
+                                                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                        {g.email && !g.email.endsWith('.local') ? (
+                                                            <span>{g.email}</span>
                                                         ) : (
                                                             <span className="text-slate-400 italic">Chưa có Email (Vãng lai)</span>
                                                         )}
@@ -545,19 +589,24 @@ export default function GuestManagement() {
 
                                             {/* CCCD / Passport */}
                                             <td className="p-4">
-                                                <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md text-[11px]">
-                                                    {g.guest_profile?.id_card_number || 'Chưa cập nhật'}
-                                                </span>
+                                                {g.guest_profile?.id_card_number ? (
+                                                    <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md text-[11px]">
+                                                        {g.guest_profile.id_card_number}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 italic text-[11px]">Chưa cập nhật</span>
+                                                )}
                                             </td>
 
                                             {/* Hạng thẻ & Điểm */}
                                             <td className="p-4">
                                                 <div className="space-y-1">
                                                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tierStyles}`}>
-                                                        ★ {g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                                        <Star className="w-3 h-3 fill-current" />
+                                                        <span>{g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng (Bronze)'}</span>
                                                     </span>
                                                     <div className="text-[11px] font-semibold text-amber-600">
-                                                        {g.total_points ?? g.guest_profile?.loyalty_points ?? 0} pts
+                                                        {Number(g.total_points ?? g.guest_profile?.loyalty_points ?? 0).toLocaleString('vi-VN')} pts
                                                     </div>
                                                 </div>
                                             </td>
@@ -611,39 +660,47 @@ export default function GuestManagement() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenDetail(g)}
-                                                        className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                                                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-2xs transition cursor-pointer"
                                                         title="Xem chi tiết hồ sơ"
                                                     >
-                                                        👁️
+                                                        <Eye className="w-3.5 h-3.5" />
                                                     </button>
                                                     {canUpdateGuest && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenEdit(g)}
-                                                            className="p-1.5 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition"
+                                                            className="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 shadow-2xs transition cursor-pointer"
                                                             title="Chỉnh sửa thông tin"
                                                         >
-                                                            ✏️
+                                                            <Edit2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                     {canUpdateGuest && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleToggleStatus(g)}
-                                                            className={`p-1.5 rounded-lg transition ${g.is_active ? 'text-slate-600 hover:text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                                                            className={`p-1.5 rounded-lg transition shadow-2xs cursor-pointer ${
+                                                                g.is_active
+                                                                    ? 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600'
+                                                                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                            }`}
                                                             title={g.is_active ? 'Khóa tài khoản' : (g.guest_type === 'walkin' || g.email?.endsWith('.local') ? 'Kích hoạt tài khoản thành viên' : 'Mở khóa tài khoản')}
                                                         >
-                                                            {g.is_active ? '🔒' : '🔓'}
+                                                            {g.is_active ? (
+                                                                <Lock className="w-3.5 h-3.5" />
+                                                            ) : (
+                                                                <Unlock className="w-3.5 h-3.5" />
+                                                            )}
                                                         </button>
                                                     )}
                                                     {canDeleteGuest && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleDelete(g)}
-                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                                            className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 shadow-2xs transition cursor-pointer"
                                                             title="Xóa tài khoản"
                                                         >
-                                                            🗑️
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                 </div>
@@ -660,12 +717,9 @@ export default function GuestManagement() {
                 <div className="block md:hidden divide-y divide-slate-100">
                     {isLoading ? (
                         <div className="p-8 text-center text-slate-400">
-                            <div className="flex items-center justify-center gap-2">
-                                <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span className="text-xs">Đang tải danh sách khách hàng...</span>
+                            <div className="flex flex-col items-center justify-center gap-2">
+                                <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+                                <span className="text-xs font-semibold text-slate-600">Đang tải danh sách khách hàng...</span>
                             </div>
                         </div>
                     ) : guests.length === 0 ? (
@@ -743,30 +797,35 @@ export default function GuestManagement() {
                                     {/* Hàng 2: Hạng thẻ VIP & Điểm thưởng */}
                                     <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${tierStyles}`}>
-                                            ★ {g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                            <Star className="w-3 h-3 fill-current" />
+                                            <span>{g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng (Bronze)'}</span>
                                         </span>
                                         <div className="text-[11px] font-bold text-amber-600">
-                                            {g.total_points ?? g.guest_profile?.loyalty_points ?? 0} pts (TA Club)
+                                            {Number(g.total_points ?? g.guest_profile?.loyalty_points ?? 0).toLocaleString('vi-VN')} pts (TA Club)
                                         </div>
                                     </div>
 
                                     {/* Hàng 3: Liên hệ & CCCD */}
                                     <div className="space-y-1.5 text-xs text-slate-600">
                                         <div className="flex items-center justify-between gap-2">
-                                            <span className="text-slate-400 text-[11px]">Điện thoại:</span>
+                                            <span className="text-slate-400 text-[11px] flex items-center gap-1">
+                                                <Phone className="w-3 h-3" /> Điện thoại:
+                                            </span>
                                             {g.phone_number ? (
                                                 <a href={`tel:${g.phone_number}`} className="font-semibold text-blue-600 hover:underline">
-                                                    📞 {g.phone_number}
+                                                    {g.phone_number}
                                                 </a>
                                             ) : (
                                                 <span className="text-slate-400 italic">Chưa có SĐT</span>
                                             )}
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
-                                            <span className="text-slate-400 text-[11px]">Email:</span>
+                                            <span className="text-slate-400 text-[11px] flex items-center gap-1">
+                                                <Mail className="w-3 h-3" /> Email:
+                                            </span>
                                             {g.email && !g.email.endsWith('.local') ? (
                                                 <a href={`mailto:${g.email}`} className="font-medium text-slate-700 truncate max-w-[200px] hover:text-blue-600">
-                                                    ✉️ {g.email}
+                                                    {g.email}
                                                 </a>
                                             ) : (
                                                 <span className="text-slate-400 italic">Chưa có email (Vãng lai)</span>
@@ -774,9 +833,13 @@ export default function GuestManagement() {
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="text-slate-400 text-[11px]">CCCD / Passport:</span>
-                                            <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
-                                                {g.guest_profile?.id_card_number || 'Chưa cập nhật'}
-                                            </span>
+                                            {g.guest_profile?.id_card_number ? (
+                                                <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                                                    {g.guest_profile.id_card_number}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-400 italic text-[11px]">Chưa cập nhật</span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -785,30 +848,32 @@ export default function GuestManagement() {
                                         <button
                                             type="button"
                                             onClick={() => handleOpenDetail(g)}
-                                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
+                                            className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                         >
-                                            <span>👁️</span> Xem hồ sơ
+                                            <Eye className="w-3.5 h-3.5" />
+                                            <span>Xem hồ sơ</span>
                                         </button>
                                         {canUpdateGuest && (
                                             <button
                                                 type="button"
                                                 onClick={() => handleOpenEdit(g)}
-                                                className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
+                                                className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                             >
-                                                <span>✏️</span> Sửa
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                                <span>Sửa</span>
                                             </button>
                                         )}
                                         {canUpdateGuest && (
                                             <button
                                                 type="button"
                                                 onClick={() => handleToggleStatus(g)}
-                                                className={`px-3 py-1.5 rounded-xl border font-semibold text-xs transition flex items-center gap-1 cursor-pointer ${
+                                                className={`px-3 py-1.5 rounded-xl border font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                                                     g.is_active
                                                         ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                                                         : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                                                 }`}
                                             >
-                                                <span>{g.is_active ? '🔒' : '🔓'}</span>
+                                                {g.is_active ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                                                 <span>{g.is_active ? 'Khóa' : 'Mở khóa'}</span>
                                             </button>
                                         )}
@@ -816,10 +881,10 @@ export default function GuestManagement() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleDelete(g)}
-                                                className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition cursor-pointer"
+                                                className="p-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition cursor-pointer shadow-2xs"
                                                 title="Xóa tài khoản"
                                             >
-                                                🗑️
+                                                <Trash2 className="w-3.5 h-3.5" />
                                             </button>
                                         )}
                                     </div>
@@ -851,8 +916,8 @@ export default function GuestManagement() {
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl shadow-xs">
-                                    ✏️
+                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs">
+                                    <Edit2 className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
@@ -869,7 +934,7 @@ export default function GuestManagement() {
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1023,7 +1088,7 @@ export default function GuestManagement() {
                                     <div className={`p-4 rounded-2xl border transition ${isNotWebRegistered ? 'bg-white border-amber-300/80 shadow-2xs' : 'bg-white border-slate-200 shadow-2xs'}`}>
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-base">{isNotWebRegistered ? '🔑' : '🔒'}</span>
+                                                <Lock className="w-4 h-4 text-amber-600" />
                                                 <div>
                                                     <label className="font-bold text-slate-800 text-xs">
                                                         {isNotWebRegistered ? 'Thiết lập mật khẩu đăng nhập web' : 'Cập nhật mật khẩu mới'}
@@ -1061,16 +1126,16 @@ export default function GuestManagement() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowEditPassword(!showEditPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm cursor-pointer"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                                                 title={showEditPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                                             >
-                                                {showEditPassword ? '🙈' : '👁️'}
+                                                {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
                                         </div>
 
                                         {editFormData.new_password && (
-                                            <p className="text-[11px] text-emerald-600 font-semibold mt-1.5 flex items-center gap-1">
-                                                <span>✓</span>
+                                            <p className="text-[11px] text-emerald-600 font-semibold mt-1.5 flex items-center gap-1.5">
+                                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                                                 <span>Mật khẩu sẽ được lưu khi bấm &ldquo;Lưu Thay Đổi&rdquo;. Khách có thể dùng SĐT/Email và mật khẩu này để đăng nhập web.</span>
                                             </p>
                                         )}
@@ -1095,16 +1160,17 @@ export default function GuestManagement() {
                                 <button
                                     type="button"
                                     onClick={() => setIsEditModalOpen(false)}
-                                    className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl"
+                                    className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl cursor-pointer"
                                 >
                                     Hủy bỏ
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-75"
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition disabled:opacity-75 cursor-pointer flex items-center gap-2"
                                 >
-                                    {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                    <span>{isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
                                 </button>
                             </div>
                         </form>
@@ -1124,8 +1190,8 @@ export default function GuestManagement() {
                         {/* Header: Tone nền trắng thanh lịch, loại bỏ dải banner tối */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl shadow-xs">
-                                    👤
+                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
+                                    <User className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
@@ -1142,7 +1208,7 @@ export default function GuestManagement() {
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1166,8 +1232,9 @@ export default function GuestManagement() {
                                         </p>
                                     </div>
                                 </div>
-                                <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1 shadow-xs">
-                                    <span>★</span> Hạng {selectedGuest.current_tier?.name || selectedGuest.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1.5 shadow-xs">
+                                    <Star className="w-3.5 h-3.5 fill-current" />
+                                    <span>Hạng {selectedGuest.current_tier?.name || selectedGuest.guest_profile?.vip_tier || 'Đồng (Bronze)'}</span>
                                 </span>
                             </div>
 
@@ -1231,8 +1298,8 @@ export default function GuestManagement() {
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl font-bold shadow-xs">
-                                    ＋
+                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
+                                    <UserPlus className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
@@ -1249,7 +1316,7 @@ export default function GuestManagement() {
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1320,12 +1387,12 @@ export default function GuestManagement() {
                                     <select
                                         value={createFormData.vip_tier}
                                         onChange={(e) => setCreateFormData({ ...createFormData, vip_tier: e.target.value })}
-                                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
+                                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white font-medium cursor-pointer"
                                     >
-                                        <option value="Bronze">🥉 Đồng (Bronze)</option>
-                                        <option value="Silver">🥈 Bạc (Silver)</option>
-                                        <option value="Gold">🏆 Vàng (Gold)</option>
-                                        <option value="Diamond">💎 Kim Cương (Diamond)</option>
+                                        <option value="Bronze">Đồng (Bronze)</option>
+                                        <option value="Silver">Bạc (Silver)</option>
+                                        <option value="Gold">Vàng (Gold)</option>
+                                        <option value="Diamond">Kim Cương (Diamond)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -1344,16 +1411,17 @@ export default function GuestManagement() {
                                 <button
                                     type="button"
                                     onClick={() => setIsCreateModalOpen(false)}
-                                    className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl"
+                                    className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl cursor-pointer"
                                 >
                                     Hủy bỏ
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-75"
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition disabled:opacity-75 cursor-pointer flex items-center gap-2"
                                 >
-                                    {isSubmitting ? 'Đang tạo...' : 'Tạo Khách Hàng'}
+                                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                    <span>{isSubmitting ? 'Đang tạo...' : 'Tạo Khách Hàng'}</span>
                                 </button>
                             </div>
                         </form>
@@ -1370,8 +1438,8 @@ export default function GuestManagement() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 text-center space-y-4">
-                            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-3xl mx-auto shadow-inner border border-rose-200">
-                                🗑️
+                            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner border border-rose-200">
+                                <Trash2 className="w-8 h-8" />
                             </div>
                             <div>
                                 <h3 className="text-base font-bold text-slate-900">
@@ -1416,9 +1484,10 @@ export default function GuestManagement() {
                                     type="button"
                                     onClick={handleConfirmDelete}
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/30 transition disabled:opacity-50 cursor-pointer"
+                                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/30 transition disabled:opacity-50 cursor-pointer flex items-center gap-2"
                                 >
-                                    {isSubmitting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
+                                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                    <span>{isSubmitting ? 'Đang xóa...' : 'Xác Nhận Xóa'}</span>
                                 </button>
                             </div>
                         </div>
@@ -1444,7 +1513,7 @@ export default function GuestManagement() {
                                              (statusModalGuest.username && statusModalGuest.username.startsWith('walkin_'));
                             const willBeActive = !statusModalGuest.is_active;
 
-                            let icon = '🔒';
+                            let icon = <Lock className="w-8 h-8" />;
                             let iconBg = 'bg-rose-50 text-rose-600 border-rose-200';
                             let title = 'Xác Nhận Tạm Khóa Tài Khoản?';
                             let desc = `Bạn có chắc chắn muốn TẠM KHÓA tài khoản của khách hàng "${statusModalGuest.full_name || statusModalGuest.username}"? Khách sẽ tạm thời không thể đăng nhập vào hệ thống website.`;
@@ -1453,14 +1522,14 @@ export default function GuestManagement() {
 
                             if (willBeActive) {
                                 if (isWalkin) {
-                                    icon = '✨';
+                                    icon = <Sparkles className="w-8 h-8" />;
                                     iconBg = 'bg-blue-50 text-blue-600 border-blue-200';
                                     title = 'Kích Hoạt Tài Khoản Thành Viên?';
                                     desc = `Khách hàng "${statusModalGuest.full_name || statusModalGuest.username}" đang là Khách vãng lai (Offline). Bạn có muốn KÍCH HOẠT tài khoản thành viên web để khách có thể tích điểm và đăng nhập không?`;
                                     confirmBtnText = 'Xác Nhận Kích Hoạt';
                                     confirmBtnClass = 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30';
                                 } else {
-                                    icon = '🔓';
+                                    icon = <Unlock className="w-8 h-8" />;
                                     iconBg = 'bg-emerald-50 text-emerald-600 border-emerald-200';
                                     title = 'Xác Nhận Mở Khóa Tài Khoản?';
                                     desc = `Bạn có chắc chắn muốn MỞ KHÓA tài khoản cho khách hàng "${statusModalGuest.full_name || statusModalGuest.username}"? Tài khoản sẽ hoạt động trở lại bình thường.`;
@@ -1472,7 +1541,7 @@ export default function GuestManagement() {
                             return (
                                 <div className="p-6 text-center space-y-4">
                                     {/* Icon tròn */}
-                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-inner border ${iconBg}`}>
+                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-inner border ${iconBg}`}>
                                         {icon}
                                     </div>
 
@@ -1499,9 +1568,20 @@ export default function GuestManagement() {
                                             <div className="font-bold text-slate-900 text-xs truncate">
                                                 {statusModalGuest.full_name || statusModalGuest.username}
                                             </div>
-                                            <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                                                {statusModalGuest.phone_number ? `📞 ${statusModalGuest.phone_number}` : `@${statusModalGuest.username}`}
-                                                {statusModalGuest.email && !statusModalGuest.email.endsWith('.local') ? ` • ✉️ ${statusModalGuest.email}` : ''}
+                                            <div className="text-[11px] text-slate-500 truncate mt-0.5 flex items-center gap-2 flex-wrap">
+                                                {statusModalGuest.phone_number ? (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <Phone className="w-3 h-3 text-slate-400" />
+                                                        {statusModalGuest.phone_number}
+                                                    </span>
+                                                ) : `@${statusModalGuest.username}`}
+                                                {statusModalGuest.email && !statusModalGuest.email.endsWith('.local') && (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <span>•</span>
+                                                        <Mail className="w-3 h-3 text-slate-400" />
+                                                        {statusModalGuest.email}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
@@ -1527,10 +1607,7 @@ export default function GuestManagement() {
                                         >
                                             {isUpdatingStatus ? (
                                                 <>
-                                                    <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                     <span>Đang xử lý...</span>
                                                 </>
                                             ) : (

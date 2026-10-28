@@ -1,4 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import {
+    ShieldCheck,
+    Check,
+    Eye,
+    X,
+    Save,
+    AlertTriangle,
+    Lightbulb,
+    Crown,
+    Briefcase,
+    User,
+    Headphones,
+    CreditCard,
+    Sparkles,
+    Utensils,
+    Wrench,
+    Lock,
+    Loader2
+} from 'lucide-react';
 import api from '../../../services/api';
 import { useAuth } from '../../../store/authStore';
 import {
@@ -7,6 +26,32 @@ import {
     CRUD_ACTIONS,
     INITIAL_CRUD_MATRIX
 } from '../../../data/roleMatrixData';
+
+/**
+ * Helper render vector icon chuẩn thay cho emoji thô
+ */
+const getRoleVectorIcon = (roleCode, className = 'w-4 h-4') => {
+    switch (roleCode) {
+        case 'admin':
+            return <Crown className={className} />;
+        case 'owner':
+            return <Briefcase className={className} />;
+        case 'manager':
+            return <ShieldCheck className={className} />;
+        case 'receptionist':
+            return <Headphones className={className} />;
+        case 'cashier':
+            return <CreditCard className={className} />;
+        case 'housekeeper':
+            return <Sparkles className={className} />;
+        case 'service_staff':
+            return <Utensils className={className} />;
+        case 'technician':
+            return <Wrench className={className} />;
+        default:
+            return <User className={className} />;
+    }
+};
 
 
 /**
@@ -36,7 +81,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
             name: r.name || r.title || r.role,
             badge_color: r.badge_color || r.color || 'blue',
             color: r.color || r.badge_color || 'blue',
-            icon: r.icon || '🛡️',
+            icon: r.icon || 'ShieldCheck',
             level: r.level || 'Vận hành',
             description: r.description || '',
             permissions: r.permissions || {}
@@ -127,7 +172,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
             level: 'Vận hành',
             badge_color: 'blue',
             color: 'blue',
-            icon: '🛡️',
+            icon: 'ShieldCheck',
             description: ''
         };
     }, [roleOptions, selectedRole]);
@@ -332,8 +377,8 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                 {/* 1. MODAL HEADER */}
                 <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
                     <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-                        <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-600/30">
-                            🛡️
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30 shrink-0">
+                            <ShieldCheck className="w-6 h-6 text-white" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
@@ -383,7 +428,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                             className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-800 border border-slate-200 flex items-center justify-center transition cursor-pointer text-sm font-bold ml-2 shadow-xs"
                             title="Đóng cửa sổ"
                         >
-                            ✕
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -408,7 +453,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                             : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                                     }`}
                                 >
-                                    <span>{r.icon || '👤'}</span>
+                                    <span>{getRoleVectorIcon(r.role, isSelected ? 'w-3.5 h-3.5 text-indigo-300' : 'w-3.5 h-3.5 text-slate-500')}</span>
                                     <span>{r.title || r.name || r.role}</span>
                                 </button>
                             );
@@ -421,32 +466,35 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                             <button
                                 type="button"
                                 onClick={() => handleQuickAction('GRANT_ALL')}
-                                className="px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition cursor-pointer"
+                                className="px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition cursor-pointer flex items-center gap-1.5"
                                 title="Bật tất cả quyền cho vai trò này"
                             >
-                                ✓ Chọn tất cả
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Chọn tất cả</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleQuickAction('READ_ONLY')}
-                                className="px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition cursor-pointer"
+                                className="px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition cursor-pointer flex items-center gap-1.5"
                                 title="Chỉ bật quyền Xem cho các module"
                             >
-                                👁️ Chỉ quyền Xem
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Chỉ quyền Xem</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleQuickAction('CLEAR_ALL')}
-                                className="px-2.5 py-1 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition cursor-pointer"
+                                className="px-2.5 py-1 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition cursor-pointer flex items-center gap-1.5"
                                 title="Bỏ chọn toàn bộ quyền"
                             >
-                                ✕ Bỏ chọn hết
+                                <X className="w-3.5 h-3.5" />
+                                <span>Bỏ chọn hết</span>
                             </button>
                         </div>
                     )}
                     {viewMode === 'matrix' && isFixedSystemRole && (
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold">
-                            <span>🔒</span>
+                            <Lock className="w-3.5 h-3.5" />
                             <span>Toàn quyền tối cao cố định</span>
                         </div>
                     )}
@@ -455,7 +503,9 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                 {/* Info Bar */}
                 <div className="px-4 sm:px-6 py-2.5 bg-slate-50/60 border-b border-slate-200 flex flex-wrap items-center justify-between text-xs gap-2">
                     <div className="flex items-center gap-2">
-                        <span className="text-base">{activeRoleMeta.icon}</span>
+                        <span className="p-1 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center">
+                            {getRoleVectorIcon(selectedRole, 'w-4 h-4')}
+                        </span>
                         <span className="text-slate-500">Cấu hình cho:</span>
                         <strong className="text-slate-900 font-bold">{activeRoleMeta.title || selectedRole}</strong>
                         {activeRoleMeta.level && (
@@ -483,13 +533,20 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                 : 'bg-rose-50 text-rose-800 border-rose-300'
                         }`}
                     >
-                        <span>{alertMessage.text}</span>
+                        <div className="flex items-center gap-2">
+                            {alertMessage.type === 'success' ? (
+                                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                            ) : (
+                                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                            )}
+                            <span>{alertMessage.text}</span>
+                        </div>
                         <button
                             type="button"
                             onClick={() => setAlertMessage(null)}
-                            className="font-bold hover:opacity-75 cursor-pointer ml-3"
+                            className="text-slate-400 hover:text-slate-700 cursor-pointer ml-3 p-1 rounded-md"
                         >
-                            ✕
+                            <X className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 )}
@@ -499,7 +556,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                     {/* Cảnh báo khi chọn vai trò tối cao cố định */}
                     {isFixedSystemRole && (
                         <div className="mb-4 p-3.5 bg-amber-50 rounded-xl border border-amber-300 text-amber-900 text-xs font-semibold flex items-center gap-2.5">
-                            <span className="text-lg">🔒</span>
+                            <Lock className="w-5 h-5 text-amber-700 shrink-0" />
                             <div>
                                 <span className="font-bold">Vai trò quyền lực tối cao cố định:</span> Vai trò <strong>{activeRoleMeta.title || selectedRole}</strong> mặc định sở hữu toàn quyền cao nhất trên mọi phân hệ hệ thống. Không thể chỉnh sửa, giới hạn hoặc tước quyền của vai trò này.
                             </div>
@@ -531,17 +588,17 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                         const isRowAllChecked = !isRestricted && CRUD_ACTIONS.every((act) => Boolean(rowPerms[act.key]));
 
                                         return (
-                                            <tr key={mod.key} className={`transition ${isRestricted ? 'bg-slate-50/60' : 'hover:bg-slate-50/70'}`}>
+                                            <tr key={mod.key} className={`group transition ${isRestricted ? 'bg-slate-50/60' : 'hover:bg-indigo-50/20'}`}>
                                                 {/* Cột Dọc 1: Danh sách Module */}
                                                 <td className="p-3.5 pl-5">
                                                     <div>
                                                         <div className="flex items-center gap-2">
-                                                            <strong className={`block text-xs font-bold ${isRestricted ? 'text-slate-500' : 'text-slate-900'}`}>
+                                                            <strong className={`block text-xs font-bold ${isRestricted ? 'text-slate-500' : 'text-slate-900 group-hover:text-indigo-900 transition-colors'}`}>
                                                                 {mod.label}
                                                             </strong>
                                                             {isRestricted && (
                                                                 <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                                                                    🔒 Đặc quyền Admin/Owner
+                                                                    <Lock className="w-2.5 h-2.5" /> Đặc quyền Admin/Owner
                                                                 </span>
                                                             )}
                                                         </div>
@@ -586,18 +643,20 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                                             isRowDisabled
                                                                 ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
                                                                 : isRowAllChecked
-                                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs cursor-pointer'
-                                                                    : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 cursor-pointer'
+                                                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 shadow-2xs cursor-pointer'
+                                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 cursor-pointer'
                                                         }`}
                                                         title={
                                                             isRestricted
                                                                 ? 'Quản lý không có quyền phân quyền phân hệ Cài đặt hệ thống'
                                                                 : isFixedSystemRole
                                                                 ? 'Không thể chỉnh sửa vai trò cố định'
-                                                                : 'Bật/Tắt nhanh 4 quyền của module này'
+                                                                : isRowAllChecked
+                                                                ? 'Hủy tất cả quyền của module này'
+                                                                : 'Bật nhanh cả 4 quyền cho module này'
                                                         }
                                                     >
-                                                        {isRowAllChecked ? 'Đủ 4' : 'Bật hết'}
+                                                        {isRowAllChecked ? 'Tắt hết' : 'Bật hết'}
                                                     </button>
                                                 </td>
                                             </tr>
@@ -628,7 +687,9 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                             <tr key={r.role} className="hover:bg-slate-50 transition">
                                                 <td className="p-3.5 pl-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-base">{r.icon}</span>
+                                                        <span className="p-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center">
+                                                            {getRoleVectorIcon(r.role, 'w-4 h-4')}
+                                                        </span>
                                                         <div>
                                                             <strong className="block text-slate-900 font-bold">{r.title}</strong>
                                                             <span className="inline-block px-1.5 py-0.5 text-[9px] font-bold rounded bg-slate-100 text-slate-600 border border-slate-200">
@@ -670,7 +731,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
 
                     {/* Ghi chú bảo mật */}
                     <div className="mt-4 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200/80 text-indigo-900 flex items-start gap-3">
-                        <span className="text-lg">💡</span>
+                        <Lightbulb className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                         <div className="text-xs leading-relaxed">
                             <strong className="block mb-0.5 font-bold">Cơ chế bảo mật hai lớp (Defense-in-depth):</strong>
                             Khi cấu hình quyền tại đây, phía Frontend sẽ lập tức điều chỉnh ẩn/hiện các phân hệ menu trên Sidebar. Đồng thời, các yêu cầu gọi API gửi tới máy chủ sẽ được kiểm tra với các bộ lọc phân quyền tại Backend để bảo đảm bảo mật dữ liệu tuyệt đối.
@@ -681,7 +742,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                 {/* 4. MODAL FOOTER */}
                 <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50">
                     <div className="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5">
-                        <span className="text-amber-500 font-bold">⚠️</span>
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                         <span>Dữ liệu lưu sẽ tự động đồng bộ sang bảng mã quyền của nhân viên tương ứng.</span>
                     </div>
 
@@ -701,7 +762,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                 disabled
                                 className="w-full sm:w-auto px-6 py-2.5 bg-slate-200 text-slate-500 font-bold text-xs rounded-xl transition cursor-not-allowed flex items-center justify-center gap-2 border border-slate-300"
                             >
-                                <span>🔒</span>
+                                <Lock className="w-4 h-4" />
                                 <span>Quyền hệ thống cố định (Không thể sửa)</span>
                             </button>
                         ) : (
@@ -713,15 +774,12 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                             >
                                 {isSaving ? (
                                     <>
-                                        <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" stroke="currentColor"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                        </svg>
+                                        <Loader2 className="w-4 h-4 text-white animate-spin" />
                                         <span>Đang lưu...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <span>💾</span>
+                                        <Save className="w-4 h-4" />
                                         <span>Lưu thay đổi vai trò ({activeRoleMeta.title || selectedRole})</span>
                                     </>
                                 )}

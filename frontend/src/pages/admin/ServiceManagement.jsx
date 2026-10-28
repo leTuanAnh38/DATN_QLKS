@@ -1,4 +1,27 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+    ConciergeBell,
+    RotateCw,
+    ExternalLink,
+    FolderPlus,
+    Plus,
+    UtensilsCrossed,
+    CheckCircle2,
+    PauseCircle,
+    Layers,
+    Search,
+    X,
+    LayoutGrid,
+    List,
+    Edit2,
+    Trash2,
+    AlertTriangle,
+    Loader2,
+    Camera,
+    Link2,
+    UploadCloud,
+    Sparkles
+} from 'lucide-react';
 import hotelService from '../../services/hotelService';
 import { useAuth } from '../../store/authStore';
 import { useHasPermission } from '../../utils/permission';
@@ -372,7 +395,7 @@ export default function ServiceManagement() {
             {toast && (
                 <div className="fixed top-6 right-6 z-50 animate-bounce">
                     <div
-                        className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-white text-xs font-bold border ${
+                        className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-white text-xs font-bold border ${
                             toast.type === 'success'
                                 ? 'bg-emerald-600 border-emerald-400'
                                 : toast.type === 'error'
@@ -380,7 +403,11 @@ export default function ServiceManagement() {
                                 : 'bg-blue-600 border-blue-400'
                         }`}
                     >
-                        <span>{toast.type === 'success' ? '✓' : '⚠️'}</span>
+                        {toast.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                        )}
                         <span>{toast.message}</span>
                     </div>
                 </div>
@@ -389,8 +416,8 @@ export default function ServiceManagement() {
             {/* BANNER HEADER & QUICK ACTIONS */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                 <div>
-                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                        
+                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                        <ConciergeBell className="w-6 h-6 text-blue-600" />
                         <span>Quản Lý Danh Mục Dịch Vụ</span>
                     </h1>
                     <p className="text-xs text-slate-500 mt-1 max-w-xl">
@@ -403,10 +430,10 @@ export default function ServiceManagement() {
                         type="button"
                         onClick={loadAllData}
                         disabled={isLoading}
-                        className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-2xs"
+                        className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
                         title="Tải lại dữ liệu"
                     >
-                        <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
+                        <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                         <span className="hidden sm:inline">Làm mới</span>
                     </button>
 
@@ -416,9 +443,8 @@ export default function ServiceManagement() {
                         rel="noreferrer"
                         className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-2xs"
                     >
-                        <span>👁️</span>
                         <span>Xem Menu Khách</span>
-                        <span className="text-[10px] text-slate-400">↗</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                     </a>
 
                     {canCreateService && (
@@ -426,18 +452,18 @@ export default function ServiceManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsCategoryModalOpen(true)}
-                                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-slate-900/20"
+                                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer"
                             >
-                                <span>📂</span>
-                                <span>+ Thêm Nhóm</span>
+                                <FolderPlus className="w-3.5 h-3.5" />
+                                <span>Thêm Nhóm</span>
                             </button>
 
                             <button
                                 type="button"
                                 onClick={handleOpenCreateModal}
-                                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-2 transform active:scale-95"
+                                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-1.5 transform active:scale-95 cursor-pointer"
                             >
-                                <span className="text-base leading-none">+</span>
+                                <Plus className="w-4 h-4" />
                                 <span>Thêm Dịch Vụ Mới</span>
                             </button>
                         </>
@@ -447,7 +473,7 @@ export default function ServiceManagement() {
 
             {/* 4 STATS CARDS */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex items-center justify-between hover:border-slate-300 transition">
                     <div>
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                             TỔNG DỊCH VỤ
@@ -457,12 +483,12 @@ export default function ServiceManagement() {
                         </span>
                         <span className="text-[11px] text-slate-500">Món & Tiện ích trong menu</span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
-                        🍽️
+                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-2xs">
+                        <UtensilsCrossed className="w-5 h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex items-center justify-between hover:border-slate-300 transition">
                     <div>
                         <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
                             ĐANG PHỤC VỤ
@@ -472,12 +498,12 @@ export default function ServiceManagement() {
                         </span>
                         <span className="text-[11px] text-emerald-600/80 font-medium">Hiển thị cho khách gọi</span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
-                        🟢
+                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-2xs">
+                        <CheckCircle2 className="w-5 h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex items-center justify-between hover:border-slate-300 transition">
                     <div>
                         <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
                             TẠM NGƯNG
@@ -487,12 +513,12 @@ export default function ServiceManagement() {
                         </span>
                         <span className="text-[11px] text-amber-600/80 font-medium">Ẩn khỏi thực đơn khách</span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
-                        ⏸️
+                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shadow-2xs">
+                        <PauseCircle className="w-5 h-5" />
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex items-center justify-between hover:border-slate-300 transition">
                     <div>
                         <span className="text-[11px] font-bold text-purple-600 uppercase tracking-wider block">
                             NHÓM DANH MỤC
@@ -502,18 +528,18 @@ export default function ServiceManagement() {
                         </span>
                         <span className="text-[11px] text-purple-600/80 font-medium">Ẩm thực, Spa, Bar, Giặt ủi...</span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
-                        📑
+                    <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 shadow-2xs">
+                        <Layers className="w-5 h-5" />
                     </div>
                 </div>
             </div>
 
             {/* BỘ LỌC, TÌM KIẾM & CHẾ ĐỘ XEM */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                 {/* Search */}
                 <div className="relative flex-1 min-w-[240px]">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
-                        🔍
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <Search className="w-4 h-4" />
                     </span>
                     <input
                         type="text"
@@ -526,9 +552,9 @@ export default function ServiceManagement() {
                         <button
                             type="button"
                             onClick={() => setSearchQuery('')}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
                         >
-                            ✕
+                            <X className="w-3.5 h-3.5" />
                         </button>
                     )}
                 </div>
@@ -540,10 +566,10 @@ export default function ServiceManagement() {
                         onChange={(e) => setSelectedCategory(e.target.value)}
                         className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
-                        <option value="all">📂 Tất cả nhóm ({categories.length})</option>
+                        <option value="all">Tất cả nhóm ({categories.length})</option>
                         {categories.map((cat) => (
                             <option key={cat.id} value={cat.id}>
-                                {cat.icon || '•'} {cat.name} ({cat.services_count || 0})
+                                {cat.name} ({cat.services_count || 0})
                             </option>
                         ))}
                     </select>
@@ -554,9 +580,9 @@ export default function ServiceManagement() {
                         onChange={(e) => setStatusFilter(e.target.value)}
                         className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
-                        <option value="all">⚡ Tất cả trạng thái</option>
-                        <option value="active">🟢 Đang phục vụ</option>
-                        <option value="inactive">⏸️ Tạm ngưng</option>
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="active">Đang phục vụ</option>
+                        <option value="inactive">Tạm ngưng</option>
                     </select>
 
                     {/* View mode toggle */}
@@ -564,27 +590,27 @@ export default function ServiceManagement() {
                         <button
                             type="button"
                             onClick={() => setViewMode('grid')}
-                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
+                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
                                 viewMode === 'grid'
                                     ? 'bg-white text-blue-600 shadow-xs font-bold'
                                     : 'text-slate-500 hover:text-slate-800'
                             }`}
                             title="Hiển thị dạng thẻ ảnh"
                         >
-                            <span>🍱</span>
+                            <LayoutGrid className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Lưới</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setViewMode('table')}
-                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
+                            className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
                                 viewMode === 'table'
                                     ? 'bg-white text-blue-600 shadow-xs font-bold'
                                     : 'text-slate-500 hover:text-slate-800'
                             }`}
                             title="Hiển thị dạng bảng chi tiết"
                         >
-                            <span>📋</span>
+                            <List className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Bảng</span>
                         </button>
                     </div>
@@ -594,27 +620,29 @@ export default function ServiceManagement() {
             {/* DANH SÁCH DỊCH VỤ */}
             {isLoading ? (
                 <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-xs">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-600 font-bold text-sm">Đang tải danh mục dịch vụ PMS...</p>
+                    <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-3" />
+                    <p className="text-slate-700 font-bold text-sm">Đang tải danh mục dịch vụ PMS...</p>
                     <p className="text-xs text-slate-400 mt-1">Vui lòng chờ trong giây lát.</p>
                 </div>
             ) : filteredServices.length === 0 ? (
                 <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-xs">
-                    <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
-                        🔍
+                    <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-3">
+                        <Search className="w-7 h-7" />
                     </div>
                     <h3 className="text-base font-bold text-slate-800">Không tìm thấy dịch vụ nào</h3>
                     <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
                         Không có dịch vụ nào khớp với từ khóa tìm kiếm hoặc bộ lọc nhóm của bạn.
                     </p>
-                    <button
-                        type="button"
-                        onClick={handleOpenCreateModal}
-                        className="mt-5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition inline-flex items-center gap-2"
-                    >
-                        <span>+</span>
-                        <span>Thêm dịch vụ mới ngay</span>
-                    </button>
+                    {canCreateService && (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreateModal}
+                            className="mt-5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition inline-flex items-center gap-2 cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Thêm dịch vụ mới ngay</span>
+                        </button>
+                    )}
                 </div>
             ) : viewMode === 'grid' ? (
                 /* CHẾ ĐỘ XEM GRID CARDS */
@@ -677,7 +705,7 @@ export default function ServiceManagement() {
                             <div className="p-4 flex-1 flex flex-col justify-between">
                                 <div>
                                     <div className="flex items-start justify-between gap-2 mb-1">
-                                        <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-1 group-hover:text-blue-600 transition">
+                                        <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2 min-h-[40px] group-hover:text-blue-600 transition">
                                             {service.name}
                                         </h3>
                                     </div>
@@ -706,9 +734,9 @@ export default function ServiceManagement() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEditModal(service)}
-                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1"
+                                                    className="px-3 py-1.5 bg-blue-50/80 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                                                 >
-                                                    <span>✏️</span>
+                                                    <Edit2 className="w-3.5 h-3.5" />
                                                     <span>Chỉnh sửa</span>
                                                 </button>
                                             )}
@@ -716,9 +744,9 @@ export default function ServiceManagement() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenDeleteModal(service)}
-                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1"
+                                                    className="px-3 py-1.5 bg-rose-50/80 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                                                 >
-                                                    <span>🗑️</span>
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                     <span>Xóa</span>
                                                 </button>
                                             )}
@@ -809,18 +837,20 @@ export default function ServiceManagement() {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenEditModal(service)}
-                                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white font-bold text-[11px] transition shadow-2xs cursor-pointer"
                                                         >
-                                                            Sửa
+                                                            <Edit2 className="w-3 h-3" />
+                                                            <span>Sửa</span>
                                                         </button>
                                                     )}
                                                     {canDeleteService && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenDeleteModal(service)}
-                                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 font-bold text-[11px] transition shadow-2xs"
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white font-bold text-[11px] transition shadow-2xs cursor-pointer"
                                                         >
-                                                            Xóa
+                                                            <Trash2 className="w-3 h-3" />
+                                                            <span>Xóa</span>
                                                         </button>
                                                     )}
                                                 </div>
@@ -903,8 +933,10 @@ export default function ServiceManagement() {
                     <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-100 animate-scale-up">
                         {/* Modal Header */}
                         <div className="sticky top-0 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xl">{isEditMode ? '✏️' : '✨'}</span>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                    {isEditMode ? <Edit2 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                                </div>
                                 <div>
                                     <h3 className="font-black text-slate-900 text-base">
                                         {isEditMode ? 'Chỉnh Sửa Dịch Vụ' : 'Thêm Dịch Vụ Mới'}
@@ -919,9 +951,9 @@ export default function ServiceManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold flex items-center justify-center text-xs transition"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold flex items-center justify-center transition cursor-pointer"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -929,7 +961,7 @@ export default function ServiceManagement() {
                         <form onSubmit={handleSubmitService} className="p-6 space-y-4">
                             {formError && (
                                 <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
-                                    <span>⚠️</span>
+                                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                                     <span>{formError}</span>
                                 </div>
                             )}
@@ -1046,20 +1078,22 @@ export default function ServiceManagement() {
                                         <button
                                             type="button"
                                             onClick={() => setImageType('url')}
-                                            className={`px-2.5 py-1 rounded-md transition ${
+                                            className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer ${
                                                 imageType === 'url' ? 'bg-white text-blue-600 shadow-xs' : ''
                                             }`}
                                         >
-                                            🔗 Link Ảnh Trực Tuyến
+                                            <Link2 className="w-3.5 h-3.5" />
+                                            <span>Link Ảnh Trực Tuyến</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setImageType('file')}
-                                            className={`px-2.5 py-1 rounded-md transition ${
+                                            className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer ${
                                                 imageType === 'file' ? 'bg-white text-blue-600 shadow-xs' : ''
                                             }`}
                                         >
-                                            📁 Tải Ảnh Lên Máy
+                                            <UploadCloud className="w-3.5 h-3.5" />
+                                            <span>Tải Ảnh Lên Máy</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1093,7 +1127,7 @@ export default function ServiceManagement() {
                                             onClick={() => fileInputRef.current?.click()}
                                             className="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50/40 rounded-2xl p-5 text-center cursor-pointer transition"
                                         >
-                                            <span className="text-2xl block mb-1">📸</span>
+                                            <Camera className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
                                             <span className="text-xs font-bold text-slate-700 block">
                                                 Bấm để chọn ảnh từ máy tính
                                             </span>
@@ -1121,10 +1155,10 @@ export default function ServiceManagement() {
                                                     setSelectedFile(null);
                                                     setFormData({ ...formData, image_url: '' });
                                                 }}
-                                                className="w-6 h-6 rounded-full bg-slate-900/80 text-white text-xs flex items-center justify-center hover:bg-rose-600 transition"
+                                                className="w-6 h-6 rounded-full bg-slate-900/80 text-white text-xs flex items-center justify-center hover:bg-rose-600 transition cursor-pointer"
                                                 title="Gỡ ảnh"
                                             >
-                                                ✕
+                                                <X className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
                                     </div>
@@ -1136,17 +1170,17 @@ export default function ServiceManagement() {
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                                 >
                                     Hủy Bỏ
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-2"
+                                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                                 >
                                     {submitting && (
-                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     )}
                                     <span>{isEditMode ? 'Lưu Thay Đổi' : 'Thêm Dịch Vụ'}</span>
                                 </button>
@@ -1161,16 +1195,18 @@ export default function ServiceManagement() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 p-6 animate-scale-up">
                         <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xl">📂</span>
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                                    <FolderPlus className="w-5 h-5" />
+                                </div>
                                 <h3 className="font-black text-slate-900 text-base">Thêm Nhóm Danh Mục</h3>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setIsCategoryModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center text-xs"
+                                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition cursor-pointer"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -1217,17 +1253,17 @@ export default function ServiceManagement() {
                                 <button
                                     type="button"
                                     onClick={() => setIsCategoryModalOpen(false)}
-                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                                 >
                                     Hủy
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingCat}
-                                    className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2"
+                                    className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                                 >
                                     {submittingCat && (
-                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     )}
                                     <span>Tạo Nhóm</span>
                                 </button>
@@ -1241,23 +1277,24 @@ export default function ServiceManagement() {
             {isDeleteModalOpen && serviceToDelete && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 p-6 animate-scale-up text-center">
-                        <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto mb-3">
-                            🗑️
+                        <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
+                            <Trash2 className="w-7 h-7" />
                         </div>
                         <h3 className="font-black text-slate-900 text-base">Xác Nhận Xóa Dịch Vụ?</h3>
                         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
                             Bạn có chắc chắn muốn xóa dịch vụ{' '}
                             <strong className="text-slate-900">"{serviceToDelete.name}"</strong> khỏi hệ thống?
                         </p>
-                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 text-left mt-4">
-                            ⚠️ <strong>Lưu ý:</strong> Nếu dịch vụ đang có yêu cầu phục vụ chưa hoàn tất, hệ thống sẽ yêu cầu bạn tạm ngưng phục vụ thay vì xóa bỏ.
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 text-left mt-4 flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                            <span><strong>Lưu ý:</strong> Nếu dịch vụ đang có yêu cầu phục vụ chưa hoàn tất, hệ thống sẽ yêu cầu bạn tạm ngưng phục vụ thay vì xóa bỏ.</span>
                         </div>
 
                         <div className="mt-6 flex items-center justify-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                             >
                                 Hủy Bỏ
                             </button>
@@ -1265,10 +1302,10 @@ export default function ServiceManagement() {
                                 type="button"
                                 onClick={handleConfirmDelete}
                                 disabled={deleting}
-                                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/25 transition flex items-center gap-2"
+                                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                             >
                                 {deleting && (
-                                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                 )}
                                 <span>Xác Nhận Xóa</span>
                             </button>

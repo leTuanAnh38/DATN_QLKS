@@ -23,7 +23,11 @@ import {
     Users,
     PlusCircle,
     ArrowDownCircle,
-    X
+    X,
+    Eye,
+    FileSpreadsheet,
+    Download,
+    Phone
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../store/authStore';
@@ -145,6 +149,10 @@ export default function InvoiceManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, COMPLETED, PENDING, FAILED
     const [methodFilter, setMethodFilter] = useState('ALL'); // ALL, TRANSFER, CASH
+    const [dateFilter, setDateFilter] = useState('ALL');     // ALL, TODAY, YESTERDAY, 7DAYS, THIS_MONTH, CUSTOM
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
+    const [showCustomDate, setShowCustomDate] = useState(false);
 
     // 3. STATE TÁI SỬ DỤNG: LƯU BẢN GHI ĐƯỢC CHỌN ĐỂ IN HÓA ĐƠN
     const [selectedPayment, setSelectedPayment] = useState(null);
@@ -267,7 +275,54 @@ export default function InvoiceManagement() {
     // Tự động trở về trang 1 khi thay đổi điều kiện tìm kiếm, bộ lọc hoặc kích thước trang
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, statusFilter, methodFilter, pageSize]);
+    }, [searchTerm, statusFilter, methodFilter, dateFilter, customStartDate, customEndDate, pageSize]);
+
+    // =========================================================================
+    // HÀM KIỂM TRA THỜI GIAN THEO KHOẢNG NGÀY
+    // =========================================================================
+    const isDateInFilter = (createdDateStr, filterType, customStart, customEnd) => {
+        if (!createdDateStr || filterType === 'ALL') return true;
+        const d = new Date(createdDateStr);
+        if (isNaN(d.getTime())) return true;
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        if (filterType === 'TODAY') {
+            return d >= startOfToday && d <= endOfToday;
+        }
+        if (filterType === 'YESTERDAY') {
+            const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+            const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+            return d >= startOfYesterday && d <= endOfYesterday;
+        }
+        if (filterType === '7DAYS') {
+            const startOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+            return d >= startOf7Days && d <= endOfToday;
+        }
+        if (filterType === 'THIS_MONTH') {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            return d >= startOfMonth && d <= endOfToday;
+        }
+        if (filterType === 'CUSTOM') {
+            if (customStart && customEnd) {
+                const start = new Date(`${customStart}T00:00:00`);
+                const end = new Date(`${customEnd}T23:59:59.999`);
+                return d >= start && d <= end;
+            }
+            if (customStart) {
+                const start = new Date(`${customStart}T00:00:00`);
+                return d >= start;
+            }
+            if (customEnd) {
+                const end = new Date(`${customEnd}T23:59:59.999`);
+                return d <= end;
+            }
+            return true;
+        }
+        return true;
+    };
 
     // =========================================================================
     // LỌC VÀ SẮP XẾP DỮ LIỆU: ƯU TIÊN CHỜ XỬ LÝ (PENDING) LÊN TRÊN HẾT
@@ -300,7 +355,10 @@ export default function InvoiceManagement() {
             const matchMethod =
                 methodFilter === 'ALL' || item.payment_method === methodFilter;
 
-            return matchSearch && matchStatus && matchMethod;
+            // Lọc theo Khoảng thời gian
+            const matchDate = isDateInFilter(item.created_at, dateFilter, customStartDate, customEndDate);
+
+            return matchSearch && matchStatus && matchMethod && matchDate;
         });
 
         // Sắp xếp: Chờ xử lý (PENDING) lên trước, Hoàn tất (COMPLETED) xuống sau
@@ -318,7 +376,7 @@ export default function InvoiceManagement() {
             }
             return (b.id || 0) - (a.id || 0);
         });
-    }, [payments, searchTerm, statusFilter, methodFilter]);
+    }, [payments, searchTerm, statusFilter, methodFilter, dateFilter, customStartDate, customEndDate]);
 
     // Tính toán phân trang
     const totalPages = Math.ceil(filteredPayments.length / pageSize) || 1;
@@ -327,18 +385,22 @@ export default function InvoiceManagement() {
         return filteredPayments.slice(start, start + pageSize);
     }, [filteredPayments, currentPage, pageSize]);
 
-    // Thống kê nhanh các chỉ số
+    // Thống kê nhanh các chỉ số (phản ánh theo khoảng ngày đang xem để đối soát tiện lợi)
     const stats = useMemo(() => {
-        const completed = payments.filter((p) => p.payment_status === 'COMPLETED');
-        const pending = payments.filter((p) => p.payment_status === 'PENDING');
+        const dateScopedPayments = payments.filter((item) =>
+            isDateInFilter(item.created_at, dateFilter, customStartDate, customEndDate)
+        );
+        const completed = dateScopedPayments.filter((p) => p.payment_status === 'COMPLETED');
+        const pending = dateScopedPayments.filter((p) => p.payment_status === 'PENDING');
         const totalRevenue = completed.reduce((sum, p) => sum + Number(p.amount || 0), 0);
         return {
             totalRevenue,
             completedCount: completed.length,
             pendingCount: pending.length,
-            totalCount: payments.length
+            totalCount: dateScopedPayments.length,
+            isFilteredByDate: dateFilter !== 'ALL'
         };
-    }, [payments]);
+    }, [payments, dateFilter, customStartDate, customEndDate]);
 
     // Format tiền VND
     const formatVND = (val) => {
@@ -363,12 +425,111 @@ export default function InvoiceManagement() {
         }
     };
 
+    // Helper tách rời Giờ và Ngày tháng để hiển thị 2 dòng chuyên nghiệp
+    const formatTxnDateTime = (isoStr) => {
+        if (!isoStr) return { time: '—', date: '—' };
+        try {
+            const d = new Date(isoStr);
+            if (isNaN(d.getTime())) return { time: isoStr, date: '' };
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return {
+                time: `${hours}:${minutes}`,
+                date: `${day}/${month}/${year}`
+            };
+        } catch {
+            return { time: isoStr, date: '' };
+        }
+    };
+
     // Sao chép nhanh mã giao dịch
     const handleCopyTxn = (text) => {
         if (navigator?.clipboard?.writeText) {
             navigator.clipboard.writeText(text);
             setCopiedTxn(text);
             setTimeout(() => setCopiedTxn(null), 2000);
+        }
+    };
+
+    // =========================================================================
+    // XUẤT BÁO CÁO DANH SÁCH GIAO DỊCH SANG EXCEL (CSV UTF-8 BOM)
+    // =========================================================================
+    const exportToExcel = () => {
+        if (!filteredPayments || filteredPayments.length === 0) {
+            showToast('error', 'Không có dữ liệu giao dịch nào để xuất Excel.');
+            return;
+        }
+
+        try {
+            const headers = [
+                'STT',
+                'Mã Giao Dịch',
+                'Khách Hàng',
+                'Số Điện Thoại',
+                'Loại Khách',
+                'Mã Đơn / Phòng',
+                'Số Tiền (VND)',
+                'Hình Thức Thanh Toán',
+                'Trạng Thái',
+                'Thời Gian Giao Dịch'
+            ];
+
+            const rows = filteredPayments.map((p, idx) => {
+                const isGroup = Boolean(
+                    p.is_group || p.group_booking_code || p.company_name || (p.transaction_id && p.transaction_id.includes('GRP-'))
+                );
+                const guestName = p.guest_name || p.company_name || 'Khách vãng lai';
+                const guestPhone = p.guest_phone || p.booking?.guest?.phone || '—';
+                const customerType = isGroup ? 'Doanh nghiệp / Đoàn' : 'Khách lẻ';
+                const codeDisplay = p.group_booking_code || p.booking_code || (
+                    p.transaction_id && p.transaction_id.includes('GRP-')
+                        ? p.transaction_id.replace('TXN-', '')
+                        : (p.booking_id ? `BK-${p.booking_id}` : '—')
+                );
+                const roomDisplay = p.room_number ? `Phòng ${p.room_number}` : (isGroup ? 'Đơn đặt đoàn' : '—');
+                const methodDisplay = (p.payment_method === 'TRANSFER' || p.payment_method === 'vietqr') ? 'VietQR / Chuyển khoản' : 'Tiền mặt';
+                const statusDisplay = p.payment_status === 'COMPLETED' ? 'Thành công' : (p.payment_status === 'PENDING' ? 'Chờ xử lý' : 'Thất bại');
+                const createdTime = formatDateTime(p.created_at);
+
+                return [
+                    idx + 1,
+                    `"${p.transaction_id || `TXN-${p.id}`}"`,
+                    `"${guestName.replace(/"/g, '""')}"`,
+                    `"${guestPhone}"`,
+                    `"${customerType}"`,
+                    `"${codeDisplay} - ${roomDisplay}"`,
+                    Number(p.amount || 0),
+                    `"${methodDisplay}"`,
+                    `"${statusDisplay}"`,
+                    `"${createdTime}"`
+                ];
+            });
+
+            // Thêm UTF-8 BOM để Excel hiển thị tiếng Việt có dấu chuẩn 100%
+            const csvContent = '\uFEFF' + [
+                headers.join(','),
+                ...rows.map((r) => r.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const now = new Date();
+            const dateTag = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Bao_cao_giao_dich_thanh_toan_${dateTag}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('success', `Đã xuất ${filteredPayments.length} giao dịch sang file Excel thành công!`);
+        } catch (err) {
+            console.error('Lỗi khi xuất file Excel:', err);
+            showToast('error', 'Không thể xuất file Excel. Vui lòng thử lại.');
         }
     };
 
@@ -416,6 +577,17 @@ export default function InvoiceManagement() {
                             <span>Chi tiền / Hoàn cọc</span>
                         </button>
                     )}
+
+                    {/* Nút Xuất Báo Cáo Excel */}
+                    <button
+                        type="button"
+                        onClick={exportToExcel}
+                        className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-semibold rounded-xl border border-emerald-200 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        title="Xuất danh sách giao dịch thanh toán ra file Excel (.CSV)"
+                    >
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Xuất Excel</span>
+                    </button>
 
                     <button
                         type="button"
@@ -492,7 +664,14 @@ export default function InvoiceManagement() {
                     title="Bấm để xem tất cả giao dịch"
                 >
                     <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-                        <span>Tổng tiền đã thu (Thực thu)</span>
+                        <span className="flex items-center gap-1.5">
+                            <span>Tổng tiền đã thu (Thực thu)</span>
+                            {stats.isFilteredByDate && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                                    Kỳ lọc
+                                </span>
+                            )}
+                        </span>
                         <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                             <ArrowUpRight className="w-3.5 h-3.5" />
                         </div>
@@ -552,63 +731,137 @@ export default function InvoiceManagement() {
             </div>
 
             {/* ================================================================= */}
-            {/* 2. THANH BỘ LỌC (FILTERS): SEARCH INPUT & STATUS DROPDOWN         */}
+            {/* 2. THANH BỘ LỌC (FILTERS): SEARCH, STATUS, METHOD & DATE FILTER   */}
             {/* ================================================================= */}
-            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
-                {/* Input Tìm kiếm (mã đặt phòng, tên khách, mã giao dịch) */}
-                <div className="relative flex-1 max-w-md">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Tìm theo mã phòng (BK-...), tên khách, mã TXN..."
-                        className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                    {searchTerm && (
-                        <button
-                            type="button"
-                            onClick={() => setSearchTerm('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                            <XCircle className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
-
-                {/* Các Dropdown lọc */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                    {/* Dropdown lọc Trạng thái: Thành công, Chờ xử lý, Thất bại */}
-                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                        <Filter className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span className="text-slate-500 font-medium">Trạng thái:</span>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
-                        >
-                            <option value="ALL">Tất cả</option>
-                            <option value="COMPLETED">Thành công</option>
-                            <option value="PENDING">Chờ xử lý</option>
-                            <option value="FAILED">Thất bại</option>
-                        </select>
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    {/* Input Tìm kiếm (mã đặt phòng, tên khách, mã giao dịch) */}
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Tìm theo mã phòng (BK-...), tên khách, mã TXN..."
+                            className="w-full pl-10 pr-9 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                        />
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                                <XCircle className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
-                    {/* Dropdown lọc Phương thức */}
-                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                        <CreditCard className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span className="text-slate-500 font-medium">Hình thức:</span>
-                        <select
-                            value={methodFilter}
-                            onChange={(e) => setMethodFilter(e.target.value)}
-                            className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
-                        >
-                            <option value="ALL">Tất cả</option>
-                            <option value="TRANSFER">VietQR / Chuyển khoản</option>
-                            <option value="CASH">Tiền mặt</option>
-                        </select>
+                    {/* Các Dropdown lọc */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Dropdown lọc Thời gian */}
+                        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs">
+                            <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="text-slate-500 font-medium hidden sm:inline">Thời gian:</span>
+                            <select
+                                value={dateFilter}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setDateFilter(val);
+                                    if (val === 'CUSTOM') {
+                                        setShowCustomDate(true);
+                                    } else {
+                                        setShowCustomDate(false);
+                                    }
+                                }}
+                                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                            >
+                                <option value="ALL">Tất cả ngày</option>
+                                <option value="TODAY">Hôm nay</option>
+                                <option value="YESTERDAY">Hôm qua</option>
+                                <option value="7DAYS">7 ngày gần nhất</option>
+                                <option value="THIS_MONTH">Tháng này</option>
+                                <option value="CUSTOM">Tùy chọn ngày...</option>
+                            </select>
+                        </div>
+
+                        {/* Dropdown lọc Trạng thái: Thành công, Chờ xử lý, Thất bại */}
+                        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs">
+                            <Filter className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="text-slate-500 font-medium hidden sm:inline">Trạng thái:</span>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                            >
+                                <option value="ALL">Tất cả</option>
+                                <option value="COMPLETED">Thành công</option>
+                                <option value="PENDING">Chờ xử lý</option>
+                                <option value="FAILED">Thất bại</option>
+                            </select>
+                        </div>
+
+                        {/* Dropdown lọc Phương thức */}
+                        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs">
+                            <CreditCard className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="text-slate-500 font-medium hidden sm:inline">Hình thức:</span>
+                            <select
+                                value={methodFilter}
+                                onChange={(e) => setMethodFilter(e.target.value)}
+                                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                            >
+                                <option value="ALL">Tất cả</option>
+                                <option value="TRANSFER">VietQR / Chuyển khoản</option>
+                                <option value="CASH">Tiền mặt</option>
+                            </select>
+                        </div>
+
+                        {/* Nút Xóa nhanh bộ lọc nếu có lọc */}
+                        {(searchTerm || statusFilter !== 'ALL' || methodFilter !== 'ALL' || dateFilter !== 'ALL' || customStartDate || customEndDate) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setStatusFilter('ALL');
+                                    setMethodFilter('ALL');
+                                    setDateFilter('ALL');
+                                    setCustomStartDate('');
+                                    setCustomEndDate('');
+                                    setShowCustomDate(false);
+                                }}
+                                className="px-2.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                                title="Xóa toàn bộ điều kiện lọc"
+                            >
+                                <X className="w-3 h-3" />
+                                <span>Đặt lại</span>
+                            </button>
+                        )}
                     </div>
                 </div>
+
+                {/* Hàng chọn ngày tùy biến khi chọn "Tùy chọn ngày..." */}
+                {showCustomDate && (
+                    <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center gap-2.5 text-xs animate-in fade-in duration-150">
+                        <span className="font-semibold text-slate-600 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Khoảng ngày cụ thể:</span>
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <span className="text-slate-400">đến</span>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* ================================================================= */}
@@ -716,7 +969,8 @@ export default function InvoiceManagement() {
                                                                 {isGroupOrCorp && (
                                                                     <div className="mb-0.5">
                                                                         <span className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider whitespace-nowrap">
-                                                                            🏢 Doanh nghiệp / Đoàn
+                                                                            <Building2 className="w-2.5 h-2.5 text-indigo-600 shrink-0" />
+                                                                            <span>Doanh nghiệp / Đoàn</span>
                                                                         </span>
                                                                     </div>
                                                                 )}
@@ -823,15 +1077,25 @@ export default function InvoiceManagement() {
                                                 )}
                                             </td>
 
-                                            {/* 7. Ngày tạo */}
-                                            <td className="py-3.5 px-4 text-xs text-slate-500 whitespace-nowrap">
-                                                <div className="flex items-center gap-1.5 whitespace-nowrap">
-                                                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                                    <span className="whitespace-nowrap">{formatDateTime(payment.created_at)}</span>
-                                                </div>
+                                            {/* 7. Ngày tạo (Tách rời Giờ đậm và Ngày thanh thoát) */}
+                                            <td className="py-3.5 px-4 whitespace-nowrap">
+                                                {(() => {
+                                                    const { time, date } = formatTxnDateTime(payment.created_at);
+                                                    return (
+                                                        <div className="flex flex-col whitespace-nowrap">
+                                                            <span className="font-bold text-slate-800 text-xs flex items-center gap-1 font-mono">
+                                                                <Clock className="w-3 h-3 text-blue-600 shrink-0" />
+                                                                <span>{time}</span>
+                                                            </span>
+                                                            <span className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                                                {date}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
 
-                                            {/* 8. Cột Hành động: Nút "Xác nhận thu" & "Xem / In Hóa đơn" */}
+                                            {/* 8. Cột Hành động: Nút "Xác nhận thu", "Xem chi tiết" & "In Hóa đơn" */}
                                             <td className="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1.5">
                                                     {isPending && (
@@ -850,21 +1114,29 @@ export default function InvoiceManagement() {
                                                         </button>
                                                     )}
 
+                                                    {/* Nút Xem chi tiết */}
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            // Gán dòng dữ liệu được chọn vào state để mở modal
-                                                            setSelectedPayment(payment);
-                                                        }}
-                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 ${
+                                                        onClick={() => setSelectedPayment(payment)}
+                                                        className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
+                                                        title="Xem chi tiết phiếu thanh toán / hóa đơn"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                    </button>
+
+                                                    {/* Nút In hóa đơn */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedPayment(payment)}
+                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 ${
                                                             isPending
                                                                 ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
                                                                 : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-600/20'
                                                         }`}
-                                                        title="Xem và In Hóa đơn"
+                                                        title="In hóa đơn / phiếu thu"
                                                     >
                                                         <Printer className="w-3.5 h-3.5" />
-                                                        <span>{isPending ? 'Xem' : 'In Hóa đơn'}</span>
+                                                        <span>{isPending ? 'Xem' : 'In'}</span>
                                                     </button>
                                                 </div>
                                             </td>
@@ -971,15 +1243,17 @@ export default function InvoiceManagement() {
                                         <div className="min-w-0">
                                             {isGroupOrCorp && (
                                                 <span className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider mb-0.5">
-                                                    🏢 Doanh nghiệp / Đoàn
+                                                    <Building2 className="w-2.5 h-2.5 text-indigo-600 shrink-0" />
+                                                    <span>Doanh nghiệp / Đoàn</span>
                                                 </span>
                                             )}
                                             <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
                                                 {payment.guest_name || payment.company_name || 'Khách vãng lai'}
                                             </div>
                                             {phoneDisplay && (
-                                                <div className="text-[11px] text-slate-500 mt-0.5">
-                                                    📞 {phoneDisplay}
+                                                <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                                                    <Phone className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                                    <span>{phoneDisplay}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -1032,8 +1306,9 @@ export default function InvoiceManagement() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-slate-400">
-                                                {formatDateTime(payment.created_at)}
+                                            <div className="text-[10px] text-slate-500 flex items-center gap-1 justify-end font-medium">
+                                                <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                                <span>{formatDateTime(payment.created_at)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1054,6 +1329,16 @@ export default function InvoiceManagement() {
                                                 <span>Xác nhận thu</span>
                                             </button>
                                         )}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedPayment(payment)}
+                                            className="py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+                                            title="Xem chi tiết phiếu thanh toán"
+                                        >
+                                            <Eye className="w-3.5 h-3.5" />
+                                            <span>Chi tiết</span>
+                                        </button>
 
                                         <button
                                             type="button"
@@ -1130,8 +1415,8 @@ export default function InvoiceManagement() {
                     <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-6 sm:p-7 shadow-2xl text-left animate-in zoom-in-95 duration-200">
                         <div className="flex items-start justify-between pb-4 border-b border-slate-100 mb-5">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
-                                    ✓
+                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                    <Check className="w-5 h-5 text-emerald-700" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-slate-900 text-base">Xác Nhận Đã Nhận Tiền</h3>
@@ -1173,24 +1458,26 @@ export default function InvoiceManagement() {
                                     <button
                                         type="button"
                                         onClick={() => setConfirmPaymentMethod('TRANSFER')}
-                                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer text-xs font-semibold ${
+                                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 ${
                                             confirmPaymentMethod === 'TRANSFER'
                                                 ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold'
                                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                         }`}
                                     >
-                                        💳 Đã chuyển VietQR
+                                        <CreditCard className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                        <span>Đã chuyển VietQR</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setConfirmPaymentMethod('CASH')}
-                                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer text-xs font-semibold ${
+                                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 ${
                                             confirmPaymentMethod === 'CASH'
                                                 ? 'bg-amber-50 border-amber-400 text-amber-900 font-bold'
                                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                         }`}
                                     >
-                                        💵 Đã thu tiền mặt
+                                        <Banknote className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        <span>Đã thu tiền mặt</span>
                                     </button>
                                 </div>
                             </div>
@@ -1225,7 +1512,8 @@ export default function InvoiceManagement() {
                                     disabled={isConfirmingLoading}
                                     className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                                 >
-                                    {isConfirmingLoading ? 'Đang xác nhận...' : '✓ Xác nhận thu tiền'}
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>{isConfirmingLoading ? 'Đang xác nhận...' : 'Xác nhận thu tiền'}</span>
                                 </button>
                             </div>
                         </div>
@@ -1237,12 +1525,16 @@ export default function InvoiceManagement() {
             {/* 6. TOAST THÔNG BÁO TỨC THÌ (FLOATING TOAST)                       */}
             {/* ================================================================= */}
             {toast && (
-                <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-bold animate-in slide-in-from-bottom-5 duration-200 ${
+                <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-bold animate-in slide-in-from-bottom-5 duration-200 ${
                     toast.type === 'success'
                         ? 'bg-slate-900 text-white border border-emerald-500/30 shadow-emerald-950/20'
                         : 'bg-rose-600 text-white shadow-rose-950/20'
                 }`}>
-                    <span>{toast.type === 'success' ? '✅' : '⚠️'}</span>
+                    {toast.type === 'success' ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                        <AlertCircle className="w-4 h-4 text-rose-200 shrink-0" />
+                    )}
                     <span>{toast.message}</span>
                 </div>
             )}

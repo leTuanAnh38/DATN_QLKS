@@ -1,5 +1,35 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import hotelService from '../../services/hotelService';
+import {
+    Clock,
+    ChefHat,
+    BellRing,
+    CheckCircle2,
+    XCircle,
+    RotateCcw,
+    Printer,
+    Eye,
+    TrendingUp,
+    Plus,
+    RefreshCw,
+    Search,
+    X,
+    UtensilsCrossed,
+    Sparkles,
+    Shirt,
+    Lock,
+    BedDouble,
+    MessageSquare,
+    DoorClosed,
+    Calendar,
+    LayoutList,
+    Kanban,
+    AlertTriangle,
+    CreditCard,
+    Gift,
+    Undo2,
+    ArrowRight
+} from 'lucide-react';
 
 // Format thời gian trôi qua dạng "Vừa xong", "5 phút trước", "1 giờ trước"
 const formatTimeAgo = (dateStr) => {
@@ -15,19 +45,42 @@ const formatTimeAgo = (dateStr) => {
         if (diffSec < 60) return 'Vừa đặt lệnh';
         if (diffMin < 60) return `${diffMin} phút trước`;
         if (diffHours < 24) return `${diffHours} giờ trước`;
-        return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN');
+        return `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • ${d.toLocaleDateString('vi-VN')}`;
     } catch {
         return dateStr;
     }
 };
 
+// Format ngày giờ phục vụ chuyên nghiệp (tách giờ và ngày)
+const formatRequestDateTime = (dateStr) => {
+    if (!dateStr) return { time: '—', date: '' };
+    try {
+        const d = new Date(dateStr);
+        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const date = d.toLocaleDateString('vi-VN');
+        return { time, date };
+    } catch {
+        return { time: dateStr, date: '' };
+    }
+};
+
+// Helper hiển thị icon linh hoạt
+const renderIcon = (IconOrComponent, className = 'w-3.5 h-3.5 shrink-0') => {
+    if (!IconOrComponent) return null;
+    if (typeof IconOrComponent === 'function' || typeof IconOrComponent === 'object') {
+        const Comp = IconOrComponent;
+        return <Comp className={className} />;
+    }
+    return <span>{IconOrComponent}</span>;
+};
+
 // Cấu hình hiển thị trạng thái dùng cho chế độ xem Danh sách
 const STATUS_META = {
-    pending: { label: 'Chờ xử lý', icon: '⏳', pill: 'bg-amber-50 text-amber-700 border-amber-200', tab: 'bg-amber-500 text-white' },
-    in_progress: { label: 'Đang chuẩn bị', icon: '⚙️', pill: 'bg-blue-50 text-blue-700 border-blue-200', tab: 'bg-blue-600 text-white' },
-    delivering: { label: 'Đang phục vụ', icon: '🛎️', pill: 'bg-purple-50 text-purple-700 border-purple-200', tab: 'bg-purple-600 text-white' },
-    completed: { label: 'Hoàn thành', icon: '✓', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', tab: 'bg-emerald-600 text-white' },
-    cancelled: { label: 'Đã hủy', icon: '✕', pill: 'bg-rose-50 text-rose-700 border-rose-200', tab: 'bg-rose-600 text-white' }
+    pending: { label: 'Chờ xử lý', icon: Clock, pill: 'bg-amber-50 text-amber-700 border-amber-200', tab: 'bg-amber-500 text-white' },
+    in_progress: { label: 'Đang chuẩn bị', icon: ChefHat, pill: 'bg-blue-50 text-blue-700 border-blue-200', tab: 'bg-blue-600 text-white' },
+    delivering: { label: 'Đang phục vụ', icon: BellRing, pill: 'bg-purple-50 text-purple-700 border-purple-200', tab: 'bg-purple-600 text-white' },
+    completed: { label: 'Hoàn thành', icon: CheckCircle2, pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', tab: 'bg-emerald-600 text-white' },
+    cancelled: { label: 'Đã hủy', icon: XCircle, pill: 'bg-rose-50 text-rose-700 border-rose-200', tab: 'bg-rose-600 text-white' }
 };
 const STATUS_ORDER = ['pending', 'in_progress', 'delivering', 'completed', 'cancelled'];
 const LIST_PAGE_SIZE = 10;
@@ -684,7 +737,7 @@ export default function ServiceRequestKanban() {
         {
             key: 'pending',
             title: 'Chờ xử lý (Pending)',
-            icon: '⏳',
+            icon: Clock,
             headerBg: 'bg-amber-500/10 text-amber-800 border-amber-300',
             badgeBg: 'bg-amber-500 text-white',
             borderColor: 'border-amber-200',
@@ -694,7 +747,7 @@ export default function ServiceRequestKanban() {
         {
             key: 'in_progress',
             title: 'Đang chuẩn bị (In Progress)',
-            icon: '⚙️',
+            icon: ChefHat,
             headerBg: 'bg-blue-500/10 text-blue-800 border-blue-300',
             badgeBg: 'bg-blue-600 text-white',
             borderColor: 'border-blue-200',
@@ -704,7 +757,7 @@ export default function ServiceRequestKanban() {
         {
             key: 'delivering',
             title: 'Đang phục vụ (Delivering / Serving)',
-            icon: '🛎️',
+            icon: BellRing,
             headerBg: 'bg-purple-500/10 text-purple-800 border-purple-300',
             badgeBg: 'bg-purple-600 text-white',
             borderColor: 'border-purple-200',
@@ -714,7 +767,7 @@ export default function ServiceRequestKanban() {
         {
             key: 'completed',
             title: 'Hoàn thành (Completed)',
-            icon: '✓',
+            icon: CheckCircle2,
             headerBg: 'bg-emerald-500/10 text-emerald-800 border-emerald-300',
             badgeBg: 'bg-emerald-600 text-white',
             borderColor: 'border-emerald-200',
@@ -733,7 +786,7 @@ export default function ServiceRequestKanban() {
     );
 
     const statusTabs = [
-        { key: 'all', label: 'Tất cả', icon: '📋', count: allListItems.length },
+        { key: 'all', label: 'Tất cả', icon: LayoutList, count: allListItems.length },
         ...STATUS_ORDER.map((key) => ({
             key,
             label: STATUS_META[key].label,
@@ -807,8 +860,9 @@ export default function ServiceRequestKanban() {
                         <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
                             Quản Lý Yêu Cầu Dịch Vụ Tại Phòng
                         </h2>
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
-                            {stats.total || 0} yêu cầu
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200 flex items-center gap-1.5">
+                            <UtensilsCrossed className="w-3.5 h-3.5 text-blue-600" />
+                            <span>{stats.total || 0} yêu cầu</span>
                         </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
@@ -818,9 +872,11 @@ export default function ServiceRequestKanban() {
 
                 {/* Cụm Thống kê Doanh thu & Nhóm nút Hành động */}
                 <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                    {/* Thẻ Doanh thu nổi bật - Hiển thị đầy đủ số tiền, không bị cắt chữ */}
-                    <div className="flex items-center gap-2.5 px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl shadow-2xs">
-                        <span className="text-base sm:text-lg"></span>
+                    {/* Thẻ Doanh thu nổi bật */}
+                    <div className="flex items-center gap-2.5 px-3.5 py-2 bg-gradient-to-r from-emerald-50 via-teal-50/80 to-emerald-50 border border-emerald-200/90 rounded-2xl shadow-2xs">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-700 shrink-0">
+                            <TrendingUp className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                        </div>
                         <div className="min-w-0">
                             <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider block">
                                 Doanh thu hoàn tất
@@ -843,7 +899,7 @@ export default function ServiceRequestKanban() {
                             }`}
                             title="Chế độ xem bảng danh sách 1 hàng"
                         >
-                            <span>📋</span>
+                            <LayoutList className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Danh sách</span>
                         </button>
                         <button
@@ -856,7 +912,7 @@ export default function ServiceRequestKanban() {
                             }`}
                             title="Chế độ xem bảng Kanban kéo thả"
                         >
-                            <span>🗂️</span>
+                            <Kanban className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Kanban</span>
                         </button>
                     </div>
@@ -866,10 +922,10 @@ export default function ServiceRequestKanban() {
                         type="button"
                         onClick={() => fetchKanbanData(false)}
                         disabled={isLoading}
-                        className="p-2 sm:px-3 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-slate-200/60"
+                        className="p-2 sm:px-3 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-slate-200/60 active:scale-95"
                         title="Đồng bộ lại dữ liệu mới nhất"
                     >
-                        <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : 'text-slate-600'}`} />
                         <span className="hidden md:inline">Làm mới</span>
                     </button>
 
@@ -880,7 +936,7 @@ export default function ServiceRequestKanban() {
                         className="px-3.5 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-blue-600/25 cursor-pointer active:scale-95"
                         title="Đặt món ăn / đồ uống / dịch vụ cho phòng đang lưu trú"
                     >
-                        <span className="text-sm font-black">+</span>
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
                         <span className="whitespace-nowrap">Đặt món tại phòng</span>
                     </button>
                 </div>
@@ -897,14 +953,14 @@ export default function ServiceRequestKanban() {
                         placeholder="Tìm số phòng, tên khách, món ăn, mã đơn..."
                         className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                     {searchKeyword && (
                         <button
                             type="button"
                             onClick={() => setSearchKeyword('')}
-                            className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                         >
-                            ✕
+                            <X className="w-3.5 h-3.5" />
                         </button>
                     )}
                 </div>
@@ -912,36 +968,41 @@ export default function ServiceRequestKanban() {
                 {/* Nhóm nút lọc Danh mục nghiệp vụ - Xếp đều 1 hàng, không bị rớt dòng */}
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
                     {[
-                        { key: 'all', label: 'Tất cả' },
-                        { key: 'ẩm thực', label: '🍽️ Ẩm thực (F&B)' },
-                        { key: 'spa', label: '💆 Spa & Trị liệu' },
-                        { key: 'giặt', label: '🧺 tiện ích & Giặt ủi' },
-                    ].map((cat) => (
-                        <button
-                            key={cat.key}
-                            type="button"
-                            onClick={() => setSelectedCategoryFilter(cat.key)}
-                            className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer text-xs whitespace-nowrap border ${
-                                selectedCategoryFilter === cat.key
-                                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/80'
-                            }`}
-                        >
-                            {cat.label}
-                        </button>
-                    ))}
+                        { key: 'all', label: 'Tất cả', icon: null },
+                        { key: 'ẩm thực', label: 'Ẩm thực (F&B)', icon: UtensilsCrossed },
+                        { key: 'spa', label: 'Spa & Trị liệu', icon: Sparkles },
+                        { key: 'giặt', label: 'Tiện ích & Giặt ủi', icon: Shirt },
+                    ].map((cat) => {
+                        const CatIcon = cat.icon;
+                        return (
+                            <button
+                                key={cat.key}
+                                type="button"
+                                onClick={() => setSelectedCategoryFilter(cat.key)}
+                                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer text-xs whitespace-nowrap border flex items-center gap-1.5 ${
+                                    selectedCategoryFilter === cat.key
+                                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/80'
+                                }`}
+                            >
+                                {CatIcon && <CatIcon className="w-3.5 h-3.5 shrink-0" />}
+                                <span>{cat.label}</span>
+                            </button>
+                        );
+                    })}
 
                     {viewMode === 'board' && (
                         <button
                             type="button"
                             onClick={() => setShowCancelled(!showCancelled)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border whitespace-nowrap ml-1 ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border whitespace-nowrap ml-1 flex items-center gap-1.5 ${
                                 showCancelled
                                     ? 'bg-rose-50 text-rose-700 border-rose-200'
                                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                             }`}
                         >
-                            <span>✕ Đơn đã hủy ({kanbanData.cancelled?.length || 0})</span>
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Đơn đã hủy ({kanbanData.cancelled?.length || 0})</span>
                         </button>
                     )}
                 </div>
@@ -966,9 +1027,9 @@ export default function ServiceRequestKanban() {
                                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                                     }`}
                                 >
-                                    <span>{tab.icon}</span>
+                                    {renderIcon(tab.icon, "w-3.5 h-3.5 shrink-0")}
                                     <span>{tab.label}</span>
-                                    <span className={`px-1.5 rounded-full text-[10px] ${isActive ? 'bg-white/25' : 'bg-slate-100 text-slate-600'}`}>
+                                    <span className={`px-1.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/25' : 'bg-slate-100 text-slate-600'}`}>
                                         {tab.count}
                                     </span>
                                 </button>
@@ -1025,8 +1086,8 @@ export default function ServiceRequestKanban() {
                                         >
                                             {/* 1. Phòng / Mã đơn */}
                                             <td className="py-3.5 px-4 whitespace-nowrap align-middle">
-                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50/80 text-indigo-700 border border-indigo-200/80 font-mono font-black text-xs shadow-2xs">
-                                                    <span>🚪</span>
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50/90 text-indigo-700 border border-indigo-200/80 font-mono font-black text-xs shadow-2xs">
+                                                    <DoorClosed className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                                                     <span>{item.room_number ? `Phòng ${item.room_number}` : 'Chờ xếp'}</span>
                                                 </div>
                                                 <span className="text-[10px] text-slate-400 block mt-1 font-mono tracking-tight font-medium">
@@ -1035,7 +1096,7 @@ export default function ServiceRequestKanban() {
                                                 {sla && (
                                                     <div className="mt-1">
                                                         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border ${sla.pill}`}>
-                                                            <span>⏰</span>
+                                                            <Clock className="w-2.5 h-2.5 shrink-0" />
                                                             <span>{sla.label}</span>
                                                         </span>
                                                     </div>
@@ -1044,17 +1105,17 @@ export default function ServiceRequestKanban() {
                                                     <div className="mt-1">
                                                         {getServiceLockReason(item) === 'NO_ROOM' && (
                                                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold" title="Chưa gán số phòng cụ thể">
-                                                                ⚠️ Chưa gán phòng
+                                                                <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> Chưa gán phòng
                                                             </span>
                                                         )}
                                                         {getServiceLockReason(item) === 'WAIT_CHECKIN' && (
                                                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
-                                                                ⚠️ Chờ Check-in
+                                                                <Lock className="w-2.5 h-2.5 shrink-0" /> Chờ Check-in
                                                             </span>
                                                         )}
                                                         {!getServiceLockReason(item) && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
                                                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold" title="Đã có số phòng! Nhân viên buồng phòng có thể chuẩn bị gối khăn / tiện nghi vào phòng trước khi khách tới">
-                                                                🛏️ Setup phòng
+                                                                <BedDouble className="w-2.5 h-2.5 shrink-0" /> Setup phòng
                                                             </span>
                                                         )}
                                                     </div>
@@ -1081,8 +1142,8 @@ export default function ServiceRequestKanban() {
                                                             className="w-11 h-11 rounded-xl object-cover border border-slate-200/80 shrink-0 shadow-2xs"
                                                         />
                                                     ) : (
-                                                        <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-lg shrink-0 border border-slate-200/60">
-                                                            🍽️
+                                                        <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 border border-slate-200/60">
+                                                            <UtensilsCrossed className="w-5 h-5 text-slate-400" />
                                                         </div>
                                                     )}
                                                     <div className="min-w-0 flex-1">
@@ -1095,26 +1156,30 @@ export default function ServiceRequestKanban() {
                                                             </span>
                                                             {totalAmt === 0 ? (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold shadow-2xs">
-                                                                    <span>🎁 Tiện ích miễn phí</span>
+                                                                    <Gift className="w-2.5 h-2.5 text-emerald-600" />
+                                                                    <span>Tiện ích miễn phí</span>
                                                                 </span>
                                                             ) : item.is_paid ? (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold shadow-2xs">
-                                                                    <span>🟢 Đã trả trước</span>
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                    <span>Đã trả trước</span>
                                                                 </span>
                                                             ) : (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/80 text-[10px] font-semibold shadow-2xs">
-                                                                    <span>🟠 Thu Check-out</span>
+                                                                    <CreditCard className="w-2.5 h-2.5 text-amber-600" />
+                                                                    <span>Thu Check-out</span>
                                                                 </span>
                                                             )}
                                                             {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold shadow-2xs">
-                                                                    <span>⏰ Hẹn {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                    <Clock className="w-2.5 h-2.5 text-indigo-600" />
+                                                                    <span>Hẹn {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                                                                 </span>
                                                             )}
                                                         </div>
                                                         {item.note && (
-                                                            <div className="text-[11px] text-slate-500 italic truncate mt-1 flex items-center gap-1" title={item.note}>
-                                                                <span>💬</span>
+                                                            <div className="text-[11px] text-slate-500 italic truncate mt-1 flex items-center gap-1.5" title={item.note}>
+                                                                <MessageSquare className="w-3 h-3 text-slate-400 shrink-0" />
                                                                 <span className="truncate">{item.note}</span>
                                                             </div>
                                                         )}
@@ -1132,15 +1197,25 @@ export default function ServiceRequestKanban() {
                                                 </span>
                                             </td>
 
-                                            {/* 5. Thời gian */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-slate-500 align-middle">
-                                                <div className="flex items-center gap-1 font-medium">
-                                                    <span></span>
-                                                    <span>{formatTimeAgo(item.created_at)}</span>
-                                                </div>
+                                            {/* 5. Thời gian (2 dòng rõ ràng, chuẩn khách sạn) */}
+                                            <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600 align-middle">
+                                                {(() => {
+                                                    const timeInfo = formatRequestDateTime(item.created_at);
+                                                    return (
+                                                        <div>
+                                                            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                                                                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                                <span>{timeInfo.time}</span>
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-400 font-medium pl-5 mt-0.5">
+                                                                {timeInfo.date}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
 
-                                            {/* 6. Trạng thái & Thao tác (Gộp chung 1 cột duy nhất, không trùng lặp) */}
+                                            {/* 6. Trạng thái & Thao tác (Gộp chung 1 cột duy nhất, chuẩn 5 sao) */}
                                             <td className="py-3.5 px-4 whitespace-nowrap align-middle">
                                                 <div className="flex items-center justify-center">
                                                     {item.status === 'completed' && (
@@ -1148,21 +1223,21 @@ export default function ServiceRequestKanban() {
                                                             title={totalAmt === 0 ? "Tiện ích buồng phòng miễn phí đã hoàn thành" : "Yêu cầu dịch vụ đã hoàn thành và được tự động hạch toán vào hóa đơn phòng"}
                                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs select-none"
                                                         >
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                            <span>{totalAmt === 0 ? '✓ Hoàn thành (Tiện ích miễn phí)' : '✓ Hoàn thành (Đã tính vào phòng)'}</span>
+                                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                            <span>{totalAmt === 0 ? 'Hoàn thành (Tiện ích miễn phí)' : 'Hoàn thành (Đã tính vào phòng)'}</span>
                                                         </span>
                                                     )}
 
                                                     {item.status === 'pending' && (
                                                         <div className="flex items-center gap-2">
-                                                            <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
-                                                                ⏳ Chờ xử lý
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                                                                <Clock className="w-3 h-3 text-amber-600 shrink-0" /> Chờ xử lý
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'in_progress')}
                                                                 disabled={isUpdatingThis || needsCheckIn}
-                                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1 ${
+                                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1 active:scale-95 ${
                                                                     needsCheckIn
                                                                         ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
                                                                         : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:shadow-md'
@@ -1175,9 +1250,9 @@ export default function ServiceRequestKanban() {
                                                                             : "Bắt đầu chuẩn bị")
                                                                 }
                                                             >
-                                                                {needsCheckIn && <span>🔒</span>}
+                                                                {needsCheckIn ? <Lock className="w-3 h-3" /> : null}
                                                                 <span>Bắt đầu</span>
-                                                                <span>➔</span>
+                                                                <ArrowRight className="w-3 h-3 stroke-[2.5]" />
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -1186,66 +1261,68 @@ export default function ServiceRequestKanban() {
                                                                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-bold transition cursor-pointer"
                                                                 title="Hủy yêu cầu này"
                                                             >
-                                                                ✕
+                                                                <X className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
                                                     )}
 
                                                     {item.status === 'in_progress' && (
                                                         <div className="flex items-center gap-2">
-                                                            <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold">
-                                                                ⚙️ Đang làm
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold">
+                                                                <ChefHat className="w-3 h-3 text-blue-600 shrink-0" /> Đang làm
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'delivering')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1"
+                                                                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1 active:scale-95"
                                                             >
-                                                                <span>🛎️ Giao phòng</span>
-                                                                <span>➔</span>
+                                                                <BellRing className="w-3 h-3 shrink-0" />
+                                                                <span>Giao phòng</span>
+                                                                <ArrowRight className="w-3 h-3 stroke-[2.5]" />
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'pending')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
                                                                 title="Trả về Chờ xử lý"
                                                             >
-                                                                ↩
+                                                                <Undo2 className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
                                                     )}
 
                                                     {item.status === 'delivering' && (
                                                         <div className="flex items-center gap-2">
-                                                            <span className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold">
-                                                                🛎️ Đang giao
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold">
+                                                                <BellRing className="w-3 h-3 text-purple-600 shrink-0" /> Đang giao
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'completed')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1"
+                                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1 active:scale-95"
                                                             >
-                                                                <span>✓ Hoàn tất</span>
+                                                                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                                                <span>Hoàn tất</span>
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'in_progress')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
                                                                 title="Trả về Đang chuẩn bị"
                                                             >
-                                                                ↩
+                                                                <Undo2 className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
                                                     )}
 
                                                     {item.status === 'cancelled' && (
                                                         <div className="flex items-center gap-2">
-                                                            <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
-                                                                ✕ Đã hủy
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
+                                                                <XCircle className="w-3 h-3 text-rose-600 shrink-0" /> Đã hủy
                                                             </span>
                                                             <button
                                                                 type="button"
@@ -1253,28 +1330,29 @@ export default function ServiceRequestKanban() {
                                                                 disabled={isUpdatingThis}
                                                                 className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1"
                                                             >
-                                                                <span>↩ Khôi phục</span>
+                                                                <RotateCcw className="w-3 h-3" />
+                                                                <span>Khôi phục</span>
                                                             </button>
                                                         </div>
                                                     )}
 
-                                                    {/* Nút In phiếu và Xem chi tiết */}
-                                                    <div className="flex items-center gap-1 ml-2 pl-2 border-l border-slate-200">
+                                                    {/* Nút In phiếu và Xem chi tiết (Rõ ràng, tinh tế, dễ bấm) */}
+                                                    <div className="flex items-center gap-1.5 ml-2.5 pl-2.5 border-l border-slate-200">
                                                         <button
                                                             type="button"
                                                             onClick={() => handlePrintSlip(item)}
-                                                            className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition cursor-pointer border border-slate-200/70 active:scale-95"
                                                             title="In phiếu phục vụ phòng (Print Slip)"
                                                         >
-                                                            🖨️
+                                                            <Printer className="w-3.5 h-3.5" />
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedItemForDetail(item)}
-                                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                            className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 flex items-center justify-center transition cursor-pointer border border-blue-200/70 active:scale-95"
                                                             title="Xem chi tiết yêu cầu"
                                                         >
-                                                            👁️
+                                                            <Eye className="w-3.5 h-3.5" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1323,8 +1401,8 @@ export default function ServiceRequestKanban() {
                                     {/* 1. Header Thẻ: Số phòng, Mã đơn, Trạng thái */}
                                     <div className="flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2">
-                                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-mono font-black text-xs shadow-2xs">
-                                                <span>🚪</span>
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50/90 text-indigo-700 border border-indigo-200/80 font-mono font-black text-xs shadow-2xs">
+                                                <DoorClosed className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                                                 <span>{item.room_number ? `Phòng ${item.room_number}` : 'Chờ xếp'}</span>
                                             </div>
                                             <span className="text-[10px] font-mono text-slate-400 font-semibold">
@@ -1333,8 +1411,9 @@ export default function ServiceRequestKanban() {
                                         </div>
 
                                         <div className="flex items-center gap-1.5">
-                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${meta?.pill || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                                                {meta?.icon} {meta?.label}
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border ${meta?.pill || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                                                {renderIcon(meta?.icon, "w-3 h-3 shrink-0")}
+                                                <span>{meta?.label}</span>
                                             </span>
                                         </div>
                                     </div>
@@ -1344,7 +1423,7 @@ export default function ServiceRequestKanban() {
                                         <div className="flex flex-wrap items-center gap-1.5">
                                             {sla && (
                                                 <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${sla.pill}`}>
-                                                    <span>⏰</span>
+                                                    <Clock className="w-2.5 h-2.5 shrink-0" />
                                                     <span>{sla.label}</span>
                                                 </span>
                                             )}
@@ -1352,24 +1431,25 @@ export default function ServiceRequestKanban() {
                                                 <>
                                                     {lockReason === 'NO_ROOM' && (
                                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 font-bold" title="Chưa gán số phòng cụ thể">
-                                                            ⚠️ Chưa gán phòng
+                                                            <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> Chưa gán phòng
                                                         </span>
                                                     )}
                                                     {lockReason === 'WAIT_CHECKIN' && (
                                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 font-bold" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
-                                                            ⚠️ Chờ Check-in
+                                                            <Lock className="w-2.5 h-2.5 shrink-0" /> Chờ Check-in
                                                         </span>
                                                     )}
                                                     {!lockReason && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
                                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-200 font-bold" title="Đã có số phòng! Có thể setup buồng phòng trước">
-                                                            🛏️ Setup phòng
+                                                            <BedDouble className="w-2.5 h-2.5 shrink-0" /> Setup phòng
                                                         </span>
                                                     )}
                                                 </>
                                             )}
                                         </div>
-                                        <div className="text-slate-400 font-medium ml-auto">
-                                            {formatTimeAgo(item.created_at)}
+                                        <div className="text-slate-400 font-medium ml-auto flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                            <span>{formatTimeAgo(item.created_at)}</span>
                                         </div>
                                     </div>
 
@@ -1382,8 +1462,8 @@ export default function ServiceRequestKanban() {
                                                 className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
                                             />
                                         ) : (
-                                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-xl shrink-0 border border-slate-200/80">
-                                                🍽️
+                                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 border border-slate-200/80">
+                                                <UtensilsCrossed className="w-6 h-6 text-slate-400" />
                                             </div>
                                         )}
                                         <div className="min-w-0 flex-1">
@@ -1406,22 +1486,31 @@ export default function ServiceRequestKanban() {
                                             <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] text-slate-600">
                                                 <span>Khách: <strong className="text-slate-800">{item.guest_name || 'Khách lưu trú'}</strong></span>
                                                 <span>•</span>
-                                                {item.is_paid ? (
-                                                    <span className="text-emerald-700 font-semibold">🟢 Đã trả trước</span>
+                                                {totalAmt === 0 ? (
+                                                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                                                        <Gift className="w-2.5 h-2.5" /> Tiện ích miễn phí
+                                                    </span>
+                                                ) : item.is_paid ? (
+                                                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Đã trả trước
+                                                    </span>
                                                 ) : (
-                                                    <span className="text-amber-700 font-semibold">🟠 Thu Check-out</span>
+                                                    <span className="text-amber-700 font-semibold flex items-center gap-1">
+                                                        <CreditCard className="w-2.5 h-2.5" /> Thu Check-out
+                                                    </span>
                                                 )}
                                             </div>
 
                                             {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
                                                 <div className="mt-1 text-[10px] font-bold text-indigo-700 flex items-center gap-1">
-                                                    <span>⏰ Hẹn giờ: {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <Clock className="w-2.5 h-2.5 text-indigo-600" />
+                                                    <span>Hẹn giờ: {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
                                             )}
 
                                             {item.note && (
                                                 <div className="mt-1.5 text-[11px] bg-amber-50/90 text-amber-900 border border-amber-200/60 p-2 rounded-lg font-medium flex items-start gap-1">
-                                                    <span className="shrink-0">💬</span>
+                                                    <MessageSquare className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
                                                     <span className="italic">{item.note}</span>
                                                 </div>
                                             )}
@@ -1433,8 +1522,8 @@ export default function ServiceRequestKanban() {
                                         {item.status === 'completed' && (
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                    <span>✓ Hoàn thành (Cộng hóa đơn phòng)</span>
+                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                    <span>Hoàn thành (Cộng hóa đơn phòng)</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <button
@@ -1443,7 +1532,7 @@ export default function ServiceRequestKanban() {
                                                         className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-bold cursor-pointer"
                                                         title="In phiếu"
                                                     >
-                                                        🖨️
+                                                        <Printer className="w-3.5 h-3.5" />
                                                     </button>
                                                     <button
                                                         type="button"
@@ -1451,7 +1540,7 @@ export default function ServiceRequestKanban() {
                                                         className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-bold cursor-pointer"
                                                         title="Xem chi tiết"
                                                     >
-                                                        👁️
+                                                        <Eye className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -1476,9 +1565,9 @@ export default function ServiceRequestKanban() {
                                                                 : "Bắt đầu chuẩn bị")
                                                     }
                                                 >
-                                                    {needsCheckIn ? <span>🔒</span> : <span>🚀</span>}
+                                                    {needsCheckIn ? <Lock className="w-3.5 h-3.5" /> : null}
                                                     <span>Bắt đầu làm</span>
-                                                    <span>➔</span>
+                                                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1486,7 +1575,7 @@ export default function ServiceRequestKanban() {
                                                     className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
                                                     title="In phiếu phục vụ"
                                                 >
-                                                    🖨️
+                                                    <Printer className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1494,7 +1583,7 @@ export default function ServiceRequestKanban() {
                                                     className="p-2.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer"
                                                     title="Xem chi tiết"
                                                 >
-                                                    👁️
+                                                    <Eye className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1503,7 +1592,7 @@ export default function ServiceRequestKanban() {
                                                     className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition cursor-pointer"
                                                     title="Hủy đơn"
                                                 >
-                                                    ✕
+                                                    <X className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         )}
@@ -1516,9 +1605,9 @@ export default function ServiceRequestKanban() {
                                                     disabled={isUpdatingThis}
                                                     className="flex-1 py-2.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-black transition shadow-sm shadow-purple-500/20 active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
                                                 >
-                                                    <span>🛎️</span>
+                                                    <BellRing className="w-3.5 h-3.5 shrink-0" />
                                                     <span>Giao phòng</span>
-                                                    <span>➔</span>
+                                                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1527,7 +1616,7 @@ export default function ServiceRequestKanban() {
                                                     className="px-2.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
                                                     title="Trả về Chờ xử lý"
                                                 >
-                                                    <span>↩</span>
+                                                    <Undo2 className="w-3 h-3" />
                                                     <span>Lùi</span>
                                                 </button>
                                                 <button
@@ -1536,7 +1625,7 @@ export default function ServiceRequestKanban() {
                                                     className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
                                                     title="In phiếu phục vụ"
                                                 >
-                                                    🖨️
+                                                    <Printer className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1544,7 +1633,7 @@ export default function ServiceRequestKanban() {
                                                     className="p-2.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer"
                                                     title="Xem chi tiết"
                                                 >
-                                                    👁️
+                                                    <Eye className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         )}
@@ -1557,7 +1646,7 @@ export default function ServiceRequestKanban() {
                                                     disabled={isUpdatingThis}
                                                     className="flex-1 py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black transition shadow-sm shadow-emerald-500/20 active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
                                                 >
-                                                    <span>✓</span>
+                                                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                                                     <span>Hoàn tất phục vụ</span>
                                                 </button>
                                                 <button
@@ -1567,7 +1656,7 @@ export default function ServiceRequestKanban() {
                                                     className="px-2.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
                                                     title="Trả về Đang chuẩn bị"
                                                 >
-                                                    <span>↩</span>
+                                                    <Undo2 className="w-3 h-3" />
                                                     <span>Lùi</span>
                                                 </button>
                                                 <button
@@ -1576,15 +1665,15 @@ export default function ServiceRequestKanban() {
                                                     className="p-2.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer"
                                                     title="Xem chi tiết"
                                                 >
-                                                    👁️
+                                                    <Eye className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         )}
 
                                         {item.status === 'cancelled' && (
                                             <div className="flex items-center justify-between gap-2">
-                                                <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
-                                                    ✕ Đã hủy
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
+                                                    <XCircle className="w-3 h-3 text-rose-600 shrink-0" /> Đã hủy
                                                 </span>
                                                 <button
                                                     type="button"
@@ -1592,7 +1681,7 @@ export default function ServiceRequestKanban() {
                                                     disabled={isUpdatingThis}
                                                     className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
                                                 >
-                                                    <span>↩</span>
+                                                    <RotateCcw className="w-3 h-3" />
                                                     <span>Khôi phục</span>
                                                 </button>
                                             </div>
@@ -1687,7 +1776,7 @@ export default function ServiceRequestKanban() {
                             {/* Column Header */}
                             <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-200/80">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-base">{col.icon}</span>
+                                    <span className="text-base">{renderIcon(col.icon, "w-4 h-4")}</span>
                                     <h3 className="font-bold text-xs text-slate-900 tracking-wide uppercase">
                                         {col.title}
                                     </h3>
@@ -1748,7 +1837,7 @@ export default function ServiceRequestKanban() {
                                                     <div className="flex items-start justify-between gap-2 pb-2 mb-2.5 border-b border-slate-100">
                                                         <div>
                                                             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono font-bold text-xs tracking-wider">
-                                                                <span>🚪</span>
+                                                                <DoorClosed className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                                                                 <span>Phòng {item.room_number || 'Chờ xếp'}</span>
                                                             </div>
                                                             <span className="text-[10px] text-slate-400 block mt-1 font-medium">
@@ -1756,7 +1845,7 @@ export default function ServiceRequestKanban() {
                                                             </span>
                                                             {sla && (
                                                                 <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold border mt-1 shadow-2xs ${sla.pill}`}>
-                                                                    <span>⏰</span>
+                                                                    <Clock className="w-2.5 h-2.5 shrink-0" />
                                                                     <span>{sla.label}</span>
                                                                 </div>
                                                             )}
@@ -1764,17 +1853,17 @@ export default function ServiceRequestKanban() {
                                                                 <>
                                                                     {getServiceLockReason(item) === 'NO_ROOM' && (
                                                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold mt-1" title="Chưa gán số phòng cụ thể">
-                                                                            ⚠️ Chưa gán phòng
+                                                                            <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> Chưa gán phòng
                                                                         </span>
                                                                     )}
                                                                     {getServiceLockReason(item) === 'WAIT_CHECKIN' && (
                                                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold mt-1" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
-                                                                            ⚠️ Chờ Check-in
+                                                                            <Lock className="w-2.5 h-2.5 shrink-0" /> Chờ Check-in
                                                                         </span>
                                                                     )}
                                                                     {!getServiceLockReason(item) && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
                                                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold mt-1" title="Đã có số phòng! Nhân viên buồng phòng có thể chuẩn bị gối khăn / tiện nghi vào phòng trước khi khách tới">
-                                                                            🛏️ Setup phòng
+                                                                            <BedDouble className="w-2.5 h-2.5 shrink-0" /> Setup phòng
                                                                         </span>
                                                                     )}
                                                                 </>
@@ -1788,15 +1877,18 @@ export default function ServiceRequestKanban() {
                                                             </span>
                                                             {totalAmt === 0 ? (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold whitespace-nowrap shadow-2xs" title="Tiện ích buồng phòng miễn phí">
-                                                                    <span>🎁 Tiện ích miễn phí</span>
+                                                                    <Gift className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                                                                    <span>Tiện ích miễn phí</span>
                                                                 </span>
                                                             ) : item.is_paid ? (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold whitespace-nowrap shadow-2xs" title="Khách đã thanh toán trước khi đặt phòng">
-                                                                    <span>🟢 Đã trả trước</span>
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                    <span>Đã trả trước</span>
                                                                 </span>
                                                             ) : (
                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold whitespace-nowrap shadow-2xs" title="Dịch vụ phát sinh thu khi check-out">
-                                                                    <span>🟠 Thu lúc Check-out</span>
+                                                                    <CreditCard className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                                                                    <span>Thu lúc Check-out</span>
                                                                 </span>
                                                             )}
                                                         </div>
@@ -1811,8 +1903,8 @@ export default function ServiceRequestKanban() {
                                                                 className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
                                                             />
                                                         ) : (
-                                                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-lg shrink-0">
-                                                                🍽️
+                                                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 border border-slate-200/60">
+                                                                <UtensilsCrossed className="w-6 h-6 text-slate-400" />
                                                             </div>
                                                         )}
 
@@ -1834,15 +1926,15 @@ export default function ServiceRequestKanban() {
                                                     {/* Thời gian hẹn phục vụ cụ thể (chỉ hiển thị khi lễ tân có hẹn giờ và đơn chưa hoàn thành) */}
                                                     {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
                                                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-200 text-[10px] font-bold my-2 shadow-2xs">
-                                                            <span>⏰ Hẹn phục vụ:</span>
-                                                            <span>{new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            <Clock className="w-3 h-3 text-indigo-600 shrink-0" />
+                                                            <span>Hẹn phục vụ: {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                                                         </div>
                                                     )}
 
                                                     {/* Ghi chú riêng của khách (nếu có) */}
                                                     {item.note && (
                                                         <div className="p-2.5 bg-amber-50/70 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 my-2 flex items-start gap-1.5">
-                                                            <span className="shrink-0">💬</span>
+                                                            <MessageSquare className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
                                                             <span className="font-medium italic leading-relaxed">
                                                                 "{item.note}"
                                                             </span>
@@ -1852,7 +1944,7 @@ export default function ServiceRequestKanban() {
                                                     {/* Cảnh báo dịch vụ yêu cầu nhận phòng trước khi thực hiện */}
                                                     {needsCheckIn && item.status === 'pending' && (
                                                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50/90 text-amber-900 border border-amber-200 text-[10px] font-bold my-2 shadow-2xs">
-                                                            <span>⚠️</span>
+                                                            <Lock className="w-3 h-3 text-amber-700 shrink-0" />
                                                             <span>Khách chưa nhận phòng (Chờ Check-in)</span>
                                                         </div>
                                                     )}
@@ -1862,7 +1954,7 @@ export default function ServiceRequestKanban() {
                                                 <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                                                            <span>⏱️</span>
+                                                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
                                                             <span>{formatTimeAgo(item.created_at)}</span>
                                                         </span>
                                                         <button
@@ -1871,10 +1963,10 @@ export default function ServiceRequestKanban() {
                                                                 e.stopPropagation();
                                                                 handlePrintSlip(item);
                                                             }}
-                                                            className="p-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer text-xs"
+                                                            className="w-6 h-6 rounded-lg text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition cursor-pointer"
                                                             title="In phiếu phục vụ phòng (Print Slip)"
                                                         >
-                                                            🖨️
+                                                            <Printer className="w-3 h-3" />
                                                         </button>
                                                         <button
                                                             type="button"
@@ -1882,10 +1974,10 @@ export default function ServiceRequestKanban() {
                                                                 e.stopPropagation();
                                                                 setSelectedItemForDetail(item);
                                                             }}
-                                                            className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer text-xs"
+                                                            className="w-6 h-6 rounded-lg text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition cursor-pointer"
                                                             title="Xem chi tiết yêu cầu"
                                                         >
-                                                            👁️
+                                                            <Eye className="w-3 h-3" />
                                                         </button>
                                                     </div>
 
@@ -1897,9 +1989,10 @@ export default function ServiceRequestKanban() {
                                                                     type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'cancelled')}
                                                                     title="Hủy yêu cầu này"
-                                                                    className="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                                                    className="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-lg text-[10px] font-bold transition cursor-pointer flex items-center gap-1"
                                                                 >
-                                                                    ✕ Hủy
+                                                                    <X className="w-2.5 h-2.5" />
+                                                                    <span>Hủy</span>
                                                                 </button>
                                                                 <button
                                                                     type="button"
@@ -1918,9 +2011,9 @@ export default function ServiceRequestKanban() {
                                                                             : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
                                                                     }`}
                                                                 >
-                                                                    {needsCheckIn && <span>🔒</span>}
+                                                                    {needsCheckIn && <Lock className="w-2.5 h-2.5" />}
                                                                     <span>Bắt đầu</span>
-                                                                    <span>➔</span>
+                                                                    <ArrowRight className="w-2.5 h-2.5" />
                                                                 </button>
                                                             </>
                                                         )}
@@ -1931,9 +2024,10 @@ export default function ServiceRequestKanban() {
                                                                     type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'pending')}
                                                                     title="Trả về Chờ xử lý"
-                                                                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                                                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold transition cursor-pointer flex items-center gap-1"
                                                                 >
-                                                                    ↩ Chờ
+                                                                    <Undo2 className="w-2.5 h-2.5" />
+                                                                    <span>Chờ</span>
                                                                 </button>
                                                                 <button
                                                                     type="button"
@@ -1941,8 +2035,9 @@ export default function ServiceRequestKanban() {
                                                                     title="Bắt đầu phục vụ / mang lên phòng / đón khách"
                                                                     className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
                                                                 >
-                                                                    <span>🛎️ Phục vụ</span>
-                                                                    <span>➔</span>
+                                                                    <BellRing className="w-2.5 h-2.5" />
+                                                                    <span>Phục vụ</span>
+                                                                    <ArrowRight className="w-2.5 h-2.5" />
                                                                 </button>
                                                             </>
                                                         )}
@@ -1953,9 +2048,10 @@ export default function ServiceRequestKanban() {
                                                                     type="button"
                                                                     onClick={() => handleUpdateStatus(item.id, 'in_progress')}
                                                                     title="Trả về Đang chuẩn bị"
-                                                                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                                                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold transition cursor-pointer flex items-center gap-1"
                                                                 >
-                                                                    ↩ Chuẩn bị
+                                                                    <Undo2 className="w-2.5 h-2.5" />
+                                                                    <span>Chuẩn bị</span>
                                                                 </button>
                                                                 <button
                                                                     type="button"
@@ -1963,7 +2059,8 @@ export default function ServiceRequestKanban() {
                                                                     title="Đã phục vụ hoàn thành cho khách hàng"
                                                                     className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
                                                                 >
-                                                                    <span>✓ Hoàn thành</span>
+                                                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                                                    <span>Hoàn thành</span>
                                                                 </button>
                                                             </>
                                                         )}
@@ -1974,7 +2071,7 @@ export default function ServiceRequestKanban() {
                                                                     title="Đã tính vào hóa đơn phòng, không thể thay đổi trạng thái"
                                                                     className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-flex items-center gap-1 select-none"
                                                                 >
-                                                                    <span>🔒</span>
+                                                                    <Lock className="w-2.5 h-2.5" />
                                                                     <span>Đã tính hóa đơn</span>
                                                                 </span>
                                                             </div>
@@ -2033,7 +2130,7 @@ export default function ServiceRequestKanban() {
                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                         <div className="flex items-center gap-2">
-                            <span className="text-base">✕</span>
+                            <XCircle className="w-4 h-4 text-rose-500" />
                             <h3 className="font-bold text-sm text-slate-900">
                                 Danh Sách Yêu Cầu Dịch Vụ Đã Hủy ({kanbanData.cancelled?.length || 0})
                             </h3>
@@ -2041,7 +2138,7 @@ export default function ServiceRequestKanban() {
                         <button
                             type="button"
                             onClick={() => setShowCancelled(false)}
-                            className="text-xs text-slate-400 hover:text-slate-600 font-bold"
+                            className="text-xs text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
                         >
                             Thu gọn ▲
                         </button>
@@ -2072,9 +2169,10 @@ export default function ServiceRequestKanban() {
                                         <button
                                             type="button"
                                             onClick={() => handleUpdateStatus(item.id, 'pending')}
-                                            className="text-blue-600 hover:underline font-bold"
+                                            className="text-blue-600 hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
                                         >
-                                            Khôi phục ↩
+                                            <Undo2 className="w-3 h-3" />
+                                            <span>Khôi phục</span>
                                         </button>
                                     </div>
                                 </div>
@@ -2101,8 +2199,8 @@ export default function ServiceRequestKanban() {
                         {/* Modal Header */}
                         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-lg">
-                                    🛎️
+                                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                                    <BellRing className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
@@ -2121,9 +2219,9 @@ export default function ServiceRequestKanban() {
                             <button
                                 type="button"
                                 onClick={() => setSelectedItemForDetail(null)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -2135,7 +2233,7 @@ export default function ServiceRequestKanban() {
                                 if (!sla) return null;
                                 return (
                                     <div className={`p-3 rounded-2xl border flex items-center gap-2.5 ${sla.pill}`}>
-                                        <span className="text-base">⏰</span>
+                                        <Clock className="w-4 h-4 text-amber-600 shrink-0" />
                                         <div>
                                             <strong className="font-bold">Cảnh báo SLA:</strong> {sla.label} — Yêu cầu đang vượt thời gian tiêu chuẩn phục vụ phòng.
                                         </div>
@@ -2155,11 +2253,12 @@ export default function ServiceRequestKanban() {
                                         </h4>
                                     </div>
                                     <span
-                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border ${
+                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border inline-flex items-center gap-1.5 ${
                                             STATUS_META[selectedItemForDetail.status]?.pill || 'bg-slate-100 text-slate-600'
                                         }`}
                                     >
-                                        {STATUS_META[selectedItemForDetail.status]?.icon} {STATUS_META[selectedItemForDetail.status]?.label || selectedItemForDetail.status}
+                                        {renderIcon(STATUS_META[selectedItemForDetail.status]?.icon, "w-3.5 h-3.5")}
+                                        <span>{STATUS_META[selectedItemForDetail.status]?.label || selectedItemForDetail.status}</span>
                                     </span>
                                 </div>
 
@@ -2205,7 +2304,7 @@ export default function ServiceRequestKanban() {
                             {/* Guest Special Request Note */}
                             <div className="p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200/70">
                                 <div className="flex items-center gap-1.5 text-amber-800 font-bold text-[11px] mb-1">
-                                    <span>📝</span>
+                                    <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
                                     <span>Ghi chú của khách hàng</span>
                                 </div>
                                 <p className="text-xs text-amber-900 italic">
@@ -2222,7 +2321,7 @@ export default function ServiceRequestKanban() {
                                 className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                 title="In phiếu phục vụ phòng cho bộ phận bếp / chạy món"
                             >
-                                <span>🖨️</span>
+                                <Printer className="w-3.5 h-3.5" />
                                 <span>In Phiếu Order</span>
                             </button>
 
@@ -2234,9 +2333,10 @@ export default function ServiceRequestKanban() {
                                             await handleUpdateStatus(selectedItemForDetail.id, 'in_progress');
                                             setSelectedItemForDetail((prev) => (prev ? { ...prev, status: 'in_progress' } : null));
                                         }}
-                                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
                                     >
-                                        Bắt đầu làm ⚙️
+                                        <span>Bắt đầu làm</span>
+                                        <ArrowRight className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                                 {selectedItemForDetail.status === 'in_progress' && (
@@ -2246,9 +2346,10 @@ export default function ServiceRequestKanban() {
                                             await handleUpdateStatus(selectedItemForDetail.id, 'delivering');
                                             setSelectedItemForDetail((prev) => (prev ? { ...prev, status: 'delivering' } : null));
                                         }}
-                                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
                                     >
-                                        Giao phòng 🛎️
+                                        <BellRing className="w-3.5 h-3.5" />
+                                        <span>Giao phòng</span>
                                     </button>
                                 )}
                                 {selectedItemForDetail.status === 'delivering' && (
@@ -2258,9 +2359,10 @@ export default function ServiceRequestKanban() {
                                             await handleUpdateStatus(selectedItemForDetail.id, 'completed');
                                             setSelectedItemForDetail(null);
                                         }}
-                                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
                                     >
-                                        Hoàn tất ✓
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        <span>Hoàn tất</span>
                                     </button>
                                 )}
                                 <button
@@ -2291,8 +2393,8 @@ export default function ServiceRequestKanban() {
                         {/* Header */}
                         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50/50 via-white to-slate-50">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-lg font-bold shadow-md shadow-blue-500/20">
-                                    🍽️
+                                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20">
+                                    <UtensilsCrossed className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-slate-900 text-base">
@@ -2307,9 +2409,9 @@ export default function ServiceRequestKanban() {
                                 type="button"
                                 disabled={modalSubmitting}
                                 onClick={() => setIsCreateModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer disabled:opacity-50"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -2318,7 +2420,7 @@ export default function ServiceRequestKanban() {
                             <div className="p-6 overflow-y-auto space-y-5 text-xs flex-1">
                                 {modalError && (
                                     <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl flex items-center gap-2">
-                                        <span className="text-base">⚠️</span>
+                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                                         <span>{modalError}</span>
                                     </div>
                                 )}
@@ -2372,6 +2474,7 @@ export default function ServiceRequestKanban() {
                                             {/* Bộ lọc Danh mục & Ô tìm kiếm nhanh */}
                                             <div className="flex flex-col sm:flex-row gap-2">
                                                 <div className="relative flex-1">
+                                                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
                                                     <input
                                                         type="text"
                                                         value={modalServiceSearch}
@@ -2379,7 +2482,6 @@ export default function ServiceRequestKanban() {
                                                         placeholder="Tìm tên món ăn, đồ uống, dịch vụ..."
                                                         className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     />
-                                                    <span className="absolute left-2.5 top-2 text-slate-400 text-xs">🔍</span>
                                                 </div>
 
                                                 <select
@@ -2419,7 +2521,7 @@ export default function ServiceRequestKanban() {
                                                                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
                                                                         isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
                                                                     }`}>
-                                                                        {isSelected ? '✓' : '🍽️'}
+                                                                        {isSelected ? <CheckCircle2 className="w-4 h-4" /> : <UtensilsCrossed className="w-3.5 h-3.5 text-slate-500" />}
                                                                     </div>
                                                                     <div>
                                                                         <div className="font-bold text-slate-800 text-xs flex items-center gap-2">
@@ -2552,7 +2654,7 @@ export default function ServiceRequestKanban() {
                                     ) : (
                                         <>
                                             <span>Xác Nhận Tạo Đơn Phục Vụ</span>
-                                            <span>→</span>
+                                            <ArrowRight className="w-3.5 h-3.5" />
                                         </>
                                     )}
                                 </button>

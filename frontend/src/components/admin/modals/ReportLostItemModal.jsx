@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import {
+    Luggage,
+    X,
+    AlertTriangle,
+    Camera,
+    Bell,
+    Loader2,
+    Check
+} from 'lucide-react';
 import roomService from '../../../services/roomService';
 
 export default function ReportLostItemModal({ isOpen, onClose, room, initialData = {}, onSuccess }) {
@@ -43,12 +52,12 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
     };
 
     const categories = [
-        { key: 'electronics', label: '📱 Thiết bị điện tử (Điện thoại, Laptop, Tai nghe, Sạc)' },
-        { key: 'valuable', label: '💎 Đồ giá trị (Tiền mặt, Trang sức, Đồng hồ)' },
-        { key: 'documents', label: '📄 Giấy tờ tùy thân (Hộ chiếu, CCCD, Ví tiền)' },
-        { key: 'clothing', label: '👔 Quần áo / Giày dép / Túi xách' },
-        { key: 'accessories', label: '🕶️ Phụ kiện / Kính mắt / Mỹ phẩm' },
-        { key: 'other', label: '📦 Khác' },
+        { key: 'electronics', label: 'Thiết bị điện tử (Điện thoại, Laptop, Tai nghe, Sạc)' },
+        { key: 'valuable', label: 'Đồ giá trị (Tiền mặt, Trang sức, Đồng hồ)' },
+        { key: 'documents', label: 'Giấy tờ tùy thân (Hộ chiếu, CCCD, Ví tiền)' },
+        { key: 'clothing', label: 'Quần áo / Giày dép / Túi xách' },
+        { key: 'accessories', label: 'Phụ kiện / Kính mắt / Mỹ phẩm' },
+        { key: 'other', label: 'Khác' },
     ];
 
     const handleSubmit = async (e) => {
@@ -100,8 +109,8 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                 {/* Header */}
                 <div className="px-4 sm:px-5 py-3 sm:py-3.5 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2.5 sm:gap-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-lg sm:text-xl shrink-0 shadow-xs">
-                            🧳
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600 shrink-0 shadow-2xs">
+                            <Luggage className="w-5 h-5" />
                         </div>
                         <div>
                             <h3 className="font-bold text-sm sm:text-base text-slate-900">Báo Đồ Khách Thất Lạc</h3>
@@ -113,9 +122,9 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer text-base shrink-0"
+                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer shrink-0"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -123,7 +132,7 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
                     {errorMessage && (
                         <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 flex items-center gap-2">
-                            <span>⚠️</span>
+                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                             <span>{errorMessage}</span>
                         </div>
                     )}
@@ -244,7 +253,7 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                         </label>
                         <div className="flex items-center gap-3">
                             <label className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl font-semibold text-slate-700 cursor-pointer flex items-center gap-1.5 transition">
-                                <span>📷</span>
+                                <Camera className="w-4 h-4 text-slate-600" />
                                 <span>{imageFile ? 'Đổi ảnh chụp' : 'Chụp / Chọn ảnh'}</span>
                                 <input
                                     type="file"
@@ -267,9 +276,9 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                                             setImageFile(null);
                                             setImagePreview(null);
                                         }}
-                                        className="absolute top-0 right-0 w-4 h-4 bg-rose-600 text-white text-[10px] flex items-center justify-center rounded-bl"
+                                        className="absolute top-0 right-0 w-4 h-4 bg-rose-600 text-white flex items-center justify-center rounded-bl cursor-pointer"
                                     >
-                                        ✕
+                                        <X className="w-3 h-3" />
                                     </button>
                                 </div>
                             )}
@@ -284,7 +293,7 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
 
                     {/* Notification info */}
                     <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 flex items-start gap-2">
-                        <span className="text-base shrink-0">🔔</span>
+                        <Bell className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                         <div>
                             <strong>Thông báo tự động:</strong> Khi gửi phiếu, hệ thống sẽ tự động thông báo đến bộ phận <strong>Lễ tân & Quản lý</strong> để đối soát với khách hàng và hỗ trợ khách nhận lại đồ sớm nhất.
                         </div>
@@ -307,12 +316,12 @@ export default function ReportLostItemModal({ isOpen, onClose, room, initialData
                         >
                             {isSubmitting ? (
                                 <>
-                                    <span className="inline-block animate-spin">⏳</span>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                     <span>Đang lưu...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>✓</span>
+                                    <Check className="w-4 h-4" />
                                     <span>Lập phiếu lưu kho & Báo Lễ tân</span>
                                 </>
                             )}

@@ -1,6 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import {
+    Building2,
+    Banknote,
+    Crown,
+    Images,
+    Camera,
+    DoorClosed,
+    Maximize2,
+    Users,
+    BedDouble,
+    Edit3,
+    Trash2,
+    Plus,
+    Search,
+    Filter,
+    Sparkles,
+    Check,
+    X,
+    AlertTriangle,
+    Star,
+    ArrowUpDown,
+    UploadCloud,
+    Percent
+} from 'lucide-react';
 import roomService from '../../services/roomService';
 import { useAuth } from '../../store/authStore';
 import { useHasPermission } from '../../utils/permission';
@@ -33,6 +57,8 @@ export default function CategoryManagement() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('price_asc');
+    const [capacityFilter, setCapacityFilter] = useState('all');
+    const [promoFilter, setPromoFilter] = useState('all');
 
     // State cho Modal Thêm/Sửa
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -403,8 +429,24 @@ export default function CategoryManagement() {
         }
     };
 
+    // Lọc theo capacity & promo
+    const filteredCategories = categories.filter((cat) => {
+        // Lọc theo sức chứa
+        if (capacityFilter === '1-2' && (Number(cat.capacity) < 1 || Number(cat.capacity) > 2)) return false;
+        if (capacityFilter === '3-4' && (Number(cat.capacity) < 3 || Number(cat.capacity) > 4)) return false;
+        if (capacityFilter === '5+' && Number(cat.capacity) < 5) return false;
+
+        // Lọc theo khuyến mãi
+        if (promoFilter === 'promo') {
+            const hasPromo = cat.promo_price && Number(cat.promo_price) > 0 && Number(cat.promo_price) < Number(cat.base_price);
+            if (!hasPromo) return false;
+        }
+
+        return true;
+    });
+
     // Sắp xếp danh sách
-    const sortedCategories = [...categories].sort((a, b) => {
+    const sortedCategories = [...filteredCategories].sort((a, b) => {
         if (sortBy === 'price_asc') return Number(a.base_price) - Number(b.base_price);
         if (sortBy === 'price_desc') return Number(b.base_price) - Number(a.base_price);
         if (sortBy === 'size_desc') return Number(b.size) - Number(a.size);
@@ -412,19 +454,25 @@ export default function CategoryManagement() {
         return 0;
     });
 
-    // Thống kê tổng hợp
+    // Thống kê tổng hợp (tính toán dynamic từ danh sách hạng phòng)
     const totalCategories = categories.length;
     const totalImagesCount = categories.reduce((acc, cat) => acc + (cat.images?.length || 0), 0);
-    const minPrice = categories.length > 0
-        ? Math.min(...categories.map((c) => Number(c.base_price)))
-        : 0;
-    const maxPrice = categories.length > 0
-        ? Math.max(...categories.map((c) => Number(c.base_price)))
-        : 0;
+    
+    // Tìm phòng có giá thấp nhất và cao nhất (dynamic)
+    const validPricedCategories = categories.filter((c) => Number(c.base_price) > 0);
+    const cheapestCat = validPricedCategories.length > 0
+        ? [...validPricedCategories].sort((a, b) => Number(a.base_price) - Number(b.base_price))[0]
+        : null;
+    const expensiveCat = validPricedCategories.length > 0
+        ? [...validPricedCategories].sort((a, b) => Number(b.base_price) - Number(a.base_price))[0]
+        : null;
+
+    const minPrice = cheapestCat ? Number(cheapestCat.base_price) : 0;
+    const maxPrice = expensiveCat ? Number(expensiveCat.base_price) : 0;
 
     return (
         <div className="space-y-6">
-            {/* 1. HEADER & KPI CARDS */}
+            {/* 1. HEADER & ACTION BUTTONS */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
                 <div>
                     <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
@@ -442,93 +490,127 @@ export default function CategoryManagement() {
                             onClick={handleOpenCreateModal}
                             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition transform active:scale-95"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                            </svg>
+                            <Plus className="w-4 h-4" />
                             <span>Thêm hạng phòng</span>
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* 2. STATS KPI OVERVIEW */}
+            {/* 2. STATS KPI OVERVIEW (DYNAMIC & VECTOR ICONS) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
-                        🏨
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4 hover:border-blue-200 transition">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                        <Building2 className="w-6 h-6 stroke-[1.75]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                             Tổng Hạng Phòng
                         </span>
                         <span className="text-2xl font-black text-slate-900">{totalCategories}</span>
-                        <span className="text-[10px] text-slate-500 block">Đang mở bán</span>
+                        <span className="text-[10px] text-slate-500 block truncate">Đang mở bán</span>
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
-                        💵
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4 hover:border-emerald-200 transition">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <Banknote className="w-6 h-6 stroke-[1.75]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                             Giá Khởi Điểm
                         </span>
                         <span className="text-xl font-black text-emerald-600">
                             {minPrice > 0 ? Number(minPrice).toLocaleString('vi-VN') : '0'} đ
                         </span>
-                        <span className="text-[10px] text-slate-500 block">Theo đêm (Từ phòng Deluxe)</span>
+                        <span className="text-[10px] text-slate-500 block truncate" title={cheapestCat ? `Từ ${cheapestCat.name}` : ''}>
+                            {cheapestCat ? `Theo đêm (Từ ${cheapestCat.name})` : 'Theo đêm'}
+                        </span>
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
-                        👑
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-200 transition">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                        <Crown className="w-6 h-6 stroke-[1.75]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                             Hạng Cao Cấp Nhất
                         </span>
                         <span className="text-xl font-black text-amber-600">
                             {maxPrice > 0 ? Number(maxPrice).toLocaleString('vi-VN') : '0'} đ
                         </span>
-                        <span className="text-[10px] text-slate-500 block">Presidential Penthouse</span>
+                        <span className="text-[10px] text-slate-500 block truncate" title={expensiveCat?.name || ''}>
+                            {expensiveCat ? expensiveCat.name : 'Chưa có dữ liệu'}
+                        </span>
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
-                        🖼️
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4 hover:border-indigo-200 transition">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                        <Images className="w-6 h-6 stroke-[1.75]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                             Bộ Sưu Tập Hình Ảnh
                         </span>
                         <span className="text-2xl font-black text-indigo-600">{totalImagesCount}</span>
-                        <span className="text-[10px] text-slate-500 block">Hình ảnh 5 sao đã upload</span>
+                        <span className="text-[10px] text-slate-500 block truncate">Hình ảnh 5 sao đã upload</span>
                     </div>
                 </div>
             </div>
 
-            {/* 3. BỘ LỌC & TÌM KIẾM */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="relative w-full sm:w-80">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </span>
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Tìm theo tên hạng phòng, loại giường..."
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
+            {/* 3. BỘ LỌC & TÌM KIẾM (TOOLBAR CAO CẤP) */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-1">
+                    {/* Input search */}
+                    <div className="relative w-full sm:w-72">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Search className="w-4 h-4" />
+                        </span>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Tìm theo tên hạng phòng, loại giường..."
+                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                        />
+                    </div>
+
+                    {/* Filter Capacity */}
+                    <div className="w-full sm:w-auto">
+                        <select
+                            value={capacityFilter}
+                            onChange={(e) => setCapacityFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        >
+                            <option value="all">Tất cả sức chứa</option>
+                            <option value="1-2">1 - 2 người lớn</option>
+                            <option value="3-4">3 - 4 người lớn</option>
+                            <option value="5+">Gia đình (5+ người)</option>
+                        </select>
+                    </div>
+
+                    {/* Filter Promo */}
+                    <button
+                        type="button"
+                        onClick={() => setPromoFilter(promoFilter === 'promo' ? 'all' : 'promo')}
+                        className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                            promoFilter === 'promo'
+                                ? 'bg-rose-50 border-rose-300 text-rose-700 shadow-xs ring-1 ring-rose-300'
+                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        <Percent className="w-3.5 h-3.5" />
+                        <span>Đang giảm giá</span>
+                    </button>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <span className="text-xs text-slate-400 whitespace-nowrap">Sắp xếp:</span>
+                {/* Sắp xếp */}
+                <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <span className="text-xs text-slate-400 whitespace-nowrap flex items-center gap-1">
+                        <ArrowUpDown className="w-3.5 h-3.5" /> Sắp xếp:
+                    </span>
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
@@ -556,10 +638,12 @@ export default function CategoryManagement() {
                 </div>
             ) : sortedCategories.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-                    <div className="text-4xl mb-3">🏨</div>
+                    <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                        <Building2 className="w-8 h-8 stroke-[1.5]" />
+                    </div>
                     <h3 className="text-base font-bold text-slate-900">Không tìm thấy hạng phòng nào</h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Hãy thử tìm kiếm với từ khóa khác hoặc nhấn "+ Thêm Hạng Phòng Mới" để bắt đầu.
+                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                        Hãy thử tìm kiếm với từ khóa khác, thay đổi bộ lọc sức chứa hoặc nhấn "+ Thêm hạng phòng" để tạo mới.
                     </p>
                 </div>
             ) : (
@@ -577,7 +661,7 @@ export default function CategoryManagement() {
                                 className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col group"
                             >
                                 {/* Ảnh bìa chính */}
-                                <div className="relative h-56 sm:h-64 bg-slate-100 overflow-hidden">
+                                <div className="relative h-60 sm:h-64 bg-slate-100 overflow-hidden">
                                     {featureImg ? (
                                         <img
                                             src={featureImg}
@@ -590,25 +674,25 @@ export default function CategoryManagement() {
                                         />
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100">
-                                            <span className="text-3xl mb-1">🖼️</span>
+                                            <Images className="w-10 h-10 mb-2 stroke-[1.5] text-slate-300" />
                                             <span className="text-xs font-medium">Chưa có ảnh đại diện</span>
                                         </div>
                                     )}
 
-                                    {/* Gradient overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/20 pointer-events-none"></div>
+                                    {/* Gradient overlay tăng tương phản tối đa để text luôn sắc nét */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-black/20 pointer-events-none"></div>
 
                                     {/* Badges trên ảnh */}
                                     <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
-                                        <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-bold border border-white/20">
-                                            📷 {cat.images?.length || 0} ảnh
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-semibold border border-white/20">
+                                            <Camera className="w-3.5 h-3.5 text-slate-300" /> {cat.images?.length || 0} ảnh
                                         </span>
-                                        <span className="px-2.5 py-1 rounded-full bg-blue-600/90 backdrop-blur-md text-white text-[11px] font-bold shadow-sm">
-                                            🚪 {cat.total_rooms_count || 0} phòng thực tế
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-600/90 backdrop-blur-md text-white text-[11px] font-semibold shadow-xs">
+                                            <DoorClosed className="w-3.5 h-3.5 text-blue-200" /> {cat.total_rooms_count || 0} phòng thực tế
                                         </span>
                                         {hasPromo && (
-                                            <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-black uppercase tracking-wider shadow-sm animate-pulse">
-                                                GIẢM {discountPercent}%
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-black uppercase tracking-wider shadow-xs animate-pulse">
+                                                <Percent className="w-3 h-3" /> GIẢM {discountPercent}%
                                             </span>
                                         )}
                                     </div>
@@ -620,32 +704,28 @@ export default function CategoryManagement() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEditModal(cat)}
-                                                    className="p-2 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-blue-600 shadow-md backdrop-blur-md transition transform hover:scale-105"
+                                                    className="p-2 rounded-xl bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 shadow-md backdrop-blur-md transition-all transform hover:scale-105 active:scale-95"
                                                     title="Chỉnh sửa thông tin & ảnh"
                                                 >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
+                                                    <Edit3 className="w-4 h-4" />
                                                 </button>
                                             )}
                                             {canDeleteCat && (
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenDeleteModal(cat)}
-                                                    className="p-2 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-rose-600 shadow-md backdrop-blur-md transition transform hover:scale-105"
+                                                    className="p-2 rounded-xl bg-white/95 hover:bg-white text-slate-700 hover:text-rose-600 shadow-md backdrop-blur-md transition-all transform hover:scale-105 active:scale-95"
                                                     title="Xóa hạng phòng"
                                                 >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             )}
                                         </div>
                                     )}
 
                                     {/* Tên & giá dưới chân ảnh */}
-                                    <div className="absolute bottom-3 left-3 right-3 text-white">
-                                        <h3 className="text-lg sm:text-xl font-bold font-serif drop-shadow-md truncate">
+                                    <div className="absolute bottom-3 left-4 right-4 text-white">
+                                        <h3 className="text-lg sm:text-xl font-bold font-serif drop-shadow-md truncate tracking-tight text-white">
                                             {cat.name}
                                         </h3>
                                         <div className="flex items-baseline gap-2 mt-0.5">
@@ -663,7 +743,7 @@ export default function CategoryManagement() {
                                                     {Number(cat.base_price).toLocaleString('vi-VN')} đ
                                                 </span>
                                             )}
-                                            <span className="text-[10px] text-slate-200 uppercase font-semibold">/ đêm</span>
+                                            <span className="text-[11px] text-slate-200 uppercase font-semibold">/ đêm</span>
                                         </div>
                                     </div>
                                 </div>
@@ -671,18 +751,18 @@ export default function CategoryManagement() {
                                 {/* Body Card */}
                                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                                     {/* Thông số kỹ thuật */}
-                                    <div className="grid grid-cols-3 gap-2 py-2 px-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                                    <div className="grid grid-cols-3 gap-2 py-2.5 px-3 bg-slate-50/80 rounded-xl border border-slate-100 text-xs">
                                         <div className="flex items-center gap-1.5 text-slate-700">
-                                            <span>📐</span>
-                                            <span className="font-semibold">{cat.size} m²</span>
+                                            <Maximize2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                            <span className="font-semibold text-slate-800">{cat.size} m²</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-slate-700">
-                                            <span>👥</span>
-                                            <span className="font-semibold">{cat.capacity} người lớn</span>
+                                            <Users className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                            <span className="font-semibold text-slate-800">{cat.capacity} người lớn</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-slate-700 truncate" title={cat.bed_type}>
-                                            <span>🛏️</span>
-                                            <span className="font-semibold truncate">{cat.bed_type}</span>
+                                            <BedDouble className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                            <span className="font-semibold text-slate-800 truncate">{cat.bed_type}</span>
                                         </div>
                                     </div>
 
@@ -699,14 +779,14 @@ export default function CategoryManagement() {
                                             {cat.amenities.slice(0, 4).map((a, idx) => (
                                                 <span
                                                     key={a.id || idx}
-                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50/70 border border-blue-100 text-blue-800 text-[10px] font-medium"
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50/70 border border-blue-100 text-blue-800 text-[11px] font-medium"
                                                 >
-                                                    <span>{a.icon || '✨'}</span>
+                                                    {a.icon ? <span>{a.icon}</span> : <Sparkles className="w-3 h-3 text-blue-500" />}
                                                     <span>{a.name}</span>
                                                 </span>
                                             ))}
                                             {cat.amenities.length > 4 && (
-                                                <span className="px-1.5 py-0.5 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-bold">
+                                                <span className="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold">
                                                     +{cat.amenities.length - 4} tiện ích khác
                                                 </span>
                                             )}
@@ -716,15 +796,20 @@ export default function CategoryManagement() {
                                     {/* Dải ảnh nhỏ preview bộ sưu tập */}
                                     {cat.images && cat.images.length > 0 && (
                                         <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                                Bộ sưu tập ảnh ({cat.images.length})
-                                            </span>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                                    Bộ sưu tập ảnh ({cat.images.length})
+                                                </span>
+                                                <span className="text-[10px] text-slate-400">
+                                                    ★ = Ảnh đại diện
+                                                </span>
+                                            </div>
                                             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
                                                 {cat.images.map((img) => (
                                                     <div
                                                         key={img.id}
                                                         className={`relative w-14 h-11 rounded-lg overflow-hidden shrink-0 border-2 ${
-                                                            img.is_feature ? 'border-amber-500 shadow-xs' : 'border-slate-200'
+                                                            img.is_feature ? 'border-amber-500 shadow-xs ring-1 ring-amber-400' : 'border-slate-200'
                                                         }`}
                                                     >
                                                         <img
@@ -733,8 +818,8 @@ export default function CategoryManagement() {
                                                             className="w-full h-full object-cover"
                                                         />
                                                         {img.is_feature && (
-                                                            <span className="absolute bottom-0 right-0 bg-amber-500 text-white text-[8px] font-bold px-1 rounded-tl">
-                                                                ★
+                                                            <span className="absolute bottom-0 right-0 bg-amber-500 text-white p-0.5 rounded-tl">
+                                                                <Star className="w-2.5 h-2.5 fill-current" />
                                                             </span>
                                                         )}
                                                     </div>
@@ -746,16 +831,17 @@ export default function CategoryManagement() {
                                     {/* Nút hành động chân card */}
                                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                                         <span className="text-[11px] text-slate-400 font-mono">
-                                            Slug: {cat.slug}
+                                            Mã/Slug: {cat.slug}
                                         </span>
                                         <div className="flex items-center gap-2">
                                             {canUpdateCat ? (
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEditModal(cat)}
-                                                    className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition"
                                                 >
-                                                    Sửa & Thêm Ảnh
+                                                    <Edit3 className="w-3.5 h-3.5" />
+                                                    <span>Sửa & Quản Lý Ảnh</span>
                                                 </button>
                                             ) : null}
                                         </div>
@@ -776,8 +862,8 @@ export default function CategoryManagement() {
                         {/* Tiêu đề nền trắng thanh lịch theo chuẩn hệ thống */}
                         <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 text-lg">
-                                    {isEditMode ? '✏️' : '🏨'}
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+                                    {isEditMode ? <Edit3 className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
                                 </div>
                                 <div>
                                     <h3 className="text-base font-bold text-slate-900">
@@ -795,20 +881,20 @@ export default function CategoryManagement() {
                                 onClick={handleCloseModal}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         {/* Thông báo kết quả / lỗi */}
                         {formError && (
                             <div className="mx-6 mt-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
-                                <span>⚠️</span>
+                                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                                 <span>{formError}</span>
                             </div>
                         )}
                         {formSuccess && (
                             <div className="mx-6 mt-4 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center gap-2">
-                                <span>✓</span>
+                                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                                 <span>{formSuccess}</span>
                             </div>
                         )}
@@ -985,7 +1071,11 @@ export default function CategoryManagement() {
                                                         onChange={() => handleToggleAmenity(amenity.id)}
                                                         className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
                                                     />
-                                                    <span className="text-base">{amenity.icon || '✨'}</span>
+                                                    {amenity.icon ? (
+                                                        <span className="text-base">{amenity.icon}</span>
+                                                    ) : (
+                                                        <Sparkles className="w-4 h-4 text-slate-400" />
+                                                    )}
                                                     <span className="text-xs font-semibold text-slate-800 flex-1 truncate">
                                                         {amenity.name}
                                                     </span>
@@ -1073,8 +1163,8 @@ export default function CategoryManagement() {
                                         accept="image/*"
                                         className="hidden"
                                     />
-                                    <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">
-                                        📸
+                                    <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
+                                        <UploadCloud className="w-6 h-6 stroke-[1.75]" />
                                     </div>
                                     <p className="text-xs font-bold text-slate-800">
                                         Nhấn để chọn ảnh từ máy tính (Có thể chọn nhiều ảnh cùng lúc)
@@ -1092,7 +1182,7 @@ export default function CategoryManagement() {
                                                 Ảnh mới chuẩn bị upload ({filePreviews.length}):
                                             </span>
                                             <span className="text-[11px] text-blue-600">
-                                                Click vào ảnh hoặc nút sao để chọn làm "Ảnh Đại Diện"
+                                                Click vào nút sao để chọn làm "Ảnh Đại Diện"
                                             </span>
                                         </div>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1113,8 +1203,8 @@ export default function CategoryManagement() {
                                                         {/* Badge trạng thái */}
                                                         <div className="absolute top-1 left-1">
                                                             {isFeat ? (
-                                                                <span className="px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase shadow-xs">
-                                                                    ★ ẢNH CHÍNH
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase shadow-xs">
+                                                                    <Star className="w-2.5 h-2.5 fill-current" /> ẢNH CHÍNH
                                                                 </span>
                                                             ) : (
                                                                 <button
@@ -1140,7 +1230,7 @@ export default function CategoryManagement() {
                                                             className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center hover:bg-rose-700 transition shadow-xs"
                                                             title="Bỏ ảnh này"
                                                         >
-                                                            ✕
+                                                            <X className="w-3 h-3" />
                                                         </button>
 
                                                         <div className="p-1.5 bg-white text-[10px] text-slate-500 truncate">
@@ -1190,8 +1280,8 @@ export default function CategoryManagement() {
                                                         {!isMarkedDelete && (
                                                             <div className="absolute top-1 left-1">
                                                                 {isFeat ? (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase shadow-xs">
-                                                                        ★ ẢNH CHÍNH
+                                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase shadow-xs">
+                                                                        <Star className="w-2.5 h-2.5 fill-current" /> ẢNH CHÍNH
                                                                     </span>
                                                                 ) : (
                                                                     <button
@@ -1248,8 +1338,8 @@ export default function CategoryManagement() {
                                         </>
                                     ) : (
                                         <>
-                                            <span>✓</span>
-                                            {isEditMode ? 'Lưu Thay Đổi' : 'Tạo Hạng Phòng'}
+                                            <Check className="w-4 h-4" />
+                                            <span>{isEditMode ? 'Lưu Thay Đổi' : 'Tạo Hạng Phòng'}</span>
                                         </>
                                     )}
                                 </button>
@@ -1268,8 +1358,8 @@ export default function CategoryManagement() {
                         {/* Header nền trắng thanh lịch */}
                         <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 text-lg">
-                                    🗑️
+                                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
+                                    <Trash2 className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="text-base font-bold text-slate-900">Xóa Hạng Phòng</h3>
@@ -1279,16 +1369,16 @@ export default function CategoryManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsDeleteModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         <div className="p-6 space-y-4">
                             {deleteError && (
                                 <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
-                                    <span>⚠️</span>
+                                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                                     <span>{deleteError}</span>
                                 </div>
                             )}
@@ -1301,7 +1391,8 @@ export default function CategoryManagement() {
                             {categoryToDelete.total_rooms_count > 0 && (
                                 <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs space-y-1">
                                     <div className="font-bold flex items-center gap-1.5">
-                                        <span>⚠️ Cảnh báo an toàn:</span>
+                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        <span>Cảnh báo an toàn:</span>
                                     </div>
                                     <p>
                                         Hạng phòng này hiện đang có{' '}
@@ -1323,9 +1414,19 @@ export default function CategoryManagement() {
                                     type="button"
                                     onClick={handleConfirmDelete}
                                     disabled={deleteLoading || categoryToDelete.total_rooms_count > 0}
-                                    className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/30 transition disabled:opacity-40"
+                                    className="inline-flex items-center gap-1.5 px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/30 transition disabled:opacity-40"
                                 >
-                                    {deleteLoading ? 'Đang xóa...' : 'Xác Nhận Xóa'}
+                                    {deleteLoading ? (
+                                        <>
+                                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                            <span>Đang xóa...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            <span>Xác Nhận Xóa</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>

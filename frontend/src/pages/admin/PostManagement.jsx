@@ -1,6 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import {
+    FileText,
+    CheckCircle2,
+    FileEdit,
+    Eye,
+    RotateCw,
+    ExternalLink,
+    Plus,
+    Search,
+    X,
+    Inbox,
+    Pencil,
+    Trash2,
+    Image as ImageIcon,
+    PenTool,
+    AlertTriangle,
+    Check,
+    Loader2,
+    TrendingUp
+} from 'lucide-react';
 import postService from '../../services/postService';
 import Pagination from '../../components/common/Pagination';
 
@@ -12,6 +32,24 @@ const quillFormats = [
     'blockquote', 'code-block',
     'link', 'image',
 ];
+
+// Bảng màu sắc phân loại chuyên mục bài viết
+const getCategoryBadgeStyle = (category) => {
+    switch (category) {
+        case 'am_thuc':
+            return 'bg-amber-50 text-amber-700 border-amber-200/80';
+        case 'khach_san':
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
+        case 'su_kien':
+            return 'bg-purple-50 text-purple-700 border-purple-200/80';
+        case 'du_lich':
+            return 'bg-sky-50 text-sky-700 border-sky-200/80';
+        case 'khuyen_mai':
+            return 'bg-rose-50 text-rose-700 border-rose-200/80';
+        default:
+            return 'bg-slate-100 text-slate-700 border-slate-200/80';
+    }
+};
 
 // Hàm chuyển đổi tiếng Việt có dấu thành slug không dấu cho SEO
 function generateVietnameseSlug(text) {
@@ -367,14 +405,15 @@ export default function PostManagement() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                     <button
                         type="button"
                         onClick={fetchPosts}
-                        className="px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        disabled={isLoading}
+                        className="px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         title="Tải lại danh sách"
                     >
-                        <span className={isLoading ? "animate-spin inline-block" : "inline-block"}>🔄</span>
+                        <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                         <span className="hidden sm:inline">Làm Mới</span>
                     </button>
                     <a
@@ -384,15 +423,15 @@ export default function PostManagement() {
                         className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
                         title="Xem trang tin tức ngoài website"
                     >
-                        <span>🌐</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
                         <span className="hidden sm:inline">Xem Trang Khách</span>
                     </a>
                     <button
                         type="button"
                         onClick={handleOpenCreate}
-                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
                     >
-                        <span>＋</span>
+                        <Plus className="w-4 h-4" />
                         <span>Viết Bài Mới</span>
                     </button>
                 </div>
@@ -408,59 +447,67 @@ export default function PostManagement() {
                     }`}
                 >
                     <div className="flex items-center gap-2">
-                        <span>{alertMessage.type === 'success' ? '✓' : '⚠️'}</span>
+                        {alertMessage.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
                         <span>{alertMessage.text}</span>
                     </div>
                     <button
                         type="button"
                         onClick={() => setAlertMessage(null)}
-                        className="text-slate-400 hover:text-slate-700 font-bold ml-4"
+                        className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer ml-4"
                     >
-                        ✕
+                        <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
             )}
 
             {/* Metric KPI Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
-                        📰
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tổng bài viết</span>
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <FileText className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div>
-                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Tổng bài viết</span>
-                        <span className="text-xl font-black text-slate-900 leading-tight">{totalPosts}</span>
-                    </div>
+                    <div className="text-2xl font-black text-slate-900 tracking-tight">{totalPosts}</div>
+                    <span className="text-[11px] text-slate-400 font-medium">Bản tin & Cẩm nang</span>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
-                        🟢
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Đang hiển thị</span>
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <CheckCircle2 className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div>
-                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Đang hiển thị</span>
-                        <span className="text-xl font-black text-emerald-600 leading-tight">{publishedCount}</span>
-                    </div>
+                    <div className="text-2xl font-black text-emerald-600 tracking-tight">{publishedCount}</div>
+                    <span className="text-[11px] text-emerald-700/80 font-medium">Khách xem công khai</span>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
-                        📝
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Bản nháp</span>
+                        <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <FileEdit className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div>
-                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Bản nháp</span>
-                        <span className="text-xl font-black text-amber-600 leading-tight">{draftCount}</span>
-                    </div>
+                    <div className="text-2xl font-black text-amber-600 tracking-tight">{draftCount}</div>
+                    <span className="text-[11px] text-amber-700/80 font-medium">Đang hoàn thiện nội dung</span>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
-                        👁️
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Lượt đọc tin</span>
+                        <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <TrendingUp className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div>
-                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Lượt đọc tin</span>
-                        <span className="text-xl font-black text-purple-600 leading-tight">{totalViews.toLocaleString('vi-VN')}</span>
-                    </div>
+                    <div className="text-2xl font-black text-purple-600 tracking-tight">{totalViews.toLocaleString('vi-VN')}</div>
+                    <span className="text-[11px] text-purple-700/80 font-medium">Tổng tương tác khách đọc</span>
                 </div>
             </div>
 
@@ -469,14 +516,23 @@ export default function PostManagement() {
                 <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row items-center justify-between gap-3">
                     {/* Search Input */}
                     <div className="relative w-full md:w-96">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Tìm kiếm bài viết theo tiêu đề, tác giả..."
-                            className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+                            className="w-full pl-10 pr-9 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                         />
-                        <span className="absolute left-3 top-2.5 text-xs text-slate-400">🔍</span>
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Filter Dropdowns */}
@@ -500,8 +556,8 @@ export default function PostManagement() {
                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                         >
                             <option value="all">Tất cả Trạng thái</option>
-                            <option value="published">🟢 Hiển thị</option>
-                            <option value="draft">🟡 Bản nháp</option>
+                            <option value="published">Hiển thị</option>
+                            <option value="draft">Bản nháp</option>
                         </select>
 
                         {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all') && (
@@ -513,9 +569,10 @@ export default function PostManagement() {
                                     setStatusFilter('all');
                                     fetchPosts();
                                 }}
-                                className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-xl transition cursor-pointer shrink-0"
+                                className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-xl transition cursor-pointer shrink-0 flex items-center gap-1"
                             >
-                                Xóa bộ lọc
+                                <X className="w-3 h-3" />
+                                <span>Xóa bộ lọc</span>
                             </button>
                         )}
                     </div>
@@ -523,42 +580,46 @@ export default function PostManagement() {
             </div>
 
             {/* BẢNG DANH SÁCH BÀI VIẾT: DESKTOP TABLE + MOBILE CARDS */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
                 {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                <th className="py-3 px-4 w-16 text-center">Ảnh</th>
-                                <th className="py-3 px-4 min-w-[280px]">Tiêu đề & Tóm tắt</th>
-                                <th className="py-3 px-4 whitespace-nowrap">Chuyên mục</th>
-                                <th className="py-3 px-4 whitespace-nowrap">Tác giả</th>
-                                <th className="py-3 px-4 whitespace-nowrap text-center">Trạng thái</th>
-                                <th className="py-3 px-4 whitespace-nowrap text-center">Lượt xem</th>
-                                <th className="py-3 px-4 whitespace-nowrap">Ngày đăng</th>
-                                <th className="py-3 px-4 text-right whitespace-nowrap">Hành động</th>
+                                <th className="py-4 px-4 w-16 text-center">Ảnh</th>
+                                <th className="py-4 px-4 min-w-[280px]">Tiêu đề & Tóm tắt</th>
+                                <th className="py-4 px-4 whitespace-nowrap">Chuyên mục</th>
+                                <th className="py-4 px-4 whitespace-nowrap">Tác giả</th>
+                                <th className="py-4 px-4 whitespace-nowrap text-center">Trạng thái</th>
+                                <th className="py-4 px-4 whitespace-nowrap text-center">Lượt xem</th>
+                                <th className="py-4 px-4 whitespace-nowrap">Ngày đăng</th>
+                                <th className="py-4 pr-6 pl-4 text-right whitespace-nowrap sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10 min-w-[130px]">
+                                    Hành động
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-xs">
                             {isLoading ? (
                                 <tr>
                                     <td colSpan={8} className="py-12 text-center text-slate-500 font-medium">
-                                        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                                        Đang tải dữ liệu bài viết...
+                                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-2" />
+                                        <span>Đang tải dữ liệu bài viết...</span>
                                     </td>
                                 </tr>
                             ) : filteredPosts.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="py-12 text-center text-slate-500 font-medium">
-                                        <div className="text-3xl mb-2">📭</div>
-                                        Không tìm thấy bài viết nào phù hợp.
+                                        <div className="w-12 h-12 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-center mx-auto mb-2 text-slate-400">
+                                            <Inbox className="w-6 h-6" />
+                                        </div>
+                                        <span>Không tìm thấy bài viết nào phù hợp.</span>
                                     </td>
                                 </tr>
                             ) : (
                                 paginatedPosts.map((post) => (
                                     <tr key={post.id} className="hover:bg-slate-50/60 transition group">
                                         {/* Ảnh bìa */}
-                                        <td className="py-3 px-4 text-center">
+                                        <td className="py-3.5 px-4 text-center">
                                             <div className="w-14 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
                                                 {post.thumbnail_url ? (
                                                     <img
@@ -567,13 +628,13 @@ export default function PostManagement() {
                                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                                     />
                                                 ) : (
-                                                    <span className="text-base text-slate-400">🖼️</span>
+                                                    <ImageIcon className="w-5 h-5 text-slate-400" />
                                                 )}
                                             </div>
                                         </td>
 
                                         {/* Cột Tiêu đề hiển thị chữ in đậm và ngay bên dưới là dòng Tóm tắt màu xám nhạt */}
-                                        <td className="py-3 px-4">
+                                        <td className="py-3.5 px-4">
                                             <div className="space-y-0.5">
                                                 <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition">
                                                     {post.title}
@@ -587,75 +648,78 @@ export default function PostManagement() {
                                             </div>
                                         </td>
 
-                                        {/* Cột Chuyên mục dùng Badge màu xám bo góc */}
-                                        <td className="py-3 px-4 whitespace-nowrap">
-                                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-2xs">
+                                        {/* Cột Chuyên mục dùng Badge màu pastel bo góc */}
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                            <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold shadow-2xs ${getCategoryBadgeStyle(post.category)}`}>
                                                 {post.category_display || post.category}
                                             </span>
                                         </td>
 
                                         {/* Tác giả */}
-                                        <td className="py-3 px-4 whitespace-nowrap text-slate-600 font-medium">
+                                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 font-medium">
                                             <span className="flex items-center gap-1.5">
-                                                <span className="text-slate-400 text-[10px]">✍️</span>
+                                                <PenTool className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                                 <span>{post.author || 'Ban Biên Tập'}</span>
                                             </span>
                                         </td>
 
                                         {/* Trạng thái */}
-                                        <td className="py-3 px-4 whitespace-nowrap text-center">
+                                        <td className="py-3.5 px-4 whitespace-nowrap text-center">
                                             {post.status === 'published' ? (
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                    Hiển thị
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                    <span>Hiển thị</span>
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                    Bản nháp
+                                                    <span>Bản nháp</span>
                                                 </span>
                                             )}
                                         </td>
 
                                         {/* Lượt xem */}
-                                        <td className="py-3 px-4 whitespace-nowrap text-center font-bold text-slate-700">
-                                            {post.view_count || 0}
+                                        <td className="py-3.5 px-4 whitespace-nowrap text-center">
+                                            <span className="inline-flex items-center gap-1 font-bold text-slate-700 font-mono">
+                                                <Eye className="w-3.5 h-3.5 text-slate-400" />
+                                                <span>{post.view_count || 0}</span>
+                                            </span>
                                         </td>
 
                                         {/* Ngày đăng */}
-                                        <td className="py-3 px-4 whitespace-nowrap text-slate-500 text-[11px]">
+                                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 text-[11px] font-mono">
                                             {formatDate(post.created_at)}
                                         </td>
 
-                                        {/* Cột Hành động có nút Sửa và Xóa */}
-                                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                                        {/* Cột Hành động (Sticky cố định bên phải) */}
+                                        <td className="py-3.5 pr-6 pl-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10">
                                             <div className="flex items-center justify-end gap-1.5">
                                                 {post.status === 'published' && (
                                                     <a
                                                         href={`/news/${post.slug}`}
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 flex items-center justify-center text-xs transition cursor-pointer"
+                                                        className="p-2 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 transition shadow-2xs cursor-pointer"
                                                         title="Xem bài viết trên web khách"
                                                     >
-                                                        👁️
+                                                        <Eye className="w-4 h-4" />
                                                     </a>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEdit(post)}
-                                                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer"
+                                                    className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/80 transition cursor-pointer shadow-2xs"
                                                     title="Chỉnh sửa bài viết"
                                                 >
-                                                    ✏️
+                                                    <Pencil className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenDelete(post)}
-                                                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer"
+                                                    className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 transition cursor-pointer shadow-2xs"
                                                     title="Xóa bài viết"
                                                 >
-                                                    🗑️
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -670,13 +734,15 @@ export default function PostManagement() {
                 <div className="block md:hidden divide-y divide-slate-100">
                     {isLoading ? (
                         <div className="py-12 text-center text-slate-500 font-medium">
-                            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                            Đang tải dữ liệu bài viết...
+                            <Loader2 className="w-6 h-6 text-blue-600 border-t-transparent animate-spin mx-auto mb-2" />
+                            <span>Đang tải dữ liệu bài viết...</span>
                         </div>
                     ) : filteredPosts.length === 0 ? (
                         <div className="py-12 text-center text-slate-500 font-medium">
-                            <div className="text-3xl mb-2">📭</div>
-                            Không tìm thấy bài viết nào phù hợp.
+                            <div className="w-10 h-10 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-center mx-auto mb-2 text-slate-400">
+                                <Inbox className="w-5 h-5" />
+                            </div>
+                            <span>Không tìm thấy bài viết nào phù hợp.</span>
                         </div>
                     ) : (
                         paginatedPosts.map((post) => (
@@ -690,7 +756,7 @@ export default function PostManagement() {
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <span className="text-base text-slate-400">🖼️</span>
+                                            <ImageIcon className="w-5 h-5 text-slate-400" />
                                         )}
                                     </div>
 
@@ -701,30 +767,34 @@ export default function PostManagement() {
                                             </h4>
                                             {post.status === 'published' ? (
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                    Hiển thị
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                    <span>Hiển thị</span>
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                    Bản nháp
+                                                    <span>Bản nháp</span>
                                                 </span>
                                             )}
                                         </div>
 
                                         <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap">
-                                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-semibold">
+                                            <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold ${getCategoryBadgeStyle(post.category)}`}>
                                                 {post.category_display || post.category}
                                             </span>
-                                            <span>• 👁️ {post.view_count || 0}</span>
+                                            <span className="inline-flex items-center gap-1 font-mono">
+                                                <Eye className="w-3 h-3 text-slate-400" />
+                                                <span>{post.view_count || 0}</span>
+                                            </span>
                                             <span>• {formatDate(post.created_at)}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                                    <span className="text-[10px] text-slate-400 truncate max-w-[150px]">
-                                        ✍️ {post.author || 'Ban Biên Tập'}
+                                    <span className="text-[10px] text-slate-400 truncate max-w-[150px] flex items-center gap-1">
+                                        <PenTool className="w-3 h-3 text-slate-400" />
+                                        <span>{post.author || 'Ban Biên Tập'}</span>
                                     </span>
 
                                     <div className="flex items-center gap-1.5">
@@ -733,27 +803,29 @@ export default function PostManagement() {
                                                 href={`/news/${post.slug}`}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="p-1 px-2 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                                className="p-1 px-2.5 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 font-bold text-xs flex items-center gap-1 border border-slate-200 transition cursor-pointer"
                                                 title="Xem web khách"
                                             >
-                                                👁️ Xem
+                                                <Eye className="w-3.5 h-3.5" />
+                                                <span>Xem</span>
                                             </a>
                                         )}
                                         <button
                                             type="button"
                                             onClick={() => handleOpenEdit(post)}
-                                            className="p-1 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                            className="p-1 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs flex items-center gap-1 border border-blue-200/80 transition cursor-pointer"
                                             title="Chỉnh sửa bài viết"
                                         >
-                                            ✏️ Sửa
+                                            <Pencil className="w-3.5 h-3.5" />
+                                            <span>Sửa</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => handleOpenDelete(post)}
-                                            className="p-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition cursor-pointer"
+                                            className="p-1 px-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center border border-rose-200/80 transition cursor-pointer"
                                             title="Xóa bài viết"
                                         >
-                                            🗑️
+                                            <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                 </div>
@@ -795,9 +867,9 @@ export default function PostManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsFormModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm transition"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -831,9 +903,10 @@ export default function PostManagement() {
                                                 setFormData((prev) => ({ ...prev, slug: auto }));
                                                 setIsAutoSlug(true);
                                             }}
-                                            className="text-[10px] text-blue-600 hover:underline font-semibold"
+                                            className="text-[10px] text-blue-600 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                                         >
-                                            ↻ Tạo lại theo tiêu đề
+                                            <RotateCw className="w-3 h-3" />
+                                            <span>Tạo lại theo tiêu đề</span>
                                         </button>
                                     </div>
                                     <div className="relative flex items-center">
@@ -1002,16 +1075,16 @@ export default function PostManagement() {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                                 >
                                     {isSubmitting ? (
                                         <>
-                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
                                             <span>Đang lưu bài viết...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span>✓</span>
+                                            <Check className="w-4 h-4" />
                                             <span>{selectedPost ? 'Lưu Thay Đổi' : 'Đăng Bài Viết'}</span>
                                         </>
                                     )}
@@ -1026,16 +1099,16 @@ export default function PostManagement() {
             {/* MODAL XÁC NHẬN XÓA BÀI VIẾT */}
             {/* ========================================================================= */}
             {isDeleteModalOpen && selectedPost && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100 space-y-4">
-                        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto">
-                            🗑️
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
+                    <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100 space-y-4 animate-scaleUp">
+                        <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center mx-auto">
+                            <Trash2 className="w-7 h-7" />
                         </div>
                         <div className="text-center space-y-1">
                             <h3 className="text-base font-bold text-slate-900">
                                 Xác nhận xóa bài viết?
                             </h3>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 leading-relaxed">
                                 Bạn có chắc chắn muốn xóa bài viết{' '}
                                 <strong className="text-slate-900">"{selectedPost.title}"</strong>? Thao tác này không thể hoàn tác.
                             </p>
@@ -1053,10 +1126,10 @@ export default function PostManagement() {
                                 type="button"
                                 disabled={isSubmitting}
                                 onClick={handleConfirmDelete}
-                                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                                 {isSubmitting ? (
-                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
                                     <span>Xóa vĩnh viễn</span>
                                 )}

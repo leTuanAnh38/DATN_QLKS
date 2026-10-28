@@ -14,7 +14,12 @@ import {
     Check,
     Clock,
     Copy,
-    Sparkles
+    Sparkles,
+    Pencil,
+    Info,
+    Inbox,
+    Flame,
+    Timer
 } from 'lucide-react';
 import { promotionService } from '../../services/promotionService';
 import { useHasPermission } from '../../utils/permission';
@@ -138,6 +143,23 @@ export default function PromotionManagement() {
             color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
         };
     };
+
+    // 6.1. TÍNH TOÁN THỐNG KÊ (KPI STATS)
+    const stats = useMemo(() => {
+        const total = promotions.length;
+        let active = 0;
+        let upcoming = 0;
+        let expiredOrInactive = 0;
+
+        promotions.forEach((p) => {
+            const st = getPromoStatus(p);
+            if (st.type === 'active') active++;
+            else if (st.type === 'upcoming') upcoming++;
+            else expiredOrInactive++;
+        });
+
+        return { total, active, upcoming, expiredOrInactive };
+    }, [promotions]);
 
     // 7. LỌC VÀ TÌM KIẾM DỮ LIỆU
     const filteredPromotions = useMemo(() => {
@@ -368,9 +390,9 @@ export default function PromotionManagement() {
                     <button
                         type="button"
                         onClick={() => setToast(null)}
-                        className="ml-2 hover:opacity-75 transition cursor-pointer text-white/80"
+                        className="ml-2 hover:opacity-75 transition cursor-pointer text-white/80 p-1"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
             )}
@@ -427,10 +449,57 @@ export default function PromotionManagement() {
                 </div>
             </div>
 
+            {/* 4 THẺ KPI THỐNG KÊ OVERVIEW */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tổng voucher</span>
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <Tag className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-black text-slate-900 tracking-tight">{stats.total}</div>
+                    <span className="text-[11px] text-slate-400 font-medium">Chương trình ưu đãi</span>
+                </div>
+
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Đang diễn ra</span>
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <Flame className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-black text-emerald-600 tracking-tight">{stats.active}</div>
+                    <span className="text-[11px] text-emerald-700/80 font-medium">Khách có thể áp dụng</span>
+                </div>
+
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sắp diễn ra</span>
+                        <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-black text-amber-600 tracking-tight">{stats.upcoming}</div>
+                    <span className="text-[11px] text-amber-700/80 font-medium">Đã lên lịch chiến dịch</span>
+                </div>
+
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hết hạn / Dừng</span>
+                        <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+                            <Timer className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-black text-rose-600 tracking-tight">{stats.expiredOrInactive}</div>
+                    <span className="text-[11px] text-rose-700/80 font-medium">Hết lượt hoặc quá hạn</span>
+                </div>
+            </div>
+
             {/* BANNER THÔNG BÁO NẾU TÀI KHOẢN CHỈ CÓ QUYỀN XEM */}
             {!canCreatePromo && (
                 <div className="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-3.5 rounded-2xl text-xs flex items-center gap-3 shadow-2xs">
-                    <span className="text-lg shrink-0">ℹ️</span>
+                    <Info className="w-5 h-5 text-amber-600 shrink-0" />
                     <div>
                         <span className="font-bold">Chế độ Chỉ Xem (Tra cứu Voucher):</span>{' '}
                         <span>
@@ -449,15 +518,15 @@ export default function PromotionManagement() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Tìm kiếm theo mã CODE, tên chương trình hoặc ID..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                        className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     />
                     {searchTerm && (
                         <button
                             type="button"
                             onClick={() => setSearchTerm('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                         >
-                            ✕
+                            <X className="w-3.5 h-3.5" />
                         </button>
                     )}
                 </div>
@@ -467,26 +536,23 @@ export default function PromotionManagement() {
                         <button
                             type="button"
                             onClick={() => setFilterStatus('all')}
-                            className={`px-3 py-1.5 rounded-lg transition ${filterStatus === 'all' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'
-                                }`}
+                            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${filterStatus === 'all' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
                         >
-                            Tất cả ({promotions.length})
+                            Tất cả ({stats.total})
                         </button>
                         <button
                             type="button"
                             onClick={() => setFilterStatus('active')}
-                            className={`px-3 py-1.5 rounded-lg transition ${filterStatus === 'active' ? 'bg-white text-emerald-600 font-bold shadow-xs' : 'hover:text-slate-900'
-                                }`}
+                            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${filterStatus === 'active' ? 'bg-white text-emerald-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
                         >
-                            Đang diễn ra
+                            Đang diễn ra ({stats.active})
                         </button>
                         <button
                             type="button"
                             onClick={() => setFilterStatus('expired')}
-                            className={`px-3 py-1.5 rounded-lg transition ${filterStatus === 'expired' ? 'bg-white text-rose-600 font-bold shadow-xs' : 'hover:text-slate-900'
-                                }`}
+                            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${filterStatus === 'expired' ? 'bg-white text-rose-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
                         >
-                            Hết hạn
+                            Hết hạn ({stats.expiredOrInactive})
                         </button>
                     </div>
                 </div>
@@ -500,12 +566,14 @@ export default function PromotionManagement() {
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                                 <th className="py-4 px-6 w-20 text-center whitespace-nowrap">ID</th>
-                                <th className="py-4 px-6 min-w-[160px] whitespace-nowrap">Mã Code</th>
-                                <th className="py-4 px-6 min-w-[240px]">Tên chương trình</th>
-                                <th className="py-4 px-6 min-w-[160px] whitespace-nowrap">Mức giảm</th>
+                                <th className="py-4 px-6 min-w-[150px] whitespace-nowrap">Mã Code</th>
+                                <th className="py-4 px-6 min-w-[220px]">Tên chương trình</th>
+                                <th className="py-4 px-6 min-w-[150px] whitespace-nowrap">Mức giảm</th>
                                 <th className="py-4 px-6 min-w-[180px] whitespace-nowrap">Thời gian áp dụng</th>
-                                <th className="py-4 px-6 min-w-[150px] text-center whitespace-nowrap">Trạng thái</th>
-                                <th className="py-4 px-6 min-w-[150px] text-center whitespace-nowrap">Hành động</th>
+                                <th className="py-4 px-6 min-w-[140px] text-center whitespace-nowrap">Trạng thái</th>
+                                <th className="py-4 pr-6 pl-4 min-w-[120px] text-right whitespace-nowrap sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10">
+                                    Hành động
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm">
@@ -519,8 +587,8 @@ export default function PromotionManagement() {
                             ) : filteredPromotions.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="py-16 text-center text-slate-400">
-                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
-                                            🏷️
+                                        <div className="w-12 h-12 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                            <Inbox className="w-6 h-6" />
                                         </div>
                                         <p className="font-semibold text-slate-700 text-sm">Không tìm thấy mã khuyến mãi nào</p>
                                         <p className="text-xs text-slate-400 mt-1">
@@ -622,18 +690,18 @@ export default function PromotionManagement() {
                                                 </span>
                                             </td>
 
-                                            {/* CỘT 6: HÀNH ĐỘNG */}
-                                            <td className="py-4 px-6 text-center whitespace-nowrap">
+                                            {/* CỘT 6: HÀNH ĐỘNG (Sticky cố định bên phải tránh che khuất) */}
+                                            <td className="py-4 pr-6 pl-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10">
                                                 {canUpdatePromo || canDeletePromo ? (
-                                                    <div className="flex items-center justify-center gap-1.5">
+                                                    <div className="flex items-center justify-end gap-1.5">
                                                         {canUpdatePromo && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenEditModal(item)}
-                                                                className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                                className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/80 transition cursor-pointer shadow-2xs"
                                                                 title="Chỉnh sửa voucher"
                                                             >
-                                                                ✏️
+                                                                <Pencil className="w-4 h-4" />
                                                             </button>
                                                         )}
 
@@ -641,10 +709,10 @@ export default function PromotionManagement() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenDeleteModal(item)}
-                                                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                                className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 transition cursor-pointer shadow-2xs"
                                                                 title="Xóa voucher"
                                                             >
-                                                                🗑️
+                                                                <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         )}
                                                     </div>
@@ -669,8 +737,8 @@ export default function PromotionManagement() {
                         </div>
                     ) : filteredPromotions.length === 0 ? (
                         <div className="p-12 text-center text-slate-400">
-                            <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-xl mx-auto mb-2">
-                                🏷️
+                            <div className="w-10 h-10 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-center mx-auto mb-2 text-slate-400">
+                                <Inbox className="w-5 h-5" />
                             </div>
                             <p className="font-semibold text-slate-700 text-xs">Không tìm thấy mã khuyến mãi nào</p>
                             <p className="text-[11px] text-slate-400 mt-0.5">
@@ -760,9 +828,9 @@ export default function PromotionManagement() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenEditModal(item)}
-                                                    className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                                    className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
                                                 >
-                                                    <span>✏️</span>
+                                                    <Pencil className="w-3.5 h-3.5" />
                                                     <span>Sửa</span>
                                                 </button>
                                             )}
@@ -770,9 +838,9 @@ export default function PromotionManagement() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenDeleteModal(item)}
-                                                    className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                                                    className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
                                                 >
-                                                    <span>🗑️</span>
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                     <span>Xóa</span>
                                                 </button>
                                             )}

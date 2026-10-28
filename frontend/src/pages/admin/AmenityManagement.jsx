@@ -16,7 +16,10 @@ import {
     Wifi,
     Wind,
     Bath,
-    Eye
+    Eye,
+    Lock,
+    FileText,
+    Layers
 } from 'lucide-react';
 import { amenityService } from '../../services/amenityService';
 import Pagination from '../../components/common/Pagination';
@@ -249,6 +252,11 @@ export default function AmenityManagement() {
         }
     };
 
+    // Thống kê nhanh danh mục tiện ích
+    const totalAmenities = amenities.length;
+    const withDescription = amenities.filter((a) => a.description && a.description.trim().length > 0).length;
+    const withoutDescription = totalAmenities - withDescription;
+
     return (
         <div className="space-y-6 animate-fadeIn pb-12">
             {/* TOAST THÔNG BÁO NỔI */}
@@ -277,7 +285,6 @@ export default function AmenityManagement() {
             {/* HEADER: TIÊU ĐỀ "QUẢN LÝ TIỆN NGHI" VÀ NÚT "+ THÊM TIỆN NGHI" */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                
                     <div>
                         <div className="flex items-center gap-2">
                             <h1 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
@@ -313,14 +320,56 @@ export default function AmenityManagement() {
                             className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
                         >
                             <Plus className="w-4 h-4" />
-                            <span> Thêm tiện nghi</span>
+                            <span>Thêm tiện nghi</span>
                         </button>
                     ) : (
                         <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-2xl border border-slate-200">
-                            <span>🔒</span>
+                            <Lock className="w-3.5 h-3.5 text-slate-500" />
                             <span>Chỉ xem</span>
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* 3 THẺ KPI THỐNG KÊ NHANH */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4 hover:border-blue-200 transition">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-6 h-6 stroke-[1.75]" />
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                            Tổng Tiện Ích
+                        </span>
+                        <span className="text-2xl font-black text-slate-900">{totalAmenities}</span>
+                        <span className="text-[10px] text-slate-500 block">Sẵn sàng gắn vào hạng phòng</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4 hover:border-emerald-200 transition">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <FileText className="w-6 h-6 stroke-[1.75]" />
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                            Đã Có Mô Tả
+                        </span>
+                        <span className="text-2xl font-black text-emerald-600">{withDescription}</span>
+                        <span className="text-[10px] text-slate-500 block">Sẵn sàng hiển thị khách hàng</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-200 transition">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                        <Info className="w-6 h-6 stroke-[1.75]" />
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                            Chưa Có Mô Tả
+                        </span>
+                        <span className="text-2xl font-black text-amber-600">{withoutDescription}</span>
+                        <span className="text-[10px] text-slate-500 block">Cần bổ sung chi tiết</span>
+                    </div>
                 </div>
             </div>
 
@@ -361,8 +410,8 @@ export default function AmenityManagement() {
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                                 <th className="py-4 px-6 w-20 text-center">ID</th>
                                 <th className="py-4 px-6 w-28 text-center">Icon</th>
-                                <th className="py-4 px-6 min-w-[200px]">Tên tiện nghi</th>
-                                <th className="py-4 px-6 min-w-[300px]">Mô tả (Description)</th>
+                                <th className="py-4 px-6 min-w-[220px]">Tên tiện nghi</th>
+                                <th className="py-4 px-6 min-w-[280px]">Mô tả (Description)</th>
                                 <th className="py-4 px-6 w-36 text-center">Hành động</th>
                             </tr>
                         </thead>
@@ -377,8 +426,8 @@ export default function AmenityManagement() {
                             ) : filteredAmenities.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="py-16 text-center text-slate-400">
-                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
-                                            🔍
+                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                            <Search className="w-6 h-6 stroke-[1.5]" />
                                         </div>
                                         <p className="font-semibold text-slate-700 text-sm">Không tìm thấy tiện nghi nào</p>
                                         <p className="text-xs text-slate-400 mt-1">
@@ -417,23 +466,23 @@ export default function AmenityManagement() {
                                                     {item.description}
                                                 </p>
                                             ) : (
-                                                <span className="text-xs text-slate-400 italic">
-                                                    Chưa có mô tả
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-400 text-xs italic">
+                                                    Chưa cập nhật mô tả
                                                 </span>
                                             )}
                                         </td>
 
-                                        {/* CỘT 5: HÀNH ĐỘNG (NÚT SỬA ✏️ VÀ NÚT XÓA 🗑️ ĐỒNG BỘ TOÀN HỆ THỐNG) */}
+                                        {/* CỘT 5: HÀNH ĐỘNG (VECTOR ICONS ĐỒNG BỘ) */}
                                         <td className="py-4 px-6 text-center">
-                                            <div className="flex items-center justify-center gap-1.5">
+                                            <div className="flex items-center justify-center gap-2">
                                                 {canUpdate && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenEditModal(item)}
-                                                        className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
+                                                        className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                                                         title="Chỉnh sửa tiện nghi"
                                                     >
-                                                        ✏️
+                                                        <Edit2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
 
@@ -441,10 +490,10 @@ export default function AmenityManagement() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenDeleteModal(item)}
-                                                        className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs active:scale-95"
+                                                        className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                                                         title="Xóa tiện nghi"
                                                     >
-                                                        🗑️
+                                                        <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
 
@@ -460,7 +509,7 @@ export default function AmenityManagement() {
                     </table>
                 </div>
 
-                {/* GIAO DIỆN MOBILE CARDS (Hiển thị mượt mà trên điện thoại, ẩn trên tablet/desktop) */}
+                {/* GIAO DIỆN MOBILE CARDS */}
                 <div className="block md:hidden divide-y divide-slate-100">
                     {isLoading ? (
                         <div className="py-12 text-center text-slate-400">
@@ -469,8 +518,8 @@ export default function AmenityManagement() {
                         </div>
                     ) : filteredAmenities.length === 0 ? (
                         <div className="py-12 px-4 text-center text-slate-400">
-                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
-                                🔍
+                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                <Search className="w-6 h-6 stroke-[1.5]" />
                             </div>
                             <p className="font-semibold text-slate-700 text-sm">Không tìm thấy tiện nghi nào</p>
                             <p className="text-xs text-slate-400 mt-1">
@@ -501,20 +550,20 @@ export default function AmenityManagement() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleOpenEditModal(item)}
-                                                className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs active:scale-95"
                                                 title="Sửa"
                                             >
-                                                ✏️
+                                                <Edit2 className="w-3.5 h-3.5" />
                                             </button>
                                         )}
                                         {canDelete && (
                                             <button
                                                 type="button"
                                                 onClick={() => handleOpenDeleteModal(item)}
-                                                className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer shadow-2xs"
+                                                className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs active:scale-95"
                                                 title="Xóa"
                                             >
-                                                🗑️
+                                                <Trash2 className="w-3.5 h-3.5" />
                                             </button>
                                         )}
                                     </div>
@@ -563,8 +612,8 @@ export default function AmenityManagement() {
                         {/* Header Modal */}
                         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg border border-blue-100 shadow-xs">
-                                    {modalMode === 'create' ? '✨' : '✏️'}
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-xs">
+                                    {modalMode === 'create' ? <Sparkles className="w-5 h-5 text-blue-600" /> : <Edit2 className="w-5 h-5 text-blue-600" />}
                                 </div>
                                 <div>
                                     <h3 className="text-base font-bold text-slate-900">

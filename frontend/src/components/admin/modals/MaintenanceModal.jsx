@@ -186,8 +186,8 @@ export default function MaintenanceModal({
 
                     {/* Hướng dẫn vận hành khi phòng đang có khách lưu trú */}
                     {currentBooking && (
-                        <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 text-base font-bold">
+                        <div className="p-3.5 bg-white border border-amber-300 rounded-2xl flex items-start gap-3 shadow-2xs">
+                            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0 text-base font-bold">
                                 👤
                             </div>
                             <div className="flex-1 text-xs">
@@ -195,7 +195,7 @@ export default function MaintenanceModal({
                                     <span className="font-bold text-slate-900">
                                         Phòng có khách đang ở: <span className="text-amber-900">{currentBooking.guest_name}</span>
                                     </span>
-                                    <span className="font-mono text-[10px] font-bold text-amber-800 bg-white px-2 py-0.5 rounded border border-amber-300">
+                                    <span className="font-mono text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                                         #{currentBooking.booking_code}
                                     </span>
                                 </div>

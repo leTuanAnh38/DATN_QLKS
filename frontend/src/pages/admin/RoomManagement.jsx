@@ -1,5 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+    Building2,
+    DoorOpen,
+    UserCheck,
+    Sparkles,
+    Wrench,
+    Search,
+    RefreshCw,
+    ClipboardList,
+    Plus,
+    Layers,
+    X,
+    Eye,
+    Wine,
+    Luggage,
+    Receipt,
+    KeyRound,
+    Check,
+    ChevronDown,
+    Edit3,
+} from 'lucide-react';
 import roomService from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import CheckOutModal from '../../components/admin/modals/CheckOutModal';
@@ -46,8 +67,8 @@ const ROOM_STATUSES = {
         key: 'available',
         label: 'Phòng trống (Sẵn sàng)',
         shortLabel: 'Trống',
-        badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-        cardClass: 'bg-emerald-50/80 hover:bg-emerald-50 border-emerald-300 hover:border-emerald-500 text-emerald-950 shadow-xs hover:shadow-md',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/90 font-bold',
+        cardClass: 'bg-white hover:bg-emerald-50/20 border-slate-200/90 hover:border-emerald-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-emerald-500',
         btnClass: 'bg-emerald-600 hover:bg-emerald-700 text-white',
         icon: '🟢',
@@ -56,8 +77,8 @@ const ROOM_STATUSES = {
         key: 'occupied',
         label: 'Đang có khách lưu trú',
         shortLabel: 'Có khách',
-        badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
-        cardClass: 'bg-rose-50/80 hover:bg-rose-50 border-rose-300 hover:border-rose-500 text-rose-950 shadow-xs hover:shadow-md',
+        badgeClass: 'bg-rose-50 text-rose-700 border-rose-200/90 font-bold',
+        cardClass: 'bg-rose-50/30 hover:bg-rose-50/50 border-rose-200/90 hover:border-rose-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-rose-500',
         btnClass: 'bg-rose-600 hover:bg-rose-700 text-white',
         icon: '🔴',
@@ -66,8 +87,8 @@ const ROOM_STATUSES = {
         key: 'cleaning',
         label: 'Đang dọn dẹp (Housekeeping)',
         shortLabel: 'Đang dọn',
-        badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
-        cardClass: 'bg-amber-50/80 hover:bg-amber-50 border-amber-300 hover:border-amber-500 text-amber-950 shadow-xs hover:shadow-md',
+        badgeClass: 'bg-amber-50 text-amber-700 border-amber-200/90 font-bold',
+        cardClass: 'bg-amber-50/30 hover:bg-amber-50/50 border-amber-200/90 hover:border-amber-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-amber-500',
         btnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
         icon: '🟡',
@@ -76,8 +97,8 @@ const ROOM_STATUSES = {
         key: 'maintenance',
         label: 'Đang bảo trì / Hỏng hóc',
         shortLabel: 'Bảo trì',
-        badgeClass: 'bg-slate-200 text-slate-800 border-slate-300',
-        cardClass: 'bg-slate-100/90 hover:bg-slate-100 border-slate-300 hover:border-slate-400 text-slate-800 shadow-xs hover:shadow-md',
+        badgeClass: 'bg-slate-100 text-slate-700 border-slate-300 font-bold',
+        cardClass: 'bg-slate-50/80 hover:bg-slate-100/80 border-slate-300 hover:border-slate-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-slate-400',
         btnClass: 'bg-slate-600 hover:bg-slate-700 text-white',
         icon: '⚪',
@@ -937,22 +958,23 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* Header Banner & Quick Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
-                        Quản Lý Danh Sách & Sơ Đồ Phòng Thực Tế
+                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                        <Building2 className="w-6 h-6 text-blue-600" />
+                        <span>Quản Lý Danh Sách & Sơ Đồ Phòng</span>
                     </h1>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-1">
                         Kiểm soát trạng thái phòng thời gian thực, hỗ trợ Lễ tân đổi nhanh tình trạng phòng và cập nhật phòng mới.
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                     <button
                         type="button"
                         onClick={() => fetchRooms(true)}
-                        className="px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer hover:border-slate-300"
                         title="Tải lại sơ đồ phòng"
                     >
-                        <span className={isLoading ? "animate-spin inline-block" : "inline-block"}>🔄</span>
+                        <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isLoading ? "animate-spin" : ""}`} />
                         <span className="hidden sm:inline">Làm Mới</span>
                     </button>
                     <button
@@ -961,19 +983,19 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             setHistoryModalRoom(null);
                             setIsHistoryModalOpen(true);
                         }}
-                        className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2.5 bg-amber-50/80 hover:bg-amber-100/80 border border-amber-300/80 text-amber-900 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
                         title="Xem lịch sử hỏng hóc, sửa chữa thiết bị, vật tư thay thế & chi phí"
                     >
-                        <span>📋</span>
+                        <ClipboardList className="w-3.5 h-3.5 text-amber-700" />
                         <span className="hidden sm:inline">Nhật Ký Bảo Trì</span>
                     </button>
                     {canCreateRoom && (
                         <button
                             type="button"
                             onClick={handleOpenCreate}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer active:scale-98"
                         >
-                            <span>＋</span>
+                            <Plus className="w-4 h-4" />
                             <span>Thêm Phòng Mới</span>
                         </button>
                     )}
@@ -1006,59 +1028,71 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* ========================================================================= */}
             {/* KPI STATS CARDS: BẢNG CHỈ SỐ TRẠNG THÁI TOÀN KHÁCH SẠN */}
             {/* ========================================================================= */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {/* 1. Tổng số phòng */}
                 <div
                     onClick={() => setStatusFilter('all')}
-                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer flex items-center justify-between active:scale-98 ${
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
                         statusFilter === 'all'
-                            ? 'bg-blue-50/80 border-blue-400 shadow-md ring-2 ring-blue-500/20'
-                            : 'bg-white border-slate-200 hover:border-blue-300 shadow-xs'
+                            ? 'bg-blue-50/70 border-blue-400 shadow-sm ring-2 ring-blue-500/20'
+                            : 'bg-white border-slate-200/90 hover:border-blue-300 hover:shadow-xs hover:-translate-y-0.5'
                     }`}
                 >
-                    <div>
-                        <span className={`text-[10px] font-bold uppercase block tracking-wider ${
-                            statusFilter === 'all' ? 'text-blue-700' : 'text-slate-400'
-                        }`}>
-                            Tổng số phòng
-                        </span>
-                        <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
-                            <span className="text-xl sm:text-2xl font-black text-slate-900">{stats.total}</span>
-                            <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">phòng</span>
+                    <div className="flex items-start justify-between gap-2">
+                        <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                Tổng số phòng
+                            </span>
+                            <div className="flex items-baseline gap-1.5 mt-1">
+                                <span className="text-2xl font-black text-slate-900">{stats.total}</span>
+                                <span className="text-xs text-slate-500 font-medium">phòng</span>
+                            </div>
                         </div>
-                        <span className="text-[10px] text-blue-600 font-bold block mt-0.5">
-                            Công suất: {stats.occupancy_rate}%
-                        </span>
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/60 flex items-center justify-center shrink-0">
+                            <Building2 className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
-                        🏢
+                    <div className="mt-3 pt-2.5 border-t border-slate-100">
+                        <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-500 font-medium">Công suất:</span>
+                            <span className="font-bold text-blue-600">{stats.occupancy_rate}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                            <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(stats.occupancy_rate, 100)}%` }}></div>
+                        </div>
                     </div>
                 </div>
 
                 {/* 2. Phòng Trống (Available) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'available' ? 'all' : 'available')}
-                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer active:scale-98 ${
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
                         statusFilter === 'available'
-                            ? 'bg-emerald-100 border-emerald-400 shadow-md ring-2 ring-emerald-500/20'
-                            : 'bg-white border-slate-200 hover:border-emerald-300 shadow-xs'
+                            ? 'bg-emerald-50/70 border-emerald-400 shadow-sm ring-2 ring-emerald-500/20'
+                            : 'bg-white border-slate-200/90 hover:border-emerald-300 hover:shadow-xs hover:-translate-y-0.5'
                     }`}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-2">
                         <div>
-                            <span className="text-[10px] font-bold uppercase text-emerald-700 block tracking-wider">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
                                 Trống (Sẵn sàng)
                             </span>
-                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
-                                <span className="text-xl sm:text-2xl font-black text-emerald-800">{stats.available}</span>
-                                <span className="text-[10px] sm:text-[11px] text-emerald-600 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1.5 mt-1">
+                                <span className="text-2xl font-black text-emerald-800">{stats.available}</span>
+                                <span className="text-xs text-emerald-600 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-emerald-700 mt-0.5 font-semibold hidden sm:block">
-                                Có thể nhận khách ngay
-                            </span>
                         </div>
-                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
-                            🟢
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0">
+                            <DoorOpen className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-emerald-100/60">
+                        <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-emerald-700 font-medium">Tỷ lệ trống:</span>
+                            <span className="font-bold text-emerald-700">{Math.round((stats.available / (stats.total || 1)) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-emerald-100/70 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                            <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.round((stats.available / (stats.total || 1)) * 100)}%` }}></div>
                         </div>
                     </div>
                 </div>
@@ -1066,27 +1100,33 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 3. Có khách (Occupied) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'occupied' ? 'all' : 'occupied')}
-                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer active:scale-98 ${
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
                         statusFilter === 'occupied'
-                            ? 'bg-rose-100 border-rose-400 shadow-md ring-2 ring-rose-500/20'
-                            : 'bg-white border-slate-200 hover:border-rose-300 shadow-xs'
+                            ? 'bg-rose-50/70 border-rose-400 shadow-sm ring-2 ring-rose-500/20'
+                            : 'bg-white border-slate-200/90 hover:border-rose-300 hover:shadow-xs hover:-translate-y-0.5'
                     }`}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-2">
                         <div>
-                            <span className="text-[10px] font-bold uppercase text-rose-700 block tracking-wider">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 block">
                                 Đang có khách
                             </span>
-                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
-                                <span className="text-xl sm:text-2xl font-black text-rose-800">{stats.occupied}</span>
-                                <span className="text-[10px] sm:text-[11px] text-rose-600 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1.5 mt-1">
+                                <span className="text-2xl font-black text-rose-800">{stats.occupied}</span>
+                                <span className="text-xs text-rose-600 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-rose-700 mt-0.5 font-semibold hidden sm:block">
-                                Đang lưu trú tại khách sạn
-                            </span>
                         </div>
-                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
-                            🔴
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center shrink-0">
+                            <UserCheck className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-rose-100/60">
+                        <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-rose-700 font-medium">Đang ở:</span>
+                            <span className="font-bold text-rose-700">{Math.round((stats.occupied / (stats.total || 1)) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-rose-100/70 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                            <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.round((stats.occupied / (stats.total || 1)) * 100)}%` }}></div>
                         </div>
                     </div>
                 </div>
@@ -1094,27 +1134,33 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 4. Đang dọn dẹp (Cleaning) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'cleaning' ? 'all' : 'cleaning')}
-                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer active:scale-98 ${
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
                         statusFilter === 'cleaning'
-                            ? 'bg-amber-100 border-amber-400 shadow-md ring-2 ring-amber-500/20'
-                            : 'bg-white border-slate-200 hover:border-amber-300 shadow-xs'
+                            ? 'bg-amber-50/70 border-amber-400 shadow-sm ring-2 ring-amber-500/20'
+                            : 'bg-white border-slate-200/90 hover:border-amber-300 hover:shadow-xs hover:-translate-y-0.5'
                     }`}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-2">
                         <div>
-                            <span className="text-[10px] font-bold uppercase text-amber-700 block tracking-wider">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">
                                 Đang dọn dẹp
                             </span>
-                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
-                                <span className="text-xl sm:text-2xl font-black text-amber-800">{stats.cleaning}</span>
-                                <span className="text-[10px] sm:text-[11px] text-amber-600 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1.5 mt-1">
+                                <span className="text-2xl font-black text-amber-800">{stats.cleaning}</span>
+                                <span className="text-xs text-amber-600 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-amber-700 mt-0.5 font-semibold hidden sm:block">
-                                Buồng phòng đang xử lý
-                            </span>
                         </div>
-                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
-                            🟡
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center shrink-0">
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-amber-100/60">
+                        <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-amber-700 font-medium">Chờ dọn:</span>
+                            <span className="font-bold text-amber-700">{Math.round((stats.cleaning / (stats.total || 1)) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-amber-100/70 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                            <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.round((stats.cleaning / (stats.total || 1)) * 100)}%` }}></div>
                         </div>
                     </div>
                 </div>
@@ -1122,27 +1168,33 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 5. Đang bảo trì (Maintenance) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'maintenance' ? 'all' : 'maintenance')}
-                    className={`rounded-2xl p-3 sm:p-4 border transition cursor-pointer col-span-2 sm:col-span-1 active:scale-98 ${
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 col-span-2 sm:col-span-1 ${
                         statusFilter === 'maintenance'
-                            ? 'bg-slate-200 border-slate-400 shadow-md ring-2 ring-slate-500/20'
-                            : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
+                            ? 'bg-slate-100 border-slate-400 shadow-sm ring-2 ring-slate-500/20'
+                            : 'bg-white border-slate-200/90 hover:border-slate-300 hover:shadow-xs hover:-translate-y-0.5'
                     }`}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-2">
                         <div>
-                            <span className="text-[10px] font-bold uppercase text-slate-600 block tracking-wider">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 block">
                                 Đang bảo trì
                             </span>
-                            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
-                                <span className="text-xl sm:text-2xl font-black text-slate-800">{stats.maintenance}</span>
-                                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">phòng</span>
+                            <div className="flex items-baseline gap-1.5 mt-1">
+                                <span className="text-2xl font-black text-slate-800">{stats.maintenance}</span>
+                                <span className="text-xs text-slate-500 font-medium">phòng</span>
                             </div>
-                            <span className="text-[10px] text-slate-600 mt-0.5 font-semibold hidden sm:block">
-                                Đang sửa chữa kỹ thuật
-                            </span>
                         </div>
-                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-slate-100 text-slate-600 border border-slate-300 flex items-center justify-center text-base sm:text-xl font-bold shadow-xs shrink-0">
-                            ⚪
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 border border-slate-300/80 flex items-center justify-center shrink-0">
+                            <Wrench className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-slate-200/60">
+                        <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-600 font-medium">Sửa chữa:</span>
+                            <span className="font-bold text-slate-700">{Math.round((stats.maintenance / (stats.total || 1)) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                            <div className="bg-slate-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.round((stats.maintenance / (stats.total || 1)) * 100)}%` }}></div>
                         </div>
                     </div>
                 </div>
@@ -1151,37 +1203,46 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* ========================================================================= */}
             {/* THANH BỘ LỌC ĐA TIÊU CHÍ & CHẾ ĐỘ HIỂN THỊ */}
             {/* ========================================================================= */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+            <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200 shadow-2xs space-y-2.5">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                     {/* Ô tìm kiếm số phòng hoặc hạng phòng */}
                     <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                         <input
                             type="text"
-                            placeholder="Tìm kiếm theo số phòng (VD: 101, 204) hoặc tên hạng phòng..."
+                            placeholder="Tìm số phòng (101, 204...) hoặc hạng phòng..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 focus:bg-white text-slate-900"
+                            className="w-full pl-9 pr-24 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 focus:bg-white text-slate-900 transition"
                         />
-                        <span className="absolute left-3 top-3 text-slate-400 text-xs">🔍</span>
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-20 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
                         <button
                             type="submit"
-                            className="absolute right-1.5 top-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
+                            className="absolute right-1 top-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
                         >
                             Tìm kiếm
                         </button>
                     </form>
 
-                    {/* Bộ lọc dropdowns */}
+                    {/* Bộ lọc dropdowns & chế độ hiển thị */}
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                         {/* Lọc Tầng */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-slate-500 font-medium text-[11px]">Tầng:</span>
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+                            <span className="text-slate-500 font-semibold text-[11px]">Tầng:</span>
                             <select
                                 value={floorFilter}
                                 onChange={(e) => setFloorFilter(e.target.value)}
-                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-600 text-slate-800 cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer py-1"
                             >
-                                <option value="all">Tất cả các tầng</option>
+                                <option value="all">Tất cả tầng</option>
                                 {floors.map((fl) => (
                                     <option key={fl} value={fl}>
                                         Tầng {fl}
@@ -1191,14 +1252,14 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         </div>
 
                         {/* Lọc Hạng Phòng */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-slate-500 font-medium text-[11px]">Hạng:</span>
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+                            <span className="text-slate-500 font-semibold text-[11px]">Hạng:</span>
                             <select
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-600 text-slate-800 cursor-pointer max-w-[180px] truncate"
+                                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer py-1 max-w-[150px] truncate"
                             >
-                                <option value="all">Tất cả hạng phòng</option>
+                                <option value="all">Tất cả hạng</option>
                                 {categories.map((c) => (
                                     <option key={c.id} value={c.id}>
                                         {c.name}
@@ -1208,18 +1269,18 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         </div>
 
                         {/* Lọc Trạng Thái */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-slate-500 font-medium text-[11px]">Trạng thái:</span>
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+                            <span className="text-slate-500 font-semibold text-[11px]">Trạng thái:</span>
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-600 text-slate-800 cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer py-1"
                             >
-                                <option value="all">Tất cả trạng thái</option>
-                                <option value="available">🟢 Phòng trống</option>
-                                <option value="occupied">🔴 Đang có khách</option>
-                                <option value="cleaning">🟡 Đang dọn dẹp</option>
-                                <option value="maintenance">⚪ Đang bảo trì</option>
+                                <option value="all">Tất cả</option>
+                                <option value="available">🟢 Trống</option>
+                                <option value="occupied">🔴 Có khách</option>
+                                <option value="cleaning">🟡 Đang dọn</option>
+                                <option value="maintenance">⚪ Bảo trì</option>
                             </select>
                         </div>
 
@@ -1227,14 +1288,14 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         <button
                             type="button"
                             onClick={() => setGroupByFloor(!groupByFloor)}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 ${
                                 groupByFloor
-                                    ? 'bg-blue-50 text-blue-700 border-blue-300'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
                                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                             }`}
                             title="Gom nhóm hiển thị theo từng tầng hoặc trải phẳng toàn bộ"
                         >
-                            <span>📑</span>
+                            <Layers className="w-3.5 h-3.5" />
                             <span>{groupByFloor ? 'Theo Tầng' : 'Trải Phẳng'}</span>
                         </button>
 
@@ -1242,46 +1303,26 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             <button
                                 type="button"
                                 onClick={handleResetFilters}
-                                className="px-2.5 py-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-xl font-bold transition text-xs cursor-pointer"
-                                title="Xóa bộ lọc"
+                                className="px-2.5 py-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl font-bold transition text-xs cursor-pointer flex items-center gap-1"
+                                title="Xóa toàn bộ bộ lọc"
                             >
-                                ✕ Bỏ lọc
+                                <X className="w-3.5 h-3.5" />
+                                <span>Bỏ lọc</span>
                             </button>
                         )}
-                    </div>
-                </div>
 
-                {/* Chú giải trạng thái màu sắc nhanh */}
-                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[11px]">
-                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5 sm:pb-0">
-                        <span className="text-slate-400 font-bold uppercase text-[10px] shrink-0">Quy chuẩn màu:</span>
-                        <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 shrink-0">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span>Trống</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-semibold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200 shrink-0">
-                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                            <span>Có khách</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 shrink-0">
-                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                            <span>Đang dọn</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-300 shrink-0">
-                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                            <span>Bảo trì</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
-                        {isLoading && rooms.length > 0 && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-bold animate-pulse border border-blue-100">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
-                                Đang đồng bộ...
+                        {/* Badge đếm số lượng phòng */}
+                        <div className="ml-auto flex items-center gap-2 pl-2">
+                            {isLoading && rooms.length > 0 && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold animate-pulse border border-blue-100">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
+                                    Đang đồng bộ...
+                                </span>
+                            )}
+                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-semibold">
+                                Hiển thị <strong className="text-slate-900">{rooms.length}</strong> / {stats.total} phòng
                             </span>
-                        )}
-                        <span className="text-slate-400 italic text-[11px] sm:text-xs">
-                            Hiển thị <strong>{rooms.length}</strong> / {stats.total} phòng
-                        </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2605,17 +2646,17 @@ function RoomCard({
                                 className="w-6 h-6 rounded-md hover:bg-amber-100 text-slate-400 hover:text-amber-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
                                 title="Báo hỏng thiết bị & Đưa vào bảo trì"
                             >
-                                🛠️
+                                <Wrench className="w-3.5 h-3.5" />
                             </button>
                         )}
                         {isManagerOrAdmin && (
                             <button
                                 type="button"
                                 onClick={() => onEdit(room)}
-                                className="w-6 h-6 rounded-md hover:bg-white text-slate-400 hover:text-slate-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
+                                className="w-6 h-6 rounded-md hover:bg-blue-50 text-slate-400 hover:text-blue-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
                                 title="Chỉnh sửa thông tin phòng"
                             >
-                                ✏️
+                                <Edit3 className="w-3.5 h-3.5" />
                             </button>
                         )}
                     </div>
@@ -2657,8 +2698,8 @@ function RoomCard({
                     {currentBk ? (
                         <>
                             <div className="flex items-center justify-between gap-1">
-                                <span className="font-bold text-xs text-slate-900 truncate flex items-center gap-1" title={currentBk.guest_name}>
-                                    <span>👤</span>
+                                <span className="font-bold text-xs text-slate-900 truncate flex items-center gap-1.5" title={currentBk.guest_name}>
+                                    <UserCheck className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                                     <span className="truncate">{currentBk.guest_name}</span>
                                 </span>
                                 <span className="text-[9px] font-mono font-bold text-rose-700 bg-rose-50 px-1 rounded border border-rose-200 shrink-0">
@@ -2677,6 +2718,17 @@ function RoomCard({
                             Khách lưu trú vãng lai
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* THÔNG TIN BỔ SUNG CHO PHÒNG TRỐNG (AVAILABLE) ĐỂ CÂN BẰNG CHIỀU CAO CARD */}
+            {room.status === 'available' && (
+                <div className="mt-2 p-1.5 px-2 rounded-xl bg-emerald-50/50 border border-emerald-200/50 text-[10px] text-emerald-800 flex items-center justify-between font-medium">
+                    <span className="flex items-center gap-1.5">
+                        <KeyRound className="w-3 h-3 text-emerald-600" />
+                        <span>Sẵn sàng đón khách</span>
+                    </span>
+                    <span className="font-bold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded text-[9px]">Sạch</span>
                 </div>
             )}
 
@@ -2801,77 +2853,73 @@ function RoomCard({
             {/* CÁC NÚT THAO TÁC NGHIỆP VỤ PMS (CHECK-IN / CHECK-OUT / DỌN DẸP / BẢO TRÌ) */}
             {/* ========================================================================= */}
             <div className="mt-2.5 space-y-1.5">
-                {/* 1. Nút cho phòng Occupied: Check-out trực tiếp & Xem chi tiết */}
+                {/* 1. Nút cho phòng Occupied: Check-out trực tiếp & Tiện ích buồng phòng */}
                 {room.status === 'occupied' && (() => {
                     const showCleaningBtn = !room.is_cleaning_requested && Boolean(onRequestCleaning);
                     const showMinibarBtn = canAccessMinibar && Boolean(onOpenMinibar);
                     const showLostItemBtn = canReportLostItem && Boolean(onOpenLostItem);
+                    const activeCount = [Boolean(currentBk), showCleaningBtn, showMinibarBtn, showLostItemBtn].filter(Boolean).length;
+                    const gridColsClass = activeCount === 4 ? 'grid-cols-4' : activeCount === 3 ? 'grid-cols-3' : activeCount === 2 ? 'grid-cols-2' : 'grid-cols-1';
 
                     return (
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                             {canManageBookings && (
                                 <button
                                     type="button"
                                     onClick={() => onOpenCheckOut(room)}
-                                    className="w-full py-1.5 px-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                    className="w-full py-1.5 px-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                                     title="Thực hiện thủ tục Check-out & Lập Hóa Đơn Quyết Toán"
                                 >
-                                    <span>🧾</span>
+                                    <Receipt className="w-3.5 h-3.5" />
                                     <span className="truncate whitespace-nowrap">Trả phòng & Quyết toán</span>
                                 </button>
                             )}
 
-                            {/* Hàng 2: Xem thông tin khách & Yêu cầu dọn phòng (Make-up room) */}
-                            {(currentBk || showCleaningBtn) && (
-                                <div className={`grid ${currentBk && showCleaningBtn ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
+                            {/* Hàng 2: Cụm tiện ích phụ thu gọn chuẩn PMS */}
+                            {activeCount > 0 && (
+                                <div className={`grid ${gridColsClass} gap-1`}>
                                     {currentBk && (
                                         <button
                                             type="button"
                                             onClick={() => onViewOccupied(room)}
-                                            className="py-1 px-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-semibold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            className="py-1 px-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-semibold rounded-lg transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-2xs hover:border-slate-300"
                                             title="Xem đầy đủ hồ sơ khách & thông tin lưu trú"
                                         >
-                                            <span>👁️</span>
-                                            <span className="truncate whitespace-nowrap">{showCleaningBtn ? 'Xem khách' : 'Xem thông tin khách'}</span>
+                                            <Eye className="w-3.5 h-3.5 text-slate-600" />
+                                            <span className="text-[9px] font-medium leading-none">Khách</span>
                                         </button>
                                     )}
                                     {showCleaningBtn && (
                                         <button
                                             type="button"
                                             onClick={() => onRequestCleaning(room)}
-                                            className="py-1 px-1 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            className="py-1 px-1 bg-blue-50/90 hover:bg-blue-100 text-blue-900 border border-blue-200 text-[10px] font-bold rounded-lg transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-2xs"
                                             title="Khách đang ở yêu cầu dọn phòng lưu trú (Make-up room)"
                                         >
-                                            <span>🧹</span>
-                                            <span className="truncate whitespace-nowrap">Dọn phòng</span>
+                                            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                                            <span className="text-[9px] font-bold leading-none">Dọn</span>
                                         </button>
                                     )}
-                                </div>
-                            )}
-
-                            {/* Hàng 3: Tiện ích buồng phòng (Minibar & Đồ thất lạc) */}
-                            {(showMinibarBtn || showLostItemBtn) && (
-                                <div className={`grid ${showMinibarBtn && showLostItemBtn ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
                                     {showMinibarBtn && (
                                         <button
                                             type="button"
                                             onClick={() => onOpenMinibar(room)}
-                                            className="py-1 px-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            className="py-1 px-1 bg-amber-50/90 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold rounded-lg transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-2xs"
                                             title="Kiểm kê Minibar phòng khách đang ở"
                                         >
-                                            <span>🍾</span>
-                                            <span className="truncate whitespace-nowrap">Minibar</span>
+                                            <Wine className="w-3.5 h-3.5 text-amber-600" />
+                                            <span className="text-[9px] font-bold leading-none">Minibar</span>
                                         </button>
                                     )}
                                     {showLostItemBtn && (
                                         <button
                                             type="button"
                                             onClick={() => onOpenLostItem(room)}
-                                            className="py-1 px-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                                            className="py-1 px-1 bg-purple-50/90 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold rounded-lg transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-2xs"
                                             title="Báo đồ khách bỏ quên (Lost & Found)"
                                         >
-                                            <span>🧳</span>
-                                            <span className="truncate whitespace-nowrap">Đồ thất lạc</span>
+                                            <Luggage className="w-3.5 h-3.5 text-purple-600" />
+                                            <span className="text-[9px] font-bold leading-none">Đồ rơi</span>
                                         </button>
                                     )}
                                 </div>
@@ -2885,17 +2933,17 @@ function RoomCard({
                     <button
                         type="button"
                         onClick={() => onOpenAssign(room)}
-                        className="w-full py-2 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[11px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full py-2 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[11px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                         title="Chọn đơn đặt phòng chờ nhận để Gán phòng & Check-in ngay"
                     >
-                        <span>🔑</span>
+                        <KeyRound className="w-3.5 h-3.5" />
                         <span>Gán phòng đón khách</span>
                     </button>
                 )}
 
                 {/* 3. Nút cho phòng Cleaning: Minibar + Báo đồ bỏ quên + Xác nhận dọn dẹp xong */}
                 {room.status === 'cleaning' && (
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                         {(canAccessMinibar || canReportLostItem) && (
                             <div className={`grid ${canAccessMinibar && canReportLostItem ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
                                 {canAccessMinibar && onOpenMinibar && (
@@ -2905,7 +2953,7 @@ function RoomCard({
                                         className="py-1.5 px-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
                                         title="Kiểm kê đồ Minibar tủ lạnh để tính vào hóa đơn khách"
                                     >
-                                        <span>🍾</span>
+                                        <Wine className="w-3.5 h-3.5" />
                                         <span className="truncate whitespace-nowrap">Minibar</span>
                                     </button>
                                 )}
@@ -2916,7 +2964,7 @@ function RoomCard({
                                         className="py-1.5 px-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
                                         title="Báo phát hiện đồ khách bỏ quên (Lost & Found)"
                                     >
-                                        <span>🧳</span>
+                                        <Luggage className="w-3.5 h-3.5" />
                                         <span className="truncate whitespace-nowrap">Đồ thất lạc</span>
                                     </button>
                                 )}
@@ -2926,15 +2974,15 @@ function RoomCard({
                             <button
                                 type="button"
                                 onClick={() => onStatusChange(room.id, 'available', room.room_number)}
-                                className="w-full py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer animate-pulse"
+                                className="w-full py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer animate-pulse"
                                 title="Xác nhận buồng phòng dọn xong để đưa phòng về trạng thái Sẵn sàng"
                             >
-                                <span>✓</span>
+                                <Check className="w-3.5 h-3.5" />
                                 <span>Đã dọn xong → Sẵn sàng</span>
                             </button>
                         ) : (
                             <div className="w-full py-1.5 px-2 bg-amber-100/90 text-amber-800 text-[10px] font-medium rounded-xl border border-amber-300 text-center flex items-center justify-center gap-1 shadow-2xs">
-                                <span>🧹</span>
+                                <Sparkles className="w-3.5 h-3.5 text-amber-700" />
                                 <span>Đang chờ Buồng phòng dọn dẹp</span>
                             </div>
                         )}
@@ -2946,10 +2994,10 @@ function RoomCard({
                     <button
                         type="button"
                         onClick={() => onCompleteMaintenance ? onCompleteMaintenance(room) : onStatusChange(room.id, 'cleaning', room.room_number)}
-                        className="w-full py-2 px-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer shadow-amber-500/20"
+                        className="w-full py-2 px-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-amber-500/20 active:scale-98"
                         title="Nghiệm thu sửa chữa, nhập vật tư thay thế, chi phí & bàn giao buồng phòng dọn dẹp"
                     >
-                        <span>🛠️</span>
+                        <Wrench className="w-3.5 h-3.5" />
                         <span>Sửa xong → Nghiệm thu & Dọn</span>
                     </button>
                 )}
@@ -2958,11 +3006,11 @@ function RoomCard({
                     CHỈ hiển thị cho phòng Trống (Available), Đang dọn (Cleaning), hoặc Bảo trì (Maintenance).
                     KHÔNG hiển thị cho phòng Đang có khách (Occupied) nhằm bảo vệ dữ liệu lưu trú, chống bấm nhầm làm hỏng luồng Check-out PMS. */}
                 {canUseStatusDropdown && room.status !== 'occupied' && (
-                    <div className="pt-1 border-t border-slate-200/50">
+                    <div className="pt-1 border-t border-slate-200/60">
                         <select
                             value={room.status}
                             onChange={(e) => onStatusChange(room.id, e.target.value, room.room_number)}
-                            className="w-full px-2 py-1 bg-white/80 hover:bg-white border border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition cursor-pointer"
+                            className="w-full px-2 py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition cursor-pointer"
                             title="Đổi trạng thái thủ công"
                         >
                             {userRole === 'housekeeper' ? (

@@ -1,4 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+    RotateCw,
+    MessageSquare,
+    Star,
+    Reply,
+    Eye,
+    EyeOff,
+    Trash2,
+    Search,
+    X,
+    CheckCircle2,
+    AlertTriangle,
+    Loader2,
+    Building2,
+    Inbox
+} from 'lucide-react';
 import { reviewService } from '../../services/reviewService';
 import UserAvatar from '../../components/common/UserAvatar';
 import Pagination from '../../components/common/Pagination';
@@ -230,16 +246,16 @@ export default function ReviewManagement() {
     const renderStarIcons = (rating) => {
         const rounded = Math.round(Number(rating) || 0);
         return (
-            <div className="flex items-center gap-0.5 text-amber-400">
+            <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
-                    <span
+                    <Star
                         key={star}
-                        className={`text-base select-none ${
-                            star <= rounded ? 'text-amber-400' : 'text-slate-200'
+                        className={`w-3.5 h-3.5 ${
+                            star <= rounded
+                                ? 'text-amber-400 fill-amber-400'
+                                : 'text-slate-200 fill-slate-100'
                         }`}
-                    >
-                        ★
-                    </span>
+                    />
                 ))}
                 <span className="font-bold text-xs text-slate-800 ml-1.5 font-mono">
                     {Number(rating).toFixed(1)}
@@ -253,22 +269,26 @@ export default function ReviewManagement() {
             {/* ALERT NOTIFICATION */}
             {alertMessage && (
                 <div
-                    className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between shadow-sm animate-in fade-in duration-300 ${
+                    className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in duration-300 ${
                         alertMessage.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                             : 'bg-rose-50 text-rose-800 border border-rose-200'
                     }`}
                 >
                     <div className="flex items-center gap-2">
-                        <span>{alertMessage.type === 'success' ? '✓' : '⚠️'}</span>
+                        {alertMessage.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
                         <span>{alertMessage.text}</span>
                     </div>
                     <button
                         type="button"
                         onClick={() => setAlertMessage(null)}
-                        className="text-xs hover:opacity-70 cursor-pointer"
+                        className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-black/5"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
             )}
@@ -288,36 +308,36 @@ export default function ReviewManagement() {
                     type="button"
                     onClick={fetchReviews}
                     disabled={isLoading}
-                    className="self-start sm:self-auto px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    className="self-start sm:self-auto px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                 >
-                    <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
+                    <RotateCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                     <span>Tải lại</span>
                 </button>
             </div>
 
             {/* 4 THẺ CHỈ SỐ KPI CHUẨN RESORT */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                             Tổng đánh giá
                         </span>
-                        <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
-                            💬
-                        </span>
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shadow-inner">
+                            <MessageSquare className="w-5 h-5" />
+                        </div>
                     </div>
                     <div className="text-2xl font-black text-slate-900">{stats.total}</div>
                     <span className="text-[11px] text-slate-400">Từ các đơn hoàn tất</span>
                 </div>
 
-                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                             Điểm trung bình
                         </span>
-                        <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold">
-                            ★
-                        </span>
+                        <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shadow-inner">
+                            <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                        </div>
                     </div>
                     <div className="text-2xl font-black text-amber-500 flex items-center gap-1.5">
                         <span>{stats.avgRating}</span>
@@ -326,14 +346,14 @@ export default function ReviewManagement() {
                     <span className="text-[11px] text-emerald-600 font-semibold">Chất lượng 5 sao</span>
                 </div>
 
-                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                             Đã phản hồi
                         </span>
-                        <span className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-bold">
-                            ↪
-                        </span>
+                        <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shadow-inner">
+                            <Reply className="w-5 h-5" />
+                        </div>
                     </div>
                     <div className="text-2xl font-black text-purple-600">
                         {stats.repliedCount} <span className="text-xs text-slate-400 font-normal">/ {stats.total}</span>
@@ -343,14 +363,14 @@ export default function ReviewManagement() {
                     </span>
                 </div>
 
-                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                             Đang hiển thị
                         </span>
-                        <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
-                            👁️
-                        </span>
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shadow-inner">
+                            <Eye className="w-5 h-5" />
+                        </div>
                     </div>
                     <div className="text-2xl font-black text-emerald-600">
                         {stats.visibleCount} <span className="text-xs text-slate-400 font-normal">/ {stats.total}</span>
@@ -391,10 +411,10 @@ export default function ReviewManagement() {
                         className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
                     >
                         <option value="all">Tất cả số sao</option>
-                        <option value="5">⭐⭐⭐⭐⭐ 5 sao</option>
-                        <option value="4">⭐⭐⭐⭐ 4 sao</option>
-                        <option value="3">⭐⭐⭐ 3 sao</option>
-                        <option value="under3">Dưới 3 sao</option>
+                        <option value="5">5 sao (Xuất sắc)</option>
+                        <option value="4">4 sao (Rất tốt)</option>
+                        <option value="3">3 sao (Hài lòng)</option>
+                        <option value="under3">Dưới 3 sao (Cần cải thiện)</option>
                     </select>
 
                     {/* Lọc Hạng phòng */}
@@ -416,6 +436,7 @@ export default function ReviewManagement() {
 
                 {/* Ô tìm kiếm */}
                 <div className="relative w-full md:w-auto md:min-w-[260px]">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
                     <input
                         type="text"
                         placeholder="Tìm khách hàng, email, nội dung..."
@@ -423,14 +444,13 @@ export default function ReviewManagement() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                     />
-                    <span className="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
                     {searchTerm && (
                         <button
                             type="button"
                             onClick={() => setSearchTerm('')}
-                            className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                            className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
                         >
-                            ✕
+                            <X className="w-3.5 h-3.5" />
                         </button>
                     )}
                 </div>
@@ -442,21 +462,23 @@ export default function ReviewManagement() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                <th className="py-4 px-6 min-w-[200px]">Khách hàng</th>
-                                <th className="py-4 px-5 min-w-[160px]">Loại phòng</th>
-                                <th className="py-4 px-5 min-w-[240px]">Điểm số</th>
-                                <th className="py-4 px-6 min-w-[320px]">Nội dung & Phản hồi</th>
-                                <th className="py-4 px-5 min-w-[140px]">Ngày gửi</th>
-                                <th className="py-4 px-4 min-w-[120px]">Trạng thái</th>
-                                <th className="py-4 px-5 text-right min-w-[110px]">Hành động</th>
+                                <th className="py-4 px-6 min-w-[180px]">Khách hàng</th>
+                                <th className="py-4 px-5 min-w-[140px]">Loại phòng</th>
+                                <th className="py-4 px-5 min-w-[200px]">Điểm số</th>
+                                <th className="py-4 px-6 min-w-[280px]">Nội dung & Phản hồi</th>
+                                <th className="py-4 px-5 min-w-[130px]">Ngày gửi</th>
+                                <th className="py-4 px-4 min-w-[110px]">Trạng thái</th>
+                                <th className="py-4 pr-6 pl-4 text-right min-w-[120px] sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10">
+                                    Hành động
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-xs">
                             {isLoading && (
                                 <tr>
                                     <td colSpan="7" className="py-12 text-center text-slate-400">
-                                        <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                                        <div>Đang tải dữ liệu đánh giá...</div>
+                                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-2" />
+                                        <div className="text-xs font-medium text-slate-600">Đang tải dữ liệu đánh giá...</div>
                                     </td>
                                 </tr>
                             )}
@@ -464,7 +486,9 @@ export default function ReviewManagement() {
                             {!isLoading && filteredReviews.length === 0 && (
                                 <tr>
                                     <td colSpan="7" className="py-12 text-center text-slate-400">
-                                        <div className="text-4xl mb-2">⭐</div>
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto mb-2">
+                                            <Inbox className="w-6 h-6" />
+                                        </div>
                                         <div className="font-bold text-slate-700">Chưa có đánh giá nào phù hợp</div>
                                         <p className="text-xs text-slate-400 mt-1">
                                             {searchTerm || statusFilter !== 'all' || ratingFilter !== 'all'
@@ -482,7 +506,7 @@ export default function ReviewManagement() {
                                     return (
                                         <tr
                                             key={review.id}
-                                            className="hover:bg-slate-50/60 transition-colors duration-150 align-top"
+                                            className="group hover:bg-slate-50/60 transition-colors duration-150 align-top"
                                         >
                                             {/* CỘT 1: KHÁCH HÀNG (Hiển thị Tên in đậm và Email nhỏ ở dưới) */}
                                             <td className="py-4 px-6">
@@ -560,10 +584,10 @@ export default function ReviewManagement() {
 
                                                     {/* TRƯỜNG HỢP 1: NẾU ĐÃ CÓ ADMIN_REPLY */}
                                                     {review.admin_reply && !isReplying && (
-                                                        <div className="p-3 bg-gray-50 border-l-4 border-yellow-500 rounded-r-xl text-xs space-y-1 group relative">
+                                                        <div className="p-3 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-2xl text-xs space-y-1.5 group relative shadow-2xs">
                                                             <div className="flex items-center justify-between">
-                                                                <span className="font-bold text-slate-900 text-[11px] flex items-center gap-1.5">
-                                                                    <span>🏨</span>
+                                                                <span className="font-bold text-amber-950 text-[11px] flex items-center gap-1.5">
+                                                                    <Building2 className="w-3.5 h-3.5 text-amber-600" />
                                                                     <span>Khách sạn phản hồi:</span>
                                                                 </span>
                                                                 <button
@@ -575,7 +599,7 @@ export default function ReviewManagement() {
                                                                     Chỉnh sửa
                                                                 </button>
                                                             </div>
-                                                            <p className="text-slate-700 leading-relaxed font-normal">
+                                                            <p className="text-slate-800 leading-relaxed font-normal">
                                                                 {review.admin_reply}
                                                             </p>
                                                         </div>
@@ -588,7 +612,7 @@ export default function ReviewManagement() {
                                                             onClick={() => handleStartReply(review)}
                                                             className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition cursor-pointer pt-1"
                                                         >
-                                                            <span className="text-sm">↪</span>
+                                                            <Reply className="w-3.5 h-3.5" />
                                                             <span>Viết phản hồi</span>
                                                         </button>
                                                     )}
@@ -603,7 +627,7 @@ export default function ReviewManagement() {
                                                                 rows={3}
                                                                 value={replyDraft}
                                                                 onChange={(e) => setReplyDraft(e.target.value)}
-                                                                placeholder="Kính chào quý khách, khách sạn TA Đà Nẵng chân thành cảm ơn quý khách..."
+                                                                placeholder="Kính chào quý khách, khách sạn chân thành cảm ơn quý khách..."
                                                                 className="w-full p-2.5 bg-white border border-blue-300 focus:border-blue-600 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 transition leading-relaxed"
                                                             />
                                                             <div className="flex items-center gap-2">
@@ -611,11 +635,11 @@ export default function ReviewManagement() {
                                                                     type="button"
                                                                     disabled={isSubmittingReply}
                                                                     onClick={() => handleSaveReply(review.id)}
-                                                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                                                                 >
                                                                     {isSubmittingReply ? (
                                                                         <>
-                                                                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                                             <span>Đang lưu...</span>
                                                                         </>
                                                                     ) : (
@@ -656,10 +680,10 @@ export default function ReviewManagement() {
                                                 )}
                                             </td>
 
-                                            {/* CỘT 7: HÀNH ĐỘNG (2 nút icon: Nút "Ẩn/Hiện" màu cam và Nút "Xóa" màu đỏ) */}
-                                            <td className="py-4 px-5 text-right whitespace-nowrap">
+                                            {/* CỘT 7: HÀNH ĐỘNG (Sticky cố định bên phải tránh bị che khuất) */}
+                                            <td className="py-4 pr-6 pl-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10">
                                                 <div className="flex items-center justify-end gap-1.5">
-                                                    {/* Nút Ẩn / Hiện (Màu cam) */}
+                                                    {/* Nút Ẩn / Hiện */}
                                                     <button
                                                         type="button"
                                                         onClick={() => handleToggleVisibility(review)}
@@ -675,14 +699,9 @@ export default function ReviewManagement() {
                                                         }
                                                     >
                                                         {review.is_visible ? (
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                                                            </svg>
+                                                            <EyeOff className="w-4 h-4" />
                                                         ) : (
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                            </svg>
+                                                            <Eye className="w-4 h-4" />
                                                         )}
                                                     </button>
 
@@ -693,9 +712,7 @@ export default function ReviewManagement() {
                                                         className="p-2 rounded-xl text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 hover:border-rose-300 transition shadow-2xs cursor-pointer"
                                                         title="Xóa đánh giá này"
                                                     >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -710,14 +727,16 @@ export default function ReviewManagement() {
                 <div className="block md:hidden divide-y divide-slate-100">
                     {isLoading && (
                         <div className="py-12 text-center text-slate-400">
-                            <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                            <div className="text-xs">Đang tải dữ liệu đánh giá...</div>
+                            <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-2" />
+                            <div className="text-xs font-medium text-slate-600">Đang tải dữ liệu đánh giá...</div>
                         </div>
                     )}
 
                     {!isLoading && filteredReviews.length === 0 && (
                         <div className="py-12 px-4 text-center text-slate-400">
-                            <div className="text-4xl mb-2">⭐</div>
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto mb-2">
+                                <Inbox className="w-6 h-6" />
+                            </div>
                             <div className="font-bold text-slate-700 text-sm">Chưa có đánh giá nào phù hợp</div>
                             <p className="text-xs text-slate-400 mt-1">
                                 {searchTerm || statusFilter !== 'all' || ratingFilter !== 'all'
@@ -775,8 +794,9 @@ export default function ReviewManagement() {
 
                                     {/* Hạng phòng & Ngày gửi */}
                                     <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                                        <span className="font-semibold text-slate-800 truncate">
-                                            🏨 {review.room_category_name || 'Hạng phòng tiêu chuẩn'}
+                                        <span className="font-semibold text-slate-800 truncate flex items-center gap-1.5">
+                                            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <span>{review.room_category_name || 'Hạng phòng tiêu chuẩn'}</span>
                                         </span>
                                         <span className="text-[11px] font-mono shrink-0 text-slate-400">
                                             {formatDateTimeDisplay(review.created_at)}
@@ -806,10 +826,10 @@ export default function ReviewManagement() {
 
                                     {/* Phản hồi từ khách sạn */}
                                     {review.admin_reply && !isReplying && (
-                                        <div className="p-3 bg-amber-50/60 border-l-4 border-yellow-500 rounded-r-xl text-xs space-y-1">
+                                        <div className="p-3 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-2xl text-xs space-y-1.5 shadow-2xs">
                                             <div className="flex items-center justify-between">
-                                                <span className="font-bold text-slate-900 text-[11px] flex items-center gap-1.5">
-                                                    <span>🏨</span>
+                                                <span className="font-bold text-amber-950 text-[11px] flex items-center gap-1.5">
+                                                    <Building2 className="w-3.5 h-3.5 text-amber-600" />
                                                     <span>Khách sạn phản hồi:</span>
                                                 </span>
                                                 <button
@@ -820,7 +840,7 @@ export default function ReviewManagement() {
                                                     Chỉnh sửa
                                                 </button>
                                             </div>
-                                            <p className="text-slate-700 leading-relaxed font-normal">
+                                            <p className="text-slate-800 leading-relaxed font-normal">
                                                 {review.admin_reply}
                                             </p>
                                         </div>
@@ -833,7 +853,7 @@ export default function ReviewManagement() {
                                                 onClick={() => handleStartReply(review)}
                                                 className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition cursor-pointer"
                                             >
-                                                <span className="text-sm">↪</span>
+                                                <Reply className="w-3.5 h-3.5" />
                                                 <span>Viết phản hồi cho khách</span>
                                             </button>
                                         </div>
@@ -848,7 +868,7 @@ export default function ReviewManagement() {
                                                 rows={3}
                                                 value={replyDraft}
                                                 onChange={(e) => setReplyDraft(e.target.value)}
-                                                placeholder="Kính chào quý khách, khách sạn TA Đà Nẵng chân thành cảm ơn quý khách..."
+                                                placeholder="Kính chào quý khách, khách sạn chân thành cảm ơn quý khách..."
                                                 className="w-full p-2.5 bg-white border border-blue-300 focus:border-blue-600 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 transition leading-relaxed"
                                             />
                                             <div className="flex items-center gap-2">
@@ -856,11 +876,11 @@ export default function ReviewManagement() {
                                                     type="button"
                                                     disabled={isSubmittingReply}
                                                     onClick={() => handleSaveReply(review.id)}
-                                                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
+                                                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                                 >
                                                     {isSubmittingReply ? (
                                                         <>
-                                                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                             <span>Đang lưu...</span>
                                                         </>
                                                     ) : (
@@ -892,17 +912,12 @@ export default function ReviewManagement() {
                                         >
                                             {review.is_visible ? (
                                                 <>
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                                                    </svg>
+                                                    <EyeOff className="w-3.5 h-3.5" />
                                                     <span>Ẩn khỏi web</span>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
+                                                    <Eye className="w-3.5 h-3.5" />
                                                     <span>Hiện công khai</span>
                                                 </>
                                             )}
@@ -913,9 +928,7 @@ export default function ReviewManagement() {
                                             onClick={() => setDeleteConfirmReview(review)}
                                             className="py-2 px-3.5 rounded-xl text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 hover:border-rose-300 transition text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                         >
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
+                                            <Trash2 className="w-3.5 h-3.5" />
                                             <span>Xóa</span>
                                         </button>
                                     </div>
@@ -938,8 +951,8 @@ export default function ReviewManagement() {
             {deleteConfirmReview && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4">
-                        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
-                            🗑️
+                        <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
+                            <Trash2 className="w-6 h-6" />
                         </div>
 
                         <div>
@@ -967,7 +980,7 @@ export default function ReviewManagement() {
                             >
                                 {isDeleting ? (
                                     <>
-                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                         <span>Đang xóa...</span>
                                     </>
                                 ) : (

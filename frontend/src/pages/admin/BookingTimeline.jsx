@@ -1,4 +1,33 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+    CalendarDays,
+    ChevronLeft,
+    ChevronRight,
+    RotateCw,
+    Search,
+    SlidersHorizontal,
+    Layers,
+    BedDouble,
+    Moon,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    Key,
+    ShieldCheck,
+    Users,
+    User,
+    Phone,
+    CreditCard,
+    Building2,
+    Sparkles,
+    X,
+    AlertTriangle,
+    DoorClosed,
+    Check,
+    FileText,
+    Info,
+    ArrowRight
+} from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
 import roomService from '../../services/roomService';
 
@@ -16,61 +45,61 @@ const formatDateDisplay = (dateStr) => {
     return dateStr;
 };
 
-// Cấu hình màu sắc theo trạng thái
+// Cấu hình màu sắc theo trạng thái với hiệu ứng Gradient sang trọng
 const STATUS_CONFIG = {
     pending: {
         label: 'Chờ xác nhận',
-        bg: 'bg-amber-500',
-        hoverBg: 'hover:bg-amber-600',
-        border: 'border-amber-600',
+        bg: 'bg-gradient-to-r from-amber-500 to-amber-600',
+        hoverBg: 'hover:from-amber-600 hover:to-amber-700',
+        border: 'border-amber-600/80',
         text: 'text-white',
         badgeClass: 'bg-amber-50 text-amber-800 border-amber-300'
     },
     paid: {
         label: 'Chờ duyệt (Đã TT QR)',
-        bg: 'bg-amber-500',
-        hoverBg: 'hover:bg-amber-600',
-        border: 'border-amber-600',
+        bg: 'bg-gradient-to-r from-amber-500 to-amber-600',
+        hoverBg: 'hover:from-amber-600 hover:to-amber-700',
+        border: 'border-amber-600/80',
         text: 'text-white',
         badgeClass: 'bg-amber-50 text-amber-800 border-amber-300'
     },
     PAID: {
         label: 'Chờ duyệt (Đã TT QR)',
-        bg: 'bg-amber-500',
-        hoverBg: 'hover:bg-amber-600',
-        border: 'border-amber-600',
+        bg: 'bg-gradient-to-r from-amber-500 to-amber-600',
+        hoverBg: 'hover:from-amber-600 hover:to-amber-700',
+        border: 'border-amber-600/80',
         text: 'text-white',
         badgeClass: 'bg-amber-50 text-amber-800 border-amber-300'
     },
     confirmed: {
         label: 'Đã xác nhận',
-        bg: 'bg-blue-600',
-        hoverBg: 'hover:bg-blue-700',
-        border: 'border-blue-700',
+        bg: 'bg-gradient-to-r from-blue-600 to-indigo-600',
+        hoverBg: 'hover:from-blue-700 hover:to-indigo-700',
+        border: 'border-blue-700/80',
         text: 'text-white',
         badgeClass: 'bg-blue-50 text-blue-800 border-blue-300'
     },
     checked_in: {
         label: 'Đang lưu trú',
-        bg: 'bg-emerald-600',
-        hoverBg: 'hover:bg-emerald-700',
-        border: 'border-emerald-700',
+        bg: 'bg-gradient-to-r from-emerald-600 to-teal-600',
+        hoverBg: 'hover:from-emerald-700 hover:to-teal-700',
+        border: 'border-emerald-700/80',
         text: 'text-white',
         badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300'
     },
     checked_out: {
         label: 'Đã trả phòng',
-        bg: 'bg-slate-500',
-        hoverBg: 'hover:bg-slate-600',
-        border: 'border-slate-600',
+        bg: 'bg-gradient-to-r from-slate-500 to-slate-600',
+        hoverBg: 'hover:from-slate-600 hover:to-slate-700',
+        border: 'border-slate-600/80',
         text: 'text-white',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-300'
     },
     completed: {
         label: 'Đã hoàn tất',
-        bg: 'bg-slate-500',
-        hoverBg: 'hover:bg-slate-600',
-        border: 'border-slate-600',
+        bg: 'bg-gradient-to-r from-slate-500 to-slate-600',
+        hoverBg: 'hover:from-slate-600 hover:to-slate-700',
+        border: 'border-slate-600/80',
         text: 'text-white',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-300'
     }
@@ -103,8 +132,8 @@ export default function BookingTimeline({ onNavigateToBookings }) {
     // Ref cho vùng scroll để tự động cuộn đến ngày hôm nay nếu ở tháng hiện tại
     const gridScrollRef = useRef(null);
 
-    // Chiều rộng mỗi cột ngày (px)
-    const CELL_WIDTH = 46;
+    // Chiều rộng mỗi cột ngày (px) - Tối ưu 52px để không bị cắt cụt chữ
+    const CELL_WIDTH = 52;
 
     // Tính toán số ngày trong tháng được chọn
     const daysInMonth = useMemo(() => {
@@ -329,38 +358,39 @@ export default function BookingTimeline({ onNavigateToBookings }) {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-200">
             {/* 1. HEADER & THANH ĐIỀU HƯỚNG THÁNG */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-5">
                 <div>
                     <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <span>Lịch Đặt Phòng Theo Sơ Đồ Trực Quan</span>
+                        <CalendarDays className="w-6 h-6 text-blue-600" />
+                        <span>Lịch Đặt Phòng Theo Sơ Đồ Trực Quan (Tape Chart)</span>
                     </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-1">
                         Theo dõi mật độ lưu trú, phát hiện phòng trống và giám sát các đợt Check-in / Check-out theo từng phòng.
                     </p>
                 </div>
 
-                {/* KHỐI ĐIỀU HƯỚNG THÁNG "Tháng trước" < "Tháng 6 / 2026" > "Tháng sau" */}
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center bg-white text-slate-800 border border-slate-200 rounded-2xl p-1.5 shadow-xs">
+                {/* KHỐI ĐIỀU HƯỚNG THÁNG: < Tháng X / 2026 > + Hôm nay + Làm mới */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="inline-flex items-center bg-white text-slate-800 border border-slate-200/90 rounded-2xl p-1 shadow-2xs">
                         {/* Nút Tháng trước */}
                         <button
                             type="button"
                             onClick={handlePrevMonth}
-                            className="px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition flex items-center gap-1.5 active:scale-95"
+                            className="p-2 rounded-xl text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
                             title="Chuyển về tháng trước"
                         >
-                            <span>‹</span>
-                            <span>Tháng trước</span>
+                            <ChevronLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">Tháng trước</span>
                         </button>
 
                         {/* Nhãn Tháng / Năm hiện tại */}
-                        <div className="px-4 py-1.5 text-center min-w-[150px] border-x border-slate-200 bg-blue-50/60">
-                            <span className="block text-[11px] text-blue-600 uppercase tracking-widest font-bold font-mono">
+                        <div className="px-4 py-1 text-center min-w-[140px] border-x border-slate-100 bg-slate-50/70 rounded-lg mx-1">
+                            <span className="block text-[9px] text-blue-600 uppercase tracking-widest font-black font-mono">
                                 PMS TIMELINE
                             </span>
-                            <span className="text-sm font-bold text-slate-900 tracking-wide">
+                            <span className="text-sm font-black text-slate-900 tracking-tight">
                                 Tháng {currentMonth} / {currentYear}
                             </span>
                         </div>
@@ -369,11 +399,11 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                         <button
                             type="button"
                             onClick={handleNextMonth}
-                            className="px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-blue-50 text-slate-600 hover:text-blue-700 transition flex items-center gap-1.5 active:scale-95"
+                            className="p-2 rounded-xl text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
                             title="Chuyển sang tháng tiếp theo"
                         >
-                            <span>Tháng sau</span>
-                            <span>›</span>
+                            <span className="hidden sm:inline">Tháng sau</span>
+                            <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
 
@@ -381,13 +411,10 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                     <button
                         type="button"
                         onClick={handleJumpToToday}
-                        className="px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5 active:scale-95"
+                        className="px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-xs rounded-xl border border-blue-200/80 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
                         title="Về tháng hiện tại"
                     >
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <CalendarDays className="w-3.5 h-3.5 shrink-0 text-blue-600" />
                         <span>Hôm nay</span>
                     </button>
 
@@ -396,138 +423,177 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                         type="button"
                         onClick={fetchTimelineData}
                         disabled={isLoading}
-                        className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 disabled:opacity-60"
+                        className="px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200/90 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 shadow-2xs hover:border-slate-300"
                         title="Tải lại dữ liệu từ CSDL"
                     >
-                        <svg className={`w-3.5 h-3.5 shrink-0 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
+                        <RotateCw className={`w-3.5 h-3.5 shrink-0 ${isLoading ? 'animate-spin text-blue-600' : 'text-slate-500'}`} />
                         <span>{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
                     </button>
                 </div>
             </div>
 
-            {/* 2. CHÚ THÍCH MÀU SẮC (LEGEND) & BẢNG THỐNG KÊ NHANH */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                {/* Khối Thống kê nhanh */}
-                <div className="lg:col-span-5 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-around text-center">
-                    <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                            Tổng Phòng
-                        </span>
-                        <span className="text-xl font-black text-slate-900">{stats.totalRooms}</span>
+            {/* 2. KHỐI 4 THẺ THỐNG KÊ KPI ĐỒNG BỘ 5 SAO & QUY TẮC MÀU (LEGEND) */}
+            <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                    {/* 1. Tổng phòng */}
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                                TỔNG SỐ PHÒNG
+                            </span>
+                            <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                                <BedDouble className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                            {stats.totalRooms}
+                            <span className="text-xs font-medium text-slate-400 ml-1">phòng</span>
+                        </div>
                     </div>
-                    <div className="w-px h-8 bg-slate-200"></div>
-                    <div>
-                        <span className="text-[10px] uppercase font-bold text-emerald-600 block tracking-wider">
-                            Đang Ở
-                        </span>
-                        <span className="text-xl font-black text-emerald-700">{stats.checkedIn}</span>
+
+                    {/* 2. Đang ở (In-house) */}
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
+                                ĐANG Ở (IN-HOUSE)
+                            </span>
+                            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                <Key className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+                        <div className="text-2xl font-black text-emerald-700 tracking-tight">
+                            {stats.checkedIn}
+                            <span className="text-xs font-medium text-slate-400 ml-1">khách</span>
+                        </div>
                     </div>
-                    <div className="w-px h-8 bg-slate-200"></div>
-                    <div>
-                        <span className="text-[10px] uppercase font-bold text-blue-600 block tracking-wider">
-                            Đã Xác Nhận
-                        </span>
-                        <span className="text-xl font-black text-blue-700">{stats.confirmed}</span>
+
+                    {/* 3. Đã xác nhận */}
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">
+                                ĐÃ XÁC NHẬN
+                            </span>
+                            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+                        <div className="text-2xl font-black text-blue-700 tracking-tight">
+                            {stats.confirmed}
+                            <span className="text-xs font-medium text-slate-400 ml-1">đơn</span>
+                        </div>
                     </div>
-                    <div className="w-px h-8 bg-slate-200"></div>
-                    <div>
-                        <span className="text-[10px] uppercase font-bold text-amber-600 block tracking-wider">
-                            Chờ Duyệt
-                        </span>
-                        <span className="text-xl font-black text-amber-600">{stats.pending}</span>
+
+                    {/* 4. Chờ duyệt */}
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
+                                CHỜ DUYỆT
+                            </span>
+                            <div className="relative w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                                <Clock className="w-3.5 h-3.5" />
+                                {stats.pending > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="text-2xl font-black text-amber-700 tracking-tight">
+                            {stats.pending}
+                            <span className="text-xs font-medium text-slate-400 ml-1">đơn</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Khối Chú thích màu sắc (Legend) */}
-                <div className="lg:col-span-7 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        Quy tắc màu:
+                {/* Dải Quy Tắc Màu (Legend Pill Bar) */}
+                <div className="bg-white px-4 py-2.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 text-slate-400" />
+                        Quy tắc màu sơ đồ:
                     </span>
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                         {/* Chờ xác nhận (Cam) */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-3.5 h-3.5 rounded bg-amber-500 border border-amber-600 shadow-xs shrink-0"></span>
-                            <span className="text-slate-700 font-medium">Chờ xác nhận</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-800 text-[11px] font-semibold">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                            <span>Chờ xác nhận</span>
                         </div>
                         {/* Đã xác nhận (Xanh dương) */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-3.5 h-3.5 rounded bg-blue-600 border border-blue-700 shadow-xs shrink-0"></span>
-                            <span className="text-slate-700 font-medium">Đã xác nhận</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200/80 text-blue-800 text-[11px] font-semibold">
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
+                            <span>Đã xác nhận</span>
                         </div>
-                        {/* Đang lưu trú (Xanh lá) */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-3.5 h-3.5 rounded bg-emerald-600 border border-emerald-700 shadow-xs shrink-0"></span>
-                            <span className="text-slate-700 font-medium">Đang lưu trú</span>
+                        {/* Đang lưu trú (Xanh ngọc) */}
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-semibold">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                            <span>Đang lưu trú</span>
                         </div>
-                        {/* Đã trả phòng/Trống (Xám) */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-3.5 h-3.5 rounded bg-slate-400 border border-slate-500 shadow-xs shrink-0"></span>
-                            <span className="text-slate-700 font-medium">Đã trả phòng</span>
+                        {/* Đã trả phòng (Xám đá) */}
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold">
+                            <span className="w-2.5 h-2.5 rounded-full bg-slate-500 shrink-0"></span>
+                            <span>Đã trả phòng</span>
                         </div>
-                        {/* Cuối tuần (Hồng nhạt) */}
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-3.5 h-3.5 rounded bg-rose-100 border border-rose-300 shadow-xs shrink-0"></span>
-                            <span className="text-rose-700 font-medium">Cuối tuần (T7, CN)</span>
+                        {/* Cuối tuần (Hồng pastel) */}
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-700 text-[11px] font-semibold">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-400 shrink-0"></span>
+                            <span>Cuối tuần (T7, CN)</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* 3. THANH BỘ LỌC TÌM KIẾM THEO PHÒNG, TẦNG, HẠNG PHÒNG */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
                     {/* Tìm kiếm phòng */}
                     <div className="relative flex-1 min-w-[200px] max-w-sm">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            🔍
-                        </span>
+                        <Search className="w-4 h-4 text-slate-400 absolute inset-y-0 left-3 my-auto pointer-events-none" />
                         <input
                             type="text"
                             value={searchRoom}
                             onChange={(e) => setSearchRoom(e.target.value)}
                             placeholder="Tìm theo số phòng (VD: 101, 202)..."
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-white focus:bg-white rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-xs"
+                            className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-white focus:bg-white rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-xs font-medium"
                         />
                     </div>
 
                     {/* Lọc Hạng phòng */}
-                    <select
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                        className="py-2 px-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 font-medium text-xs focus:ring-2 focus:ring-blue-100"
-                    >
-                        <option value="all">Tất cả Hạng phòng</option>
-                        {categoryOptions.map((c) => (
-                            <option key={c.id} value={c.id}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="relative">
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="py-2 pl-3 pr-8 bg-slate-50 hover:bg-white rounded-xl border border-slate-200 text-slate-700 font-medium text-xs focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                        >
+                            <option value="all">Tất cả Hạng phòng</option>
+                            {categoryOptions.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
                     {/* Lọc Tầng */}
-                    <select
-                        value={filterFloor}
-                        onChange={(e) => setFilterFloor(e.target.value)}
-                        className="py-2 px-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 font-medium text-xs focus:ring-2 focus:ring-blue-100"
-                    >
-                        <option value="all">Tất cả Tầng</option>
-                        {floorOptions.map((f) => (
-                            <option key={f} value={f}>
-                                Tầng {f}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="relative">
+                        <select
+                            value={filterFloor}
+                            onChange={(e) => setFilterFloor(e.target.value)}
+                            className="py-2 pl-3 pr-8 bg-slate-50 hover:bg-white rounded-xl border border-slate-200 text-slate-700 font-medium text-xs focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                        >
+                            <option value="all">Tất cả Tầng</option>
+                            {floorOptions.map((f) => (
+                                <option key={f} value={f}>
+                                    Tầng {f}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
-                <div className="text-slate-500 text-xs">
-                    Hiển thị <strong>{filteredRooms.length}</strong> / <strong>{rooms.length}</strong> phòng
+                <div className="text-slate-500 text-xs font-medium">
+                    Hiển thị <strong className="text-slate-900 font-black">{filteredRooms.length}</strong> / <strong className="text-slate-900 font-black">{rooms.length}</strong> phòng
                 </div>
             </div>
 
             {/* 4. SƠ ĐỒ TRỰC QUAN GANTT TIMELINE (GRID BẢNG TÍNH) */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative">
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden relative">
                 {isLoading && (
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs z-40 flex flex-col items-center justify-center gap-3">
                         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -538,14 +604,14 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                 {errorMsg ? (
                     <div className="p-12 text-center">
                         <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-xl mx-auto mb-3">
-                            ⚠️
+                            <AlertTriangle className="w-6 h-6 text-rose-600" />
                         </div>
                         <h4 className="text-sm font-bold text-slate-900 mb-1">Không thể tải dữ liệu sơ đồ</h4>
                         <p className="text-xs text-slate-500 mb-4">{errorMsg}</p>
                         <button
                             type="button"
                             onClick={fetchTimelineData}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
                         >
                             Thử lại
                         </button>
@@ -555,17 +621,17 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                         ref={gridScrollRef}
                         className="overflow-x-auto overflow-y-auto max-h-[750px] relative scrollbar-thin scrollbar-thumb-slate-300"
                     >
-                        <div style={{ width: `${200 + daysInMonth * CELL_WIDTH}px` }} className="relative select-none">
+                        <div style={{ width: `${210 + daysInMonth * CELL_WIDTH}px` }} className="relative select-none">
                             {/* ========================================================================= */}
                             {/* HÀNG TIÊU ĐỀ: DANH SÁCH NGÀY TRONG THÁNG (STICKY TOP) */}
                             {/* ========================================================================= */}
                             <div className="sticky top-0 z-30 flex bg-slate-900 text-white border-b border-slate-800 shadow-xs">
                                 {/* Cột Góc trên cùng bên trái (Phòng / Ngày) */}
-                                <div className="w-[200px] min-w-[200px] p-3 sticky left-0 z-40 bg-slate-950 flex flex-col justify-center border-r border-slate-800">
-                                    <span className="text-xs font-bold text-white tracking-wide uppercase">
+                                <div className="w-[210px] min-w-[210px] p-3 sticky left-0 z-40 bg-slate-950 flex flex-col justify-center border-r border-slate-800">
+                                    <span className="text-xs font-black text-white tracking-wide uppercase">
                                         Phòng / Ngày
                                     </span>
-                                    <span className="text-[10px] text-slate-400">
+                                    <span className="text-[10px] text-slate-400 font-medium">
                                         Tháng {currentMonth}/{currentYear}
                                     </span>
                                 </div>
@@ -578,18 +644,18 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                             style={{ width: `${CELL_WIDTH}px`, minWidth: `${CELL_WIDTH}px` }}
                                             className={`p-1.5 text-center border-r border-slate-800 flex flex-col items-center justify-center transition ${
                                                 d.isWeekend
-                                                    ? 'bg-rose-950/70 text-rose-200'
+                                                    ? 'bg-slate-950/90 text-rose-300'
                                                     : d.isToday
                                                     ? 'bg-blue-600 text-white font-black'
                                                     : 'text-slate-300'
                                             }`}
                                             title={`${d.dayName}, ngày ${d.day}/${currentMonth}/${currentYear}`}
                                         >
-                                            <span className="text-[10px] font-semibold opacity-80 block">
+                                            <span className="text-[10px] font-bold opacity-80 block">
                                                 {d.dayName}
                                             </span>
                                             <span
-                                                className={`text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center mt-0.5 ${
+                                                className={`text-xs font-black rounded-full w-5 h-5 flex items-center justify-center mt-0.5 ${
                                                     d.isToday ? 'bg-white text-blue-700 shadow-xs' : ''
                                                 }`}
                                             >
@@ -624,24 +690,24 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                                 key={room.id}
                                                 className="flex h-14 hover:bg-slate-50/60 transition group relative"
                                             >
-                                                {/* CỘT DỌC BÊN TRÁI (STICKY LEFT): Tên phòng và Tên hạng phòng nhỏ bên dưới */}
-                                                <div className="w-[200px] min-w-[200px] px-3.5 py-1.5 sticky left-0 z-20 bg-white group-hover:bg-slate-50 border-r border-slate-200 flex flex-col justify-center shadow-xs">
+                                                {/* CỘT DỌC BÊN TRÁI (STICKY LEFT): Tên phòng và Tên hạng phòng */}
+                                                <div className="w-[210px] min-w-[210px] px-3.5 py-1.5 sticky left-0 z-20 bg-white group-hover:bg-slate-50 border-r border-slate-200 flex flex-col justify-center shadow-xs">
                                                     <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-1.5">
+                                                        <div className="flex items-center gap-2">
                                                             <span
-                                                                className={`w-2 h-2 rounded-full ${roomStatusDot} shrink-0`}
+                                                                className={`w-2.5 h-2.5 rounded-full ${roomStatusDot} shrink-0 ring-2 ring-white shadow-xs`}
                                                                 title={`Trạng thái: ${room.status_display}`}
                                                             ></span>
-                                                            <span className="font-bold text-slate-900 text-sm tracking-tight font-mono">
+                                                            <span className="font-mono font-black text-slate-900 text-sm tracking-tight">
                                                                 P.{room.room_number}
                                                             </span>
                                                         </div>
-                                                        <span className="text-[10px] text-slate-400 font-semibold bg-slate-100 px-1.5 py-0.5 rounded">
+                                                        <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
                                                             T.{room.floor}
                                                         </span>
                                                     </div>
                                                     <span
-                                                        className="text-[11px] text-slate-500 truncate block mt-0.5"
+                                                        className="text-[11px] text-slate-500 truncate block mt-0.5 font-medium"
                                                         title={room.category_name}
                                                     >
                                                         {room.category_name || 'Hạng tiêu chuẩn'}
@@ -660,7 +726,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                                             }}
                                                             className={`h-full border-r border-slate-100 shrink-0 ${
                                                                 d.isWeekend
-                                                                    ? 'bg-rose-50/50'
+                                                                    ? 'bg-rose-50/40'
                                                                     : d.isToday
                                                                     ? 'bg-blue-50/40'
                                                                     : 'bg-transparent'
@@ -668,17 +734,23 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                                         ></div>
                                                     ))}
 
-                                                    {/* Lớp hiển thị các Thẻ Đặt Phòng (Booking Cards) */}
+                                                    {/* Lớp hiển thị các Thẻ Đặt Phòng (Booking Cards) Thông Minh */}
                                                     {(room.bookings || []).map((booking) => {
                                                         const {
                                                             left,
                                                             width,
                                                             startsBeforeMonth,
-                                                            endsAfterMonth
+                                                            endsAfterMonth,
+                                                            diffDays
                                                         } = calculateBookingBlock(booking);
 
                                                         const cfg =
                                                             STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending;
+
+                                                        // Phân loại độ rộng để hiển thị nội dung thông minh, không bị cắt chữ
+                                                        const isNarrow = width < 85; // ~1 ngày
+                                                        const isMedium = width >= 85 && width < 145; // ~2 ngày
+                                                        const isWide = width >= 145; // >= 3 ngày
 
                                                         return (
                                                             <div
@@ -690,7 +762,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                                                     left: `${left}px`,
                                                                     width: `${width}px`
                                                                 }}
-                                                                className={`absolute top-2 h-10 rounded-xl ${cfg.bg} ${cfg.hoverBg} ${cfg.border} ${cfg.text} border shadow-xs px-2 flex items-center justify-between cursor-pointer transition transform hover:scale-[1.01] hover:z-20 overflow-hidden active:scale-95`}
+                                                                className={`absolute top-2 h-10 rounded-xl ${cfg.bg} ${cfg.hoverBg} ${cfg.border} ${cfg.text} border shadow-xs px-2 flex items-center justify-between cursor-pointer transition-all transform hover:scale-[1.01] hover:shadow-md hover:z-20 overflow-hidden active:scale-95 ring-1 ring-white/20`}
                                                             >
                                                                 {/* Mũi tên chỉ báo đơn bắt đầu từ tháng trước */}
                                                                 {startsBeforeMonth && (
@@ -699,15 +771,47 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                                                     </span>
                                                                 )}
 
-                                                                {/* Tên khách và Mã đơn */}
-                                                                <div className="flex-1 min-w-0 pr-1">
-                                                                    <span className="text-xs font-bold truncate block leading-tight">
-                                                                        {booking.guest_name}
-                                                                    </span>
-                                                                    <span className="text-[10px] opacity-85 truncate block font-mono">
-                                                                        #{booking.booking_code}
-                                                                    </span>
-                                                                </div>
+                                                                {/* NỘI DUNG THẺ THÔNG MINH THEO ĐỘ DÀI */}
+                                                                {isNarrow ? (
+                                                                    // Thẻ 1 ngày hẹp: Hiển thị 1 dòng tên ngắn gọn, KHÔNG ép 2 dòng gây cắt cụt
+                                                                    <div className="flex-1 min-w-0 flex items-center justify-center">
+                                                                        <span className="text-[11px] font-extrabold truncate text-center block w-full px-0.5 leading-tight tracking-tight">
+                                                                            {booking.guest_name ? booking.guest_name.split(' ').pop() : `#${booking.booking_code?.slice(-4)}`}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : isMedium ? (
+                                                                    // Thẻ 2 ngày: Hiển thị Tên + Mã đơn
+                                                                    <div className="flex-1 min-w-0 pr-1">
+                                                                        <span className="text-xs font-extrabold truncate block leading-tight">
+                                                                            {booking.guest_name}
+                                                                        </span>
+                                                                        <span className="text-[10px] opacity-85 truncate block font-mono">
+                                                                            #{booking.booking_code}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    // Thẻ rộng từ 3 ngày trở lên: Hiển thị Icon + Tên + Badge đêm + Mã đơn
+                                                                    <div className="flex-1 min-w-0 pr-1 flex items-center gap-1.5">
+                                                                        {booking.group_name ? (
+                                                                            <Building2 className="w-3.5 h-3.5 shrink-0 opacity-90" />
+                                                                        ) : (
+                                                                            <User className="w-3.5 h-3.5 shrink-0 opacity-90" />
+                                                                        )}
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <span className="text-xs font-extrabold truncate block leading-tight">
+                                                                                    {booking.guest_name}
+                                                                                </span>
+                                                                                <span className="text-[9px] opacity-90 shrink-0 font-bold bg-black/20 px-1 rounded">
+                                                                                    {booking.nights || diffDays}đ
+                                                                                </span>
+                                                                            </div>
+                                                                            <span className="text-[10px] opacity-85 truncate block font-mono">
+                                                                                #{booking.booking_code}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
 
                                                                 {/* Mũi tên chỉ báo đơn kéo dài sang tháng sau */}
                                                                 {endsAfterMonth && (
@@ -795,28 +899,29 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                         left: `${tooltipPos.x}px`,
                         top: tooltipPos.placement === 'top' ? 'auto' : `${tooltipPos.y}px`,
                         bottom: tooltipPos.placement === 'top' ? `${window.innerHeight - tooltipPos.y}px` : 'auto',
-                        width: '280px',
+                        width: '290px',
                         zIndex: 9999
                     }}
-                    className="pointer-events-none bg-slate-900/95 text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700 text-xs backdrop-blur-md transition-all duration-150 animate-in fade-in zoom-in-95"
+                    className="pointer-events-none bg-slate-900/95 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 text-xs backdrop-blur-md transition-all duration-150 animate-in fade-in zoom-in-95"
                 >
                     {/* Header Tooltip: Tên khách & Mã đơn */}
-                    <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-800">
+                    <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-800">
                         <div>
-                            <span className="font-bold text-white text-sm block">
+                            <span className="font-extrabold text-white text-sm block">
                                 {hoveredBooking.guest_name}
                             </span>
-                            <span className="text-[10px] text-blue-400 font-mono">
+                            <span className="text-[10px] text-blue-400 font-mono font-bold">
                                 #{hoveredBooking.booking_code}
                             </span>
                             {hoveredBooking.group_name && (
-                                <span className="text-[10px] text-amber-300 block font-semibold mt-0.5">
-                                    🏢 Đoàn: {hoveredBooking.group_name}
+                                <span className="text-[10px] text-amber-300 flex items-center gap-1 font-bold mt-1">
+                                    <Building2 className="w-3 h-3 text-amber-400" />
+                                    <span>Đoàn: {hoveredBooking.group_name}</span>
                                 </span>
                             )}
                         </div>
                         <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
                                 STATUS_CONFIG[hoveredBooking.status]?.badgeClass || 'bg-slate-800 text-slate-300'
                             }`}
                         >
@@ -825,30 +930,42 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                     </div>
 
                     {/* Nội dung ngày đến - ngày đi, phòng, số đêm */}
-                    <div className="space-y-1.5 pt-2 text-[11px]">
+                    <div className="space-y-2 pt-2.5 text-[11px]">
                         <div className="flex items-center justify-between text-slate-300">
-                            <span className="text-slate-400">📅 Ngày lưu trú:</span>
-                            <span className="font-semibold text-white">
+                            <span className="text-slate-400 flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                Ngày lưu trú:
+                            </span>
+                            <span className="font-bold text-white">
                                 {formatDateDisplay(hoveredBooking.check_in_date)} → {formatDateDisplay(hoveredBooking.check_out_date)}
                             </span>
                         </div>
 
                         <div className="flex items-center justify-between text-slate-300">
-                            <span className="text-slate-400">🌙 Thời gian:</span>
-                            <span className="font-bold text-amber-400">
+                            <span className="text-slate-400 flex items-center gap-1.5">
+                                <Moon className="w-3.5 h-3.5 text-amber-400" />
+                                Thời gian:
+                            </span>
+                            <span className="font-extrabold text-amber-400">
                                 {hoveredBooking.nights || 1} đêm
                             </span>
                         </div>
 
                         <div className="flex items-center justify-between text-slate-300">
-                            <span className="text-slate-400">🚪 Số phòng:</span>
-                            <span className="font-bold text-emerald-400">
-                                {hoveredBooking.room_number ? `Phòng ${hoveredBooking.room_number}` : 'Chưa gán số'}
+                            <span className="text-slate-400 flex items-center gap-1.5">
+                                <DoorClosed className="w-3.5 h-3.5 text-emerald-400" />
+                                Số phòng:
+                            </span>
+                            <span className="font-black text-emerald-400 font-mono">
+                                {hoveredBooking.room_number ? `P.${hoveredBooking.room_number}` : 'Chưa gán số'}
                             </span>
                         </div>
 
                         <div className="flex items-center justify-between text-slate-300">
-                            <span className="text-slate-400">🏷️ Hạng phòng:</span>
+                            <span className="text-slate-400 flex items-center gap-1.5">
+                                <BedDouble className="w-3.5 h-3.5 text-slate-400" />
+                                Hạng phòng:
+                            </span>
                             <span className="font-medium text-slate-200 truncate max-w-[150px]">
                                 {hoveredBooking.category_name || 'Tiêu chuẩn'}
                             </span>
@@ -856,23 +973,32 @@ export default function BookingTimeline({ onNavigateToBookings }) {
 
                         {hoveredBooking.guest_phone && (
                             <div className="flex items-center justify-between text-slate-300">
-                                <span className="text-slate-400">📞 Điện thoại:</span>
-                                <span className="font-mono text-slate-200">{hoveredBooking.guest_phone}</span>
+                                <span className="text-slate-400 flex items-center gap-1.5">
+                                    <Phone className="w-3.5 h-3.5 text-slate-400" />
+                                    Điện thoại:
+                                </span>
+                                <span className="font-mono text-slate-200 font-bold">{hoveredBooking.guest_phone}</span>
                             </div>
                         )}
 
                         {hoveredBooking.service_amount > 0 && (
                             <div className="flex items-center justify-between text-slate-300 text-[11px]">
-                                <span className="text-slate-400">🛎️ Tiền dịch vụ:</span>
-                                <span className="font-semibold text-amber-400">
+                                <span className="text-slate-400 flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                                    Tiền dịch vụ:
+                                </span>
+                                <span className="font-bold text-amber-400">
                                     +{Number(hoveredBooking.service_amount).toLocaleString('vi-VN')} VND
                                 </span>
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between text-slate-300 pt-1 border-t border-slate-800">
-                            <span className="text-slate-400">💰 Tổng tiền:</span>
-                            <span className="font-bold text-rose-400">
+                        <div className="flex items-center justify-between text-slate-300 pt-2 border-t border-slate-800">
+                            <span className="text-slate-400 flex items-center gap-1.5">
+                                <CreditCard className="w-3.5 h-3.5 text-rose-400" />
+                                Tổng tiền:
+                            </span>
+                            <span className="font-black text-rose-400 text-xs">
                                 {Number(hoveredBooking.grand_total_amount || hoveredBooking.total_amount || 0).toLocaleString('vi-VN')} VND
                             </span>
                         </div>
@@ -887,10 +1013,12 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
                     <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                                <span className="text-xl">📋</span>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center text-blue-400 shrink-0">
+                                    <FileText className="w-5 h-5" />
+                                </div>
                                 <div>
-                                    <h3 className="font-serif font-bold text-base">
+                                    <h3 className="font-serif font-bold text-base text-white">
                                         Đơn Đặt Phòng #{selectedBookingModal.booking_code}
                                     </h3>
                                     <span className="text-[11px] text-slate-400">
@@ -901,9 +1029,9 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectedBookingModal(null)}
-                                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition"
+                                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -913,20 +1041,22 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
                                         Khách đại diện phòng
                                     </span>
-                                    <strong className="text-sm font-bold text-slate-900 block mt-0.5">
+                                    <strong className="text-sm font-extrabold text-slate-900 block mt-0.5">
                                         {selectedBookingModal.guest_name}
                                     </strong>
                                     {selectedBookingModal.group_name && (
-                                        <span className="text-xs text-amber-700 font-semibold block mt-0.5">
-                                            🏢 Thuộc đoàn: {selectedBookingModal.group_name} {selectedBookingModal.booker_name ? `(Trưởng đoàn: ${selectedBookingModal.booker_name})` : ''}
+                                        <span className="text-xs text-amber-700 font-bold flex items-center gap-1.5 mt-1">
+                                            <Building2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                            <span>Thuộc đoàn: {selectedBookingModal.group_name} {selectedBookingModal.booker_name ? `(Trưởng đoàn: ${selectedBookingModal.booker_name})` : ''}</span>
                                         </span>
                                     )}
                                     {selectedBookingModal.occupants && selectedBookingModal.occupants.length > 1 && (
-                                        <span className="text-[11px] text-slate-600 block mt-0.5">
-                                            👥 Khách cùng phòng: {selectedBookingModal.occupants.join(', ')}
+                                        <span className="text-[11px] text-slate-600 flex items-center gap-1 mt-1">
+                                            <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <span>Khách cùng phòng: {selectedBookingModal.occupants.join(', ')}</span>
                                         </span>
                                     )}
-                                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                                    <span className="text-[11px] text-slate-500 block mt-0.5 font-medium">
                                         {selectedBookingModal.guest_phone || selectedBookingModal.guest_email || '—'}
                                     </span>
                                 </div>
@@ -942,25 +1072,25 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Số phòng</span>
-                                    <strong className="text-sm text-emerald-700 block mt-0.5 font-mono">
-                                        {selectedBookingModal.room_number ? `Phòng ${selectedBookingModal.room_number}` : 'Chưa gán số'}
+                                    <strong className="text-sm text-emerald-700 block mt-0.5 font-mono font-black">
+                                        {selectedBookingModal.room_number ? `P.${selectedBookingModal.room_number}` : 'Chưa gán số'}
                                     </strong>
                                 </div>
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Hạng phòng</span>
-                                    <strong className="text-xs text-slate-800 block mt-0.5 truncate">
+                                    <strong className="text-xs text-slate-800 block mt-0.5 truncate font-bold">
                                         {selectedBookingModal.category_name || 'Tiêu chuẩn'}
                                     </strong>
                                 </div>
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Check-in (Đến)</span>
-                                    <strong className="text-xs text-slate-900 block mt-0.5">
+                                    <strong className="text-xs text-slate-900 block mt-0.5 font-bold">
                                         {formatDateDisplay(selectedBookingModal.check_in_date)}
                                     </strong>
                                 </div>
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Check-out (Đi)</span>
-                                    <strong className="text-xs text-slate-900 block mt-0.5">
+                                    <strong className="text-xs text-slate-900 block mt-0.5 font-bold">
                                         {formatDateDisplay(selectedBookingModal.check_out_date)}
                                     </strong>
                                 </div>
@@ -968,16 +1098,19 @@ export default function BookingTimeline({ onNavigateToBookings }) {
 
                             {selectedBookingModal.service_amount > 0 && (
                                 <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-100 flex items-center justify-between">
-                                    <span className="text-slate-600 font-medium">🛎️ Phụ phí & Dịch vụ phòng:</span>
-                                    <strong className="text-xs text-amber-700 font-bold">
+                                    <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                                        Phụ phí & Dịch vụ phòng:
+                                    </span>
+                                    <strong className="text-xs text-amber-700 font-black">
                                         +{Number(selectedBookingModal.service_amount).toLocaleString('vi-VN')} VND
                                     </strong>
                                 </div>
                             )}
 
-                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                                <span className="font-medium text-slate-600">Tổng tiền thanh toán:</span>
-                                <strong className="text-base text-rose-600 font-bold">
+                            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <span className="font-bold text-slate-600">Tổng tiền thanh toán:</span>
+                                <strong className="text-base text-rose-600 font-black">
                                     {Number(selectedBookingModal.grand_total_amount || selectedBookingModal.total_amount || 0).toLocaleString('vi-VN')} VND
                                 </strong>
                             </div>
@@ -1001,7 +1134,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectedBookingModal(null)}
-                                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs transition"
+                                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs transition cursor-pointer"
                             >
                                 Đóng
                             </button>
@@ -1012,9 +1145,10 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                         setSelectedBookingModal(null);
                                         onNavigateToBookings();
                                     }}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition"
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                                 >
-                                    Quản lý chi tiết & Xử lý đơn →
+                                    <span>Quản lý chi tiết & Xử lý đơn</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
