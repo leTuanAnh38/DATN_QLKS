@@ -10,12 +10,15 @@ import {
   Modal,
   TextInput,
   Image,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../contexts/AuthContext';
 import apiClient from '../../api/client';
 import NotificationBell from '../../components/NotificationBell';
@@ -48,6 +51,48 @@ export default function ProfileScreen() {
   const [editPhone, setEditPhone] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Đo độ trễ máy chủ API (ms)
+  const [serverLatency, setServerLatency] = useState<number | null>(null);
+
+  // Sổ bàn giao ca trực (Shift Handover Note)
+  const [handoverNote, setHandoverNote] = useState('');
+  const [handoverModalVisible, setHandoverModalVisible] = useState(false);
+  const [tempHandoverNote, setTempHandoverNote] = useState('');
+  const [savingHandover, setSavingHandover] = useState(false);
+
+  const measureLatency = async () => {
+    try {
+      const start = Date.now();
+      await apiClient.get('/users/me/');
+      const diff = Date.now() - start;
+      setServerLatency(diff);
+    } catch {
+      setServerLatency(null);
+    }
+  };
+
+  const loadHandoverNote = async () => {
+    try {
+      const saved = await SecureStore.getItemAsync('staff_shift_handover_note');
+      if (saved) setHandoverNote(saved);
+    } catch {}
+  };
+
+  const handleSaveHandover = async () => {
+    try {
+      setSavingHandover(true);
+      await SecureStore.setItemAsync('staff_shift_handover_note', tempHandoverNote.trim());
+      setHandoverNote(tempHandoverNote.trim());
+      setHandoverModalVisible(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Thành công', 'Đã cập nhật sổ bàn giao ca trực!');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể lưu ghi chú.');
+    } finally {
+      setSavingHandover(false);
+    }
+  };
 
   // Modal Cấu Hình Máy Chủ API
   const [serverModalVisible, setServerModalVisible] = useState(false);
@@ -124,12 +169,14 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     refreshProfile();
+    measureLatency();
+    loadHandoverNote();
   }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await refreshProfile();
+    await Promise.all([refreshProfile(), measureLatency()]);
     setRefreshing(false);
   };
 
@@ -329,7 +376,9 @@ export default function ProfileScreen() {
 
           <View style={styles.shiftActiveBar}>
             <View style={styles.pulseDot} />
-            <Text style={styles.shiftActiveText}>ĐANG TRỰC CA • HỆ THỐNG ĐỒNG BỘ 4G</Text>
+            <Text style={styles.shiftActiveText}>
+              ĐANG TRỰC CA • {serverLatency !== null ? `PING ${serverLatency}ms` : 'HỆ THỐNG ĐỒNG BỘ 4G'}
+            </Text>
           </View>
         </View>
 
@@ -481,6 +530,47 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* 4c. Sổ Bàn Giao Ca Trực 5 Sao (Shift Handover Logbook) */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>📝 Sổ Bàn Giao Ca Trực 5 Sao</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setTempHandoverNote(handoverNote);
+                setHandoverModalVisible(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              activeOpacity={0.7}
+              style={styles.editBtn}
+            >
+              <Ionicons name="create-outline" size={14} color="#F59E0B" style={{ marginRight: 3 }} />
+              <Text style={styles.editBtnText}>Cập nhật ghi chú</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.handoverDesc}>
+            Lưu ý nghiệp vụ, phòng VIP hoặc sự cố cần bàn giao cho nhân viên ca tiếp theo:
+          </Text>
+          <TouchableOpacity
+            style={styles.handoverBox}
+            onPress={() => {
+              setTempHandoverNote(handoverNote);
+              setHandoverModalVisible(true);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={handoverNote ? 'clipboard' : 'clipboard-outline'}
+              size={18}
+              color={handoverNote ? '#F59E0B' : '#64748B'}
+              style={{ marginRight: 10, marginTop: 2 }}
+            />
+            <Text style={handoverNote ? styles.handoverText : styles.handoverPlaceholder} numberOfLines={3}>
+              {handoverNote || 'Chưa có ghi chú bàn giao ca nào. Hãy chạm để thêm lưu ý quan trọng cho ca tiếp theo...'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* 5. Cài Đặt Tài Khoản & Tiện Ích */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>⚙️ Cài Đặt Tài Khoản & Kết Nối</Text>
@@ -540,7 +630,9 @@ export default function ProfileScreen() {
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.actionTitle}>Máy Chủ API Khách Sạn</Text>
-              <Text style={styles.actionDesc} numberOfLines={1}>{apiUrl}</Text>
+              <Text style={styles.actionDesc} numberOfLines={1}>
+                {apiUrl} {serverLatency !== null ? `• Ping ${serverLatency}ms` : ''}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#64748B" />
           </TouchableOpacity>
@@ -560,7 +652,10 @@ export default function ProfileScreen() {
 
       {/* Modal Chỉnh Sửa Thông Tin Cá Nhân */}
       <Modal visible={editModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Cập Nhật Hồ Sơ</Text>
@@ -628,12 +723,15 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Đổi Mật Khẩu */}
       <Modal visible={passwordModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Đổi Mật Khẩu Tài Khoản</Text>
@@ -694,12 +792,15 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Cấu Hình IP Máy Chủ */}
       <Modal visible={serverModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Cấu Hình Máy Chủ API</Text>
             <Text style={styles.modalDesc}>
@@ -731,7 +832,58 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal Cập Nhật Sổ Bàn Giao Ca Trực */}
+      <Modal visible={handoverModalVisible} transparent animationType="fade">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Sổ Bàn Giao Ca Trực</Text>
+              <TouchableOpacity onPress={() => setHandoverModalVisible(false)}>
+                <Ionicons name="close" size={22} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalDesc}>
+              Nhập nội dung lưu ý nghiệp vụ cho ca trực tiếp theo:
+            </Text>
+            <TextInput
+              style={[styles.modalInput, styles.handoverModalInput]}
+              value={tempHandoverNote}
+              onChangeText={setTempHandoverNote}
+              placeholder="VD: Phòng 402 khách VIP yêu cầu thêm 2 gối lông vũ lúc 15h. Máy lạnh 502 đã bảo trì xong nhưng cần theo dõi..."
+              placeholderTextColor="#64748B"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setHandoverModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={handleSaveHandover}
+                disabled={savingHandover}
+                activeOpacity={0.8}
+              >
+                {savingHandover ? (
+                  <ActivityIndicator color="#0A0F1D" size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Lưu Sổ Ca</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Hồ Sơ Khách Hàng (CRM & Lịch Sử) */}
@@ -797,7 +949,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 80,
   },
   idCard: {
     backgroundColor: '#111827',
@@ -1122,5 +1274,40 @@ const styles = StyleSheet.create({
     color: '#0A0F1D',
     fontSize: 13,
     fontWeight: '900',
+  },
+  handoverDesc: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  handoverBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#0A0F1D',
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    borderRadius: 14,
+    padding: 14,
+    minHeight: 64,
+  },
+  handoverText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#F8FAFC',
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  handoverPlaceholder: {
+    flex: 1,
+    fontSize: 12,
+    color: '#64748B',
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  handoverModalInput: {
+    height: 110,
+    paddingTop: 12,
+    textAlignVertical: 'top',
   },
 });

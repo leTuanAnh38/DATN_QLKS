@@ -10,37 +10,41 @@ export default function TabLayout() {
   const role = user?.role || '';
   const isManagerOrAdmin = ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(role);
 
-  // Phân quyền truy cập các Tab theo từng vai trò nhân viên:
-  const canAccessHousekeeping = isManagerOrAdmin || ['housekeeper', 'service_staff', 'technician'].includes(role);
-  const canAccessLostFound = isManagerOrAdmin || ['housekeeper', 'technician', 'service_staff'].includes(role);
-  const canAccessTransport = isManagerOrAdmin || ['service_staff', 'housekeeper'].includes(role);
-  const canAccessServices = isManagerOrAdmin || ['service_staff', 'housekeeper'].includes(role);
+  // Phân quyền hiển thị Tab Bar thích ứng thông minh (Adaptive RBAC):
+  // 1. Buồng phòng (housekeeper): Tập trung vào Sơ đồ phòng + Đồ thất lạc + Cá nhân
+  // 2. Phục vụ (service_staff): Tập trung vào Dịch vụ F&B/Spa + Đội xe vận chuyển + Cá nhân
+  // 3. Kỹ thuật (technician): Tập trung vào Bảo trì sự cố + Sơ đồ phòng + Cá nhân
+  // 4. Quản lý / Lễ tân / Admin: Xem toàn diện các phân hệ điều hành
+  const canAccessHousekeeping = isManagerOrAdmin || ['housekeeper', 'technician'].includes(role);
+  const canAccessLostFound = isManagerOrAdmin || role === 'housekeeper';
+  const canAccessTransport = isManagerOrAdmin || role === 'service_staff';
+  const canAccessServices = isManagerOrAdmin || role === 'service_staff';
   const canAccessMaintenance = isManagerOrAdmin || role === 'technician';
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#F59E0B', // Vàng hoàng gia sang trọng
+        tabBarActiveTintColor: '#F59E0B', // Vàng hoàng gia TA Luxury
         tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
           backgroundColor: '#0A0F1D',
-          borderTopColor: '#1E293B',
+          borderTopColor: 'rgba(212, 175, 55, 0.15)', // Ánh kim Gold mờ sang trọng
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 26 : 8,
+          height: Platform.OS === 'ios' ? 92 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 34 : 10, // Vùng đệm chuẩn xác cho Home Indicator của iPhone 14 Pro
           paddingTop: 8,
-          elevation: 10,
+          elevation: 12,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '700',
-          letterSpacing: 0.2,
-          marginTop: 2,
+          letterSpacing: 0.3,
+          marginTop: 3,
         },
       }}
       screenListeners={{
@@ -53,12 +57,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="housekeeping"
         options={{
-          title: 'Phòng',
+          title: role === 'technician' ? 'Sơ đồ phòng' : 'Phòng',
           href: canAccessHousekeeping ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'bed' : 'bed-outline'}
-              size={22}
+              size={24}
               color={(color as string) || '#64748B'}
             />
           ),
@@ -74,14 +78,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'archive' : 'archive-outline'}
-              size={22}
+              size={23}
               color={(color as string) || '#64748B'}
             />
           ),
         }}
       />
 
-      {/* Tab 3: Đội xe / Vận chuyển đón tiễn sân bay (Tài xế) */}
+      {/* Tab 3: Đội xe / Vận chuyển đón tiễn sân bay (Tài xế / Phục vụ) */}
       <Tabs.Screen
         name="transport"
         options={{
@@ -90,14 +94,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'car-sport' : 'car-sport-outline'}
-              size={22}
+              size={24}
               color={(color as string) || '#64748B'}
             />
           ),
         }}
       />
 
-      {/* Tab 4: Phục vụ F&B & Gọi món tại phòng */}
+      {/* Tab 4: Phục vụ F&B, Spa & Tiện ích tại phòng */}
       <Tabs.Screen
         name="services"
         options={{
@@ -106,7 +110,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'restaurant' : 'restaurant-outline'}
-              size={22}
+              size={23}
               color={(color as string) || '#64748B'}
             />
           ),
@@ -122,7 +126,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'construct' : 'construct-outline'}
-              size={22}
+              size={23}
               color={(color as string) || '#64748B'}
             />
           ),
@@ -137,7 +141,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'person-circle' : 'person-circle-outline'}
-              size={23}
+              size={24}
               color={(color as string) || '#64748B'}
             />
           ),

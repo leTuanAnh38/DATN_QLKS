@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
 
@@ -129,6 +130,79 @@ export default function NotificationBell() {
       await apiClient.patch(`/notifications/${item.id}/read/`);
     } catch (e) {
       console.warn('Lỗi đánh dấu đã đọc:', e);
+    }
+  };
+
+  // Điều hướng nhanh (Deep link) từ thông báo sang đúng màn hình chuyên trách
+  const handleNotificationPress = (item: NotificationItem) => {
+    markAsRead(item);
+    onCloseModal();
+
+    const t = `${item.title || ''} ${item.message || ''} ${item.action_url || ''}`.toLowerCase();
+    const type = (item.notification_type || '').toLowerCase();
+
+    // 1. Kỹ thuật & Bảo trì
+    if (
+      t.includes('bảo trì') ||
+      t.includes('hỏng') ||
+      t.includes('sửa') ||
+      type === 'maintenance' ||
+      t.includes('maintenance')
+    ) {
+      router.push('/(tabs)/maintenance' as any);
+      return;
+    }
+
+    // 2. Đồ thất lạc / bỏ quên
+    if (
+      t.includes('thất lạc') ||
+      t.includes('bỏ quên') ||
+      t.includes('đồ') ||
+      type === 'lost_found' ||
+      t.includes('lost-found')
+    ) {
+      router.push('/(tabs)/lost_found' as any);
+      return;
+    }
+
+    // 3. Đội xe / Đưa đón sân bay
+    if (
+      t.includes('xe') ||
+      t.includes('đưa đón') ||
+      t.includes('transfer') ||
+      t.includes('sân bay') ||
+      type === 'transport' ||
+      t.includes('transport')
+    ) {
+      router.push('/(tabs)/transport' as any);
+      return;
+    }
+
+    // 4. Dịch vụ F&B, Spa, Giặt là
+    if (
+      t.includes('f&b') ||
+      t.includes('spa') ||
+      t.includes('món') ||
+      t.includes('giặt') ||
+      t.includes('phục vụ') ||
+      type === 'service' ||
+      t.includes('service')
+    ) {
+      router.push('/(tabs)/services' as any);
+      return;
+    }
+
+    // 5. Buồng phòng / Kiểm tra phòng / Check-out
+    if (
+      t.includes('dọn') ||
+      t.includes('phòng') ||
+      t.includes('minibar') ||
+      type === 'room' ||
+      type === 'booking' ||
+      t.includes('housekeeping')
+    ) {
+      router.push('/(tabs)/housekeeping' as any);
+      return;
     }
   };
 
@@ -350,7 +424,7 @@ export default function NotificationBell() {
                         styles.notifCard,
                         !item.is_read && styles.notifCardUnread,
                       ]}
-                      onPress={() => markAsRead(item)}
+                      onPress={() => handleNotificationPress(item)}
                       activeOpacity={0.75}
                     >
                       <View style={[styles.notifIconCircle, { backgroundColor: iconConfig.bg }]}>
@@ -375,9 +449,12 @@ export default function NotificationBell() {
                           {item.message}
                         </Text>
 
-                        <Text style={styles.notifTime}>
-                          {formatTimeAgo(item.created_at)}
-                        </Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                          <Text style={styles.notifTime}>
+                            {formatTimeAgo(item.created_at)}
+                          </Text>
+                          <Ionicons name="chevron-forward" size={13} color="#64748B" />
+                        </View>
                       </View>
                     </TouchableOpacity>
                   );
@@ -449,8 +526,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: '#1E293B',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 52 : 24,
-    paddingBottom: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 38 : 24,
     shadowColor: '#000',
     shadowOffset: { width: -4, height: 0 },
     shadowOpacity: 0.5,

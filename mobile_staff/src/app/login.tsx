@@ -29,6 +29,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   { label: 'Hoa (Buồng phòng)', role: 'Dọn phòng', username: 'buongphong_hoa', icon: 'bed' },
   { label: 'An (Đội xe & Phục vụ)', role: 'Tài xế / F&B', username: 'phucvu_an', icon: 'car-sport' },
   { label: 'Dũng (Kỹ thuật)', role: 'Bảo trì', username: 'kythuat_dung', icon: 'construct' },
+  { label: 'Huy (Quản lý PMS)', role: 'Toàn quyền 6 tab', username: 'quanly1', icon: 'shield-checkmark' },
 ];
 
 export default function LoginScreen() {
@@ -131,7 +132,7 @@ export default function LoginScreen() {
               <View style={styles.inputWrapper}>
                 <Ionicons name="person-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { flex: 1 }]}
                   placeholder="Nhập tên đăng nhập nhân viên..."
                   placeholderTextColor="#475569"
                   value={username}
@@ -139,6 +140,19 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {username.trim().length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setUsername('');
+                    }}
+                    style={styles.clearButton}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -396,6 +410,10 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 6,
+  },
+  clearButton: {
+    padding: 6,
+    marginRight: 2,
   },
   loginButton: {
     backgroundColor: '#F59E0B',

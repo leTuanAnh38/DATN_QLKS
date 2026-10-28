@@ -18,11 +18,16 @@ import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
+import { MaintenanceListSkeleton } from '../../components/SkeletonLoader';
 
 interface MaintenanceTicket {
   id: number;
   ticket_code: string;
   room_number: string;
+  room_status?: string;
+  room_floor?: number;
+  guest_name?: string;
+  booking_code?: string;
   equipment_name: string;
   issue_type: string;
   description: string;
@@ -89,7 +94,9 @@ export default function MaintenanceScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('fixing');
+  const [selectedIssueType, setSelectedIssueType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   // Modal hoàn tất sửa chữa
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
@@ -132,9 +139,12 @@ export default function MaintenanceScreen() {
     }
   }, []);
 
+  // Real-time polling 6 giây đồng bộ hiện trường
   useEffect(() => {
     setLoading(true);
     fetchTickets();
+    const interval = setInterval(fetchTickets, 6000);
+    return () => clearInterval(interval);
   }, [fetchTickets]);
 
   const onRefresh = () => {
@@ -162,17 +172,24 @@ export default function MaintenanceScreen() {
         matchFilter = t.status === 'completed';
       }
 
+      if (selectedIssueType !== 'all') {
+        if (t.issue_type !== selectedIssueType) {
+          matchFilter = false;
+        }
+      }
+
       const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
         (t.room_number && t.room_number.toLowerCase().includes(q)) ||
         (t.equipment_name && t.equipment_name.toLowerCase().includes(q)) ||
         (t.description && t.description.toLowerCase().includes(q)) ||
-        (t.ticket_code && t.ticket_code.toLowerCase().includes(q));
+        (t.ticket_code && t.ticket_code.toLowerCase().includes(q)) ||
+        (t.guest_name && t.guest_name.toLowerCase().includes(q));
 
       return matchFilter && matchSearch;
     });
-  }, [tickets, filterStatus, searchQuery]);
+  }, [tickets, filterStatus, selectedIssueType, searchQuery]);
 
   // Infinite Scroll
   const [visibleCount, setVisibleCount] = useState(15);
@@ -362,6 +379,14 @@ export default function MaintenanceScreen() {
 
   const renderItem = ({ item }: { item: MaintenanceTicket }) => {
     const isFixing = item.status === 'fixing';
+    const issueMeta = MAINTENANCE_ISSUE_TYPES.find((it) => it.key === item.issue_type) || {
+      icon: 'construct',
+      color: isFixing ? '#EF4444' : '#10B981',
+      label: 'Sự cố',
+    };
+    const isOccupied = item.room_status === 'occupied';
+    const isCleaning = item.room_status === 'cleaning';
+    const isLoading = actionLoadingId === item.id;
 
     return (
       <View style={[styles.card, isFixing && styles.cardFixing]}>
@@ -369,7 +394,9 @@ export default function MaintenanceScreen() {
         <View style={styles.cardHeader}>
           <View style={styles.roomTag}>
             <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={styles.roomTagText}>Phòng {item.room_number}</Text>
+            <Text style={styles.roomTagText}>
+              Phòng {item.room_number}{item.room_floor ? ` • T.${item.room_floor}` : ''}
+            </Text>
           </View>
 
           <View
@@ -398,14 +425,42 @@ export default function MaintenanceScreen() {
           </View>
         </View>
 
+        {/* Cảnh báo SOP 5 sao: Phòng có khách lưu trú */}
+        {isOccupied && (
+          <View style={styles.sopAlertBanner}>
+            <View style={styles.sopBadge}>
+              <Ionicons name="warning" size={12} color="#F59E0B" style={{ marginRight: 4 }} />
+              <Text style={styles.sopBadgeText}>SOP 5 SAO • CÓ KHÁCH</Text>
+            </View>
+            <Text style={styles.sopBannerText}>
+              Phòng có khách lưu trú{item.guest_name ? ` (${item.guest_name})` : ''} • Tuân thủ SOP: Gõ cửa 3 lần, xưng "Kỹ thuật phòng" trước khi vào!
+            </Text>
+          </View>
+        )}
+
+        {isCleaning && !isOccupied && (
+          <View style={styles.cleaningStatusBanner}>
+            <Ionicons name="sparkles" size={12} color="#F59E0B" style={{ marginRight: 5 }} />
+            <Text style={styles.cleaningStatusText}>Buồng phòng đang dọn dẹp</Text>
+          </View>
+        )}
+
         {/* Thiết bị sự cố */}
         <View style={styles.equipmentRow}>
-          <View style={[styles.equipmentIconBox, isFixing && styles.equipmentIconBoxAlert]}>
-            <Ionicons name="construct" size={20} color={isFixing ? '#EF4444' : '#10B981'} />
+          <View style={[styles.equipmentIconBox, { backgroundColor: `${issueMeta.color}20` }]}>
+            <Ionicons name={issueMeta.icon as any} size={20} color={issueMeta.color} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.equipmentName}>{item.equipment_name || 'Thiết bị buồng phòng'}</Text>
-            <Text style={styles.ticketCode}>Mã phiếu: #{item.ticket_code}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+              <Text style={styles.ticketCode}>Mã: #{item.ticket_code}</Text>
+              {item.booking_code ? (
+                <>
+                  <Text style={{ color: '#475569', marginHorizontal: 4 }}>•</Text>
+                  <Text style={{ fontSize: 11, color: '#38BDF8', fontWeight: '600' }}>#{item.booking_code}</Text>
+                </>
+              ) : null}
+            </View>
           </View>
         </View>
 
@@ -443,12 +498,19 @@ export default function MaintenanceScreen() {
 
           {isFixing ? (
             <TouchableOpacity
-              style={styles.completeBtn}
+              style={[styles.completeBtn, isLoading && { opacity: 0.65 }]}
               onPress={() => openCompleteModal(item)}
+              disabled={isLoading}
               activeOpacity={0.8}
             >
-              <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-              <Text style={styles.completeBtnText}>NGHIỆM THU & BÀN GIAO</Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.completeBtnText}>NGHIỆM THU & BÀN GIAO</Text>
+                </>
+              )}
             </TouchableOpacity>
           ) : (
             <View style={styles.doneTag}>
@@ -541,12 +603,75 @@ export default function MaintenanceScreen() {
         ) : null}
       </View>
 
+      {/* 4. Chips Phân Loại Sự Cố Thiết Bị */}
+      <View style={styles.issueChipsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.issueChipsScroll}
+        >
+          <TouchableOpacity
+            style={[
+              styles.issueChip,
+              selectedIssueType === 'all' && styles.issueChipActive,
+            ]}
+            onPress={() => {
+              setSelectedIssueType('all');
+              Haptics.selectionAsync();
+            }}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.issueChipText,
+                selectedIssueType === 'all' && styles.issueChipTextActive,
+              ]}
+            >
+              Tất cả ({tickets.length})
+            </Text>
+          </TouchableOpacity>
+          {MAINTENANCE_ISSUE_TYPES.map((cat) => {
+            const isSelected = selectedIssueType === cat.key;
+            const count = tickets.filter((t) => t.issue_type === cat.key).length;
+            return (
+              <TouchableOpacity
+                key={cat.key}
+                style={[
+                  styles.issueChip,
+                  isSelected && {
+                    backgroundColor: `${cat.color}22`,
+                    borderColor: cat.color,
+                  },
+                ]}
+                onPress={() => {
+                  setSelectedIssueType(cat.key);
+                  Haptics.selectionAsync();
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={cat.icon as any}
+                  size={13}
+                  color={isSelected ? cat.color : '#94A3B8'}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
+                  style={[
+                    styles.issueChipText,
+                    isSelected && { color: cat.color, fontWeight: '800' },
+                  ]}
+                >
+                  {cat.label} {count > 0 ? `(${count})` : ''}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* 5. Danh Sách Phiếu Sửa Chữa */}
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#F59E0B" />
-          <Text style={styles.loadingMessage}>Đang tải phiếu kỹ thuật...</Text>
-        </View>
+        <MaintenanceListSkeleton />
       ) : filteredTickets.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons name="construct-outline" size={56} color="#334155" />
@@ -1712,5 +1837,82 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
+  },
+  issueChipsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  issueChipsScroll: {
+    gap: 8,
+    paddingRight: 16,
+  },
+  issueChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  issueChipActive: {
+    backgroundColor: '#F59E0B',
+    borderColor: '#F59E0B',
+  },
+  issueChipText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  issueChipTextActive: {
+    color: '#0A0F1D',
+    fontWeight: '800',
+  },
+  sopAlertBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  sopBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  sopBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 0.5,
+  },
+  sopBannerText: {
+    fontSize: 11.5,
+    color: '#FDE68A',
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  cleaningStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  cleaningStatusText: {
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: '600',
   },
 });

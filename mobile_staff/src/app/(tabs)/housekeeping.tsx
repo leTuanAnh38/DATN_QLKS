@@ -25,6 +25,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import BookingManagementModal from '../../components/BookingManagementModal';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
+import { RoomGridSkeleton } from '../../components/SkeletonLoader';
 
 interface BookingSummary {
   id: number;
@@ -108,6 +109,7 @@ export default function HousekeepingScreen() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterFloor, setFilterFloor] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   // Modal kiểm kê Minibar & Hư hại
   const [minibarModalVisible, setMinibarModalVisible] = useState(false);
@@ -261,6 +263,7 @@ export default function HousekeepingScreen() {
         text: isCleaning ? 'Đã xong ✨' : 'Vào dọn 🧹',
         style: 'default',
         onPress: async () => {
+          setActionLoadingId(room.id);
           try {
             const res = await apiClient.patch(`/rooms/admin/rooms/${room.id}/status/`, {
               status: nextStatus,
@@ -273,6 +276,8 @@ export default function HousekeepingScreen() {
             const msg = err.response?.data?.message || 'Không thể đổi trạng thái phòng.';
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert('Thông báo', msg);
+          } finally {
+            setActionLoadingId(null);
           }
         },
       },
@@ -291,6 +296,7 @@ export default function HousekeepingScreen() {
           text: 'Đã xong ✨',
           style: 'default',
           onPress: async () => {
+            setActionLoadingId(room.id);
             try {
               const res = await apiClient.post(`/rooms/admin/rooms/${room.id}/complete-cleaning/`);
               if (res.data.success) {
@@ -300,6 +306,8 @@ export default function HousekeepingScreen() {
             } catch (err: any) {
               const msg = err.response?.data?.message || 'Không thể cập nhật.';
               Alert.alert('Lỗi', msg);
+            } finally {
+              setActionLoadingId(null);
             }
           },
         },
@@ -827,12 +835,23 @@ export default function HousekeepingScreen() {
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={[styles.actionFullBtn, { backgroundColor: '#10B981' }]}
+              style={[
+                styles.actionFullBtn,
+                { backgroundColor: '#10B981' },
+                actionLoadingId === item.id && { opacity: 0.65 },
+              ]}
               onPress={() => handleToggleCleaning(item)}
+              disabled={actionLoadingId === item.id}
               activeOpacity={0.8}
             >
-              <Ionicons name="checkmark-circle" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-              <Text style={[styles.actionFullBtnText, { color: '#0A0F1D' }]}>Đã dọn xong ✨</Text>
+              {actionLoadingId === item.id ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
+                  <Text style={[styles.actionFullBtnText, { color: '#0A0F1D' }]}>Đã dọn xong ✨</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         ) : canAccessMinibar ? (
@@ -866,14 +885,25 @@ export default function HousekeepingScreen() {
             </View>
             {item.is_cleaning_requested && (
               <TouchableOpacity
-                style={[styles.actionFullBtn, { backgroundColor: '#38BDF8', marginTop: 6 }]}
+                style={[
+                  styles.actionFullBtn,
+                  { backgroundColor: '#38BDF8', marginTop: 6 },
+                  actionLoadingId === item.id && { opacity: 0.65 },
+                ]}
                 onPress={() => handleCompleteMakeUpCleaning(item)}
+                disabled={actionLoadingId === item.id}
                 activeOpacity={0.8}
               >
-                <Ionicons name="sparkles" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-                <Text style={[styles.actionFullBtnText, { color: '#0A0F1D', fontWeight: 'bold' }]}>
-                  Đã dọn xong phòng khách ở ✨
-                </Text>
+                {actionLoadingId === item.id ? (
+                  <ActivityIndicator size="small" color="#0A0F1D" />
+                ) : (
+                  <>
+                    <Ionicons name="sparkles" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
+                    <Text style={[styles.actionFullBtnText, { color: '#0A0F1D', fontWeight: 'bold' }]}>
+                      Đã dọn xong phòng khách ở ✨
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -1132,10 +1162,7 @@ export default function HousekeepingScreen() {
 
       {/* 5. Lưới Phòng (2 cột hiện đại) */}
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#F59E0B" />
-          <Text style={styles.loadingMessage}>Đang tải sơ đồ phòng...</Text>
-        </View>
+        <RoomGridSkeleton />
       ) : filteredRooms.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons name="bed-outline" size={56} color="#334155" />
@@ -2493,9 +2520,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     padding: 22,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 22,
     borderTopWidth: 1,
     borderTopColor: '#334155',
-    maxHeight: '85%',
+    maxHeight: '88%',
   },
   modalTopBar: {
     flexDirection: 'row',

@@ -9,15 +9,23 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/expo.icon",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tadanang.staff",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Ứng dụng TA Đà Nẵng Staff sử dụng máy ảnh để chụp ảnh hiện trường buồng phòng, sự cố kỹ thuật và tài sản thất lạc.",
+        "NSPhotoLibraryUsageDescription": "Ứng dụng TA Đà Nẵng Staff cần truy cập ảnh để nhân viên đính kèm biên bản và minh chứng xử lý.",
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+      }
     },
     "android": {
+      "package": "com.tadanang.staff",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": ["CAMERA", "VIBRATE"],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -40,6 +48,13 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#F59E0B"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ứng dụng cần quyền truy cập thư viện ảnh để đính kèm minh chứng.",
+          "cameraPermission": "Ứng dụng cần quyền truy cập máy ảnh để chụp ảnh hiện trường."
         }
       ]
     ],

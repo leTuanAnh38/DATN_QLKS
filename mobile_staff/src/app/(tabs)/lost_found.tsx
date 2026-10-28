@@ -13,6 +13,7 @@ import {
   ScrollView,
   Image,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
+import { LostFoundListSkeleton } from '../../components/SkeletonLoader';
 
 interface LostFoundItem {
   id: number;
@@ -61,7 +63,9 @@ export default function LostFoundScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   // Modal Khai báo đồ nhặt được mới
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -138,9 +142,12 @@ export default function LostFoundScreen() {
     }
   }, []);
 
+  // Real-time polling 6 giây đồng bộ tài sản thất lạc
   useEffect(() => {
     setLoading(true);
     fetchLostItems();
+    const interval = setInterval(fetchLostItems, 6000);
+    return () => clearInterval(interval);
   }, [fetchLostItems]);
 
   const onRefresh = () => {
@@ -168,6 +175,11 @@ export default function LostFoundScreen() {
         matchStatus = it.status === 'returned';
       }
 
+      let matchCategory = true;
+      if (selectedCategory !== 'all') {
+        matchCategory = it.category === selectedCategory;
+      }
+
       const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
@@ -176,9 +188,9 @@ export default function LostFoundScreen() {
         (it.location_found && it.location_found.toLowerCase().includes(q)) ||
         (it.guest_name && it.guest_name.toLowerCase().includes(q));
 
-      return matchStatus && matchSearch;
+      return matchStatus && matchCategory && matchSearch;
     });
-  }, [items, filterStatus, searchQuery]);
+  }, [items, filterStatus, selectedCategory, searchQuery]);
 
   // Infinite Scroll
   const [visibleCount, setVisibleCount] = useState(15);
@@ -315,6 +327,8 @@ export default function LostFoundScreen() {
   };
 
   const handleMarkContacted = async (item: LostFoundItem) => {
+    if (actionLoadingId) return;
+    setActionLoadingId(item.id);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await apiClient.patch(`/rooms/lost-and-found/${item.id}/`, {
@@ -325,6 +339,8 @@ export default function LostFoundScreen() {
       fetchLostItems();
     } catch (e) {
       Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -478,12 +494,19 @@ export default function LostFoundScreen() {
           <View style={styles.actionRowLF}>
             {isStored && (
               <TouchableOpacity
-                style={styles.contactActionBtn}
+                style={[styles.contactActionBtn, actionLoadingId === item.id && { opacity: 0.65 }]}
                 onPress={() => handleMarkContacted(item)}
+                disabled={actionLoadingId === item.id}
                 activeOpacity={0.8}
               >
-                <Ionicons name="call-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
-                <Text style={styles.contactActionBtnText}>Đã gọi khách</Text>
+                {actionLoadingId === item.id ? (
+                  <ActivityIndicator size="small" color="#38BDF8" />
+                ) : (
+                  <>
+                    <Ionicons name="call-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
+                    <Text style={styles.contactActionBtnText}>Đã gọi khách</Text>
+                  </>
+                )}
               </TouchableOpacity>
             )}
 
@@ -596,12 +619,72 @@ export default function LostFoundScreen() {
         ) : null}
       </View>
 
-      {/* 4. Danh Sách Đồ Thất Lạc */}
+      {/* 4. Chips Phân Loại Danh Mục Đồ Thất Lạc */}
+      <View style={styles.categoryChipsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryChipsScroll}
+        >
+          <TouchableOpacity
+            style={[
+              styles.categoryChip,
+              selectedCategory === 'all' && styles.categoryChipActive,
+            ]}
+            onPress={() => {
+              setSelectedCategory('all');
+              Haptics.selectionAsync();
+            }}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.categoryChipText,
+                selectedCategory === 'all' && styles.categoryChipTextActive,
+              ]}
+            >
+              Tất cả ({items.length})
+            </Text>
+          </TouchableOpacity>
+          {CATEGORIES.map((cat) => {
+            const isSelected = selectedCategory === cat.key;
+            const count = items.filter((it) => it.category === cat.key).length;
+            return (
+              <TouchableOpacity
+                key={cat.key}
+                style={[
+                  styles.categoryChip,
+                  isSelected && styles.categoryChipActive,
+                ]}
+                onPress={() => {
+                  setSelectedCategory(cat.key);
+                  Haptics.selectionAsync();
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={cat.icon as any}
+                  size={13}
+                  color={isSelected ? '#0A0F1D' : '#94A3B8'}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    isSelected && styles.categoryChipTextActive,
+                  ]}
+                >
+                  {cat.label.split('(')[0].trim()} {count > 0 ? `(${count})` : ''}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* 5. Danh Sách Đồ Thất Lạc */}
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#F59E0B" />
-          <Text style={styles.loadingMessage}>Đang tải sổ đồ thất lạc...</Text>
-        </View>
+        <LostFoundListSkeleton />
       ) : filteredItems.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons name="archive-outline" size={56} color="#334155" />
@@ -1068,8 +1151,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F59E0B',
-    height: 40,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
     marginTop: 10,
   },
   returnActionBtnText: {
@@ -1103,7 +1186,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 22,
-    maxHeight: '85%',
+    paddingBottom: Platform.OS === 'ios' ? 40 : 22,
+    maxHeight: '88%',
     borderWidth: 1,
     borderColor: '#1F2937',
   },
@@ -1160,6 +1244,14 @@ const styles = StyleSheet.create({
     height: 44,
     color: '#F8FAFC',
     fontSize: 13,
+  },
+  categoryChipsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  categoryChipsScroll: {
+    gap: 8,
+    paddingRight: 16,
   },
   categoryChipsRow: {
     flexDirection: 'row',
@@ -1356,8 +1448,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E293B',
     borderWidth: 1,
     borderColor: '#38BDF8',
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: 14,
+    height: 48,
   },
   contactActionBtnText: {
     fontSize: 12,

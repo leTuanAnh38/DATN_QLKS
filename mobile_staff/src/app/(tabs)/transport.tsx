@@ -22,6 +22,7 @@ import apiClient from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import { DEFAULT_API_URL } from '../../api/config';
+import { TransportListSkeleton } from '../../components/SkeletonLoader';
 
 interface ServiceRequestItem {
   id: number;
@@ -81,6 +82,7 @@ export default function TransportScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   // Modal Đặt xe đưa đón khách
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -209,9 +211,12 @@ export default function TransportScreen() {
     }
   }, []);
 
+  // Real-time polling 6 giây đồng bộ hiện trường đội xe
   useEffect(() => {
     setLoading(true);
     fetchTransportRequests();
+    const interval = setInterval(fetchTransportRequests, 6000);
+    return () => clearInterval(interval);
   }, [fetchTransportRequests]);
 
   const onRefresh = () => {
@@ -306,8 +311,10 @@ export default function TransportScreen() {
     );
   };
 
-  // Tài xế tiếp nhận cuốc xe
+  // Tài xế tiếp nhận cuốc xe (Khóa chống double tap)
   const handleClaim = async (item: ServiceRequestItem) => {
+    if (actionLoadingId) return;
+    setActionLoadingId(item.id);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const res = await apiClient.post(`/services/requests/${item.id}/claim/`);
@@ -319,11 +326,15 @@ export default function TransportScreen() {
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Không thể tiếp nhận cuốc xe.';
       Alert.alert('Lỗi', msg);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
-  // Cập nhật trạng thái chuyến đi
+  // Cập nhật trạng thái chuyến đi (Khóa chống double tap)
   const handleUpdateStatus = async (item: ServiceRequestItem, newStatus: string, statusLabel: string) => {
+    if (actionLoadingId) return;
+    setActionLoadingId(item.id);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const res = await apiClient.patch(`/services/requests/${item.id}/`, {
@@ -338,6 +349,8 @@ export default function TransportScreen() {
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái.';
       Alert.alert('Lỗi', msg);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -349,15 +362,16 @@ export default function TransportScreen() {
     Linking.openURL(`tel:${phone}`);
   };
 
+  // Chỉ đường GPS bản đồ tối ưu cho iPhone (Apple Maps) & Android (Google Maps)
   const openMapNavigation = (destination: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const query = encodeURIComponent(destination || 'Sân bay quốc tế Đà Nẵng');
     const url = Platform.select({
-      ios: `maps:0,0?q=${query}`,
-      android: `geo:0,0?q=${query}`,
-      default: `https://www.google.com/maps/search/?api=1&query=${query}`,
+      ios: `http://maps.apple.com/?daddr=${query}`,
+      android: `google.navigation:q=${query}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${query}`,
     });
-    Linking.openURL(url || `https://www.google.com/maps/search/?api=1&query=${query}`);
+    Linking.openURL(url || `https://www.google.com/maps/dir/?api=1&destination=${query}`);
   };
 
   const sendSmsToGuest = (phone: string, guestName: string) => {
@@ -557,36 +571,57 @@ export default function TransportScreen() {
           {/* Chưa có ai nhận -> Nút Tiếp nhận cuốc xe */}
           {!item.assigned_staff && (item.status === 'pending' || item.status === 'in_progress') && (
             <TouchableOpacity
-              style={styles.claimButton}
+              style={[styles.claimButton, actionLoadingId === item.id && { opacity: 0.65 }]}
               onPress={() => handleClaim(item)}
+              disabled={actionLoadingId === item.id}
               activeOpacity={0.8}
             >
-              <Ionicons name="hand-right" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-              <Text style={styles.claimButtonText}>TIẾP NHẬN CUỐC</Text>
+              {actionLoadingId === item.id ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="hand-right" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.claimButtonText}>TIẾP NHẬN CUỐC</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
           {/* Đang chuẩn bị -> Bắt đầu đi đón */}
           {item.status === 'in_progress' && (
             <TouchableOpacity
-              style={styles.departButton}
+              style={[styles.departButton, actionLoadingId === item.id && { opacity: 0.65 }]}
               onPress={() => handleUpdateStatus(item, 'delivering', 'Đang đi đón khách')}
+              disabled={actionLoadingId === item.id}
               activeOpacity={0.8}
             >
-              <Ionicons name="navigate" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-              <Text style={styles.departButtonText}>BẮT ĐẦU ĐÓN KHÁCH</Text>
+              {actionLoadingId === item.id ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="navigate" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.departButtonText}>BẮT ĐẦU ĐÓN KHÁCH</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
           {/* Đang đi đón -> Hoàn tất */}
           {item.status === 'delivering' && (
             <TouchableOpacity
-              style={styles.completeButton}
+              style={[styles.completeButton, actionLoadingId === item.id && { opacity: 0.65 }]}
               onPress={() => handleUpdateStatus(item, 'completed', 'Hoàn tất chuyến xe')}
+              disabled={actionLoadingId === item.id}
               activeOpacity={0.8}
             >
-              <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-              <Text style={styles.completeButtonText}>ĐÃ TRẢ KHÁCH XONG ✨</Text>
+              {actionLoadingId === item.id ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.completeButtonText}>ĐÃ TRẢ KHÁCH XONG ✨</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
@@ -686,10 +721,7 @@ export default function TransportScreen() {
 
       {/* 5. Danh Sách Cuốc Xe */}
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#F59E0B" />
-          <Text style={styles.loadingMessage}>Đang tải danh sách điều phối xe...</Text>
-        </View>
+        <TransportListSkeleton />
       ) : filteredRequests.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons name="car-sport-outline" size={56} color="#334155" />
@@ -1299,9 +1331,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   mapButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: 'rgba(56, 189, 248, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1309,9 +1341,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(56, 189, 248, 0.3)',
   },
   smsButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: 'rgba(245, 158, 11, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1323,14 +1355,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 12,
-    height: 42,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 48,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
   },
   callButtonText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
     color: '#10B981',
     marginLeft: 6,
@@ -1341,11 +1373,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F59E0B',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
   },
   claimButtonText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '900',
     color: '#0A0F1D',
     letterSpacing: 0.5,
@@ -1356,11 +1388,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#38BDF8',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
   },
   departButtonText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '900',
     color: '#0A0F1D',
     letterSpacing: 0.5,
@@ -1371,11 +1403,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#10B981',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
   },
   completeButtonText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '900',
     color: '#0A0F1D',
     letterSpacing: 0.5,
@@ -1386,8 +1418,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.25)',
   },

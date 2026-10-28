@@ -21,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
 import { DEFAULT_API_URL } from '../../api/config';
+import { ServiceListSkeleton } from '../../components/SkeletonLoader';
 
 interface ServiceOrder {
   id: number;
@@ -93,6 +94,131 @@ const formatOrderTime = (dateStr?: string | null): string => {
   }
 };
 
+// Helper phân loại nhóm dịch vụ chuẩn nghiệp vụ khách sạn 5 sao
+export const getServiceCategoryType = (item: any): 'fnb' | 'spa' | 'laundry' | 'amenities' => {
+  if (!item) return 'amenities';
+  const catType = (item.category_type || '').toLowerCase();
+  if (catType === 'spa') return 'spa';
+  if (catType === 'laundry') return 'laundry';
+  if (catType === 'fnb') return 'fnb';
+
+  const text = `${item.name || item.service_name || ''} ${item.category_name || ''} ${item.description || ''}`.toLowerCase();
+  if (
+    text.includes('spa') ||
+    text.includes('massage') ||
+    text.includes('trị liệu') ||
+    text.includes('xông hơi') ||
+    text.includes('sauna') ||
+    text.includes('wellness')
+  ) {
+    return 'spa';
+  }
+  if (
+    text.includes('giặt') ||
+    text.includes('ủi') ||
+    text.includes('laundry') ||
+    text.includes('giặt sấy') ||
+    text.includes('giặt hấp')
+  ) {
+    return 'laundry';
+  }
+  if (
+    text.includes('ẩm thực') ||
+    text.includes('đồ ăn') ||
+    text.includes('món') ||
+    text.includes('bếp') ||
+    text.includes('dining') ||
+    text.includes('f&b') ||
+    text.includes('nhà hàng') ||
+    text.includes('nước') ||
+    text.includes('rượu') ||
+    text.includes('bia') ||
+    text.includes('cà phê') ||
+    text.includes('trà') ||
+    text.includes('bánh') ||
+    text.includes('ăn uống')
+  ) {
+    return 'fnb';
+  }
+  return 'amenities';
+};
+
+// Helper cấu hình nội dung và nút bấm hành động chuẩn từng loại dịch vụ
+export const getServiceActionConfig = (item: ServiceOrder) => {
+  const cat = getServiceCategoryType(item);
+  switch (cat) {
+    case 'spa':
+      return {
+        catLabel: 'Spa & Trị liệu',
+        catIcon: 'leaf',
+        catColor: '#A855F7',
+        pendingBadge: 'Chờ nhận lịch Spa',
+        inProgressBadge: 'Đang chuẩn bị phòng Spa',
+        deliveringBadge: 'KTV đang phục vụ',
+        completedBadge: 'Đã hoàn tất liệu trình',
+        claimText: 'TIẾP NHẬN ĐẶT LỊCH SPA',
+        claimIcon: 'leaf',
+        nextStepLabel: 'KTV ĐÃ SẴN SÀNG ĐÓN KHÁCH',
+        nextStepIcon: 'sparkles',
+        completeStepLabel: 'XÁC NHẬN HOÀN TẤT LIỆU TRÌNH ✨',
+        deliveringLabel: 'KTV đang phục vụ',
+        completeSuccessMsg: 'Liệu trình Spa đã hoàn tất!',
+      };
+    case 'laundry':
+      return {
+        catLabel: 'Giặt ủi cao cấp',
+        catIcon: 'shirt',
+        catColor: '#06B6D4',
+        pendingBadge: 'Chờ thu gom đồ',
+        inProgressBadge: 'Đang giặt sấy / ủi',
+        deliveringBadge: 'Đang mang đồ lên phòng',
+        completedBadge: 'Đã giao đồ sạch',
+        claimText: 'TIẾP NHẬN GIẶT ỦI',
+        claimIcon: 'shirt',
+        nextStepLabel: 'BẮT ĐẦU MANG ĐỒ LÊN PHÒNG',
+        nextStepIcon: 'arrow-up-circle',
+        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO ĐỒ CHO KHÁCH ✨',
+        deliveringLabel: 'Đang mang đồ lên phòng',
+        completeSuccessMsg: 'Đồ giặt ủi đã bàn giao thành công!',
+      };
+    case 'amenities':
+      return {
+        catLabel: 'Tiện ích phòng',
+        catIcon: 'gift',
+        catColor: '#EC4899',
+        pendingBadge: 'Chờ chuẩn bị tiện ích',
+        inProgressBadge: 'Buồng phòng đang chuẩn bị',
+        deliveringBadge: 'Đang chuyển tới phòng',
+        completedBadge: 'Đã bàn giao tiện ích',
+        claimText: 'TIẾP NHẬN TIỆN ÍCH',
+        claimIcon: 'gift',
+        nextStepLabel: 'BẮT ĐẦU CHUYỂN TỚI PHÒNG',
+        nextStepIcon: 'walk',
+        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO ✨',
+        deliveringLabel: 'Đang chuyển tới phòng',
+        completeSuccessMsg: 'Tiện ích phòng đã được bàn giao!',
+      };
+    case 'fnb':
+    default:
+      return {
+        catLabel: 'Ẩm thực & Đồ uống',
+        catIcon: 'restaurant',
+        catColor: '#F59E0B',
+        pendingBadge: 'Chờ chế biến',
+        inProgressBadge: 'Bếp đang chế biến',
+        deliveringBadge: 'Đang mang lên phòng',
+        completedBadge: 'Đã phục vụ xong',
+        claimText: 'TIẾP NHẬN CHẾ BIẾN',
+        claimIcon: 'restaurant',
+        nextStepLabel: 'BẮT ĐẦU MANG LÊN PHÒNG',
+        nextStepIcon: 'bicycle',
+        completeStepLabel: 'XÁC NHẬN ĐÃ PHỤC VỤ MÓN ✨',
+        deliveringLabel: 'Đang mang lên phòng',
+        completeSuccessMsg: 'Món ăn đã được phục vụ tại phòng!',
+      };
+  }
+};
+
 export default function ServicesScreen() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
@@ -100,6 +226,12 @@ export default function ServicesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Bộ lọc danh mục nghiệp vụ cho Đơn phục vụ
+  const [orderCategoryFilter, setOrderCategoryFilter] = useState<'all' | 'fnb' | 'spa' | 'laundry' | 'amenities'>('all');
+
+  // Khóa nút chống bấm đúp khi mạng lag / 4G (Double-tap Mutex)
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   // Chế độ xem: Đơn phục vụ ('orders') vs Thực đơn & Danh mục ('catalog')
   const [mainViewMode, setMainViewMode] = useState<'orders' | 'catalog'>('orders');
@@ -171,6 +303,13 @@ export default function ServicesScreen() {
     setLoading(true);
     fetchOrders();
     fetchCatalog();
+
+    // Tự động đồng bộ ngầm mỗi 6 giây (nhận đơn mới tức thì khi khách đặt trên Web hoặc Lễ tân tạo đơn)
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 6000);
+
+    return () => clearInterval(interval);
   }, [fetchOrders, fetchCatalog]);
 
   const onRefresh = () => {
@@ -182,7 +321,7 @@ export default function ServicesScreen() {
     fetchCatalog();
   };
 
-  // KPI stats
+  // KPI stats: Tách bạch 4 bước chuẩn mực
   const stats = useMemo(() => {
     const total = orders.length;
     const pending = orders.filter((o) => o.status === 'pending').length;
@@ -192,16 +331,23 @@ export default function ServicesScreen() {
     return { total, pending, preparing, delivering, completed };
   }, [orders]);
 
-  // Bộ lọc
+  // Bộ lọc kết hợp: Trạng thái 4 bước + Danh mục 4 nhóm + Tìm kiếm
   const filteredOrders = useMemo(() => {
     return orders.filter((item) => {
       let matchTab = true;
       if (activeTab === 'pending') {
         matchTab = item.status === 'pending';
       } else if (activeTab === 'in_progress') {
-        matchTab = item.status === 'in_progress' || item.status === 'delivering';
+        matchTab = item.status === 'in_progress';
+      } else if (activeTab === 'delivering') {
+        matchTab = item.status === 'delivering';
       } else if (activeTab === 'completed') {
         matchTab = item.status === 'completed';
+      }
+
+      let matchCat = true;
+      if (orderCategoryFilter !== 'all') {
+        matchCat = getServiceCategoryType(item) === orderCategoryFilter;
       }
 
       const q = searchQuery.trim().toLowerCase();
@@ -212,9 +358,9 @@ export default function ServicesScreen() {
         (item.service_name && item.service_name.toLowerCase().includes(q)) ||
         (item.note && item.note.toLowerCase().includes(q));
 
-      return matchTab && matchSearch;
+      return matchTab && matchCat && matchSearch;
     });
-  }, [orders, activeTab, searchQuery]);
+  }, [orders, activeTab, orderCategoryFilter, searchQuery]);
 
   // Infinite Scroll cho Đơn phục vụ
   const [visibleOrdersCount, setVisibleOrdersCount] = useState(15);
@@ -269,39 +415,48 @@ export default function ServicesScreen() {
   };
 
   const handleClaim = async (item: ServiceOrder) => {
+    if (actionLoadingId === item.id) return;
     try {
+      setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const res = await apiClient.post(`/services/requests/${item.id}/claim/`);
       if (res.data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Thành công', `Bạn đã nhận chuẩn bị yêu cầu cho Phòng ${item.room_number}!`);
-        fetchOrders();
+        Alert.alert('Tiếp nhận thành công ✨', `Bạn đã nhận phụ trách yêu cầu cho Phòng ${item.room_number}!`);
+        await fetchOrders();
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Không thể nhận đơn này.';
       Alert.alert('Lỗi', msg);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   const handleUpdateStatus = async (item: ServiceOrder, newStatus: string, label: string) => {
+    if (actionLoadingId === item.id) return;
     try {
+      setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const res = await apiClient.patch(`/services/requests/${item.id}/`, {
         status: newStatus,
         assigned_staff: item.assigned_staff || user?.id,
       });
-      if (res.data.success) {
+      if (res.data.success || res.data.id) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Cập nhật thành công', `Đơn phòng ${item.room_number} đã chuyển sang "${label}"!`);
-        fetchOrders();
+        Alert.alert('Cập nhật thành công ✨', `Đơn phòng ${item.room_number} đã chuyển sang "${label}"!`);
+        await fetchOrders();
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái.';
       Alert.alert('Lỗi', msg);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   const handleCancelOrder = (item: ServiceOrder) => {
+    if (actionLoadingId === item.id) return;
     Alert.alert(
       'Hủy đơn dịch vụ',
       `Bạn có chắc chắn muốn hủy đơn "${item.service_name}" của Phòng ${item.room_number}?`,
@@ -312,6 +467,7 @@ export default function ServicesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              setActionLoadingId(item.id);
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               const res = await apiClient.patch(`/services/requests/${item.id}/`, {
                 status: 'cancelled',
@@ -319,11 +475,13 @@ export default function ServicesScreen() {
               if (res.data.success || res.data.id) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 Alert.alert('Đã hủy', `Yêu cầu dịch vụ cho Phòng ${item.room_number} đã được hủy.`);
-                fetchOrders();
+                await fetchOrders();
               }
             } catch (err: any) {
               const msg = err.response?.data?.message || 'Không thể hủy đơn này.';
               Alert.alert('Lỗi', msg);
+            } finally {
+              setActionLoadingId(null);
             }
           },
         },
@@ -499,35 +657,36 @@ export default function ServicesScreen() {
     }
   };
 
-  const getStatusBadgeConfig = (status: string) => {
+  const getStatusBadgeConfig = (status: string, item?: ServiceOrder) => {
+    const actionConfig = item ? getServiceActionConfig(item) : null;
     switch (status) {
       case 'pending':
         return {
           bg: 'rgba(245, 158, 11, 0.12)',
-          border: 'rgba(245, 158, 11, 0.4)',
+          border: 'rgba(245, 158, 11, 0.45)',
           text: '#FBBF24',
-          label: 'Chờ chế biến',
+          label: actionConfig ? actionConfig.pendingBadge : 'Chờ xử lý',
         };
       case 'in_progress':
         return {
           bg: 'rgba(56, 189, 248, 0.12)',
-          border: 'rgba(56, 189, 248, 0.4)',
+          border: 'rgba(56, 189, 248, 0.45)',
           text: '#38BDF8',
-          label: 'Đang nấu / chuẩn bị',
+          label: actionConfig ? actionConfig.inProgressBadge : 'Đang chuẩn bị',
         };
       case 'delivering':
         return {
           bg: 'rgba(168, 85, 247, 0.14)',
-          border: 'rgba(168, 85, 247, 0.4)',
+          border: 'rgba(168, 85, 247, 0.45)',
           text: '#C084FC',
-          label: 'Đang mang lên phòng',
+          label: actionConfig ? actionConfig.deliveringBadge : 'Đang giao tận phòng',
         };
       case 'completed':
         return {
           bg: 'rgba(16, 185, 129, 0.12)',
-          border: 'rgba(16, 185, 129, 0.4)',
+          border: 'rgba(16, 185, 129, 0.45)',
           text: '#34D399',
-          label: 'Đã phục vụ xong',
+          label: actionConfig ? actionConfig.completedBadge : 'Đã phục vụ xong',
         };
       case 'cancelled':
         return {
@@ -547,14 +706,16 @@ export default function ServicesScreen() {
   };
 
   const renderItem = ({ item }: { item: ServiceOrder }) => {
-    const badge = getStatusBadgeConfig(item.status);
+    const badge = getStatusBadgeConfig(item.status, item);
+    const actionConfig = getServiceActionConfig(item);
     const isMyTask = item.assigned_staff === user?.id;
+    const isActionLoading = actionLoadingId === item.id;
 
     return (
       <View style={[styles.card, isMyTask && styles.cardMyTask]}>
         {/* Header Đơn */}
         <View style={styles.cardHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' }}>
             <View style={styles.roomTag}>
               <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
               <Text style={styles.roomTagText}>P.{item.room_number || '?'}</Text>
@@ -564,11 +725,16 @@ export default function ServicesScreen() {
                 <Text style={styles.bookingCodeTagText}>#{item.booking_code}</Text>
               </View>
             ) : null}
+            {/* Nhãn phân loại nghiệp vụ F&B / Spa / Giặt là / Tiện ích */}
+            <View style={[styles.categoryPill, { borderColor: actionConfig.catColor }]}>
+              <Ionicons name={actionConfig.catIcon as any} size={11} color={actionConfig.catColor} style={{ marginRight: 3 }} />
+              <Text style={[styles.categoryPillText, { color: actionConfig.catColor }]}>{actionConfig.catLabel}</Text>
+            </View>
           </View>
 
           <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
             <Text style={[styles.statusBadgeText, { color: badge.text }]}>
-              {item.status_display || badge.label}
+              {badge.label}
             </Text>
           </View>
         </View>
@@ -653,60 +819,91 @@ export default function ServicesScreen() {
           </Text>
         </View>
 
-        {/* Nút hành động 1 chạm */}
+        {/* Nút hành động 1 chạm - Tối ưu One-handed 50px & Chống Double-Tap */}
         <View style={styles.actionRow}>
           {item.status === 'pending' && (
             <TouchableOpacity
-              style={styles.btnClaim}
+              style={[styles.btnClaim, isActionLoading && { opacity: 0.65 }]}
               onPress={() => handleClaim(item)}
               activeOpacity={0.8}
+              disabled={isActionLoading}
             >
-              <Ionicons name="hand-right" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-              <Text style={styles.btnClaimText}>TIẾP NHẬN ĐƠN MÓN</Text>
+              {isActionLoading ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.btnClaimText}>ĐANG TIẾP NHẬN...</Text>
+                </View>
+              ) : (
+                <>
+                  <Ionicons name={actionConfig.claimIcon as any} size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.btnClaimText}>{actionConfig.claimText}</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
           {item.status === 'in_progress' && (
             <TouchableOpacity
-              style={styles.btnDeliver}
-              onPress={() => handleUpdateStatus(item, 'delivering', 'Đang mang lên phòng')}
+              style={[styles.btnDeliver, isActionLoading && { opacity: 0.65 }]}
+              onPress={() => handleUpdateStatus(item, 'delivering', actionConfig.deliveringLabel)}
               activeOpacity={0.8}
+              disabled={isActionLoading}
             >
-              <Ionicons name="bicycle" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-              <Text style={styles.btnDeliverText}>BẮT ĐẦU MANG LÊN PHÒNG</Text>
+              {isActionLoading ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.btnDeliverText}>ĐANG CẬP NHẬT...</Text>
+                </View>
+              ) : (
+                <>
+                  <Ionicons name={actionConfig.nextStepIcon as any} size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.btnDeliverText}>{actionConfig.nextStepLabel}</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
           {item.status === 'delivering' && (
             <TouchableOpacity
-              style={styles.btnComplete}
-              onPress={() => handleUpdateStatus(item, 'completed', 'Đã giao xong')}
+              style={[styles.btnComplete, isActionLoading && { opacity: 0.65 }]}
+              onPress={() => handleUpdateStatus(item, 'completed', actionConfig.completeSuccessMsg)}
               activeOpacity={0.8}
+              disabled={isActionLoading}
             >
-              <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-              <Text style={styles.btnCompleteText}>XÁC NHẬN ĐÃ GIAO KHÁCH ✨</Text>
+              {isActionLoading ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.btnCompleteText}>ĐANG HOÀN TẤT...</Text>
+                </View>
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.btnCompleteText}>{actionConfig.completeStepLabel}</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
           {item.status === 'completed' && (
             <View style={styles.doneBadge}>
-              <Ionicons name="checkmark-circle" size={15} color="#34D399" style={{ marginRight: 5 }} />
-              <Text style={styles.doneBadgeText}>Đã giao thành công</Text>
+              <Ionicons name="checkmark-circle" size={16} color="#34D399" style={{ marginRight: 6 }} />
+              <Text style={styles.doneBadgeText}>{actionConfig.completedBadge}</Text>
             </View>
           )}
 
           {item.status === 'cancelled' && (
             <View style={[styles.doneBadge, { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
-              <Ionicons name="close-circle" size={15} color="#F87171" style={{ marginRight: 5 }} />
+              <Ionicons name="close-circle" size={16} color="#F87171" style={{ marginRight: 6 }} />
               <Text style={[styles.doneBadgeText, { color: '#F87171' }]}>Đơn đã hủy</Text>
             </View>
           )}
 
           {(item.status === 'pending' || item.status === 'in_progress') && (
             <TouchableOpacity
-              style={styles.btnCancelOrder}
+              style={[styles.btnCancelOrder, isActionLoading && { opacity: 0.5 }]}
               onPress={() => handleCancelOrder(item)}
               activeOpacity={0.7}
+              disabled={isActionLoading}
             >
               <Ionicons name="close-circle-outline" size={15} color="#EF4444" style={{ marginRight: 4 }} />
               <Text style={styles.btnCancelOrderText}>Hủy</Text>
@@ -842,13 +1039,14 @@ export default function ServicesScreen() {
       {/* MODE 1: ORDERS LIST VIEW */}
       {mainViewMode === 'orders' ? (
         <>
-          {/* 2. Dải Bộ Lọc & KPI Cố Định 100% (Không bị trôi trượt khi lướt) */}
+          {/* 2. Dải Bộ Lọc Trạng Thái & KPI Cố Định 5 Cột Chuẩn Mực */}
           <View style={styles.fixedFilterBar}>
             {[
               { key: 'all', label: 'Tất cả', count: stats.total, color: '#F8FAFC' },
               { key: 'pending', label: 'Chờ làm', count: stats.pending, color: '#F59E0B' },
-              { key: 'in_progress', label: 'Đang giao', count: stats.preparing + stats.delivering, color: '#38BDF8' },
-              { key: 'completed', label: 'Đã giao', count: stats.completed, color: '#34D399' },
+              { key: 'in_progress', label: 'Chuẩn bị', count: stats.preparing, color: '#38BDF8' },
+              { key: 'delivering', label: 'Đang giao', count: stats.delivering, color: '#C084FC' },
+              { key: 'completed', label: 'Đã xong', count: stats.completed, color: '#34D399' },
             ].map((item) => {
               const isSelected = activeTab === item.key;
               return (
@@ -881,6 +1079,42 @@ export default function ServicesScreen() {
             })}
           </View>
 
+          {/* 2b. Dải Lọc Theo Nhóm Nghiệp Vụ (F&B / Spa / Giặt là / Tiện ích) */}
+          <View style={{ marginBottom: 10 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.orderCategoryScroll}>
+              {[
+                { key: 'all', label: 'Tất cả danh mục', icon: 'grid-outline' },
+                { key: 'fnb', label: 'Ẩm thực (F&B) 🍽️', icon: 'restaurant-outline' },
+                { key: 'spa', label: 'Spa Trị liệu 🌿', icon: 'leaf-outline' },
+                { key: 'laundry', label: 'Giặt ủi 🧺', icon: 'shirt-outline' },
+                { key: 'amenities', label: 'Tiện ích phòng 🛎️', icon: 'gift-outline' },
+              ].map((cat) => {
+                const isSelected = orderCategoryFilter === cat.key;
+                return (
+                  <TouchableOpacity
+                    key={cat.key}
+                    style={[styles.orderCategoryChip, isSelected && styles.orderCategoryChipActive]}
+                    onPress={() => {
+                      setOrderCategoryFilter(cat.key as any);
+                      Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={cat.icon as any}
+                      size={13}
+                      color={isSelected ? '#0A0F1D' : '#94A3B8'}
+                      style={{ marginRight: 5 }}
+                    />
+                    <Text style={[styles.orderCategoryChipText, isSelected && styles.orderCategoryChipTextActive]}>
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* 3. Ô Tìm Kiếm Nhanh */}
           <View style={styles.searchWrapper}>
             <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginLeft: 12 }} />
@@ -901,10 +1135,7 @@ export default function ServicesScreen() {
 
           {/* 4. Danh Sách Đơn Món */}
           {loading ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#F59E0B" />
-              <Text style={styles.loadingMessage}>Đang tải đơn gọi món F&B...</Text>
-            </View>
+            <ServiceListSkeleton />
           ) : filteredOrders.length === 0 ? (
             <View style={styles.centerContainer}>
               <Ionicons name="restaurant-outline" size={56} color="#334155" />
@@ -1386,15 +1617,15 @@ const styles = StyleSheet.create({
   },
   fixedFilterBar: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
-    gap: 6,
+    paddingHorizontal: 10,
+    gap: 5,
     marginBottom: 10,
   },
   fixedFilterCard: {
     flex: 1,
     backgroundColor: '#111827',
     borderRadius: 14,
-    paddingVertical: 9,
+    paddingVertical: 8,
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#1F2937',
@@ -1404,17 +1635,58 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.12)',
   },
   fixedFilterNumber: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
   },
   fixedFilterLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
     color: '#94A3B8',
     marginTop: 2,
+    letterSpacing: 0.2,
   },
   fixedFilterLabelSelected: {
     color: '#F59E0B',
+    fontWeight: '800',
+  },
+  orderCategoryScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  orderCategoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#1F2937',
+  },
+  orderCategoryChipActive: {
+    backgroundColor: '#F59E0B',
+    borderColor: '#F59E0B',
+  },
+  orderCategoryChipText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  orderCategoryChipTextActive: {
+    color: '#0A0F1D',
+    fontWeight: '800',
+  },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  categoryPillText: {
+    fontSize: 10.5,
     fontWeight: '800',
   },
   searchWrapper: {
@@ -1653,11 +1925,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F59E0B',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
   },
   btnClaimText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
     color: '#0A0F1D',
     letterSpacing: 0.5,
@@ -1667,11 +1939,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#38BDF8',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
   },
   btnDeliverText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
     color: '#0A0F1D',
     letterSpacing: 0.5,
@@ -1681,11 +1953,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#10B981',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
   },
   btnCompleteText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
     color: '#0A0F1D',
     letterSpacing: 0.5,
@@ -1695,8 +1967,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    height: 42,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.25)',
   },

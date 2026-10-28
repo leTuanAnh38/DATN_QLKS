@@ -4,6 +4,8 @@ from .models import Room, RoomCategory, Amenity, RoomImage, MaintenanceTicket, M
 
 class MaintenanceTicketSerializer(serializers.ModelSerializer):
     room_number = serializers.CharField(source='room.room_number', read_only=True)
+    room_status = serializers.CharField(source='room.status', read_only=True)
+    room_floor = serializers.IntegerField(source='room.floor', read_only=True)
     technician_name = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
@@ -14,7 +16,7 @@ class MaintenanceTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaintenanceTicket
         fields = [
-            'id', 'ticket_code', 'room', 'room_number', 'equipment_name',
+            'id', 'ticket_code', 'room', 'room_number', 'room_status', 'room_floor', 'equipment_name',
             'issue_type', 'issue_type_display', 'description', 'start_date', 'completed_date',
             'parts_replaced', 'cost', 'is_guest_fault', 'booking', 'booking_code',
             'guest_name', 'technician', 'technician_name', 'created_by', 'created_by_name',
