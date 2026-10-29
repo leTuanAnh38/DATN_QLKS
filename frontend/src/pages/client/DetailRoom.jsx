@@ -1,5 +1,31 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import {
+    BedDouble,
+    Bath,
+    Coffee,
+    Tv,
+    Sparkles,
+    Camera,
+    ZoomIn,
+    Users,
+    ShieldCheck,
+    CheckCircle2,
+    Share2,
+    Heart,
+    Clock,
+    ClipboardList,
+    Check,
+    ChevronRight,
+    ChevronLeft,
+    Star,
+    Maximize2,
+    Compass,
+    ArrowRight,
+    PhoneCall,
+    AlertCircle,
+    Info
+} from 'lucide-react';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import { reviewService } from '../../services/reviewService';
@@ -51,7 +77,7 @@ const FALLBACK_GALLERY = [
 const STANDARD_AMENITY_GROUPS = [
     {
         title: 'Không gian & Giường ngủ',
-        icon: '🛏️',
+        icon: BedDouble,
         items: [
             'Đệm Simmons Beautyrest Black chuẩn khách sạn 6 sao',
             'Bộ ga gối lụa tơ tằm Ai Cập mật độ 600 sợi dệt',
@@ -61,7 +87,7 @@ const STANDARD_AMENITY_GROUPS = [
     },
     {
         title: 'Phòng tắm & Spa tại gia',
-        icon: '🛁',
+        icon: Bath,
         items: [
             'Bồn tắm Jacuzzi thủy lực đặt cạnh khung kính sát biển',
             'Bộ sản phẩm chăm sóc cao cấp Diptyque Paris nguyên bản',
@@ -71,7 +97,7 @@ const STANDARD_AMENITY_GROUPS = [
     },
     {
         title: 'Ẩm thực & Bar mini',
-        icon: '☕',
+        icon: Coffee,
         items: [
             'Máy pha cà phê Nespresso Gran Lattissima kèm viên nén refill mỗi ngày',
             'Minibar miễn phí cao cấp (rượu vang đón khách, nước khoáng San Pellegrino)',
@@ -80,7 +106,7 @@ const STANDARD_AMENITY_GROUPS = [
     },
     {
         title: 'Công nghệ Smart Room',
-        icon: '📱',
+        icon: Tv,
         items: [
             'Hệ thống điều khiển cảm ứng thông minh Lutron (ánh sáng, rèm, nhiệt độ)',
             '2 Smart TV Samsung OLED 65-inch kết nối AirPlay & Netflix 4K',
@@ -88,6 +114,28 @@ const STANDARD_AMENITY_GROUPS = [
         ]
     }
 ];
+
+// Hàm lấy icon / emoji tiện ích đặc trưng (ưu tiên icon từ DB, fallback thông minh theo tên)
+const getAmenityIcon = (amenity) => {
+    if (amenity?.icon && amenity.icon.trim()) {
+        return amenity.icon;
+    }
+    const name = (amenity?.name || '').toLowerCase();
+    if (name.includes('wifi') || name.includes('mạng') || name.includes('internet')) return '📶';
+    if (name.includes('tv') || name.includes('tivi')) return '📺';
+    if (name.includes('tắm') || name.includes('jacuzzi') || name.includes('bồn')) return '🛁';
+    if (name.includes('điều hòa') || name.includes('máy lạnh') || name.includes('lạnh')) return '❄️';
+    if (name.includes('két') || name.includes('an toàn')) return '🔒';
+    if (name.includes('ban công') || name.includes('biển') || name.includes('ngắm')) return '🌅';
+    if (name.includes('cafe') || name.includes('cà phê') || name.includes('trà')) return '☕';
+    if (name.includes('minibar') || name.includes('nước khoáng') || name.includes('tủ lạnh')) return '🍸';
+    if (name.includes('sấy')) return '💨';
+    if (name.includes('bàn') || name.includes('việc')) return '💼';
+    if (name.includes('áo choàng') || name.includes('dép')) return '👘';
+    if (name.includes('phục vụ') || name.includes('24/7')) return '🛎️';
+    if (name.includes('hồ bơi') || name.includes('bơi')) return '🏊';
+    return '✨';
+};
 
 export default function DetailRoom() {
     const { settings } = useHotelSettings();
@@ -562,7 +610,7 @@ export default function DetailRoom() {
                         <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden">
                             <div className="col-span-12 lg:col-span-6 bg-slate-200 animate-pulse relative">
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                                     <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                                         Đang tải dữ liệu phòng nghỉ...
                                     </p>
@@ -607,8 +655,8 @@ export default function DetailRoom() {
 
                 <main className="flex-1 flex items-center justify-center px-4 py-16">
                     <div className="max-w-lg w-full bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 text-center shadow-xl shadow-slate-900/5">
-                        <div className="w-20 h-20 mx-auto rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center text-4xl mb-6 shadow-inner">
-                            🏨
+                        <div className="w-20 h-20 mx-auto rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center text-3xl mb-6 shadow-inner">
+                            <AlertCircle className="w-10 h-10 text-rose-500" />
                         </div>
                         <span className="text-xs font-bold uppercase tracking-widest text-rose-600 bg-rose-50 px-3 py-1 rounded-full">
                             Không tìm thấy dữ liệu
@@ -623,9 +671,9 @@ export default function DetailRoom() {
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                             <Link
                                 to="/rooms"
-                                className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30 transition transform active:scale-95 flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-500/25 transition transform active:scale-95 flex items-center justify-center gap-2"
                             >
-                                <span>←</span> Xem danh sách phòng nghỉ
+                                <ArrowRight className="w-4 h-4 rotate-180" /> Xem danh sách phòng nghỉ
                             </Link>
                             <Link
                                 to="/"
@@ -666,7 +714,7 @@ export default function DetailRoom() {
         : 0;
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white pb-20 lg:pb-0">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white pb-20 lg:pb-0">
             <Navbar
                 actionText="Đặt phòng ngay"
                 actionLink="#dat-phong"
@@ -680,9 +728,9 @@ export default function DetailRoom() {
             <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                        <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
                         <span>/</span>
-                        <Link to="/rooms" className="hover:text-blue-600 transition">Phòng nghỉ & Suites</Link>
+                        <Link to="/rooms" className="hover:text-amber-600 transition">Phòng nghỉ & Suites</Link>
                         <span>/</span>
                         <span className="text-slate-900 font-semibold truncate max-w-xs sm:max-w-none">
                             {room.name}
@@ -698,21 +746,17 @@ export default function DetailRoom() {
                                     alert('Đã sao chép liên kết phòng vào clipboard!');
                                 }
                             }}
-                            className="flex items-center gap-1.5 hover:text-blue-600 transition"
+                            className="flex items-center gap-1.5 hover:text-amber-600 transition cursor-pointer"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                            </svg>
+                            <Share2 className="w-4 h-4 text-slate-500" />
                             Chia sẻ
                         </button>
                         <button
                             type="button"
                             onClick={() => setIsSaved(!isSaved)}
-                            className={`flex items-center gap-1.5 transition ${isSaved ? 'text-red-500' : 'hover:text-red-500'}`}
+                            className={`flex items-center gap-1.5 transition cursor-pointer ${isSaved ? 'text-rose-500' : 'hover:text-rose-500'}`}
                         >
-                            <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
+                            <Heart className={`w-4 h-4 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
                             {isSaved ? 'Đã lưu yêu thích' : 'Lưu yêu thích'}
                         </button>
                     </div>
@@ -725,16 +769,16 @@ export default function DetailRoom() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <div className="flex flex-wrap items-center gap-2 mb-2">
-                                <span className="px-3 py-0.5 rounded-full text-white text-xs font-bold uppercase tracking-wider bg-orange-500">
+                                <span className="px-3 py-0.5 rounded-full text-white text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-orange-500 to-amber-500 shadow-xs">
                                     {room.size ? `${room.size} M²` : 'LUXURY SUITE'}
                                 </span>
                                 {hasPromo && (
-                                    <span className="px-3 py-0.5 rounded-full bg-rose-100 text-rose-700 text-xs font-bold uppercase tracking-wider">
-                                        🔥 Ưu đãi giảm {discountPercent}%
+                                    <span className="px-3 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <Sparkles className="w-3.5 h-3.5 text-rose-500" /> Ưu đãi giảm {discountPercent}%
                                     </span>
                                 )}
-                                <span className="px-3 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                                    👑 {starCount}-STAR RESORT
+                                <span className="px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> {starCount}-STAR RESORT
                                 </span>
                                 {room.total_rooms_count > 0 && (
                                     <span className="text-xs text-slate-500 font-medium">
@@ -749,13 +793,13 @@ export default function DetailRoom() {
 
                         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl flex-shrink-0">
                             <span className="flex items-center gap-1 text-amber-500 text-lg font-bold">
-                                ★ {reviewStats.average}
+                                <Star className="w-5 h-5 fill-amber-400 text-amber-400" /> {reviewStats.average}
                             </span>
                             <div className="border-l border-slate-200 pl-3">
                                 <div className="text-xs font-bold text-slate-900">
                                     {parseFloat(reviewStats.average) >= 4.8 ? 'Tuyệt hảo xuất sắc' : (parseFloat(reviewStats.average) >= 4.0 ? 'Rất tốt' : 'Tốt')}
                                 </div>
-                                <a href="#danh-gia" className="text-[11px] text-blue-600 hover:underline">
+                                <a href="#danh-gia" className="text-[11px] text-amber-600 hover:underline font-medium">
                                     {reviewStats.total > 0 ? `${reviewStats.total} lượt đánh giá thực tế` : 'Đang cập nhật đánh giá'}
                                 </a>
                             </div>
@@ -797,7 +841,7 @@ export default function DetailRoom() {
 
                             {/* Badge đếm số thứ tự ảnh góc trên bên trái */}
                             <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 shadow">
-                                <span>📷</span>
+                                <Camera className="w-3.5 h-3.5 text-amber-300" />
                                 <span>{safeImageIndex + 1} / {gallery.length}</span>
                             </div>
 
@@ -810,7 +854,7 @@ export default function DetailRoom() {
                                     openLightbox(safeImageIndex);
                                 }}
                             >
-                                🔍
+                                <ZoomIn className="w-4 h-4 text-white" />
                             </div>
 
                             {/* Nút Mũi tên chuyển ảnh Trái / Phải trên ảnh chính */}
@@ -819,16 +863,14 @@ export default function DetailRoom() {
                                     <button
                                         type="button"
                                         onClick={(e) => {
-                                            e.stopPropagation();
-                                            handlePrevImage();
+                                             e.stopPropagation();
+                                             handlePrevImage();
                                         }}
                                         onTouchStart={(e) => e.stopPropagation()}
                                         className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
                                         aria-label="Ảnh trước"
                                     >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                                        </svg>
+                                        <ChevronLeft className="w-5 h-5" />
                                     </button>
                                     <button
                                         type="button"
@@ -840,9 +882,7 @@ export default function DetailRoom() {
                                         className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
                                         aria-label="Ảnh tiếp theo"
                                     >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                        </svg>
+                                        <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </>
                             )}
@@ -912,7 +952,7 @@ export default function DetailRoom() {
                             onClick={() => openLightbox(safeImageIndex)}
                             className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 z-20 bg-white/95 hover:bg-white text-slate-900 text-xs font-bold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-2 transition hover:scale-105 cursor-pointer"
                         >
-                            <span>📷</span>
+                            <Camera className="w-4 h-4 text-slate-700" />
                             {gallery.length === 1 ? 'Xem ảnh' : `Tất cả ${gallery.length} ảnh`}
                         </button>
                     </div>
@@ -963,8 +1003,8 @@ export default function DetailRoom() {
                         {/* THÔNG SỐ CƠ BẢN: Map Diện tích (size), Sức chứa (capacity), Giường ngủ (bed_type) */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
-                                    📐
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                    <Maximize2 className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Diện tích</span>
@@ -975,8 +1015,8 @@ export default function DetailRoom() {
                             </div>
 
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
-                                    🌊
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                    <Compass className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Tầm nhìn</span>
@@ -989,8 +1029,8 @@ export default function DetailRoom() {
                             </div>
 
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
-                                    👥
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                    <Users className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Sức chứa</span>
@@ -1001,8 +1041,8 @@ export default function DetailRoom() {
                             </div>
 
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
-                                    🛏️
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                    <BedDouble className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Giường ngủ</span>
@@ -1019,7 +1059,8 @@ export default function DetailRoom() {
                         {/* MÔ TẢ HẠNG PHÒNG */}
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
                             <div className="flex items-center gap-2">
-                                <span className="px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs uppercase font-bold tracking-widest">
+                                <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs uppercase font-bold tracking-widest flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                     Trải Nghiệm Thượng Lưu Đặc Quyền
                                 </span>
                             </div>
@@ -1029,10 +1070,10 @@ export default function DetailRoom() {
 
                             {/* Mô tả ngắn (Short Description) được đóng khung nổi bật */}
                             {room.short_description && (
-                                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
-                                    <span className="text-lg select-none">✨</span>
+                                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-slate-50 border border-amber-200/70 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
+                                    <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block mb-0.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-0.5">
                                             Tổng quan nổi bật
                                         </span>
                                         <p className="text-slate-800 leading-relaxed font-normal break-words">
@@ -1066,7 +1107,7 @@ export default function DetailRoom() {
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
                                 <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
+                                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
                                         Tiện ích tích hợp
                                     </span>
                                     <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
@@ -1088,12 +1129,12 @@ export default function DetailRoom() {
                                         {room.amenities.map((amenity, idx) => (
                                             <div
                                                 key={amenity.id || idx}
-                                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100 hover:border-blue-300 hover:bg-blue-50 transition group"
+                                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50/40 border border-amber-100/80 hover:border-amber-300 hover:bg-amber-50/80 transition group"
                                             >
-                                                <span className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition">
-                                                    {amenity.icon || '✨'}
+                                                <span className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition border border-amber-100/60 select-none">
+                                                    {amenity.icon || getAmenityIcon(amenity)}
                                                 </span>
-                                                <span className="text-xs font-bold text-slate-800 group-hover:text-blue-700 transition">
+                                                <span className="text-xs font-bold text-slate-800 group-hover:text-amber-800 transition">
                                                     {amenity.name}
                                                 </span>
                                             </div>
@@ -1104,26 +1145,29 @@ export default function DetailRoom() {
 
                             {/* 2. Tiện ích tiêu chuẩn 5 sao resort phân theo nhóm */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100">
-                                {STANDARD_AMENITY_GROUPS.map((group, idx) => (
-                                    <div key={idx} className="space-y-3">
-                                        <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                                            <span className="text-xl">{group.icon}</span>
-                                            <h4 className="font-serif font-bold text-base text-slate-900">
-                                                {group.title}
-                                            </h4>
+                                {STANDARD_AMENITY_GROUPS.map((group, idx) => {
+                                    const GroupIcon = group.icon;
+                                    return (
+                                        <div key={idx} className="space-y-3">
+                                            <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                                                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                                                    <GroupIcon className="w-4 h-4" />
+                                                </div>
+                                                <h4 className="font-serif font-bold text-base text-slate-900">
+                                                    {group.title}
+                                                </h4>
+                                            </div>
+                                            <ul className="space-y-2.5 text-xs text-slate-600">
+                                                {group.items.map((item, itemIdx) => (
+                                                    <li key={itemIdx} className="flex items-start gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                                        <span className="leading-relaxed">{item}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
-                                        <ul className="space-y-2.5 text-xs text-slate-600">
-                                            {group.items.map((item, itemIdx) => (
-                                                <li key={itemIdx} className="flex items-start gap-2">
-                                                    <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    <span className="leading-relaxed">{item}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -1131,7 +1175,7 @@ export default function DetailRoom() {
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Mặt bằng bố trí</span>
+                                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">Mặt bằng bố trí</span>
                                     <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
                                         Sơ đồ không gian Suite (Floor Plan)
                                     </h3>
@@ -1141,10 +1185,10 @@ export default function DetailRoom() {
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                                 <div className="md:col-span-6 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-300">
-                                    <div className="border-2 border-blue-600 rounded-xl p-4 relative h-56 flex flex-col justify-between text-[11px] font-mono text-slate-600 bg-white">
+                                    <div className="border-2 border-amber-500 rounded-xl p-4 relative h-56 flex flex-col justify-between text-[11px] font-mono text-slate-600 bg-white shadow-xs">
                                         <div className="flex justify-between items-center border-b pb-2">
-                                            <span className="text-blue-600 font-bold uppercase">{room.name}</span>
-                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                            <span className="text-amber-700 font-bold uppercase">{room.name}</span>
+                                            <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">
                                                 {room.size ? `${room.size} M²` : 'STANDARD'}
                                             </span>
                                         </div>
@@ -1153,9 +1197,9 @@ export default function DetailRoom() {
                                                 <span className="font-bold text-slate-800">KHÔNG GIAN NGHỈ</span>
                                                 <span className="text-[10px] text-slate-400">{room.bed_type}</span>
                                             </div>
-                                            <div className="border border-slate-200 p-2 rounded flex flex-col justify-center items-center text-center bg-blue-50/30">
-                                                <span className="font-bold text-slate-800">PHÒNG TẮM</span>
-                                                <span className="text-[10px] text-blue-600">Jacuzzi cao cấp</span>
+                                            <div className="border border-amber-200 p-2 rounded flex flex-col justify-center items-center text-center bg-amber-50/40">
+                                                <span className="font-bold text-amber-900">PHÒNG TẮM</span>
+                                                <span className="text-[10px] text-amber-600 font-semibold">Jacuzzi cao cấp</span>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 border-t pt-2">
@@ -1172,10 +1216,10 @@ export default function DetailRoom() {
                                     </p>
                                     <div className="grid grid-cols-2 gap-2 pt-2 text-slate-800 font-semibold">
                                         <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                            Diện tích: <span className="text-blue-600">{room.size ? `${room.size} m²` : '40 m²'}</span>
+                                            Diện tích: <span className="text-amber-600 font-bold">{room.size ? `${room.size} m²` : '40 m²'}</span>
                                         </div>
                                         <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                            Giường: <span className="text-blue-600">{room.bed_type || 'King Size'}</span>
+                                            Giường: <span className="text-amber-600 font-bold">{room.bed_type || 'King Size'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1186,11 +1230,11 @@ export default function DetailRoom() {
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                                 <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
+                                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
                                         Quy định & Quyền lợi lưu trú
                                     </span>
                                     <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1 flex items-center gap-2">
-                                        <span>🛡️</span> Chính sách nhận, trả phòng & bảo đảm quyền lợi
+                                        <ShieldCheck className="w-6 h-6 text-amber-600" /> Chính sách nhận, trả phòng & bảo đảm quyền lợi
                                     </h3>
                                 </div>
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 self-start sm:self-auto">
@@ -1201,8 +1245,8 @@ export default function DetailRoom() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3.5">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
-                                        🕒
+                                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                        <Clock className="w-5 h-5" />
                                     </div>
                                     <div>
                                         <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
@@ -1216,15 +1260,15 @@ export default function DetailRoom() {
                                 </div>
 
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3.5">
-                                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
-                                        🕛
+                                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                        <Clock className="w-5 h-5" />
                                     </div>
                                     <div>
                                         <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
                                             Thời gian trả phòng (Check-out)
                                         </span>
                                         <div className="text-base font-bold text-slate-900">Trước 12:00</div>
-                                        <p className="text-blue-600 font-semibold mt-0.5 leading-relaxed">
+                                        <p className="text-amber-700 font-semibold mt-0.5 leading-relaxed">
                                             Hội viên VIP được ưu tiên hỗ trợ check-out trễ linh hoạt đến 16:00.
                                         </p>
                                     </div>
@@ -1232,9 +1276,9 @@ export default function DetailRoom() {
                             </div>
 
                             {/* Chi tiết chính sách hủy & đổi lịch riêng biệt của hạng phòng */}
-                            <div className="p-5 sm:p-6 bg-gradient-to-br from-blue-50/70 via-slate-50 to-emerald-50/30 rounded-2xl border border-blue-100/80 space-y-3">
+                            <div className="p-5 sm:p-6 bg-gradient-to-br from-amber-50/60 via-slate-50 to-orange-50/30 rounded-2xl border border-amber-100/80 space-y-3">
                                 <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                                    <span className="text-base">📋</span>
+                                    <ClipboardList className="w-5 h-5 text-amber-600" />
                                     <span>Chính sách hủy phòng & hoàn tiền áp dụng cho hạng phòng này:</span>
                                 </div>
                                 <div className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line pl-6 font-normal">
@@ -1250,7 +1294,7 @@ export default function DetailRoom() {
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs uppercase font-bold tracking-widest text-blue-600">Trải nghiệm khách hàng</span>
+                                        <span className="text-xs uppercase font-bold tracking-widest text-amber-600">Trải nghiệm khách hàng</span>
                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
                                             ✓ Đã xác thực
                                         </span>
@@ -1288,7 +1332,7 @@ export default function DetailRoom() {
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                            className="bg-amber-500 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.cleanliness) / 5) * 100}%` }}
                                         />
                                     </div>
@@ -1301,7 +1345,7 @@ export default function DetailRoom() {
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                            className="bg-amber-500 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.service) / 5) * 100}%` }}
                                         />
                                     </div>
@@ -1314,7 +1358,7 @@ export default function DetailRoom() {
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                            className="bg-amber-500 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.location) / 5) * 100}%` }}
                                         />
                                     </div>
@@ -1327,7 +1371,7 @@ export default function DetailRoom() {
                                     </div>
                                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                            className="bg-amber-500 h-full rounded-full transition-all duration-500"
                                             style={{ width: `${(parseFloat(reviewStats.value) / 5) * 100}%` }}
                                         />
                                     </div>
@@ -1362,7 +1406,7 @@ export default function DetailRoom() {
                                 <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-lg shadow-xs">
+                                            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs">
                                                 ★
                                             </div>
                                             <div>
@@ -1406,7 +1450,7 @@ export default function DetailRoom() {
                                                     key={s}
                                                     className={`w-5 h-5 ${
                                                         s <= Math.round((cleanlinessScore + serviceScore + locationScore + valueScore) / 4)
-                                                            ? 'text-amber-400 fill-amber-400'
+                                                             ? 'text-amber-400 fill-amber-400'
                                                             : 'text-slate-200 fill-slate-200'
                                                     }`}
                                                     viewBox="0 0 20 20"
@@ -1534,7 +1578,7 @@ export default function DetailRoom() {
                                             value={reviewComment}
                                             onChange={(e) => setReviewComment(e.target.value)}
                                             placeholder="Phòng nghỉ, dịch vụ phòng, tầm nhìn và sự chu đáo của nhân viên đáp ứng kỳ vọng của bạn như thế nào?..."
-                                            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-xs sm:text-sm text-slate-800 outline-none transition bg-white"
+                                            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs sm:text-sm text-slate-800 outline-none transition bg-white"
                                         />
                                     </div>
 
@@ -1551,7 +1595,7 @@ export default function DetailRoom() {
                                             type="button"
                                             onClick={handleSubmitReview}
                                             disabled={isSubmittingReview}
-                                            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs transition shadow-md shadow-orange-500/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
                                         >
                                             {isSubmittingReview ? (
                                                 <>
@@ -1560,7 +1604,7 @@ export default function DetailRoom() {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <span>★</span>
+                                                    <Star className="w-4 h-4 fill-white" />
                                                     <span>Gửi Đánh Giá Của Bạn</span>
                                                 </>
                                             )}
@@ -1571,10 +1615,10 @@ export default function DetailRoom() {
 
                             {/* 5. GỢI Ý ĐÁNH GIÁ NẾU KHÁCH CÓ ĐƠN COMPLETED CHƯA REVIEW */}
                             {!bookingToReview && eligibleBooking && (
-                                <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-50/60 via-slate-50 to-blue-50/40 rounded-2xl border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                                <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50/70 via-slate-50 to-orange-50/40 rounded-2xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
-                                            ✨
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+                                            <Sparkles className="w-5 h-5 text-white" />
                                         </div>
                                         <div>
                                             <strong className="text-xs sm:text-sm text-slate-900 block font-bold">
@@ -1588,9 +1632,9 @@ export default function DetailRoom() {
                                     <button
                                         type="button"
                                         onClick={() => setBookingToReview(eligibleBooking)}
-                                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                                        className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
                                     >
-                                        <span>★</span>
+                                        <Star className="w-3.5 h-3.5 fill-white" />
                                         <span>Viết Đánh Giá Ngay</span>
                                     </button>
                                 </div>
@@ -1600,13 +1644,13 @@ export default function DetailRoom() {
                             <div className="space-y-4">
                                 {isLoadingReviews ? (
                                     <div className="py-12 text-center space-y-3">
-                                        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                        <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
                                         <p className="text-xs text-slate-500">Đang tải danh sách đánh giá thực tế...</p>
                                     </div>
                                 ) : reviews.length === 0 ? (
                                     <div className="py-12 px-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-center space-y-3">
                                         <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mx-auto">
-                                            ⭐
+                                            <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
                                         </div>
                                         <h4 className="font-serif text-base font-bold text-slate-800">
                                             Chưa có đánh giá nào cho hạng phòng này
@@ -1693,14 +1737,14 @@ export default function DetailRoom() {
 
                                                 {/* Phản hồi từ Ban quản lý khách sạn nếu có */}
                                                 {rev.admin_reply && (
-                                                    <div className="mt-3 p-4 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-1.5 ml-4 sm:ml-6">
-                                                        <div className="flex items-center gap-2 text-xs font-bold text-blue-900">
-                                                            <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">
+                                                    <div className="mt-3 p-4 bg-amber-50/60 border border-amber-200/70 rounded-2xl space-y-1.5 ml-4 sm:ml-6">
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+                                                            <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px]">
                                                                 👑
                                                             </div>
                                                             <span>Phản hồi từ Ban Quản Lý Khách Sạn TA Resort</span>
                                                         </div>
-                                                        <p className="text-xs text-blue-950/90 leading-relaxed italic pl-7">
+                                                        <p className="text-xs text-slate-800 leading-relaxed italic pl-7">
                                                             "{rev.admin_reply}"
                                                         </p>
                                                     </div>
@@ -1719,10 +1763,12 @@ export default function DetailRoom() {
                             {/* Khối giá hiển thị động */}
                             <div className="pb-5 border-b border-slate-100">
                                 <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                                    <span className="uppercase font-bold tracking-wider text-blue-600">
+                                    <span className="uppercase font-bold tracking-wider text-amber-600">
                                         Giá ưu đãi đặt trực tiếp
                                     </span>
-                                    <span className="text-emerald-600 font-bold"> Giá tốt nhất</span>
+                                    <span className="text-emerald-600 font-bold flex items-center gap-1">
+                                        <CheckCircle2 className="w-3.5 h-3.5" /> Giá tốt nhất
+                                    </span>
                                 </div>
 
                                 <div className="flex items-baseline gap-2">
@@ -1737,7 +1783,7 @@ export default function DetailRoom() {
                                         <span className="text-xs text-slate-400 line-through">
                                             {basePriceNum.toLocaleString('vi-VN')} VND
                                         </span>
-                                        <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[11px] font-bold">
+                                        <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">
                                             Tiết kiệm {discountPercent}%
                                         </span>
                                     </div>
@@ -1779,7 +1825,7 @@ export default function DetailRoom() {
                                         />
                                     </div>
                                 </div>
-                                <span className="block text-right text-[11px] text-blue-600 font-medium mt-1">
+                                <span className="block text-right text-[11px] text-amber-600 font-semibold mt-1">
                                     Thời gian: {nights} đêm lưu trú
                                 </span>
                             </div>
@@ -1791,13 +1837,14 @@ export default function DetailRoom() {
                                 </label>
                                 <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-900">
-                                        <span>👥</span> {guestCount} Người lớn (Tối đa {room.capacity || 2} người)
+                                        <Users className="w-4 h-4 text-slate-500" />
+                                        <span>{guestCount} Người lớn (Tối đa {room.capacity || 2} người)</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <button
                                             type="button"
                                             onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition"
+                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                                         >
                                             -
                                         </button>
@@ -1805,7 +1852,7 @@ export default function DetailRoom() {
                                         <button
                                             type="button"
                                             onClick={() => setGuestCount(Math.min(room.capacity || 4, guestCount + 1))}
-                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition"
+                                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                                         >
                                             +
                                         </button>
@@ -1823,8 +1870,10 @@ export default function DetailRoom() {
                                     <span>Thuế VAT & Phí phục vụ</span>
                                     <span className="text-emerald-600 font-semibold">Đã bao gồm</span>
                                 </div>
-                                <div className="flex justify-between text-blue-600 font-semibold pt-1 border-t border-slate-200">
-                                    <span>⭐ Tích lũy điểm thưởng (+1 pt / 100.000đ)</span>
+                                <div className="flex justify-between text-amber-700 font-semibold pt-1 border-t border-slate-200">
+                                    <span className="flex items-center gap-1">
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Tích lũy điểm thưởng
+                                    </span>
                                     <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                                 </div>
                                 <div className="flex justify-between items-baseline pt-2 border-t border-slate-200">
@@ -1844,7 +1893,7 @@ export default function DetailRoom() {
                                     {availability.is_sold_out ? (
                                         <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 space-y-1">
                                             <div className="font-bold flex items-center gap-1.5">
-                                                <span>⚠️</span>
+                                                <AlertCircle className="w-4 h-4 text-rose-500" />
                                                 <span>Hạng phòng này hiện đã kín chỗ cho hôm nay!</span>
                                             </div>
                                             <p className="text-[11px] text-rose-700">
@@ -1854,7 +1903,7 @@ export default function DetailRoom() {
                                     ) : (
                                         <div className="flex items-center justify-between text-xs text-emerald-800 bg-emerald-50/80 px-3 py-2 rounded-xl border border-emerald-200">
                                             <span className="font-medium flex items-center gap-1.5">
-                                                <span>✓</span> Sẵn sàng đón khách
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Sẵn sàng đón khách
                                             </span>
                                             <span className="font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md border border-emerald-300">
                                                 🟢 Còn {availability.available_rooms} phòng trống
@@ -1877,22 +1926,29 @@ export default function DetailRoom() {
                                         }
                                     });
                                 }}
-                                className="w-full py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-2xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+                                className="group relative w-full py-4 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 text-white font-bold text-sm rounded-2xl shadow-xl shadow-orange-500/25 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all overflow-hidden cursor-pointer"
                             >
-                                <span></span>
-                                Tiến Hành Đặt Phòng Ngay
+                                <span className="absolute inset-0 w-1/2 h-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none" />
+                                <ShieldCheck className="w-4 h-4 text-white/90" />
+                                <span>Tiến Hành Đặt Phòng Ngay</span>
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </button>
 
                             {/* Cam kết tin cậy */}
                             <div className="space-y-2 pt-2 text-[11px] text-slate-500">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-emerald-500">✓</span> Cam kết giá tốt nhất trực tiếp từ Khách Sạn TA
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    <span>Cam kết giá tốt nhất trực tiếp từ Khách Sạn TA</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-emerald-500">✓</span> Miễn phí hủy phòng trước 24 giờ nhận phòng
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    <span>Miễn phí hủy phòng trước 24 giờ nhận phòng</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-emerald-500">✓</span> Hỗ trợ tư vấn phòng VIP trực tiếp: <strong className="text-slate-700">1900 8899</strong>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    <span className="flex items-center gap-1">
+                                        Hỗ trợ tư vấn phòng VIP: <PhoneCall className="w-3 h-3 text-amber-500 inline" /> <strong className="text-slate-700">1900 8899</strong>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -1906,7 +1962,7 @@ export default function DetailRoom() {
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
                             <div>
-                                <span className="text-xs uppercase font-bold tracking-widest text-blue-600">
+                                <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
                                     Khám phá thêm
                                 </span>
                                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
@@ -1918,9 +1974,10 @@ export default function DetailRoom() {
                             </div>
                             <Link
                                 to="/rooms"
-                                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1"
                             >
-                                Xem tất cả các hạng phòng →
+                                <span>Xem tất cả các hạng phòng</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
                             </Link>
                         </div>
 
@@ -1949,7 +2006,7 @@ export default function DetailRoom() {
                                             <div>
                                                 <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                                                     <span className="flex items-center gap-1 text-amber-500 font-bold">
-                                                        <span>★</span>
+                                                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                                                         <span>{sRoom.rating ? Number(sRoom.rating).toFixed(1) : (sRoom.average_rating ? Number(sRoom.average_rating).toFixed(1) : '5.0')}</span>
                                                         {sRoom.reviews_count > 0 && (
                                                             <span className="text-slate-400 font-normal text-[11px]">
@@ -1957,10 +2014,12 @@ export default function DetailRoom() {
                                                             </span>
                                                         )}
                                                     </span>
-                                                    <span>👥 {sRoom.capacity || 2} khách</span>
+                                                    <span className="flex items-center gap-1">
+                                                        <Users className="w-3.5 h-3.5 text-slate-400" /> {sRoom.capacity || 2} khách
+                                                    </span>
                                                 </div>
-                                                <h4 className="font-serif font-bold text-lg text-slate-900 group-hover:text-blue-600 transition mb-2">
-                                                    <Link to={`/rooms/${sRoom.id}`} className="hover:text-blue-600 transition">
+                                                <h4 className="font-serif font-bold text-lg text-slate-900 group-hover:text-amber-600 transition mb-2">
+                                                    <Link to={`/rooms/${sRoom.id}`} className="hover:text-amber-600 transition">
                                                         {sRoom.name}
                                                     </Link>
                                                 </h4>
@@ -1983,7 +2042,7 @@ export default function DetailRoom() {
                                                 </div>
                                                 <Link
                                                     to={`/rooms/${sRoom.id}`}
-                                                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl text-xs font-bold transition"
+                                                    className="px-3 py-1.5 bg-amber-50 hover:bg-gradient-to-r hover:from-orange-500 hover:to-amber-500 text-amber-800 hover:text-white rounded-xl text-xs font-bold transition shadow-2xs"
                                                 >
                                                     Xem chi tiết
                                                 </Link>
@@ -2006,7 +2065,9 @@ export default function DetailRoom() {
                     {/* Thanh tiêu đề trên cùng: Đếm số ảnh & nút đóng */}
                     <div className="flex items-center justify-between text-white z-10 w-full max-w-5xl mx-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
-                            <span className="text-amber-400 font-bold text-sm sm:text-base">📷 Ảnh {lightboxIndex + 1} / {gallery.length}</span>
+                            <span className="text-amber-400 font-bold text-sm sm:text-base flex items-center gap-1.5">
+                                <Camera className="w-4 h-4 text-amber-400" /> Ảnh {lightboxIndex + 1} / {gallery.length}
+                            </span>
                             <span className="text-slate-400 text-xs sm:text-sm hidden sm:inline">• {gallery[lightboxIndex]?.title}</span>
                         </div>
                         <button
@@ -2045,9 +2106,7 @@ export default function DetailRoom() {
                                     className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition border border-white/20 active:scale-95 cursor-pointer"
                                     aria-label="Ảnh trước"
                                 >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                                    </svg>
+                                    <ChevronLeft className="w-6 h-6" />
                                 </button>
                                 <button
                                     type="button"
@@ -2058,9 +2117,7 @@ export default function DetailRoom() {
                                     className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition border border-white/20 active:scale-95 cursor-pointer"
                                     aria-label="Ảnh tiếp theo"
                                 >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                    </svg>
+                                    <ChevronRight className="w-6 h-6" />
                                 </button>
                             </>
                         )}
@@ -2118,10 +2175,11 @@ export default function DetailRoom() {
                                 });
                             }
                         }}
-                        className="px-4 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/30 active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
+                        className="group relative px-5 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/30 active:scale-95 transition-all flex items-center gap-2 overflow-hidden cursor-pointer"
                     >
+                        <ShieldCheck className="w-4 h-4 text-white/90" />
                         <span>Đặt phòng ngay</span>
-                        <span>→</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                 </div>
             </aside>

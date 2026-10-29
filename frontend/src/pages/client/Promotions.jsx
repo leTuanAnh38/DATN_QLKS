@@ -22,7 +22,9 @@ import {
     Coffee,
     Compass,
     Mail,
-    PhoneCall
+    PhoneCall,
+    CalendarCheck,
+    Gem
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -266,11 +268,12 @@ export default function PromotionsPage() {
             code: 'BRONZE',
             level: 'Hạng Khởi Đầu',
             color: 'from-amber-800 to-amber-950',
-            border: 'border-amber-700/30',
+            border: 'border-amber-900/15 hover:border-amber-700/40',
             bg: 'bg-white',
             discount: 'Giảm 0%',
             points: '0 điểm',
             pointsDesc: 'Đăng ký tài khoản nhận ngay',
+            btnClass: 'border border-slate-200 hover:border-amber-500 text-slate-700 hover:text-amber-800 hover:bg-amber-50/50 bg-white',
             benefits: [
                 'Tích 1 điểm cho mỗi 100.000 VNĐ thanh toán',
                 'Quản lý lịch sử đặt phòng & hóa đơn trực tuyến',
@@ -283,11 +286,12 @@ export default function PromotionsPage() {
             code: 'SILVER',
             level: 'Thành Viên Thân Thiết',
             color: 'from-slate-500 to-slate-700',
-            border: 'border-slate-300',
+            border: 'border-slate-200 hover:border-slate-400',
             bg: 'bg-white',
             discount: 'Giảm 5%',
             points: 'Từ 100 điểm',
             pointsDesc: 'Chi tiêu tích lũy từ 10.000.000đ',
+            btnClass: 'border border-slate-200 hover:border-amber-500 text-slate-700 hover:text-amber-800 hover:bg-amber-50/50 bg-white',
             benefits: [
                 'Tự động chiết khấu 5% tiền phòng mọi đơn đặt',
                 'Tích lũy điểm thăng hạng nhanh chóng',
@@ -300,12 +304,13 @@ export default function PromotionsPage() {
             code: 'GOLD',
             level: 'Hạng Thượng Lưu',
             color: 'from-amber-500 to-yellow-600',
-            border: 'border-amber-300 ring-2 ring-amber-300/30',
-            bg: 'bg-white',
+            border: 'border-amber-300/80 ring-2 ring-amber-300/30 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/10',
+            bg: 'bg-gradient-to-b from-amber-50/60 via-white to-amber-50/20',
             discount: 'Giảm 10%',
             points: 'Từ 300 điểm',
             pointsDesc: 'Chi tiêu tích lũy từ 30.000.000đ',
             badge: 'PHỔ BIẾN NHẤT',
+            btnClass: 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold shadow-md shadow-amber-500/20',
             benefits: [
                 'Tự động chiết khấu 10% tiền phòng mọi đơn đặt',
                 'Linh hoạt Check-in sớm & Check-out muộn (khi có phòng)',
@@ -318,12 +323,13 @@ export default function PromotionsPage() {
             code: 'DIAMOND',
             level: 'Đẳng Cấp Tối Thượng',
             color: 'from-slate-900 via-cyan-900 to-indigo-950',
-            border: 'border-cyan-400 ring-2 ring-cyan-400/30',
-            bg: 'bg-white',
+            border: 'border-cyan-400 ring-2 ring-cyan-400/30 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/15',
+            bg: 'bg-gradient-to-b from-cyan-50/40 via-white to-slate-50',
             discount: 'Giảm 15%',
             points: 'Từ 600 điểm',
             pointsDesc: 'Chi tiêu tích lũy từ 60.000.000đ',
             badge: 'VIP CAO CẤP NHẤT',
+            btnClass: 'bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 hover:from-black hover:to-slate-900 text-cyan-300 font-bold border border-cyan-500/40 shadow-md',
             benefits: [
                 'Chiết khấu 15% trọn đời toàn bộ tiền phòng (Mức cao nhất)',
                 'Ưu tiên nâng hạng phòng Suite miễn phí (khi có phòng)',
@@ -363,7 +369,7 @@ export default function PromotionsPage() {
                 <div className="bg-white border-b border-slate-200/80 py-3">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                            <Link to="/" className="hover:text-blue-600 transition font-medium">Trang chủ</Link>
+                            <Link to="/" className="hover:text-amber-600 transition font-medium">Trang chủ</Link>
                             <span>/</span>
                             <span className="text-slate-900 font-semibold">Ưu Đãi Đặc Quyền</span>
                         </nav>
@@ -382,7 +388,7 @@ export default function PromotionsPage() {
                             className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px]" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/70 via-white/85 to-slate-50" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-amber-50/40 via-white/85 to-slate-50" />
                     </div>
                     {/* Ambient Glow Orbs */}
                     <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[320px] bg-gradient-to-r from-blue-300/25 via-rose-300/20 to-amber-300/25 blur-3xl rounded-full pointer-events-none z-0" />
@@ -488,7 +494,9 @@ export default function PromotionsPage() {
                                 type="button"
                                 onClick={() => setActivePromoTab('all')}
                                 className={`px-4 py-2 rounded-xl transition cursor-pointer ${
-                                    activePromoTab === 'all' ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                    activePromoTab === 'all'
+                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/20'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                             >
                                 Tất cả ({dbPromotions.length})
@@ -497,7 +505,9 @@ export default function PromotionsPage() {
                                 type="button"
                                 onClick={() => setActivePromoTab('percentage')}
                                 className={`px-4 py-2 rounded-xl transition cursor-pointer ${
-                                    activePromoTab === 'percentage' ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                    activePromoTab === 'percentage'
+                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/20'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                             >
                                 Giảm %
@@ -506,7 +516,9 @@ export default function PromotionsPage() {
                                 type="button"
                                 onClick={() => setActivePromoTab('fixed')}
                                 className={`px-4 py-2 rounded-xl transition cursor-pointer ${
-                                    activePromoTab === 'fixed' ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                    activePromoTab === 'fixed'
+                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/20'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                             >
                                 Giảm tiền mặt
@@ -525,7 +537,19 @@ export default function PromotionsPage() {
                         <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 shadow-xs">
                             <Tag className="w-12 h-12 text-slate-400 mx-auto mb-3" />
                             <h3 className="text-base font-bold text-slate-900">Không tìm thấy voucher phù hợp</h3>
-                            <p className="text-xs text-slate-500 mt-1">Quý khách vui lòng thử tìm kiếm với từ khóa khác</p>
+                            <p className="text-xs text-slate-500 mt-1">Quý khách vui lòng thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc</p>
+                            {(searchTerm || activePromoTab !== 'all') && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setActivePromoTab('all');
+                                    }}
+                                    className="mt-4 px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl border border-amber-200 transition cursor-pointer"
+                                >
+                                    Đặt lại bộ lọc
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -562,7 +586,7 @@ export default function PromotionsPage() {
                                                         {isPercentage ? `-${promo.discount_value}%` : `-${Number(promo.discount_value).toLocaleString('vi-VN')}đ`}
                                                     </span>
                                                 </div>
-                                                <h3 className="text-sm font-bold text-slate-900 line-clamp-1 mt-1 group-hover:text-blue-600 transition-colors">
+                                                <h3 className="text-sm font-bold text-slate-900 line-clamp-1 mt-1 group-hover:text-amber-600 transition-colors">
                                                     {promo.name || `Khuyến mãi ${promo.code}`}
                                                 </h3>
                                             </div>
@@ -631,7 +655,7 @@ export default function PromotionsPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleApplyAndBook(promo.code)}
-                                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span>Sử Dụng Ngay</span>
                                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -688,7 +712,7 @@ export default function PromotionsPage() {
 
                                         {/* Body */}
                                         <div className="p-6">
-                                            <h3 className="font-serif font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors mb-2">
+                                            <h3 className="font-serif font-bold text-slate-900 text-lg group-hover:text-amber-600 transition-colors mb-2">
                                                 {pkg.title}
                                             </h3>
                                             <p className="text-xs text-slate-600 leading-relaxed mb-4">
@@ -821,7 +845,7 @@ export default function PromotionsPage() {
 
                                     <Link
                                         to="/login"
-                                        className="w-full py-2.5 rounded-xl border border-slate-200 hover:border-blue-600 text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 bg-white text-xs font-bold text-center transition block shadow-xs"
+                                        className={`w-full py-2.5 rounded-xl text-xs font-bold text-center transition block shadow-xs ${tier.btnClass || 'border border-slate-200 hover:border-amber-500 text-slate-700 hover:text-amber-800 bg-white'}`}
                                     >
                                         Đăng Ký / Xem Thẻ
                                     </Link>
@@ -837,7 +861,7 @@ export default function PromotionsPage() {
                 <section className="py-16 bg-white border-t border-slate-200/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center max-w-2xl mx-auto mb-12">
-                            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block mb-2">
+                            <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">
                                 LỢI ÍCH ĐỘC QUYỀN
                             </span>
                             <h2 className="font-serif text-3xl font-bold text-slate-900">
@@ -846,41 +870,49 @@ export default function PromotionsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl font-bold mb-4 border border-amber-200 shadow-xs">
-                                    💎
+                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <Gem className="w-6 h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2">Cam Kết Giá Tốt Nhất</h3>
+                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                    Cam Kết Giá Tốt Nhất
+                                </h3>
                                 <p className="text-xs text-slate-600 leading-relaxed">
                                     Best Rate Guarantee: Bồi hoàn 100% phần chênh lệch và giảm thêm 10% nếu quý khách tìm thấy giá rẻ hơn trên bất kỳ đại lý nào.
                                 </p>
                             </div>
 
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition">
-                                <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-2xl font-bold mb-4 border border-blue-200 shadow-xs">
-                                    🕒
+                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <Clock className="w-6 h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2">Nhận Sớm & Trả Muộn</h3>
+                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                    Nhận Sớm & Trả Muộn
+                                </h3>
                                 <p className="text-xs text-slate-600 leading-relaxed">
                                     Linh hoạt nhận phòng sớm từ 10:00 sáng và trả phòng trễ đến 15:00 chiều không phụ thu (ưu tiên phụ thuộc tình trạng phòng).
                                 </p>
                             </div>
 
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition">
-                                <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-2xl font-bold mb-4 border border-rose-200 shadow-xs">
-                                    🍸
+                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <Wine className="w-6 h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2">Đón Tiếp {starCount} Sao Cá Nhân</h3>
+                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                    Đón Tiếp Chuẩn {starCount} Sao Cá Nhân Hóa
+                                </h3>
                                 <p className="text-xs text-slate-600 leading-relaxed">
                                     Nước trái cây hữu cơ chào đón pha chế riêng, đĩa hoa quả nhiệt đới tươi mới mỗi ngày và quyền chọn hướng phòng đẹp nhất.
                                 </p>
                             </div>
 
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold mb-4 border border-emerald-200 shadow-xs">
-                                    📅
+                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <CalendarCheck className="w-6 h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2">Đổi Ngày Miễn Phí 24H</h3>
+                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                    Đổi Ngày Miễn Phí 24H
+                                </h3>
                                 <p className="text-xs text-slate-600 leading-relaxed">
                                     Dễ dàng thay đổi lịch trình và hủy đơn không mất phí trước 24 giờ nhận phòng cho tất cả các đơn đặt trên website chính thức.
                                 </p>
@@ -904,7 +936,7 @@ export default function PromotionsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-md shadow-blue-600/25">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-md shadow-amber-500/25">
                                 1
                             </div>
                             <h3 className="font-bold text-slate-900 text-base mb-1.5">Sao Chép Mã Ưu Đãi</h3>
@@ -957,10 +989,10 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                                    className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-800 hover:text-blue-600 transition cursor-pointer"
+                                    className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-800 hover:text-amber-700 transition cursor-pointer"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-slate-100 text-blue-600 text-xs flex items-center justify-center font-bold border border-slate-200">
+                                        <span className="w-6 h-6 rounded-full bg-amber-50 text-amber-700 text-xs flex items-center justify-center font-bold border border-amber-200">
                                             {idx + 1}
                                         </span>
                                         <span>{faq.q}</span>
@@ -979,22 +1011,25 @@ export default function PromotionsPage() {
                     </div>
 
                     {/* Concierge Banner */}
-                    <div className="mt-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-indigo-400/30">
+                    <div className="mt-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-amber-500/30">
                         <div className="text-left">
-                            <strong className="text-white text-sm sm:text-base font-bold block">Cần hỗ trợ đặt phòng hoặc tư vấn ưu đãi đặc biệt?</strong>
-                            <span className="text-xs text-blue-100">Đội ngũ Concierge phục vụ 24/7 luôn sẵn sàng hỗ trợ quý khách.</span>
+                            <strong className="text-white text-sm sm:text-base font-bold block flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-amber-400" />
+                                <span>Cần hỗ trợ đặt phòng hoặc tư vấn ưu đãi đặc biệt?</span>
+                            </strong>
+                            <span className="text-xs text-amber-100/70">Đội ngũ Concierge phục vụ 24/7 luôn sẵn sàng hỗ trợ quý khách.</span>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                             <a
                                 href="tel:19008899"
-                                className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-md transition cursor-pointer"
+                                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-md shadow-amber-400/20 transition cursor-pointer"
                             >
                                 <PhoneCall className="w-4 h-4" />
                                 <span>1900 8899</span>
                             </a>
                             <Link
                                 to="/contact"
-                                className="px-5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/25 transition"
+                                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition"
                             >
                                 Liên Hệ Concierge
                             </Link>

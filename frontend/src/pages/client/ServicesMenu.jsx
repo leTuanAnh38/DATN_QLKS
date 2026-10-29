@@ -5,6 +5,33 @@ import Footer from '../../components/layout/Footer';
 import hotelService from '../../services/hotelService';
 import { useAuth } from '../../store/authStore';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import {
+    Utensils,
+    Coffee,
+    Sparkles,
+    Clock,
+    CheckCircle2,
+    AlertCircle,
+    X,
+    RotateCw,
+    Search,
+    Plus,
+    Minus,
+    Trash2,
+    History,
+    ChevronRight,
+    ChevronLeft,
+    PhoneCall,
+    BedDouble,
+    Info,
+    BellRing,
+    Check,
+    XCircle,
+    Layers,
+    Receipt,
+    ChefHat,
+    Car
+} from 'lucide-react';
 
 // Tiện ích format thời gian chi tiết (VD: 14:30 • 29/09/2026)
 const formatDateTimeDisplay = (isoStr) => {
@@ -35,18 +62,18 @@ export const getServiceLabels = (serviceName = '', categoryName = '') => {
     if (transportKeywords.some((k) => text.includes(k))) {
         return {
             type: 'transport',
-            step1: '1. Tiếp nhận',
-            step2: '2. Đang điều phối xe',
-            step3: '3. Xe đang đón/di chuyển',
-            step4: '4. Hoàn thành',
-            badgePending: '⏳ Chờ xác nhận',
-            badgeInProgress: '🚗 Đang điều phối xe',
-            badgeDelivering: '🚖 Xe đang đón/di chuyển',
-            badgeCompleted: '✓ Hoàn thành',
-            pendingMessage: '⏳ Bộ phận điều vận đã tiếp nhận thông tin và đang kiểm tra lộ trình.',
-            inProgressMessage: '🚗 Bộ phận điều vận đang sắp xếp xe cho dịch vụ của phòng.',
-            deliveringMessage: '🚖 Tài xế và xe đã sẵn sàng phục vụ quý khách tại sảnh / điểm hẹn!',
-            completedMessage: '✅ Chuyến xe đã hoàn thành. Cảm ơn quý khách đã sử dụng dịch vụ!'
+            step1: 'Tiếp nhận',
+            step2: 'Điều phối xe',
+            step3: 'Xe đang di chuyển',
+            step4: 'Hoàn thành chuyến',
+            badgePending: 'Chờ xác nhận',
+            badgeInProgress: 'Đang điều phối xe',
+            badgeDelivering: 'Xe đang đón / di chuyển',
+            badgeCompleted: 'Hoàn thành',
+            pendingMessage: 'Bộ phận điều vận đã tiếp nhận thông tin và đang kiểm tra lộ trình.',
+            inProgressMessage: 'Bộ phận điều vận đang sắp xếp tài xế và xe chuyên dụng cho phòng.',
+            deliveringMessage: 'Tài xế và xe đã sẵn sàng phục vụ quý khách tại sảnh / điểm hẹn!',
+            completedMessage: 'Chuyến xe đã hoàn thành trọn vẹn. Cảm ơn quý khách đã tin chọn dịch vụ!'
         };
     }
 
@@ -55,18 +82,18 @@ export const getServiceLabels = (serviceName = '', categoryName = '') => {
     if (spaKeywords.some((k) => text.includes(k))) {
         return {
             type: 'spa',
-            step1: '1. Tiếp nhận',
-            step2: '2. Chuẩn bị liệu trình',
-            step3: '3. Đang trị liệu',
-            step4: '4. Hoàn thành',
-            badgePending: '⏳ Chờ xác nhận',
-            badgeInProgress: '💆 Chuẩn bị liệu trình',
-            badgeDelivering: '🌿 Đang trị liệu',
-            badgeCompleted: '✓ Hoàn thành',
-            pendingMessage: '⏳ Lễ tân Spa đã nhận yêu cầu và đang kiểm tra phòng trị liệu.',
-            inProgressMessage: '💆 Bộ phận Spa đang chuẩn bị phòng trị liệu và kỹ thuật viên.',
-            deliveringMessage: '🌿 Kỹ thuật viên và liệu trình đã sẵn sàng phục vụ quý khách!',
-            completedMessage: '✅ Liệu trình đã hoàn tất. Chúc quý khách thư giãn trọn vẹn!'
+            step1: 'Tiếp nhận',
+            step2: 'Chuẩn bị liệu trình',
+            step3: 'Đang trị liệu',
+            step4: 'Hoàn tất liệu trình',
+            badgePending: 'Chờ xác nhận',
+            badgeInProgress: 'Chuẩn bị liệu trình',
+            badgeDelivering: 'Đang thực hiện trị liệu',
+            badgeCompleted: 'Hoàn tất',
+            pendingMessage: 'Lễ tân Spa đã nhận yêu cầu và đang kiểm tra phòng trị liệu phù hợp.',
+            inProgressMessage: 'Bộ phận Spa đang chuẩn bị dược liệu, phòng xông và kỹ thuật viên.',
+            deliveringMessage: 'Kỹ thuật viên và phòng trị liệu đã sẵn sàng đón tiếp quý khách!',
+            completedMessage: 'Liệu trình đã hoàn tất. Chúc quý khách những giây phút thư thái trọn vẹn!'
         };
     }
 
@@ -78,36 +105,36 @@ export const getServiceLabels = (serviceName = '', categoryName = '') => {
     if (amenitiesKeywords.some((k) => text.includes(k))) {
         return {
             type: 'amenities',
-            step1: '1. Tiếp nhận',
-            step2: '2. Đang chuẩn bị',
-            step3: '3. Đang mang lên phòng',
-            step4: '4. Hoàn thành',
-            badgePending: '⏳ Chờ xác nhận',
-            badgeInProgress: '⚙️ Đang chuẩn bị',
-            badgeDelivering: '🛎️ Đang mang lên phòng',
-            badgeCompleted: '✓ Hoàn thành',
-            pendingMessage: '⏳ Bộ phận buồng phòng đã tiếp nhận yêu cầu tiện ích của bạn.',
-            inProgressMessage: '⚙️ Bộ phận Buồng phòng đang chuẩn bị yêu cầu cho phòng.',
-            deliveringMessage: '🛎️ Nhân viên đang mang tiện ích lên phòng của quý khách.',
-            completedMessage: '✅ Đã bàn giao tiện ích tới phòng. Chúc quý khách kỳ nghỉ vui vẻ!'
+            step1: 'Tiếp nhận',
+            step2: 'Đang chuẩn bị',
+            step3: 'Đang mang lên phòng',
+            step4: 'Bàn giao hoàn tất',
+            badgePending: 'Chờ xác nhận',
+            badgeInProgress: 'Đang chuẩn bị',
+            badgeDelivering: 'Đang mang lên phòng',
+            badgeCompleted: 'Hoàn thành',
+            pendingMessage: 'Bộ phận Buồng phòng đã tiếp nhận yêu cầu tiện ích của quý khách.',
+            inProgressMessage: 'Nhân viên Buồng phòng đang chuẩn bị các vật dụng theo yêu cầu.',
+            deliveringMessage: 'Nhân viên đang mang tiện ích lên tận phòng của quý khách.',
+            completedMessage: 'Đã bàn giao tiện ích tới phòng. Chúc quý khách kỳ nghỉ tuyệt vời!'
         };
     }
 
     // 4. Mặc định: Đồ ăn / Đồ uống (F&B)
     return {
         type: 'fnb',
-        step1: '1. Tiếp nhận',
-        step2: '2. Đang chế biến',
-        step3: '3. Đang giao tới phòng',
-        step4: '4. Hoàn thành',
-        badgePending: '⏳ Chờ xác nhận',
-        badgeInProgress: '👨‍🍳 Đang chế biến',
-        badgeDelivering: '🛵 Đang giao tới phòng',
-        badgeCompleted: '✓ Hoàn thành',
-        pendingMessage: '⏳ Bếp & Lễ tân đã nhận được yêu cầu, đang kiểm tra.',
-        inProgressMessage: '👨‍🍳 Bếp đang chế biến món ăn cẩn thận cho phòng của bạn.',
-        deliveringMessage: '🛵 Nhân viên đang mang món lên phòng. Quý khách vui lòng chú ý nhận món nhé!',
-        completedMessage: '✅ Đã phục vụ tới phòng. Chúc quý khách dùng ngon miệng!'
+        step1: 'Tiếp nhận',
+        step2: 'Đang chế biến',
+        step3: 'Đang giao tới phòng',
+        step4: 'Phục vụ hoàn tất',
+        badgePending: 'Chờ xác nhận',
+        badgeInProgress: 'Đang chế biến',
+        badgeDelivering: 'Đang giao tới phòng',
+        badgeCompleted: 'Hoàn thành',
+        pendingMessage: 'Bếp trưởng & Lễ tân đã tiếp nhận yêu cầu và kiểm tra nguyên liệu chế biến.',
+        inProgressMessage: 'Bộ phận Bếp đang trực tiếp chế biến món ăn cẩn thận cho phòng của bạn.',
+        deliveringMessage: 'Nhân viên Room Service đang mang món ăn nóng sốt lên tận phòng.',
+        completedMessage: 'Đã phục vụ món tới tận phòng. Chúc quý khách dùng bữa thật ngon miệng!'
     };
 };
 
@@ -517,7 +544,7 @@ export default function ServicesMenu() {
     }, [sortedHistory, historyPage]);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white flex flex-col justify-between">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white flex flex-col justify-between">
             <div>
                 <Navbar />
 
@@ -525,7 +552,7 @@ export default function ServicesMenu() {
                 <div className="bg-white border-b border-slate-100 py-3">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                            <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                            <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
                             <span>/</span>
                             <span className="text-slate-900 font-semibold">Menu Dịch Vụ Tại Phòng</span>
                         </nav>
@@ -561,7 +588,10 @@ export default function ServicesMenu() {
                             {isAuthenticated && activeBookings.length > 0 && (
                                 <div className="mt-6 flex flex-wrap items-center gap-3">
                                     <div className="inline-flex flex-wrap items-center gap-2 p-2.5 px-4 rounded-2xl bg-white/90 backdrop-blur-md border border-amber-200/80 text-xs shadow-xs">
-                                        <span className="text-amber-800 font-bold">🏨 Phòng đang ở:</span>
+                                        <span className="text-amber-900 font-bold flex items-center gap-1.5">
+                                            <BedDouble className="w-4 h-4 text-amber-600" />
+                                            Phòng đang lưu trú:
+                                        </span>
                                         {activeBookings.map((b) => (
                                             <span
                                                 key={b.id}
@@ -583,11 +613,15 @@ export default function ServicesMenu() {
                         <div
                             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-xs font-semibold backdrop-blur-md ${
                                 toast.type === 'success'
-                                    ? 'bg-emerald-900/90 text-white border border-emerald-500/40 shadow-emerald-900/30'
-                                    : 'bg-rose-900/90 text-white border border-rose-500/40 shadow-rose-900/30'
+                                    ? 'bg-slate-900/95 text-white border border-emerald-500/50 shadow-emerald-950/40'
+                                    : 'bg-rose-950/95 text-white border border-rose-500/50 shadow-rose-950/40'
                             }`}
                         >
-                            <span className="text-base">{toast.type === 'success' ? '✅' : '⚠️'}</span>
+                            {toast.type === 'success' ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            ) : (
+                                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                            )}
                             <span>{toast.message}</span>
                         </div>
                     </div>
@@ -597,35 +631,37 @@ export default function ServicesMenu() {
                 {successOrderInfo && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center space-y-5 animate-scale-up">
-                            <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/10">
-                                🛎️
+                            <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-lg shadow-amber-500/10">
+                                <BellRing className="w-8 h-8 text-amber-600 animate-pulse" />
                             </div>
                             <div>
-                                <span className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold mb-2">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold mb-2 border border-emerald-200">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                     ĐÃ TIẾP NHẬN YÊU CẦU
                                 </span>
                                 <h3 className="text-xl font-bold text-slate-900">
                                     Phục vụ phòng đang chuẩn bị!
                                 </h3>
                                 <p className="text-xs text-slate-500 mt-1">
-                                    Yêu cầu của quý khách đã được chuyển tới bếp & bộ phận Concierge.
+                                    Yêu cầu của quý khách đã được chuyển tới bếp & bộ phận Concierge phục vụ.
                                 </p>
                             </div>
 
                             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left space-y-2 text-xs">
-                                <div className="flex justify-between">
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">Giao đến:</span>
-                                    <strong className="text-slate-900 font-bold text-sm">
+                                    <strong className="text-slate-900 font-bold text-sm flex items-center gap-1.5">
+                                        <BedDouble className="w-3.5 h-3.5 text-amber-600" />
                                         Phòng {successOrderInfo.roomNumber}
                                     </strong>
                                 </div>
-                                <div className="flex justify-between">
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">Dịch vụ / Món gọi:</span>
                                     <span className="font-semibold text-slate-800">
                                         {successOrderInfo.serviceName} (x{successOrderInfo.quantity})
                                     </span>
                                 </div>
-                                <div className="flex justify-between pt-2 border-t border-slate-200">
+                                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                                     <span className="text-slate-500">Tạm tính (vào hóa đơn phòng):</span>
                                     <strong className="text-rose-600 font-bold text-sm">
                                         {successOrderInfo.totalPrice.toLocaleString('vi-VN')} VND
@@ -633,15 +669,16 @@ export default function ServicesMenu() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400">
-                                <span>⏱️ Thời gian dự kiến:</span>
-                                <span className="font-semibold text-slate-700">15 – 30 phút</span>
+                            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60">
+                                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Thời gian dự kiến phục vụ:</span>
+                                <strong className="text-slate-800">15 – 30 phút</strong>
                             </div>
 
                             <button
                                 type="button"
                                 onClick={() => setSuccessOrderInfo(null)}
-                                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-slate-900/20"
+                                className="w-full py-3 bg-slate-900 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-slate-900/20 cursor-pointer"
                             >
                                 Đã hiểu & Tiếp tục xem Menu
                             </button>
@@ -658,13 +695,13 @@ export default function ServicesMenu() {
                             <button
                                 type="button"
                                 onClick={() => setSelectedCategory('all')}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                                className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 ${
                                     selectedCategory === 'all'
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                        ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 ring-1 ring-slate-800'
+                                        : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
                                 }`}
                             >
-                                <span>✨</span>
+                                <Sparkles className={`w-3.5 h-3.5 ${selectedCategory === 'all' ? 'text-amber-400' : 'text-slate-400'}`} />
                                 <span>Tất cả ({serviceItems.length})</span>
                             </button>
 
@@ -673,16 +710,20 @@ export default function ServicesMenu() {
                                     key={cat.id}
                                     type="button"
                                     onClick={() => setSelectedCategory(cat.id)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 ${
                                         String(selectedCategory) === String(cat.id)
-                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                            ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 ring-1 ring-slate-800'
+                                            : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
                                     }`}
                                 >
                                     <span>{cat.icon || '🏷️'}</span>
                                     <span>{cat.name}</span>
                                     {cat.services_count > 0 && (
-                                        <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
+                                        <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
+                                            String(selectedCategory) === String(cat.id)
+                                                ? 'bg-white/20 text-white'
+                                                : 'bg-slate-100 text-slate-600'
+                                        }`}>
                                             {cat.services_count}
                                         </span>
                                     )}
@@ -691,22 +732,23 @@ export default function ServicesMenu() {
                         </div>
 
                         {/* Ô tìm kiếm món */}
-                        <div className="relative w-full md:w-72 shrink-0">
+                        <div className="relative w-full md:w-80 shrink-0">
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Tìm món ăn, đồ uống, spa..."
-                                className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+                                placeholder="Tìm món ăn, đồ uống, spa, tiện ích..."
+                                className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs transition"
                             />
-                            <span className="absolute left-3 top-3 text-slate-400 text-xs">🔍</span>
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                             {searchQuery && (
                                 <button
                                     type="button"
                                     onClick={() => setSearchQuery('')}
-                                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs p-0.5 cursor-pointer"
+                                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition cursor-pointer"
+                                    title="Xóa tìm kiếm"
                                 >
-                                    ✕
+                                    <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
@@ -714,15 +756,17 @@ export default function ServicesMenu() {
 
                     {/* DANH SÁCH CARDS GRID */}
                     {isLoading ? (
-                        <div className="py-20 text-center text-slate-400 space-y-3">
-                            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <div className="py-24 text-center text-slate-400 space-y-4">
+                            <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
                             <p className="text-xs font-semibold text-slate-600">
                                 Đang nạp thực đơn & dịch vụ khách sạn...
                             </p>
                         </div>
                     ) : filteredItems.length === 0 ? (
-                        <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center space-y-3">
-                            <div className="text-4xl mb-1">🍽️</div>
+                        <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center space-y-3 shadow-2xs">
+                            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/60 shadow-inner">
+                                <Utensils className="w-6 h-6 text-amber-600" />
+                            </div>
                             <h3 className="text-base font-bold text-slate-800">
                                 Không tìm thấy dịch vụ nào phù hợp
                             </h3>
@@ -735,7 +779,7 @@ export default function ServicesMenu() {
                                     setSelectedCategory('all');
                                     setSearchQuery('');
                                 }}
-                                className="mt-3 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
+                                className="mt-3 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition shadow-sm cursor-pointer"
                             >
                                 Xem tất cả thực đơn
                             </button>
@@ -752,7 +796,7 @@ export default function ServicesMenu() {
                                 return (
                                     <div
                                         key={item.id}
-                                        className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl hover:border-blue-200 transition-all duration-300 flex flex-col justify-between"
+                                        className="group bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-2xs hover:shadow-xl hover:border-amber-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
                                     >
                                         <div>
                                             {/* Ảnh dịch vụ */}
@@ -766,7 +810,7 @@ export default function ServicesMenu() {
                                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-60"></div>
                                                 
                                                 {/* Badge danh mục */}
-                                                <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10px] font-bold shadow-xs flex items-center gap-1">
+                                                <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-slate-800 text-[10px] font-bold shadow-xs flex items-center gap-1 border border-white/40">
                                                     <span>{item.category_icon || '🏷️'}</span>
                                                     <span>{item.category_name}</span>
                                                 </span>
@@ -774,7 +818,7 @@ export default function ServicesMenu() {
 
                                             {/* Nội dung thông tin */}
                                             <div className="p-5">
-                                                <h3 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition leading-snug">
+                                                <h3 className="font-bold text-slate-900 text-sm group-hover:text-amber-700 transition leading-snug">
                                                     {item.name}
                                                 </h3>
                                                 <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed font-light">
@@ -789,7 +833,7 @@ export default function ServicesMenu() {
                                                 <span className="text-[10px] text-slate-400 block font-medium">Đơn giá</span>
                                                 <div className="text-base font-black text-rose-600">
                                                     {priceNum === 0 ? (
-                                                        <span className="text-emerald-600">Miễn phí</span>
+                                                        <span className="text-emerald-600 font-bold">Miễn phí</span>
                                                     ) : (
                                                         <>
                                                             {priceNum.toLocaleString('vi-VN')}
@@ -802,9 +846,9 @@ export default function ServicesMenu() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleOpenOrderModal(item)}
-                                                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/25 transition cursor-pointer flex items-center gap-1"
+                                                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition cursor-pointer flex items-center gap-1.5"
                                             >
-                                                <span>🛎️</span>
+                                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                                                 <span>Đặt dịch vụ</span>
                                             </button>
                                         </div>
@@ -837,7 +881,7 @@ export default function ServicesMenu() {
                                     aria-label="Trang trước"
                                     className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
                                 >
-                                    ‹
+                                    <ChevronLeft className="w-4 h-4" />
                                 </button>
 
                                 {pageNumbers.map((p) =>
@@ -853,7 +897,7 @@ export default function ServicesMenu() {
                                             aria-current={p === safePage ? 'page' : undefined}
                                             className={`w-9 h-9 rounded-xl text-xs font-bold transition cursor-pointer border ${
                                                 p === safePage
-                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25'
+                                                    ? 'bg-slate-900 text-white border-slate-900 shadow-md shadow-slate-900/20'
                                                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                                             }`}
                                         >
@@ -869,7 +913,7 @@ export default function ServicesMenu() {
                                     aria-label="Trang sau"
                                     className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
                                 >
-                                    ›
+                                    <ChevronRight className="w-4 h-4" />
                                 </button>
                             </div>
                         </nav>
@@ -878,33 +922,33 @@ export default function ServicesMenu() {
 
                 {/* MODAL FORM ĐẶT DỊCH VỤ TẠI PHÒNG */}
                 {selectedItem && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up">
                             {/* Modal Header */}
-                            <div className="px-6 py-4 bg-gradient-to-r from-blue-600 via-blue-500 to-sky-500 text-white flex items-center justify-between">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center text-sm border border-white/20">
-                                        🛎️
+                            <div className="px-6 py-4.5 bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white flex items-center justify-between border-b border-amber-500/20">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-400/30">
+                                        <BellRing className="w-5 h-5 text-amber-400" />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-sm text-white">Yêu Cầu Dịch Vụ Tại Phòng</h3>
-                                        <span className="text-[10px] text-blue-100 font-medium tracking-wide">In-Room Dining & Concierge</span>
+                                        <span className="text-[10px] text-amber-300 font-medium tracking-wide">In-Room Dining & Concierge Service</span>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={handleCloseOrderModal}
                                     disabled={isSubmitting}
-                                    className="w-8 h-8 rounded-full hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition cursor-pointer"
+                                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition cursor-pointer"
                                 >
-                                    ✕
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
 
                             {/* Modal Body */}
                             <form onSubmit={handleConfirmOrder} className="p-6 space-y-5">
                                 {/* Preview Item đã chọn */}
-                                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-3.5">
+                                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center gap-3.5 shadow-2xs">
                                     <img
                                         src={
                                             selectedItem.display_image ||
@@ -915,15 +959,15 @@ export default function ServicesMenu() {
                                         className="w-16 h-16 rounded-xl object-cover border border-slate-200 shrink-0"
                                     />
                                     <div className="flex-1 min-w-0">
-                                        <span className="text-[10px] font-bold text-blue-600 block">
+                                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
                                             {selectedItem.category_name}
                                         </span>
                                         <h4 className="font-bold text-slate-900 text-xs truncate">
                                             {selectedItem.name}
                                         </h4>
-                                        <div className="text-xs font-bold text-rose-600 mt-0.5">
+                                        <div className="text-xs font-black text-rose-600 mt-0.5">
                                             {Number(selectedItem.price).toLocaleString('vi-VN')} VND
-                                            <span className="text-[10px] font-normal text-slate-400 ml-1">/ suất</span>
+                                            <span className="text-[10px] font-normal text-slate-400 ml-1">/ lần</span>
                                         </div>
                                     </div>
                                 </div>
@@ -939,7 +983,7 @@ export default function ServicesMenu() {
                                                 value={selectedBookingId}
                                                 onChange={(e) => setSelectedBookingId(e.target.value)}
                                                 required
-                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
                                             >
                                                 {activeBookings.map((b) => (
                                                     <option key={b.id} value={b.id}>
@@ -947,17 +991,18 @@ export default function ServicesMenu() {
                                                     </option>
                                                 ))}
                                             </select>
-                                            <span className="text-[10px] text-emerald-600 mt-1 block font-medium">
-                                                ✓ Đang phục vụ tận phòng cho đơn lưu trú của quý khách.
+                                            <span className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1 font-medium">
+                                                <Check className="w-3 h-3 text-emerald-600" />
+                                                Đang phục vụ tận phòng cho đơn lưu trú của quý khách.
                                             </span>
                                         </>
                                     ) : (
                                         <div className="space-y-2.5">
-                                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2.5">
-                                                <span className="text-base shrink-0">🏨</span>
+                                            <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-xs text-amber-950 flex items-start gap-2.5">
+                                                <BedDouble className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                                 <div className="space-y-0.5">
-                                                    <p className="font-bold">Dành cho Khách lưu trú & Khách theo đoàn</p>
-                                                    <p className="text-[11px] text-blue-800 leading-relaxed">
+                                                    <p className="font-bold text-amber-900">Dành cho Khách lưu trú & Khách theo đoàn</p>
+                                                    <p className="text-[11px] text-amber-800 leading-relaxed">
                                                         Quý khách vui lòng nhập <strong>Mã Đặt phòng (Mã Booking)</strong> in trên bìa thẻ phòng (Keycard) hoặc phiếu nhận phòng của bạn để hệ thống phục vụ trực tiếp tới phòng.
                                                     </p>
                                                 </div>
@@ -968,7 +1013,7 @@ export default function ServicesMenu() {
                                                 onChange={(e) => setSelectedBookingId(e.target.value.toUpperCase())}
                                                 placeholder="Nhập Mã Booking (VD: BK-02DE4E)"
                                                 required
-                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase tracking-wider"
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase tracking-wider shadow-2xs"
                                             />
                                         </div>
                                     )}
@@ -978,18 +1023,18 @@ export default function ServicesMenu() {
                                 </div>
 
                                 {/* HÀNG 2: CHỌN SỐ LƯỢNG (QUANTITY) & TẠM TÍNH */}
-                                <div className="grid grid-cols-2 gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <div className="grid grid-cols-2 gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                             Số lượng:
                                         </label>
-                                        <div className="inline-flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden shadow-xs">
+                                        <div className="inline-flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden shadow-2xs">
                                             <button
                                                 type="button"
                                                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                                                className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 font-bold text-sm transition"
+                                                className="px-3 py-2 text-slate-600 hover:bg-slate-100 font-bold transition flex items-center justify-center cursor-pointer"
                                             >
-                                                –
+                                                <Minus className="w-3.5 h-3.5" />
                                             </button>
                                             <span className="px-4 py-1.5 text-xs font-bold text-slate-900 border-x border-slate-200">
                                                 {quantity}
@@ -997,9 +1042,9 @@ export default function ServicesMenu() {
                                             <button
                                                 type="button"
                                                 onClick={() => setQuantity((q) => Math.min(99, q + 1))}
-                                                className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 font-bold text-sm transition"
+                                                className="px-3 py-2 text-slate-600 hover:bg-slate-100 font-bold transition flex items-center justify-center cursor-pointer"
                                             >
-                                                +
+                                                <Plus className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
                                     </div>
@@ -1023,7 +1068,7 @@ export default function ServicesMenu() {
                                         value={note}
                                         onChange={(e) => setNote(e.target.value)}
                                         placeholder="Ví dụ: Mang lên lúc 19:30, ít đường, nhiều đá, khăn tắm thêm, sốt để riêng..."
-                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
                                     ></textarea>
                                 </div>
 
@@ -1033,14 +1078,14 @@ export default function ServicesMenu() {
                                         type="button"
                                         onClick={handleCloseOrderModal}
                                         disabled={isSubmitting}
-                                        className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition"
+                                        className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition cursor-pointer"
                                     >
                                         Đóng
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition flex items-center gap-1.5"
+                                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold shadow-lg shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer"
                                     >
                                         {isSubmitting ? (
                                             <>
@@ -1049,7 +1094,7 @@ export default function ServicesMenu() {
                                             </>
                                         ) : (
                                             <>
-                                                <span>🛎️</span>
+                                                <BellRing className="w-4 h-4" />
                                                 <span>Xác nhận gửi yêu cầu</span>
                                             </>
                                         )}
@@ -1071,13 +1116,13 @@ export default function ServicesMenu() {
                         fetchOrderHistory(false, targetBooking);
                         setIsHistoryModalOpen(true);
                     }}
-                    className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-2xl border border-slate-700/60 font-bold text-xs flex items-center gap-2 sm:gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+                    className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 px-4 py-3 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-2xl border border-slate-700/60 font-bold text-xs flex items-center gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
                     title="Xem lịch sử dịch vụ & tiến độ xử lý"
                 >
-                    <span className="text-base">🛎️</span>
+                    <History className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform" />
                     <span>Lịch Sử Dịch Vụ</span>
                     {activeOrdersCount > 0 ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-bounce">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-bounce shadow-xs">
                             {activeOrdersCount} đang xử lý
                         </span>
                     ) : orderHistory.length > 0 ? (
@@ -1089,19 +1134,19 @@ export default function ServicesMenu() {
 
                 {/* MODAL LỊCH SỬ ĐẶT MÓN & TRẠNG THÁI XỬ LÝ */}
                 {isHistoryModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-scale-up">
                             {/* Modal Header */}
-                            <div className="bg-white text-slate-900 px-6 py-4 flex items-center justify-between border-b border-slate-200">
+                            <div className="bg-white text-slate-900 px-6 py-4 flex items-center justify-between border-b border-slate-200/80">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0 border border-amber-200">
-                                        📜
+                                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl shrink-0 border border-amber-200/60 shadow-xs">
+                                        <History className="w-5 h-5 text-amber-600" />
                                     </div>
                                     <div>
                                         <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                                             <span>Lịch Sử Đặt Món & Dịch Vụ Tại Phòng</span>
                                             {activeOrdersCount > 0 && (
-                                                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase shadow-xs">
+                                                <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase shadow-xs">
                                                     {activeOrdersCount} đang xử lý
                                                 </span>
                                             )}
@@ -1117,66 +1162,71 @@ export default function ServicesMenu() {
                                         type="button"
                                         onClick={() => fetchOrderHistory()}
                                         disabled={isLoadingHistory}
-                                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                         title="Làm mới trạng thái"
                                     >
-                                        <span className={isLoadingHistory ? 'animate-spin' : ''}>🔄</span>
+                                        <RotateCw className={`w-3.5 h-3.5 ${isLoadingHistory ? 'animate-spin text-amber-600' : 'text-slate-600'}`} />
                                         <span className="hidden sm:inline">Làm mới</span>
                                     </button>
                                     {!isAuthenticated && sessionStorage.getItem('pms_guest_booking_code') && (
                                         <button
                                             type="button"
                                             onClick={handleClearGuestSession}
-                                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center gap-1 transition cursor-pointer"
+                                            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center gap-1 transition cursor-pointer"
                                             title="Xóa phiên lưu trữ mã phòng này trên thiết bị này"
                                         >
-                                            <span>🗑️</span>
+                                            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                                             <span className="hidden sm:inline">Xóa phiên</span>
                                         </button>
                                     )}
                                     <button
                                         type="button"
                                         onClick={() => setIsHistoryModalOpen(false)}
-                                        className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 border border-slate-200 flex items-center justify-center text-sm font-bold transition cursor-pointer"
+                                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer"
                                         title="Đóng"
                                     >
-                                        ✕
+                                        <X className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
 
                             {/* Filter Tabs */}
-                            <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-2 overflow-x-auto scrollbar-none">
+                            <div className="px-6 py-3 bg-slate-50/80 border-b border-slate-200/80 flex items-center gap-2 overflow-x-auto scrollbar-none">
                                 {[
-                                    { key: 'all', label: 'Tất cả', count: historyStats.total },
-                                    { key: 'pending', label: '⏳ Chờ xác nhận', count: historyStats.pending },
-                                    { key: 'in_progress', label: '⚙️ Đang chuẩn bị', count: historyStats.inProgress },
-                                    { key: 'delivering', label: '🛎️ Đang phục vụ', count: historyStats.delivering },
-                                    { key: 'completed', label: '✓ Hoàn thành', count: historyStats.completed },
-                                    { key: 'cancelled', label: '✕ Đã hủy', count: historyStats.cancelled }
-                                ].map((tab) => (
-                                    <button
-                                        key={tab.key}
-                                        type="button"
-                                        onClick={() => setHistoryFilter(tab.key)}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                                            historyFilter === tab.key
-                                                ? 'bg-blue-600 text-white shadow-xs'
-                                                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                                        }`}
-                                    >
-                                        <span>{tab.label}</span>
-                                        <span
-                                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                                                historyFilter === tab.key
-                                                    ? 'bg-slate-700 text-white'
-                                                    : 'bg-slate-100 text-slate-600'
+                                    { key: 'all', label: 'Tất cả', icon: Layers, count: historyStats.total },
+                                    { key: 'pending', label: 'Chờ xác nhận', icon: Clock, count: historyStats.pending },
+                                    { key: 'in_progress', label: 'Đang chuẩn bị', icon: Utensils, count: historyStats.inProgress },
+                                    { key: 'delivering', label: 'Đang phục vụ', icon: BellRing, count: historyStats.delivering },
+                                    { key: 'completed', label: 'Hoàn thành', icon: CheckCircle2, count: historyStats.completed },
+                                    { key: 'cancelled', label: 'Đã hủy', icon: XCircle, count: historyStats.cancelled }
+                                ].map((tab) => {
+                                    const IconComponent = tab.icon;
+                                    const isActive = historyFilter === tab.key;
+                                    return (
+                                        <button
+                                            key={tab.key}
+                                            type="button"
+                                            onClick={() => setHistoryFilter(tab.key)}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                                isActive
+                                                    ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-800'
+                                                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
                                             }`}
                                         >
-                                            {tab.count}
-                                        </span>
-                                    </button>
-                                ))}
+                                            <IconComponent className={`w-3.5 h-3.5 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+                                            <span>{tab.label}</span>
+                                            <span
+                                                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                                                    isActive
+                                                        ? 'bg-white/20 text-white'
+                                                        : 'bg-slate-100 text-slate-600'
+                                                }`}
+                                            >
+                                                {tab.count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             {/* Modal Body / Request List */}
@@ -1188,8 +1238,8 @@ export default function ServicesMenu() {
                                     </div>
                                 ) : sortedHistory.length === 0 ? (
                                     <div className="py-16 text-center space-y-3 max-w-sm mx-auto">
-                                        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
-                                            🍽️
+                                        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/60 shadow-inner">
+                                            <Receipt className="w-7 h-7 text-amber-600" />
                                         </div>
                                         <h4 className="font-serif text-base font-bold text-slate-900">
                                             {historyFilter === 'all'
@@ -1206,13 +1256,13 @@ export default function ServicesMenu() {
                                                           : 'Đã hủy'
                                                   }"`}
                                         </h4>
-                                        <p className="text-xs text-slate-500">
-                                            Khám phá danh mục dịch vụ & tiện ích phong phú của chúng tôi để được phục vụ tận phòng nghỉ.
+                                        <p className="text-xs text-slate-500 leading-relaxed">
+                                            Khám phá danh mục dịch vụ & ẩm thực phong phú của chúng tôi để được phục vụ chu đáo tận phòng nghỉ.
                                         </p>
                                         <button
                                             type="button"
                                             onClick={() => setIsHistoryModalOpen(false)}
-                                            className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-blue-600/20 cursor-pointer"
+                                            className="mt-2 px-5 py-2.5 bg-slate-900 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition shadow-md shadow-slate-900/15 cursor-pointer"
                                         >
                                             Xem Menu ngay
                                         </button>
@@ -1227,10 +1277,14 @@ export default function ServicesMenu() {
                                         const priceNum = Number(item.total_price || (item.service_price * item.quantity)) || 0;
                                         const labels = getServiceLabels(item.service_name, item.category_name);
 
+                                        // Xác định bước tiến trình (1: Tiếp nhận, 2: Chuẩn bị, 3: Đang giao, 4: Hoàn thành)
+                                        const currentStep = isCompleted ? 4 : isDelivering ? 3 : isInProgress ? 2 : 1;
+                                        const progressPercent = isCompleted ? 100 : isDelivering ? 68 : isInProgress ? 34 : 0;
+
                                         return (
                                             <div
                                                 key={item.id}
-                                                className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition overflow-hidden"
+                                                className="bg-white rounded-2xl border border-slate-200/90 hover:border-amber-200 hover:shadow-md transition overflow-hidden shadow-2xs"
                                             >
                                                 {/* Thẻ Header: Mã đơn + Phòng + Trạng thái */}
                                                 <div className="bg-slate-50/80 px-4 sm:px-5 py-2.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -1239,8 +1293,9 @@ export default function ServicesMenu() {
                                                             #SRQ-{item.id}
                                                         </span>
                                                         <span className="text-slate-300">•</span>
-                                                        <span className="font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
-                                                            🏨 Phòng {item.room_number || 'Lưu trú'}
+                                                        <span className="font-semibold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-200/80 flex items-center gap-1.5 shadow-2xs">
+                                                            <BedDouble className="w-3.5 h-3.5 text-amber-600" />
+                                                            Phòng {item.room_number || 'Lưu trú'}
                                                         </span>
                                                         {item.booking_code && (
                                                             <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
@@ -1250,38 +1305,39 @@ export default function ServicesMenu() {
                                                     </div>
 
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-[11px] text-slate-400 hidden sm:inline">
+                                                        <span className="text-[11px] text-slate-400 hidden sm:inline flex items-center gap-1">
+                                                            <Clock className="w-3 h-3 text-slate-400" />
                                                             {formatDateTimeDisplay(item.created_at || item.request_time)}
                                                         </span>
                                                         {/* Status Badge */}
                                                         {isPending && (
-                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                                                                 {labels.badgePending}
                                                             </span>
                                                         )}
                                                         {isInProgress && (
-                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping"></span>
                                                                 {labels.badgeInProgress}
                                                             </span>
                                                         )}
                                                         {isDelivering && (
-                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
                                                                 {labels.badgeDelivering}
                                                             </span>
                                                         )}
                                                         {isCompleted && (
-                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                                                 {labels.badgeCompleted}
                                                             </span>
                                                         )}
                                                         {isCancelled && (
-                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                                                ✕ Đã hủy
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                                                                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                                                Đã hủy
                                                             </span>
                                                         )}
                                                     </div>
@@ -1295,14 +1351,14 @@ export default function ServicesMenu() {
                                                                 <img
                                                                     src={item.service_image}
                                                                     alt={item.service_name}
-                                                                    className="w-16 h-16 rounded-xl object-cover border border-slate-200 shrink-0"
+                                                                    className="w-16 h-16 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
                                                                     onError={(e) => {
                                                                         e.target.src =
                                                                             'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80';
                                                                     }}
                                                                 />
                                                             ) : (
-                                                                <div className="w-16 h-16 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl shrink-0 border border-amber-200/60">
+                                                                <div className="w-16 h-16 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl shrink-0 border border-amber-200/60 shadow-2xs">
                                                                     {item.category_icon || '🛎️'}
                                                                 </div>
                                                             )}
@@ -1329,7 +1385,7 @@ export default function ServicesMenu() {
                                                                     )}
                                                                 </div>
                                                                 {item.note && (
-                                                                    <div className="text-[11px] text-amber-800 bg-amber-50/70 px-2 py-0.5 rounded border border-amber-100 italic">
+                                                                    <div className="text-[11px] text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60 italic">
                                                                         Ghi chú: "{item.note}"
                                                                     </div>
                                                                 )}
@@ -1350,46 +1406,86 @@ export default function ServicesMenu() {
                                                         </div>
                                                     </div>
 
-                                                    {/* THANH TIẾN ĐỘ TRẠNG THÁI XỬ LÝ (LIVE PROCESS TRACKER - 4 BƯỚC) */}
-                                                    <div className="mt-4 pt-4 border-t border-slate-100">
+                                                    {/* THANH TIẾN ĐỘ TRẠNG THÁI XỬ LÝ (INTERACTIVE STEPPER - 4 BƯỚC) */}
+                                                    <div className="mt-5 pt-4 border-t border-slate-100">
                                                         {!isCancelled ? (
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
-                                                                    <span className={isPending || isInProgress || isDelivering || isCompleted ? 'text-amber-600 font-bold' : ''}>
-                                                                        {labels.step1}
-                                                                    </span>
-                                                                    <span className={isInProgress || isDelivering || isCompleted ? 'text-blue-600 font-bold' : ''}>
-                                                                        {labels.step2}
-                                                                    </span>
-                                                                    <span className={isDelivering || isCompleted ? 'text-purple-600 font-bold' : ''}>
-                                                                        {labels.step3}
-                                                                    </span>
-                                                                    <span className={isCompleted ? 'text-emerald-600 font-bold' : ''}>
-                                                                        {labels.step4}
-                                                                    </span>
+                                                            <div className="space-y-3">
+                                                                {/* Interactive Step Timeline */}
+                                                                <div className="relative flex items-center justify-between px-2 pt-1 pb-1">
+                                                                    {/* Background Track Line */}
+                                                                    <div className="absolute top-4 left-6 right-6 h-1 bg-slate-100 rounded-full z-0" />
+                                                                    
+                                                                    {/* Active Fill Line */}
+                                                                    <div 
+                                                                        className="absolute top-4 left-6 h-1 bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-500 rounded-full z-0 transition-all duration-700 ease-out"
+                                                                        style={{ width: `calc(${progressPercent}% * (100% - 48px) / 100)` }}
+                                                                    />
+
+                                                                    {/* 4 Step Nodes */}
+                                                                    {[
+                                                                        { num: 1, label: labels.step1 },
+                                                                        { num: 2, label: labels.step2 },
+                                                                        { num: 3, label: labels.step3 },
+                                                                        { num: 4, label: labels.step4 },
+                                                                    ].map((step) => {
+                                                                        const isPassed = currentStep > step.num;
+                                                                        const isCurrent = currentStep === step.num;
+                                                                        return (
+                                                                            <div key={step.num} className="relative z-10 flex flex-col items-center">
+                                                                                <div
+                                                                                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                                                                                        isPassed
+                                                                                            ? 'bg-emerald-500 text-white shadow-xs ring-4 ring-emerald-50'
+                                                                                            : isCurrent
+                                                                                            ? isCompleted
+                                                                                                ? 'bg-emerald-500 text-white shadow-md ring-4 ring-emerald-100'
+                                                                                                : 'bg-amber-500 text-white shadow-md ring-4 ring-amber-100 scale-105 font-black'
+                                                                                            : 'bg-white text-slate-400 border-2 border-slate-200'
+                                                                                    }`}
+                                                                                >
+                                                                                    {isPassed || (isCurrent && isCompleted) ? (
+                                                                                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                                                                    ) : (
+                                                                                        <span>{step.num}</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <span
+                                                                                    className={`mt-1.5 text-[10px] sm:text-[11px] font-semibold text-center whitespace-nowrap transition-colors ${
+                                                                                        isCurrent
+                                                                                            ? isCompleted
+                                                                                                ? 'text-emerald-700 font-bold'
+                                                                                                : 'text-amber-800 font-bold'
+                                                                                            : isPassed
+                                                                                            ? 'text-slate-700 font-medium'
+                                                                                            : 'text-slate-400'
+                                                                                    }`}
+                                                                                >
+                                                                                    {step.label}
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
 
-                                                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex">
-                                                                    <div
-                                                                        className={`h-full transition-all duration-500 ${
-                                                                            isCompleted
-                                                                                ? 'w-full bg-emerald-500'
-                                                                                : isDelivering
-                                                                                ? 'w-3/4 bg-purple-600 animate-pulse'
-                                                                                : isInProgress
-                                                                                ? 'w-2/4 bg-blue-600 animate-pulse'
-                                                                                : 'w-1/4 bg-amber-400'
-                                                                        }`}
-                                                                    ></div>
-                                                                </div>
-
-                                                                <div className="flex items-center justify-between text-[11px]">
-                                                                    <span className="text-slate-500 font-medium">
-                                                                        {isPending && labels.pendingMessage}
-                                                                        {isInProgress && labels.inProgressMessage}
-                                                                        {isDelivering && labels.deliveringMessage}
-                                                                        {isCompleted && labels.completedMessage}
-                                                                    </span>
+                                                                {/* Thông báo trạng thái chi tiết & nút Hủy đơn */}
+                                                                <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
+                                                                    isCompleted
+                                                                        ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900'
+                                                                        : 'bg-amber-50/70 border-amber-200/80 text-amber-950'
+                                                                }`}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {isCompleted ? (
+                                                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                                        ) : (
+                                                                            <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+                                                                        )}
+                                                                        <span className="font-medium text-[11px] sm:text-xs">
+                                                                            {isPending && labels.pendingMessage}
+                                                                            {isInProgress && labels.inProgressMessage}
+                                                                            {isDelivering && labels.deliveringMessage}
+                                                                            {isCompleted && labels.completedMessage}
+                                                                        </span>
+                                                                    </div>
 
                                                                     {/* Nút Hủy nếu đang Pending */}
                                                                     {isPending && (
@@ -1397,16 +1493,18 @@ export default function ServicesMenu() {
                                                                             type="button"
                                                                             disabled={cancellingRequestId === item.id}
                                                                             onClick={() => handleCancelOrder(item)}
-                                                                            className="text-rose-600 hover:text-rose-700 font-bold text-xs underline cursor-pointer disabled:opacity-50"
+                                                                            className="self-end sm:self-auto px-2.5 py-1 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-100/60 border border-rose-200 text-[11px] font-bold transition cursor-pointer disabled:opacity-50 flex items-center gap-1"
                                                                         >
-                                                                            {cancellingRequestId === item.id ? 'Đang hủy...' : '✕ Hủy yêu cầu'}
+                                                                            <X className="w-3 h-3" />
+                                                                            <span>{cancellingRequestId === item.id ? 'Đang hủy...' : 'Hủy yêu cầu'}</span>
                                                                         </button>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                         ) : (
-                                                            <div className="flex items-center justify-between text-xs text-rose-600 bg-rose-50/60 p-2 rounded-xl border border-rose-100">
-                                                                <span>✕ Yêu cầu đã hủy. Dịch vụ không thực hiện và không tính phí.</span>
+                                                            <div className="flex items-center gap-2 text-xs text-rose-700 bg-rose-50/80 p-3 rounded-xl border border-rose-200">
+                                                                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                                                <span>Yêu cầu đã được hủy bỏ. Dịch vụ không thực hiện và không phát sinh bất kỳ chi phí nào.</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -1428,9 +1526,10 @@ export default function ServicesMenu() {
                                             type="button"
                                             disabled={historyPage <= 1}
                                             onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
-                                            className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                                            className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
                                         >
-                                            ← Trước
+                                            <ChevronLeft className="w-3 h-3" />
+                                            <span>Trước</span>
                                         </button>
                                         {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map((p) => (
                                             <button
@@ -1439,7 +1538,7 @@ export default function ServicesMenu() {
                                                 onClick={() => setHistoryPage(p)}
                                                 className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
                                                     historyPage === p
-                                                        ? 'bg-blue-600 text-white shadow-xs'
+                                                        ? 'bg-slate-900 text-white shadow-xs'
                                                         : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                                                 }`}
                                             >
@@ -1450,23 +1549,27 @@ export default function ServicesMenu() {
                                             type="button"
                                             disabled={historyPage >= totalHistoryPages}
                                             onClick={() => setHistoryPage((prev) => Math.min(totalHistoryPages, prev + 1))}
-                                            className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                                            className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
                                         >
-                                            Sau →
+                                            <span>Sau</span>
+                                            <ChevronRight className="w-3 h-3" />
                                         </button>
                                     </div>
                                 </div>
                             )}
 
                             {/* Modal Footer */}
-                            <div className="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex items-center justify-between text-xs">
-                                <span className="text-slate-500">
-                                    💡 Cần hỗ trợ khẩn cấp, vui lòng bấm phím <strong>0</strong> trên điện thoại bàn phòng.
-                                </span>
+                            <div className="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                                <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs">
+                                    <PhoneCall className="w-4 h-4 text-amber-600 shrink-0" />
+                                    <span>
+                                        Cần hỗ trợ khẩn cấp, vui lòng bấm phím <strong className="text-slate-900 font-black">0</strong> trên điện thoại bàn phòng.
+                                    </span>
+                                </div>
                                 <button
                                     type="button"
                                     onClick={() => setIsHistoryModalOpen(false)}
-                                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition cursor-pointer"
+                                    className="w-full sm:w-auto px-6 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition shadow-sm cursor-pointer"
                                 >
                                     Đóng
                                 </button>
@@ -1477,23 +1580,23 @@ export default function ServicesMenu() {
 
                 {/* MODAL XÁC NHẬN HỦY ĐẶT MÓN / DỊCH VỤ (MODERN WHITE MODAL) */}
                 {orderToCancel && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+                        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-scale-up">
                             <div className="flex items-center gap-3.5">
-                                <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 text-xl font-bold">
-                                    ✕
+                                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200/80">
+                                    <AlertCircle className="w-6 h-6 text-rose-600" />
                                 </div>
                                 <div>
                                     <h3 className="text-base font-black text-slate-800 tracking-tight">
                                         Hủy Yêu Cầu Dịch Vụ
                                     </h3>
                                     <p className="text-xs font-semibold text-slate-400">
-                                        Xác nhận hủy đơn đặt món / dịch vụ
+                                        Xác nhận hủy đơn đặt món / dịch vụ tận phòng
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
                                 <div className="flex justify-between items-center text-slate-600">
                                     <span className="font-medium">Dịch vụ yêu cầu:</span>
                                     <span className="font-bold text-slate-800">{orderToCancel.service_name || orderToCancel.custom_service_name || 'Dịch vụ'}</span>
@@ -1507,14 +1610,15 @@ export default function ServicesMenu() {
                                 {orderToCancel.booking_code && (
                                     <div className="flex justify-between items-center text-slate-600">
                                         <span className="font-medium">Mã phòng / đơn:</span>
-                                        <span className="font-mono font-bold text-indigo-600">#{orderToCancel.booking_code}</span>
+                                        <span className="font-mono font-bold text-amber-700">#{orderToCancel.booking_code}</span>
                                     </div>
                                 )}
                             </div>
 
-                            <p className="text-xs text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-100">
-                                💡 Quý khách có chắc chắn muốn hủy yêu cầu này? Sau khi hủy, yêu cầu sẽ không được xử lý và không phát sinh bất kỳ khoản phí nào.
-                            </p>
+                            <div className="text-xs text-amber-950 leading-relaxed bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 flex items-start gap-2">
+                                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                <span>Quý khách có chắc chắn muốn hủy yêu cầu này? Sau khi hủy, yêu cầu sẽ không được xử lý và không phát sinh bất kỳ khoản phí nào.</span>
+                            </div>
 
                             <div className="flex items-center justify-end gap-3 pt-2">
                                 <button
@@ -1538,7 +1642,7 @@ export default function ServicesMenu() {
                                         </>
                                     ) : (
                                         <>
-                                            <span>✕</span>
+                                            <Trash2 className="w-3.5 h-3.5" />
                                             <span>Xác Nhận Hủy</span>
                                         </>
                                     )}

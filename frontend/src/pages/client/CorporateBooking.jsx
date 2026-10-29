@@ -8,6 +8,22 @@ import { bookingService } from '../../services/bookingService';
 import { useAuth } from '../../store/authStore';
 import api from '../../services/api';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { 
+    Building2, 
+    Tag, 
+    FileText, 
+    Headphones, 
+    KeyRound, 
+    Check, 
+    Sparkles, 
+    Percent, 
+    ShieldCheck, 
+    Receipt, 
+    Users, 
+    Calendar, 
+    ArrowRight,
+    AlertCircle
+} from 'lucide-react';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -680,23 +696,27 @@ export default function CorporateBooking() {
             <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
 
                 {/* 2. HERO BANNER LUXURY SÁNG SỦA, TINH TẾ */}
-                <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-50/90 via-white to-sky-50/70 border border-slate-200/90 shadow-md">
+                <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-slate-50 via-white to-amber-50/40 border border-slate-200/90 shadow-md">
                     {/* Ảnh resort sáng nét, phủ nhẹ ở góc phải */}
-                    <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 overflow-hidden pointer-events-none opacity-40 md:opacity-90">
+                    <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 overflow-hidden pointer-events-none opacity-60 md:opacity-95">
                         <img
                             src={settings?.banner_corporate || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"}
                             alt="Đặt phòng theo đoàn khách sạn TA Đà Nẵng"
                             className="w-full h-full object-cover object-center"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/45 to-transparent" />
                     </div>
 
                     <div className="relative z-10 p-6 sm:p-10 space-y-6 max-w-2xl">
-                    
                         <div className="space-y-3">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 border border-amber-300/80 text-[11px] font-bold uppercase tracking-wider shadow-2xs">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-700 animate-spin" style={{ animationDuration: '8s' }} />
+                                <span>Đặc Quyền B2B Doanh Nghiệp & Đoàn Thể</span>
+                            </div>
+
                             <h1 className="font-serif text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                                 Khách Hàng Doanh Nghiệp <br />
-                                <span className="text-blue-600">
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-600">
                                     & Đặt Phòng Theo Đoàn
                                 </span>
                             </h1>
@@ -707,9 +727,9 @@ export default function CorporateBooking() {
 
                         {/* Các tiện ích & đặc quyền dành riêng cho đoàn */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200/80">
-                            <div className="flex items-center gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
-                                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0 border border-blue-100">
-                                    🏷️
+                            <div className="flex items-center gap-3 bg-white/95 p-3.5 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all">
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/80 shadow-2xs">
+                                    <Percent className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h4 className="text-xs font-bold text-slate-900">Chiết Khấu B2B</h4>
@@ -717,9 +737,9 @@ export default function CorporateBooking() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
-                                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0 border border-emerald-100">
-                                    🧾
+                            <div className="flex items-center gap-3 bg-white/95 p-3.5 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/80 shadow-2xs">
+                                    <Receipt className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h4 className="text-xs font-bold text-slate-900">Hóa Đơn VAT</h4>
@@ -727,9 +747,9 @@ export default function CorporateBooking() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
-                                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0 border border-amber-100">
-                                    🤵
+                            <div className="flex items-center gap-3 bg-white/95 p-3.5 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-200/80 shadow-2xs">
+                                    <Headphones className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h4 className="text-xs font-bold text-slate-900">Trợ Lý Đoàn</h4>
@@ -742,7 +762,7 @@ export default function CorporateBooking() {
 
                 {submitError && (
                     <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2 shadow-xs">
-                        <span>⚠️</span>
+                        <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{submitError}</span>
                     </div>
                 )}
@@ -752,30 +772,32 @@ export default function CorporateBooking() {
                     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                    <span>🔑</span>
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                                        <KeyRound className="w-4 h-4 text-amber-700" />
+                                    </div>
                                     <span>1. Nhập Mã Đối Tác Doanh Nghiệp (Corporate Code)</span>
                                 </h3>
-                                <p className="text-xs text-slate-500 mt-0.5">
+                                <p className="text-xs text-slate-500 mt-1 pl-10.5">
                                     Nếu công ty bạn đã ký kết thỏa thuận hợp tác, nhập mã để kích hoạt giá ưu đãi theo hợp đồng.
                                 </p>
                             </div>
                         </div>
 
                         {!appliedPartner ? (
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-lg">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-lg sm:pl-10.5">
                                 <input
                                     type="text"
                                     placeholder="Nhập mã (VD: FPT2026, VIETTEL2026...)"
                                     value={corporateCodeInput}
                                     onChange={(e) => setCorporateCodeInput(e.target.value.toUpperCase())}
-                                    className="flex-1 px-4 py-3 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                    className="flex-1 px-4 py-3 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                 />
                                 <button
                                     type="button"
                                     disabled={isValidatingCode || !corporateCodeInput.trim()}
                                     onClick={handleApplyCorporateCode}
-                                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-md transition cursor-pointer disabled:opacity-50"
+                                    className="px-6 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-2xl shadow-md shadow-orange-500/20 hover:shadow-orange-500/35 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
                                 >
                                     {isValidatingCode ? 'Đang kiểm tra...' : 'Áp Dụng Mã'}
                                 </button>

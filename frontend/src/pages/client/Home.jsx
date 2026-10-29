@@ -246,10 +246,10 @@ export default function TADaNangHotelLanding() {
             {/* 4. FLOATING BOOKING SEARCH BAR WIDGET */}
             <div className="relative z-20 max-w-7xl mx-auto px-4 -mt-14 sm:-mt-16">
                 <div className="bg-white rounded-3xl shadow-2xl shadow-slate-900/10 border border-slate-100 p-4 sm:p-5 transition-all duration-300">
-                    {/* Form Fields: 4 Input fields + Compact Magnifying Glass Search Button */}
+                    {/* Form Fields: 4 Input fields + Expanded Luxury Search Button */}
                     <form onSubmit={handleSearchRooms} className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
                         {/* Field 1: Hạng phòng */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-blue-500 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition group">
+                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                                 <span>🏨</span>
                                 <span>Hạng phòng</span>
@@ -264,8 +264,8 @@ export default function TADaNangHotelLanding() {
                                 <option value="suite">Executive & Grand Suite</option>
                                 <option value="penthouse">Presidential & Penthouse</option>
                             </select>
-                            <div className="text-[11px] text-slate-500 truncate mt-1">
-                                {roomType === 'all' && ''}
+                            <div className="text-[11px] text-amber-700 font-medium truncate mt-1">
+                                {roomType === 'all' && 'Tất cả các loại phòng'}
                                 {roomType === 'deluxe' && 'Hướng biển panorama'}
                                 {roomType === 'suite' && 'Phòng khách & Ban công riêng'}
                                 {roomType === 'penthouse' && 'Hồ bơi vô cực trên cao'}
@@ -273,7 +273,7 @@ export default function TADaNangHotelLanding() {
                         </div>
 
                         {/* Field 2: Check-in */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-blue-500 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition group cursor-pointer">
+                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group cursor-pointer">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                                 <span>📅</span>
                                 <span>Nhận phòng</span>
@@ -285,13 +285,13 @@ export default function TADaNangHotelLanding() {
                                 onChange={handleCheckInChange}
                                 className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
                             />
-                            <div className="text-[11px] text-blue-600 font-semibold truncate mt-1">
+                            <div className="text-[11px] text-amber-800 font-semibold truncate mt-1">
                                 {getWeekdayName(checkInDate)} (từ 14:00)
                             </div>
                         </div>
 
                         {/* Field 3: Check-out */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-blue-500 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition group cursor-pointer">
+                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group cursor-pointer">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                                 <span>🗓️</span>
                                 <span>Trả phòng</span>
@@ -303,13 +303,13 @@ export default function TADaNangHotelLanding() {
                                 onChange={handleCheckOutChange}
                                 className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
                             />
-                            <div className="text-[11px] text-emerald-600 font-semibold truncate mt-1">
+                            <div className="text-[11px] text-emerald-700 font-semibold truncate mt-1">
                                 {getWeekdayName(checkOutDate)} ({calculateNights()} đêm lưu trú)
                             </div>
                         </div>
 
                         {/* Field 4: Guests & Rooms */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-blue-500 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition group">
+                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                                 <span>👥</span>
                                 <span>Khách & Phòng</span>
@@ -325,39 +325,42 @@ export default function TADaNangHotelLanding() {
                                 <option value="4">4 Khách (Gia đình 4 người)</option>
                                 <option value="6">5+ Khách (Đoàn du lịch)</option>
                             </select>
-                            <div className="text-[11px] text-blue-600 font-medium truncate mt-1">
+                            <div className="text-[11px] text-amber-800 font-medium truncate mt-1">
                                 {Number(guests) === 1 && '1 Giường King / Queen'}
                                 {Number(guests) === 2 && '1 Phòng Suite / Deluxe'}
                                 {Number(guests) >= 3 && 'Hỗ trợ nôi & giường phụ'}
                             </div>
                         </div>
 
-                        {/* Field 5: Action Button (Nút kính lúp nhỏ gọn) */}
+                        {/* Field 5: Action Button (Nút Tìm phòng nổi bật với text và hiệu ứng hoàng gia) */}
                         <div className="flex items-center justify-center shrink-0">
                             <button
                                 type="submit"
-                                title="Tìm kiếm phòng trống"
-                                className="w-full lg:w-[68px] h-12 lg:h-[72px] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition cursor-pointer"
+                                title="Tìm kiếm phòng trống phù hợp"
+                                className="w-full lg:w-auto lg:px-6 h-12 lg:h-[72px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/30 hover:shadow-orange-500/45 flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-95 transition-all duration-300 cursor-pointer"
                             >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
+                                <span className="text-sm uppercase tracking-wider font-extrabold whitespace-nowrap">
+                                    Tìm phòng
+                                </span>
                             </button>
                         </div>
                     </form>
 
                     {/* Quick banner: Khách đoàn & Doanh nghiệp */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
                         <div className="flex items-center gap-2 text-slate-600">
-                            <span className="text-base">🏢</span>
+                            <span className="p-1 rounded-md bg-amber-100/80 text-amber-900 font-bold text-sm">🏢</span>
                             <span>Quý khách đặt phòng cho <strong>Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
                         </div>
                         <Link
                             to="/corporate-booking"
-                            className="font-bold text-blue-600 hover:text-blue-800 transition inline-flex items-center gap-1 cursor-pointer"
+                            className="font-bold text-amber-800 hover:text-amber-950 bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200/90 px-3.5 py-1.5 rounded-full transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs group"
                         >
                             <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
-                            <span>→</span>
+                            <span className="group-hover:translate-x-1 transition-transform font-bold">→</span>
                         </Link>
                     </div>
                 </div>

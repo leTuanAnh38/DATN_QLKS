@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { askChatbot } from '../../services/chatbotService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { useAuth } from '../../store/authStore';
 
 const SESSION_STORAGE_KEY = 'ta_hotel_ai_chat_history_v3';
 
@@ -305,7 +306,9 @@ export default function AIChatbotWidget() {
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
     const welcomeMessages = getWelcomeMessages(starCount, hotelName);
 
+    const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const [showCalloutBubble, setShowCalloutBubble] = useState(false);
     const [selectedLang, setSelectedLang] = useState('vi');
     const [messages, setMessages] = useState(() => {
         try {
@@ -333,6 +336,42 @@ export default function AIChatbotWidget() {
     const [hasUnread, setHasUnread] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [showLangDropdown, setShowLangDropdown] = useState(false);
+
+    // Tự động hiển thị Bong bóng chào đón thông minh (Proactive Callout Bubble) sau 3.5s
+    useEffect(() => {
+        let hasDismissed = false;
+        try {
+            hasDismissed = sessionStorage.getItem('ta_chatbot_bubble_dismissed') === 'true';
+        } catch (e) {
+            // ignore
+        }
+        if (hasDismissed) return;
+
+        const timer = setTimeout(() => {
+            if (!isOpen) {
+                setShowCalloutBubble(true);
+            }
+        }, 3500);
+
+        return () => clearTimeout(timer);
+    }, [isOpen]);
+
+    // Tự động đóng bong bóng khi người dùng mở Chatbot
+    useEffect(() => {
+        if (isOpen) {
+            setShowCalloutBubble(false);
+        }
+    }, [isOpen]);
+
+    const handleDismissBubble = (e) => {
+        e.stopPropagation();
+        setShowCalloutBubble(false);
+        try {
+            sessionStorage.setItem('ta_chatbot_bubble_dismissed', 'true');
+        } catch (err) {
+            // ignore
+        }
+    };
 
     // Voice AI States (Web Speech API: STT & TTS)
     const [speakingMsgId, setSpeakingMsgId] = useState(null);
@@ -759,22 +798,97 @@ export default function AIChatbotWidget() {
 
     return (
         <aside aria-label="Khung trò chuyện Trợ lý AI Khách Sạn TA Đà Nẵng">
-            {/* 1. NÚT MỞ CHAT NỔI (FLOATING BUTTON) TÔNG SÁNG TRANG NHÃ DỊU MẮT */}
-            <div className={`fixed z-50 select-none ${hasMobileStickyBar ? 'bottom-20 right-4 sm:bottom-6 sm:right-6' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'}`}>
+            {/* 1. NÚT MỞ CHAT NỔI (FLOATING BUTTON) TÔNG SÁNG TRANG NHÃ DỊU MẮT & BONG BÓNG CHÀO ĐÓN */}
+            <div className={`fixed z-50 select-none flex flex-col items-end ${hasMobileStickyBar ? 'bottom-20 right-4 sm:bottom-6 sm:right-6' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'}`}>
+                {/* Bong bóng chào đón thông minh (Proactive Callout Bubble) */}
+                {showCalloutBubble && !isOpen && (
+                    <div 
+                        onClick={() => {
+                            setIsOpen(true);
+                            setShowCalloutBubble(false);
+                        }}
+                        className="mb-3.5 p-3.5 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-amber-300/90 shadow-[0_15px_35px_-5px_rgba(217,119,6,0.28)] text-slate-800 max-w-[280px] sm:max-w-[320px] cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-400 group relative hover:border-amber-400 transition-all select-none"
+                        role="region"
+                        aria-label="Thông điệp chào mừng từ Trợ lý AI"
+                    >
+                        {/* Mũi tên trỏ xuống dưới góc phải */}
+                        <div className="absolute -bottom-2 right-8 sm:right-10 w-4 h-4 bg-white/95 border-b border-r border-amber-300/90 rotate-45 transform" />
+
+                        {/* Header bong bóng */}
+                        <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-amber-100">
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-spin" style={{ animationDuration: '6s' }} />
+                                    Trợ Lý AI {starCount}★
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleDismissBubble}
+                                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-amber-50 transition-colors cursor-pointer"
+                                title="Đóng thông báo"
+                                aria-label="Đóng thông điệp chào mừng"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+
+                        {/* Lời chào cá nhân hóa */}
+                        <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                            👋 Kính chào {user?.full_name ? <strong className="text-amber-900 font-bold">{user.full_name}</strong> : 'Quý khách'}! 
+                            <br />
+                            Em có thể hỗ trợ Quý khách <span className="text-amber-800 font-semibold">tra cứu phòng giá ưu đãi hôm nay</span> hoặc giải đáp dịch vụ không ạ?
+                        </p>
+
+                        {/* Gợi ý nhanh 1 chạm */}
+                        <div className="mt-2.5 pt-2 flex flex-wrap gap-1.5 border-t border-amber-50">
+                            <span 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsOpen(true);
+                                    setShowCalloutBubble(false);
+                                    handleQuickAsk('Cho tôi biết các phòng trống và giá hôm nay');
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 shadow-2xs transition-all active:scale-95"
+                            >
+                                🏨 Giá phòng hôm nay
+                            </span>
+                            <span 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsOpen(true);
+                                    setShowCalloutBubble(false);
+                                    handleQuickAsk('Giới thiệu các dịch vụ ăn uống và tiện ích');
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all active:scale-95"
+                            >
+                                🍽️ Menu dịch vụ
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Nút Floating Button chính */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={`relative group flex items-center gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full 
-                        bg-white text-slate-800 font-medium shadow-xl
+                        bg-white/95 backdrop-blur-md text-slate-800 font-medium shadow-xl
                         border-2 border-amber-300 hover:border-amber-400 hover:bg-amber-50/40
                         transition-all duration-300 ease-out cursor-pointer
                         hover:scale-105 active:scale-95
-                        shadow-[0_8px_25px_-5px_rgba(217,119,6,0.2)]`}
+                        shadow-[0_10px_30px_-5px_rgba(217,119,6,0.28)]`}
                     title={`Trợ Lý Ảo AI - ${hotelName} ${starCount}★ (Multilingual Concierge)`}
                     aria-expanded={isOpen}
                     aria-label={`Mở khung trò chuyện với Trợ lý AI ${starCount} sao`}
                 >
                     {/* Hiệu ứng hào quang Vàng Gold dịu nhẹ */}
-                    <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-200 opacity-25 blur group-hover:opacity-40 transition duration-500 animate-pulse" />
+                    <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-200 opacity-25 blur group-hover:opacity-45 transition duration-500 animate-pulse" />
+
+                    {/* Hiệu ứng vệt sáng ánh kim lướt qua (Shimmer) */}
+                    <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                        <span className="absolute -inset-full top-0 bg-gradient-to-r from-transparent via-white/50 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                    </span>
 
                     {/* Khối nội dung chính của Nút */}
                     <div className="relative flex items-center gap-2.5">
@@ -793,11 +907,11 @@ export default function AIChatbotWidget() {
                         </div>
 
                         {/* Nút icon mũi tên / đóng */}
-                        <div className="text-amber-600 pl-1">
+                        <div className="text-amber-700 pl-0.5 flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 group-hover:bg-amber-100/90 border border-amber-200/80 transition-colors">
                             {isOpen ? (
-                                <ChevronDown className="w-5 h-5 text-amber-600" />
+                                <ChevronDown className="w-4 h-4 text-amber-700" />
                             ) : (
-                                <MessageSquare className="w-5 h-5 text-amber-600" />
+                                <MessageSquare className="w-4 h-4 text-amber-700" />
                             )}
                         </div>
                     </div>

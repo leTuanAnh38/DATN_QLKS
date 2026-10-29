@@ -67,6 +67,9 @@ body {
   color: #334155;
   font-size: 1rem;
   line-height: 1.85;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .post-html-content p {
@@ -135,7 +138,7 @@ body {
 }
 
 .post-html-content a {
-  color: #2563eb;
+  color: #d97706;
   text-decoration: underline;
   text-underline-offset: 3px;
   font-weight: 600;
@@ -143,7 +146,7 @@ body {
 }
 
 .post-html-content a:hover {
-  color: #1d4ed8;
+  color: #b45309;
 }
 
 /* =========================================================================

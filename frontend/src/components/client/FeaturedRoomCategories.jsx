@@ -52,13 +52,13 @@ export default function FeaturedRoomCategories() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 {/* Section Header */}
                 <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-widest mb-4 shadow-xs">
-                        <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50 border border-amber-200/90 text-amber-900 text-xs font-bold uppercase tracking-widest mb-4 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
                         BỘ SƯU TẬP HẠNG PHÒNG {starCount} SAO
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
-                        <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-600 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-600 bg-clip-text text-transparent">
                             Đẳng Cấp & Sang Trọng
                         </span>
                     </h2>
@@ -70,7 +70,7 @@ export default function FeaturedRoomCategories() {
                     <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8">
                         {[
                             { id: 'all', label: 'Tất Cả Hạng Phòng' },
-                            { id: 'deluxe', label: 'Hạng Deluxe' },
+                            { id: 'deluxe', label: 'Deluxe Hướng Biển' },
                             { id: 'suite', label: 'Suites Cao Cấp' },
                             { id: 'penthouse', label: 'Penthouse Hoàng Gia' },
                         ].map((tab) => (
@@ -78,10 +78,10 @@ export default function FeaturedRoomCategories() {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setFilterType(tab.id)}
-                                className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-200 shadow-xs ${
+                                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 shadow-xs cursor-pointer ${
                                     filterType === tab.id
-                                        ? 'bg-blue-600 text-white shadow-blue-600/30 shadow-md scale-105'
-                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                        ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-orange-500/30 shadow-md scale-105'
+                                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 hover:border-slate-300'
                                 }`}
                             >
                                 {tab.label}
