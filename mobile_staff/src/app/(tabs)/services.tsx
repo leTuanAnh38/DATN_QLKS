@@ -42,6 +42,7 @@ interface ServiceOrder {
   assigned_staff_name: string;
   note: string;
   created_at: string;
+  booking_status?: string;
 }
 
 // Helper lọc bỏ các dịch vụ xe / vận chuyển (đã có tab riêng của đội lái xe)
@@ -109,6 +110,9 @@ export const getServiceCategoryType = (item: any): 'fnb' | 'spa' | 'laundry' | '
   if (catType === 'spa') return 'spa';
   if (catType === 'laundry') return 'laundry';
   if (catType === 'fnb') return 'fnb';
+  // Backend (get_service_category_type) đã phân loại là tiện ích/buồng phòng thì tin kết quả đó,
+  // không đoán lại bằng từ khóa (vd danh mục "Tiện ích & Giặt ủi" chứa chữ "giặt" nhưng dịch vụ là tiện ích).
+  if (catType === 'amenities' || catType === 'room_amenity') return 'amenities';
 
   const text = `${item.name || item.service_name || ''} ${item.category_name || ''} ${item.description || ''}`.toLowerCase();
   if (
@@ -226,6 +230,29 @@ export const getServiceActionConfig = (item: ServiceOrder) => {
       };
   }
 };
+
+// Khóa thực hiện dịch vụ theo ngữ cảnh — khớp backend (ServiceRequestViewSet, 'ROOM_ASSIGNMENT_REQUIRED' /
+// 'CHECKIN_REQUIRED') và Kanban Web (getServiceLockReason):
+// - null: được phép làm
+// - 'NO_ROOM': đơn chưa được gán phòng cụ thể
+// - 'WAIT_CHECKIN': đã gán phòng nhưng khách chưa check-in và dịch vụ là Ẩm thực / Spa / Giặt ủi
+//   (tiện ích buồng phòng như gối, khăn, setup phòng vẫn được làm trước khi khách tới)
+export type ServiceLockReason = 'NO_ROOM' | 'WAIT_CHECKIN' | null;
+
+export const getServiceLockReason = (item: ServiceOrder): ServiceLockReason => {
+  if (!item || isTransportService(item)) return null;
+  const room = (item.room_number || '').trim();
+  const hasRoom = room !== '' && room !== 'Chưa gán phòng' && room !== 'Chờ xếp';
+  if (!hasRoom) return 'NO_ROOM';
+  if (item.booking_status === 'checked_in') return null;
+  const cat = getServiceCategoryType(item);
+  return cat === 'fnb' || cat === 'spa' || cat === 'laundry' ? 'WAIT_CHECKIN' : null;
+};
+
+const getServiceLockMessage = (item: ServiceOrder, reason: Exclude<ServiceLockReason, null>) =>
+  reason === 'NO_ROOM'
+    ? `Đơn #${item.booking_code} chưa được gán phòng cụ thể. Vui lòng liên hệ Lễ tân gán phòng trước khi thực hiện dịch vụ!`
+    : `Khách đơn #${item.booking_code} chưa làm thủ tục nhận phòng (Check-in). Dịch vụ ẩm thực / spa / giặt ủi yêu cầu khách có mặt tại phòng để phục vụ!`;
 
 export default function ServicesScreen() {
   const { user } = useAuth();
@@ -421,6 +448,13 @@ export default function ServicesScreen() {
 
   const handleClaim = async (item: ServiceOrder) => {
     if (actionLoadingId === item.id) return;
+    // Nhận việc = chuyển sang "Đang thực hiện" nên phải qua cùng điều kiện khóa như Web
+    const lock = getServiceLockReason(item);
+    if (lock) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert('Chưa thể thực hiện', getServiceLockMessage(item, lock));
+      return;
+    }
     try {
       setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -440,6 +474,12 @@ export default function ServicesScreen() {
 
   const handleUpdateStatus = async (item: ServiceOrder, newStatus: string, label: string) => {
     if (actionLoadingId === item.id) return;
+    const lock = getServiceLockReason(item);
+    if (lock && ['in_progress', 'delivering', 'completed'].includes(newStatus)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert('Chưa thể thực hiện', getServiceLockMessage(item, lock));
+      return;
+    }
     try {
       setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -714,6 +754,9 @@ export default function ServicesScreen() {
     const badge = getStatusBadgeConfig(item.status, item);
     const actionConfig = getServiceActionConfig(item);
     const isMyTask = item.assigned_staff === user?.id;
+    const lockReason = ['pending', 'in_progress', 'delivering'].includes(item.status)
+      ? getServiceLockReason(item)
+      : null;
     const isActionLoading = actionLoadingId === item.id;
 
     return (
@@ -824,11 +867,23 @@ export default function ServicesScreen() {
           </Text>
         </View>
 
+        {/* Cảnh báo khóa thao tác: chưa gán phòng / khách chưa check-in */}
+        {lockReason ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.4)', borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, marginBottom: 8 }}>
+            <Ionicons name="lock-closed" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
+            <Text style={{ flex: 1, fontSize: 11.5, color: '#FBBF24', fontWeight: '700' }}>
+              {lockReason === 'NO_ROOM'
+                ? 'Chưa gán phòng — chờ Lễ tân xếp phòng'
+                : 'Khách chưa check-in — chờ khách nhận phòng'}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Nút hành động 1 chạm - Tối ưu One-handed 50px & Chống Double-Tap */}
         <View style={styles.actionRow}>
           {item.status === 'pending' && (
             <TouchableOpacity
-              style={[styles.btnClaim, isActionLoading && { opacity: 0.65 }]}
+              style={[styles.btnClaim, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
               onPress={() => handleClaim(item)}
               activeOpacity={0.8}
               disabled={isActionLoading}
@@ -849,7 +904,7 @@ export default function ServicesScreen() {
 
           {item.status === 'in_progress' && (
             <TouchableOpacity
-              style={[styles.btnDeliver, isActionLoading && { opacity: 0.65 }]}
+              style={[styles.btnDeliver, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
               onPress={() => handleUpdateStatus(item, 'delivering', actionConfig.deliveringLabel)}
               activeOpacity={0.8}
               disabled={isActionLoading}
@@ -870,7 +925,7 @@ export default function ServicesScreen() {
 
           {item.status === 'delivering' && (
             <TouchableOpacity
-              style={[styles.btnComplete, isActionLoading && { opacity: 0.65 }]}
+              style={[styles.btnComplete, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
               onPress={() => handleUpdateStatus(item, 'completed', actionConfig.completeSuccessMsg)}
               activeOpacity={0.8}
               disabled={isActionLoading}

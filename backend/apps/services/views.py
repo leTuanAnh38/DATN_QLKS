@@ -721,36 +721,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
             # 🔒 Kiểm tra điều kiện bắt đầu / thực hiện dịch vụ phòng
             if new_status in ['in_progress', 'delivering', 'completed']:
-                booking = service_req.booking
-                if booking:
-                    category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
-                    service_name = service_req.service.name if service_req.service else ""
-                    from ..notifications.signals import get_service_category_type
-                    cat_type = get_service_category_type(service_name, category_name)
-
-                    # Dịch vụ vận chuyển (xe đón tiễn sân bay) luôn được phép thực hiện trước
-                    if cat_type != 'transport':
-                        has_room = bool(booking.room and booking.room.room_number)
-                        is_checked_in = (booking.status == 'checked_in')
-
-                        # 1. Chưa gán phòng: Không thể thực hiện vì chưa biết mang vào phòng nào
-                        if not has_room:
-                            return Response({
-                                'success': False,
-                                'code': 'ROOM_ASSIGNMENT_REQUIRED',
-                                'message': f'Đơn #{booking.booking_code} chưa được gán phòng cụ thể. Vui lòng liên hệ Lễ tân gán số phòng trước khi thực hiện dịch vụ "{service_name}".'
-                            }, status=status.HTTP_400_BAD_REQUEST)
-
-                        # 2. Đã gán phòng nhưng khách chưa Check-in:
-                        # - Cho phép: Dịch vụ buồng phòng / tiện nghi phòng (Set gối, khăn, nệm, giường phụ, setup phòng...)
-                        # - Chặn: Dịch vụ ẩm thực (F&B), spa trị liệu, giặt ủi cần khách có mặt tại phòng
-                        if not is_checked_in and cat_type in ['fnb', 'spa', 'laundry']:
-                            service_group_label = "ẩm thực & đồ uống" if cat_type == 'fnb' else ("spa trị liệu" if cat_type == 'spa' else "giặt ủi")
-                            return Response({
-                                'success': False,
-                                'code': 'CHECKIN_REQUIRED',
-                                'message': f'Khách hàng đơn #{booking.booking_code} chưa hoàn tất thủ tục nhận phòng (Check-in). Dịch vụ {service_group_label} "{service_name}" yêu cầu khách có mặt tại phòng để phục vụ trực tiếp. Vui lòng đợi khách nhận phòng!'
-                            }, status=status.HTTP_400_BAD_REQUEST)
+                lock_response = self._check_service_lock(service_req)
+                if lock_response is not None:
+                    return lock_response
 
             old_status = service_req.status
             service_req.status = new_status
@@ -1021,6 +994,51 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
+    def _check_service_lock(self, service_req):
+        """
+        Kiểm tra điều kiện bắt đầu / thực hiện dịch vụ phòng (dùng chung cho PATCH đổi trạng thái và claim).
+        Trả về Response lỗi 400 nếu bị khóa, hoặc None nếu được phép làm.
+        - Dịch vụ vận chuyển luôn được phép.
+        - Chưa gán phòng: chặn (ROOM_ASSIGNMENT_REQUIRED).
+        - Chưa check-in: chặn ẩm thực / spa / giặt ủi (CHECKIN_REQUIRED); tiện ích buồng phòng vẫn được làm.
+        """
+        booking = service_req.booking
+        if not booking:
+            return None
+
+        category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
+        service_name = service_req.service.name if service_req.service else ""
+        from ..notifications.signals import get_service_category_type
+        cat_type = get_service_category_type(service_name, category_name)
+
+        # Dịch vụ vận chuyển (xe đón tiễn sân bay) luôn được phép thực hiện trước
+        if cat_type == 'transport':
+            return None
+
+        has_room = bool(booking.room and booking.room.room_number)
+        is_checked_in = (booking.status == 'checked_in')
+
+        # 1. Chưa gán phòng: Không thể thực hiện vì chưa biết mang vào phòng nào
+        if not has_room:
+            return Response({
+                'success': False,
+                'code': 'ROOM_ASSIGNMENT_REQUIRED',
+                'message': f'Đơn #{booking.booking_code} chưa được gán phòng cụ thể. Vui lòng liên hệ Lễ tân gán số phòng trước khi thực hiện dịch vụ "{service_name}".'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Đã gán phòng nhưng khách chưa Check-in:
+        # - Cho phép: Dịch vụ buồng phòng / tiện nghi phòng (Set gối, khăn, nệm, giường phụ, setup phòng...)
+        # - Chặn: Dịch vụ ẩm thực (F&B), spa trị liệu, giặt ủi cần khách có mặt tại phòng
+        if not is_checked_in and cat_type in ['fnb', 'spa', 'laundry']:
+            service_group_label = "ẩm thực & đồ uống" if cat_type == 'fnb' else ("spa trị liệu" if cat_type == 'spa' else "giặt ủi")
+            return Response({
+                'success': False,
+                'code': 'CHECKIN_REQUIRED',
+                'message': f'Khách hàng đơn #{booking.booking_code} chưa hoàn tất thủ tục nhận phòng (Check-in). Dịch vụ {service_group_label} "{service_name}" yêu cầu khách có mặt tại phòng để phục vụ trực tiếp. Vui lòng đợi khách nhận phòng!'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return None
+
     @action(detail=True, methods=['post'], url_path='claim')
     def claim(self, request, pk=None):
         """
@@ -1034,6 +1052,12 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 'success': False,
                 'message': 'Vui lòng đăng nhập để tiếp nhận công việc.'
             }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Nhận việc khi đơn đang pending = chuyển sang in_progress -> phải qua cùng điều kiện khóa như PATCH
+        if service_req.status == 'pending':
+            lock_response = self._check_service_lock(service_req)
+            if lock_response is not None:
+                return lock_response
 
         # Gán nhân viên tiếp nhận
         service_req.assigned_staff = user
