@@ -1,27 +1,31 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../contexts/AuthContext';
+import ConnectionBanner from '../../components/ConnectionBanner';
 
 export default function TabLayout() {
   const { user } = useAuth();
   const role = user?.role || '';
-  const isManagerOrAdmin = ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(role);
+  const isManagerOrAdmin =
+    Boolean(user?.is_superuser) ||
+    ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(role);
 
   // Phân quyền hiển thị Tab Bar thích ứng thông minh (Adaptive RBAC):
-  // 1. Buồng phòng (housekeeper): Tập trung vào Sơ đồ phòng + Đồ thất lạc + Cá nhân
-  // 2. Phục vụ (service_staff): Tập trung vào Dịch vụ F&B/Spa + Đội xe vận chuyển + Cá nhân
-  // 3. Kỹ thuật (technician): Tập trung vào Bảo trì sự cố + Sơ đồ phòng + Cá nhân
+  // 1. Buồng phòng (housekeeper): Sơ đồ phòng + Đồ thất lạc + Dịch vụ (yêu cầu buồng phòng) + Cá nhân
+  // 2. Phục vụ (service_staff): Sơ đồ phòng (báo hỏng/đồ bỏ quên như Web) + Dịch vụ F&B/Spa + Đội xe + Cá nhân
+  // 3. Kỹ thuật (technician): Bảo trì sự cố + Sơ đồ phòng + Cá nhân
   // 4. Quản lý / Lễ tân / Admin: Xem toàn diện các phân hệ điều hành
-  const canAccessHousekeeping = isManagerOrAdmin || ['housekeeper', 'technician'].includes(role);
+  const canAccessHousekeeping = isManagerOrAdmin || ['housekeeper', 'technician', 'service_staff'].includes(role);
   const canAccessLostFound = isManagerOrAdmin || role === 'housekeeper';
   const canAccessTransport = isManagerOrAdmin || role === 'service_staff';
-  const canAccessServices = isManagerOrAdmin || role === 'service_staff';
+  const canAccessServices = isManagerOrAdmin || ['service_staff', 'housekeeper'].includes(role);
   const canAccessMaintenance = isManagerOrAdmin || role === 'technician';
 
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -148,5 +152,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    <ConnectionBanner />
+    </View>
   );
 }

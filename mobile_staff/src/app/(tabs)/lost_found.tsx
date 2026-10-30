@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
+import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import { LostFoundListSkeleton } from '../../components/SkeletonLoader';
@@ -142,13 +143,13 @@ export default function LostFoundScreen() {
     }
   }, []);
 
-  // Real-time polling 6 giây đồng bộ tài sản thất lạc
   useEffect(() => {
     setLoading(true);
     fetchLostItems();
-    const interval = setInterval(fetchLostItems, 6000);
-    return () => clearInterval(interval);
   }, [fetchLostItems]);
+
+  // Real-time polling 6 giây đồng bộ tài sản thất lạc (chỉ khi tab hiển thị & app ở foreground)
+  useFocusPolling(fetchLostItems, 6000);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -161,8 +162,11 @@ export default function LostFoundScreen() {
   const stats = useMemo(() => {
     const total = items.length;
     const stored = items.filter((it) => it.status === 'stored').length;
+    const contacted = items.filter((it) => it.status === 'contacted').length;
     const returned = items.filter((it) => it.status === 'returned').length;
-    return { total, stored, returned };
+    // Khớp backend (lost-and-found/stats): returned / total * 100, làm tròn 1 chữ số
+    const returnRate = total > 0 ? Math.round((returned / total) * 1000) / 10 : 0;
+    return { total, stored, contacted, returned, returnRate };
   }, [items]);
 
   // Bộ lọc
@@ -601,6 +605,16 @@ export default function LostFoundScreen() {
         })}
       </View>
 
+      {/* Thống kê bổ sung (khớp web): đã liên hệ khách & tỷ lệ trao trả */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, paddingHorizontal: 16, marginBottom: 6 }}>
+        <Text style={{ fontSize: 11.5, color: '#94A3B8', fontWeight: '600' }}>
+          Đã liên hệ khách: <Text style={{ color: '#38BDF8', fontWeight: '800' }}>{stats.contacted}</Text>
+        </Text>
+        <Text style={{ fontSize: 11.5, color: '#94A3B8', fontWeight: '600' }}>
+          Tỷ lệ trao trả: <Text style={{ color: '#34D399', fontWeight: '800' }}>{stats.returnRate}%</Text>
+        </Text>
+      </View>
+
       {/* 3. Ô Tìm Kiếm Nhanh */}
       <View style={styles.searchWrapper}>
         <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginLeft: 12 }} />
@@ -698,6 +712,9 @@ export default function LostFoundScreen() {
           data={displayedItems}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           onEndReached={handleLoadMore}

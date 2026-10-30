@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getApiBaseUrl } from './config';
 import { getAccessToken, getRefreshToken, saveAuthTokens, clearAuthData } from '../services/authStorage';
+import { setServerOffline } from '../services/connectionStatus';
 
 const apiClient = axios.create({
   timeout: 12000,
@@ -33,8 +34,13 @@ apiClient.interceptors.request.use(
 
 // Response Interceptor: Tự động refresh token nếu 401
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    setServerOffline(false);
+    return response;
+  },
   async (error) => {
+    // Không có response = mất mạng / timeout / server không phản hồi
+    setServerOffline(!error.response);
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

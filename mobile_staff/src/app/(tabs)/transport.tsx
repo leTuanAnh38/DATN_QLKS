@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
+import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import { DEFAULT_API_URL } from '../../api/config';
@@ -211,13 +212,13 @@ export default function TransportScreen() {
     }
   }, []);
 
-  // Real-time polling 6 giây đồng bộ hiện trường đội xe
   useEffect(() => {
     setLoading(true);
     fetchTransportRequests();
-    const interval = setInterval(fetchTransportRequests, 6000);
-    return () => clearInterval(interval);
   }, [fetchTransportRequests]);
+
+  // Real-time polling 6 giây đồng bộ hiện trường đội xe (chỉ khi tab hiển thị & app ở foreground)
+  useFocusPolling(fetchTransportRequests, 6000);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -735,6 +736,9 @@ export default function TransportScreen() {
           data={displayedRequests}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           onEndReached={handleLoadMore}

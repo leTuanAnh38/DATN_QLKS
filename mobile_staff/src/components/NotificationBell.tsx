@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
+import { useFocusPolling } from '../hooks/use-focus-polling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.88, 380);
@@ -66,12 +67,11 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications(true);
-    // Tự động kiểm tra thông báo mới mỗi 15 giây
-    const interval = setInterval(() => {
-      fetchNotifications(true);
-    }, 15000);
-    return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  // Tự động kiểm tra thông báo mới mỗi 15 giây (chỉ khi màn hình hiển thị & app ở foreground)
+  const pollNotifications = useCallback(() => fetchNotifications(true), [fetchNotifications]);
+  useFocusPolling(pollNotifications, 15000);
 
   const onOpenModal = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

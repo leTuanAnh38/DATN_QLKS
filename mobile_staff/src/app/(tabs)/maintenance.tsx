@@ -16,6 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
+import { useFocusPolling } from '../../hooks/use-focus-polling';
+import {
+  MAINTENANCE_ISSUE_TYPES,
+  EQUIPMENT_SUGGESTIONS,
+  getRoomStatusColor,
+  getRoomStatusLabel,
+} from '../../constants/maintenance';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import { MaintenanceListSkeleton } from '../../components/SkeletonLoader';
@@ -40,56 +47,12 @@ interface MaintenanceTicket {
   start_date: string;
 }
 
-const MAINTENANCE_ISSUE_TYPES = [
-  { key: 'ac', label: 'Điều hòa / Không khí', icon: 'snow', color: '#38BDF8' },
-  { key: 'plumbing', label: 'Cấp thoát nước', icon: 'water', color: '#06B6D4' },
-  { key: 'electric', label: 'Điện & Chiếu sáng', icon: 'flash', color: '#F59E0B' },
-  { key: 'electronics', label: 'Điện tử / Smart TV', icon: 'tv', color: '#A855F7' },
-  { key: 'furniture', label: 'Nội thất & Khóa', icon: 'key', color: '#F97316' },
-  { key: 'other', label: 'Sự cố tiện ích khác', icon: 'construct', color: '#F472B6' },
-];
-
-const EQUIPMENT_SUGGESTIONS: { [key: string]: string[] } = {
-  ac: ['Điều hòa Daikin', 'Điều hòa âm trần', 'Điều khiển máy lạnh', 'Quạt hút thông gió'],
-  plumbing: ['Vòi sen tắm đứng', 'Bồn cầu / Vòi xịt', 'Bình nóng lạnh', 'Chậu rửa mặt (Lavabo)', 'Ống thoát nước sàn'],
-  electric: ['Đèn chiếu sáng chính', 'Đèn ngủ đầu giường', 'Ổ cắm điện / Công tắc', 'Cầu dao điện (Aptomat)'],
-  electronics: ['Smart TV / Remote', 'Tủ lạnh Minibar', 'Két sắt điện tử', 'Ấm siêu tốc', 'Máy sấy tóc'],
-  furniture: ['Khóa thẻ từ phòng', 'Cửa phòng / Cửa ban công', 'Bàn ghế / Tủ quần áo', 'Giường / Đệm lò xo'],
-  other: ['Gương kính nứt', 'Rèm cửa sổ', 'Tường ố / Thấm nước', 'Mùi lạ trong phòng'],
-};
-
-const getRoomStatusColor = (status?: string) => {
-  switch (status) {
-    case 'occupied':
-      return { bg: 'rgba(56, 189, 248, 0.15)', dot: '#38BDF8', text: '#38BDF8' };
-    case 'available':
-      return { bg: 'rgba(16, 185, 129, 0.15)', dot: '#10B981', text: '#10B981' };
-    case 'cleaning':
-      return { bg: 'rgba(245, 158, 11, 0.15)', dot: '#F59E0B', text: '#F59E0B' };
-    case 'maintenance':
-      return { bg: 'rgba(239, 68, 68, 0.15)', dot: '#EF4444', text: '#EF4444' };
-    default:
-      return { bg: 'rgba(148, 163, 184, 0.15)', dot: '#94A3B8', text: '#94A3B8' };
-  }
-};
-
-const getRoomStatusLabel = (status?: string) => {
-  switch (status) {
-    case 'occupied':
-      return 'Có khách';
-    case 'available':
-      return 'Sẵn sàng';
-    case 'cleaning':
-      return 'Đang dọn';
-    case 'maintenance':
-      return 'Bảo trì';
-    default:
-      return status || 'Trống';
-  }
-};
-
 export default function MaintenanceScreen() {
   const { user } = useAuth();
+  // Khớp web (RoomManagement.canCompleteMaintenance): chỉ Kỹ thuật & quản lý mới được nghiệm thu phiếu
+  const canCompleteMaintenance = Boolean(
+    user?.is_superuser || ['technician', 'admin', 'owner', 'manager'].includes(user?.role || '')
+  );
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -119,7 +82,6 @@ export default function MaintenanceScreen() {
   const [createPartsReplaced, setCreatePartsReplaced] = useState('');
   const [createCost, setCreateCost] = useState('');
   const [createIsGuestFault, setCreateIsGuestFault] = useState(false);
-  const [isUrgent, setIsUrgent] = useState(false);
   const [submittingCreate, setSubmittingCreate] = useState(false);
 
   const selectedRoom = useMemo(() => {
@@ -139,13 +101,13 @@ export default function MaintenanceScreen() {
     }
   }, []);
 
-  // Real-time polling 6 giây đồng bộ hiện trường
   useEffect(() => {
     setLoading(true);
     fetchTickets();
-    const interval = setInterval(fetchTickets, 6000);
-    return () => clearInterval(interval);
   }, [fetchTickets]);
+
+  // Real-time polling 6 giây đồng bộ hiện trường (chỉ khi tab hiển thị & app ở foreground)
+  useFocusPolling(fetchTickets, 6000);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -240,6 +202,10 @@ export default function MaintenanceScreen() {
   };
 
   const openCompleteModal = (ticket: MaintenanceTicket) => {
+    if (!canCompleteMaintenance) {
+      Alert.alert('Không có quyền', 'Nghiệp vụ nghiệm thu & bàn giao phiếu bảo trì thuộc thẩm quyền của Kỹ thuật viên hoặc Quản lý.');
+      return;
+    }
     setSelectedTicket(ticket);
     setPartsReplaced(ticket.parts_replaced || '');
     setCost(ticket.cost ? String(ticket.cost) : '0');
@@ -306,7 +272,6 @@ export default function MaintenanceScreen() {
     setBreakdownDesc('');
     setCreatePartsReplaced('');
     setCreateCost('');
-    setIsUrgent(false);
     setRoomFilterText('');
     setCreateModalVisible(true);
     if (roomsList.length === 0) {
@@ -353,7 +318,6 @@ export default function MaintenanceScreen() {
         cost: parsedCost,
         is_guest_fault: createIsGuestFault,
         booking_id: (createIsGuestFault && activeBooking) ? activeBooking.id : null,
-        priority: isUrgent ? 'high' : 'medium',
       });
 
       if (res.data.success || res.data.id) {
@@ -496,7 +460,7 @@ export default function MaintenanceScreen() {
             Phụ trách: {item.technician_name || 'Đội kỹ thuật'}
           </Text>
 
-          {isFixing ? (
+          {isFixing && canCompleteMaintenance ? (
             <TouchableOpacity
               style={[styles.completeBtn, isLoading && { opacity: 0.65 }]}
               onPress={() => openCompleteModal(item)}
@@ -512,6 +476,11 @@ export default function MaintenanceScreen() {
                 </>
               )}
             </TouchableOpacity>
+          ) : isFixing ? (
+            <View style={styles.doneTag}>
+              <Ionicons name="construct" size={14} color="#F59E0B" style={{ marginRight: 4 }} />
+              <Text style={[styles.doneTagText, { color: '#F59E0B' }]}>Đang chờ Kỹ thuật xử lý</Text>
+            </View>
           ) : (
             <View style={styles.doneTag}>
               <Ionicons name="shield-checkmark" size={14} color="#34D399" style={{ marginRight: 4 }} />
@@ -685,6 +654,9 @@ export default function MaintenanceScreen() {
           data={displayedTickets}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           onEndReached={handleLoadMore}
@@ -1103,43 +1075,6 @@ export default function MaintenanceScreen() {
                   </View>
                 )}
               </View>
-
-              {/* 7. Mức độ khẩn cấp */}
-              <TouchableOpacity
-                style={[
-                  styles.urgentToggleBox,
-                  isUrgent && styles.urgentToggleBoxActive,
-                ]}
-                onPress={() => {
-                  setIsUrgent(!isUrgent);
-                  Haptics.selectionAsync();
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                  <Ionicons
-                    name={isUrgent ? 'flame' : 'shield-outline'}
-                    size={18}
-                    color={isUrgent ? '#EF4444' : '#94A3B8'}
-                    style={{ marginRight: 8 }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.urgentToggleLabel, isUrgent && { color: '#F87171', fontWeight: '800' }]}>
-                      {isUrgent ? 'Sự cố KHẨN CẤP (Ưu tiên xử lý ngay)' : 'Mức độ bình thường'}
-                    </Text>
-                    <Text style={{ fontSize: 10.5, color: isUrgent ? '#FCA5A5' : '#64748B', marginTop: 2 }}>
-                      {isUrgent
-                        ? 'Kích hoạt cảnh báo đỏ mức độ cao trên toàn hệ thống'
-                        : 'Tiến hành theo quy trình bảo trì tiêu chuẩn'}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name={isUrgent ? 'checkbox' : 'square-outline'}
-                  size={20}
-                  color={isUrgent ? '#EF4444' : '#64748B'}
-                />
-              </TouchableOpacity>
 
               <View style={styles.alertNoteBox}>
                 <Ionicons name="information-circle" size={17} color="#F59E0B" style={{ marginRight: 8 }} />

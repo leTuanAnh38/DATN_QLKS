@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
+import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
@@ -310,14 +311,11 @@ export default function ServicesScreen() {
     setLoading(true);
     fetchOrders();
     fetchCatalog();
-
-    // Tự động đồng bộ ngầm mỗi 6 giây (nhận đơn mới tức thì khi khách đặt trên Web hoặc Lễ tân tạo đơn)
-    const interval = setInterval(() => {
-      fetchOrders();
-    }, 6000);
-
-    return () => clearInterval(interval);
   }, [fetchOrders, fetchCatalog]);
+
+  // Tự động đồng bộ ngầm mỗi 6 giây (nhận đơn mới khi khách đặt trên Web hoặc Lễ tân tạo đơn)
+  // Chỉ chạy khi tab hiển thị & app ở foreground
+  useFocusPolling(fetchOrders, 6000);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -1156,6 +1154,9 @@ export default function ServicesScreen() {
               data={displayedOrders}
               keyExtractor={(item) => String(item.id)}
               renderItem={renderItem}
+              initialNumToRender={8}
+              maxToRenderPerBatch={8}
+              windowSize={7}
               contentContainerStyle={styles.listContainer}
               showsVerticalScrollIndicator={false}
               onEndReached={handleLoadMoreOrders}
@@ -1245,6 +1246,9 @@ export default function ServicesScreen() {
               data={displayedCatalogItems}
               keyExtractor={(item) => String(item.id)}
               renderItem={renderCatalogItem}
+              initialNumToRender={8}
+              maxToRenderPerBatch={8}
+              windowSize={7}
               contentContainerStyle={[styles.listContainer, { paddingBottom: 25 }]}
               showsVerticalScrollIndicator={false}
               onEndReached={handleLoadMoreCatalog}

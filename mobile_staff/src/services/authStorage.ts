@@ -12,6 +12,7 @@ export interface UserInfo {
   last_name?: string;
   phone_number?: string;
   role: string;
+  is_superuser?: boolean;
   avatar?: string;
   department?: string;
   employee_code?: string;
