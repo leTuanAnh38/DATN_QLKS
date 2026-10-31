@@ -17,7 +17,6 @@ import {
     ShieldAlert,
     RefreshCw,
     PlusCircle,
-    Search,
     Compass,
     ShieldCheck,
     Zap,
@@ -101,6 +100,7 @@ const STATUS_CONFIGS = {
     cancelled: { label: 'Đã Hủy', color: 'bg-rose-50 text-rose-800 border-rose-300' }
 };
 
+
 // Helper biểu tượng dịch vụ phòng (Concierge)
 const getServiceCategoryIcon = (categoryName, serviceName) => {
     const text = `${categoryName || ''} ${serviceName || ''}`.toLowerCase();
@@ -167,7 +167,6 @@ export default function HotelAdminDashboard({ initialTab }) {
     const [activeTab, setActiveTab] = useState(getInitialTab);
     const [timeFilter, setTimeFilter] = useState('month');
     const [bookingFilter, setBookingFilter] = useState('all');
-    const [searchTerm, setSearchTerm] = useState('');
 
     // State quản lý Dropdown Avatar Profile trên Topbar
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -488,29 +487,16 @@ export default function HotelAdminDashboard({ initialTab }) {
     // =========================================================================
     const filteredBookings = useMemo(() => {
         return realBookings.filter((item) => {
-            const matchFilter =
-                bookingFilter === 'all'
-                    ? true
-                    : bookingFilter === 'pending'
-                        ? ['pending', 'paid', 'PAID'].includes(item.status)
-                        : bookingFilter === 'checked_in'
-                            ? item.status === 'checked_in'
-                            : item.status === bookingFilter;
-
-            if (!searchTerm.trim()) return matchFilter;
-
-            const q = searchTerm.trim().toLowerCase();
-            const matchCode = item.booking_code?.toLowerCase().includes(q);
-            const matchGuest = item.guest_name?.toLowerCase().includes(q);
-            const matchEmail = item.guest_email?.toLowerCase().includes(q);
-            const matchPhone = item.guest_phone?.toLowerCase().includes(q);
-            const matchRoom = item.room_name?.toLowerCase().includes(q);
-            const matchRoomNum = String(item.room_number || '').toLowerCase().includes(q);
-            const matchCccd = String(item.identity_card || '').toLowerCase().includes(q);
-
-            return matchFilter && (matchCode || matchGuest || matchEmail || matchPhone || matchRoom || matchRoomNum || matchCccd);
+            if (bookingFilter === 'all') return true;
+            if (bookingFilter === 'pending') {
+                return ['pending', 'paid', 'PAID'].includes(item.status);
+            }
+            if (bookingFilter === 'checked_in') {
+                return item.status === 'checked_in';
+            }
+            return item.status === bookingFilter;
         });
-    }, [realBookings, bookingFilter, searchTerm]);
+    }, [realBookings, bookingFilter]);
 
     // =========================================================================
     // NẾU CHƯA ĐĂNG NHẬP HOẶC KHÔNG PHẢI PHÂN HỆ QUẢN LÝ -> HIỂN THỊ CHẶN BẢO MẬT
@@ -1363,7 +1349,7 @@ export default function HotelAdminDashboard({ initialTab }) {
             <div className="flex-1 ml-0 lg:ml-80 flex flex-col min-h-screen min-w-0 max-w-full print:ml-0 print:w-full">
                 {/* Top Navbar: Ghim cố định trên cùng với sticky top-0 z-30, nền đặc bg-white, viền và bóng phân cách */}
                 <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm print:hidden">
-                    <div className="flex items-center gap-3 flex-1 min-w-0 mr-3">
+                    <div className="flex items-center gap-3">
                         {/* Nút Hamburger mở Sidebar trên Mobile */}
                         <button
                             type="button"
@@ -1374,22 +1360,6 @@ export default function HotelAdminDashboard({ initialTab }) {
                         >
                             <Menu className="w-5 h-5" />
                         </button>
-
-                        {/* Search bar */}
-                        <div className="relative flex-1 max-w-xs sm:max-w-sm md:w-96">
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </span>
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm phòng, khách, mã..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-                            />
-                        </div>
                     </div>
 
                     {/* Right Status + Notifications + Avatar */}

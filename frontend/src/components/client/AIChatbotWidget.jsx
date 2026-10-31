@@ -1537,23 +1537,6 @@ export default function AIChatbotWidget() {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* THANH GỢI Ý 1 HÀNG MỎNG LƯỚT NGANG PHÍA TRÊN Ô NHẬP (Chỉ chiếm ~30px) */}
-                    <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-200/70 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-                        <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 flex-shrink-0">
-                            <Sparkles className="w-3 h-3 text-amber-500" />
-                            Gợi ý:
-                        </span>
-                        {currentChips.map(chip => (
-                            <button
-                                key={chip.id}
-                                onClick={() => handleSendMessage(chip.query)}
-                                disabled={isLoading}
-                                className="flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 font-medium transition-all shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50 whitespace-nowrap"
-                            >
-                                {chip.label}
-                            </button>
-                        ))}
-                    </div>
 
                     {/* BANNER THU ÂM GIỌNG NÓI (VOICE AI LISTENING) */}
                     {isListening && (
