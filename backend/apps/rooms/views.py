@@ -883,6 +883,15 @@ class AdminRoomCompleteCleaningView(APIView):
     permission_classes = [IsHotelStaffOrAdmin]
 
     def post(self, request, pk):
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        allowed_roles = ['housekeeper', 'manager', 'admin', 'owner']
+        if not (user.is_authenticated and (user.is_superuser or user_role in allowed_roles)):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên Buồng phòng (Housekeeper) hoặc Quản lý mới có quyền xác nhận hoàn tất dọn dẹp phòng.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         try:
             room = Room.objects.select_related('category').get(pk=pk)
         except Room.DoesNotExist:
@@ -1114,8 +1123,27 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
             'stats': stats_data
         }, status=status.HTTP_201_CREATED)
 
+    def destroy(self, request, *args, **kwargs):
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        if not (user.is_authenticated and (user.is_superuser or user_role in ['admin', 'owner', 'manager'])):
+            return Response({
+                'success': False,
+                'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền xóa phiếu bảo trì.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=['post', 'patch'], url_path='complete')
     def complete_maintenance(self, request, pk=None):
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        allowed_roles = ['technician', 'manager', 'admin', 'owner']
+        if not (user.is_authenticated and (user.is_superuser or user_role in allowed_roles)):
+            return Response({
+                'success': False,
+                'message': 'Chỉ Kỹ thuật viên (Technician) hoặc Quản lý mới có quyền nghiệm thu hoàn tất phiếu bảo trì.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         ticket = self.get_object()
         if ticket.status == 'completed':
             return Response({'success': False, 'message': 'Phiếu bảo trì này đã hoàn tất trước đó.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1725,6 +1753,15 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='return')
     def return_to_guest(self, request, pk=None):
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        allowed_roles = ['receptionist', 'manager', 'admin', 'owner']
+        if not (user.is_authenticated and (user.is_superuser or user_role in allowed_roles)):
+            return Response({
+                'success': False,
+                'message': 'Chỉ Lễ tân (Receptionist) hoặc Quản lý mới có quyền bàn giao đồ thất lạc cho khách.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         item = self.get_object()
         if item.status == 'returned':
             return Response({'success': False, 'message': 'Món đồ này đã được trao trả cho khách trước đó.'}, status=status.HTTP_400_BAD_REQUEST)

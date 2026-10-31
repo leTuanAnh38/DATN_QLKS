@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
 import { DEFAULT_API_URL } from '../api/config';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 // Helper lấy URL ảnh dịch vụ / món ăn
 const getServiceItemImage = (item: any): string => {
@@ -48,6 +49,7 @@ export default function CustomerCrmModal({
   onClose,
   initialGuestId,
 }: CustomerCrmModalProps) {
+  const { isDark } = useAppTheme();
   const [guests, setGuests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -280,9 +282,18 @@ export default function CustomerCrmModal({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            !isDark && {
+              backgroundColor: '#FFFFFF',
+              borderTopColor: '#E2E8F0',
+              shadowColor: '#64748B',
+            },
+          ]}
+        >
           {/* Header */}
-          <View style={styles.headerRow}>
+          <View style={[styles.headerRow, !isDark && { borderBottomColor: '#F1F5F9' }]}>
             {selectedGuest ? (
               <TouchableOpacity
                 style={styles.backBtn}
@@ -291,18 +302,22 @@ export default function CustomerCrmModal({
                   Haptics.selectionAsync();
                 }}
               >
-                <Ionicons name="arrow-back" size={20} color="#F59E0B" />
-                <Text style={styles.backBtnText}>Danh sách khách</Text>
+                <Ionicons name="arrow-back" size={20} color="#D97706" />
+                <Text style={[styles.backBtnText, !isDark && { color: '#B45309' }]}>Danh sách khách</Text>
               </TouchableOpacity>
             ) : (
               <View>
-                <Text style={styles.headerTitle}>Hồ Sơ Khách Hàng (CRM) 👥</Text>
-                <Text style={styles.headerSubtitle}>Tra cứu thông tin, lịch sử đặt phòng & dịch vụ</Text>
+                <Text style={[styles.headerTitle, !isDark && { color: '#0F172A' }]}>Hồ Sơ Khách Hàng (CRM) 👥</Text>
+                <Text style={[styles.headerSubtitle, !isDark && { color: '#64748B' }]}>Tra cứu thông tin, lịch sử đặt phòng & dịch vụ</Text>
               </View>
             )}
 
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-              <Ionicons name="close" size={20} color="#94A3B8" />
+            <TouchableOpacity
+              style={[styles.closeBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
             </TouchableOpacity>
           </View>
 
@@ -328,14 +343,24 @@ export default function CustomerCrmModal({
                     return (
                       <TouchableOpacity
                         key={item.key}
-                        style={[styles.tierChip, isSelected && styles.tierChipActive]}
+                        style={[
+                          styles.tierChip,
+                          !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                          isSelected && styles.tierChipActive,
+                        ]}
                         onPress={() => {
                           setTierFilter(item.key);
                           Haptics.selectionAsync();
                         }}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.tierChipText, isSelected && styles.tierChipTextActive]}>
+                        <Text
+                          style={[
+                            styles.tierChipText,
+                            !isDark && !isSelected && { color: '#64748B' },
+                            isSelected && styles.tierChipTextActive,
+                          ]}
+                        >
                           {item.label}
                         </Text>
                       </TouchableOpacity>
@@ -345,18 +370,23 @@ export default function CustomerCrmModal({
               </View>
 
               {/* Search Box */}
-              <View style={styles.searchBox}>
-                <Ionicons name="search-outline" size={17} color="#64748B" style={{ marginRight: 8 }} />
+              <View
+                style={[
+                  styles.searchBox,
+                  !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' },
+                ]}
+              >
+                <Ionicons name="search-outline" size={17} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
                 <TextInput
-                  style={styles.searchInput}
+                  style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
                   placeholder="Tìm theo tên, SĐT, CCCD, email khách..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
                 {searchQuery ? (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                    <Ionicons name="close-circle" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -365,12 +395,12 @@ export default function CustomerCrmModal({
               {loading ? (
                 <View style={styles.centerBox}>
                   <ActivityIndicator size="large" color="#F59E0B" />
-                  <Text style={styles.loadingText}>Đang tải danh sách khách hàng...</Text>
+                  <Text style={[styles.loadingText, !isDark && { color: '#64748B' }]}>Đang tải danh sách khách hàng...</Text>
                 </View>
               ) : filteredGuests.length === 0 ? (
                 <View style={styles.centerBox}>
-                  <Ionicons name="people-outline" size={48} color="#475569" />
-                  <Text style={styles.emptyText}>Không tìm thấy khách hàng nào</Text>
+                  <Ionicons name="people-outline" size={48} color={isDark ? '#475569' : '#CBD5E1'} />
+                  <Text style={[styles.emptyText, !isDark && { color: '#64748B' }]}>Không tìm thấy khách hàng nào</Text>
                 </View>
               ) : (
                 <FlatList
@@ -387,15 +417,21 @@ export default function CustomerCrmModal({
                     return (
                       <TouchableOpacity
                         key={g.id}
-                        style={styles.guestCard}
+                        style={[
+                          styles.guestCard,
+                          !isDark && {
+                            backgroundColor: '#F8FAFC',
+                            borderColor: '#E2E8F0',
+                          },
+                        ]}
                         onPress={() => openGuestDetail(g)}
                         activeOpacity={0.7}
                       >
-                        <View style={styles.avatarCircle}>
+                        <View style={[styles.avatarCircle, !isDark && { backgroundColor: '#E2E8F0' }]}>
                           {g.avatar ? (
                             <Image source={{ uri: g.avatar }} style={styles.avatarImg} />
                           ) : (
-                            <Text style={styles.avatarInitial}>
+                            <Text style={[styles.avatarInitial, !isDark && { color: '#D97706' }]}>
                               {(g.full_name || g.username || 'K').charAt(0).toUpperCase()}
                             </Text>
                           )}
@@ -403,7 +439,7 @@ export default function CustomerCrmModal({
 
                         <View style={{ flex: 1, marginLeft: 12 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Text style={styles.guestName} numberOfLines={1}>
+                            <Text style={[styles.guestName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
                               {g.full_name || g.username}
                             </Text>
                             <View style={[styles.tierBadge, { backgroundColor: tierBadge.bg, borderColor: tierBadge.border }]}>
@@ -412,14 +448,14 @@ export default function CustomerCrmModal({
                           </View>
 
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                            <Ionicons name="call-outline" size={13} color="#94A3B8" style={{ marginRight: 4 }} />
-                            <Text style={styles.guestSubInfo}>{g.phone_number || 'Chưa có SĐT'}</Text>
-                            <Text style={styles.dotSeparator}>•</Text>
-                            <Text style={styles.guestSpendText}>Chi: {spendFormatted}</Text>
+                            <Ionicons name="call-outline" size={13} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 4 }} />
+                            <Text style={[styles.guestSubInfo, !isDark && { color: '#64748B' }]}>{g.phone_number || 'Chưa có SĐT'}</Text>
+                            <Text style={[styles.dotSeparator, !isDark && { color: '#CBD5E1' }]}>•</Text>
+                            <Text style={[styles.guestSpendText, !isDark && { color: '#059669' }]}>Chi: {spendFormatted}</Text>
                           </View>
                         </View>
 
-                        <Ionicons name="chevron-forward" size={18} color="#64748B" style={{ marginLeft: 6 }} />
+                        <Ionicons name="chevron-forward" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 6 }} />
                       </TouchableOpacity>
                     );
                   }}
@@ -443,19 +479,24 @@ export default function CustomerCrmModal({
               scrollEventThrottle={200}
             >
               {/* Profile Header Card */}
-              <View style={styles.profileHeaderCard}>
+              <View
+                style={[
+                  styles.profileHeaderCard,
+                  !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                ]}
+              >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.avatarCircle, { width: 56, height: 56, borderRadius: 28 }]}>
+                  <View style={[styles.avatarCircle, { width: 56, height: 56, borderRadius: 28 }, !isDark && { backgroundColor: '#E2E8F0' }]}>
                     {selectedGuest.avatar ? (
                       <Image source={{ uri: selectedGuest.avatar }} style={{ width: 56, height: 56, borderRadius: 28 }} />
                     ) : (
-                      <Text style={[styles.avatarInitial, { fontSize: 22 }]}>
+                      <Text style={[styles.avatarInitial, { fontSize: 22 }, !isDark && { color: '#D97706' }]}>
                         {(selectedGuest.full_name || selectedGuest.username || 'K').charAt(0).toUpperCase()}
                       </Text>
                     )}
                   </View>
                   <View style={{ flex: 1, marginLeft: 14 }}>
-                    <Text style={styles.profileName} numberOfLines={1}>
+                    <Text style={[styles.profileName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
                       {selectedGuest.full_name || selectedGuest.username}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
@@ -465,7 +506,7 @@ export default function CustomerCrmModal({
                         </Text>
                       </View>
                       {selectedGuest.loyalty_points || selectedGuest.total_points ? (
-                        <Text style={styles.pointsText}>
+                        <Text style={[styles.pointsText, !isDark && { color: '#D97706' }]}>
                           ⭐ {selectedGuest.loyalty_points || selectedGuest.total_points} điểm
                         </Text>
                       ) : null}
@@ -474,13 +515,13 @@ export default function CustomerCrmModal({
                 </View>
 
                 {/* Quick Info Grid */}
-                <View style={styles.profileInfoGrid}>
+                <View style={[styles.profileInfoGrid, !isDark && { borderTopColor: '#E2E8F0' }]}>
                   <TouchableOpacity
                     style={styles.infoRow}
                     onPress={() => selectedGuest.phone_number && callPhone(selectedGuest.phone_number)}
                   >
-                    <Ionicons name="call" size={15} color="#10B981" style={{ marginRight: 8 }} />
-                    <Text style={[styles.infoValue, { color: '#38BDF8', fontWeight: '700' }]}>
+                    <Ionicons name="call" size={15} color="#059669" style={{ marginRight: 8 }} />
+                    <Text style={[styles.infoValue, { color: '#0284C7', fontWeight: '700' }]}>
                       {selectedGuest.phone_number || 'Chưa cập nhật SĐT'}
                     </Text>
                     {selectedGuest.phone_number && (
@@ -491,24 +532,24 @@ export default function CustomerCrmModal({
                   </TouchableOpacity>
 
                   <View style={styles.infoRow}>
-                    <Ionicons name="mail" size={15} color="#60A5FA" style={{ marginRight: 8 }} />
-                    <Text style={styles.infoValue} numberOfLines={1}>
+                    <Ionicons name="mail" size={15} color="#0284C7" style={{ marginRight: 8 }} />
+                    <Text style={[styles.infoValue, !isDark && { color: '#334155' }]} numberOfLines={1}>
                       {selectedGuest.email || 'Chưa cập nhật email'}
                     </Text>
                   </View>
 
                   {selectedGuest.id_card_number ? (
                     <View style={styles.infoRow}>
-                      <Ionicons name="card" size={15} color="#F59E0B" style={{ marginRight: 8 }} />
-                      <Text style={styles.infoValue}>
+                      <Ionicons name="card" size={15} color="#D97706" style={{ marginRight: 8 }} />
+                      <Text style={[styles.infoValue, !isDark && { color: '#334155' }]}>
                         CCCD/Hộ chiếu: {selectedGuest.id_card_number}
                       </Text>
                     </View>
                   ) : null}
 
                   <View style={styles.infoRow}>
-                    <Ionicons name="cash" size={15} color="#34D399" style={{ marginRight: 8 }} />
-                    <Text style={[styles.infoValue, { color: '#34D399', fontWeight: '800' }]}>
+                    <Ionicons name="cash" size={15} color="#059669" style={{ marginRight: 8 }} />
+                    <Text style={[styles.infoValue, { color: '#059669', fontWeight: '800' }]}>
                       Tổng chi tiêu tích lũy: {selectedGuest.total_spent ? `${parseInt(selectedGuest.total_spent, 10).toLocaleString('vi-VN')} đ` : '0 đ'}
                     </Text>
                   </View>
@@ -518,7 +559,11 @@ export default function CustomerCrmModal({
               {/* History Switcher Tabs */}
               <View style={styles.historyTabRow}>
                 <TouchableOpacity
-                  style={[styles.historyTabBtn, activeTab === 'bookings' && styles.historyTabBtnActive]}
+                  style={[
+                    styles.historyTabBtn,
+                    !isDark && activeTab !== 'bookings' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                    activeTab === 'bookings' && styles.historyTabBtnActive,
+                  ]}
                   onPress={() => {
                     setActiveTab('bookings');
                     Haptics.selectionAsync();
@@ -527,16 +572,26 @@ export default function CustomerCrmModal({
                   <Ionicons
                     name="bed"
                     size={15}
-                    color={activeTab === 'bookings' ? '#0A0F1D' : '#94A3B8'}
+                    color={activeTab === 'bookings' ? '#0A0F1D' : isDark ? '#94A3B8' : '#64748B'}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.historyTabText, activeTab === 'bookings' && styles.historyTabTextActive]}>
+                  <Text
+                    style={[
+                      styles.historyTabText,
+                      !isDark && activeTab !== 'bookings' && { color: '#64748B' },
+                      activeTab === 'bookings' && styles.historyTabTextActive,
+                    ]}
+                  >
                     Lịch sử đặt phòng ({bookingHistory.length})
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.historyTabBtn, activeTab === 'services' && styles.historyTabBtnActive]}
+                  style={[
+                    styles.historyTabBtn,
+                    !isDark && activeTab !== 'services' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                    activeTab === 'services' && styles.historyTabBtnActive,
+                  ]}
                   onPress={() => {
                     setActiveTab('services');
                     Haptics.selectionAsync();
@@ -545,10 +600,16 @@ export default function CustomerCrmModal({
                   <Ionicons
                     name="restaurant"
                     size={15}
-                    color={activeTab === 'services' ? '#0A0F1D' : '#94A3B8'}
+                    color={activeTab === 'services' ? '#0A0F1D' : isDark ? '#94A3B8' : '#64748B'}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.historyTabText, activeTab === 'services' && styles.historyTabTextActive]}>
+                  <Text
+                    style={[
+                      styles.historyTabText,
+                      !isDark && activeTab !== 'services' && { color: '#64748B' },
+                      activeTab === 'services' && styles.historyTabTextActive,
+                    ]}
+                  >
                     Dịch vụ & Món ({serviceHistory.length})
                   </Text>
                 </TouchableOpacity>
@@ -558,30 +619,41 @@ export default function CustomerCrmModal({
               {loadingHistory ? (
                 <View style={styles.centerBox}>
                   <ActivityIndicator size="small" color="#F59E0B" />
-                  <Text style={styles.loadingText}>Đang tải lịch sử...</Text>
+                  <Text style={[styles.loadingText, !isDark && { color: '#64748B' }]}>Đang tải lịch sử...</Text>
                 </View>
               ) : activeTab === 'bookings' ? (
                 displayedBookingHistory.length === 0 ? (
                   <View style={styles.centerBox}>
-                    <Text style={styles.emptyText}>Chưa có lịch sử đặt phòng nào.</Text>
+                    <Text style={[styles.emptyText, !isDark && { color: '#64748B' }]}>Chưa có lịch sử đặt phòng nào.</Text>
                   </View>
                 ) : (
                   <>
                     {displayedBookingHistory.map((b) => (
-                      <View key={b.id || b.booking_code} style={styles.historyCard}>
+                      <View
+                        key={b.id || b.booking_code}
+                        style={[
+                          styles.historyCard,
+                          !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        ]}
+                      >
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={styles.historyCode}>#{b.booking_code}</Text>
-                          <View style={styles.historyStatusBadge}>
-                            <Text style={styles.historyStatusText}>{b.status_display || b.status}</Text>
+                          <Text style={[styles.historyCode, !isDark && { color: '#0284C7' }]}>#{b.booking_code}</Text>
+                          <View
+                            style={[
+                              styles.historyStatusBadge,
+                              !isDark && { backgroundColor: 'rgba(2, 132, 199, 0.12)' },
+                            ]}
+                          >
+                            <Text style={[styles.historyStatusText, !isDark && { color: '#0284C7' }]}>{b.status_display || b.status}</Text>
                           </View>
                         </View>
-                        <Text style={styles.historyRoomName}>
+                        <Text style={[styles.historyRoomName, !isDark && { color: '#0F172A' }]}>
                           Phòng: {b.room_number ? `P.${b.room_number}` : 'Chưa xếp'} • {b.room_name || 'Phòng Deluxe'}
                         </Text>
-                        <Text style={styles.historyDates}>
+                        <Text style={[styles.historyDates, !isDark && { color: '#64748B' }]}>
                           📅 {b.check_in_date} ➔ {b.check_out_date}
                         </Text>
-                        <Text style={styles.historyPrice}>
+                        <Text style={[styles.historyPrice, !isDark && { color: '#059669' }]}>
                           Tổng tiền: {b.total_amount ? `${parseInt(b.total_amount, 10).toLocaleString('vi-VN')} đ` : '—'}
                         </Text>
                       </View>
@@ -592,14 +664,25 @@ export default function CustomerCrmModal({
               ) : (
                 displayedServiceHistory.length === 0 ? (
                   <View style={styles.centerBox}>
-                    <Text style={styles.emptyText}>Chưa có lịch sử dùng dịch vụ nào.</Text>
+                    <Text style={[styles.emptyText, !isDark && { color: '#64748B' }]}>Chưa có lịch sử dùng dịch vụ nào.</Text>
                   </View>
                 ) : (
                   <>
                     {displayedServiceHistory.map((s) => (
-                      <View key={s.id} style={styles.historyCard}>
+                      <View
+                        key={s.id}
+                        style={[
+                          styles.historyCard,
+                          !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        ]}
+                      >
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <View style={styles.historyThumbBox}>
+                          <View
+                            style={[
+                              styles.historyThumbBox,
+                              !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
+                            ]}
+                          >
                             <Image
                               source={{ uri: getServiceItemImage(s) }}
                               style={styles.historyThumbImg}
@@ -608,22 +691,27 @@ export default function CustomerCrmModal({
                           </View>
                           <View style={{ flex: 1 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Text style={styles.historyServiceName}>{s.service_name}</Text>
-                              <Text style={styles.historyQty}>x{s.quantity}</Text>
+                              <Text style={[styles.historyServiceName, !isDark && { color: '#0F172A' }]}>{s.service_name}</Text>
+                              <Text style={[styles.historyQty, !isDark && { color: '#D97706' }]}>x{s.quantity}</Text>
                             </View>
-                            <Text style={styles.historySub}>
+                            <Text style={[styles.historySub, !isDark && { color: '#64748B' }]}>
                               Phòng: P.{s.room_number || '—'} • {s.category_name || 'Dịch vụ'}
                             </Text>
                             {s.created_at ? (
-                              <Text style={styles.historyDates}>
+                              <Text style={[styles.historyDates, !isDark && { color: '#64748B' }]}>
                                 ⏰ Đặt: {new Date(s.created_at).toLocaleString('vi-VN')}
                               </Text>
                             ) : null}
+                            {s.is_scheduled && s.request_time ? (
+                              <Text style={[styles.historyDates, { color: '#D97706', fontWeight: '700' }]}>
+                                📅 Hẹn giao: {new Date(s.request_time).toLocaleString('vi-VN')}
+                              </Text>
+                            ) : null}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                              <Text style={styles.historyPrice}>
+                              <Text style={[styles.historyPrice, !isDark && { color: '#059669' }]}>
                                 {s.total_price ? `${parseInt(s.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
                               </Text>
-                              <Text style={[styles.historyStatusText, { color: '#34D399' }]}>
+                              <Text style={[styles.historyStatusText, { color: '#059669' }]}>
                                 {s.status_display || s.status}
                               </Text>
                             </View>

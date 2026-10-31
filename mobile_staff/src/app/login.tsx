@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 interface DemoAccount {
   label: string;
@@ -34,6 +35,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 
 export default function LoginScreen() {
   const { login, apiUrl, updateServerUrl } = useAuth();
+  const { colors, isDark } = useAppTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -87,7 +89,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, !isDark && { backgroundColor: '#F8FAFC' }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -96,7 +98,18 @@ export default function LoginScreen() {
           {/* Header Nút cấu hình IP góc trên phải */}
           <View style={styles.topBar}>
             <TouchableOpacity
-              style={styles.serverButton}
+              style={[
+                styles.serverButton,
+                !isDark && {
+                  backgroundColor: '#FFFFFF',
+                  borderColor: '#E2E8F0',
+                  shadowColor: '#64748B',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 1,
+                },
+              ]}
               onPress={() => {
                 setTempUrl(apiUrl);
                 setModalVisible(true);
@@ -110,31 +123,31 @@ export default function LoginScreen() {
 
           {/* Logo & Tiêu đề Khách sạn */}
           <View style={styles.logoSection}>
-            <View style={styles.logoOuterGlow}>
-              <View style={styles.logoBadge}>
+            <View style={[styles.logoOuterGlow, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+              <View style={[styles.logoBadge, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#F59E0B' }]}>
                 <Ionicons name="business" size={38} color="#F59E0B" />
               </View>
             </View>
-            <Text style={styles.brandTitle}>TA LUXURY HOTEL</Text>
+            <Text style={[styles.brandTitle, !isDark && { color: '#0F172A' }]}>TA LUXURY HOTEL</Text>
             <Text style={styles.brandSubtitle}>HỆ THỐNG ĐIỀU HÀNH HIỆN TRƯỜNG</Text>
-            <Text style={styles.brandDescription}>
+            <Text style={[styles.brandDescription, !isDark && { color: '#64748B' }]}>
               Buồng phòng • Đội xe • Phục vụ • Kỹ thuật
             </Text>
           </View>
 
           {/* Form đăng nhập */}
-          <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Đăng Nhập Ca Trực</Text>
+          <View style={[styles.formCard, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', shadowColor: '#64748B', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 4 }]}>
+            <Text style={[styles.formTitle, !isDark && { color: '#0F172A' }]}>Đăng Nhập Ca Trực</Text>
 
             {/* Input Tài khoản */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Tên tài khoản / Mã nhân viên</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+              <Text style={[styles.inputLabel, !isDark && { color: '#475569' }]}>Tên tài khoản / Mã nhân viên</Text>
+              <View style={[styles.inputWrapper, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}>
+                <Ionicons name="person-outline" size={18} color={isDark ? "#94A3B8" : "#64748B"} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, { flex: 1 }, !isDark && { color: '#0F172A' }]}
                   placeholder="Nhập tên đăng nhập nhân viên..."
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={isDark ? "#475569" : "#94A3B8"}
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
@@ -150,7 +163,7 @@ export default function LoginScreen() {
                     activeOpacity={0.7}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                    <Ionicons name="close-circle" size={18} color={isDark ? "#94A3B8" : "#64748B"} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -158,13 +171,13 @@ export default function LoginScreen() {
 
             {/* Input Mật khẩu */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Mật khẩu bảo mật</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+              <Text style={[styles.inputLabel, !isDark && { color: '#475569' }]}>Mật khẩu bảo mật</Text>
+              <View style={[styles.inputWrapper, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}>
+                <Ionicons name="lock-closed-outline" size={18} color={isDark ? "#94A3B8" : "#64748B"} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, { flex: 1 }, !isDark && { color: '#0F172A' }]}
                   placeholder="Nhập mật khẩu..."
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={isDark ? "#475569" : "#94A3B8"}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -178,7 +191,7 @@ export default function LoginScreen() {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
-                    color="#94A3B8"
+                    color={isDark ? "#94A3B8" : "#64748B"}
                   />
                 </TouchableOpacity>
               </View>
@@ -202,15 +215,19 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             {/* Chọn nhanh tài khoản mẫu */}
-            <View style={styles.demoSection}>
-              <Text style={styles.demoSectionTitle}>Chọn nhanh ca trực thử nghiệm (1 chạm):</Text>
+            <View style={[styles.demoSection, !isDark && { borderTopColor: '#F1F5F9' }]}>
+              <Text style={[styles.demoSectionTitle, !isDark && { color: '#64748B' }]}>Chọn nhanh ca trực thử nghiệm (1 chạm):</Text>
               <View style={styles.demoChipsContainer}>
                 {DEMO_ACCOUNTS.map((acc) => (
                   <TouchableOpacity
                     key={acc.username}
                     style={[
                       styles.demoChip,
-                      username === acc.username && styles.demoChipActive,
+                      !isDark && {
+                        backgroundColor: username === acc.username ? 'rgba(245, 158, 11, 0.12)' : '#F8FAFC',
+                        borderColor: username === acc.username ? '#F59E0B' : '#E2E8F0',
+                      },
+                      username === acc.username && isDark && styles.demoChipActive,
                     ]}
                     onPress={() => selectDemoAccount(acc)}
                     activeOpacity={0.7}
@@ -218,13 +235,14 @@ export default function LoginScreen() {
                     <Ionicons
                       name={acc.icon}
                       size={14}
-                      color={username === acc.username ? '#F59E0B' : '#94A3B8'}
+                      color={username === acc.username ? '#F59E0B' : (isDark ? '#94A3B8' : '#64748B')}
                       style={{ marginRight: 6 }}
                     />
                     <Text
                       style={[
                         styles.demoChipText,
-                        username === acc.username && styles.demoChipTextActive,
+                        !isDark && { color: username === acc.username ? '#D97706' : '#334155' },
+                        username === acc.username && isDark && styles.demoChipTextActive,
                       ]}
                     >
                       {acc.label}
@@ -234,7 +252,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <Text style={styles.apiUrlNote} numberOfLines={1}>
+            <Text style={[styles.apiUrlNote, !isDark && { color: '#64748B' }]} numberOfLines={1}>
               Kết nối: {apiUrl}
             </Text>
           </View>
@@ -243,33 +261,33 @@ export default function LoginScreen() {
 
       {/* Modal Cấu hình IP Máy chủ */}
       <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, !isDark && { backgroundColor: 'rgba(15, 23, 42, 0.45)' }]}>
+          <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', shadowColor: '#64748B' }]}>
             <View style={styles.modalHeader}>
               <Ionicons name="cloud-done-outline" size={24} color="#F59E0B" />
-              <Text style={styles.modalTitle}>Máy Chủ API Khách Sạn</Text>
+              <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Máy Chủ API Khách Sạn</Text>
             </View>
-            <Text style={styles.modalDesc}>
+            <Text style={[styles.modalDesc, !isDark && { color: '#64748B' }]}>
               Nhập địa chỉ Backend (Tunnel Ngrok HTTPS để chạy 4G hoặc IP Wi-Fi nội bộ):
             </Text>
 
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
               value={tempUrl}
               onChangeText={setTempUrl}
               placeholder="https://...ngrok-free.dev/api"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               autoCapitalize="none"
               autoCorrect={false}
             />
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
+                style={[styles.modalCancelBtn, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}
                 onPress={() => setModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalCancelText}>Đóng</Text>
+                <Text style={[styles.modalCancelText, !isDark && { color: '#64748B' }]}>Đóng</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalSaveBtn}

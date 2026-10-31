@@ -620,6 +620,26 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 # Nhân viên phục vụ / Lái xe tạo đơn hộ khách -> tự động nhận phụ trách
                 assigned_to = user
 
+        # Xử lý thời gian hẹn giờ phục vụ / giao món (Scheduled delivery)
+        req_time_str = data.get('request_time')
+        is_scheduled_param = bool(data.get('is_scheduled', False))
+        final_request_time = None
+
+        if req_time_str:
+            try:
+                from django.utils.dateparse import parse_datetime
+                parsed_dt = parse_datetime(req_time_str)
+                if parsed_dt:
+                    if timezone.is_naive(parsed_dt):
+                        parsed_dt = timezone.make_aware(parsed_dt)
+                    final_request_time = parsed_dt
+                    is_scheduled_param = True
+            except Exception as e:
+                print(f"Lỗi parse request_time: {e}")
+
+        if not final_request_time:
+            final_request_time = timezone.now()
+
         total_price = service_item.price * quantity
         service_request = ServiceRequest.objects.create(
             booking=booking,
@@ -629,7 +649,8 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             status='pending',
             assigned_staff=assigned_to,
             note=note,
-            request_time=timezone.now()
+            is_scheduled=is_scheduled_param,
+            request_time=final_request_time
         )
 
         serializer = ServiceRequestSerializer(service_request, context={'request': request})
@@ -702,6 +723,10 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_403_FORBIDDEN)
 
         # Nhân viên / Quản trị thực hiện đổi trạng thái Kanban
+        perm_resp = self._check_staff_service_permission(user, service_req, action_name='cập nhật trạng thái')
+        if perm_resp is not None:
+            return perm_resp
+
         update_fields = ['updated_at']
 
         if new_status:
@@ -1039,6 +1064,56 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
         return None
 
+    def _check_staff_service_permission(self, user, service_req, action_name='xử lý'):
+        """
+        Kiểm tra phân quyền theo vai trò nghiệp vụ (RBAC) cho đơn dịch vụ:
+        - Admin, Owner, Manager, Receptionist: Toàn quyền điều phối.
+        - Service Staff: Xử lý F&B, Spa, Transport, Laundry, Amenities.
+        - Housekeeper: Chỉ xử lý Amenities, Laundry hoặc dịch vụ buồng phòng / setup phòng.
+        - Technician, Cashier: Không có nhiệm vụ xử lý đơn dịch vụ khách hàng.
+        """
+        if user.is_superuser:
+            return None
+
+        user_role = getattr(user, 'role', '')
+        if user_role in ['admin', 'owner', 'manager', 'receptionist']:
+            return None
+
+        if user_role == 'technician':
+            return Response({
+                'success': False,
+                'message': f'Vai trò Kỹ thuật viên không có nhiệm vụ {action_name} đơn dịch vụ khách hàng.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        if user_role == 'cashier':
+            return Response({
+                'success': False,
+                'message': f'Vai trò Thu ngân không có nhiệm vụ {action_name} đơn dịch vụ hiện trường.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
+        service_name = service_req.service.name if service_req.service else ""
+        from ..notifications.signals import get_service_category_type
+        cat_type = get_service_category_type(service_name, category_name)
+
+        if user_role == 'housekeeper' and cat_type in ['fnb', 'transport', 'spa']:
+            return Response({
+                'success': False,
+                'message': f'Nhân viên Buồng phòng chỉ phụ trách dịch vụ tiện ích, đồ vải và setup phòng. Bạn không thể {action_name} đơn "{service_name}".'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        return None
+
+    def destroy(self, request, *args, **kwargs):
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        if not (user.is_authenticated and (user.is_superuser or user_role in ['admin', 'owner', 'manager'])):
+            return Response({
+                'success': False,
+                'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền xóa đơn yêu cầu dịch vụ.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=['post'], url_path='claim')
     def claim(self, request, pk=None):
         """
@@ -1052,6 +1127,22 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 'success': False,
                 'message': 'Vui lòng đăng nhập để tiếp nhận công việc.'
             }, status=status.HTTP_401_UNAUTHORIZED)
+
+        user_role = getattr(user, 'role', '')
+        is_staff_or_admin = (
+            user.is_staff or 
+            user.is_superuser or 
+            (user_role and user_role != 'guest')
+        )
+        if not is_staff_or_admin:
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn mới có quyền tiếp nhận xử lý dịch vụ.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        perm_resp = self._check_staff_service_permission(user, service_req, action_name='tiếp nhận')
+        if perm_resp is not None:
+            return perm_resp
 
         # Nhận việc khi đơn đang pending = chuyển sang in_progress -> phải qua cùng điều kiện khóa như PATCH
         if service_req.status == 'pending':

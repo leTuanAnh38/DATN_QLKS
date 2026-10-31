@@ -1,69 +1,71 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Palette } from '../../constants/theme';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import { styles } from './styles';
 import type { RoomItem } from './types';
 
-export const getStatusConfig = (status: string) => {
+export const getStatusConfig = (status: string, isDark: boolean = true) => {
   switch (status) {
     case 'available':
       return {
         label: 'Phòng sạch',
-        bg: 'rgba(16, 185, 129, 0.12)',
-        border: 'rgba(16, 185, 129, 0.4)',
-        text: '#34D399',
-        dot: '#10B981',
+        bg: isDark ? Palette.emerald.subtle : 'rgba(16, 185, 129, 0.12)',
+        border: isDark ? Palette.emerald.border : 'rgba(16, 185, 129, 0.35)',
+        text: isDark ? Palette.emerald.light : '#059669',
+        dot: Palette.emerald.main,
         actionText: 'Dọn lại',
-        actionBg: '#1E293B',
-        actionColor: '#94A3B8',
+        actionBg: isDark ? Palette.surface.cardSecondary : '#F1F5F9',
+        actionColor: isDark ? Palette.text.muted : '#475569',
         actionIcon: 'sparkles-outline',
       };
     case 'cleaning':
       return {
         label: 'Đang dọn',
-        bg: 'rgba(245, 158, 11, 0.14)',
-        border: 'rgba(245, 158, 11, 0.5)',
-        text: '#FBBF24',
-        dot: '#F59E0B',
+        bg: isDark ? Palette.gold.subtle : 'rgba(245, 158, 11, 0.12)',
+        border: isDark ? Palette.gold.border : 'rgba(245, 158, 11, 0.4)',
+        text: isDark ? Palette.gold.light : '#D97706',
+        dot: Palette.gold.main,
         actionText: 'DỌN XONG ✨',
-        actionBg: '#10B981',
-        actionColor: '#0A0F1D',
+        actionBg: Palette.emerald.main,
+        actionColor: '#FFFFFF',
         actionIcon: 'checkmark-circle',
       };
     case 'occupied':
       return {
         label: 'Có khách',
-        bg: 'rgba(59, 130, 246, 0.12)',
-        border: 'rgba(59, 130, 246, 0.4)',
-        text: '#60A5FA',
-        dot: '#3B82F6',
+        bg: isDark ? Palette.sky.subtle : 'rgba(56, 189, 248, 0.12)',
+        border: isDark ? Palette.sky.border : 'rgba(56, 189, 248, 0.35)',
+        text: isDark ? Palette.sky.light : '#0284C7',
+        dot: Palette.sky.main,
         actionText: 'Vào dọn',
-        actionBg: '#1E293B',
-        actionColor: '#93C5FD',
+        actionBg: isDark ? Palette.surface.cardSecondary : '#F1F5F9',
+        actionColor: isDark ? Palette.sky.extraLight : '#0369A1',
         actionIcon: 'bed-outline',
       };
     case 'maintenance':
       return {
         label: 'Bảo trì',
-        bg: 'rgba(239, 68, 68, 0.14)',
-        border: 'rgba(239, 68, 68, 0.4)',
-        text: '#F87171',
-        dot: '#EF4444',
+        bg: isDark ? Palette.rose.subtle : 'rgba(239, 68, 68, 0.12)',
+        border: isDark ? Palette.rose.border : 'rgba(239, 68, 68, 0.35)',
+        text: isDark ? Palette.rose.light : '#DC2626',
+        dot: Palette.rose.main,
         actionText: 'Chờ sửa',
         actionBg: 'transparent',
-        actionColor: '#EF4444',
+        actionColor: Palette.rose.main,
         actionIcon: 'construct-outline',
       };
     default:
       return {
         label: status,
-        bg: '#1E293B',
-        border: '#334155',
-        text: '#94A3B8',
-        dot: '#64748B',
+        bg: isDark ? Palette.surface.cardSecondary : '#F1F5F9',
+        border: isDark ? Palette.border.subtle : '#E2E8F0',
+        text: isDark ? Palette.text.muted : '#64748B',
+        dot: isDark ? Palette.text.subtle : '#94A3B8',
         actionText: 'Cập nhật',
-        actionBg: '#1E293B',
-        actionColor: '#CBD5E1',
+        actionBg: isDark ? Palette.surface.cardSecondary : '#F1F5F9',
+        actionColor: isDark ? Palette.text.secondary : '#334155',
         actionIcon: 'create-outline',
       };
   }
@@ -109,7 +111,9 @@ function RoomCard({
   onOpenBreakdown,
   onToggleCleaning,
   onCompleteMakeUp,
-}: RoomCardProps) {  const config = getStatusConfig(item.status);
+}: RoomCardProps) {
+  const { isDark } = useAppTheme();
+  const config = getStatusConfig(item.status, isDark);
   const isAvailable = item.status === 'available';
   const isCleaning = item.status === 'cleaning';
   const isOccupied = item.status === 'occupied';
@@ -134,18 +138,54 @@ function RoomCard({
     <TouchableOpacity
       style={[
         styles.card,
-        isCleaning && styles.cardHighlightCleaning,
-        isInspectionRequested && styles.cardHighlightInspection,
+        !isDark && {
+          backgroundColor: '#FFFFFF',
+          borderColor: '#E2E8F0',
+          shadowColor: '#64748B',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+          elevation: 2,
+        },
+        isCleaning && (isDark ? styles.cardHighlightCleaning : {
+          borderColor: '#F59E0B',
+          backgroundColor: 'rgba(245, 158, 11, 0.05)',
+        }),
+        isInspectionRequested && (isDark ? styles.cardHighlightInspection : {
+          borderColor: '#F59E0B',
+          borderWidth: 2,
+          backgroundColor: 'rgba(245, 158, 11, 0.08)',
+        }),
       ]}
       onPress={() => onOpenDetail(item)}
       activeOpacity={0.85}
     >
       {/* Hàng 1: Số phòng to + Badge tầng (Trái) + Trạng thái phòng (Phải) */}
       <View style={styles.cardTopRow}>
-        <View style={styles.roomBadge}>
-          <Text style={styles.roomNumber}>P.{item.room_number}</Text>
-          <View style={styles.floorPill}>
-            <Text style={styles.floorPillText}>{item.floor}F</Text>
+        <View
+          style={[
+            styles.roomBadge,
+            !isDark && {
+              backgroundColor: '#F1F5F9',
+              borderColor: '#CBD5E1',
+            },
+          ]}
+        >
+          <Text style={[styles.roomNumber, !isDark && { color: '#0F172A', fontWeight: '900' }]}>
+            P.{item.room_number}
+          </Text>
+          <View
+            style={[
+              styles.floorPill,
+              !isDark && {
+                backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                borderColor: 'rgba(245, 158, 11, 0.45)',
+              },
+            ]}
+          >
+            <Text style={[styles.floorPillText, !isDark && { color: '#B45309', fontWeight: '900' }]}>
+              {item.floor}F
+            </Text>
           </View>
         </View>
         <View style={[styles.statusPill, { backgroundColor: config.bg, borderColor: config.border }]}>
@@ -157,7 +197,7 @@ function RoomCard({
       </View>
 
       {/* Hàng 2: Hạng phòng (gọn gàng, thanh lịch) */}
-      <Text style={styles.roomType} numberOfLines={1}>
+      <Text style={[styles.roomType, !isDark && { color: '#64748B' }]} numberOfLines={1}>
         {item.category_name || 'Phòng tiêu chuẩn'}
       </Text>
 
@@ -181,19 +221,19 @@ function RoomCard({
 
       {/* Hàng 3: Khối thông tin khách hàng / Sự cố theo chuẩn PMS Web */}
       {isOccupied ? (
-        <View style={styles.guestInfoCardOccupied}>
+        <View style={[styles.guestInfoCardOccupied, !isDark && { backgroundColor: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.22)' }]}>
           <View style={styles.guestNameRow}>
-            <Ionicons name="person" size={11} color="#60A5FA" style={{ marginRight: 4 }} />
-            <Text style={styles.guestNameText} numberOfLines={1}>
+            <Ionicons name="person" size={11} color={!isDark ? '#2563EB' : '#60A5FA'} style={{ marginRight: 4 }} />
+            <Text style={[styles.guestNameText, !isDark && { color: '#1D4ED8' }]} numberOfLines={1}>
               {guestName || 'Khách lưu trú'}
             </Text>
           </View>
           <View style={styles.guestMetaRow}>
             {bookingCode ? (
-              <Text style={styles.bookingCodeBadge}>#{bookingCode}</Text>
+              <Text style={[styles.bookingCodeBadge, !isDark && { color: '#2563EB' }]}>#{bookingCode}</Text>
             ) : null}
             {checkOutDate ? (
-              <Text style={styles.checkoutDateText}>Trả: {formatDateShort(checkOutDate)}</Text>
+              <Text style={[styles.checkoutDateText, !isDark && { color: '#64748B' }]}>Trả: {formatDateShort(checkOutDate)}</Text>
             ) : null}
           </View>
           {item.is_cleaning_requested && (
@@ -206,28 +246,28 @@ function RoomCard({
           )}
         </View>
       ) : isCleaning ? (
-        <View style={styles.cleaningInfoCard}>
+        <View style={[styles.cleaningInfoCard, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
           <View style={styles.guestNameRow}>
-            <Ionicons name="sparkles" size={11} color="#FBBF24" style={{ marginRight: 4 }} />
-            <Text style={styles.cleaningGuestText} numberOfLines={1}>
+            <Ionicons name="sparkles" size={11} color={!isDark ? '#D97706' : '#FBBF24'} style={{ marginRight: 4 }} />
+            <Text style={[styles.cleaningGuestText, !isDark && { color: '#B45309' }]} numberOfLines={1}>
               {guestName ? `Khách: ${guestName}` : 'Đang chờ dọn dẹp'}
             </Text>
           </View>
           {bookingCode ? (
-            <Text style={styles.bookingCodeCleaning}>#{bookingCode}</Text>
+            <Text style={[styles.bookingCodeCleaning, !isDark && { color: '#D97706' }]}>#{bookingCode}</Text>
           ) : null}
         </View>
       ) : isMaintenance ? (
-        <View style={styles.maintenanceInfoCard}>
+        <View style={[styles.maintenanceInfoCard, !isDark && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.22)' }]}>
           <Ionicons name="construct" size={11} color="#EF4444" style={{ marginRight: 4 }} />
-          <Text style={styles.maintenanceEquipText} numberOfLines={1}>
+          <Text style={[styles.maintenanceEquipText, !isDark && { color: '#B91C1C' }]} numberOfLines={1}>
             {item.active_maintenance?.equipment_name || 'Đang bảo trì'}
           </Text>
         </View>
       ) : (
-        <View style={styles.availableInfoCard}>
-          <Ionicons name="checkmark-circle" size={11} color="#34D399" style={{ marginRight: 4 }} />
-          <Text style={styles.availableInfoText} numberOfLines={1}>
+        <View style={[styles.availableInfoCard, !isDark && { backgroundColor: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.22)' }]}>
+          <Ionicons name="checkmark-circle" size={11} color={!isDark ? '#059669' : '#34D399'} style={{ marginRight: 4 }} />
+          <Text style={[styles.availableInfoText, !isDark && { color: '#047857' }]} numberOfLines={1}>
             Sẵn sàng đón khách
           </Text>
         </View>
@@ -242,10 +282,10 @@ function RoomCard({
           </View>
         </View>
       ) : isAvailable ? (
-        /* PHÒNG SẠCH / TRỐNG: Chỉ hiển thị nút Báo hỏng thiết bị (Tuyệt đối không có Minibar và Đồ quên vì phòng trống không có khách!) */
+        /* PHÒNG SẠCH / TRỐNG: Chỉ hiển thị nút Báo hỏng thiết bị */
         <View style={styles.cardToolBarSingle}>
           <TouchableOpacity
-            style={styles.cardToolBtnSingle}
+            style={[styles.cardToolBtnSingle, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
             onPress={() => onOpenBreakdown(item)}
             activeOpacity={0.7}
           >
@@ -258,7 +298,7 @@ function RoomCard({
         <View style={styles.actionGroupCleaning}>
           <View style={styles.cardToolBar}>
             <TouchableOpacity
-              style={styles.cardToolBtn}
+              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
               onPress={() => onOpenMinibar(item)}
               activeOpacity={0.7}
             >
@@ -266,15 +306,15 @@ function RoomCard({
               <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]} numberOfLines={1}>Minibar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.cardToolBtn}
+              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
               onPress={() => onOpenLostFound(item)}
               activeOpacity={0.7}
             >
-              <Ionicons name="briefcase" size={13} color="#A78BFA" />
-              <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]} numberOfLines={1}>Đồ quên</Text>
+              <Ionicons name="briefcase" size={13} color="#8B5CF6" />
+              <Text style={[styles.cardToolBtnText, { color: '#8B5CF6' }]} numberOfLines={1}>Đồ quên</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.cardToolBtn}
+              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
               onPress={() => onOpenBreakdown(item)}
               activeOpacity={0.7}
             >
@@ -293,11 +333,11 @@ function RoomCard({
             activeOpacity={0.8}
           >
             {actionLoading ? (
-              <ActivityIndicator size="small" color="#0A0F1D" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-                <Text style={[styles.actionFullBtnText, { color: '#0A0F1D' }]}>Đã dọn xong ✨</Text>
+                <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={[styles.actionFullBtnText, { color: '#FFFFFF' }]}>Đã dọn xong ✨</Text>
               </>
             )}
           </TouchableOpacity>
@@ -307,7 +347,7 @@ function RoomCard({
         <View>
           <View style={styles.cardToolBar}>
             <TouchableOpacity
-              style={styles.cardToolBtn}
+              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
               onPress={() => onOpenMinibar(item)}
               activeOpacity={0.7}
             >
@@ -315,15 +355,15 @@ function RoomCard({
               <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]} numberOfLines={1}>Minibar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.cardToolBtn}
+              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
               onPress={() => onOpenLostFound(item)}
               activeOpacity={0.7}
             >
-              <Ionicons name="briefcase" size={13} color="#A78BFA" />
-              <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]} numberOfLines={1}>Đồ quên</Text>
+              <Ionicons name="briefcase" size={13} color="#8B5CF6" />
+              <Text style={[styles.cardToolBtnText, { color: '#8B5CF6' }]} numberOfLines={1}>Đồ quên</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.cardToolBtn}
+              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
               onPress={() => onOpenBreakdown(item)}
               activeOpacity={0.7}
             >
@@ -335,7 +375,7 @@ function RoomCard({
             <TouchableOpacity
               style={[
                 styles.actionFullBtn,
-                { backgroundColor: '#38BDF8', marginTop: 6 },
+                { backgroundColor: '#0284C7', marginTop: 6 },
                 actionLoading && { opacity: 0.65 },
               ]}
               onPress={() => onCompleteMakeUp(item)}
@@ -343,11 +383,11 @@ function RoomCard({
               activeOpacity={0.8}
             >
               {actionLoading ? (
-                <ActivityIndicator size="small" color="#0A0F1D" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <Ionicons name="sparkles" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-                  <Text style={[styles.actionFullBtnText, { color: '#0A0F1D', fontWeight: 'bold' }]}>
+                  <Ionicons name="sparkles" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={[styles.actionFullBtnText, { color: '#FFFFFF', fontWeight: 'bold' }]}>
                     Đã dọn xong phòng khách ở ✨
                   </Text>
                 </>
@@ -359,15 +399,15 @@ function RoomCard({
         /* PHỤC VỤ (PHÒNG CÓ KHÁCH / ĐANG DỌN): 2 Nút Báo đồ quên & Báo hỏng */
         <View style={styles.cardToolBar}>
           <TouchableOpacity
-            style={styles.cardToolBtn}
+            style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
             onPress={() => onOpenLostFound(item)}
             activeOpacity={0.7}
           >
-            <Ionicons name="briefcase" size={13} color="#A78BFA" />
-            <Text style={[styles.cardToolBtnText, { color: '#A78BFA' }]} numberOfLines={1}>Đồ quên</Text>
+            <Ionicons name="briefcase" size={13} color="#8B5CF6" />
+            <Text style={[styles.cardToolBtnText, { color: '#8B5CF6' }]} numberOfLines={1}>Đồ quên</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.cardToolBtn}
+            style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
             onPress={() => onOpenBreakdown(item)}
             activeOpacity={0.7}
           >

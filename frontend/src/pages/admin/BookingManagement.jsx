@@ -48,8 +48,20 @@ import {
     AlertCircle,
     ChevronDown,
     SlidersHorizontal,
-    Receipt
+    Receipt,
+    Zap
 } from 'lucide-react';
+
+const formatToLocalDateTimeString = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 // Format ngày tháng DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -433,7 +445,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         quantity: 1,
         price: '',
         note: '',
-        service_status: 'completed'
+        service_status: 'completed',
+        is_scheduled: false,
+        scheduled_time: ''
     });
 
     // 8. State Modal Check-out (Bảng kê thanh toán & Trả phòng)
@@ -1277,7 +1291,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             quantity: 1,
             price: '',
             note: '',
-            service_status: 'completed'
+            service_status: 'completed',
+            is_scheduled: false,
+            scheduled_time: ''
         });
 
         if (serviceCatalog.length === 0) {
@@ -1325,6 +1341,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             return;
         }
 
+        if (serviceMode === 'menu' && serviceForm.service_status === 'pending' && serviceForm.is_scheduled && !serviceForm.scheduled_time) {
+            showToast('error', 'Vui lòng chọn ngày và giờ hẹn giao món / dịch vụ.');
+            return;
+        }
+
         try {
             setIsSubmittingService(true);
             const payload = {
@@ -1336,6 +1357,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             if (serviceMode === 'menu') {
                 payload.service_id = serviceForm.service_id;
                 if (serviceForm.price !== '') payload.price = Number(serviceForm.price);
+                if (serviceForm.service_status === 'pending') {
+                    payload.is_scheduled = !!serviceForm.is_scheduled;
+                    if (serviceForm.is_scheduled && serviceForm.scheduled_time) {
+                        payload.request_time = new Date(serviceForm.scheduled_time).toISOString();
+                    }
+                }
             } else {
                 payload.custom_name = serviceForm.custom_name.trim();
                 payload.price = Number(serviceForm.price);
@@ -4732,6 +4759,109 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                 </div>
                                             </label>
                                         </div>
+
+                                        {/* Tùy chọn Hẹn giờ giao khi trạng thái là Chờ chuẩn bị */}
+                                        {serviceForm.service_status === 'pending' && (
+                                            <div className="p-3 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-2.5 mt-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                                        Thời gian phục vụ món
+                                                    </span>
+                                                    {serviceForm.is_scheduled && serviceForm.scheduled_time && (
+                                                        <span className="text-[11px] font-bold text-amber-700 bg-white px-2 py-0.5 rounded-lg border border-amber-300">
+                                                            Hẹn giao: {new Date(serviceForm.scheduled_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(serviceForm.scheduled_time).toLocaleDateString('vi-VN')}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setServiceForm((prev) => ({ ...prev, is_scheduled: false, scheduled_time: '' }))}
+                                                        className={`p-2 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${
+                                                            !serviceForm.is_scheduled
+                                                                ? 'bg-white border-amber-500 text-amber-900 font-bold ring-1 ring-amber-400'
+                                                                : 'bg-white/60 border-amber-200 text-slate-600 hover:bg-white'
+                                                        }`}
+                                                    >
+                                                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                                                            !serviceForm.is_scheduled ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                        }`}>
+                                                            <Zap className="w-3 h-3" />
+                                                        </div>
+                                                        <div className="text-[11px] font-bold">Giao ngay</div>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const d = new Date(Date.now() + 30 * 60 * 1000);
+                                                            setServiceForm((prev) => ({
+                                                                ...prev,
+                                                                is_scheduled: true,
+                                                                scheduled_time: prev.scheduled_time || formatToLocalDateTimeString(d)
+                                                            }));
+                                                        }}
+                                                        className={`p-2 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${
+                                                            serviceForm.is_scheduled
+                                                                ? 'bg-white border-amber-500 text-amber-900 font-bold ring-1 ring-amber-400'
+                                                                : 'bg-white/60 border-amber-200 text-slate-600 hover:bg-white'
+                                                        }`}
+                                                    >
+                                                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                                                            serviceForm.is_scheduled ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                        }`}>
+                                                            <Clock className="w-3 h-3" />
+                                                        </div>
+                                                        <div className="text-[11px] font-bold">Hẹn giờ giao</div>
+                                                    </button>
+                                                </div>
+
+                                                {serviceForm.is_scheduled && (
+                                                    <div className="space-y-2 pt-1 border-t border-amber-200/60">
+                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                            <span className="text-[10px] text-amber-800 font-semibold">Chọn nhanh:</span>
+                                                            {[
+                                                                { label: '+15 phút', mins: 15 },
+                                                                { label: '+30 phút', mins: 30 },
+                                                                { label: '+45 phút', mins: 45 },
+                                                                { label: '+1 giờ', mins: 60 },
+                                                                { label: '+2 giờ', mins: 120 }
+                                                            ].map((chip) => (
+                                                                <button
+                                                                    key={chip.label}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const d = new Date(Date.now() + chip.mins * 60 * 1000);
+                                                                        setServiceForm((prev) => ({
+                                                                            ...prev,
+                                                                            scheduled_time: formatToLocalDateTimeString(d)
+                                                                        }));
+                                                                    }}
+                                                                    className="px-2 py-0.5 rounded-lg bg-white hover:bg-amber-100 border border-amber-200 text-amber-900 text-[10px] font-semibold transition cursor-pointer"
+                                                                >
+                                                                    {chip.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2">
+                                                            <label className="text-[11px] font-bold text-amber-900 shrink-0">
+                                                                Thời điểm hẹn:
+                                                            </label>
+                                                            <input
+                                                                type="datetime-local"
+                                                                value={serviceForm.scheduled_time}
+                                                                min={formatToLocalDateTimeString(new Date())}
+                                                                onChange={(e) => setServiceForm((prev) => ({ ...prev, scheduled_time: e.target.value }))}
+                                                                className="flex-1 px-2.5 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 interface BookingManagementModalProps {
   visible: boolean;
@@ -27,6 +28,7 @@ export default function BookingManagementModal({
   onClose,
   onSelectGuest,
 }: BookingManagementModalProps) {
+  const { isDark } = useAppTheme();
   const [activeMainTab, setActiveMainTab] = useState<'list' | 'timeline'>('list');
 
   // TAB 1: LIST STATE
@@ -318,22 +320,43 @@ export default function BookingManagementModal({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            !isDark && {
+              backgroundColor: '#FFFFFF',
+              borderTopColor: '#E2E8F0',
+              shadowColor: '#64748B',
+            },
+          ]}
+        >
           {/* Header */}
-          <View style={styles.headerRow}>
+          <View style={[styles.headerRow, !isDark && { borderBottomColor: '#F1F5F9' }]}>
             <View>
-              <Text style={styles.headerTitle}>Quản Lý Đặt Phòng & Lịch Trình 📋</Text>
-              <Text style={styles.headerSubtitle}>Tra cứu đơn phòng, lịch lưu trú và thông tin khách</Text>
+              <Text style={[styles.headerTitle, !isDark && { color: '#0F172A' }]}>
+                Quản Lý Đặt Phòng & Lịch Trình 📋
+              </Text>
+              <Text style={[styles.headerSubtitle, !isDark && { color: '#64748B' }]}>
+                Tra cứu đơn phòng, lịch lưu trú và thông tin khách
+              </Text>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-              <Ionicons name="close" size={20} color="#94A3B8" />
+            <TouchableOpacity
+              style={[styles.closeBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
             </TouchableOpacity>
           </View>
 
           {/* Top Mode Switcher */}
           <View style={styles.modeSwitcher}>
             <TouchableOpacity
-              style={[styles.modeBtn, activeMainTab === 'list' && styles.modeBtnActive]}
+              style={[
+                styles.modeBtn,
+                !isDark && activeMainTab !== 'list' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                activeMainTab === 'list' && styles.modeBtnActive,
+              ]}
               onPress={() => {
                 setActiveMainTab('list');
                 Haptics.selectionAsync();
@@ -342,16 +365,26 @@ export default function BookingManagementModal({
               <Ionicons
                 name="list"
                 size={16}
-                color={activeMainTab === 'list' ? '#0A0F1D' : '#94A3B8'}
+                color={activeMainTab === 'list' ? '#0A0F1D' : isDark ? '#94A3B8' : '#64748B'}
                 style={{ marginRight: 6 }}
               />
-              <Text style={[styles.modeBtnText, activeMainTab === 'list' && styles.modeBtnTextActive]}>
+              <Text
+                style={[
+                  styles.modeBtnText,
+                  !isDark && activeMainTab !== 'list' && { color: '#64748B' },
+                  activeMainTab === 'list' && styles.modeBtnTextActive,
+                ]}
+              >
                 Danh Sách Đặt Phòng ({bookings.length})
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modeBtn, activeMainTab === 'timeline' && styles.modeBtnActive]}
+              style={[
+                styles.modeBtn,
+                !isDark && activeMainTab !== 'timeline' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                activeMainTab === 'timeline' && styles.modeBtnActive,
+              ]}
               onPress={() => {
                 setActiveMainTab('timeline');
                 Haptics.selectionAsync();
@@ -360,10 +393,16 @@ export default function BookingManagementModal({
               <Ionicons
                 name="calendar"
                 size={16}
-                color={activeMainTab === 'timeline' ? '#0A0F1D' : '#94A3B8'}
+                color={activeMainTab === 'timeline' ? '#0A0F1D' : isDark ? '#94A3B8' : '#64748B'}
                 style={{ marginRight: 6 }}
               />
-              <Text style={[styles.modeBtnText, activeMainTab === 'timeline' && styles.modeBtnTextActive]}>
+              <Text
+                style={[
+                  styles.modeBtnText,
+                  !isDark && activeMainTab !== 'timeline' && { color: '#64748B' },
+                  activeMainTab === 'timeline' && styles.modeBtnTextActive,
+                ]}
+              >
                 Lịch Lưu Trú (Timeline)
               </Text>
             </TouchableOpacity>
@@ -384,16 +423,31 @@ export default function BookingManagementModal({
                   return (
                     <TouchableOpacity
                       key={item.key}
-                      style={[styles.kpiCard, isSelected && styles.kpiCardActive]}
+                      style={[
+                        styles.kpiCard,
+                        !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        isSelected && styles.kpiCardActive,
+                      ]}
                       onPress={() => {
                         setStatusFilter(item.key);
                         Haptics.selectionAsync();
                       }}
                     >
-                      <Text style={[styles.kpiNumber, { color: isSelected ? '#F59E0B' : item.color }]}>
+                      <Text
+                        style={[
+                          styles.kpiNumber,
+                          { color: isSelected ? '#F59E0B' : (!isDark && item.color === '#F8FAFC' ? '#0F172A' : item.color) },
+                        ]}
+                      >
                         {item.count}
                       </Text>
-                      <Text style={[styles.kpiLabel, isSelected && styles.kpiLabelActive]}>
+                      <Text
+                        style={[
+                          styles.kpiLabel,
+                          !isDark && !isSelected && { color: '#64748B' },
+                          isSelected && styles.kpiLabelActive,
+                        ]}
+                      >
                         {item.label}
                       </Text>
                     </TouchableOpacity>
@@ -402,18 +456,23 @@ export default function BookingManagementModal({
               </View>
 
               {/* Search Box */}
-              <View style={styles.searchBox}>
-                <Ionicons name="search-outline" size={17} color="#64748B" style={{ marginRight: 8 }} />
+              <View
+                style={[
+                  styles.searchBox,
+                  !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' },
+                ]}
+              >
+                <Ionicons name="search-outline" size={17} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
                 <TextInput
-                  style={styles.searchInput}
+                  style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
                   placeholder="Tìm mã đặt phòng, tên khách, số phòng, SĐT..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
                 {searchQuery ? (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                    <Ionicons name="close-circle" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -422,12 +481,12 @@ export default function BookingManagementModal({
               {loadingList ? (
                 <View style={styles.centerBox}>
                   <ActivityIndicator size="large" color="#F59E0B" />
-                  <Text style={styles.loadingText}>Đang tải danh sách đặt phòng...</Text>
+                  <Text style={[styles.loadingText, !isDark && { color: '#64748B' }]}>Đang tải danh sách đặt phòng...</Text>
                 </View>
               ) : filteredBookings.length === 0 ? (
                 <View style={styles.centerBox}>
-                  <Ionicons name="document-text-outline" size={48} color="#475569" />
-                  <Text style={styles.emptyText}>Không tìm thấy đơn đặt phòng phù hợp</Text>
+                  <Ionicons name="document-text-outline" size={48} color={isDark ? '#475569' : '#CBD5E1'} />
+                  <Text style={[styles.emptyText, !isDark && { color: '#64748B' }]}>Không tìm thấy đơn đặt phòng phù hợp</Text>
                 </View>
               ) : (
                 <FlatList
@@ -447,18 +506,29 @@ export default function BookingManagementModal({
                     const guestId = b.guest || b.guest_id || (typeof b.guest === 'object' ? b.guest?.id : null);
 
                     return (
-                      <View key={b.id || b.booking_code} style={styles.bookingCard}>
+                      <View
+                        key={b.id || b.booking_code}
+                        style={[
+                          styles.bookingCard,
+                          !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        ]}
+                      >
                         {/* Top Card Line */}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={styles.bookingCode}>#{b.booking_code}</Text>
+                            <Text style={[styles.bookingCode, !isDark && { color: '#0284C7' }]}>#{b.booking_code}</Text>
                             {b.room_number ? (
-                              <View style={styles.roomBadge}>
-                                <Text style={styles.roomBadgeText}>P.{b.room_number}</Text>
+                              <View
+                                style={[
+                                  styles.roomBadge,
+                                  !isDark && { backgroundColor: 'rgba(2, 132, 199, 0.12)' },
+                                ]}
+                              >
+                                <Text style={[styles.roomBadgeText, !isDark && { color: '#0284C7' }]}>P.{b.room_number}</Text>
                               </View>
                             ) : (
                               <View style={[styles.roomBadge, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-                                <Text style={[styles.roomBadgeText, { color: '#F87171' }]}>Chưa xếp</Text>
+                                <Text style={[styles.roomBadgeText, { color: '#DC2626' }]}>Chưa xếp</Text>
                               </View>
                             )}
                           </View>
@@ -471,20 +541,20 @@ export default function BookingManagementModal({
                         </View>
 
                         {/* Room & Category */}
-                        <Text style={styles.roomNameText}>
+                        <Text style={[styles.roomNameText, !isDark && { color: '#0F172A' }]}>
                           {b.room_name || b.category_name || 'Phòng tiêu chuẩn'}
                         </Text>
 
                         {/* Guest Info Row */}
                         <View style={styles.guestRow}>
-                          <Ionicons name="person" size={14} color="#60A5FA" style={{ marginRight: 6 }} />
-                          <Text style={styles.guestNameText}>{b.guest_name || 'Khách vãng lai'}</Text>
+                          <Ionicons name="person" size={14} color="#0284C7" style={{ marginRight: 6 }} />
+                          <Text style={[styles.guestNameText, !isDark && { color: '#0284C7' }]}>{b.guest_name || 'Khách vãng lai'}</Text>
                           {b.guest_phone ? (
                             <TouchableOpacity
                               style={styles.phonePill}
                               onPress={() => Linking.openURL(`tel:${b.guest_phone}`)}
                             >
-                              <Ionicons name="call" size={12} color="#10B981" style={{ marginRight: 4 }} />
+                              <Ionicons name="call" size={12} color="#059669" style={{ marginRight: 4 }} />
                               <Text style={styles.phonePillText}>{b.guest_phone}</Text>
                             </TouchableOpacity>
                           ) : null}
@@ -492,17 +562,17 @@ export default function BookingManagementModal({
 
                         {/* Stay Dates */}
                         <View style={styles.dateRow}>
-                          <Ionicons name="calendar-outline" size={13} color="#94A3B8" style={{ marginRight: 6 }} />
-                          <Text style={styles.dateText}>
+                          <Ionicons name="calendar-outline" size={13} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 6 }} />
+                          <Text style={[styles.dateText, !isDark && { color: '#64748B' }]}>
                             {b.check_in_date} ➔ {b.check_out_date}
                           </Text>
                         </View>
 
                         {/* Bottom Row: Total amount & Quick CRM shortcut */}
-                        <View style={styles.bottomCardRow}>
+                        <View style={[styles.bottomCardRow, !isDark && { borderTopColor: '#E2E8F0' }]}>
                           <View>
-                            <Text style={styles.priceLabel}>Tổng tiền:</Text>
-                            <Text style={styles.priceValue}>{priceFormatted}</Text>
+                            <Text style={[styles.priceLabel, !isDark && { color: '#64748B' }]}>Tổng tiền:</Text>
+                            <Text style={[styles.priceValue, !isDark && { color: '#059669' }]}>{priceFormatted}</Text>
                           </View>
 
                           {guestId && onSelectGuest ? (
@@ -513,8 +583,8 @@ export default function BookingManagementModal({
                                 onSelectGuest(guestId);
                               }}
                             >
-                              <Ionicons name="person-circle-outline" size={15} color="#F59E0B" />
-                              <Text style={styles.crmShortcutText}>Hồ sơ CRM 👤</Text>
+                              <Ionicons name="person-circle-outline" size={15} color="#D97706" />
+                              <Text style={[styles.crmShortcutText, !isDark && { color: '#B45309' }]}>Hồ sơ CRM 👤</Text>
                             </TouchableOpacity>
                           ) : null}
                         </View>
@@ -528,38 +598,54 @@ export default function BookingManagementModal({
             /* TAB 2: TIMELINE / SCHEDULE VIEW */
             <View style={{ flex: 1 }}>
               {/* Month Selector Bar */}
-              <View style={styles.monthPickerBar}>
-                <TouchableOpacity style={styles.monthNavBtn} onPress={() => changeTimelineMonth(-1)}>
-                  <Ionicons name="chevron-back" size={20} color="#F59E0B" />
+              <View
+                style={[
+                  styles.monthPickerBar,
+                  !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[styles.monthNavBtn, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderWidth: 1 }]}
+                  onPress={() => changeTimelineMonth(-1)}
+                >
+                  <Ionicons name="chevron-back" size={20} color="#D97706" />
                 </TouchableOpacity>
 
                 <View style={{ alignItems: 'center' }}>
-                  <Text style={styles.monthPickerTitle}>
+                  <Text style={[styles.monthPickerTitle, !isDark && { color: '#0F172A' }]}>
                     Tháng {timelineMonth} / {timelineYear}
                   </Text>
-                  <Text style={styles.monthPickerSub}>
+                  <Text style={[styles.monthPickerSub, !isDark && { color: '#64748B' }]}>
                     {timelineData ? `${timelineData.total_rooms} phòng • ${timelineData.total_bookings} lịch đặt` : 'Đang đồng bộ...'}
                   </Text>
                 </View>
 
-                <TouchableOpacity style={styles.monthNavBtn} onPress={() => changeTimelineMonth(1)}>
-                  <Ionicons name="chevron-forward" size={20} color="#F59E0B" />
+                <TouchableOpacity
+                  style={[styles.monthNavBtn, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderWidth: 1 }]}
+                  onPress={() => changeTimelineMonth(1)}
+                >
+                  <Ionicons name="chevron-forward" size={20} color="#D97706" />
                 </TouchableOpacity>
               </View>
 
               {/* Quick Search in Timeline */}
-              <View style={styles.timelineSearchBox}>
-                <Ionicons name="search-outline" size={16} color="#64748B" style={{ marginRight: 8 }} />
+              <View
+                style={[
+                  styles.timelineSearchBox,
+                  !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' },
+                ]}
+              >
+                <Ionicons name="search-outline" size={16} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
                 <TextInput
-                  style={styles.timelineSearchInput}
+                  style={[styles.timelineSearchInput, !isDark && { color: '#0F172A' }]}
                   placeholder="Tìm số phòng, tên khách, loại phòng, mã đơn..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                   value={timelineSearchText}
                   onChangeText={setTimelineSearchText}
                 />
                 {timelineSearchText ? (
                   <TouchableOpacity onPress={() => setTimelineSearchText('')}>
-                    <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                    <Ionicons name="close-circle" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -574,26 +660,46 @@ export default function BookingManagementModal({
                     contentContainerStyle={{ paddingHorizontal: 2 }}
                   >
                     <TouchableOpacity
-                      style={[styles.floorChip, timelineFloorFilter === 'all' && styles.floorChipActive]}
+                      style={[
+                        styles.floorChip,
+                        !isDark && timelineFloorFilter !== 'all' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        timelineFloorFilter === 'all' && styles.floorChipActive,
+                      ]}
                       onPress={() => {
                         setTimelineFloorFilter('all');
                         Haptics.selectionAsync();
                       }}
                     >
-                      <Text style={[styles.floorChipText, timelineFloorFilter === 'all' && styles.floorChipTextActive]}>
+                      <Text
+                        style={[
+                          styles.floorChipText,
+                          !isDark && timelineFloorFilter !== 'all' && { color: '#64748B' },
+                          timelineFloorFilter === 'all' && styles.floorChipTextActive,
+                        ]}
+                      >
                         🏢 Tất cả tầng
                       </Text>
                     </TouchableOpacity>
                     {timelineFloors.map((floor) => (
                       <TouchableOpacity
                         key={`floor-${floor}`}
-                        style={[styles.floorChip, timelineFloorFilter === floor && styles.floorChipActive]}
+                        style={[
+                          styles.floorChip,
+                          !isDark && timelineFloorFilter !== floor && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                          timelineFloorFilter === floor && styles.floorChipActive,
+                        ]}
                         onPress={() => {
                           setTimelineFloorFilter(floor);
                           Haptics.selectionAsync();
                         }}
                       >
-                        <Text style={[styles.floorChipText, timelineFloorFilter === floor && styles.floorChipTextActive]}>
+                        <Text
+                          style={[
+                            styles.floorChipText,
+                            !isDark && timelineFloorFilter !== floor && { color: '#64748B' },
+                            timelineFloorFilter === floor && styles.floorChipTextActive,
+                          ]}
+                        >
                           Tầng {floor}
                         </Text>
                       </TouchableOpacity>
@@ -612,13 +718,23 @@ export default function BookingManagementModal({
                     return (
                       <TouchableOpacity
                         key={item.key}
-                        style={[styles.statusChip, isSelected && styles.statusChipActive]}
+                        style={[
+                          styles.statusChip,
+                          !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                          isSelected && styles.statusChipActive,
+                        ]}
                         onPress={() => {
                           setTimelineStatusFilter(item.key as any);
                           Haptics.selectionAsync();
                         }}
                       >
-                        <Text style={[styles.statusChipText, isSelected && styles.statusChipTextActive]}>
+                        <Text
+                          style={[
+                            styles.statusChipText,
+                            !isDark && !isSelected && { color: '#64748B' },
+                            isSelected && styles.statusChipTextActive,
+                          ]}
+                        >
                           {item.label}
                         </Text>
                       </TouchableOpacity>
@@ -629,8 +745,8 @@ export default function BookingManagementModal({
 
               {/* Sub-bar: Room counter and Expand/Collapse All toggle */}
               <View style={styles.timelineSubBar}>
-                <Text style={styles.timelineCountSummary}>
-                  Hiển thị <Text style={{ color: '#F8FAFC', fontWeight: '800' }}>{filteredTimelineRooms.length}</Text> / {timelineData?.rooms?.length || 0} phòng
+                <Text style={[styles.timelineCountSummary, !isDark && { color: '#64748B' }]}>
+                  Hiển thị <Text style={{ color: isDark ? '#F8FAFC' : '#0F172A', fontWeight: '800' }}>{filteredTimelineRooms.length}</Text> / {timelineData?.rooms?.length || 0} phòng
                 </Text>
                 {filteredTimelineRooms.some((r: any) => (r.bookings?.length || 0) > 1) && (
                   <TouchableOpacity
@@ -641,10 +757,10 @@ export default function BookingManagementModal({
                     <Ionicons
                       name={areAllExpanded ? 'contract-outline' : 'expand-outline'}
                       size={13}
-                      color="#38BDF8"
+                      color="#0284C7"
                       style={{ marginRight: 4 }}
                     />
-                    <Text style={styles.expandAllBtnText}>
+                    <Text style={[styles.expandAllBtnText, !isDark && { color: '#0284C7' }]}>
                       {areAllExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}
                     </Text>
                   </TouchableOpacity>
@@ -655,17 +771,17 @@ export default function BookingManagementModal({
               {loadingTimeline ? (
                 <View style={styles.centerBox}>
                   <ActivityIndicator size="large" color="#F59E0B" />
-                  <Text style={styles.loadingText}>Đang tải sơ đồ lịch lưu trú...</Text>
+                  <Text style={[styles.loadingText, !isDark && { color: '#64748B' }]}>Đang tải sơ đồ lịch lưu trú...</Text>
                 </View>
               ) : !timelineData || !timelineData.rooms || timelineData.rooms.length === 0 ? (
                 <View style={styles.centerBox}>
-                  <Ionicons name="calendar-outline" size={48} color="#475569" />
-                  <Text style={styles.emptyText}>Chưa có dữ liệu lịch đặt phòng tháng này.</Text>
+                  <Ionicons name="calendar-outline" size={48} color={isDark ? '#475569' : '#CBD5E1'} />
+                  <Text style={[styles.emptyText, !isDark && { color: '#64748B' }]}>Chưa có dữ liệu lịch đặt phòng tháng này.</Text>
                 </View>
               ) : filteredTimelineRooms.length === 0 ? (
                 <View style={styles.centerBox}>
-                  <Ionicons name="search-outline" size={48} color="#475569" />
-                  <Text style={styles.emptyText}>Không tìm thấy phòng phù hợp với bộ lọc.</Text>
+                  <Ionicons name="search-outline" size={48} color={isDark ? '#475569' : '#CBD5E1'} />
+                  <Text style={[styles.emptyText, !isDark && { color: '#64748B' }]}>Không tìm thấy phòng phù hợp với bộ lọc.</Text>
                 </View>
               ) : (
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 35 }}>
@@ -676,24 +792,35 @@ export default function BookingManagementModal({
                     const canExpand = otherBookings.length > 0;
 
                     return (
-                      <View key={room.id} style={styles.timelineRoomCard}>
+                      <View
+                        key={room.id}
+                        style={[
+                          styles.timelineRoomCard,
+                          !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        ]}
+                      >
                         {/* Room Info Header */}
                         <TouchableOpacity
-                          style={styles.timelineRoomHeader}
+                          style={[styles.timelineRoomHeader, !isDark && { borderBottomColor: '#E2E8F0' }]}
                           activeOpacity={canExpand ? 0.7 : 1}
                           onPress={() => {
                             if (canExpand) toggleRoomExpand(room.id);
                           }}
                         >
                           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                            <View style={styles.timelineRoomBadge}>
-                              <Text style={styles.timelineRoomBadgeText}>P.{room.room_number}</Text>
+                            <View
+                              style={[
+                                styles.timelineRoomBadge,
+                                !isDark && { backgroundColor: '#E0F2FE', borderColor: '#7DD3FC' },
+                              ]}
+                            >
+                              <Text style={[styles.timelineRoomBadgeText, !isDark && { color: '#0284C7' }]}>P.{room.room_number}</Text>
                             </View>
                             <View style={{ marginLeft: 8, flex: 1 }}>
-                              <Text style={styles.timelineRoomName} numberOfLines={1}>
+                              <Text style={[styles.timelineRoomName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
                                 {room.category_name || room.category?.name || 'Phòng Deluxe'}
                               </Text>
-                              <Text style={styles.timelineRoomSub} numberOfLines={1}>
+                              <Text style={[styles.timelineRoomSub, !isDark && { color: '#64748B' }]} numberOfLines={1}>
                                 Tầng {room.floor} • Trạng thái: {room.status_display || room.status}
                               </Text>
                             </View>
@@ -711,7 +838,7 @@ export default function BookingManagementModal({
                                 style={[
                                   styles.bookingCountBadgeText,
                                   roomBookings.length === 0 && { color: '#64748B' },
-                                  roomBookings.length > 1 && { color: '#38BDF8' },
+                                  roomBookings.length > 1 && { color: '#0284C7' },
                                 ]}
                               >
                                 {roomBookings.length === 0 ? 'Trống' : `${roomBookings.length} lịch đặt`}
@@ -722,7 +849,7 @@ export default function BookingManagementModal({
                               <Ionicons
                                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                 size={15}
-                                color="#38BDF8"
+                                color={isDark ? '#38BDF8' : '#0284C7'}
                                 style={{ marginLeft: 6 }}
                               />
                             )}
@@ -732,15 +859,20 @@ export default function BookingManagementModal({
                         {/* Stays in this room */}
                         {roomBookings.length === 0 ? (
                           <View style={styles.timelineEmptyBox}>
-                            <Ionicons name="sparkles" size={12} color="#10B981" style={{ marginRight: 6 }} />
-                            <Text style={styles.timelineEmptyText}>Phòng trống trong suốt tháng {timelineMonth}</Text>
+                            <Ionicons name="sparkles" size={12} color="#059669" style={{ marginRight: 6 }} />
+                            <Text style={[styles.timelineEmptyText, !isDark && { color: '#64748B' }]}>Phòng trống trong suốt tháng {timelineMonth}</Text>
                           </View>
                         ) : (
                           <View>
                             {/* Primary Active Stay */}
                             {activeBooking && (
-                              <View style={styles.activeBookingWrapper}>
-                                <View style={styles.priorityBanner}>
+                              <View
+                                style={[
+                                  styles.activeBookingWrapper,
+                                  !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+                                ]}
+                              >
+                                <View style={[styles.priorityBanner, !isDark && { backgroundColor: '#F1F5F9', borderBottomColor: '#E2E8F0' }]}>
                                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <Ionicons
                                       name={
@@ -753,19 +885,19 @@ export default function BookingManagementModal({
                                       size={12}
                                       color={
                                         activeBooking.status === 'checked_in'
-                                          ? '#34D399'
+                                          ? '#059669'
                                           : activeBooking.status === 'confirmed'
-                                          ? '#F59E0B'
-                                          : '#38BDF8'
+                                          ? '#D97706'
+                                          : '#0284C7'
                                       }
                                       style={{ marginRight: 5 }}
                                     />
                                     <Text
                                       style={[
                                         styles.priorityBannerText,
-                                        activeBooking.status === 'checked_in' && { color: '#34D399' },
-                                        activeBooking.status === 'confirmed' && { color: '#F59E0B' },
-                                        activeBooking.status !== 'checked_in' && activeBooking.status !== 'confirmed' && { color: '#38BDF8' },
+                                        activeBooking.status === 'checked_in' && { color: '#059669' },
+                                        activeBooking.status === 'confirmed' && { color: '#D97706' },
+                                        activeBooking.status !== 'checked_in' && activeBooking.status !== 'confirmed' && { color: '#0284C7' },
                                       ]}
                                     >
                                       {activeBooking.status === 'checked_in'
@@ -799,18 +931,18 @@ export default function BookingManagementModal({
                                 <View style={styles.primaryStayBody}>
                                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
-                                      <Text style={styles.primaryGuestName} numberOfLines={1}>
+                                      <Text style={[styles.primaryGuestName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
                                         👤 {activeBooking.guest_name}
                                       </Text>
                                       {activeBooking.booking_code && (
-                                        <Text style={styles.stayBookingCode}>#{activeBooking.booking_code}</Text>
+                                        <Text style={[styles.stayBookingCode, !isDark && { color: '#64748B' }]}>#{activeBooking.booking_code}</Text>
                                       )}
                                     </View>
 
                                     {activeBooking.group_name ? (
                                       <View style={styles.groupTag}>
-                                        <Ionicons name="people" size={10} color="#F59E0B" style={{ marginRight: 3 }} />
-                                        <Text style={styles.groupTagText} numberOfLines={1}>
+                                        <Ionicons name="people" size={10} color="#D97706" style={{ marginRight: 3 }} />
+                                        <Text style={[styles.groupTagText, !isDark && { color: '#B45309' }]} numberOfLines={1}>
                                           {activeBooking.group_name}
                                         </Text>
                                       </View>
@@ -819,8 +951,8 @@ export default function BookingManagementModal({
 
                                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, justifyContent: 'space-between' }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                      <Ionicons name="calendar-outline" size={12} color="#94A3B8" style={{ marginRight: 4 }} />
-                                      <Text style={styles.stayDates}>
+                                      <Ionicons name="calendar-outline" size={12} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 4 }} />
+                                      <Text style={[styles.stayDates, !isDark && { color: '#64748B' }]}>
                                         {activeBooking.check_in_date} ➔ {activeBooking.check_out_date} ({activeBooking.nights} đêm)
                                       </Text>
                                     </View>
@@ -831,7 +963,7 @@ export default function BookingManagementModal({
                                           style={styles.phonePillSmall}
                                           onPress={() => Linking.openURL(`tel:${activeBooking.guest_phone}`)}
                                         >
-                                          <Ionicons name="call" size={10} color="#34D399" style={{ marginRight: 3 }} />
+                                          <Ionicons name="call" size={10} color="#059669" style={{ marginRight: 3 }} />
                                           <Text style={styles.phonePillSmallText}>{activeBooking.guest_phone}</Text>
                                         </TouchableOpacity>
                                       ) : null}
@@ -844,8 +976,8 @@ export default function BookingManagementModal({
                                             onSelectGuest(activeBooking.guest_id);
                                           }}
                                         >
-                                          <Ionicons name="person-circle-outline" size={12} color="#F59E0B" />
-                                          <Text style={styles.crmShortcutTextSmall}>CRM</Text>
+                                          <Ionicons name="person-circle-outline" size={12} color="#D97706" />
+                                          <Text style={[styles.crmShortcutTextSmall, !isDark && { color: '#B45309' }]}>CRM</Text>
                                         </TouchableOpacity>
                                       ) : null}
                                     </View>
@@ -858,21 +990,27 @@ export default function BookingManagementModal({
                             {canExpand && isExpanded && (
                               <View style={styles.otherBookingsContainer}>
                                 <View style={styles.otherBookingsHeader}>
-                                  <Text style={styles.otherBookingsHeaderText}>
+                                  <Text style={[styles.otherBookingsHeaderText, !isDark && { color: '#64748B' }]}>
                                     Các lịch đặt khác trong tháng ({otherBookings.length}):
                                   </Text>
                                 </View>
                                 {otherBookings.map((bk: any) => {
                                   const badge = getStatusBadge(bk.status);
                                   return (
-                                    <View key={bk.id || bk.booking_code} style={styles.stayItemCard}>
+                                    <View
+                                      key={bk.id || bk.booking_code}
+                                      style={[
+                                        styles.stayItemCard,
+                                        !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+                                      ]}
+                                    >
                                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                                          <Text style={styles.stayGuestName} numberOfLines={1}>
+                                          <Text style={[styles.stayGuestName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
                                             👤 {bk.guest_name}
                                           </Text>
                                           {bk.booking_code ? (
-                                            <Text style={styles.stayBookingCode}>#{bk.booking_code}</Text>
+                                            <Text style={[styles.stayBookingCode, !isDark && { color: '#64748B' }]}>#{bk.booking_code}</Text>
                                           ) : null}
                                         </View>
                                         <View style={[styles.statusBadgeSmall, { backgroundColor: badge.bg, borderColor: badge.border }]}>
@@ -884,8 +1022,8 @@ export default function BookingManagementModal({
 
                                       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5, justifyContent: 'space-between' }}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                          <Ionicons name="calendar-outline" size={11} color="#94A3B8" style={{ marginRight: 4 }} />
-                                          <Text style={styles.stayDates}>
+                                          <Ionicons name="calendar-outline" size={11} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 4 }} />
+                                          <Text style={[styles.stayDates, !isDark && { color: '#64748B' }]}>
                                             {bk.check_in_date} ➔ {bk.check_out_date} ({bk.nights} đêm)
                                           </Text>
                                         </View>
@@ -896,8 +1034,8 @@ export default function BookingManagementModal({
                                               style={{ flexDirection: 'row', alignItems: 'center' }}
                                               onPress={() => Linking.openURL(`tel:${bk.guest_phone}`)}
                                             >
-                                              <Ionicons name="call" size={10} color="#34D399" style={{ marginRight: 3 }} />
-                                              <Text style={[styles.stayDates, { color: '#38BDF8', fontSize: 10.5 }]}>
+                                              <Ionicons name="call" size={10} color="#059669" style={{ marginRight: 3 }} />
+                                              <Text style={[styles.stayDates, { color: '#0284C7', fontSize: 10.5 }]}>
                                                 {bk.guest_phone}
                                               </Text>
                                             </TouchableOpacity>
@@ -911,8 +1049,8 @@ export default function BookingManagementModal({
                                                 onSelectGuest(bk.guest_id);
                                               }}
                                             >
-                                              <Ionicons name="person-circle-outline" size={11} color="#F59E0B" />
-                                              <Text style={styles.crmShortcutTextSmall}>CRM</Text>
+                                              <Ionicons name="person-circle-outline" size={11} color="#D97706" />
+                                              <Text style={[styles.crmShortcutTextSmall, !isDark && { color: '#B45309' }]}>CRM</Text>
                                             </TouchableOpacity>
                                           ) : null}
                                         </View>
@@ -933,10 +1071,10 @@ export default function BookingManagementModal({
                                 <Ionicons
                                   name={isExpanded ? 'chevron-up-circle-outline' : 'chevron-down-circle-outline'}
                                   size={14}
-                                  color={isExpanded ? '#94A3B8' : '#38BDF8'}
+                                  color={isExpanded ? (isDark ? '#94A3B8' : '#64748B') : '#0284C7'}
                                   style={{ marginRight: 6 }}
                                 />
-                                <Text style={[styles.roomExpandToggleText, isExpanded && { color: '#94A3B8' }]}>
+                                <Text style={[styles.roomExpandToggleText, isExpanded && { color: isDark ? '#94A3B8' : '#64748B' }, !isDark && !isExpanded && { color: '#0284C7' }]}>
                                   {isExpanded
                                     ? `Thu gọn (ẩn ${otherBookings.length} đơn khác)`
                                     : `Xem thêm ${otherBookings.length} lịch đặt khác trong tháng`}

@@ -882,9 +882,9 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                         <span className="font-semibold block text-slate-900">
                                                             {formatDateTimeDisplay(req.created_at || req.request_time)}
                                                         </span>
-                                                        {req.request_time && req.request_time !== req.created_at && (
-                                                            <span className="text-[10px] text-slate-400 block">
-                                                                Hẹn giờ: {formatDateTimeDisplay(req.request_time)}
+                                                        {req.is_scheduled && req.request_time && (
+                                                            <span className="text-[10px] text-amber-600 font-semibold block">
+                                                                ⏰ Hẹn giao: {formatDateTimeDisplay(req.request_time)}
                                                             </span>
                                                         )}
                                                     </td>

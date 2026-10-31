@@ -1,14 +1,11 @@
 /**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
+ * Hook trả về bộ màu giao diện hiện tại (Light hoặc Dark).
+ * Tự động đồng bộ với ThemeProvider và người dùng lựa chọn trong Tab Cá nhân.
  */
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
 export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'dark' ? 'dark' : 'light';
-
-  return Colors[theme];
+  const { colors } = useAppTheme();
+  return colors;
 }

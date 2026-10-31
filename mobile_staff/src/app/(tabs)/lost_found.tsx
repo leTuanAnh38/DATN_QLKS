@@ -22,32 +22,14 @@ import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import { LostFoundListSkeleton } from '../../components/SkeletonLoader';
+import {
+  LostFoundCard,
+  LostFoundItem,
+} from '../../components/lost_found/LostFoundCard';
 
-interface LostFoundItem {
-  id: number;
-  tracking_code: string;
-  room: number | null;
-  room_number: string;
-  location_found: string;
-  item_name: string;
-  category: string;
-  category_display?: string;
-  description: string;
-  image?: string | null;
-  image_url?: string | null;
-  found_date: string;
-  finder_name: string;
-  guest_name: string;
-  guest_phone: string;
-  storage_location: string;
-  status: 'stored' | 'contacted' | 'returned' | 'disposed';
-  status_display?: string;
-  returned_date?: string;
-  returned_to?: string;
-  return_note?: string;
-}
 
 const CATEGORIES = [
   { key: 'electronics', label: 'Điện tử (Điện thoại, Laptop, Sạc)', icon: 'phone-portrait' },
@@ -60,6 +42,7 @@ const CATEGORIES = [
 
 export default function LostFoundScreen() {
   const { user } = useAuth();
+  const { colors, isDark } = useAppTheme();
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -348,205 +331,33 @@ export default function LostFoundScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: LostFoundItem }) => {
-    const isStored = item.status === 'stored';
-    const isContacted = item.status === 'contacted';
-    const isReturned = item.status === 'returned';
+  const renderItem = useCallback(
+    ({ item }: { item: LostFoundItem }) => (
+      <LostFoundCard
+        item={item}
+        isLoading={actionLoadingId === item.id}
+        onPreviewImage={setPreviewImageUrl}
+        onCallPhone={(phone) => Linking.openURL(`tel:${phone}`)}
+        onMarkContacted={handleMarkContacted}
+        onOpenReturn={(it) => {
+          setSelectedItem(it);
+          setReturnedTo(it.guest_name || '');
+          setReturnNote('');
+          setReturnModalVisible(true);
+        }}
+      />
+    ),
+    [actionLoadingId, handleMarkContacted]
+  );
 
-    const getStatusStyle = () => {
-      if (isStored) {
-        return {
-          bg: 'rgba(245, 158, 11, 0.12)',
-          border: 'rgba(245, 158, 11, 0.4)',
-          text: '#FBBF24',
-          label: 'Đang lưu kho',
-          icon: 'archive' as const,
-        };
-      }
-      if (isContacted) {
-        return {
-          bg: 'rgba(56, 189, 248, 0.12)',
-          border: 'rgba(56, 189, 248, 0.4)',
-          text: '#38BDF8',
-          label: 'Đã báo khách',
-          icon: 'call' as const,
-        };
-      }
-      return {
-        bg: 'rgba(16, 185, 129, 0.12)',
-        border: 'rgba(16, 185, 129, 0.4)',
-        text: '#34D399',
-        label: 'Đã trao trả',
-        icon: 'checkmark-circle' as const,
-      };
-    };
-
-    const statusObj = getStatusStyle();
-
-    return (
-      <View style={[styles.card, (isStored || isContacted) && styles.cardStored]}>
-        {/* Header thẻ */}
-        <View style={styles.cardHeader}>
-          <View style={styles.locationTag}>
-            <Ionicons name="location" size={12} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={styles.locationTagText} numberOfLines={1}>
-              {item.location_found || 'Khách sạn'}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor: statusObj.bg,
-                borderColor: statusObj.border,
-              },
-            ]}
-          >
-            <Ionicons
-              name={statusObj.icon}
-              size={12}
-              color={statusObj.text}
-              style={{ marginRight: 4 }}
-            />
-            <Text
-              style={[
-                styles.statusBadgeText,
-                { color: statusObj.text },
-              ]}
-            >
-              {statusObj.label}
-            </Text>
-          </View>
-        </View>
-
-        {/* Tên đồ vật & Mã & Ảnh chụp hiện vật */}
-        <View style={styles.itemTitleRow}>
-          {item.image_url || item.image ? (
-            <TouchableOpacity
-              onPress={() => setPreviewImageUrl(item.image_url || item.image || null)}
-              activeOpacity={0.8}
-              style={styles.itemThumbWrapper}
-            >
-              <Image
-                source={{ uri: item.image_url || item.image || '' }}
-                style={styles.itemThumbnail}
-                resizeMode="cover"
-              />
-              <View style={styles.zoomBadge}>
-                <Ionicons name="scan" size={10} color="#FFF" />
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.itemIconBox}>
-              <Ionicons name="cube" size={20} color="#F59E0B" />
-            </View>
-          )}
-          <View style={{ flex: 1 }}>
-            <Text style={styles.itemName}>{item.item_name}</Text>
-            <Text style={styles.trackingCode}>Mã: #{item.tracking_code}</Text>
-            {item.room_number ? (
-              <Text style={styles.roomLinkText}>Phòng liên quan: P.{item.room_number}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        {/* Mô tả đặc điểm */}
-        {item.description ? (
-          <View style={styles.descBox}>
-            <Text style={styles.descText}>Chi tiết: {item.description}</Text>
-          </View>
-        ) : null}
-
-        {/* Thông tin khách hàng liên quan nếu có */}
-        {item.guest_name ? (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Khách liên quan:</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-              <Text style={[styles.infoValue, { color: '#60A5FA', fontWeight: '700' }]}>
-                {item.guest_name}
-              </Text>
-              {item.guest_phone ? (
-                <TouchableOpacity
-                  style={styles.callGuestMiniBtn}
-                  onPress={() => Linking.openURL(`tel:${item.guest_phone}`)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="call" size={11} color="#34D399" style={{ marginRight: 3 }} />
-                  <Text style={styles.callGuestMiniText}>{item.guest_phone}</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
-
-        {/* Thông tin lưu kho & Người nhặt */}
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Kho cất giữ:</Text>
-          <Text style={styles.infoValue}>{item.storage_location || 'Két an toàn Lễ tân'}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Phát hiện:</Text>
-          <Text style={styles.infoValue}>
-            {new Date(item.found_date).toLocaleDateString('vi-VN')} • {item.finder_name || 'Buồng phòng'}
-          </Text>
-        </View>
-
-        {/* Nút hành động */}
-        {(isStored || isContacted) ? (
-          <View style={styles.actionRowLF}>
-            {isStored && (
-              <TouchableOpacity
-                style={[styles.contactActionBtn, actionLoadingId === item.id && { opacity: 0.65 }]}
-                onPress={() => handleMarkContacted(item)}
-                disabled={actionLoadingId === item.id}
-                activeOpacity={0.8}
-              >
-                {actionLoadingId === item.id ? (
-                  <ActivityIndicator size="small" color="#38BDF8" />
-                ) : (
-                  <>
-                    <Ionicons name="call-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
-                    <Text style={styles.contactActionBtnText}>Đã gọi khách</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.returnActionBtn}
-              onPress={() => {
-                setSelectedItem(item);
-                setReturnedTo(item.guest_name || '');
-                setReturnNote('');
-                setReturnModalVisible(true);
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="hand-left" size={14} color="#0A0F1D" style={{ marginRight: 5 }} />
-              <Text style={styles.returnActionBtnText}>BÀN GIAO TRẢ KHÁCH</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.returnedInfoBox}>
-            <Ionicons name="shield-checkmark" size={14} color="#34D399" style={{ marginRight: 6 }} />
-            <Text style={styles.returnedInfoText}>
-              Đã trao trả cho: {item.returned_to || 'Khách hàng'}
-            </Text>
-          </View>
-        )}
-      </View>
-    );
-  };
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top']}>
+    <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
-          <Text style={styles.greetingTitle}>Đồ Thất Lạc 🧳</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]}>Đồ Thất Lạc 🧳</Text>
         </View>
         <View style={styles.headerRightActions}>
           <NotificationBell />
@@ -558,7 +369,10 @@ export default function LostFoundScreen() {
             <Ionicons name="add" size={22} color="#0A0F1D" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.refreshCircleBtn}
+            style={[
+              styles.refreshCircleBtn,
+              !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+            ]}
             onPress={onRefresh}
             activeOpacity={0.7}
           >
@@ -570,9 +384,9 @@ export default function LostFoundScreen() {
       {/* 2. Dải Bộ Lọc & KPI Cố Định 100% */}
       <View style={styles.fixedFilterBar}>
         {[
-          { key: 'all', label: 'Tất cả', count: stats.total, color: '#F8FAFC' },
+          { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
           { key: 'stored', label: 'Đang lưu kho', count: stats.stored, color: '#F59E0B' },
-          { key: 'returned', label: 'Đã trao trả', count: stats.returned, color: '#34D399' },
+          { key: 'returned', label: 'Đã trao trả', count: stats.returned, color: isDark ? '#34D399' : '#059669' },
         ].map((item) => {
           const isSelected = filterStatus === item.key;
           return (
@@ -580,7 +394,16 @@ export default function LostFoundScreen() {
               key={item.key}
               style={[
                 styles.fixedFilterCard,
-                isSelected && styles.fixedFilterCardSelected,
+                !isDark && {
+                  backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.12)' : '#FFFFFF',
+                  borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                  shadowColor: '#64748B',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 3,
+                  elevation: 1,
+                },
+                isSelected && isDark && styles.fixedFilterCardSelected,
               ]}
               onPress={() => {
                 setFilterStatus(item.key);
@@ -594,7 +417,8 @@ export default function LostFoundScreen() {
               <Text
                 style={[
                   styles.fixedFilterLabel,
-                  isSelected && styles.fixedFilterLabelSelected,
+                  !isDark && { color: isSelected ? '#D97706' : '#64748B' },
+                  isSelected && isDark && styles.fixedFilterLabelSelected,
                 ]}
                 numberOfLines={1}
               >
@@ -607,21 +431,21 @@ export default function LostFoundScreen() {
 
       {/* Thống kê bổ sung (khớp web): đã liên hệ khách & tỷ lệ trao trả */}
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, paddingHorizontal: 16, marginBottom: 6 }}>
-        <Text style={{ fontSize: 11.5, color: '#94A3B8', fontWeight: '600' }}>
-          Đã liên hệ khách: <Text style={{ color: '#38BDF8', fontWeight: '800' }}>{stats.contacted}</Text>
+        <Text style={{ fontSize: 11.5, color: isDark ? '#94A3B8' : '#64748B', fontWeight: '600' }}>
+          Đã liên hệ khách: <Text style={{ color: '#0284C7', fontWeight: '800' }}>{stats.contacted}</Text>
         </Text>
-        <Text style={{ fontSize: 11.5, color: '#94A3B8', fontWeight: '600' }}>
-          Tỷ lệ trao trả: <Text style={{ color: '#34D399', fontWeight: '800' }}>{stats.returnRate}%</Text>
+        <Text style={{ fontSize: 11.5, color: isDark ? '#94A3B8' : '#64748B', fontWeight: '600' }}>
+          Tỷ lệ trao trả: <Text style={{ color: isDark ? '#34D399' : '#059669', fontWeight: '800' }}>{stats.returnRate}%</Text>
         </Text>
       </View>
 
       {/* 3. Ô Tìm Kiếm Nhanh */}
-      <View style={styles.searchWrapper}>
-        <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginLeft: 12 }} />
+      <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
           placeholder="Tìm tên đồ vật, mã #LF, số phòng..."
-          placeholderTextColor="#64748B"
+          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
           value={searchQuery}
           onChangeText={setSearchQuery}
           clearButtonMode="while-editing"
@@ -643,7 +467,16 @@ export default function LostFoundScreen() {
           <TouchableOpacity
             style={[
               styles.categoryChip,
-              selectedCategory === 'all' && styles.categoryChipActive,
+              !isDark && {
+                backgroundColor: selectedCategory === 'all' ? '#F59E0B' : '#FFFFFF',
+                borderColor: selectedCategory === 'all' ? '#F59E0B' : '#E2E8F0',
+                shadowColor: '#64748B',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              },
+              selectedCategory === 'all' && isDark && styles.categoryChipActive,
             ]}
             onPress={() => {
               setSelectedCategory('all');
@@ -654,7 +487,8 @@ export default function LostFoundScreen() {
             <Text
               style={[
                 styles.categoryChipText,
-                selectedCategory === 'all' && styles.categoryChipTextActive,
+                !isDark && { color: selectedCategory === 'all' ? '#0A0F1D' : '#475569' },
+                selectedCategory === 'all' && isDark && styles.categoryChipTextActive,
               ]}
             >
               Tất cả ({items.length})
@@ -668,7 +502,16 @@ export default function LostFoundScreen() {
                 key={cat.key}
                 style={[
                   styles.categoryChip,
-                  isSelected && styles.categoryChipActive,
+                  !isDark && {
+                    backgroundColor: isSelected ? '#F59E0B' : '#FFFFFF',
+                    borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                    shadowColor: '#64748B',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  },
+                  isSelected && isDark && styles.categoryChipActive,
                 ]}
                 onPress={() => {
                   setSelectedCategory(cat.key);
@@ -679,12 +522,13 @@ export default function LostFoundScreen() {
                 <Ionicons
                   name={cat.icon as any}
                   size={13}
-                  color={isSelected ? '#0A0F1D' : '#94A3B8'}
+                  color={isSelected ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
                   style={{ marginRight: 5 }}
                 />
                 <Text
                   style={[
                     styles.categoryChipText,
+                    !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
                     isSelected && styles.categoryChipTextActive,
                   ]}
                 >
@@ -729,58 +573,63 @@ export default function LostFoundScreen() {
       {/* Modal Khai Báo Đồ Nhặt Được Mới */}
       <Modal visible={createModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View>
-                <Text style={styles.modalTitle}>Khai Báo Đồ Khách Bỏ Quên</Text>
-                <Text style={styles.modalSubtitle}>Ghi nhận vào sổ Lost & Found để Lễ tân quản lý</Text>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Khai Báo Đồ Khách Bỏ Quên</Text>
+                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Ghi nhận vào sổ Lost & Found để Lễ tân quản lý</Text>
               </View>
               <TouchableOpacity
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
                 onPress={() => setCreateModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={20} color="#94A3B8" />
+                <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Tên vật phẩm nhặt được (*):</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Tên vật phẩm nhặt được (*):</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="VD: Ví nam cầm tay, Tai nghe AirPods, Hộ chiếu..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 value={itemName}
                 onChangeText={setItemName}
               />
 
-              <Text style={styles.inputLabel}>Số phòng phát hiện (hoặc khu vực):</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Số phòng phát hiện (hoặc khu vực):</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="VD: 204 (hoặc Hồ bơi tầng 3, Ghế sảnh...)"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 value={roomNumber}
                 onChangeText={setRoomNumber}
               />
 
-              <Text style={styles.inputLabel}>Phân loại tài sản:</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Phân loại tài sản:</Text>
               <View style={styles.categoryChipsRow}>
                 {CATEGORIES.map((c) => (
                   <TouchableOpacity
                     key={c.key}
-                    style={[styles.categoryChip, category === c.key && styles.categoryChipActive]}
+                    style={[
+                      styles.categoryChip,
+                      !isDark && category !== c.key && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                      category === c.key && styles.categoryChipActive,
+                    ]}
                     onPress={() => setCategory(c.key)}
                     activeOpacity={0.7}
                   >
                     <Ionicons
                       name={c.icon as any}
                       size={13}
-                      color={category === c.key ? '#0A0F1D' : '#94A3B8'}
+                      color={category === c.key ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
                       style={{ marginRight: 4 }}
                     />
                     <Text
                       style={[
                         styles.categoryChipText,
+                        !isDark && category !== c.key && { color: '#475569' },
                         category === c.key && styles.categoryChipTextActive,
                       ]}
                     >
@@ -790,18 +639,18 @@ export default function LostFoundScreen() {
                 ))}
               </View>
 
-              <Text style={styles.inputLabel}>Mô tả đặc điểm / Vị trí tìm thấy:</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Mô tả đặc điểm / Vị trí tìm thấy:</Text>
               <TextInput
-                style={[styles.modalInput, { height: 60 }]}
+                style={[styles.modalInput, { height: 60 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="VD: Nhặt được dưới chân giường, màu đen da bò..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 multiline
                 value={description}
                 onChangeText={setDescription}
               />
 
               {/* Chụp ảnh hiện vật */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>Ảnh chụp hiện vật (Camera hoặc Thư viện):</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>Ảnh chụp hiện vật (Camera hoặc Thư viện):</Text>
               {selectedImage ? (
                 <View style={styles.imagePreviewContainer}>
                   <Image source={{ uri: selectedImage.uri }} style={styles.imagePreview} resizeMode="cover" />
@@ -827,20 +676,20 @@ export default function LostFoundScreen() {
               ) : (
                 <View style={styles.photoPickerRow}>
                   <TouchableOpacity
-                    style={styles.photoPickerBtn}
+                    style={[styles.photoPickerBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}
                     onPress={takePhoto}
                     activeOpacity={0.8}
                   >
                     <Ionicons name="camera" size={20} color="#F59E0B" />
-                    <Text style={styles.photoPickerText}>Chụp ảnh camera</Text>
+                    <Text style={[styles.photoPickerText, !isDark && { color: '#475569' }]}>Chụp ảnh camera</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.photoPickerBtn}
+                    style={[styles.photoPickerBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}
                     onPress={pickImage}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="images" size={20} color="#60A5FA" />
-                    <Text style={[styles.photoPickerText, { color: '#60A5FA' }]}>Chọn từ thư viện</Text>
+                    <Ionicons name="images" size={20} color="#3B82F6" />
+                    <Text style={[styles.photoPickerText, { color: '#3B82F6' }]}>Chọn từ thư viện</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -868,37 +717,37 @@ export default function LostFoundScreen() {
       {/* Modal Bàn Giao Trả Khách */}
       <Modal visible={returnModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlayCenter}>
-          <View style={styles.modalCenterContent}>
-            <Text style={styles.modalTitle}>Bàn Giao Trả Khách</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalCenterContent, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+            <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Bàn Giao Trả Khách</Text>
+            <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
               Vật phẩm: {selectedItem?.item_name} (#{selectedItem?.tracking_code})
             </Text>
 
-            <Text style={styles.inputLabel}>Họ tên người nhận lại (*):</Text>
+            <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Họ tên người nhận lại (*):</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
               placeholder="VD: Anh Tuấn (SĐT: 0912...)"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               value={returnedTo}
               onChangeText={setReturnedTo}
             />
 
-            <Text style={styles.inputLabel}>Ghi chú biên bản bàn giao:</Text>
+            <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Ghi chú biên bản bàn giao:</Text>
             <TextInput
-              style={[styles.modalInput, { height: 50 }]}
+              style={[styles.modalInput, { height: 50 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
               placeholder="Khách đã kiểm tra đủ tài sản..."
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               value={returnNote}
               onChangeText={setReturnNote}
             />
 
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
+                style={[styles.modalCancelBtn, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}
                 onPress={() => setReturnModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalCancelText}>Hủy</Text>
+                <Text style={[styles.modalCancelText, !isDark && { color: '#64748B' }]}>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalSaveBtn}

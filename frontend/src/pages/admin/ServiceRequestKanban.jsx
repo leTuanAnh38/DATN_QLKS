@@ -28,7 +28,8 @@ import {
     CreditCard,
     Gift,
     Undo2,
-    ArrowRight
+    ArrowRight,
+    Zap
 } from 'lucide-react';
 
 // Format thời gian trôi qua dạng "Vừa xong", "5 phút trước", "1 giờ trước"
@@ -62,6 +63,17 @@ const formatRequestDateTime = (dateStr) => {
     } catch {
         return { time: dateStr, date: '' };
     }
+};
+
+const formatToLocalDateTimeString = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 // Helper hiển thị icon linh hoạt
@@ -399,6 +411,8 @@ export default function ServiceRequestKanban() {
     const [orderNote, setOrderNote] = useState('');
     const [modalServiceSearch, setModalServiceSearch] = useState('');
     const [modalCategoryFilter, setModalCategoryFilter] = useState('all');
+    const [deliveryMode, setDeliveryMode] = useState('now'); // 'now' | 'scheduled'
+    const [scheduledDateTime, setScheduledDateTime] = useState('');
 
     // 5. Modal Chi tiết yêu cầu
     const [selectedItemForDetail, setSelectedItemForDetail] = useState(null);
@@ -608,6 +622,8 @@ export default function ServiceRequestKanban() {
         setOrderNote('');
         setModalServiceSearch('');
         setModalCategoryFilter('all');
+        setDeliveryMode('now');
+        setScheduledDateTime('');
 
         setIsLoadingModalData(true);
         try {
@@ -652,14 +668,21 @@ export default function ServiceRequestKanban() {
             setModalError('Số lượng phải từ 1 trở lên.');
             return;
         }
+        if (deliveryMode === 'scheduled' && !scheduledDateTime) {
+            setModalError('Vui lòng chọn ngày và giờ hẹn giao món / dịch vụ.');
+            return;
+        }
 
         setModalSubmitting(true);
         try {
+            const isScheduled = deliveryMode === 'scheduled';
             const payload = {
                 booking_id: Number(selectedBookingId),
                 service_id: Number(selectedServiceId),
                 quantity: Number(orderQuantity),
-                note: orderNote.trim()
+                note: orderNote.trim(),
+                is_scheduled: isScheduled,
+                ...(isScheduled && scheduledDateTime ? { request_time: new Date(scheduledDateTime).toISOString() } : {})
             };
             const res = await hotelService.createServiceRequest(payload);
             if (res && res.success) {
@@ -2301,6 +2324,28 @@ export default function ServiceRequestKanban() {
                                 </div>
                             </div>
 
+                            {/* Scheduled Delivery Banner */}
+                            {selectedItemForDetail.is_scheduled && selectedItemForDetail.request_time && (
+                                <div className="p-3 bg-blue-50/80 rounded-2xl border border-blue-200 flex items-center justify-between">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                            <Clock className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-blue-700 font-bold uppercase tracking-wider block">
+                                                Lịch hẹn phục vụ khách
+                                            </span>
+                                            <strong className="text-xs font-black text-blue-950">
+                                                {new Date(selectedItemForDetail.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • {new Date(selectedItemForDetail.request_time).toLocaleDateString('vi-VN')}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-200">
+                                        Hẹn giờ giao
+                                    </span>
+                                </div>
+                            )}
+
                             {/* Guest Special Request Note */}
                             <div className="p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200/70">
                                 <div className="flex items-center gap-1.5 text-amber-800 font-bold text-[11px] mb-1">
@@ -2591,10 +2636,117 @@ export default function ServiceRequestKanban() {
                                             </div>
                                         </div>
 
-                                        {/* Bước 4: Ghi chú đặc biệt của khách */}
+                                        {/* Bước 4: Thời gian phục vụ */}
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-slate-800 flex items-center justify-between">
+                                                <span>4. Thời gian phục vụ</span>
+                                                {deliveryMode === 'scheduled' && scheduledDateTime && (
+                                                    <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200">
+                                                        Hẹn giao: {new Date(scheduledDateTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(scheduledDateTime).toLocaleDateString('vi-VN')}
+                                                    </span>
+                                                )}
+                                            </label>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setDeliveryMode('now');
+                                                        setScheduledDateTime('');
+                                                    }}
+                                                    className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${
+                                                        deliveryMode === 'now'
+                                                            ? 'bg-blue-50/80 border-blue-400 text-blue-900 font-bold ring-1 ring-blue-300'
+                                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                                        deliveryMode === 'now' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                        <Zap className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs font-bold leading-tight">Giao ngay</div>
+                                                        <div className="text-[10px] text-slate-400 font-normal">Bếp / buồng phòng làm luôn</div>
+                                                    </div>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setDeliveryMode('scheduled');
+                                                        if (!scheduledDateTime) {
+                                                            const d = new Date(Date.now() + 30 * 60 * 1000);
+                                                            setScheduledDateTime(formatToLocalDateTimeString(d));
+                                                        }
+                                                    }}
+                                                    className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${
+                                                        deliveryMode === 'scheduled'
+                                                            ? 'bg-blue-50/80 border-blue-400 text-blue-900 font-bold ring-1 ring-blue-300'
+                                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                                        deliveryMode === 'scheduled' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs font-bold leading-tight">Hẹn giờ giao</div>
+                                                        <div className="text-[10px] text-slate-400 font-normal">Khách đặt trước giờ ăn / nhận phòng</div>
+                                                    </div>
+                                                </button>
+                                            </div>
+
+                                            {deliveryMode === 'scheduled' && (
+                                                <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-2.5">
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                        <span className="text-[10px] text-slate-500 font-semibold">Chọn nhanh:</span>
+                                                        {[
+                                                            { label: '+15 phút', mins: 15 },
+                                                            { label: '+30 phút', mins: 30 },
+                                                            { label: '+45 phút', mins: 45 },
+                                                            { label: '+1 giờ', mins: 60 },
+                                                            { label: '+2 giờ', mins: 120 }
+                                                        ].map((item) => (
+                                                            <button
+                                                                key={item.label}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const d = new Date(Date.now() + item.mins * 60 * 1000);
+                                                                    setScheduledDateTime(formatToLocalDateTimeString(d));
+                                                                }}
+                                                                className="px-2 py-1 rounded-lg bg-white hover:bg-blue-100 border border-slate-200 text-slate-700 text-[10px] font-semibold transition cursor-pointer"
+                                                            >
+                                                                {item.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        <label className="text-[11px] font-bold text-slate-700 shrink-0">
+                                                            Thời điểm hẹn giao:
+                                                        </label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={scheduledDateTime}
+                                                            min={formatToLocalDateTimeString(new Date())}
+                                                            onChange={(e) => setScheduledDateTime(e.target.value)}
+                                                            className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        />
+                                                    </div>
+
+                                                    <p className="text-[10px] text-blue-700/80 italic">
+                                                        * Đơn hẹn giờ sẽ được ưu tiên xếp vào danh sách Chờ và chỉ bắt đầu tính thời hạn SLA chuẩn sau thời điểm hẹn.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Bước 5: Ghi chú đặc biệt của khách */}
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-800">
-                                                4. Yêu cầu đặc biệt của khách (Ghi chú bếp / phục vụ)
+                                                5. Yêu cầu đặc biệt của khách (Ghi chú bếp / phục vụ)
                                             </label>
                                             <textarea
                                                 rows="2"

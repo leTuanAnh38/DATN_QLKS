@@ -30,7 +30,8 @@ import {
     Layers,
     Receipt,
     ChefHat,
-    Car
+    Car,
+    Zap
 } from 'lucide-react';
 
 // Tiện ích format thời gian chi tiết (VD: 14:30 • 29/09/2026)
@@ -45,6 +46,17 @@ const formatDateTimeDisplay = (isoStr) => {
     } catch {
         return isoStr;
     }
+};
+
+const formatToLocalDateTimeString = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 /**
@@ -164,6 +176,8 @@ export default function ServicesMenu() {
     const [quantity, setQuantity] = useState(1);
     const [selectedBookingId, setSelectedBookingId] = useState('');
     const [note, setNote] = useState('');
+    const [deliveryMode, setDeliveryMode] = useState('now'); // 'now' | 'scheduled'
+    const [scheduledDateTime, setScheduledDateTime] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // 4. Toast & Success Alert
@@ -382,6 +396,8 @@ export default function ServicesMenu() {
         setSelectedItem(null);
         setQuantity(1);
         setNote('');
+        setDeliveryMode('now');
+        setScheduledDateTime('');
     };
 
     // Gửi yêu cầu đặt dịch vụ
@@ -396,13 +412,21 @@ export default function ServicesMenu() {
             return;
         }
 
+        if (deliveryMode === 'scheduled' && !scheduledDateTime) {
+            showToast('error', 'Vui lòng chọn ngày và giờ hẹn giao món / dịch vụ.');
+            return;
+        }
+
         try {
             setIsSubmitting(true);
+            const isScheduled = deliveryMode === 'scheduled';
             const payload = {
                 booking_id: bookingKey,
                 service_id: selectedItem.id,
                 quantity: Number(quantity) || 1,
-                note: note.trim()
+                note: note.trim(),
+                is_scheduled: isScheduled,
+                ...(isScheduled && scheduledDateTime ? { request_time: new Date(scheduledDateTime).toISOString() } : {})
             };
 
             const res = await hotelService.createServiceRequest(payload);
@@ -1058,7 +1082,114 @@ export default function ServicesMenu() {
                                     </div>
                                 </div>
 
-                                {/* HÀNG 3: GHI CHÚ YÊU CẦU RIÊNG */}
+                                {/* HÀNG 3: THỜI GIAN PHỤC VỤ (GIAO NGAY HOẶC HẸN GIỜ) */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                                        <span>Thời gian phục vụ</span>
+                                        {deliveryMode === 'scheduled' && scheduledDateTime && (
+                                            <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                                                Hẹn giao: {new Date(scheduledDateTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(scheduledDateTime).toLocaleDateString('vi-VN')}
+                                            </span>
+                                        )}
+                                    </label>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setDeliveryMode('now');
+                                                setScheduledDateTime('');
+                                            }}
+                                            className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${
+                                                deliveryMode === 'now'
+                                                    ? 'bg-amber-50/90 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-300'
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                                deliveryMode === 'now' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                            }`}>
+                                                <Zap className="w-3.5 h-3.5" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold leading-tight">Giao ngay</div>
+                                                <div className="text-[10px] text-slate-400 font-normal">Bếp làm luôn khi nhận đơn</div>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setDeliveryMode('scheduled');
+                                                if (!scheduledDateTime) {
+                                                    const d = new Date(Date.now() + 30 * 60 * 1000);
+                                                    setScheduledDateTime(formatToLocalDateTimeString(d));
+                                                }
+                                            }}
+                                            className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${
+                                                deliveryMode === 'scheduled'
+                                                    ? 'bg-amber-50/90 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-300'
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                                deliveryMode === 'scheduled' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                            }`}>
+                                                <Clock className="w-3.5 h-3.5" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold leading-tight">Hẹn giờ giao</div>
+                                                <div className="text-[10px] text-slate-400 font-normal">Đặt trước theo giờ ăn của bạn</div>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {deliveryMode === 'scheduled' && (
+                                        <div className="mt-2.5 p-3 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-2.5">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className="text-[10px] text-slate-500 font-semibold">Chọn nhanh:</span>
+                                                {[
+                                                    { label: '+15 phút', mins: 15 },
+                                                    { label: '+30 phút', mins: 30 },
+                                                    { label: '+45 phút', mins: 45 },
+                                                    { label: '+1 giờ', mins: 60 },
+                                                    { label: '+2 giờ', mins: 120 }
+                                                ].map((item) => (
+                                                    <button
+                                                        key={item.label}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const d = new Date(Date.now() + item.mins * 60 * 1000);
+                                                            setScheduledDateTime(formatToLocalDateTimeString(d));
+                                                        }}
+                                                        className="px-2 py-1 rounded-lg bg-white hover:bg-amber-100 border border-slate-200 text-slate-700 text-[10px] font-semibold transition cursor-pointer"
+                                                    >
+                                                        {item.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[11px] font-bold text-slate-700 shrink-0">
+                                                    Thời điểm hẹn giao:
+                                                </label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={scheduledDateTime}
+                                                    min={formatToLocalDateTimeString(new Date())}
+                                                    onChange={(e) => setScheduledDateTime(e.target.value)}
+                                                    className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                                />
+                                            </div>
+
+                                            <p className="text-[10px] text-amber-800/80 italic">
+                                                * Nhân viên sẽ chuẩn bị và giao món tận phòng đúng theo khung giờ quý khách đã chọn.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* HÀNG 4: GHI CHÚ YÊU CẦU RIÊNG */}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                         Ghi chú phục vụ riêng (Tùy chọn)
@@ -1384,6 +1515,12 @@ export default function ServicesMenu() {
                                                                         </>
                                                                     )}
                                                                 </div>
+                                                                {item.is_scheduled && item.request_time && (
+                                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-300">
+                                                                        <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                                                        <span>Hẹn giao: {formatDateTimeDisplay(item.request_time)}</span>
+                                                                    </div>
+                                                                )}
                                                                 {item.note && (
                                                                     <div className="text-[11px] text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60 italic">
                                                                         Ghi chú: "{item.note}"

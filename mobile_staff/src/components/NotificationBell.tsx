@@ -18,6 +18,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
 import { useFocusPolling } from '../hooks/use-focus-polling';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.88, 380);
@@ -33,6 +34,7 @@ export interface NotificationItem {
 }
 
 export default function NotificationBell() {
+  const { isDark } = useAppTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -275,7 +277,18 @@ export default function NotificationBell() {
     <>
       {/* 1. Nút Chuông Icon Trên Góc Màn Hình */}
       <TouchableOpacity
-        style={styles.bellButton}
+        style={[
+          styles.bellButton,
+          !isDark && {
+            backgroundColor: '#FFFFFF',
+            borderColor: '#E2E8F0',
+            shadowColor: '#64748B',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.08,
+            shadowRadius: 3,
+            elevation: 2,
+          },
+        ]}
         onPress={onOpenModal}
         activeOpacity={0.7}
       >
@@ -285,7 +298,7 @@ export default function NotificationBell() {
           color="#F59E0B"
         />
         {unreadCount > 0 && (
-          <View style={styles.badgeContainer}>
+          <View style={[styles.badgeContainer, !isDark && { borderColor: '#FFFFFF' }]}>
             <Text style={styles.badgeText}>
               {unreadCount > 9 ? '9+' : unreadCount}
             </Text>
@@ -315,17 +328,22 @@ export default function NotificationBell() {
             style={[
               styles.drawerContent,
               { width: DRAWER_WIDTH, transform: [{ translateX: slideAnim }] },
+              !isDark && {
+                backgroundColor: '#FFFFFF',
+                borderLeftColor: '#E2E8F0',
+                shadowColor: '#64748B',
+              },
             ]}
           >
             {/* Header Drawer */}
-            <View style={styles.headerRow}>
+            <View style={[styles.headerRow, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View style={styles.headerTitleBox}>
-                <View style={styles.bellIconCircle}>
+                <View style={[styles.bellIconCircle, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
                   <Ionicons name="notifications" size={18} color="#F59E0B" />
                 </View>
                 <View>
-                  <Text style={styles.headerTitle}>Thông Báo PMS</Text>
-                  <Text style={styles.headerSubtitle}>
+                  <Text style={[styles.headerTitle, !isDark && { color: '#0F172A' }]}>Thông Báo PMS</Text>
+                  <Text style={[styles.headerSubtitle, !isDark && { color: '#64748B' }]}>
                     {unreadCount > 0
                       ? `${unreadCount} thông báo chưa đọc`
                       : 'Đã xem tất cả thông báo'}
@@ -334,26 +352,30 @@ export default function NotificationBell() {
               </View>
 
               <TouchableOpacity
-                style={styles.closeBtn}
+                style={[styles.closeBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
                 onPress={onCloseModal}
                 activeOpacity={0.7}
               >
-                <Ionicons name="arrow-forward" size={18} color="#94A3B8" />
+                <Ionicons name="arrow-forward" size={18} color={isDark ? '#94A3B8' : '#475569'} />
               </TouchableOpacity>
             </View>
 
             {/* Dải Thao Tác & Bộ Lọc */}
             <View style={styles.filterActionBar}>
-              <View style={styles.filterTabs}>
+              <View style={[styles.filterTabs, !isDark && { backgroundColor: '#F1F5F9' }]}>
                 <TouchableOpacity
-                  style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
+                  style={[
+                    styles.filterTab,
+                    filter === 'all' && (isDark ? styles.filterTabActive : { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2, elevation: 1 }),
+                  ]}
                   onPress={() => setFilter('all')}
                   activeOpacity={0.7}
                 >
                   <Text
                     style={[
                       styles.filterTabText,
-                      filter === 'all' && styles.filterTabTextActive,
+                      !isDark && { color: filter === 'all' ? '#0F172A' : '#64748B' },
+                      filter === 'all' && isDark && styles.filterTabTextActive,
                     ]}
                   >
                     Tất cả ({notifications.length})
@@ -361,14 +383,18 @@ export default function NotificationBell() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.filterTab, filter === 'unread' && styles.filterTabActive]}
+                  style={[
+                    styles.filterTab,
+                    filter === 'unread' && (isDark ? styles.filterTabActive : { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2, elevation: 1 }),
+                  ]}
                   onPress={() => setFilter('unread')}
                   activeOpacity={0.7}
                 >
                   <Text
                     style={[
                       styles.filterTabText,
-                      filter === 'unread' && styles.filterTabTextActive,
+                      !isDark && { color: filter === 'unread' ? '#0F172A' : '#64748B' },
+                      filter === 'unread' && isDark && styles.filterTabTextActive,
                     ]}
                   >
                     Chưa đọc ({unreadCount})
@@ -396,13 +422,13 @@ export default function NotificationBell() {
               </View>
             ) : filteredList.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Ionicons name="file-tray-outline" size={48} color="#334155" />
-                <Text style={styles.emptyTitle}>
+                <Ionicons name="file-tray-outline" size={48} color={isDark ? '#334155' : '#CBD5E1'} />
+                <Text style={[styles.emptyTitle, !isDark && { color: '#334155' }]}>
                   {filter === 'unread'
                     ? 'Không có thông báo chưa đọc'
                     : 'Chưa có thông báo nào'}
                 </Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptySubtitle, !isDark && { color: '#94A3B8' }]}>
                   Các phát sinh về buồng phòng, sửa chữa, khách hàng sẽ hiển thị ở đây.
                 </Text>
               </View>
@@ -422,7 +448,19 @@ export default function NotificationBell() {
                     <TouchableOpacity
                       style={[
                         styles.notifCard,
-                        !item.is_read && styles.notifCardUnread,
+                        !isDark && {
+                          backgroundColor: '#FFFFFF',
+                          borderColor: '#E2E8F0',
+                          shadowColor: '#64748B',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.05,
+                          shadowRadius: 3,
+                          elevation: 1,
+                        },
+                        !item.is_read && (isDark ? styles.notifCardUnread : {
+                          backgroundColor: '#F0FDF4',
+                          borderColor: '#BBF7D0',
+                        }),
                       ]}
                       onPress={() => handleNotificationPress(item)}
                       activeOpacity={0.75}
@@ -436,7 +474,8 @@ export default function NotificationBell() {
                           <Text
                             style={[
                               styles.notifTitle,
-                              !item.is_read && styles.notifTitleUnread,
+                              !isDark && { color: '#1E293B' },
+                              !item.is_read && (isDark ? styles.notifTitleUnread : { color: '#0F172A', fontWeight: '900' }),
                             ]}
                             numberOfLines={1}
                           >
@@ -445,15 +484,15 @@ export default function NotificationBell() {
                           {!item.is_read && <View style={styles.unreadDot} />}
                         </View>
 
-                        <Text style={styles.notifMessage} numberOfLines={2}>
+                        <Text style={[styles.notifMessage, !isDark && { color: '#475569' }]} numberOfLines={2}>
                           {item.message}
                         </Text>
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                          <Text style={styles.notifTime}>
+                          <Text style={[styles.notifTime, !isDark && { color: '#64748B' }]}>
                             {formatTimeAgo(item.created_at)}
                           </Text>
-                          <Ionicons name="chevron-forward" size={13} color="#64748B" />
+                          <Ionicons name="chevron-forward" size={13} color={isDark ? '#64748B' : '#94A3B8'} />
                         </View>
                       </View>
                     </TouchableOpacity>

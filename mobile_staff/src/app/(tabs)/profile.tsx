@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAppTheme, ThemeColors } from '../../contexts/ThemeContext';
 import apiClient from '../../api/client';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
@@ -27,6 +28,8 @@ import BookingManagementModal from '../../components/BookingManagementModal';
 
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
+  const { themeMode, resolvedTheme, isDark, colors, setThemeMode } = useAppTheme();
+  const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const [refreshing, setRefreshing] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
 
@@ -332,7 +335,7 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* 2. Thẻ Căn Cước Nhân Viên Cao Cấp (Staff Identity Badge) */}
+        {/* 1. Thẻ Căn Cước Nhân Viên & Hiệu Suất Ca Trực (Master Staff Badge) */}
         <View style={styles.idCard}>
           <View style={styles.cardGoldTrim} />
 
@@ -342,7 +345,7 @@ export default function ProfileScreen() {
                 <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
               ) : (
                 <View style={styles.avatarFallback}>
-                  <Ionicons name="person" size={32} color="#F59E0B" />
+                  <Ionicons name="person" size={32} color={colors.gold} />
                 </View>
               )}
               <TouchableOpacity
@@ -360,18 +363,58 @@ export default function ProfileScreen() {
             </View>
 
             <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={styles.staffName} numberOfLines={1}>
-                {fullName}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={styles.staffName} numberOfLines={1}>
+                  {fullName}
+                </Text>
+                <TouchableOpacity onPress={openEditModal} activeOpacity={0.7} style={styles.quickEditBtn}>
+                  <Ionicons name="create-outline" size={12} color={colors.gold} style={{ marginRight: 3 }} />
+                  <Text style={styles.quickEditBtnText}>Sửa</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.staffUsername}>@{user?.username} • ID: NV-{user?.employee_code || user?.id || '01'}</Text>
             </View>
           </View>
 
           <View style={styles.roleBadge}>
-            <Ionicons name="shield-checkmark" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
+            <Ionicons name="shield-checkmark" size={14} color={colors.gold} style={{ marginRight: 6 }} />
             <Text style={styles.roleBadgeText} numberOfLines={1}>
               {getRoleDisplayName(user?.role)}
             </Text>
+          </View>
+
+          {/* Dải thông tin cơ bản: Bộ phận • Ca trực • SĐT */}
+          <View style={styles.staffMetaRow}>
+            <View style={styles.metaChip}>
+              <Ionicons name="git-network-outline" size={12} color={colors.sky} style={{ marginRight: 4 }} />
+              <Text style={styles.metaChipText} numberOfLines={1}>{user?.department || 'Khối Vận Hành'}</Text>
+            </View>
+            <View style={styles.metaChip}>
+              <Ionicons name="time-outline" size={12} color={colors.emerald} style={{ marginRight: 4 }} />
+              <Text style={styles.metaChipText} numberOfLines={1}>{user?.shift || 'Ca Sáng'}</Text>
+            </View>
+            <View style={styles.metaChip}>
+              <Ionicons name="call-outline" size={12} color={colors.gold} style={{ marginRight: 4 }} />
+              <Text style={styles.metaChipText} numberOfLines={1}>{user?.phone_number || 'Chưa có SĐT'}</Text>
+            </View>
+          </View>
+
+          {/* Hàng 3 chỉ số KPI mini tích hợp */}
+          <View style={styles.idKpiRow}>
+            <View style={styles.idKpiCol}>
+              <Text style={styles.idKpiVal}>4.98<Text style={styles.idKpiUnit}>/5</Text></Text>
+              <Text style={styles.idKpiLbl}>⭐ Đánh giá</Text>
+            </View>
+            <View style={styles.idKpiDivider} />
+            <View style={styles.idKpiCol}>
+              <Text style={[styles.idKpiVal, { color: colors.emerald }]}>99.4%</Text>
+              <Text style={styles.idKpiLbl}>🎯 Hoàn thành</Text>
+            </View>
+            <View style={styles.idKpiDivider} />
+            <View style={styles.idKpiCol}>
+              <Text style={[styles.idKpiVal, { color: colors.sky }]}>100%</Text>
+              <Text style={styles.idKpiLbl}>⏱️ Đúng giờ</Text>
+            </View>
           </View>
 
           <View style={styles.shiftActiveBar}>
@@ -382,113 +425,98 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 3. Khối Thông Tin Chi Tiết Nhân Sự */}
+        {/* 2. Bộ Chuyển Đổi Giao Diện Nhanh (Theme Segmented Bar) */}
         <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>📋 Chi Tiết Hồ Sơ Nhân Sự</Text>
-            <TouchableOpacity onPress={openEditModal} activeOpacity={0.7} style={styles.editBtn}>
-              <Ionicons name="create-outline" size={14} color="#F59E0B" style={{ marginRight: 3 }} />
-              <Text style={styles.editBtnText}>Chỉnh sửa</Text>
+          <Text style={styles.sectionTitle}>🎨 Giao Diện Hệ Thống</Text>
+          <View style={styles.themeSegmentedBar}>
+            <TouchableOpacity
+              style={[styles.themeSegmentBtn, themeMode === 'dark' && styles.themeSegmentBtnActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setThemeMode('dark');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="moon"
+                size={14}
+                color={themeMode === 'dark' ? colors.gold : colors.textMuted}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.themeSegmentText, themeMode === 'dark' && styles.themeSegmentTextActive]}>
+                Tối (Obsidian)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.themeSegmentBtn, themeMode === 'light' && styles.themeSegmentBtnActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setThemeMode('light');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="sunny"
+                size={14}
+                color={themeMode === 'light' ? colors.gold : colors.textMuted}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.themeSegmentText, themeMode === 'light' && styles.themeSegmentTextActive]}>
+                Sáng (Luxury)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.themeSegmentBtn, themeMode === 'system' && styles.themeSegmentBtnActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setThemeMode('system');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="phone-portrait-outline"
+                size={14}
+                color={themeMode === 'system' ? colors.gold : colors.textMuted}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.themeSegmentText, themeMode === 'system' && styles.themeSegmentTextActive]}>
+                Hệ Thống
+              </Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.detailItem}>
-            <View style={styles.detailIconBox}>
-              <Ionicons name="business" size={16} color="#F59E0B" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Đơn vị công tác</Text>
-              <Text style={styles.detailValue}>TA Luxury Hotel & Resort</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailDivider} />
-
-          <View style={styles.detailItem}>
-            <View style={styles.detailIconBox}>
-              <Ionicons name="git-network" size={16} color="#60A5FA" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Phòng ban / Bộ phận</Text>
-              <Text style={styles.detailValue}>{user?.department || 'Khối Vận Hành Khách Sạn'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailDivider} />
-
-          <View style={styles.detailItem}>
-            <View style={styles.detailIconBox}>
-              <Ionicons name="time" size={16} color="#34D399" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Ca làm việc hôm nay</Text>
-              <Text style={styles.detailValue}>{user?.shift || 'Ca Sáng (06:00 - 14:30)'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailDivider} />
-
-          <View style={styles.detailItem}>
-            <View style={styles.detailIconBox}>
-              <Ionicons name="call" size={16} color="#F59E0B" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Số điện thoại liên lạc</Text>
-              <Text style={styles.detailValue}>{user?.phone_number || 'Chưa cập nhật'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailDivider} />
-
-          <View style={styles.detailItem}>
-            <View style={styles.detailIconBox}>
-              <Ionicons name="mail" size={16} color="#A78BFA" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Email công vụ</Text>
-              <Text style={styles.detailValue}>{user?.email || 'Chưa cập nhật'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailDivider} />
-
-          <View style={styles.detailItem}>
-            <View style={styles.detailIconBox}>
-              <Ionicons name="location" size={16} color="#EF4444" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Địa chỉ thường trú</Text>
-              <Text style={styles.detailValue}>{user?.address || 'Hà Nội, Việt Nam'}</Text>
-            </View>
-          </View>
         </View>
 
-        {/* 4. Chỉ Số Năng Suất & Hiệu Suất Ca Trực */}
+        {/* 3. Nghiệp Vụ Vận Hành Khách Sạn & Sổ Ca (PMS / CRM) */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>⚡ Năng Suất & Hiệu Suất Ca Trực</Text>
-          <View style={styles.kpiRow}>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiNumber}>4.98<Text style={styles.kpiUnit}>/5</Text></Text>
-              <Text style={styles.kpiLabel}>Đánh giá dịch vụ</Text>
+          <Text style={styles.sectionTitle}>🏛️ Nghiệp Vụ & Sổ Ca Trực</Text>
+
+          {/* Sổ Bàn Giao Ca Trực */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => {
+              setTempHandoverNote(handoverNote);
+              setHandoverModalVisible(true);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+              <Ionicons name="clipboard-outline" size={17} color={colors.gold} />
             </View>
-
-            <View style={styles.kpiCard}>
-              <Text style={[styles.kpiNumber, { color: '#34D399' }]}>99.4%</Text>
-              <Text style={styles.kpiLabel}>Tỉ lệ hoàn thành</Text>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.actionTitle}>Sổ Bàn Giao Ca Trực 5 Sao</Text>
+              <Text style={styles.actionDesc} numberOfLines={1}>
+                {handoverNote ? `Lưu ý: "${handoverNote}"` : 'Chạm để cập nhật ghi chú bàn giao ca tiếp theo'}
+              </Text>
             </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+          </TouchableOpacity>
 
-            <View style={styles.kpiCard}>
-              <Text style={[styles.kpiNumber, { color: '#60A5FA' }]}>100%</Text>
-              <Text style={styles.kpiLabel}>Đúng giờ ca trực</Text>
-            </View>
-          </View>
-        </View>
+          <View style={styles.detailDivider} />
 
-        {/* 4b. Nghiệp Vụ Vận Hành Khách Sạn (PMS & CRM) */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🏛️ Vận Hành Khách Sạn & Tra Cứu (PMS / CRM)</Text>
-
-          {/* Hồ sơ khách hàng CRM */}
+          {/* Tra cứu khách hàng CRM */}
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => {
@@ -499,13 +527,13 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
-              <Ionicons name="people-outline" size={18} color="#38BDF8" />
+              <Ionicons name="people-outline" size={17} color={colors.sky} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.actionTitle}>Tra Cứu Khách Hàng (CRM & Lịch Sử)</Text>
-              <Text style={styles.actionDesc}>Tra cứu hạng thẻ VIP, lịch sử lưu trú & dùng dịch vụ</Text>
+              <Text style={styles.actionDesc}>Hạng thẻ VIP, lịch sử lưu trú & dùng dịch vụ</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#64748B" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
           </TouchableOpacity>
 
           <View style={styles.detailDivider} />
@@ -519,61 +547,20 @@ export default function ProfileScreen() {
             }}
             activeOpacity={0.7}
           >
-            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
-              <Ionicons name="calendar-outline" size={18} color="#F59E0B" />
+            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+              <Ionicons name="calendar-outline" size={17} color={colors.emerald} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.actionTitle}>Quản Lý Đặt Phòng & Lịch Lưu Trú</Text>
-              <Text style={styles.actionDesc}>Xem danh sách đơn phòng & sơ đồ timeline tháng</Text>
+              <Text style={styles.actionDesc}>Danh sách đơn đặt phòng & sơ đồ timeline tháng</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#64748B" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
           </TouchableOpacity>
         </View>
 
-        {/* 4c. Sổ Bàn Giao Ca Trực 5 Sao (Shift Handover Logbook) */}
+        {/* 4. Cài Đặt Tài Khoản & Kết Nối */}
         <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>📝 Sổ Bàn Giao Ca Trực 5 Sao</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setTempHandoverNote(handoverNote);
-                setHandoverModalVisible(true);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              activeOpacity={0.7}
-              style={styles.editBtn}
-            >
-              <Ionicons name="create-outline" size={14} color="#F59E0B" style={{ marginRight: 3 }} />
-              <Text style={styles.editBtnText}>Cập nhật ghi chú</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.handoverDesc}>
-            Lưu ý nghiệp vụ, phòng VIP hoặc sự cố cần bàn giao cho nhân viên ca tiếp theo:
-          </Text>
-          <TouchableOpacity
-            style={styles.handoverBox}
-            onPress={() => {
-              setTempHandoverNote(handoverNote);
-              setHandoverModalVisible(true);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name={handoverNote ? 'clipboard' : 'clipboard-outline'}
-              size={18}
-              color={handoverNote ? '#F59E0B' : '#64748B'}
-              style={{ marginRight: 10, marginTop: 2 }}
-            />
-            <Text style={handoverNote ? styles.handoverText : styles.handoverPlaceholder} numberOfLines={3}>
-              {handoverNote || 'Chưa có ghi chú bàn giao ca nào. Hãy chạm để thêm lưu ý quan trọng cho ca tiếp theo...'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 5. Cài Đặt Tài Khoản & Tiện Ích */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>⚙️ Cài Đặt Tài Khoản & Kết Nối</Text>
+          <Text style={styles.sectionTitle}>⚙️ Tài Khoản & Kết Nối</Text>
 
           {/* Đổi Mật Khẩu */}
           <TouchableOpacity
@@ -582,18 +569,18 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
-              <Ionicons name="key-outline" size={18} color="#F59E0B" />
+              <Ionicons name="key-outline" size={17} color={colors.gold} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.actionTitle}>Đổi Mật Khẩu</Text>
               <Text style={styles.actionDesc}>Cập nhật mật khẩu bảo mật tài khoản</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#64748B" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
           </TouchableOpacity>
 
           <View style={styles.detailDivider} />
 
-          {/* Thử Nghiệm Chuông iPhone 14 Pro */}
+          {/* Thử Nghiệm Chuông iPhone */}
           <TouchableOpacity
             style={styles.actionRow}
             onPress={handleTestPush}
@@ -601,16 +588,16 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.12)' }]}>
-              <Ionicons name="notifications-outline" size={18} color="#60A5FA" />
+              <Ionicons name="notifications-outline" size={17} color={colors.sky} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.actionTitle}>Thử Nghiệm Chuông iPhone</Text>
-              <Text style={styles.actionDesc}>Bắn thông báo đẩy tức thời để kiểm tra chuông & rung</Text>
+              <Text style={styles.actionDesc}>Phát lệnh thông báo đẩy để kiểm tra chuông & rung</Text>
             </View>
             {testingPush ? (
-              <ActivityIndicator size="small" color="#60A5FA" />
+              <ActivityIndicator size="small" color={colors.sky} />
             ) : (
-              <Ionicons name="chevron-forward" size={18} color="#64748B" />
+              <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
             )}
           </TouchableOpacity>
 
@@ -626,7 +613,7 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-              <Ionicons name="server-outline" size={18} color="#34D399" />
+              <Ionicons name="server-outline" size={17} color={colors.emerald} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.actionTitle}>Máy Chủ API Khách Sạn</Text>
@@ -634,13 +621,13 @@ export default function ProfileScreen() {
                 {apiUrl} {serverLatency !== null ? `• Ping ${serverLatency}ms` : ''}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#64748B" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
           </TouchableOpacity>
         </View>
 
-        {/* 6. Nút Đăng Xuất & Kết Thúc Ca */}
+        {/* 5. Nút Đăng Xuất & Kết Thúc Ca */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={18} color="#EF4444" style={{ marginRight: 8 }} />
+          <Ionicons name="log-out-outline" size={18} color={colors.rose} style={{ marginRight: 8 }} />
           <Text style={styles.logoutButtonText}>KẾT THÚC CA TRỰC & ĐĂNG XUẤT</Text>
         </TouchableOpacity>
 
@@ -660,7 +647,7 @@ export default function ProfileScreen() {
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Cập Nhật Hồ Sơ</Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#94A3B8" />
+                <Ionicons name="close" size={22} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
@@ -670,7 +657,7 @@ export default function ProfileScreen() {
               value={editFirstName}
               onChangeText={setEditFirstName}
               placeholder="VD: Nguyễn Văn"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
             />
 
             <Text style={styles.inputLabel}>Tên</Text>
@@ -679,7 +666,7 @@ export default function ProfileScreen() {
               value={editLastName}
               onChangeText={setEditLastName}
               placeholder="VD: An"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
             />
 
             <Text style={styles.inputLabel}>Số điện thoại</Text>
@@ -688,7 +675,7 @@ export default function ProfileScreen() {
               value={editPhone}
               onChangeText={setEditPhone}
               placeholder="VD: 0912345678"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               keyboardType="phone-pad"
             />
 
@@ -698,7 +685,7 @@ export default function ProfileScreen() {
               value={editAddress}
               onChangeText={setEditAddress}
               placeholder="VD: Hà Nội, Việt Nam"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
             />
 
             <View style={styles.modalBtnRow}>
@@ -736,7 +723,7 @@ export default function ProfileScreen() {
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Đổi Mật Khẩu Tài Khoản</Text>
               <TouchableOpacity onPress={() => setPasswordModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#94A3B8" />
+                <Ionicons name="close" size={22} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
@@ -746,7 +733,7 @@ export default function ProfileScreen() {
               value={oldPassword}
               onChangeText={setOldPassword}
               placeholder="Nhập mật khẩu đang dùng"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               secureTextEntry
             />
 
@@ -756,7 +743,7 @@ export default function ProfileScreen() {
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder="Nhập mật khẩu mới"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               secureTextEntry
             />
 
@@ -766,7 +753,7 @@ export default function ProfileScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="Nhập lại mật khẩu mới"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               secureTextEntry
             />
 
@@ -811,7 +798,7 @@ export default function ProfileScreen() {
               value={tempUrl}
               onChangeText={setTempUrl}
               placeholder="https://...ngrok-free.dev/api"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -845,7 +832,7 @@ export default function ProfileScreen() {
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Sổ Bàn Giao Ca Trực</Text>
               <TouchableOpacity onPress={() => setHandoverModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#94A3B8" />
+                <Ionicons name="close" size={22} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalDesc}>
@@ -856,7 +843,7 @@ export default function ProfileScreen() {
               value={tempHandoverNote}
               onChangeText={setTempHandoverNote}
               placeholder="VD: Phòng 402 khách VIP yêu cầu thêm 2 gối lông vũ lúc 15h. Máy lạnh 502 đã bảo trì xong nhưng cần theo dõi..."
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -907,407 +894,493 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: '#0A0F1D',
-  },
-  topHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 10,
-  },
-  brandSubtitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#F59E0B',
-    letterSpacing: 1.5,
-  },
-  greetingTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    marginTop: 2,
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  refreshCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#111827',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: Platform.OS === 'ios' ? 120 : 80,
-  },
-  idCard: {
-    backgroundColor: '#111827',
-    borderRadius: 20,
-    padding: 18,
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    overflow: 'hidden',
-  },
-  cardGoldTrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3.5,
-    backgroundColor: '#F59E0B',
-  },
-  idCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarGlow: {
-    padding: 3,
-    borderRadius: 32,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    position: 'relative',
-  },
-  changeAvatarBtn: {
-    position: 'absolute',
-    bottom: -1,
-    right: -1,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F59E0B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#111827',
-  },
-  avatarFallback: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#1E293B',
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
-  },
-  staffName: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#F8FAFC',
-    letterSpacing: 0.3,
-  },
-  staffUsername: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 3,
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  roleBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#F59E0B',
-    flex: 1,
-  },
-  shiftActiveBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-    marginRight: 6,
-  },
-  shiftActiveText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#34D399',
-    letterSpacing: 0.5,
-  },
-  sectionCard: {
-    backgroundColor: '#111827',
-    borderRadius: 18,
-    padding: 16,
-    marginTop: 14,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#E2E8F0',
-    marginBottom: 10,
-  },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-  },
-  editBtnText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#F59E0B',
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  detailIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#1E293B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  detailLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  detailValue: {
-    fontSize: 13,
-    color: '#F8FAFC',
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  detailDivider: {
-    height: 1,
-    backgroundColor: '#1F2937',
-    marginVertical: 4,
-  },
-  kpiRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  kpiNumber: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#F59E0B',
-  },
-  kpiUnit: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '700',
-  },
-  kpiLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  actionIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#F8FAFC',
-  },
-  actionDesc: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 14,
-    height: 48,
-    marginTop: 18,
-  },
-  logoutButtonText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#EF4444',
-    letterSpacing: 0.5,
-  },
-  versionText: {
-    textAlign: 'center',
-    color: '#475569',
-    fontSize: 11,
-    marginTop: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center',
-    padding: 22,
-  },
-  modalContent: {
-    backgroundColor: '#111827',
-    borderRadius: 20,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#F8FAFC',
-  },
-  modalDesc: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginBottom: 5,
-    marginTop: 8,
-  },
-  modalInput: {
-    backgroundColor: '#0A0F1D',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-    color: '#F8FAFC',
-    fontSize: 13,
-  },
-  modalBtnRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 18,
-  },
-  modalCancelBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  modalCancelText: {
-    color: '#94A3B8',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  modalSaveBtn: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-    minWidth: 90,
-    alignItems: 'center',
-  },
-  modalSaveText: {
-    color: '#0A0F1D',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  handoverDesc: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 10,
-    lineHeight: 18,
-  },
-  handoverBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#0A0F1D',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    borderRadius: 14,
-    padding: 14,
-    minHeight: 64,
-  },
-  handoverText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#F8FAFC',
-    lineHeight: 20,
-    fontWeight: '500',
-  },
-  handoverPlaceholder: {
-    flex: 1,
-    fontSize: 12,
-    color: '#64748B',
-    fontStyle: 'italic',
-    lineHeight: 18,
-  },
-  handoverModalInput: {
-    height: 110,
-    paddingTop: 12,
-    textAlignVertical: 'top',
-  },
-});
+const createThemedStyles = (colors: ThemeColors, isDark: boolean) =>
+  StyleSheet.create({
+    safeContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    topHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 18,
+      paddingTop: 8,
+      paddingBottom: 10,
+    },
+    brandSubtitle: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.gold,
+      letterSpacing: 1.5,
+    },
+    greetingTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+      marginTop: 2,
+    },
+    headerRightActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    refreshCircleBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: colors.card,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingBottom: Platform.OS === 'ios' ? 120 : 80,
+    },
+    idCard: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 18,
+      marginTop: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    cardGoldTrim: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 3.5,
+      backgroundColor: colors.gold,
+    },
+    idCardTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    avatarGlow: {
+      padding: 3,
+      borderRadius: 32,
+      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+      position: 'relative',
+    },
+    changeAvatarBtn: {
+      position: 'absolute',
+      bottom: -1,
+      right: -1,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.gold,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.card,
+    },
+    avatarFallback: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: colors.backgroundElement,
+      borderWidth: 1.5,
+      borderColor: colors.gold,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarImage: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      borderWidth: 1.5,
+      borderColor: colors.gold,
+    },
+    staffName: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.text,
+      letterSpacing: 0.3,
+    },
+    staffUsername: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 3,
+    },
+    roleBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.14)',
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.3)',
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 10,
+      marginBottom: 10,
+    },
+    roleBadgeText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.gold,
+      flex: 1,
+    },
+    quickEditBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.15)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.3)',
+    },
+    quickEditBtnText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.gold,
+    },
+    staffMetaRow: {
+      flexDirection: 'row',
+      gap: 6,
+      marginBottom: 12,
+    },
+    metaChip: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.backgroundElement,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    metaChipText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    idKpiRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.backgroundElement,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      marginBottom: 12,
+    },
+    idKpiCol: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    idKpiVal: {
+      fontSize: 15,
+      fontWeight: '900',
+      color: colors.gold,
+    },
+    idKpiUnit: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+    },
+    idKpiLbl: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    idKpiDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: colors.border,
+    },
+    shiftActiveBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    pulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: colors.emerald,
+      marginRight: 6,
+    },
+    shiftActiveText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: isDark ? '#34D399' : '#059669',
+      letterSpacing: 0.5,
+    },
+    sectionCard: {
+      backgroundColor: colors.card,
+      borderRadius: 18,
+      padding: 16,
+      marginTop: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 10,
+    },
+    editBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(245, 158, 11, 0.12)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.3)',
+    },
+    editBtnText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.gold,
+    },
+    detailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    detailIconBox: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: colors.backgroundElement,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    detailLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      fontWeight: '600',
+    },
+    detailValue: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: '700',
+      marginTop: 2,
+    },
+    detailDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: 4,
+    },
+    themeSegmentedBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.backgroundElement,
+      borderRadius: 12,
+      padding: 4,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      gap: 6,
+    },
+    themeSegmentBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 4,
+      borderRadius: 9,
+    },
+    themeSegmentBtnActive: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.4)',
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    themeSegmentText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+    },
+    themeSegmentTextActive: {
+      color: colors.gold,
+      fontWeight: '800',
+    },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+    },
+    actionIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    actionTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    actionDesc: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    logoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      borderRadius: 14,
+      height: 48,
+      marginTop: 18,
+    },
+    logoutButtonText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.rose,
+      letterSpacing: 0.5,
+    },
+    versionText: {
+      textAlign: 'center',
+      color: colors.textSubtle,
+      fontSize: 11,
+      marginTop: 16,
+      fontWeight: '600',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(15, 23, 42, 0.45)',
+      justifyContent: 'center',
+      padding: 22,
+    },
+    modalContent: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 22,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: isDark ? 0.35 : 0.08,
+      shadowRadius: 18,
+      elevation: 8,
+    },
+    modalHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 14,
+    },
+    modalTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    modalDesc: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 14,
+    },
+    inputLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+      marginBottom: 5,
+      marginTop: 8,
+    },
+    modalInput: {
+      backgroundColor: colors.inputBackground,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 44,
+      color: colors.text,
+      fontSize: 13,
+    },
+    modalBtnRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 10,
+      marginTop: 18,
+    },
+    modalCancelBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: isDark ? 'transparent' : '#F1F5F9',
+    },
+    modalCancelText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    modalSaveBtn: {
+      backgroundColor: colors.gold,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 10,
+      minWidth: 90,
+      alignItems: 'center',
+    },
+    modalSaveText: {
+      color: '#0A0F1D',
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    handoverDesc: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 10,
+      lineHeight: 18,
+    },
+    handoverBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: colors.backgroundElement,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      padding: 14,
+      minHeight: 64,
+    },
+    handoverText: {
+      flex: 1,
+      fontSize: 13,
+      color: colors.text,
+      lineHeight: 20,
+      fontWeight: '500',
+    },
+    handoverPlaceholder: {
+      flex: 1,
+      fontSize: 12,
+      color: colors.textSubtle,
+      fontStyle: 'italic',
+      lineHeight: 18,
+    },
+    handoverModalInput: {
+      height: 110,
+      paddingTop: 12,
+      textAlignVertical: 'top',
+    },
+  });

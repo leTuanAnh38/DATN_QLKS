@@ -587,6 +587,14 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                 # Gắn các dịch vụ chọn kèm cho riêng phòng con này
                 for s_entry in b_info.get('services', []):
                     svc = s_entry['service']
+                    req_target_time = timezone.now()
+                    if single_booking.check_in_date:
+                        try:
+                            naive_dt = datetime.combine(single_booking.check_in_date, datetime.min.time().replace(hour=14))
+                            req_target_time = timezone.make_aware(naive_dt)
+                        except Exception:
+                            req_target_time = timezone.now()
+
                     ServiceRequest.objects.create(
                         booking=single_booking,
                         service=svc,
@@ -596,7 +604,8 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                         status='pending',
                         is_paid=is_deposit_paid,
                         note=f"Dịch vụ đặt kèm đoàn #{group_booking.group_code} ({group_booking.group_name})",
-                        request_time=timezone.now()
+                        request_time=req_target_time,
+                        is_scheduled=True
                     )
                     BookingExtraService.objects.create(
                         booking=single_booking,

@@ -24,31 +24,18 @@ import {
   getRoomStatusLabel,
 } from '../../constants/maintenance';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import { MaintenanceListSkeleton } from '../../components/SkeletonLoader';
+import {
+  MaintenanceTicketCard,
+  MaintenanceTicket,
+} from '../../components/maintenance/MaintenanceTicketCard';
 
-interface MaintenanceTicket {
-  id: number;
-  ticket_code: string;
-  room_number: string;
-  room_status?: string;
-  room_floor?: number;
-  guest_name?: string;
-  booking_code?: string;
-  equipment_name: string;
-  issue_type: string;
-  description: string;
-  status: string;
-  status_display: string;
-  parts_replaced: string;
-  cost: number;
-  is_guest_fault?: boolean;
-  technician_name: string;
-  start_date: string;
-}
 
 export default function MaintenanceScreen() {
   const { user } = useAuth();
+  const { colors, isDark } = useAppTheme();
   // Khớp web (RoomManagement.canCompleteMaintenance): chỉ Kỹ thuật & quản lý mới được nghiệm thu phiếu
   const canCompleteMaintenance = Boolean(
     user?.is_superuser || ['technician', 'admin', 'owner', 'manager'].includes(user?.role || '')
@@ -341,164 +328,26 @@ export default function MaintenanceScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: MaintenanceTicket }) => {
-    const isFixing = item.status === 'fixing';
-    const issueMeta = MAINTENANCE_ISSUE_TYPES.find((it) => it.key === item.issue_type) || {
-      icon: 'construct',
-      color: isFixing ? '#EF4444' : '#10B981',
-      label: 'Sự cố',
-    };
-    const isOccupied = item.room_status === 'occupied';
-    const isCleaning = item.room_status === 'cleaning';
-    const isLoading = actionLoadingId === item.id;
+  const renderItem = useCallback(
+    ({ item }: { item: MaintenanceTicket }) => (
+      <MaintenanceTicketCard
+        item={item}
+        canCompleteMaintenance={canCompleteMaintenance}
+        isLoading={actionLoadingId === item.id}
+        onOpenComplete={openCompleteModal}
+      />
+    ),
+    [canCompleteMaintenance, actionLoadingId, openCompleteModal]
+  );
 
-    return (
-      <View style={[styles.card, isFixing && styles.cardFixing]}>
-        {/* Header phiếu */}
-        <View style={styles.cardHeader}>
-          <View style={styles.roomTag}>
-            <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={styles.roomTagText}>
-              Phòng {item.room_number}{item.room_floor ? ` • T.${item.room_floor}` : ''}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor: isFixing ? 'rgba(239, 68, 68, 0.14)' : 'rgba(16, 185, 129, 0.12)',
-                borderColor: isFixing ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)',
-              },
-            ]}
-          >
-            <Ionicons
-              name={isFixing ? 'alert-circle' : 'checkmark-circle'}
-              size={12}
-              color={isFixing ? '#F87171' : '#34D399'}
-              style={{ marginRight: 4 }}
-            />
-            <Text
-              style={[
-                styles.statusBadgeText,
-                { color: isFixing ? '#F87171' : '#34D399' },
-              ]}
-            >
-              {isFixing ? 'Sửa chữa gấp' : 'Đã nghiệm thu'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Cảnh báo SOP 5 sao: Phòng có khách lưu trú */}
-        {isOccupied && (
-          <View style={styles.sopAlertBanner}>
-            <View style={styles.sopBadge}>
-              <Ionicons name="warning" size={12} color="#F59E0B" style={{ marginRight: 4 }} />
-              <Text style={styles.sopBadgeText}>SOP 5 SAO • CÓ KHÁCH</Text>
-            </View>
-            <Text style={styles.sopBannerText}>
-              Phòng có khách lưu trú{item.guest_name ? ` (${item.guest_name})` : ''} • Tuân thủ SOP: Gõ cửa 3 lần, xưng "Kỹ thuật phòng" trước khi vào!
-            </Text>
-          </View>
-        )}
-
-        {isCleaning && !isOccupied && (
-          <View style={styles.cleaningStatusBanner}>
-            <Ionicons name="sparkles" size={12} color="#F59E0B" style={{ marginRight: 5 }} />
-            <Text style={styles.cleaningStatusText}>Buồng phòng đang dọn dẹp</Text>
-          </View>
-        )}
-
-        {/* Thiết bị sự cố */}
-        <View style={styles.equipmentRow}>
-          <View style={[styles.equipmentIconBox, { backgroundColor: `${issueMeta.color}20` }]}>
-            <Ionicons name={issueMeta.icon as any} size={20} color={issueMeta.color} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.equipmentName}>{item.equipment_name || 'Thiết bị buồng phòng'}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
-              <Text style={styles.ticketCode}>Mã: #{item.ticket_code}</Text>
-              {item.booking_code ? (
-                <>
-                  <Text style={{ color: '#475569', marginHorizontal: 4 }}>•</Text>
-                  <Text style={{ fontSize: 11, color: '#38BDF8', fontWeight: '600' }}>#{item.booking_code}</Text>
-                </>
-              ) : null}
-            </View>
-          </View>
-        </View>
-
-        {/* Mô tả sự cố */}
-        {item.description ? (
-          <View style={styles.descBox}>
-            <Ionicons name="warning-outline" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
-            <Text style={styles.descText}>Hiện tượng: {item.description}</Text>
-          </View>
-        ) : null}
-
-        {/* Vật tư đã thay */}
-        {item.parts_replaced ? (
-          <View style={styles.partsRow}>
-            <Text style={styles.partsLabel}>Linh kiện:</Text>
-            <Text style={styles.partsValue}>{item.parts_replaced}</Text>
-          </View>
-        ) : null}
-
-        {/* Cờ trách nhiệm: Khách làm hỏng */}
-        {item.is_guest_fault ? (
-          <View style={styles.guestFaultBadge}>
-            <Ionicons name="receipt" size={12} color="#EF4444" style={{ marginRight: 4 }} />
-            <Text style={styles.guestFaultBadgeText}>
-              Khách làm hư hỏng • {item.cost ? `Bồi thường: ${Number(item.cost).toLocaleString('vi-VN')} đ` : 'Đã lập biên bản'}
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Footer: Kỹ thuật viên & Nút hoàn thành */}
-        <View style={styles.cardFooter}>
-          <Text style={styles.techText}>
-            Phụ trách: {item.technician_name || 'Đội kỹ thuật'}
-          </Text>
-
-          {isFixing && canCompleteMaintenance ? (
-            <TouchableOpacity
-              style={[styles.completeBtn, isLoading && { opacity: 0.65 }]}
-              onPress={() => openCompleteModal(item)}
-              disabled={isLoading}
-              activeOpacity={0.8}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#0A0F1D" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.completeBtnText}>NGHIỆM THU & BÀN GIAO</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          ) : isFixing ? (
-            <View style={styles.doneTag}>
-              <Ionicons name="construct" size={14} color="#F59E0B" style={{ marginRight: 4 }} />
-              <Text style={[styles.doneTagText, { color: '#F59E0B' }]}>Đang chờ Kỹ thuật xử lý</Text>
-            </View>
-          ) : (
-            <View style={styles.doneTag}>
-              <Ionicons name="shield-checkmark" size={14} color="#34D399" style={{ marginRight: 4 }} />
-              <Text style={styles.doneTagText}>Đã bàn giao buồng phòng</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top']}>
+    <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
-          <Text style={styles.greetingTitle}>Kỹ Thuật & Bảo Trì 🛠️</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]}>Kỹ Thuật & Bảo Trì 🛠️</Text>
         </View>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
@@ -510,7 +359,14 @@ export default function MaintenanceScreen() {
             <Text style={styles.createTicketBtnText}>Báo hỏng</Text>
           </TouchableOpacity>
           <NotificationBell />
-          <TouchableOpacity style={styles.refreshCircleBtn} onPress={onRefresh} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[
+              styles.refreshCircleBtn,
+              !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+            ]}
+            onPress={onRefresh}
+            activeOpacity={0.7}
+          >
             <Ionicons name="refresh" size={18} color="#F59E0B" />
           </TouchableOpacity>
         </View>
@@ -519,9 +375,9 @@ export default function MaintenanceScreen() {
       {/* 2. Dải Bộ Lọc & KPI Cố Định 100% (Không bị trôi trượt khi lướt) */}
       <View style={styles.fixedFilterBar}>
         {[
-          { key: 'fixing', label: 'Cần sửa gấp', count: stats.fixing, color: '#F87171' },
-          { key: 'completed', label: 'Đã xong', count: stats.completed, color: '#34D399' },
-          { key: 'all', label: 'Tất cả', count: stats.total, color: '#F8FAFC' },
+          { key: 'fixing', label: 'Cần sửa gấp', count: stats.fixing, color: isDark ? '#F87171' : '#DC2626' },
+          { key: 'completed', label: 'Đã xong', count: stats.completed, color: isDark ? '#34D399' : '#059669' },
+          { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
         ].map((item) => {
           const isSelected = filterStatus === item.key;
           return (
@@ -529,7 +385,16 @@ export default function MaintenanceScreen() {
               key={item.key}
               style={[
                 styles.fixedFilterCard,
-                isSelected && styles.fixedFilterCardSelected,
+                !isDark && {
+                  backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.12)' : '#FFFFFF',
+                  borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                  shadowColor: '#64748B',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 3,
+                  elevation: 1,
+                },
+                isSelected && isDark && styles.fixedFilterCardSelected,
               ]}
               onPress={() => {
                 setFilterStatus(item.key);
@@ -543,7 +408,8 @@ export default function MaintenanceScreen() {
               <Text
                 style={[
                   styles.fixedFilterLabel,
-                  isSelected && styles.fixedFilterLabelSelected,
+                  !isDark && { color: isSelected ? '#D97706' : '#64748B' },
+                  isSelected && isDark && styles.fixedFilterLabelSelected,
                 ]}
                 numberOfLines={1}
               >
@@ -555,12 +421,12 @@ export default function MaintenanceScreen() {
       </View>
 
       {/* 3. Ô Tìm Kiếm Nhanh */}
-      <View style={styles.searchWrapper}>
-        <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginLeft: 12 }} />
+      <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
           placeholder="Tìm theo số phòng, mã phiếu, tên thiết bị..."
-          placeholderTextColor="#64748B"
+          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
           value={searchQuery}
           onChangeText={setSearchQuery}
           clearButtonMode="while-editing"
@@ -582,7 +448,16 @@ export default function MaintenanceScreen() {
           <TouchableOpacity
             style={[
               styles.issueChip,
-              selectedIssueType === 'all' && styles.issueChipActive,
+              !isDark && {
+                backgroundColor: selectedIssueType === 'all' ? '#F59E0B' : '#FFFFFF',
+                borderColor: selectedIssueType === 'all' ? '#F59E0B' : '#E2E8F0',
+                shadowColor: '#64748B',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              },
+              selectedIssueType === 'all' && isDark && styles.issueChipActive,
             ]}
             onPress={() => {
               setSelectedIssueType('all');
@@ -593,7 +468,8 @@ export default function MaintenanceScreen() {
             <Text
               style={[
                 styles.issueChipText,
-                selectedIssueType === 'all' && styles.issueChipTextActive,
+                !isDark && { color: selectedIssueType === 'all' ? '#0A0F1D' : '#475569' },
+                selectedIssueType === 'all' && isDark && styles.issueChipTextActive,
               ]}
             >
               Tất cả ({tickets.length})
@@ -607,7 +483,16 @@ export default function MaintenanceScreen() {
                 key={cat.key}
                 style={[
                   styles.issueChip,
-                  isSelected && {
+                  !isDark && {
+                    backgroundColor: isSelected ? `${cat.color}22` : '#FFFFFF',
+                    borderColor: isSelected ? cat.color : '#E2E8F0',
+                    shadowColor: '#64748B',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  },
+                  isSelected && isDark && {
                     backgroundColor: `${cat.color}22`,
                     borderColor: cat.color,
                   },
@@ -621,12 +506,13 @@ export default function MaintenanceScreen() {
                 <Ionicons
                   name={cat.icon as any}
                   size={13}
-                  color={isSelected ? cat.color : '#94A3B8'}
+                  color={isSelected ? cat.color : (isDark ? '#94A3B8' : '#64748B')}
                   style={{ marginRight: 5 }}
                 />
                 <Text
                   style={[
                     styles.issueChipText,
+                    !isDark && { color: isSelected ? cat.color : '#475569' },
                     isSelected && { color: cat.color, fontWeight: '800' },
                   ]}
                 >
@@ -671,40 +557,40 @@ export default function MaintenanceScreen() {
       {/* Modal Nghiệm thu Hoàn tất sửa chữa */}
       <Modal visible={completeModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View>
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>
                   Nghiệm Thu Phòng {selectedTicket?.room_number}
                 </Text>
-                <Text style={styles.modalSubtitle}>
+                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
                   Thiết bị: {selectedTicket?.equipment_name}
                 </Text>
               </View>
               <TouchableOpacity
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
                 onPress={() => setCompleteModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={20} color="#94A3B8" />
+                <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Linh kiện / Vật tư đã thay:</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Linh kiện / Vật tư đã thay:</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="VD: Thay tụ quạt Daikin, vòi sen tắm..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 value={partsReplaced}
                 onChangeText={setPartsReplaced}
               />
 
-              <Text style={styles.inputLabel}>Chi phí vật tư phát sinh (VNĐ):</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Chi phí vật tư phát sinh (VNĐ):</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="0"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 keyboardType="numeric"
                 value={cost}
                 onChangeText={setCost}
@@ -714,6 +600,7 @@ export default function MaintenanceScreen() {
               <TouchableOpacity
                 style={[
                   styles.guestFaultToggleRow,
+                  !isDark && !isGuestFault && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
                   isGuestFault && styles.guestFaultToggleRowActive,
                 ]}
                 onPress={() => {
@@ -725,13 +612,13 @@ export default function MaintenanceScreen() {
                 <Ionicons
                   name={isGuestFault ? 'checkbox' : 'square-outline'}
                   size={22}
-                  color={isGuestFault ? '#EF4444' : '#64748B'}
+                  color={isGuestFault ? '#EF4444' : (isDark ? '#64748B' : '#94A3B8')}
                 />
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={[styles.guestFaultTitle, isGuestFault && { color: '#F87171' }]}>
+                  <Text style={[styles.guestFaultTitle, !isDark && !isGuestFault && { color: '#0F172A' }, isGuestFault && { color: '#F87171' }]}>
                     Do khách làm hư hỏng (Tính phí bồi thường)
                   </Text>
-                  <Text style={styles.guestFaultSubtitle}>
+                  <Text style={[styles.guestFaultSubtitle, !isDark && { color: '#64748B' }]}>
                     {isGuestFault
                       ? '⚠️ Phụ phí bồi thường sẽ tự động cộng vào hóa đơn khách tại Lễ tân.'
                       : 'Hao mòn tự nhiên trong vận hành (Khách sạn chịu chi phí bảo trì).'}
@@ -739,19 +626,19 @@ export default function MaintenanceScreen() {
                 </View>
               </TouchableOpacity>
 
-              <Text style={styles.inputLabel}>Ghi chú kiểm tra bàn giao:</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Ghi chú kiểm tra bàn giao:</Text>
               <TextInput
-                style={[styles.modalInput, { height: 60 }]}
+                style={[styles.modalInput, { height: 60 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="Thiết bị hoạt động êm, mát, sạch sẽ..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 multiline
                 value={note}
                 onChangeText={setNote}
               />
 
-              <View style={styles.alertNoteBox}>
+              <View style={[styles.alertNoteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
                 <Ionicons name="information-circle" size={18} color="#F59E0B" style={{ marginRight: 8 }} />
-                <Text style={styles.alertNoteText}>
+                <Text style={[styles.alertNoteText, !isDark && { color: '#B45309' }]}>
                   Sau khi xác nhận, Phòng {selectedTicket?.room_number} sẽ tự động chuyển sang trạng thái "Đang dọn dẹp" để bộ phận Buồng phòng vào lau dọn sẵn sàng đón khách.
                 </Text>
               </View>
@@ -779,32 +666,32 @@ export default function MaintenanceScreen() {
       {/* Modal Báo Hỏng Thiết Bị Mới (Kỹ Thuật Viên Tự Tạo Phiếu) */}
       <Modal visible={createModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalContent, { maxHeight: '90%' }, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View>
-                <Text style={styles.modalTitle}>Báo Sự Cố Thiết Bị 🛠️</Text>
-                <Text style={styles.modalSubtitle}>Tạo phiếu bảo trì & cách ly phòng</Text>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Báo Sự Cố Thiết Bị 🛠️</Text>
+                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Tạo phiếu bảo trì & cách ly phòng</Text>
               </View>
               <TouchableOpacity
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
                 onPress={() => setCreateModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={20} color="#94A3B8" />
+                <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* 1. Chọn phòng */}
-              <Text style={styles.inputLabel}>1. Chọn phòng gặp sự cố *:</Text>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>1. Chọn phòng gặp sự cố *:</Text>
               {loadingRooms ? (
                 <ActivityIndicator color="#F59E0B" style={{ marginVertical: 8 }} />
               ) : (
                 <>
                   <TextInput
-                    style={[styles.modalInput, { height: 38, fontSize: 12, marginBottom: 8 }]}
+                    style={[styles.modalInput, { height: 38, fontSize: 12, marginBottom: 8 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                     placeholder="Lọc số phòng (VD: 101, 202...)"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                     value={roomFilterText}
                     onChangeText={setRoomFilterText}
                     keyboardType="numeric"
@@ -828,6 +715,7 @@ export default function MaintenanceScreen() {
                             key={r.id}
                             style={[
                               styles.roomSelectChip,
+                              !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
                               isSelected && styles.roomSelectChipActive,
                             ]}
                             onPress={() => handleSelectRoom(r)}
@@ -846,6 +734,7 @@ export default function MaintenanceScreen() {
                               <Text
                                 style={[
                                   styles.roomSelectChipText,
+                                  !isDark && !isSelected && { color: '#0F172A' },
                                   isSelected && styles.roomSelectChipTextActive,
                                 ]}
                               >
@@ -861,16 +750,16 @@ export default function MaintenanceScreen() {
 
               {/* Thông tin phòng đã chọn & Cảnh báo khách đang ở */}
               {selectedRoom && (
-                <View style={styles.selectedRoomSummaryCard}>
+                <View style={[styles.selectedRoomSummaryCard, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
                   <View style={styles.selectedRoomSummaryTop}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
-                      <View style={styles.selectedRoomIconWrap}>
+                      <View style={[styles.selectedRoomIconWrap, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
                         <Ionicons name="bed" size={13} color="#F59E0B" />
                       </View>
-                      <Text style={styles.selectedRoomNumberText}>
+                      <Text style={[styles.selectedRoomNumberText, !isDark && { color: '#0F172A' }]}>
                         Phòng {selectedRoom.room_number}
                       </Text>
-                      <Text style={styles.selectedRoomCategoryText} numberOfLines={1}>
+                      <Text style={[styles.selectedRoomCategoryText, !isDark && { color: '#64748B' }]} numberOfLines={1}>
                         • {selectedRoom.category_name || 'Phòng'} (T.{selectedRoom.floor})
                       </Text>
                     </View>
@@ -898,21 +787,21 @@ export default function MaintenanceScreen() {
                   </View>
 
                   {selectedRoom.status === 'occupied' && selectedRoom.current_booking && (
-                    <View style={styles.guestAlertBanner}>
+                    <View style={[styles.guestAlertBanner, !isDark && { backgroundColor: 'rgba(56, 189, 248, 0.08)', borderColor: 'rgba(56, 189, 248, 0.25)' }]}>
                       <View style={styles.guestAlertHeader}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
-                          <Ionicons name="person" size={12} color="#38BDF8" style={{ marginRight: 4 }} />
-                          <Text style={styles.guestAlertTitle} numberOfLines={1}>
+                          <Ionicons name="person" size={12} color="#0284C7" style={{ marginRight: 4 }} />
+                          <Text style={[styles.guestAlertTitle, !isDark && { color: '#0369A1' }]} numberOfLines={1}>
                             Khách: {selectedRoom.current_booking.guest_name}
                           </Text>
                         </View>
-                        <View style={styles.guestBookingTag}>
-                          <Text style={styles.guestBookingTagText}>
+                        <View style={[styles.guestBookingTag, !isDark && { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}>
+                          <Text style={[styles.guestBookingTagText, !isDark && { color: '#0284C7' }]}>
                             #{selectedRoom.current_booking.booking_code}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.guestAlertNote}>
+                      <Text style={[styles.guestAlertNote, !isDark && { color: '#0369A1' }]}>
                         ⚠️ Lưu ý: Khách đang lưu trú tại phòng. Vui lòng liên hệ Lễ tân hoặc gõ cửa xin phép trước khi vào sửa chữa.
                       </Text>
                     </View>
@@ -921,7 +810,7 @@ export default function MaintenanceScreen() {
               )}
 
               {/* 2. Loại sự cố */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>2. Phân loại sự cố kỹ thuật *:</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>2. Phân loại sự cố kỹ thuật *:</Text>
               <View style={styles.issueTypeGrid}>
                 {MAINTENANCE_ISSUE_TYPES.map((it) => {
                   const isSelected = issueType === it.key;
@@ -930,6 +819,7 @@ export default function MaintenanceScreen() {
                       key={it.key}
                       style={[
                         styles.issueTypeGridCard,
+                        !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
                         isSelected && { borderColor: it.color, backgroundColor: `${it.color}15` },
                       ]}
                       onPress={() => {
@@ -945,12 +835,13 @@ export default function MaintenanceScreen() {
                       <Ionicons
                         name={it.icon as any}
                         size={14}
-                        color={isSelected ? it.color : '#94A3B8'}
+                        color={isSelected ? it.color : (isDark ? '#94A3B8' : '#64748B')}
                         style={{ marginRight: 6 }}
                       />
                       <Text
                         style={[
                           styles.issueTypeGridLabel,
+                          !isDark && !isSelected && { color: '#475569' },
                           isSelected && { color: it.color, fontWeight: '800' },
                         ]}
                         numberOfLines={1}
@@ -963,16 +854,16 @@ export default function MaintenanceScreen() {
               </View>
 
               {/* 3. Tên thiết bị */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>3. Tên thiết bị hỏng *:</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>3. Tên thiết bị hỏng *:</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="VD: Điều hòa Daikin, Tivi Samsung, Khóa từ..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 value={equipmentName}
                 onChangeText={setEquipmentName}
               />
               <View style={styles.suggestionRow}>
-                <Text style={styles.suggestionTitle}>Gợi ý nhanh:</Text>
+                <Text style={[styles.suggestionTitle, !isDark && { color: '#64748B' }]}>Gợi ý nhanh:</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -983,6 +874,7 @@ export default function MaintenanceScreen() {
                       key={eq}
                       style={[
                         styles.quickEquipChip,
+                        !isDark && equipmentName !== eq && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
                         equipmentName === eq && styles.quickEquipChipActive,
                       ]}
                       onPress={() => {
@@ -994,6 +886,7 @@ export default function MaintenanceScreen() {
                       <Text
                         style={[
                           styles.quickEquipChipText,
+                          !isDark && equipmentName !== eq && { color: '#475569' },
                           equipmentName === eq && styles.quickEquipChipTextActive,
                         ]}
                       >
@@ -1005,28 +898,28 @@ export default function MaintenanceScreen() {
               </View>
 
               {/* 4. Mô tả chi tiết hiện tượng */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>4. Mô tả chi tiết sự cố & Hiện tượng *:</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>4. Mô tả chi tiết sự cố & Hiện tượng *:</Text>
               <TextInput
-                style={[styles.modalInput, { height: 70 }]}
+                style={[styles.modalInput, { height: 70 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="Hiện tượng: chảy nước, không mát, chập điện, có tiếng kêu to..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 multiline
                 value={breakdownDesc}
                 onChangeText={setBreakdownDesc}
               />
 
               {/* 5. Phụ tùng / Vật tư thay thế mang theo dự kiến */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>5. Phụ tùng / Dụng cụ mang theo dự kiến:</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>5. Phụ tùng / Dụng cụ mang theo dự kiến:</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
                 placeholder="VD: 1 Tụ kích 35uF, 1 Dây cấp inox, 2 Pin AAA, Cầu chì 10A..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                 value={createPartsReplaced}
                 onChangeText={setCreatePartsReplaced}
               />
 
               {/* 6. Phân loại trách nhiệm chi phí & Đền bù */}
-              <View style={styles.costFaultBox}>
+              <View style={[styles.costFaultBox, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
                 <TouchableOpacity
                   style={styles.faultCheckboxRow}
                   onPress={() => {
@@ -1038,13 +931,13 @@ export default function MaintenanceScreen() {
                   <Ionicons
                     name={createIsGuestFault ? 'checkbox' : 'square-outline'}
                     size={20}
-                    color={createIsGuestFault ? '#F59E0B' : '#64748B'}
+                    color={createIsGuestFault ? '#F59E0B' : (isDark ? '#64748B' : '#94A3B8')}
                   />
                   <View style={{ marginLeft: 8, flex: 1 }}>
-                    <Text style={styles.faultCheckboxTitle}>
+                    <Text style={[styles.faultCheckboxTitle, !isDark && { color: '#0F172A' }]}>
                       Do khách làm hư hỏng (Tính phí bồi thường)?
                     </Text>
-                    <Text style={styles.faultCheckboxSub}>
+                    <Text style={[styles.faultCheckboxSub, !isDark && { color: '#64748B' }]}>
                       {createIsGuestFault
                         ? (selectedRoom?.current_booking
                             ? `Khoản đền bù sẽ tự động cộng vào hóa đơn khách #${selectedRoom.current_booking.booking_code} tại Lễ tân.`
@@ -1056,12 +949,12 @@ export default function MaintenanceScreen() {
 
                 {createIsGuestFault && (
                   <View style={{ marginTop: 10 }}>
-                    <Text style={styles.costInputLabel}>Chi phí bồi thường / sửa chữa (VNĐ):</Text>
-                    <View style={styles.costInputWrapper}>
+                    <Text style={[styles.costInputLabel, !isDark && { color: '#334155' }]}>Chi phí bồi thường / sửa chữa (VNĐ):</Text>
+                    <View style={[styles.costInputWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#CBD5E1' }]}>
                       <TextInput
-                        style={styles.costInput}
+                        style={[styles.costInput, !isDark && { color: '#0F172A' }]}
                         placeholder="0"
-                        placeholderTextColor="#64748B"
+                        placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                         keyboardType="numeric"
                         value={
                           createCost
@@ -1076,9 +969,9 @@ export default function MaintenanceScreen() {
                 )}
               </View>
 
-              <View style={styles.alertNoteBox}>
+              <View style={[styles.alertNoteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
                 <Ionicons name="information-circle" size={17} color="#F59E0B" style={{ marginRight: 8 }} />
-                <Text style={styles.alertNoteText}>
+                <Text style={[styles.alertNoteText, !isDark && { color: '#B45309' }]}>
                   Sau khi gửi phiếu, phòng sẽ tự động chuyển sang trạng thái <Text style={{ color: '#F87171', fontWeight: '800' }}>"Bảo trì"</Text> để cách ly trên sơ đồ khách sạn cho đến khi bạn hoàn tất sửa chữa.
                 </Text>
               </View>

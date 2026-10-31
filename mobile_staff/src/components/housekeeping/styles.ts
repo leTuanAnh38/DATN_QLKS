@@ -1,10 +1,11 @@
 import { StyleSheet, Platform } from 'react-native';
+import { Palette } from '../../constants/theme';
 
 /** StyleSheet của màn hình Buồng phòng (tách từ app/(tabs)/housekeeping.tsx). */
 export const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#0A0F1D', // Nền Dark Obsidian cực sâu và sang trọng
+    backgroundColor: Palette.surface.background, // Nền Dark Obsidian cực sâu và sang trọng
   },
   topHeader: {
     flexDirection: 'row',
@@ -17,13 +18,13 @@ export const styles = StyleSheet.create({
   brandSubtitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#F59E0B',
+    color: Palette.gold.main,
     letterSpacing: 1.5,
   },
   greetingTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: Palette.text.primary,
     marginTop: 2,
     letterSpacing: -0.3,
   },
@@ -31,11 +32,11 @@ export const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#1E293B',
+    backgroundColor: Palette.surface.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Palette.border.subtle,
   },
   headerRightActions: {
     flexDirection: 'row',
@@ -50,16 +51,16 @@ export const styles = StyleSheet.create({
   },
   fixedFilterCard: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: Palette.surface.card,
     borderRadius: 12,
     paddingVertical: 7,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: Palette.surface.cardSecondary,
   },
   fixedFilterCardSelected: {
-    borderColor: '#F59E0B',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: Palette.gold.main,
+    backgroundColor: Palette.gold.subtle,
   },
   fixedFilterNumber: {
     fontSize: 15,
@@ -68,27 +69,27 @@ export const styles = StyleSheet.create({
   fixedFilterLabel: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: Palette.text.muted,
     marginTop: 2,
   },
   fixedFilterLabelSelected: {
-    color: '#F59E0B',
+    color: Palette.gold.main,
     fontWeight: '800',
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111827',
+    backgroundColor: Palette.surface.card,
     marginHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#1F2937',
+    borderColor: Palette.border.default,
     height: 42,
     marginBottom: 8,
   },
   searchInput: {
     flex: 1,
-    color: '#F8FAFC',
+    color: Palette.text.primary,
     fontSize: 13,
     paddingHorizontal: 10,
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,63 +21,22 @@ import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import { DEFAULT_API_URL } from '../../api/config';
 import { TransportListSkeleton } from '../../components/SkeletonLoader';
+import {
+  TransportCard,
+  ServiceRequestItem,
+  getVehicleImage,
+  formatDateTime,
+} from '../../components/transport/TransportCard';
 
-interface ServiceRequestItem {
-  id: number;
-  booking_code: string;
-  room_number: string;
-  guest_name: string;
-  guest_phone: string;
-  service_name: string;
-  service_image?: string;
-  quantity: number;
-  total_price: string;
-  request_time: string | null;
-  status: string;
-  status_display: string;
-  assigned_staff: number | null;
-  assigned_staff_name: string;
-  note: string;
-  created_at: string;
-}
 
-// Helper lấy URL ảnh xe đưa đón / vận chuyển
-const getVehicleImage = (item: any): string => {
-  const raw =
-    item?.service_image ||
-    item?.service?.image ||
-    item?.service?.image_url ||
-    item?.image_url ||
-    item?.image;
-  if (!raw || typeof raw !== 'string') {
-    return 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80';
-  }
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    return raw;
-  }
-  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
-  return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
-};
-
-// Helper định dạng ngày giờ đặt cuốc xe & giờ đón
-const formatDateTime = (dateStr?: string | null): string => {
-  if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const dateFormatted = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-    return `${timeStr} • ${dateFormatted}`;
-  } catch {
-    return dateStr;
-  }
-};
 
 export default function TransportScreen() {
   const { user } = useAuth();
+  const { colors, isDark } = useAppTheme();
   const [requests, setRequests] = useState<ServiceRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -179,6 +138,23 @@ export default function TransportScreen() {
         quantity: 1,
         note: fullNote,
       };
+
+      if (pickupTime.trim()) {
+        const timeMatch = pickupTime.trim().match(/^(\d{1,2})[:hH](\d{2})?$/);
+        if (timeMatch) {
+          const hours = parseInt(timeMatch[1], 10);
+          const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+          if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+            const target = new Date();
+            target.setHours(hours, minutes, 0, 0);
+            if (target.getTime() < Date.now() - 30 * 60 * 1000) {
+              target.setDate(target.getDate() + 1);
+            }
+            payload.is_scheduled = true;
+            payload.request_time = target.toISOString();
+          }
+        }
+      }
 
       const res = await apiClient.post('/services/requests/', payload);
       if (res.data.success || res.data.id) {
@@ -385,265 +361,30 @@ export default function TransportScreen() {
     Linking.openURL(`sms:${phone}?body=${msg}`);
   };
 
-  const getStatusBadgeConfig = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return {
-          bg: 'rgba(245, 158, 11, 0.12)',
-          border: 'rgba(245, 158, 11, 0.4)',
-          text: '#FBBF24',
-          label: 'Chờ nhận',
-          icon: 'time-outline' as const,
-        };
-      case 'in_progress':
-        return {
-          bg: 'rgba(56, 189, 248, 0.12)',
-          border: 'rgba(56, 189, 248, 0.4)',
-          text: '#38BDF8',
-          label: 'Đang chuẩn bị',
-          icon: 'car-sport-outline' as const,
-        };
-      case 'delivering':
-        return {
-          bg: 'rgba(168, 85, 247, 0.14)',
-          border: 'rgba(168, 85, 247, 0.4)',
-          text: '#C084FC',
-          label: 'Đang đón khách',
-          icon: 'navigate-outline' as const,
-        };
-      case 'completed':
-        return {
-          bg: 'rgba(16, 185, 129, 0.12)',
-          border: 'rgba(16, 185, 129, 0.4)',
-          text: '#34D399',
-          label: 'Đã hoàn tất',
-          icon: 'checkmark-circle-outline' as const,
-        };
-      default:
-        return {
-          bg: '#1E293B',
-          border: '#334155',
-          text: '#94A3B8',
-          label: status,
-          icon: 'ellipse-outline' as const,
-        };
-    }
-  };
+  const renderItem = useCallback(
+    ({ item }: { item: ServiceRequestItem }) => (
+      <TransportCard
+        item={item}
+        isMyTask={item.assigned_staff === user?.id}
+        isActionLoading={actionLoadingId === item.id}
+        onClaim={handleClaim}
+        onUpdateStatus={handleUpdateStatus}
+        onCallGuest={callGuest}
+        onSendSms={sendSmsToGuest}
+        onOpenMap={openMapNavigation}
+      />
+    ),
+    [user?.id, actionLoadingId, handleClaim, handleUpdateStatus]
+  );
 
-  const renderItem = ({ item }: { item: ServiceRequestItem }) => {
-    const badge = getStatusBadgeConfig(item.status);
-    const isMyTask = item.assigned_staff === user?.id;
-
-    return (
-      <View style={[styles.card, isMyTask && styles.cardMyTask]}>
-        {/* Header cuốc xe */}
-        <View style={styles.cardHeader}>
-          <View style={styles.roomTag}>
-            <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={styles.roomTagText}>
-              {item.room_number ? `P.${item.room_number}` : 'Đón Sảnh'}
-            </Text>
-          </View>
-
-          <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
-            <Ionicons name={badge.icon} size={12} color={badge.text} style={{ marginRight: 4 }} />
-            <Text style={[styles.statusBadgeText, { color: badge.text }]}>
-              {item.status_display || badge.label}
-            </Text>
-          </View>
-        </View>
-
-        {/* Tiêu đề Dịch vụ xe & Ảnh xe */}
-        <View style={styles.serviceRow}>
-          <View style={styles.carThumbBox}>
-            <Image
-              source={{ uri: getVehicleImage(item) }}
-              style={styles.carThumbImg}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.serviceName}>{item.service_name}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
-              <Text style={styles.bookingCode}>Mã: #{item.booking_code}</Text>
-              {item.total_price ? (
-                <>
-                  <Text style={styles.dotSeparator}>•</Text>
-                  <Text style={styles.priceTagText}>
-                    {parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ
-                  </Text>
-                </>
-              ) : null}
-            </View>
-          </View>
-        </View>
-
-        {/* Thông tin khách hàng */}
-        <View style={styles.passengerBox}>
-          <View style={styles.passengerRow}>
-            <Ionicons name="person" size={14} color="#CBD5E1" />
-            <Text style={styles.passengerName}>{item.guest_name || 'Khách sạn'}</Text>
-          </View>
-
-          {item.guest_phone ? (
-            <TouchableOpacity
-              style={styles.guestPhonePill}
-              onPress={() => callGuest(item.guest_phone)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="call" size={12} color="#10B981" style={{ marginRight: 4 }} />
-              <Text style={styles.guestPhoneText}>{item.guest_phone}</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Thời gian đặt cuốc xe & Giờ hẹn đón */}
-        <View style={styles.transportTimingBox}>
-          {item.created_at ? (
-            <View style={styles.transportTimingItem}>
-              <Ionicons name="time-outline" size={13} color="#38BDF8" style={{ marginRight: 4 }} />
-              <Text style={styles.transportTimingLabel}>Đặt lúc:</Text>
-              <Text style={styles.transportTimingValue}>{formatDateTime(item.created_at)}</Text>
-            </View>
-          ) : null}
-
-          {item.request_time ? (
-            <View style={[styles.transportTimingItem, styles.transportTimingScheduled]}>
-              <Ionicons name="alarm-outline" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-              <Text style={[styles.transportTimingLabel, { color: '#F59E0B' }]}>Giờ đón:</Text>
-              <Text style={[styles.transportTimingValue, { color: '#FBBF24', fontWeight: '800' }]}>
-                {formatDateTime(item.request_time)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Ghi chú lộ trình / chuyến bay */}
-        {item.note ? (
-          <View style={styles.noteBox}>
-            <Ionicons name="navigate-circle" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
-            <Text style={styles.noteText}>{item.note}</Text>
-          </View>
-        ) : null}
-
-        {/* Tài xế phụ trách */}
-        <View style={styles.driverInfoRow}>
-          <Text style={styles.driverLabel}>Tài xế nhận:</Text>
-          <Text style={[styles.driverValue, isMyTask && { color: '#F59E0B', fontWeight: '800' }]}>
-            {item.assigned_staff_name ? item.assigned_staff_name : 'Chưa có ai nhận'}
-            {isMyTask ? ' (Bạn)' : ''}
-          </Text>
-        </View>
-
-        {/* Nút hành động cho tài xế */}
-        <View style={styles.actionContainer}>
-          {/* Nút bản đồ chỉ đường Maps */}
-          <TouchableOpacity
-            style={styles.mapButton}
-            onPress={() => openMapNavigation(item.note || item.service_name)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="navigate-circle" size={18} color="#38BDF8" />
-          </TouchableOpacity>
-
-          {/* Nút gửi tin nhắn SMS mẫu cho khách */}
-          {item.guest_phone ? (
-            <TouchableOpacity
-              style={styles.smsButton}
-              onPress={() => sendSmsToGuest(item.guest_phone, item.guest_name)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chatbubble-ellipses" size={16} color="#F59E0B" />
-            </TouchableOpacity>
-          ) : null}
-
-          {/* Nút gọi điện cho khách */}
-          {item.guest_phone ? (
-            <TouchableOpacity
-              style={styles.callButton}
-              onPress={() => callGuest(item.guest_phone)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="call" size={15} color="#10B981" />
-              <Text style={styles.callButtonText}>Gọi</Text>
-            </TouchableOpacity>
-          ) : null}
-
-          {/* Chưa có ai nhận -> Nút Tiếp nhận cuốc xe */}
-          {!item.assigned_staff && (item.status === 'pending' || item.status === 'in_progress') && (
-            <TouchableOpacity
-              style={[styles.claimButton, actionLoadingId === item.id && { opacity: 0.65 }]}
-              onPress={() => handleClaim(item)}
-              disabled={actionLoadingId === item.id}
-              activeOpacity={0.8}
-            >
-              {actionLoadingId === item.id ? (
-                <ActivityIndicator size="small" color="#0A0F1D" />
-              ) : (
-                <>
-                  <Ionicons name="hand-right" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.claimButtonText}>TIẾP NHẬN CUỐC</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {/* Đang chuẩn bị -> Bắt đầu đi đón */}
-          {item.status === 'in_progress' && (
-            <TouchableOpacity
-              style={[styles.departButton, actionLoadingId === item.id && { opacity: 0.65 }]}
-              onPress={() => handleUpdateStatus(item, 'delivering', 'Đang đi đón khách')}
-              disabled={actionLoadingId === item.id}
-              activeOpacity={0.8}
-            >
-              {actionLoadingId === item.id ? (
-                <ActivityIndicator size="small" color="#0A0F1D" />
-              ) : (
-                <>
-                  <Ionicons name="navigate" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.departButtonText}>BẮT ĐẦU ĐÓN KHÁCH</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {/* Đang đi đón -> Hoàn tất */}
-          {item.status === 'delivering' && (
-            <TouchableOpacity
-              style={[styles.completeButton, actionLoadingId === item.id && { opacity: 0.65 }]}
-              onPress={() => handleUpdateStatus(item, 'completed', 'Hoàn tất chuyến xe')}
-              disabled={actionLoadingId === item.id}
-              activeOpacity={0.8}
-            >
-              {actionLoadingId === item.id ? (
-                <ActivityIndicator size="small" color="#0A0F1D" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.completeButtonText}>ĐÃ TRẢ KHÁCH XONG ✨</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {item.status === 'completed' && (
-            <View style={styles.doneBadge}>
-              <Ionicons name="checkmark-circle" size={15} color="#34D399" style={{ marginRight: 5 }} />
-              <Text style={styles.doneBadgeText}>Chuyến đi hoàn tất</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top']}>
+    <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
       {/* 1. Header Khách Sạn & Thông Tin Đội Xe */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
-          <Text style={styles.greetingTitle} numberOfLines={1}>Đội Xe & Vận Chuyển 🚗</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>Đội Xe & Vận Chuyển 🚗</Text>
         </View>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
@@ -656,7 +397,14 @@ export default function TransportScreen() {
           </TouchableOpacity>
 
           <NotificationBell />
-          <TouchableOpacity style={styles.refreshCircleBtn} onPress={onRefresh} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[
+              styles.refreshCircleBtn,
+              !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+            ]}
+            onPress={onRefresh}
+            activeOpacity={0.7}
+          >
             <Ionicons name="refresh" size={17} color="#F59E0B" />
           </TouchableOpacity>
         </View>
@@ -665,11 +413,11 @@ export default function TransportScreen() {
       {/* 2. Dải Bộ Lọc & KPI Cố Định 100% (Không bị trôi trượt khi lướt) */}
       <View style={styles.fixedFilterBar}>
         {[
-          { key: 'all', label: 'Tất cả', count: stats.total, color: '#F8FAFC' },
+          { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
           { key: 'pending', label: 'Chờ nhận', count: stats.pending, color: '#F59E0B' },
-          { key: 'active', label: 'Đang chạy', count: stats.active, color: '#38BDF8' },
+          { key: 'active', label: 'Đang chạy', count: stats.active, color: isDark ? '#38BDF8' : '#0284C7' },
           { key: 'my', label: 'Của tôi', count: stats.myTasks, color: '#A855F7' },
-          { key: 'completed', label: 'Đã xong', count: stats.completed, color: '#34D399' },
+          { key: 'completed', label: 'Đã xong', count: stats.completed, color: isDark ? '#34D399' : '#059669' },
         ].map((item) => {
           const isSelected = filterType === item.key;
           return (
@@ -677,7 +425,16 @@ export default function TransportScreen() {
               key={item.key}
               style={[
                 styles.fixedFilterCard,
-                isSelected && styles.fixedFilterCardSelected,
+                !isDark && {
+                  backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.12)' : '#FFFFFF',
+                  borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                  shadowColor: '#64748B',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 3,
+                  elevation: 1,
+                },
+                isSelected && isDark && styles.fixedFilterCardSelected,
               ]}
               onPress={() => {
                 setFilterType(item.key);
@@ -691,7 +448,8 @@ export default function TransportScreen() {
               <Text
                 style={[
                   styles.fixedFilterLabel,
-                  isSelected && styles.fixedFilterLabelSelected,
+                  !isDark && { color: isSelected ? '#D97706' : '#64748B' },
+                  isSelected && isDark && styles.fixedFilterLabelSelected,
                 ]}
                 numberOfLines={1}
               >
@@ -703,12 +461,12 @@ export default function TransportScreen() {
       </View>
 
       {/* 3. Ô Tìm Kiếm Nhanh */}
-      <View style={styles.searchWrapper}>
-        <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginLeft: 12 }} />
+      <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
           placeholder="Tìm tên khách, số phòng, lộ trình..."
-          placeholderTextColor="#64748B"
+          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
           value={searchQuery}
           onChangeText={setSearchQuery}
           clearButtonMode="while-editing"
@@ -753,31 +511,40 @@ export default function TransportScreen() {
       {/* 6. MODAL ĐẶT XE ĐƯA ĐÓN KHÁCH HÀNG */}
       <Modal visible={createModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              !isDark && {
+                backgroundColor: '#FFFFFF',
+                borderTopColor: '#E2E8F0',
+                shadowColor: '#64748B',
+              },
+            ]}
+          >
             {/* Modal Header */}
-            <View style={styles.modalHeaderRow}>
+            <View style={[styles.modalHeaderRow, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>Đặt Xe Đưa Đón 🚗</Text>
-                <Text style={styles.modalSubtitle}>Điều xe đưa đón sân bay, ga tàu hoặc tham quan cho khách</Text>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Đặt Xe Đưa Đón 🚗</Text>
+                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Điều xe đưa đón sân bay, ga tàu hoặc tham quan cho khách</Text>
               </View>
               <TouchableOpacity
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
                 onPress={() => setCreateModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={20} color="#94A3B8" />
+                <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
               </TouchableOpacity>
             </View>
 
             {loadingModalData ? (
               <View style={styles.modalLoadingBox}>
                 <ActivityIndicator size="large" color="#F59E0B" />
-                <Text style={styles.modalLoadingText}>Đang tải danh sách phòng & dịch vụ xe...</Text>
+                <Text style={[styles.modalLoadingText, !isDark && { color: '#64748B' }]}>Đang tải danh sách phòng & dịch vụ xe...</Text>
               </View>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
                 {/* BƯỚC 1: CHỌN PHÒNG & KHÁCH HÀNG */}
-                <Text style={styles.formSectionLabel}>1. CHỌN PHÒNG KHÁCH ĐANG Ở (*)</Text>
+                <Text style={[styles.formSectionLabel, !isDark && { color: '#B45309' }]}>1. CHỌN PHÒNG KHÁCH ĐANG Ở (*)</Text>
                 {occupiedRooms.length === 0 ? (
                   <View style={styles.warningBox}>
                     <Ionicons name="alert-circle" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
@@ -796,7 +563,11 @@ export default function TransportScreen() {
                       return (
                         <TouchableOpacity
                           key={r.id}
-                          style={[styles.roomSelectCard, isSel && styles.roomSelectCardActive]}
+                          style={[
+                            styles.roomSelectCard,
+                            !isDark && !isSel && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                            isSel && styles.roomSelectCardActive,
+                          ]}
                           onPress={() => {
                             setSelectedRoom(r);
                             Haptics.selectionAsync();
@@ -804,7 +575,13 @@ export default function TransportScreen() {
                           activeOpacity={0.7}
                         >
                           <View style={styles.roomSelectTop}>
-                            <Text style={[styles.roomSelectNum, isSel && { color: '#0A0F1D' }]}>
+                            <Text
+                              style={[
+                                styles.roomSelectNum,
+                                !isDark && !isSel && { color: '#0F172A' },
+                                isSel && { color: '#0A0F1D' },
+                              ]}
+                            >
                               P.{r.room_number}
                             </Text>
                             {bk?.booking_code && (
@@ -813,7 +590,14 @@ export default function TransportScreen() {
                               </Text>
                             )}
                           </View>
-                          <Text style={[styles.roomSelectGuest, isSel && { color: '#0A0F1D', fontWeight: '900' }]} numberOfLines={1}>
+                          <Text
+                            style={[
+                              styles.roomSelectGuest,
+                              !isDark && !isSel && { color: '#64748B' },
+                              isSel && { color: '#0A0F1D', fontWeight: '900' },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {bk?.guest_name || 'Khách lưu trú'}
                           </Text>
                         </TouchableOpacity>
@@ -823,7 +607,7 @@ export default function TransportScreen() {
                 )}
 
                 {/* BƯỚC 2: CHỌN DỊCH VỤ XE / GÓI ĐƯA ĐÓN */}
-                <Text style={styles.formSectionLabel}>2. CHỌN LOẠI XE / DỊCH VỤ ĐƯA ĐÓN (*)</Text>
+                <Text style={[styles.formSectionLabel, !isDark && { color: '#B45309' }]}>2. CHỌN LOẠI XE / DỊCH VỤ ĐƯA ĐÓN (*)</Text>
                 <View style={styles.serviceSelectWrapper}>
                   {transportServices.map((svc) => {
                     const isSel = selectedService?.id === svc.id;
@@ -831,7 +615,11 @@ export default function TransportScreen() {
                     return (
                       <TouchableOpacity
                         key={svc.id}
-                        style={[styles.serviceSelectCard, isSel && styles.serviceSelectCardActive]}
+                        style={[
+                          styles.serviceSelectCard,
+                          !isDark && !isSel && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                          isSel && styles.serviceSelectCardActive,
+                        ]}
                         onPress={() => {
                           setSelectedService(svc);
                           Haptics.selectionAsync();
@@ -846,10 +634,17 @@ export default function TransportScreen() {
                           />
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
-                          <Text style={[styles.serviceSelectName, isSel && { color: '#F8FAFC' }]} numberOfLines={1}>
+                          <Text
+                            style={[
+                              styles.serviceSelectName,
+                              !isDark && { color: '#0F172A' },
+                              isSel && { color: isDark ? '#F8FAFC' : '#B45309' },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {svc.name}
                           </Text>
-                          <Text style={styles.serviceSelectPrice}>{priceFmt}</Text>
+                          <Text style={[styles.serviceSelectPrice, !isDark && { color: '#059669' }]}>{priceFmt}</Text>
                         </View>
                         {isSel && (
                           <Ionicons name="checkmark-circle" size={20} color="#F59E0B" />
@@ -860,88 +655,111 @@ export default function TransportScreen() {
                 </View>
 
                 {/* BƯỚC 3: ĐIỂM ĐÓN & ĐIỂM ĐẾN */}
-                <Text style={styles.formSectionLabel}>3. LỘ TRÌNH ĐÓN TRẢ (*)</Text>
+                <Text style={[styles.formSectionLabel, !isDark && { color: '#B45309' }]}>3. LỘ TRÌNH ĐÓN TRẢ (*)</Text>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Điểm đón khách:</Text>
+                  <Text style={[styles.inputLabel, !isDark && { color: '#475569' }]}>Điểm đón khách:</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' },
+                    ]}
                     value={pickupLocation}
                     onChangeText={setPickupLocation}
                     placeholder="VD: Sân bay quốc tế Đà Nẵng, Ga tàu..."
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                   />
                   <View style={styles.quickTagsRow}>
                     {['✈️ Sân bay Đà Nẵng', '🏨 Sảnh khách sạn', '🚆 Ga Đà Nẵng'].map((tag) => (
                       <TouchableOpacity
                         key={tag}
-                        style={styles.quickTag}
+                        style={[
+                          styles.quickTag,
+                          !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
+                        ]}
                         onPress={() => {
                           setPickupLocation(tag.replace(/^[^\s]+\s/, ''));
                           Haptics.selectionAsync();
                         }}
                       >
-                        <Text style={styles.quickTagText}>{tag}</Text>
+                        <Text style={[styles.quickTagText, !isDark && { color: '#475569' }]}>{tag}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
 
                 <View style={[styles.inputGroup, { marginTop: 10 }]}>
-                  <Text style={styles.inputLabel}>Điểm đến / Trả khách:</Text>
+                  <Text style={[styles.inputLabel, !isDark && { color: '#475569' }]}>Điểm đến / Trả khách:</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' },
+                    ]}
                     value={dropoffLocation}
                     onChangeText={setDropoffLocation}
                     placeholder="VD: Sảnh khách sạn, Hội An, Bà Nà..."
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                   />
                   <View style={styles.quickTagsRow}>
                     {['🏨 Sảnh khách sạn', '✈️ Sân bay Đà Nẵng', '🏮 Phố cổ Hội An', '🏰 Bà Nà Hills'].map((tag) => (
                       <TouchableOpacity
                         key={tag}
-                        style={styles.quickTag}
+                        style={[
+                          styles.quickTag,
+                          !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
+                        ]}
                         onPress={() => {
                           setDropoffLocation(tag.replace(/^[^\s]+\s/, ''));
                           Haptics.selectionAsync();
                         }}
                       >
-                        <Text style={styles.quickTagText}>{tag}</Text>
+                        <Text style={[styles.quickTagText, !isDark && { color: '#475569' }]}>{tag}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
 
                 {/* BƯỚC 4: THỜI GIAN HẸN & CHUYẾN BAY */}
-                <Text style={styles.formSectionLabel}>4. THỜI GIAN & CHUYẾN BAY</Text>
+                <Text style={[styles.formSectionLabel, !isDark && { color: '#B45309' }]}>4. THỜI GIAN & CHUYẾN BAY</Text>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.inputLabel}>Giờ hẹn đón:</Text>
+                    <Text style={[styles.inputLabel, !isDark && { color: '#475569' }]}>Giờ hẹn đón:</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[
+                        styles.textInput,
+                        !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' },
+                      ]}
                       value={pickupTime}
                       onChangeText={setPickupTime}
                       placeholder="VD: 14:30 hoặc 18:00"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                     />
                   </View>
                   <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.inputLabel}>Mã chuyến bay (nếu có):</Text>
+                    <Text style={[styles.inputLabel, !isDark && { color: '#475569' }]}>Mã chuyến bay (nếu có):</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[
+                        styles.textInput,
+                        !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' },
+                      ]}
                       value={flightCode}
                       onChangeText={setFlightCode}
                       placeholder="VD: VN128, VJ512"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                       autoCapitalize="characters"
                     />
                   </View>
                 </View>
 
-                {/* BƯỚC 5: GHI CHÚ BỔ SUNG */}
-                <Text style={styles.formSectionLabel}>5. SỐ LƯỢNG KHÁCH & GHI CHÚ</Text>
+                {/* BƯỚC 5: SỐ LƯỢNG KHÁCH & GHI CHÚ */}
+                <Text style={[styles.formSectionLabel, !isDark && { color: '#B45309' }]}>5. SỐ LƯỢNG KHÁCH & GHI CHÚ</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={[styles.inputLabel, { flex: 1, marginBottom: 0 }]}>Số lượng hành khách:</Text>
-                  <View style={styles.stepperBox}>
+                  <Text style={[styles.inputLabel, { flex: 1, marginBottom: 0 }, !isDark && { color: '#475569' }]}>Số lượng hành khách:</Text>
+                  <View
+                    style={[
+                      styles.stepperBox,
+                      !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' },
+                    ]}
+                  >
                     <TouchableOpacity
                       style={styles.stepperBtn}
                       onPress={() => {
@@ -949,9 +767,9 @@ export default function TransportScreen() {
                         Haptics.selectionAsync();
                       }}
                     >
-                      <Ionicons name="remove" size={16} color="#F8FAFC" />
+                      <Ionicons name="remove" size={16} color={isDark ? '#F8FAFC' : '#0F172A'} />
                     </TouchableOpacity>
-                    <Text style={styles.stepperValue}>{passengerCount} người</Text>
+                    <Text style={[styles.stepperValue, !isDark && { color: '#0F172A' }]}>{passengerCount} người</Text>
                     <TouchableOpacity
                       style={styles.stepperBtn}
                       onPress={() => {
@@ -959,19 +777,23 @@ export default function TransportScreen() {
                         Haptics.selectionAsync();
                       }}
                     >
-                      <Ionicons name="add" size={16} color="#F8FAFC" />
+                      <Ionicons name="add" size={16} color={isDark ? '#F8FAFC' : '#0F172A'} />
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Ghi chú thêm cho tài xế:</Text>
+                  <Text style={[styles.inputLabel, !isDark && { color: '#475569' }]}>Ghi chú thêm cho tài xế:</Text>
                   <TextInput
-                    style={[styles.textInput, { height: 60, textAlignVertical: 'top' }]}
+                    style={[
+                      styles.textInput,
+                      { height: 60, textAlignVertical: 'top' },
+                      !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' },
+                    ]}
                     value={note}
                     onChangeText={setNote}
                     placeholder="VD: Cần ghế em bé, 3 kiện vali lớn, khách VIP..."
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                     multiline
                   />
                 </View>

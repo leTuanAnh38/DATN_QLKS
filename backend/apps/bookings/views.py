@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.decorators import action
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from datetime import datetime, timedelta
 from django.db.models import Q, F
 from django.db import transaction
@@ -2699,6 +2700,22 @@ class BookingViewSet(viewsets.ModelViewSet):
 
                 auto_note = note or f"Lễ tân {staff_name} tiếp nhận tại quầy / qua điện thoại"
 
+                req_time_input = request.data.get('request_time')
+                is_scheduled_input = request.data.get('is_scheduled', False)
+                if isinstance(is_scheduled_input, str):
+                    is_scheduled_input = is_scheduled_input.lower() in ('true', '1')
+
+                req_target_time = now
+                if req_time_input:
+                    parsed_dt = parse_datetime(str(req_time_input))
+                    if parsed_dt:
+                        if timezone.is_naive(parsed_dt):
+                            req_target_time = timezone.make_aware(parsed_dt)
+                        else:
+                            req_target_time = parsed_dt
+                        if is_scheduled_input is False:
+                            is_scheduled_input = True
+
                 req = ServiceRequest.objects.create(
                     booking=booking,
                     service=service_item,
@@ -2706,7 +2723,8 @@ class BookingViewSet(viewsets.ModelViewSet):
                     total_price=total_price,
                     status=service_status,
                     note=auto_note,
-                    request_time=now
+                    request_time=req_target_time,
+                    is_scheduled=bool(is_scheduled_input)
                 )
 
                 if service_status == 'completed':
