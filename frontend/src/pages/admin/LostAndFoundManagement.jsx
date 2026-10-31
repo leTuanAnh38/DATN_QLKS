@@ -27,7 +27,7 @@ import {
     PackageSearch
 } from 'lucide-react';
 import roomService from '../../services/roomService';
-import ReportLostItemModal from '../../components/admin/modals/ReportLostItemModal';
+import ReportLostItemModal from '../../components/admin/modals/shared/ReportLostItemModal';
 import { useHasPermission } from '../../utils/permission';
 import { useAuth } from '../../store/authStore';
 

@@ -11,7 +11,7 @@ import {
     Moon,
     Briefcase
 } from 'lucide-react';
-import paymentService from '../../../services/paymentService';
+import paymentService from '../../../../services/paymentService';
 
 /**
  * Modal Mở Ca Làm Việc (Open Shift)

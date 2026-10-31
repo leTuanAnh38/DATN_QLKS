@@ -32,15 +32,15 @@ import {
 import api from '../../services/api';
 import { useAuth } from '../../store/authStore';
 import { paymentService } from '../../services/paymentService';
-import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
-import CollectCashModal from '../../components/admin/modals/CollectCashModal';
-import CreateCashOutModal from '../../components/admin/modals/CreateCashOutModal';
+import HotelInvoiceModal from '../../components/admin/modals/shared/HotelInvoiceModal';
+import CollectCashModal from '../../components/admin/modals/shift/CollectCashModal';
+import CreateCashOutModal from '../../components/admin/modals/shift/CreateCashOutModal';
 import Pagination from '../../components/common/Pagination';
 import ShiftStatusWidget from '../../components/admin/shifts/ShiftStatusWidget';
 import ShiftHistoryList from '../../components/admin/shifts/ShiftHistoryList';
-import OpenShiftModal from '../../components/admin/modals/OpenShiftModal';
-import CloseShiftModal from '../../components/admin/modals/CloseShiftModal';
-import ShiftZReportModal from '../../components/admin/modals/ShiftZReportModal';
+import OpenShiftModal from '../../components/admin/modals/shift/OpenShiftModal';
+import CloseShiftModal from '../../components/admin/modals/shift/CloseShiftModal';
+import ShiftZReportModal from '../../components/admin/modals/shift/ShiftZReportModal';
 
 /**
  * Dữ liệu mẫu dự phòng (Mock data) khi Backend chưa có nhiều giao dịch

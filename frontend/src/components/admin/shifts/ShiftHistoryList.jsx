@@ -17,8 +17,8 @@ import {
     Check
 } from 'lucide-react';
 import paymentService from '../../../services/paymentService';
-import ShiftZReportModal from '../modals/ShiftZReportModal';
-import CloseShiftModal from '../modals/CloseShiftModal';
+import ShiftZReportModal from '../modals/shift/ShiftZReportModal';
+import CloseShiftModal from '../modals/shift/CloseShiftModal';
 import { authStore } from '../../../store/authStore';
 
 export default function ShiftHistoryList({ onRefreshActiveShift }) {

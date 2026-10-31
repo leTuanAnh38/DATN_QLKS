@@ -16,9 +16,9 @@ import {
     Loader2,
     Receipt
 } from 'lucide-react';
-import api from '../../../services/api';
-import { paymentService } from '../../../services/paymentService';
-import { bookingService } from '../../../services/bookingService';
+import api from '../../../../services/api';
+import { paymentService } from '../../../../services/paymentService';
+import { bookingService } from '../../../../services/bookingService';
 
 /**
  * Format tiền tệ VNĐ: e.g. 1.500.000 đ

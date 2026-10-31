@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import bookingService from '../../../services/bookingService';
+import bookingService from '../../../../services/bookingService';
 
 export default function StayingGuestsModal({ isOpen, onClose }) {
     const [guests, setGuests] = useState([]);

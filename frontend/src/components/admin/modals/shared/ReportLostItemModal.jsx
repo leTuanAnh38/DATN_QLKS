@@ -8,7 +8,7 @@ import {
     Loader2,
     Check
 } from 'lucide-react';
-import roomService from '../../../services/roomService';
+import roomService from '../../../../services/roomService';
 
 export default function ReportLostItemModal({ isOpen, onClose, room, initialData = {}, onSuccess }) {
     const [itemName, setItemName] = useState('');

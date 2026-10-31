@@ -24,9 +24,9 @@ import {
     TrendingUp
 } from 'lucide-react';
 import { bookingService } from '../../../services/bookingService';
-import CreateGroupModal from '../modals/CreateGroupModal';
-import GroupDetailModal from '../modals/GroupDetailModal';
-import HotelInvoiceModal from '../modals/HotelInvoiceModal';
+import CreateGroupModal from '../modals/group/CreateGroupModal';
+import GroupDetailModal from '../modals/group/GroupDetailModal';
+import HotelInvoiceModal from '../modals/shared/HotelInvoiceModal';
 import Pagination from '../../common/Pagination';
 import { useHasPermission } from '../../../utils/permission';
 

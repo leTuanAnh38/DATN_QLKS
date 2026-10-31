@@ -14,8 +14,8 @@ import {
     ShieldCheck,
     ArrowDownCircle
 } from 'lucide-react';
-import api from '../../../services/api';
-import paymentService from '../../../services/paymentService';
+import api from '../../../../services/api';
+import paymentService from '../../../../services/paymentService';
 
 /**
  * Modal & Phiếu In Báo Cáo Kết Ca Bàn Giao Quỹ (Z-Report)

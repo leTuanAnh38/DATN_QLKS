@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import roomService from '../../../services/roomService';
+import roomService from '../../../../services/roomService';
 
 export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
     const [items, setItems] = useState([]);

@@ -23,7 +23,7 @@ import {
     Shield
 } from 'lucide-react';
 import adminUserService from '../../services/adminUserService';
-import RoleMatrixModal from '../../components/admin/modals/RoleMatrixModal';
+import RoleMatrixModal from '../../components/admin/modals/shared/RoleMatrixModal';
 import { DEFAULT_ROLE_MATRIX } from '../../data/roleMatrixData';
 import UserAvatar from '../../components/common/UserAvatar';
 import Pagination from '../../components/common/Pagination';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import roomService from '../../../services/roomService';
+import roomService from '../../../../services/roomService';
 
 export default function MaintenanceHistoryModal({
     isOpen,

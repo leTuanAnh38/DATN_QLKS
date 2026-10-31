@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRightLeft, AlertTriangle, CheckCircle2, X, DoorOpen, User, Building, ShieldAlert, Info, Sparkles, Wrench, RefreshCw } from 'lucide-react';
-import { bookingService } from '../../../services/bookingService';
+import { bookingService } from '../../../../services/bookingService';
 
 const QUICK_REASONS = [
     { label: 'Hỏng máy lạnh / điều hòa', icon: '❄️', type: 'ac', defaultStatus: 'maintenance' },

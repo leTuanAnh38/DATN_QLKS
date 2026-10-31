@@ -18,14 +18,14 @@ import {
     Lock,
     Loader2
 } from 'lucide-react';
-import api from '../../../services/api';
-import { useAuth } from '../../../store/authStore';
+import api from '../../../../services/api';
+import { useAuth } from '../../../../store/authStore';
 import {
     DEFAULT_ROLE_MATRIX,
     SYSTEM_MODULES,
     CRUD_ACTIONS,
     INITIAL_CRUD_MATRIX
-} from '../../../data/roleMatrixData';
+} from '../../../../data/roleMatrixData';
 
 /**
  * Helper render vector icon chuẩn thay cho emoji thô

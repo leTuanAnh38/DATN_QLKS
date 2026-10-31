@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DoorOpen, CheckCircle2, AlertTriangle, X, RefreshCw, Sparkles, Building, Layers, Trash2 } from 'lucide-react';
-import { bookingService } from '../../../services/bookingService';
+import { bookingService } from '../../../../services/bookingService';
 
 // Helper format tiền tệ VNĐ
 const formatCurrency = (amount) => {

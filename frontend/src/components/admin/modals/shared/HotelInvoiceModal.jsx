@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../../services/api';
+import api from '../../../../services/api';
 
 /**
  * Component Modal & Mẫu In Hóa Đơn Đặt Phòng (Check-in Invoice Voucher)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { bookingService } from '../../../services/bookingService';
-import api from '../../../services/api';
-import HotelInvoiceModal from './HotelInvoiceModal';
+import { bookingService } from '../../../../services/bookingService';
+import api from '../../../../services/api';
+import HotelInvoiceModal from '../shared/HotelInvoiceModal';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;

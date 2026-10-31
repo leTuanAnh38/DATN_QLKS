@@ -23,13 +23,13 @@ import {
 } from 'lucide-react';
 import roomService from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
-import CheckOutModal from '../../components/admin/modals/CheckOutModal';
-import HotelInvoiceModal from '../../components/admin/modals/HotelInvoiceModal';
-import MaintenanceModal from '../../components/admin/modals/MaintenanceModal';
-import MaintenanceHistoryModal from '../../components/admin/modals/MaintenanceHistoryModal';
-import ChangeRoomModal from '../../components/admin/modals/ChangeRoomModal';
-import MinibarModal from '../../components/admin/modals/MinibarModal';
-import ReportLostItemModal from '../../components/admin/modals/ReportLostItemModal';
+import CheckOutModal from '../../components/admin/modals/shared/CheckOutModal';
+import HotelInvoiceModal from '../../components/admin/modals/shared/HotelInvoiceModal';
+import MaintenanceModal from '../../components/admin/modals/room/MaintenanceModal';
+import MaintenanceHistoryModal from '../../components/admin/modals/room/MaintenanceHistoryModal';
+import ChangeRoomModal from '../../components/admin/modals/room/ChangeRoomModal';
+import MinibarModal from '../../components/admin/modals/room/MinibarModal';
+import ReportLostItemModal from '../../components/admin/modals/shared/ReportLostItemModal';
 import { useAuth } from '../../store/authStore';
 import { useHasPermission } from '../../utils/permission';
 
