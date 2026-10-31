@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+    Building2, X, XCircle, CheckCircle2, KeyRound, ClipboardList,
+    DoorOpen, Trash2, BellRing, Mail, Printer,
+    User, Phone, DollarSign, BedDouble, Lock, FileEdit, Save,
+    Users, Clock, AlertTriangle, Check, Plus, Star, CreditCard,
+    Calendar, Globe, Receipt, QrCode, Banknote, FileText, BarChart3,
+    Sparkles
+} from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 import api from '../../../../services/api';
 import HotelInvoiceModal from '../shared/HotelInvoiceModal';
@@ -142,6 +150,58 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         return `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${remainingSettlementBalance}&addInfo=${addInfo}&accountName=${encodeURIComponent(bankConfig.account_name)}`;
     }, [bankConfig, remainingSettlementBalance, groupData?.group_code]);
 
+    // State mở modal in hóa đơn đoàn
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+
+    // Dữ liệu mapping chuẩn cho HotelInvoiceModal
+    const invoiceBookingData = useMemo(() => {
+        if (!groupData) return null;
+        const partner = groupData.corporate_partner_details || groupData.corporate_partner;
+        const totalAmount = Number(groupData.total_amount) || 0;
+        const depositAmount = Number(groupData.deposit_amount) || 0;
+        const isAllInclusive = groupData.billing_type === 'ALL_INCLUSIVE';
+        const finalGrandTotal = isAllInclusive ? (totalAmount + unpaidIncidentalsTotal) : totalAmount;
+
+        return {
+            ...groupData,
+            id: groupData.id,
+            is_group_master: true,
+            billing_type: groupData.billing_type,
+            billing_type_display: groupData.billing_type_display,
+            is_all_inclusive: isAllInclusive,
+            booking_code: groupData.group_code,
+            group_code: groupData.group_code,
+            group_name: groupData.group_name,
+            guest_name: groupData.leader_name,
+            customer_name: groupData.leader_name,
+            guest_phone: groupData.leader_phone,
+            guest_email: groupData.leader_email,
+            customer_type: 'CORPORATE',
+            company_name: partner?.company_name || groupData.company_name || groupData.group_name,
+            company_tax_code: partner?.tax_code || groupData.company_tax_code || '—',
+            company_address: partner?.address || groupData.company_address || '—',
+            room_name: groupData.group_name,
+            room_number: `Đoàn ${groupData.total_rooms || subBookings.length} phòng`,
+            check_in_date: groupData.check_in_date,
+            check_out_date: groupData.check_out_date,
+            nights: groupData.nights || 1,
+            total_amount: finalGrandTotal,
+            room_amount: totalAmount,
+            incidentals_amount: unpaidIncidentalsTotal,
+            grand_total_amount: finalGrandTotal,
+            deposit_amount: depositAmount,
+            is_deposit_paid: Boolean(groupData.is_deposit_paid || isCompleted),
+            status: groupData.status,
+            is_paid: isCompleted,
+            sub_bookings: subBookings || [],
+            payment_method: 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)',
+            note: groupData.note || ''
+        };
+    }, [groupData, subBookings, isCompleted, unpaidIncidentalsTotal]);
+
+    const [isEditingRoomingList, setIsEditingRoomingList] = useState(false);
+    const [roomingForm, setRoomingForm] = useState({});
+
     const handleUpdateBillingType = async (newType) => {
         if (isCompleted || isCancelled) return;
         try {
@@ -180,11 +240,11 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         detail: '',
         confirmText: 'Xác nhận',
         confirmType: 'emerald', // 'emerald' | 'amber' | 'indigo' | 'rose'
-        icon: '🔑',
+        icon: 'key',
         onConfirm: null
     });
 
-    const showConfirm = ({ title, message, detail, confirmText, confirmType = 'emerald', icon = '🔑', onConfirm }) => {
+    const showConfirm = ({ title, message, detail, confirmText, confirmType = 'emerald', icon = 'key', onConfirm }) => {
         setConfirmDialog({
             isOpen: true,
             title,
@@ -200,8 +260,6 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
     const closeConfirm = () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false, onConfirm: null }));
     };
-
-    if (!isOpen || !groupData) return null;
 
     // Check-in All Rooms (Thực thi)
     const executeCheckInAll = async () => {
@@ -229,9 +287,9 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             title: 'Xác Nhận Check-in Toàn Đoàn',
             message: `Bạn có chắc chắn muốn Check-in đồng loạt cho toàn bộ các phòng thuộc đoàn #${groupData.group_code}?`,
             detail: `Đoàn khách: "${groupData.group_name}" • Đại diện: ${groupData.leader_name} (${groupData.leader_phone}). Tất cả ${subBookings.length} phòng sẽ tự động chuyển sang trạng thái "Đang ở (In-house)".`,
-            confirmText: '✓ Đồng Ý Check-in Toàn Đoàn',
+            confirmText: 'Đồng Ý Check-in Toàn Đoàn',
             confirmType: 'emerald',
-            icon: '🔑',
+            icon: 'key',
             onConfirm: executeCheckInAll
         });
     };
@@ -261,9 +319,9 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             title: 'Xác Nhận Check-in Phòng',
             message: `Xác nhận làm thủ tục nhận phòng cho phòng ${roomNumber || bookingId}?`,
             detail: `Phòng thuộc đoàn #${groupData.group_code} (${groupData.group_name}). Tiền phòng được bảo lãnh và quyết toán theo hợp đồng đoàn (Master-Billing).`,
-            confirmText: '✓ Nhận Phòng Ngay',
+            confirmText: 'Nhận Phòng Ngay',
             confirmType: 'emerald',
-            icon: '🔑',
+            icon: 'key',
             onConfirm: () => executeSingleRoomCheckIn(bookingId, roomNumber)
         });
     };
@@ -296,9 +354,9 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             detail: isAllInclusive
                 ? `Tiền phòng & mọi dịch vụ phát sinh của phòng này đã được CÔNG TY BẢO LÃNH CHI TRẢ TOÀN BỘ theo HĐ đoàn #${groupData.group_code}. Khách không cần thanh toán tại quầy lễ tân.`
                 : `Tiền phòng đã bảo lãnh theo HĐ đoàn #${groupData.group_code}. Khách lưu trú chỉ thanh toán dịch vụ phát sinh cá nhân (nếu có) tại quầy lễ tân. Sau khi trả phòng, phòng sẽ chuyển sang trạng thái "Cần dọn dẹp".`,
-            confirmText: '✓ Xác Nhận Trả Phòng',
+            confirmText: 'Xác Nhận Trả Phòng',
             confirmType: 'amber',
-            icon: '🚪',
+            icon: 'door',
             onConfirm: () => executeSingleRoomCheckOut(bookingId, roomNumber)
         });
     };
@@ -336,9 +394,9 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             title: 'Yêu Cầu Kiểm Phòng Toàn Đoàn',
             message: `Gửi yêu cầu bộ phận Buồng phòng tiến hành kiểm tra đón đầu Minibar & Hư hại cho tất cả ${inHouseSubBookings.length} phòng đang ở?`,
             detail: `Danh sách phòng: ${inHouseSubBookings.map(b => b.room_number ? `P.${b.room_number}` : `#${b.booking_code}`).join(', ')}. Thông báo ưu tiên cao sẽ được gửi ngay đến nhân viên buồng phòng để kiểm tra trước khi đoàn làm thủ tục Check-out.`,
-            confirmText: '🛎️ Gửi Yêu Cầu Kiểm Phòng',
+            confirmText: 'Gửi Yêu Cầu Kiểm Phòng',
             confirmType: 'indigo',
-            icon: '🛎️',
+            icon: 'bell',
             onConfirm: executeRequestGroupInspection
         });
     };
@@ -441,9 +499,9 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             title: 'Xác Nhận Hủy Toàn Bộ Đoàn',
             message: `Bạn có chắc chắn muốn HỦY TOÀN BỘ đơn đoàn #${groupData.group_code}?`,
             detail: `Đoàn "${groupData.group_name}" gồm ${subBookings.length} phòng. Tất cả các phòng con sẽ chuyển sang trạng thái "Đã Hủy", giải phóng phòng trống (available) và hủy các yêu cầu dịch vụ liên quan.`,
-            confirmText: '✕ Xác Nhận Hủy Cả Đoàn',
+            confirmText: 'Xác Nhận Hủy Cả Đoàn',
             confirmType: 'rose',
-            icon: '✕',
+            icon: 'trash',
             onConfirm: () => executeCancelGroup('Lễ tân / Quản lý hủy đơn đoàn')
         });
     };
@@ -473,64 +531,12 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             title: 'Xác Nhận Hủy Phòng Lẻ Khỏi Đoàn',
             message: `Bạn có chắc chắn muốn HỦY phòng ${roomNumber || bookingId} khỏi đoàn #${groupData.group_code}?`,
             detail: `Phòng này sẽ được hủy và giải phóng về trạng thái phòng trống. Các phòng còn lại của đoàn vẫn được giữ nguyên. Hệ thống sẽ tự động cập nhật lại tổng tiền hợp đồng của đoàn.`,
-            confirmText: '✕ Xác Nhận Hủy Phòng Này',
+            confirmText: 'Xác Nhận Hủy Phòng Này',
             confirmType: 'rose',
-            icon: '✕',
+            icon: 'trash',
             onConfirm: () => executeSingleRoomCancel(bookingId, roomNumber)
         });
     };
-
-    // State mở modal in hóa đơn đoàn
-    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-
-    // Dữ liệu mapping chuẩn cho HotelInvoiceModal
-    const invoiceBookingData = useMemo(() => {
-        if (!groupData) return null;
-        const partner = groupData.corporate_partner_details || groupData.corporate_partner;
-        const totalAmount = Number(groupData.total_amount) || 0;
-        const depositAmount = Number(groupData.deposit_amount) || 0;
-        const isAllInclusive = groupData.billing_type === 'ALL_INCLUSIVE';
-        const finalGrandTotal = isAllInclusive ? (totalAmount + unpaidIncidentalsTotal) : totalAmount;
-
-        return {
-            ...groupData,
-            id: groupData.id,
-            is_group_master: true,
-            billing_type: groupData.billing_type,
-            billing_type_display: groupData.billing_type_display,
-            is_all_inclusive: isAllInclusive,
-            booking_code: groupData.group_code,
-            group_code: groupData.group_code,
-            group_name: groupData.group_name,
-            guest_name: groupData.leader_name,
-            customer_name: groupData.leader_name,
-            guest_phone: groupData.leader_phone,
-            guest_email: groupData.leader_email,
-            customer_type: 'CORPORATE',
-            company_name: partner?.company_name || groupData.company_name || groupData.group_name,
-            company_tax_code: partner?.tax_code || groupData.company_tax_code || '—',
-            company_address: partner?.address || groupData.company_address || '—',
-            room_name: groupData.group_name,
-            room_number: `Đoàn ${groupData.total_rooms || subBookings.length} phòng`,
-            check_in_date: groupData.check_in_date,
-            check_out_date: groupData.check_out_date,
-            nights: groupData.nights || 1,
-            total_amount: finalGrandTotal,
-            room_amount: totalAmount,
-            incidentals_amount: unpaidIncidentalsTotal,
-            grand_total_amount: finalGrandTotal,
-            deposit_amount: depositAmount,
-            is_deposit_paid: Boolean(groupData.is_deposit_paid || isCompleted),
-            status: groupData.status,
-            is_paid: isCompleted,
-            sub_bookings: subBookings || [],
-            payment_method: 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)',
-            note: groupData.note || ''
-        };
-    }, [groupData, subBookings, isCompleted, unpaidIncidentalsTotal]);
-
-    const [isEditingRoomingList, setIsEditingRoomingList] = useState(false);
-    const [roomingForm, setRoomingForm] = useState({});
 
     const handleStartEditRooming = () => {
         if (isCompleted) {
@@ -685,27 +691,29 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         }
     };
 
+    if (!isOpen || !groupData) return null;
+
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[94vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 
-                <div>
-                    {/* MODAL HEADER */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-200 mb-5 gap-3">
+                {/* 1. FIXED HEADER (NON-SCROLLING) */}
+                <div className="px-6 py-4 border-b border-slate-200 shrink-0 bg-white">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
-                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-indigo-500/20 shrink-0 mt-0.5">
-                                🏢
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0 mt-0.5">
+                                <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <div className="min-w-0 flex-1">
                                 {/* Hàng 1: Tiêu đề + Mã đoàn + Trạng thái */}
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <h2 className="font-serif text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+                                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight tracking-tight">
                                         {groupData.group_name}
                                     </h2>
                                     <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 shrink-0">
                                         #{groupData.group_code}
                                     </span>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide inline-flex items-center gap-1 shrink-0 ${
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide inline-flex items-center gap-1.5 shrink-0 ${
                                         isCancelled
                                             ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                             : isCompleted
@@ -714,16 +722,17 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                             ? 'bg-emerald-100 text-emerald-800'
                                             : 'bg-blue-100 text-blue-800'
                                     }`}>
-                                        <span>{isCancelled ? '✕' : isCompleted ? '✓' : groupData.status === 'checked_in' ? '🔑' : '📋'}</span>
+                                        <span className="shrink-0">{isCancelled ? <XCircle className="w-3.5 h-3.5" /> : isCompleted ? <CheckCircle2 className="w-3.5 h-3.5" /> : groupData.status === 'checked_in' ? <KeyRound className="w-3.5 h-3.5" /> : <ClipboardList className="w-3.5 h-3.5" />}</span>
                                         <span>{isCancelled ? 'ĐÃ HỦY TOÀN ĐOÀN' : isCompleted ? 'ĐÃ HOÀN THÀNH (ĐÃ QUYẾT TOÁN)' : (groupData.status_display || groupData.status)}</span>
                                     </span>
                                 </div>
 
-                                {/* Hàng 2: Đối tác Doanh nghiệp & Chính sách thanh toán (Sub-line tinh gọn) */}
+                                {/* Hàng 2: Đối tác Doanh nghiệp & Chính sách thanh toán */}
                                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1.5">
                                     {groupData.corporate_partner_details && (
-                                        <span className="inline-flex items-center gap-1 font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 text-[11px]">
-                                            🏢 {groupData.corporate_partner_details.company_name} (-{groupData.corporate_partner_details.discount_percent}%)
+                                        <span className="inline-flex items-center gap-1.5 font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 text-[11px]">
+                                            <Building2 className="w-3 h-3 text-purple-600" />
+                                            <span>{groupData.corporate_partner_details.company_name} (-{groupData.corporate_partner_details.discount_percent}%)</span>
                                         </span>
                                     )}
                                     <button
@@ -731,13 +740,23 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                         disabled={isCompleted || isCancelled || isActionLoading}
                                         onClick={() => handleUpdateBillingType(groupData.billing_type === 'ALL_INCLUSIVE' ? 'ROOM_ONLY' : 'ALL_INCLUSIVE')}
                                         title="Bấm để chuyển đổi chính sách chi trả giữa Công ty chi trả toàn bộ và Khách tự trả phát sinh"
-                                        className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border transition inline-flex items-center gap-1 cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
+                                        className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
                                             groupData.billing_type === 'ALL_INCLUSIVE'
                                                 ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 shadow-2xs'
                                                 : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 shadow-2xs'
                                         }`}
                                     >
-                                        <span>{groupData.billing_type === 'ALL_INCLUSIVE' ? '🏢 Công ty chi trả toàn bộ' : '👤 Khách tự trả phát sinh'}</span>
+                                        {groupData.billing_type === 'ALL_INCLUSIVE' ? (
+                                            <>
+                                                <Building2 className="w-3 h-3 text-purple-600" />
+                                                <span>Công ty chi trả toàn bộ</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <User className="w-3 h-3 text-slate-600" />
+                                                <span>Khách tự trả phát sinh</span>
+                                            </>
+                                        )}
                                         {!isCompleted && !isCancelled && (
                                             <span className="text-[10px] text-slate-400 font-normal underline ml-0.5">đổi</span>
                                         )}
@@ -746,7 +765,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             </div>
                         </div>
 
-                        {/* Cụm Action Buttons: Nằm ngang 1 hàng duy nhất, không bị gãy */}
+                        {/* Cụm Action Buttons: Nằm ngang 1 hàng duy nhất */}
                         <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
                             <button
                                 type="button"
@@ -755,7 +774,8 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 whitespace-nowrap shadow-2xs"
                                 title="Gửi thư xác nhận đặt đoàn qua Email Trưởng đoàn / Công ty"
                             >
-                                <span>✉️ Gửi Email Đoàn</span>
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>Gửi Email Đoàn</span>
                             </button>
                             <button
                                 type="button"
@@ -763,30 +783,38 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shadow-2xs"
                                 title="Xem và in hóa đơn thanh toán cho toàn đoàn"
                             >
-                                <span>🖨️ In Hóa Đơn</span>
+                                <Printer className="w-3.5 h-3.5" />
+                                <span>In Hóa Đơn</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={onClose}
                                 className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-base cursor-pointer shrink-0"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
+                </div>
 
+                {/* 2. SCROLLABLE BODY */}
+                <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
                     {/* ACTION MESSAGE */}
                     {actionMessage && (
-                        <div className={`mb-5 p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 ${
+                        <div className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 ${
                             actionMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
                         }`}>
-                            <span>{actionMessage.type === 'success' ? '✓' : '⚠️'}</span>
+                            {actionMessage.type === 'success' ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            ) : (
+                                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                            )}
                             <span>{actionMessage.text}</span>
                         </div>
                     )}
 
                     {/* BẢNG TỔNG QUAN HỢP ĐỒNG & THÔNG TIN TRƯỞNG ĐOÀN */}
-                    <div className="bg-slate-50/90 rounded-2xl border border-slate-200 p-3.5 sm:p-4 mb-6">
+                    <div className="bg-slate-50/90 rounded-2xl border border-slate-200 p-3.5 sm:p-4">
                         {/* 4 Thẻ KPI Thông số chính */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                             <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
@@ -814,7 +842,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     <span className="text-xs font-bold text-slate-900">
                                         {formatCurrency(isCompleted ? groupData.total_amount : groupData.deposit_amount)}
                                     </span>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-1 ${
                                         isCompleted
                                             ? 'bg-purple-100 text-purple-800 border border-purple-200'
                                             : isFullPaid
@@ -823,7 +851,17 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                             ? 'bg-emerald-100 text-emerald-800'
                                             : 'bg-amber-100 text-amber-800'
                                     }`}>
-                                        {isCompleted ? '✓ Đã quyết toán 100%' : (isFullPaid ? '✓ Đã thanh toán 100%' : (groupData.is_deposit_paid ? 'Đã cọc' : 'Chờ cọc'))}
+                                        {isCompleted ? (
+                                            <>
+                                                <CheckCircle2 className="w-3 h-3 text-purple-700 inline" />
+                                                <span>Đã quyết toán 100%</span>
+                                            </>
+                                        ) : isFullPaid ? (
+                                            <>
+                                                <CheckCircle2 className="w-3 h-3 text-emerald-700 inline" />
+                                                <span>Đã thanh toán 100%</span>
+                                            </>
+                                        ) : (groupData.is_deposit_paid ? 'Đã cọc' : 'Chờ cọc')}
                                     </span>
                                 </div>
                             </div>
@@ -833,13 +871,21 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                         <div className="mt-3 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
-                                    👤
+                                    <User className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
                                     <span className="text-slate-400 text-[11px] font-semibold">Trưởng đoàn:</span>
                                     <strong className="text-slate-900 font-bold">{groupData.leader_name}</strong>
-                                    <span className="text-slate-600 flex items-center gap-1">📞 {groupData.leader_phone}</span>
-                                    {groupData.leader_email && <span className="text-slate-600 flex items-center gap-1">✉️ {groupData.leader_email}</span>}
+                                    <span className="text-slate-600 flex items-center gap-1">
+                                        <Phone className="w-3 h-3 text-slate-400" />
+                                        <span>{groupData.leader_phone}</span>
+                                    </span>
+                                    {groupData.leader_email && (
+                                        <span className="text-slate-600 flex items-center gap-1">
+                                            <Mail className="w-3 h-3 text-slate-400" />
+                                            <span>{groupData.leader_email}</span>
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -848,20 +894,21 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     type="button"
                                     disabled={isActionLoading}
                                     onClick={handleConfirmDeposit}
-                                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95"
+                                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95 flex items-center gap-1"
                                 >
-                                    💰 Xác nhận đã nhận tiền cọc
+                                    <DollarSign className="w-3.5 h-3.5" />
+                                    <span>Xác nhận đã nhận tiền cọc</span>
                                 </button>
                             )}
                         </div>
                     </div>
 
                     {/* DANH SÁCH CÁC PHÒNG CON (SUB-BOOKINGS) & ROOMING LIST */}
-                    <div className="space-y-3 mb-6">
+                    <div className="space-y-3">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                    <span>🛏️</span>
+                                    <BedDouble className="w-4 h-4 text-indigo-600" />
                                     <span>Danh Sách Phân Phòng & Khai Báo Lưu Trú ({subBookings.length} phòng)</span>
                                 </h3>
                                 <p className="text-[11px] text-slate-500 mt-0.5">
@@ -871,7 +918,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
                             {isCompleted ? (
                                 <span className="px-3.5 py-2 rounded-xl font-bold text-xs bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5 shadow-2xs self-start sm:self-auto select-none">
-                                    <span>🔒</span>
+                                    <Lock className="w-3.5 h-3.5 text-slate-500" />
                                     <span>Hồ sơ lưu trú đã khóa (Đoàn đã hoàn tất)</span>
                                 </span>
                             ) : !isEditingRoomingList ? (
@@ -880,7 +927,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     onClick={handleStartEditRooming}
                                     className="px-3.5 py-2 rounded-xl font-bold text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer shadow-2xs self-start sm:self-auto"
                                 >
-                                    <span>📝</span>
+                                    <FileEdit className="w-3.5 h-3.5" />
                                     <span>Cập nhật Rooming List & Khai báo CCCD</span>
                                 </button>
                             ) : (
@@ -891,7 +938,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                         onClick={handleSaveRoomingList}
                                         className="px-4 py-2 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                     >
-                                        <span>💾</span>
+                                        <Save className="w-3.5 h-3.5" />
                                         <span>Lưu Danh Sách Toàn Đoàn</span>
                                     </button>
                                     <button
@@ -948,7 +995,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                         ? 'bg-amber-50 text-amber-800 border-amber-200'
                                                         : 'bg-slate-100 text-slate-700 border-slate-200'
                                                 }`}>
-                                                    <span>👥</span>
+                                                    <Users className="w-3 h-3 text-slate-500" />
                                                     <span>{guestCount}/{roomCap} người</span>
                                                     {isFull && <span className="text-[9px] text-amber-600 font-semibold">(Đã tối đa)</span>}
                                                 </span>
@@ -962,7 +1009,12 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                         ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                                         : 'bg-blue-100 text-blue-800'
                                                 }`}>
-                                                    {b.status === 'cancelled' ? '✕ Đã Hủy' : (b.status_display || b.status)}
+                                                    {b.status === 'cancelled' ? (
+                                                        <span className="inline-flex items-center gap-1">
+                                                            <XCircle className="w-3 h-3 text-rose-600 inline" />
+                                                            <span>Đã Hủy</span>
+                                                        </span>
+                                                    ) : (b.status_display || b.status)}
                                                 </span>
 
                                                 {/* Badge trạng thái kiểm phòng Minibar & Hư hại */}
@@ -972,7 +1024,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                             className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 shadow-2xs"
                                                             title={b.latest_inspection.has_damage ? `Đã kiểm tra. Phát hiện hư hại: ${b.latest_inspection.damage_description}` : 'Đã kiểm tra Minibar & Hư hại'}
                                                         >
-                                                            <span>✓</span>
+                                                            <Check className="w-3 h-3 text-emerald-600" />
                                                             <span>Đã kiểm phòng</span>
                                                             {Number(b.latest_inspection.total_amount || 0) > 0 && (
                                                                 <span className="font-mono text-emerald-800 font-extrabold">({formatCurrency(b.latest_inspection.total_amount)})</span>
@@ -983,7 +1035,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                             className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 animate-pulse shadow-2xs"
                                                             title="Đã gửi yêu cầu, đang chờ Buồng phòng kiểm tra"
                                                         >
-                                                            <span>⏳</span>
+                                                            <Clock className="w-3 h-3 text-amber-600" />
                                                             <span>Đang kiểm tra...</span>
                                                         </span>
                                                     ) : (
@@ -991,7 +1043,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                             className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"
                                                             title="Phòng chưa được kiểm tra Minibar & Hư hại"
                                                         >
-                                                            <span>⚠️</span>
+                                                            <AlertTriangle className="w-3 h-3 text-slate-400" />
                                                             <span>Chưa kiểm phòng</span>
                                                         </span>
                                                     )
@@ -1008,7 +1060,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                                 title="Check-in cho phòng lẻ này (Tiền phòng bảo lãnh theo HĐ đoàn)"
                                                                 className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition flex items-center gap-1 cursor-pointer active:scale-95"
                                                             >
-                                                                <span>🔑</span>
+                                                                <KeyRound className="w-3 h-3" />
                                                                 <span>Check-in</span>
                                                             </button>
                                                         )}
@@ -1020,7 +1072,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                                 title="Hủy riêng phòng lẻ này khỏi đoàn"
                                                                 className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition flex items-center gap-1 cursor-pointer active:scale-95"
                                                             >
-                                                                <span>✕</span>
+                                                                <X className="w-3 h-3" />
                                                                 <span>Hủy phòng</span>
                                                             </button>
                                                         )}
@@ -1032,13 +1084,13 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                                 title="Khách về sớm: Trả phòng lẻ (Tiền phòng bảo lãnh theo HĐ đoàn)"
                                                                 className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition flex items-center gap-1 cursor-pointer active:scale-95"
                                                             >
-                                                                <span>🚪</span>
+                                                                <DoorOpen className="w-3 h-3" />
                                                                 <span>Trả phòng lẻ</span>
                                                             </button>
                                                         )}
                                                         {(b.status === 'completed' || b.status === 'checked_out') && (
                                                             <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1">
-                                                                <span>🧹</span>
+                                                                <Sparkles className="w-3 h-3 text-slate-400" />
                                                                 <span>Đã dọn dẹp</span>
                                                             </span>
                                                         )}
@@ -1057,7 +1109,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                                 : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 cursor-pointer active:scale-95'
                                                         }`}
                                                     >
-                                                        <span>➕</span>
+                                                        <Plus className="w-3 h-3" />
                                                         <span>Thêm người ở cùng</span>
                                                     </button>
                                                 )}
@@ -1081,7 +1133,11 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                         >
                                                             <div className="flex items-center justify-between mb-2">
                                                                 <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
-                                                                    <span>{isPrimary ? '⭐' : '👤'}</span>
+                                                                    {isPrimary ? (
+                                                                        <Star className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                                                    ) : (
+                                                                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                                    )}
                                                                     <span>{isPrimary ? 'Khách đại diện phòng' : `Người ở cùng phòng #${gIdx}`}</span>
                                                                 </span>
 
@@ -1091,7 +1147,8 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                                         onClick={() => handleRemoveGuestFromRoom(b.id, gIdx)}
                                                                         className="text-rose-600 hover:text-rose-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer p-1 hover:bg-rose-50 rounded-lg transition"
                                                                     >
-                                                                        <span>🗑️ Xóa</span>
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                        <span>Xóa</span>
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -1174,28 +1231,43 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                         className="p-2.5 bg-slate-50/80 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs border border-slate-100"
                                                     >
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-sm">{isPrimary ? '⭐' : '👤'}</span>
+                                                            {isPrimary ? (
+                                                                <Star className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                                            ) : (
+                                                                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                            )}
                                                             <div>
                                                                 <span className="font-bold text-slate-900">{guest.full_name || 'Chưa cập nhật tên'}</span>
                                                                 {isPrimary && (
-                                                                    <span className="ml-2 text-[10px] font-bold px-1.5 py-0.2 bg-indigo-100 text-indigo-700 rounded">
+                                                                    <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded">
                                                                         Đại diện phòng
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center gap-3 text-slate-600 text-[11px]">
+                                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-slate-600 text-[11px]">
                                                             {guest.id_number ? (
-                                                                <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 font-bold text-slate-800">
-                                                                    🪪 {guest.id_type || 'CCCD'}: {guest.id_number}
+                                                                <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 font-bold text-slate-800 inline-flex items-center gap-1">
+                                                                    <CreditCard className="w-3 h-3 text-slate-500" />
+                                                                    <span>{guest.id_type || 'CCCD'}: {guest.id_number}</span>
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-amber-600 italic">Chưa có CCCD</span>
                                                             )}
                                                             {guest.gender && <span>• {guest.gender}</span>}
-                                                            {guest.date_of_birth && <span>• 🎂 {guest.date_of_birth}</span>}
-                                                            {guest.nationality && <span>• 🌐 {guest.nationality}</span>}
+                                                            {guest.date_of_birth && (
+                                                                <span className="inline-flex items-center gap-1">
+                                                                    • <Calendar className="w-3 h-3 text-slate-400" />
+                                                                    <span>{guest.date_of_birth}</span>
+                                                                </span>
+                                                            )}
+                                                            {guest.nationality && (
+                                                                <span className="inline-flex items-center gap-1">
+                                                                    • <Globe className="w-3 h-3 text-slate-400" />
+                                                                    <span>{guest.nationality}</span>
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -1208,19 +1280,19 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                     </div>
                 </div>
 
-                {/* MODAL FOOTER & BULK ACTIONS */}
-                <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                {/* 3. MODAL FOOTER & BULK ACTIONS (STICKY BOTTOM) */}
+                <div className="px-6 py-3.5 border-t border-slate-200 bg-slate-50/90 backdrop-blur flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2">
                         {isCompleted && (
                             <span className="px-3.5 py-2 bg-purple-50 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 text-center">
-                                <span>✓</span>
+                                <CheckCircle2 className="w-4 h-4 text-purple-600" />
                                 <span>Hợp đồng đoàn đã hoàn tất Check-out & Quyết toán</span>
                             </span>
                         )}
 
                         {isCancelled && (
                             <span className="px-3.5 py-2 bg-rose-50 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 text-center">
-                                <span>✕</span>
+                                <XCircle className="w-4 h-4 text-rose-600" />
                                 <span>Đơn đặt đoàn này ĐÃ BỊ HỦY</span>
                             </span>
                         )}
@@ -1232,7 +1304,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 onClick={handleCheckInAll}
                                 className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 text-center"
                             >
-                                <span>🔑</span>
+                                <KeyRound className="w-4 h-4" />
                                 <span>Check-in Toàn Đoàn (1 chạm)</span>
                             </button>
                         )}
@@ -1245,7 +1317,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 className="w-full sm:w-auto px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 text-center shadow-xs"
                                 title="Gửi thông báo yêu cầu Buồng phòng kiểm tra đón đầu Minibar & Hư hại toàn bộ các phòng trong đoàn trước khi Check-out"
                             >
-                                
+                                <BellRing className="w-4 h-4" />
                                 <span>Kiểm Phòng Đoàn ({inHouseSubBookings.length} phòng)</span>
                             </button>
                         )}
@@ -1257,7 +1329,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 onClick={() => setIsSettlementModalOpen(true)}
                                 className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 text-center"
                             >
-                                <span>🧾</span>
+                                <Receipt className="w-4 h-4" />
                                 <span>Check-out Toàn Đoàn & Quyết Toán</span>
                             </button>
                         )}
@@ -1270,7 +1342,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 className="w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 text-center"
                                 title="Hủy toàn bộ đơn đoàn và đồng loạt hủy tất cả phòng con (chỉ áp dụng trước khi nhận phòng)"
                             >
-                                <span>✕</span>
+                                <X className="w-4 h-4" />
                                 <span>Hủy Toàn Bộ Đoàn</span>
                             </button>
                         )}
@@ -1305,7 +1377,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                             Quyết Toán Check-out Đoàn
                                         </span>
                                     </div>
-                                    <h3 className="font-serif text-xl font-bold text-slate-900 mt-1">
+                                    <h3 className="text-xl font-bold text-slate-900 mt-1 tracking-tight">
                                         Quyết Toán Hợp Đồng: {groupData.group_name}
                                     </h3>
                                 </div>
@@ -1314,7 +1386,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     onClick={() => setIsSettlementModalOpen(false)}
                                     className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-sm cursor-pointer"
                                 >
-                                    ✕
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
 
@@ -1323,7 +1395,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 inspectionStats.uninspectedRooms.length > 0 ? (
                                     <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-xs space-y-2.5">
                                         <div className="flex items-start gap-2.5 text-amber-900">
-                                            <span className="text-lg leading-none mt-0.5">⚠️</span>
+                                            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between">
                                                     <strong className="font-extrabold text-amber-950">
@@ -1348,14 +1420,14 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                 onClick={handleRequestGroupInspection}
                                                 className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl font-bold text-[11px] flex items-center gap-1.5 cursor-pointer transition shadow-2xs active:scale-95"
                                             >
-                                                <span>🛎️</span>
+                                                <BellRing className="w-3.5 h-3.5" />
                                                 <span>Gửi yêu cầu kiểm tra ngay</span>
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-bold shadow-2xs">
-                                        <span className="text-sm">✓</span>
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                                         <span>Tất cả {inspectionStats.total} phòng lưu trú trong đoàn đã hoàn tất kiểm tra Minibar & Hư hại an toàn. Đủ điều kiện Check-out toàn đoàn!</span>
                                     </div>
                                 )
@@ -1364,7 +1436,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                             {/* BẢNG KÊ QUYẾT TOÁN TÀI CHÍNH (FOLIO STATEMENT) */}
                             <div className="bg-gradient-to-br from-slate-50 to-indigo-50/40 rounded-2xl border border-indigo-100/70 p-4 space-y-3">
                                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                                    <span>📊</span>
+                                    <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
                                     <span>Bảng kê tổng hợp công nợ hợp đồng đoàn</span>
                                 </h4>
 
@@ -1376,7 +1448,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     {groupData.billing_type === 'ALL_INCLUSIVE' && (
                                         <div className="flex justify-between items-center text-purple-700 bg-purple-50/80 px-2.5 py-1.5 rounded-xl border border-purple-200/60 font-semibold">
                                             <span className="flex items-center gap-1">
-                                                <span>➕</span>
+                                                <Plus className="w-3.5 h-3.5 text-purple-600" />
                                                 <span>Dịch vụ phát sinh tại phòng (Công ty chi trả toàn bộ):</span>
                                             </span>
                                             <span className="font-mono font-bold">+{formatCurrency(unpaidIncidentalsTotal)}</span>
@@ -1384,7 +1456,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     )}
                                     <div className="flex justify-between items-center text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl border border-emerald-200/60 font-semibold">
                                         <span className="flex items-center gap-1">
-                                            <span>✓</span>
+                                            <Check className="w-3.5 h-3.5 text-emerald-600" />
                                             <span>Đã đặt cọc trước (chuyển khoản):</span>
                                         </span>
                                         <span className="font-mono font-bold">-{formatCurrency(depositAmount)}</span>
@@ -1420,7 +1492,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                     : 'border-slate-200 hover:border-slate-300 bg-white'
                                             }`}
                                         >
-                                            <span className="text-xl">⚡</span>
+                                            <QrCode className="w-5 h-5 text-indigo-600 shrink-0" />
                                             <div>
                                                 <div className="text-xs font-bold text-slate-900">Chuyển khoản VietQR</div>
                                                 <div className="text-[10px] text-slate-500">Mã QR động tự điền số tiền</div>
@@ -1436,7 +1508,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                     : 'border-slate-200 hover:border-slate-300 bg-white'
                                             }`}
                                         >
-                                            <span className="text-xl">💵</span>
+                                            <Banknote className="w-5 h-5 text-slate-600 shrink-0" />
                                             <div>
                                                 <div className="text-xs font-bold text-slate-900">Tiền mặt tại Quầy</div>
                                                 <div className="text-[10px] text-slate-500">Thu tiền mặt trực tiếp từ đại diện</div>
@@ -1460,10 +1532,10 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                                     {formatCurrency(remainingSettlementBalance)}
                                                 </div>
                                                 <div className="text-slate-700 text-[11px] space-y-1">
-                                                    <div>🏦 Ngân hàng: <strong className="text-slate-900">MBBank ({bankConfig.bank_bin})</strong></div>
-                                                    <div>💳 STK: <strong className="font-mono font-bold text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">{bankConfig.account_no}</strong></div>
-                                                    <div>👤 Chủ TK: <strong className="text-slate-900">{bankConfig.account_name}</strong></div>
-                                                    <div>📝 Nội dung: <strong className="font-mono text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Thanh toan doan {groupData.group_code}</strong></div>
+                                                    <div><Building2 className="w-3 h-3 text-slate-500 inline mr-1" /> Ngân hàng: <strong className="text-slate-900">MBBank ({bankConfig.bank_bin})</strong></div>
+                                                    <div><CreditCard className="w-3 h-3 text-indigo-600 inline mr-1" /> STK: <strong className="font-mono font-bold text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">{bankConfig.account_no}</strong></div>
+                                                    <div><User className="w-3 h-3 text-slate-500 inline mr-1" /> Chủ TK: <strong className="text-slate-900">{bankConfig.account_name}</strong></div>
+                                                    <div><FileText className="w-3 h-3 text-amber-600 inline mr-1" /> Nội dung: <strong className="font-mono text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Thanh toan doan {groupData.group_code}</strong></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1480,8 +1552,9 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                         onChange={(e) => setIsCompanyInvoice(e.target.checked)}
                                         className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                                     />
-                                    <span className="text-xs font-bold text-slate-800">
-                                        🏢 Xuất Hóa đơn điện tử GTGT (VAT) cho Doanh nghiệp / Công ty
+                                    <span className="text-xs font-bold text-slate-800 inline-flex items-center gap-1.5">
+                                        <Building2 className="w-3.5 h-3.5 text-indigo-600 inline" />
+                                        <span>Xuất Hóa đơn điện tử GTGT (VAT) cho Doanh nghiệp / Công ty</span>
                                     </span>
                                 </label>
 
@@ -1546,7 +1619,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     onClick={handleConfirmGroupSettlement}
                                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-black text-xs shadow-lg shadow-orange-500/20 transition cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 text-center"
                                 >
-                                    <span>🧾</span>
+                                    <Receipt className="w-4 h-4" />
                                     <span>
                                         Xác nhận Thu {formatCurrency(remainingSettlementBalance)} & Hoàn Tất Check-out Toàn Đoàn
                                     </span>
@@ -1573,18 +1646,28 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                         <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-200 space-y-4">
                             {/* ICON */}
                             <div
-                                className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-xs border"
+                                className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center shadow-xs border"
                                 style={{
-                                    backgroundColor: confirmDialog.confirmType === 'emerald' ? '#ecfdf5' : confirmDialog.confirmType === 'amber' ? '#fffbeb' : '#eef2ff',
-                                    borderColor: confirmDialog.confirmType === 'emerald' ? '#a7f3d0' : confirmDialog.confirmType === 'amber' ? '#fde68a' : '#c7d2fe',
+                                    backgroundColor: confirmDialog.confirmType === 'emerald' ? '#ecfdf5' : confirmDialog.confirmType === 'amber' ? '#fffbeb' : confirmDialog.confirmType === 'rose' ? '#fff1f2' : '#eef2ff',
+                                    borderColor: confirmDialog.confirmType === 'emerald' ? '#a7f3d0' : confirmDialog.confirmType === 'amber' ? '#fde68a' : confirmDialog.confirmType === 'rose' ? '#fecdd3' : '#c7d2fe',
                                 }}
                             >
-                                <span>{confirmDialog.icon || '🔔'}</span>
+                                {confirmDialog.icon === 'key' ? (
+                                    <KeyRound className="w-8 h-8 text-emerald-600" />
+                                ) : confirmDialog.icon === 'door' ? (
+                                    <DoorOpen className="w-8 h-8 text-amber-600" />
+                                ) : confirmDialog.icon === 'bell' ? (
+                                    <BellRing className="w-8 h-8 text-indigo-600" />
+                                ) : confirmDialog.icon === 'trash' ? (
+                                    <Trash2 className="w-8 h-8 text-rose-600" />
+                                ) : (
+                                    <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                                )}
                             </div>
 
                             {/* TITLE & CONTENT */}
                             <div className="space-y-2">
-                                <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900">
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
                                     {confirmDialog.title}
                                 </h3>
                                 <p className="text-sm font-semibold text-slate-800 leading-snug">
@@ -1620,6 +1703,8 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                             ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-600/20'
                                             : confirmDialog.confirmType === 'amber'
                                             ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-600/20'
+                                            : confirmDialog.confirmType === 'rose'
+                                            ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 shadow-rose-600/20'
                                             : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-600/20'
                                     }`}
                                 >

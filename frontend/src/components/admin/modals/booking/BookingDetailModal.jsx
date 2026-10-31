@@ -1,4 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { 
+    X, 
+    User, 
+    CreditCard, 
+    Building2, 
+    KeyRound, 
+    Calendar, 
+    Sparkles, 
+    AlertTriangle, 
+    BellRing, 
+    Check, 
+    CheckCircle2, 
+    Trash2, 
+    MessageSquare, 
+    FileEdit, 
+    DoorOpen, 
+    UserX, 
+    Receipt, 
+    Plus 
+} from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 import { hotelService } from '../../../../services/hotelService';
 import ExtendStayModal from './ExtendStayModal';
@@ -221,23 +241,26 @@ export default function BookingDetailModal({
 
     if (!isOpen || !booking) return null;
 
+    const hasActionButtons = (canManageBookings && ['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(booking.status)) ||
+        (canCheckOut && booking.status === 'checked_in');
+
     return (
         <>
-            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-                <div className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full p-6 sm:p-8 shadow-2xl text-left max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
-                    {/* Header Modal */}
-                    <div className="flex items-start justify-between pb-4 border-b border-slate-100 mb-5">
+            <div className="fixed inset-0 z-50 bg-slate-950/70 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+                <div className="relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 max-w-2xl w-full shadow-2xl text-left max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                    {/* Header Modal - Cố định ở trên */}
+                    <div className="p-5 sm:p-6 pb-4 border-b border-slate-200/90 text-slate-900 flex items-start justify-between shrink-0">
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="font-mono text-lg font-black text-blue-600 tracking-wider">
+                                <span className="font-mono text-base font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 tracking-wider">
                                     #{booking.booking_code}
                                 </span>
-                                <span className="text-xs text-slate-400">•</span>
+                                <span className="text-xs text-slate-300">•</span>
                                 <span className="text-xs text-slate-500">
                                     Tạo ngày {formatDateTime(booking.created_at)}
                                 </span>
                             </div>
-                            <h3 className="font-serif text-xl font-bold text-slate-900 mt-0.5">
+                            <h3 className="text-xl font-bold text-slate-900 tracking-tight mt-1">
                                 Chi Tiết Đơn Đặt Phòng
                             </h3>
                         </div>
@@ -247,14 +270,14 @@ export default function BookingDetailModal({
                             onClick={onClose}
                             className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-sm cursor-pointer"
                         >
-                            ✕
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
 
-                    {/* Thân Modal: Các nhóm thông tin */}
-                    <div className="space-y-5 text-xs">
+                    {/* Thân Modal - Cuộn độc lập */}
+                    <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs">
                         {/* KHỐI 1: TRẠNG THÁI HIỆN TẠI */}
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                                     Trạng thái đơn hàng
@@ -267,9 +290,9 @@ export default function BookingDetailModal({
                         </div>
 
                         {/* KHỐI 2: THÔNG TIN KHÁCH HÀNG & PHÁP LÝ CCCD */}
-                        <div className="p-4 rounded-2xl border border-slate-200 space-y-3">
-                            <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
-                                <span>👤</span>
+                        <div className="p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5 text-blue-600" />
                                 <span>Thông tin Khách hàng & Pháp lý</span>
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700">
@@ -279,8 +302,9 @@ export default function BookingDetailModal({
                                 </div>
                                 <div>
                                     <span className="text-slate-400 block text-[11px]">Số CCCD / Hộ chiếu (Passport):</span>
-                                    <strong className="font-mono text-sm text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 inline-block mt-0.5">
-                                        🪪 {booking.identity_card || 'Chưa cung cấp'}
+                                    <strong className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 inline-flex items-center gap-1 mt-0.5">
+                                        <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                                        {booking.identity_card || 'Chưa cung cấp'}
                                     </strong>
                                 </div>
                                 <div>
@@ -299,9 +323,9 @@ export default function BookingDetailModal({
                         </div>
 
                         {/* KHỐI 3: THÔNG TIN PHÒNG VÀ LƯU TRÚ */}
-                        <div className="p-4 rounded-2xl border border-slate-200 space-y-3">
-                            <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
-                                <span>🏨</span>
+                        <div className="p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
+                                <Building2 className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>Chi tiết Phòng & Lịch Trình</span>
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700">
@@ -318,8 +342,9 @@ export default function BookingDetailModal({
                                 {booking.actual_check_in && (
                                     <div className="col-span-1 sm:col-span-2">
                                         <span className="text-emerald-700 block text-[11px] font-semibold">Thời gian Check-in thực tế:</span>
-                                        <strong className="text-emerald-800 text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
-                                            🔑 {formatDateTime(booking.actual_check_in)}
+                                        <strong className="text-emerald-800 text-xs bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-flex items-center gap-1 mt-0.5">
+                                            <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+                                            {formatDateTime(booking.actual_check_in)}
                                         </strong>
                                     </div>
                                 )}
@@ -343,7 +368,7 @@ export default function BookingDetailModal({
                             <div className="p-4 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50/70 via-indigo-50/30 to-white space-y-3.5 shadow-2xs">
                                 <div className="flex items-center justify-between flex-wrap gap-2">
                                     <h4 className="font-bold text-blue-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                                        <span>🗓️</span>
+                                        <Calendar className="w-3.5 h-3.5 text-blue-600" />
                                         <span>Gia Hạn Lưu Trú (Extend Stay)</span>
                                     </h4>
                                     <span className="text-[11px] font-semibold text-blue-700 bg-blue-100/70 px-2.5 py-0.5 rounded-full border border-blue-200">
@@ -384,7 +409,7 @@ export default function BookingDetailModal({
                                             disabled={isSubmittingAdminExtend || !adminExtendCalc.isValid}
                                             className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                                         >
-                                            <span>✨</span>
+                                            <Sparkles className="w-3.5 h-3.5" />
                                             <span>Xác nhận Gia hạn</span>
                                         </button>
                                     </div>
@@ -418,8 +443,8 @@ export default function BookingDetailModal({
 
                                 {/* Cảnh báo xung đột nếu phòng bị kẹt lịch */}
                                 {adminExtendConflictError && (
-                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2 animate-in fade-in">
-                                        <span className="text-base">⚠️</span>
+                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2.5 animate-in fade-in">
+                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                                         <div>
                                             <strong className="font-bold block">Không thể gia hạn (Phòng bị kẹt lịch):</strong>
                                             <span className="text-[11px] leading-relaxed mt-0.5 block">{adminExtendConflictError}</span>
@@ -430,11 +455,11 @@ export default function BookingDetailModal({
                         )}
 
                         {/* KHỐI 3.5: DỊCH VỤ PHÁT SINH TẠI PHÒNG (IN-ROOM SERVICES) */}
-                        <div className="p-4 rounded-2xl border border-slate-200 space-y-3">
+                        <div className="p-4 rounded-2xl border border-slate-200/80 space-y-3">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                                 <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
-                                        <span>🛎️</span>
+                                    <h4 className="font-bold text-xs uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
+                                        <BellRing className="w-3.5 h-3.5 text-purple-600" />
                                         <span>Dịch Vụ Phát Sinh & Gọi Món Tại Phòng</span>
                                     </h4>
                                     <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
@@ -451,7 +476,7 @@ export default function BookingDetailModal({
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm hover:shadow-md transition cursor-pointer active:scale-95"
                                             title="Thêm dịch vụ khách sạn hoặc phụ thu cho khách đang lưu trú tại phòng"
                                         >
-                                            <span className="text-sm leading-none font-black">+</span>
+                                            <Plus className="w-3.5 h-3.5" />
                                             <span>Thêm dịch vụ</span>
                                         </button>
                                     )}
@@ -495,7 +520,7 @@ export default function BookingDetailModal({
                                                                 className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs transition cursor-pointer active:scale-95"
                                                                 title="Xác nhận đã phục vụ xong và chuyển vào hóa đơn thanh toán"
                                                             >
-                                                                <span>✓</span>
+                                                                <Check className="w-3 h-3" />
                                                                 <span>Đã giao</span>
                                                             </button>
                                                             {(booking.status === 'checked_in' || booking.status === 'IN_HOUSE') && (
@@ -505,7 +530,7 @@ export default function BookingDetailModal({
                                                                     className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                                                     title="Hủy yêu cầu này"
                                                                 >
-                                                                    🗑️
+                                                                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                                                                 </button>
                                                             )}
                                                         </>
@@ -562,7 +587,7 @@ export default function BookingDetailModal({
                                                                             className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
                                                                             title="Xóa phụ phí này khỏi đơn đặt phòng"
                                                                         >
-                                                                            🗑️
+                                                                            <Trash2 className="w-3.5 h-3.5" />
                                                                         </button>
                                                                     )}
                                                             </div>
@@ -583,7 +608,10 @@ export default function BookingDetailModal({
                                 if (booking.pending_services && booking.pending_services.length > 0) {
                                     return (
                                         <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center text-slate-400 text-xs">
-                                            <p>Các món đang chuẩn bị ở trên sẽ chuyển xuống danh sách hoàn tất sau khi bấm <strong>"✓ Đã giao"</strong>.</p>
+                                            <p className="flex items-center justify-center gap-1">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                                                <span>Các món đang chuẩn bị ở trên sẽ chuyển xuống danh sách hoàn tất sau khi bấm <strong>"Đã giao"</strong>.</span>
+                                            </p>
                                         </div>
                                     );
                                 }
@@ -596,9 +624,10 @@ export default function BookingDetailModal({
                                                 <button
                                                     type="button"
                                                     onClick={onOpenAddService}
-                                                    className="inline-block mt-1.5 text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline text-[11px]"
+                                                    className="inline-flex items-center gap-1 mt-1.5 text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline text-[11px]"
                                                 >
-                                                    + Bấm vào đây để thêm dịch vụ hoặc món ăn
+                                                    <Plus className="w-3 h-3" />
+                                                    <span>Bấm vào đây để thêm dịch vụ hoặc món ăn</span>
                                                 </button>
                                             )}
                                     </div>
@@ -607,7 +636,7 @@ export default function BookingDetailModal({
                         </div>
 
                         {/* KHỐI 4: TÀI CHÍNH & THANH TOÁN */}
-                        <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2.5">
+                        <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2.5">
                             <div className="flex items-center justify-between text-xs text-slate-600">
                                 <span>Tiền phòng nghỉ ({booking.nights || 1} đêm):</span>
                                 <span className="font-semibold text-slate-800">
@@ -644,20 +673,22 @@ export default function BookingDetailModal({
                         <div className="space-y-3">
                             {booking.note && (
                                 <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl">
-                                    <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block mb-1">
-                                        💬 Ghi chú của khách hàng:
+                                    <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                                        <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Ghi chú của khách hàng:</span>
                                     </span>
-                                    <p className="text-xs text-amber-900 whitespace-pre-line">
+                                    <p className="text-xs text-amber-900 whitespace-pre-line pl-5">
                                         {booking.note}
                                     </p>
                                 </div>
                             )}
 
                             {/* Ghi chú nội bộ dành riêng cho Lễ tân */}
-                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                                        📝 Ghi chú nội bộ Lễ tân:
+                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                        <FileEdit className="w-3.5 h-3.5 text-slate-600" />
+                                        <span>Ghi chú nội bộ Lễ tân:</span>
                                     </label>
                                     <span className="text-[10px] text-slate-400">
                                         Chỉ nhân viên nội bộ mới xem được
@@ -686,98 +717,97 @@ export default function BookingDetailModal({
                         </div>
                     </div>
 
-                    {/* Nút hành động Modal */}
-                    {((canManageBookings && ['pending', 'paid', 'PAID', 'confirmed', 'checked_in'].includes(booking.status)) ||
-                        (canCheckOut && booking.status === 'checked_in')) && (
-                            <div className="pt-5 mt-6 border-t border-slate-100 flex items-center justify-center gap-2.5 flex-wrap">
-                                {booking.status === 'confirmed' && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => onOpenCheckIn?.(booking)}
-                                            className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
-                                        >
-                                            <span>🔑</span>
-                                            <span>Check-in</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => onOpenPreAssign?.(booking)}
-                                            className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
-                                            title="Gán trước hoặc đổi phòng thực tế cho khách trước khi Check-in"
-                                        >
-                                            <span>🚪</span>
-                                            <span>{booking.room_number ? `Đổi phòng (P.${booking.room_number})` : 'Gán phòng trước'}</span>
-                                        </button>
-                                        {(!isCheckInDateReached || isCheckInDateReached(booking.check_in_date)) ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => onOpenNoShow?.(booking)}
-                                                className="px-3.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
-                                            >
-                                                <span>🚫</span>
-                                                <span>No-show</span>
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                disabled
-                                                className="px-3.5 py-1.5 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl shadow-xs cursor-not-allowed inline-flex items-center gap-1.5 opacity-60 border border-slate-200"
-                                                title={`Chưa tới ngày nhận phòng (${formatDate(booking.check_in_date)}). Không thể đánh dấu No-show.`}
-                                            >
-                                                <span>🚫</span>
-                                                <span>No-show (Chưa tới ngày)</span>
-                                            </button>
-                                        )}
-                                        <button
-                                            type="button"
-                                            disabled={updatingId === booking.id}
-                                            onClick={() => onOpenCancel?.(booking)}
-                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                                            title="Hủy đơn đặt phòng này"
-                                        >
-                                            <span>✕</span>
-                                            <span>Hủy đơn</span>
-                                        </button>
-                                    </>
-                                )}
-
-                                {['pending', 'paid', 'PAID'].includes(booking.status) && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            disabled={updatingId === booking.id}
-                                            onClick={() => onQuickStatusChange?.(booking.id, 'confirmed')}
-                                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                                        >
-                                            <span>✓</span>
-                                            <span>Duyệt đơn</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            disabled={updatingId === booking.id}
-                                            onClick={() => onOpenCancel?.(booking)}
-                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                                            title="Hủy đơn đặt phòng này"
-                                        >
-                                            <span>✕</span>
-                                            <span>Hủy đơn</span>
-                                        </button>
-                                    </>
-                                )}
-
-                                {booking.status === 'checked_in' && (
+                    {/* Footer nút hành động Cố định ở dưới - Hiển thị khi có quyền thao tác */}
+                    {hasActionButtons && (
+                        <div className="p-4 sm:px-6 bg-slate-50 border-t border-slate-200/90 flex items-center justify-center sm:justify-end gap-2.5 flex-wrap shrink-0">
+                            {booking.status === 'confirmed' && (
+                                <>
                                     <button
                                         type="button"
-                                        onClick={() => onOpenCheckOut?.(booking)}
-                                        className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                        onClick={() => onOpenCheckIn?.(booking)}
+                                        className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
                                     >
-                                        <span>🧾</span>
-                                        <span>Check-out trả phòng</span>
+                                        <KeyRound className="w-3.5 h-3.5" />
+                                        <span>Check-in</span>
                                     </button>
-                                )}
-                            </div>
-                        )}
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenPreAssign?.(booking)}
+                                        className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                        title="Gán trước hoặc đổi phòng thực tế cho khách trước khi Check-in"
+                                    >
+                                        <DoorOpen className="w-3.5 h-3.5" />
+                                        <span>{booking.room_number ? `Đổi phòng (P.${booking.room_number})` : 'Gán phòng trước'}</span>
+                                    </button>
+                                    {(!isCheckInDateReached || isCheckInDateReached(booking.check_in_date)) ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => onOpenNoShow?.(booking)}
+                                            className="px-3.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                        >
+                                            <UserX className="w-3.5 h-3.5" />
+                                            <span>No-show</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            disabled
+                                            className="px-3.5 py-1.5 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl shadow-xs cursor-not-allowed inline-flex items-center gap-1.5 opacity-60 border border-slate-200"
+                                            title={`Chưa tới ngày nhận phòng (${formatDate(booking.check_in_date)}). Không thể đánh dấu No-show.`}
+                                        >
+                                            <UserX className="w-3.5 h-3.5" />
+                                            <span>No-show (Chưa tới ngày)</span>
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        disabled={updatingId === booking.id}
+                                        onClick={() => onOpenCancel?.(booking)}
+                                        className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                        title="Hủy đơn đặt phòng này"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                        <span>Hủy đơn</span>
+                                    </button>
+                                </>
+                            )}
+
+                            {['pending', 'paid', 'PAID'].includes(booking.status) && (
+                                <>
+                                    <button
+                                        type="button"
+                                        disabled={updatingId === booking.id}
+                                        onClick={() => onQuickStatusChange?.(booking.id, 'confirmed')}
+                                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                    >
+                                        <Check className="w-3.5 h-3.5" />
+                                        <span>Duyệt đơn</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={updatingId === booking.id}
+                                        onClick={() => onOpenCancel?.(booking)}
+                                        className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                                        title="Hủy đơn đặt phòng này"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                        <span>Hủy đơn</span>
+                                    </button>
+                                </>
+                            )}
+
+                            {booking.status === 'checked_in' && (
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenCheckOut?.(booking)}
+                                    className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                >
+                                    <Receipt className="w-3.5 h-3.5" />
+                                    <span>Check-out trả phòng</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 

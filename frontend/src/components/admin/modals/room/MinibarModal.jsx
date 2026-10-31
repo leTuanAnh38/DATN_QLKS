@@ -1,4 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import {
+    Wine,
+    BellRing,
+    X,
+    AlertTriangle,
+    AlertCircle,
+    Lightbulb,
+    Info,
+    Check,
+    Loader2,
+    Plus,
+    Minus,
+    ShieldAlert
+} from 'lucide-react';
 import roomService from '../../../../services/roomService';
 
 export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
@@ -150,6 +164,7 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                 setErrorMessage(res?.message || 'Không thể lưu kiểm kê Minibar.');
             }
         } catch (error) {
+            console.error('Error submitting minibar check:', error);
             setErrorMessage('Đã xảy ra lỗi khi gửi dữ liệu kiểm kê.');
         } finally {
             setIsSubmitting(false);
@@ -157,29 +172,35 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
             <div
-                className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+                className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh]"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className="px-5 py-3.5 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
+                {/* 1. Header (Fixed non-scrolling) */}
+                <div className="p-4 sm:px-6 sm:py-5 bg-white border-b border-slate-100 text-slate-900 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0 shadow-xs">
-                            {isInspectionRequested ? '🛎️' : '🍾'}
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-700 flex items-center justify-center text-xl shrink-0 shadow-xs">
+                            {isInspectionRequested ? (
+                                <BellRing className="w-5 h-5 sm:w-6 sm:h-6" />
+                            ) : (
+                                <Wine className="w-5 h-5 sm:w-6 sm:h-6" />
+                            )}
                         </div>
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-bold text-base text-slate-900">
-                                    {isInspectionRequested ? `Kiểm Tra Phòng & Minibar Check-out (P.${room.room_number})` : `Kiểm Kê Minibar Phòng ${room.room_number}`}
+                                <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                                    {isInspectionRequested
+                                        ? `Kiểm Tra Phòng & Minibar Check-out (P.${room.room_number})`
+                                        : `Kiểm Kê Minibar Phòng ${room.room_number}`}
                                 </h3>
                                 {room.category_name && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                         {room.category_name}
                                     </span>
                                 )}
                                 {isInspectionRequested && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
                                         Lễ tân đang đợi Check-out
                                     </span>
                                 )}
@@ -187,7 +208,7 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                             <p className="text-xs text-slate-500 mt-0.5">
                                 {booking ? (
                                     <span>
-                                        Khách: <strong className="text-slate-800">{booking.guest_name}</strong>{' '}
+                                        Khách: <strong className="text-slate-800 font-semibold">{booking.guest_name}</strong>{' '}
                                         <span className="text-slate-400 font-mono">({booking.booking_code ? `#${booking.booking_code}` : ''})</span>
                                     </span>
                                 ) : (
@@ -199,16 +220,17 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer text-base"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
+                        title="Đóng"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* Cảnh báo Lễ tân đang đợi kiểm phòng Check-out */}
                 {isInspectionRequested && (
                     <div className="px-5 py-2.5 bg-gradient-to-r from-amber-50 via-rose-50 to-amber-50 border-b border-amber-200 flex items-center gap-2.5 text-xs text-amber-900 shrink-0">
-                        
+                        <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
                         <div>
                             <strong className="font-bold">Lễ tân đang đợi kiểm phòng trả khách:</strong> Vui lòng kiểm tra kỹ số lượng đồ Minibar đã dùng và phát hiện hư hại tài sản (nếu có) để Lễ tân quyết toán chính xác.
                         </div>
@@ -216,14 +238,14 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                 )}
 
                 {/* Sub-header Tabs & Filter */}
-                <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
+                <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
                     <div className="flex items-center gap-1.5">
                         {categories.map((c) => (
                             <button
                                 key={c.key}
                                 type="button"
                                 onClick={() => setActiveCategory(c.key)}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                                className={`px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                                     activeCategory === c.key
                                         ? 'bg-indigo-600 text-white shadow-xs'
                                         : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
@@ -235,15 +257,15 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                     </div>
 
                     <div className="text-xs text-slate-500 shrink-0 font-medium">
-                        Đã chọn: <strong className="text-indigo-600">{totalItemsCount}</strong> món
+                        Đã chọn: <strong className="text-indigo-600 font-bold">{totalItemsCount}</strong> món
                     </div>
                 </div>
 
-                {/* Body Content */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {/* 2. Body Content (Scrollable) */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs">
                     {errorMessage && (
-                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
-                            <span>⚠️</span>
+                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2 font-medium">
+                            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
                             <span>{errorMessage}</span>
                         </div>
                     )}
@@ -254,15 +276,15 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                             <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                                 1. Danh sách đồ uống & snack Minibar
                             </span>
-                            <span className="text-[11px] text-slate-400">
+                            <span className="text-[11px] text-slate-500 font-medium">
                                 {totalItemsCount === 0 ? 'Chưa chọn món nào (Minibar nguyên seal)' : `Tiêu thụ: ${formatCurrency(totalAmount)}`}
                             </span>
                         </div>
 
                         {isLoading ? (
-                            <div className="py-12 text-center text-slate-400 text-sm">
-                                <span className="inline-block animate-spin mr-2">⏳</span>
-                                Đang tải danh mục Minibar phòng...
+                            <div className="py-12 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                                <span>Đang tải danh mục Minibar phòng...</span>
                             </div>
                         ) : filteredItems.length === 0 ? (
                             <div className="py-12 text-center text-slate-400 text-sm">
@@ -276,10 +298,10 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                                     return (
                                         <div
                                             key={item.id}
-                                            className={`p-3 rounded-xl border transition-all ${
+                                            className={`p-3 rounded-2xl border transition-all ${
                                                 isSelected
-                                                    ? 'bg-amber-50/60 border-amber-300 ring-1 ring-amber-400/40 shadow-xs'
-                                                    : 'bg-white border-slate-200 hover:border-slate-300'
+                                                    ? 'bg-amber-50/70 border-amber-300 ring-1 ring-amber-400/40 shadow-xs'
+                                                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
                                             }`}
                                         >
                                             <div className="flex items-start justify-between gap-2">
@@ -291,7 +313,7 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                                                         <span className="text-xs font-bold text-amber-700">
                                                             {formatCurrency(item.price)}
                                                         </span>
-                                                        <span className="text-[10px] text-slate-400">
+                                                        <span className="text-[10px] text-slate-400 font-medium">
                                                             (Định mức: {item.standard_quantity})
                                                         </span>
                                                     </div>
@@ -309,21 +331,21 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                                                                 : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                                                         }`}
                                                     >
-                                                        -
+                                                        <Minus className="w-3.5 h-3.5" />
                                                     </button>
                                                     <input
                                                         type="number"
                                                         min="0"
                                                         value={qty}
                                                         onChange={(e) => handleSetQty(item.id, parseInt(e.target.value) || 0)}
-                                                        className="w-9 h-7 text-center font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                                        className="w-10 h-7 text-center font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleQtyChange(item.id, 1)}
-                                                        className="w-7 h-7 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center transition cursor-pointer"
+                                                        className="w-7 h-7 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center transition cursor-pointer shadow-xs"
                                                     >
-                                                        +
+                                                        <Plus className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -347,7 +369,7 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                     <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-200/90 space-y-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                           
+                                <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
                                 <span className="text-xs font-bold text-rose-950">
                                     Kiểm tra hư hỏng / tổn hại tài sản phòng (Damage Inspection)
                                 </span>
@@ -366,7 +388,7 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                         </div>
 
                         {hasDamage && (
-                            <div className="space-y-3 pt-3 border-t border-rose-200/70 animate-in fade-in duration-150">
+                            <div className="space-y-3 pt-3 border-t border-rose-200/70 animate-fadeIn">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-[11px] font-bold text-slate-700 mb-1">
@@ -413,9 +435,10 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                                                 setDamageDescription((prev) => (prev ? `${prev}, ${suggest.label}` : suggest.label));
                                                 setDamageAmount((prev) => Number(prev || 0) + suggest.amount);
                                             }}
-                                            className="px-2 py-0.5 rounded-lg bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-semibold transition cursor-pointer"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-semibold transition cursor-pointer"
                                         >
-                                            + {suggest.label} ({suggest.amount.toLocaleString('vi-VN')}đ)
+                                            <Plus className="w-2.5 h-2.5" />
+                                            <span>{suggest.label} ({suggest.amount.toLocaleString('vi-VN')}đ)</span>
                                         </button>
                                     ))}
                                 </div>
@@ -439,34 +462,34 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
 
                     {/* Notice */}
                     {booking ? (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-start gap-2">
-                            <span className="text-base shrink-0">💡</span>
-                            <div>
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-start gap-2.5">
+                            <Lightbulb className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
                                 <strong>Tự động đồng bộ Hóa đơn Check-out:</strong> Khi bấm xác nhận, tổng tiền{' '}
                                 <strong className="text-blue-900 underline">{formatCurrency(totalInspectionSurcharge)}</strong> (Minibar: {formatCurrency(totalAmount)} + Hư hại: {formatCurrency(hasDamage ? damageAmount : 0)}) sẽ được đẩy ngay vào
                                 Hóa đơn thanh toán của đơn <strong className="font-mono">#{booking.booking_code}</strong> và gửi thông báo tới Lễ tân!
                             </div>
                         </div>
                     ) : (
-                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
-                            <span className="text-base shrink-0">ℹ️</span>
-                            <div>
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2.5">
+                            <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
                                 <strong>Lưu ý:</strong> Phòng hiện không có đơn lưu trú. Kết quả kiểm kê sẽ được lưu vào Nhật ký buồng phòng để làm căn cứ bàn giao ca trực.
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="px-5 py-3.5 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+                {/* 3. Footer (Sticky Bottom Action Bar) */}
+                <div className="px-5 py-3.5 bg-slate-50/90 border-t border-slate-100 backdrop-blur flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                     <div>
                         <div className="flex items-center gap-3 text-xs text-slate-600">
-                            <span>Minibar: <strong className="text-amber-800">{formatCurrency(totalAmount)}</strong></span>
+                            <span>Minibar: <strong className="text-amber-800 font-bold">{formatCurrency(totalAmount)}</strong></span>
                             <span>•</span>
-                            <span>Hư hại: <strong className="text-rose-700">{formatCurrency(hasDamage ? damageAmount : 0)}</strong></span>
+                            <span>Hư hại: <strong className="text-rose-700 font-bold">{formatCurrency(hasDamage ? damageAmount : 0)}</strong></span>
                         </div>
                         <div className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
-                            Tổng phụ thu: <span className="text-rose-600">{formatCurrency(totalInspectionSurcharge)}</span>
+                            Tổng phụ thu: <span className="text-rose-600 font-bold">{formatCurrency(totalInspectionSurcharge)}</span>
                         </div>
                     </div>
 
@@ -475,7 +498,7 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer text-center justify-center"
+                            className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-slate-200/70 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer text-center justify-center"
                         >
                             Đóng
                         </button>
@@ -487,12 +510,12 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
                         >
                             {isSubmitting ? (
                                 <>
-                                    <span className="inline-block animate-spin">⏳</span>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                     <span>Đang lưu...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>✓</span>
+                                    <Check className="w-4 h-4" />
                                     <span>Xác nhận & Báo kết quả cho Lễ tân</span>
                                 </>
                             )}
@@ -503,3 +526,4 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
         </div>
     );
 }
+

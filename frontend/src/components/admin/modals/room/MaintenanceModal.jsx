@@ -1,5 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, AlertTriangle, CheckCircle2, X, DollarSign, Calendar, User, ShieldAlert, Sparkles, Clock, FileText } from 'lucide-react';
+import {
+    Wrench,
+    AlertTriangle,
+    CheckCircle2,
+    X,
+    User,
+    ShieldAlert,
+    Sparkles,
+    Clock,
+    ArrowRightLeft,
+    Plus,
+    Snowflake,
+    Droplets,
+    Zap,
+    Tv,
+    DoorOpen
+} from 'lucide-react';
 
 const COMMON_EQUIPMENTS = [
     'Điều hòa / Máy lạnh',
@@ -17,12 +33,12 @@ const COMMON_EQUIPMENTS = [
 ];
 
 const ISSUE_TYPES = [
-    { value: 'ac', label: 'Điều hòa / Thông gió', icon: '❄️' },
-    { value: 'plumbing', label: 'Hệ thống nước / Vệ sinh', icon: '🚰' },
-    { value: 'electric', label: 'Điện / Chiếu sáng', icon: '💡' },
-    { value: 'electronics', label: 'Điện tử (TV, Két, Tủ lạnh)', icon: '📺' },
-    { value: 'furniture', label: 'Nội thất & Khóa cửa', icon: '🚪' },
-    { value: 'other', label: 'Khác', icon: '🔧' },
+    { value: 'ac', label: 'Điều hòa / Thông gió', icon: Snowflake },
+    { value: 'plumbing', label: 'Hệ thống nước / Vệ sinh', icon: Droplets },
+    { value: 'electric', label: 'Điện / Chiếu sáng', icon: Zap },
+    { value: 'electronics', label: 'Điện tử (TV, Két, Tủ lạnh)', icon: Tv },
+    { value: 'furniture', label: 'Nội thất & Khóa cửa', icon: DoorOpen },
+    { value: 'other', label: 'Khác', icon: Wrench },
 ];
 
 export default function MaintenanceModal({
@@ -131,8 +147,8 @@ export default function MaintenanceModal({
                 className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className={`p-4 sm:px-6 sm:py-5 border-b flex items-center justify-between ${
+                {/* 1. Header (Fixed non-scrolling) */}
+                <div className={`p-4 sm:px-6 sm:py-5 border-b shrink-0 flex items-center justify-between ${
                     mode === 'create'
                         ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
                         : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
@@ -152,12 +168,22 @@ export default function MaintenanceModal({
                                         ? `Bảo Trì Phòng ${room.room_number}`
                                         : `Hoàn Tất Sửa Chữa P.${room.room_number}`}
                                 </h3>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                                     mode === 'create'
                                         ? 'bg-amber-100 text-amber-800 border-amber-300'
                                         : 'bg-blue-100 text-blue-800 border-blue-300'
                                 }`}>
-                                    {mode === 'create' ? '⚪ Sự cố' : '🔧 Nghiệm thu'}
+                                    {mode === 'create' ? (
+                                        <>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                            <span>Báo sự cố</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                                            <span>Nghiệm thu</span>
+                                        </>
+                                    )}
                                 </span>
                             </div>
                             <p className="text-xs text-slate-500 mt-0.5">
@@ -171,286 +197,300 @@ export default function MaintenanceModal({
                         className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                         title="Đóng"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                {/* Form Body */}
-                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
-                    {errorMessage && (
-                        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2 font-medium">
-                            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
-                            <span>{errorMessage}</span>
-                        </div>
-                    )}
-
-                    {/* Hướng dẫn vận hành khi phòng đang có khách lưu trú */}
-                    {currentBooking && (
-                        <div className="p-3.5 bg-white border border-amber-300 rounded-2xl flex items-start gap-3 shadow-2xs">
-                            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0 text-base font-bold">
-                                👤
+                {/* Form wrapper */}
+                <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    {/* 2. Scrollable Body */}
+                    <div className="p-4 sm:p-6 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
+                        {errorMessage && (
+                            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2 font-medium">
+                                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+                                <span>{errorMessage}</span>
                             </div>
-                            <div className="flex-1 text-xs">
-                                <div className="flex flex-wrap items-center justify-between gap-1">
-                                    <span className="font-bold text-slate-900">
-                                        Phòng có khách đang ở: <span className="text-amber-900">{currentBooking.guest_name}</span>
-                                    </span>
-                                    <span className="font-mono text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                                        #{currentBooking.booking_code}
+                        )}
+
+                        {/* Hướng dẫn vận hành khi phòng đang có khách lưu trú */}
+                        {currentBooking && (
+                            <div className="p-3.5 bg-white border border-amber-300 rounded-2xl flex items-start gap-3 shadow-2xs">
+                                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
+                                    <User className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 text-xs">
+                                    <div className="flex flex-wrap items-center justify-between gap-1">
+                                        <span className="font-bold text-slate-900">
+                                            Phòng có khách đang ở: <span className="text-amber-900">{currentBooking.guest_name}</span>
+                                        </span>
+                                        <span className="font-mono text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                            #{currentBooking.booking_code}
+                                        </span>
+                                    </div>
+                                    <div className="text-[11px] text-slate-600 mt-1 space-y-0.5 leading-relaxed">
+                                        <p>
+                                            • <strong>Sửa nhanh tại chỗ:</strong> Kỹ thuật vào xử lý. Sau khi dọn dẹp xong, hệ thống tự động giữ nguyên trạng thái <em>Có khách (Occupied)</em>.
+                                        </p>
+                                        <p>
+                                            • <strong>Sự cố nặng:</strong> Vui lòng sử dụng tính năng <em>Đổi phòng (Room Move)</em> cho khách trước khi cách ly phòng dài ngày.
+                                        </p>
+                                    </div>
+                                    {onOpenChangeRoom && (
+                                        <div className="pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    onClose();
+                                                    onOpenChangeRoom({
+                                                        room,
+                                                        booking: currentBooking,
+                                                        reason: equipmentName ? `Hỏng thiết bị: ${equipmentName}` : 'Sự cố thiết bị phòng cần bảo trì',
+                                                        issueType: issueType,
+                                                        equipment: equipmentName
+                                                    });
+                                                }}
+                                                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            >
+                                                <ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />
+                                                <span>Sự cố nặng? Đổi phòng cho khách ngay</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Mode Create: Chọn thiết bị hỏng */}
+                        {mode === 'create' ? (
+                            <>
+                                <div>
+                                    <label className="block font-bold text-slate-700 mb-1">
+                                        Tên thiết bị hư hỏng <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ví dụ: Điều hòa Daikin, Củ sen tắm, Smart TV..."
+                                        value={equipmentName}
+                                        onChange={(e) => setEquipmentName(e.target.value)}
+                                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 focus:bg-white font-bold text-slate-900 text-sm"
+                                    />
+
+                                    {/* Gợi ý nhanh các thiết bị thông dụng */}
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                        <span className="text-[10px] text-slate-400 py-0.5 mr-1 font-semibold">Gợi ý nhanh:</span>
+                                        {COMMON_EQUIPMENTS.slice(0, 8).map((eq) => (
+                                            <button
+                                                type="button"
+                                                key={eq}
+                                                onClick={() => setEquipmentName(eq)}
+                                                className="inline-flex items-center gap-1 text-[10px] bg-slate-100 hover:bg-amber-100 hover:text-amber-800 text-slate-600 px-2 py-0.5 rounded-lg border border-slate-200 transition cursor-pointer font-medium"
+                                            >
+                                                <Plus className="w-2.5 h-2.5" />
+                                                <span>{eq}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Phân loại sự cố */}
+                                <div>
+                                    <label className="block font-bold text-slate-700 mb-1.5">
+                                        Phân loại sự cố kỹ thuật
+                                    </label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {ISSUE_TYPES.map((t) => {
+                                            const IconComp = t.icon;
+                                            const isSelected = issueType === t.value;
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={t.value}
+                                                    onClick={() => setIssueType(t.value)}
+                                                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold ring-2 ring-amber-400/20'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <IconComp className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-700' : 'text-slate-500'}`} />
+                                                    <span className="text-[11px] truncate">{t.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Mô tả chi tiết lỗi */}
+                                <div>
+                                    <label className="block font-bold text-slate-700 mb-1">
+                                        Mô tả hiện trạng sự cố
+                                    </label>
+                                    <textarea
+                                        rows={2}
+                                        placeholder="Chi tiết biểu hiện hỏng (VD: Điều hòa không phả hơi lạnh, quạt gió kêu to, vòi sen bị nứt cần gạt...)"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 focus:bg-white text-slate-800"
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            /* Mode Complete: Hiển thị tóm tắt phiếu bảo trì */
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-500 font-medium">Phiếu bảo trì:</span>
+                                    <span className="font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded border border-blue-200">
+                                        #{ticket?.ticket_code || 'MT-ACTIVE'}
                                     </span>
                                 </div>
-                                <div className="text-[11px] text-slate-600 mt-1 space-y-0.5 leading-relaxed">
-                                    <p>
-                                        • <strong>Sửa nhanh tại chỗ:</strong> Kỹ thuật vào xử lý. Sau khi dọn dẹp xong, hệ thống tự động giữ nguyên trạng thái <em>Có khách (Occupied)</em>.
-                                    </p>
-                                    <p>
-                                        • <strong>Sự cố nặng:</strong> Vui lòng sử dụng tính năng <em>Đổi phòng (Room Move)</em> cho khách trước khi cách ly phòng dài ngày.
-                                    </p>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-500 font-medium">Thiết bị cần sửa:</span>
+                                    <span className="font-bold text-slate-900 text-sm">
+                                        {ticket?.equipment_name || equipmentName}
+                                    </span>
                                 </div>
-                                {onOpenChangeRoom && (
-                                    <div className="pt-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                onClose();
-                                                onOpenChangeRoom({
-                                                    room,
-                                                    booking: currentBooking,
-                                                    reason: equipmentName ? `Hỏng thiết bị: ${equipmentName}` : 'Sự cố thiết bị phòng cần bảo trì',
-                                                    issueType: issueType,
-                                                    equipment: equipmentName
-                                                });
-                                            }}
-                                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
-                                        >
-                                            <span>🔄</span>
-                                            <span>Sự cố nặng? Đổi phòng cho khách ngay</span>
-                                        </button>
+                                {ticket?.description && (
+                                    <p className="text-[11px] text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80 italic">
+                                        "{ticket.description}"
+                                    </p>
+                                )}
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 pt-1">
+                                    <Clock className="w-3 h-3" />
+                                    <span>Thời gian tiếp nhận: {ticket?.start_date ? new Date(ticket.start_date).toLocaleString('vi-VN') : 'Hôm nay'}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Vật tư thay thế */}
+                        <div>
+                            <label className="block font-bold text-slate-700 mb-1">
+                                Vật tư thay thế / Phụ tùng lắp mới
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Ví dụ: 1 Củ sen Inax, 1 Tụ kích 35uF, 2 Bóng led âm trần..."
+                                value={partsReplaced}
+                                onChange={(e) => setPartsReplaced(e.target.value)}
+                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900"
+                            />
+                        </div>
+
+                        {/* Chi phí & Trách nhiệm đền bù */}
+                        <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex-1">
+                                    <label className="block font-bold text-slate-700 mb-1">
+                                        Chi phí thay thế / Sửa chữa (VND)
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="0"
+                                            value={formatCurrencyInput(cost)}
+                                            onChange={(e) => setCost(e.target.value)}
+                                            className="w-full pl-8 pr-12 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-sm focus:outline-none focus:border-blue-600"
+                                        />
+                                        <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₫</span>
+                                        <span className="absolute right-3 top-2.5 text-[10px] text-slate-400 font-bold">VND</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Tùy chọn trách nhiệm chi trả: Khách đền bù hay Khách sạn chịu phí */}
+                            <div className="pt-2 border-t border-slate-200/60">
+                                <label className="flex items-start gap-2.5 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isGuestFault}
+                                        onChange={(e) => setIsGuestFault(e.target.checked)}
+                                        className="mt-0.5 rounded text-rose-600 focus:ring-rose-500 w-4 h-4 cursor-pointer"
+                                    />
+                                    <div>
+                                        <span className="font-bold text-rose-700 block">
+                                            Do khách hàng làm hư hỏng (Khách bồi thường)
+                                        </span>
+                                        <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                                            Nếu tích chọn, số tiền này sẽ được <strong>tự động thêm vào hóa đơn thanh toán phòng</strong> của khách khi làm thủ tục Check-out.
+                                        </p>
+                                    </div>
+                                </label>
+
+                                {/* Thông tin đơn đặt phòng nếu khách làm hỏng */}
+                                {isGuestFault && currentBooking && (
+                                    <div className="mt-2.5 p-2.5 bg-rose-50/80 rounded-xl border border-rose-200 flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                            <span className="font-bold text-slate-800">
+                                                Khách đang ở: {currentBooking.guest_name}
+                                            </span>
+                                        </div>
+                                        <span className="font-mono text-[10px] font-bold text-rose-700 bg-white px-2 py-0.5 rounded border border-rose-200">
+                                            #{currentBooking.booking_code}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Cảnh báo khi phòng trống nhưng lại tích lỗi do khách */}
+                                {isGuestFault && !currentBooking && (
+                                    <div className="mt-2.5 p-2.5 bg-amber-50 rounded-xl border border-amber-300 text-xs text-amber-900 flex items-start gap-2.5 animate-fadeIn">
+                                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                        <div>
+                                            <span className="font-bold block text-amber-950">
+                                                Phòng hiện đang trống (Không có khách lưu trú):
+                                            </span>
+                                            <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                                                • Nếu đây là sự cố do <strong>khách vừa trả phòng</strong> gây ra: Hệ thống sẽ ghi nhận phiếu bồi thường để truy cứu/phạt cọc, nhưng <em>không thể tự động đẩy vào hóa đơn Check-out</em> vì khách đã thanh toán xong.<br />
+                                                • Nếu hỏng do <strong>hao mòn tự nhiên / kỹ thuật</strong>: Vui lòng <strong>bỏ tích</strong> ô này để tính vào chi phí bảo dưỡng định kỳ của khách sạn.
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         </div>
-                    )}
 
-                    {/* Mode Create: Chọn thiết bị hỏng */}
-                    {mode === 'create' ? (
-                        <>
+                        {/* Mode Complete: Ghi chú nghiệm thu */}
+                        {mode === 'complete' && (
                             <div>
                                 <label className="block font-bold text-slate-700 mb-1">
-                                    Tên thiết bị hư hỏng <span className="text-rose-500">*</span>
+                                    Ghi chú nghiệm thu kỹ thuật
                                 </label>
                                 <input
                                     type="text"
-                                    required
-                                    placeholder="Ví dụ: Điều hòa Daikin, Củ sen tắm, Smart TV..."
-                                    value={equipmentName}
-                                    onChange={(e) => setEquipmentName(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 focus:bg-white font-bold text-slate-900 text-sm"
-                                />
-
-                                {/* Gợi ý nhanh các thiết bị thông dụng */}
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                    <span className="text-[10px] text-slate-400 py-0.5 mr-1 font-semibold">Gợi ý nhanh:</span>
-                                    {COMMON_EQUIPMENTS.slice(0, 8).map((eq) => (
-                                        <button
-                                            type="button"
-                                            key={eq}
-                                            onClick={() => setEquipmentName(eq)}
-                                            className="text-[10px] bg-slate-100 hover:bg-amber-100 hover:text-amber-800 text-slate-600 px-2 py-0.5 rounded-lg border border-slate-200 transition cursor-pointer"
-                                        >
-                                            + {eq}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Phân loại sự cố */}
-                            <div>
-                                <label className="block font-bold text-slate-700 mb-1.5">
-                                    Phân loại sự cố kỹ thuật
-                                </label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {ISSUE_TYPES.map((t) => (
-                                        <button
-                                            type="button"
-                                            key={t.value}
-                                            onClick={() => setIssueType(t.value)}
-                                            className={`p-2 rounded-xl border text-left flex items-center gap-2 transition cursor-pointer ${
-                                                issueType === t.value
-                                                    ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold ring-2 ring-amber-400/20'
-                                                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                                            }`}
-                                        >
-                                            <span className="text-base">{t.icon}</span>
-                                            <span className="text-[11px] truncate">{t.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Mô tả chi tiết lỗi */}
-                            <div>
-                                <label className="block font-bold text-slate-700 mb-1">
-                                    Mô tả hiện trạng sự cố
-                                </label>
-                                <textarea
-                                    rows={2}
-                                    placeholder="Chi tiết biểu hiện hỏng (VD: Điều hòa không phả hơi lạnh, quạt gió kêu to, vòi sen bị nứt cần gạt...)"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 focus:bg-white text-slate-800"
+                                    placeholder="Ví dụ: Đã test chạy 30 phút ổn định, bàn giao Buồng phòng vệ sinh..."
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900"
                                 />
                             </div>
-                        </>
-                    ) : (
-                        /* Mode Complete: Hiển thị tóm tắt phiếu bảo trì */
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-500 font-medium">Phiếu bảo trì:</span>
-                                <span className="font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded border border-blue-200">
-                                    #{ticket?.ticket_code || 'MT-ACTIVE'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-500 font-medium">Thiết bị cần sửa:</span>
-                                <span className="font-bold text-slate-900 text-sm">
-                                    {ticket?.equipment_name || equipmentName}
-                                </span>
-                            </div>
-                            {ticket?.description && (
-                                <p className="text-[11px] text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80 italic">
-                                    "{ticket.description}"
-                                </p>
-                            )}
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 pt-1">
-                                <Clock className="w-3 h-3" />
-                                <span>Thời gian tiếp nhận: {ticket?.start_date ? new Date(ticket.start_date).toLocaleString('vi-VN') : 'Hôm nay'}</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Vật tư thay thế */}
-                    <div>
-                        <label className="block font-bold text-slate-700 mb-1">
-                            Vật tư thay thế / Phụ tùng lắp mới
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Ví dụ: 1 Củ sen Inax, 1 Tụ kích 35uF, 2 Bóng led âm trần..."
-                            value={partsReplaced}
-                            onChange={(e) => setPartsReplaced(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900"
-                        />
-                    </div>
-
-                    {/* Chi phí & Trách nhiệm đền bù */}
-                    <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex-1">
-                                <label className="block font-bold text-slate-700 mb-1">
-                                    Chi phí thay thế / Sửa chữa (VND)
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="0"
-                                        value={formatCurrencyInput(cost)}
-                                        onChange={(e) => setCost(e.target.value)}
-                                        className="w-full pl-8 pr-12 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-sm focus:outline-none focus:border-blue-600"
-                                    />
-                                    <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₫</span>
-                                    <span className="absolute right-3 top-2.5 text-[10px] text-slate-400 font-bold">VND</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Tùy chọn trách nhiệm chi trả: Khách đền bù hay Khách sạn chịu phí */}
-                        <div className="pt-2 border-t border-slate-200/60">
-                            <label className="flex items-start gap-2.5 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={isGuestFault}
-                                    onChange={(e) => setIsGuestFault(e.target.checked)}
-                                    className="mt-0.5 rounded text-rose-600 focus:ring-rose-500 w-4 h-4 cursor-pointer"
-                                />
-                                <div>
-                                    <span className="font-bold text-rose-700 block">
-                                        Do khách hàng làm hư hỏng (Khách bồi thường)
-                                    </span>
-                                    <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                                        Nếu tích chọn, số tiền này sẽ được <strong>tự động thêm vào hóa đơn thanh toán phòng</strong> của khách khi làm thủ tục Check-out.
-                                    </p>
-                                </div>
-                            </label>
-
-                            {/* Thông tin đơn đặt phòng nếu khách làm hỏng */}
-                            {isGuestFault && currentBooking && (
-                                <div className="mt-2.5 p-2.5 bg-rose-50/80 rounded-xl border border-rose-200 flex items-center justify-between text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                                        <span className="font-bold text-slate-800">
-                                            Khách đang ở: {currentBooking.guest_name}
-                                        </span>
-                                    </div>
-                                    <span className="font-mono text-[10px] font-bold text-rose-700 bg-white px-2 py-0.5 rounded border border-rose-200">
-                                        #{currentBooking.booking_code}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Cảnh báo khi phòng trống nhưng lại tích lỗi do khách */}
-                            {isGuestFault && !currentBooking && (
-                                <div className="mt-2.5 p-2.5 bg-amber-50 rounded-xl border border-amber-300 text-xs text-amber-900 flex items-start gap-2 animate-fadeIn">
-                                    <span className="text-base leading-none">⚠️</span>
-                                    <div>
-                                        <span className="font-bold block text-amber-950">
-                                            Phòng hiện đang trống (Không có khách lưu trú):
-                                        </span>
-                                        <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                                            • Nếu đây là sự cố do <strong>khách vừa trả phòng</strong> gây ra: Hệ thống sẽ ghi nhận phiếu bồi thường để truy cứu/phạt cọc, nhưng <em>không thể tự động đẩy vào hóa đơn Check-out</em> vì khách đã thanh toán xong.<br />
-                                            • Nếu hỏng do <strong>hao mòn tự nhiên / kỹ thuật</strong>: Vui lòng <strong>bỏ tích</strong> ô này để tính vào chi phí bảo dưỡng định kỳ của khách sạn.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Mode Complete: Ghi chú nghiệm thu */}
-                    {mode === 'complete' && (
-                        <div>
-                            <label className="block font-bold text-slate-700 mb-1">
-                                Ghi chú nghiệm thu kỹ thuật
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Ví dụ: Đã test chạy 30 phút ổn định, bàn giao Buồng phòng vệ sinh..."
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900"
-                            />
-                        </div>
-                    )}
-
-                    {/* Thông báo quy trình chuẩn */}
-                    <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-[11px] text-blue-800 leading-relaxed">
-                        {mode === 'create' ? (
-                            <span>
-                                🛡️ <strong>Cách ly phòng:</strong> Sau khi xác nhận, phòng {room.room_number} sẽ tự động chuyển sang trạng thái <strong>Bảo trì (maintenance)</strong> và bị loại trừ khỏi quỹ phòng bán để tránh khách đặt nhầm.
-                            </span>
-                        ) : (
-                            <span>
-                                🧹 <strong>Quy trình bàn giao:</strong> Sau khi hoàn tất, phòng {room.room_number} sẽ tự động chuyển sang trạng thái <strong>Đang dọn dẹp (cleaning)</strong> để nhân viên Buồng phòng vệ sinh bụi bẩn trước khi mở bán trở lại.
-                            </span>
                         )}
+
+                        {/* Thông báo quy trình chuẩn */}
+                        <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-[11px] text-blue-800 leading-relaxed flex items-start gap-2">
+                            {mode === 'create' ? (
+                                <>
+                                    <ShieldAlert className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                                    <span>
+                                        <strong>Cách ly phòng:</strong> Sau khi xác nhận, phòng {room.room_number} sẽ tự động chuyển sang trạng thái <strong>Bảo trì (maintenance)</strong> và bị loại trừ khỏi quỹ phòng bán để tránh khách đặt nhầm.
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                                    <span>
+                                        <strong>Quy trình bàn giao:</strong> Sau khi hoàn tất, phòng {room.room_number} sẽ tự động chuyển sang trạng thái <strong>Đang dọn dẹp (cleaning)</strong> để nhân viên Buồng phòng vệ sinh bụi bẩn trước khi mở bán trở lại.
+                                    </span>
+                                </>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Footer Actions */}
-                    <div className="pt-3 sm:pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+                    {/* 3. Sticky Bottom Action Bar */}
+                    <div className="p-4 sm:px-6 sm:py-3.5 border-t border-slate-100 bg-slate-50/90 backdrop-blur shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-full sm:w-auto px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition cursor-pointer text-xs text-center"
+                            className="w-full sm:w-auto px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-200/70 rounded-xl transition cursor-pointer text-xs text-center"
                         >
                             Hủy bỏ
                         </button>
@@ -483,3 +523,4 @@ export default function MaintenanceModal({
         </div>
     );
 }
+

@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRightLeft, AlertTriangle, CheckCircle2, X, DoorOpen, User, Building, ShieldAlert, Info, Sparkles, Wrench, RefreshCw } from 'lucide-react';
+import {
+    ArrowRightLeft, AlertTriangle, CheckCircle2, X, DoorOpen,
+    Sparkles, Wrench, RefreshCw, Snowflake, Droplets, Zap,
+    KeyRound, VolumeX, Phone, Check, Plus
+} from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 
 const QUICK_REASONS = [
-    { label: 'Hỏng máy lạnh / điều hòa', icon: '❄️', type: 'ac', defaultStatus: 'maintenance' },
-    { label: 'Sự cố nước / vệ sinh', icon: '🚰', type: 'water', defaultStatus: 'maintenance' },
-    { label: 'Sự cố điện / mất điện', icon: '💡', type: 'electric', defaultStatus: 'maintenance' },
-    { label: 'Khóa từ / Cửa hỏng', icon: '🚪', type: 'lock', defaultStatus: 'maintenance' },
-    { label: 'Phòng ồn ào / Khách yêu cầu', icon: '🔇', type: 'other', defaultStatus: 'cleaning' },
-    { label: 'Sự cố kỹ thuật khác', icon: '🔧', type: 'other', defaultStatus: 'maintenance' },
+    { label: 'Hỏng máy lạnh / điều hòa', icon: Snowflake, type: 'ac', defaultStatus: 'maintenance' },
+    { label: 'Sự cố nước / vệ sinh', icon: Droplets, type: 'water', defaultStatus: 'maintenance' },
+    { label: 'Sự cố điện / mất điện', icon: Zap, type: 'electric', defaultStatus: 'maintenance' },
+    { label: 'Khóa từ / Cửa hỏng', icon: KeyRound, type: 'lock', defaultStatus: 'maintenance' },
+    { label: 'Phòng ồn ào / Khách yêu cầu', icon: VolumeX, type: 'other', defaultStatus: 'cleaning' },
+    { label: 'Sự cố kỹ thuật khác', icon: Wrench, type: 'other', defaultStatus: 'maintenance' },
 ];
 
 export default function ChangeRoomModal({
@@ -191,7 +195,7 @@ export default function ChangeRoomModal({
                         className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                         title="Đóng cửa sổ"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -229,8 +233,13 @@ export default function ChangeRoomModal({
                                 <span className="font-bold text-sm text-slate-900 block truncate">
                                     {currentBooking.guest_name}
                                 </span>
-                                <span className="text-[10px] text-slate-500 block">
-                                    {currentBooking.guest_phone ? `📞 ${currentBooking.guest_phone}` : 'Đang lưu trú'}
+                                <span className="text-[10px] text-slate-500 block mt-0.5">
+                                    {currentBooking.guest_phone ? (
+                                        <span className="inline-flex items-center gap-1">
+                                            <Phone className="w-3 h-3 text-slate-400" />
+                                            <span>{currentBooking.guest_phone}</span>
+                                        </span>
+                                    ) : 'Đang lưu trú'}
                                 </span>
                             </div>
                         </div>
@@ -253,7 +262,17 @@ export default function ChangeRoomModal({
                                         : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                                 }`}
                             >
-                                {showAllCategories ? '✓ Đang hiện tất cả hạng phòng' : '+ Mở rộng tìm mọi hạng phòng'}
+                                {showAllCategories ? (
+                                    <span className="inline-flex items-center gap-1">
+                                        <Check className="w-3 h-3 text-purple-600" />
+                                        <span>Đang hiện tất cả hạng phòng</span>
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1">
+                                        <Plus className="w-3 h-3 text-slate-500" />
+                                        <span>Mở rộng tìm mọi hạng phòng</span>
+                                    </span>
+                                )}
                             </button>
                         </div>
 
@@ -264,7 +283,7 @@ export default function ChangeRoomModal({
                             </div>
                         ) : availableRooms.length === 0 ? (
                             <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-start gap-2">
-                                <span className="text-base leading-none">⚠️</span>
+                                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
                                     <span className="font-bold block">
                                         Không có phòng trống nào thuộc hạng "{currentCatName}".
@@ -286,7 +305,7 @@ export default function ChangeRoomModal({
                                         const isDifferentCat = rCatName !== currentCatName;
                                         return (
                                             <option key={r.id} value={r.id}>
-                                                Phòng {r.room_number} — Tầng {r.floor} • {rCatName} {isDifferentCat ? '★ [Hạng phòng khác]' : ''}
+                                                Phòng {r.room_number} — Tầng {r.floor} • {rCatName} {isDifferentCat ? '[Hạng phòng khác]' : ''}
                                             </option>
                                         );
                                     })}
@@ -331,13 +350,13 @@ export default function ChangeRoomModal({
                                     type="button"
                                     key={item.label}
                                     onClick={() => handleSelectQuickReason(item)}
-                                    className={`text-[10px] px-2 py-0.5 rounded-lg border transition cursor-pointer flex items-center gap-1 ${
+                                    className={`text-[10px] px-2 py-0.5 rounded-lg border transition cursor-pointer flex items-center gap-1.5 ${
                                         reason === item.label
                                             ? 'bg-indigo-100 text-indigo-900 border-indigo-300 font-bold'
                                             : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                                     }`}
                                 >
-                                    <span>{item.icon}</span>
+                                    <item.icon className="w-3 h-3 text-slate-500 shrink-0" />
                                     <span>{item.label}</span>
                                 </button>
                             ))}
@@ -366,8 +385,9 @@ export default function ChangeRoomModal({
                                     className="mt-0.5 text-slate-700"
                                 />
                                 <div>
-                                    <span className="font-bold text-slate-900 flex items-center gap-1">
-                                        <span>⚪ Đang bảo trì (Maintenance)</span>
+                                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                                        <Wrench className="w-3.5 h-3.5 text-slate-600" />
+                                        <span>Đang bảo trì (Maintenance)</span>
                                     </span>
                                     <span className="text-[10px] text-slate-500 block mt-0.5 leading-tight">
                                         Tự động cách ly phòng và lập phiếu bảo trì cho Kỹ thuật viên vào sửa chữa.
@@ -390,8 +410,9 @@ export default function ChangeRoomModal({
                                     className="mt-0.5 text-amber-600"
                                 />
                                 <div>
-                                    <span className="font-bold text-amber-900 flex items-center gap-1">
-                                        <span>🟡 Đang dọn dẹp (Cleaning)</span>
+                                    <span className="font-bold text-amber-900 flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                                        <span>Đang dọn dẹp (Cleaning)</span>
                                     </span>
                                     <span className="text-[10px] text-slate-500 block mt-0.5 leading-tight">
                                         Chỉ cần Buồng phòng dọn dẹp vệ sinh lại để sẵn sàng đón khách tiếp theo.

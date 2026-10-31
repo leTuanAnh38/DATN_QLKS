@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, Zap } from 'lucide-react';
+import { 
+    Clock, 
+    Zap, 
+    BellRing, 
+    X, 
+    UtensilsCrossed, 
+    FileEdit, 
+    Search, 
+    Plus, 
+    Minus, 
+    CheckCircle2, 
+    Hourglass 
+} from 'lucide-react';
 import { hotelService } from '../../../../services/hotelService';
 import { bookingService } from '../../../../services/bookingService';
 
@@ -180,13 +192,13 @@ export default function AddServiceModal({
     if (!isOpen || !booking) return null;
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
-            <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="relative w-full max-w-xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[90vh]">
                 {/* Header Modal - Cố định ở trên */}
-                <div className="p-4 sm:p-5 bg-white border-b border-slate-100 text-slate-900 flex items-start justify-between shrink-0">
+                <div className="p-4 sm:p-5 bg-white border-b border-slate-200/90 text-slate-900 flex items-start justify-between shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center text-xl shrink-0 shadow-xs">
-                            🛎️
+                        <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center shrink-0 shadow-xs">
+                            <BellRing className="w-5 h-5 text-purple-600" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
@@ -198,7 +210,7 @@ export default function AddServiceModal({
                                     {booking.room_number ? `Phòng ${booking.room_number}` : booking.room_name}
                                 </span>
                             </div>
-                            <h3 className="font-serif text-lg font-bold text-slate-900 mt-1">
+                            <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-1">
                                 Thêm Dịch Vụ / Gọi Món Cho Khách
                             </h3>
                             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -211,7 +223,7 @@ export default function AddServiceModal({
                         onClick={onClose}
                         className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-sm cursor-pointer"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -225,7 +237,7 @@ export default function AddServiceModal({
                             : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                             }`}
                     >
-                        <span>🍽️</span>
+                        <UtensilsCrossed className="w-3.5 h-3.5" />
                         <span>Từ Menu Khách Sạn ({serviceCatalog.length})</span>
                     </button>
                     <button
@@ -236,7 +248,7 @@ export default function AddServiceModal({
                             : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                             }`}
                     >
-                        <span>✏️</span>
+                        <FileEdit className="w-3.5 h-3.5" />
                         <span>Phụ Phí / Dịch Vụ Tùy Chỉnh</span>
                     </button>
                 </div>
@@ -257,7 +269,7 @@ export default function AddServiceModal({
                                                 placeholder="Tìm kiếm món ăn, thức uống, spa..."
                                                 className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600/30"
                                             />
-                                            <span className="absolute left-2.5 top-2.5 text-slate-400">🔍</span>
+                                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                                         </div>
                                         {serviceCategories.length > 0 && (
                                             <select
@@ -402,7 +414,7 @@ export default function AddServiceModal({
                                         }
                                         className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
                                     >
-                                        -
+                                        <Minus className="w-3.5 h-3.5" />
                                     </button>
                                     <input
                                         type="number"
@@ -427,7 +439,7 @@ export default function AddServiceModal({
                                         }
                                         className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base flex items-center justify-center transition cursor-pointer"
                                     >
-                                        +
+                                        <Plus className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
                             </div>
@@ -455,7 +467,7 @@ export default function AddServiceModal({
                                     Trạng thái phục vụ:
                                 </label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'completed'
+                                    <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2.5 transition ${serviceForm.service_status === 'completed'
                                         ? 'bg-purple-50/80 border-purple-400 text-purple-950 font-semibold shadow-xs'
                                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                         }`}>
@@ -468,16 +480,17 @@ export default function AddServiceModal({
                                             className="mt-0.5 text-purple-600 focus:ring-purple-500"
                                         />
                                         <div>
-                                            <span className="block text-xs font-bold text-slate-900">
-                                                ✓ Đã phục vụ xong
+                                            <span className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                Đã phục vụ xong
                                             </span>
-                                            <span className="text-[10px] text-slate-500 leading-tight block">
+                                            <span className="text-[10px] text-slate-500 leading-tight block mt-0.5">
                                                 Tính ngay vào hóa đơn thanh toán
                                             </span>
                                         </div>
                                     </label>
 
-                                    <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2 transition ${serviceForm.service_status === 'pending'
+                                    <label className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2.5 transition ${serviceForm.service_status === 'pending'
                                         ? 'bg-amber-50/80 border-amber-400 text-amber-950 font-semibold shadow-xs'
                                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                         }`}>
@@ -490,10 +503,11 @@ export default function AddServiceModal({
                                             className="mt-0.5 text-amber-600 focus:ring-amber-500"
                                         />
                                         <div>
-                                            <span className="block text-xs font-bold text-slate-900">
-                                                ⏳ Chờ chuẩn bị
+                                            <span className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                                                <Hourglass className="w-3.5 h-3.5 text-amber-600" />
+                                                Chờ chuẩn bị
                                             </span>
-                                            <span className="text-[10px] text-slate-500 leading-tight block">
+                                            <span className="text-[10px] text-slate-500 leading-tight block mt-0.5">
                                                 Chuyển bếp / buồng phòng làm
                                             </span>
                                         </div>
@@ -639,7 +653,7 @@ export default function AddServiceModal({
                     </div>
 
                     {/* Footer nút hành động - Cố định ở dưới */}
-                    <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
+                    <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5 shrink-0">
                         <button
                             type="button"
                             disabled={isSubmittingService}
@@ -660,7 +674,7 @@ export default function AddServiceModal({
                                 </>
                             ) : (
                                 <>
-                                    <span className="font-bold">+</span>
+                                    <Plus className="w-4 h-4" />
                                     <span>Xác nhận thêm dịch vụ</span>
                                 </>
                             )}

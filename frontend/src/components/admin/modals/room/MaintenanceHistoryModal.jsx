@@ -1,4 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+    ClipboardList,
+    X,
+    Search,
+    RefreshCw,
+    Wrench,
+    DoorOpen,
+    Package,
+    AlertTriangle,
+    Building2,
+    ChevronLeft,
+    ChevronRight
+} from 'lucide-react';
 import roomService from '../../../../services/roomService';
 
 export default function MaintenanceHistoryModal({
@@ -139,22 +152,22 @@ export default function MaintenanceHistoryModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
             <div
-                className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
+                {/* 1. Header (Fixed non-scrolling) */}
+                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white text-slate-900 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl font-bold shadow-xs">
-                            📋
+                        <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-600 flex items-center justify-center text-xl font-bold shadow-xs">
+                            <ClipboardList className="w-5 h-5 text-amber-600" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
+                            <h3 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
                                 <span>Lịch Sử Sửa Chữa & Bảo Trì Thiết Bị</span>
                                 {filterRoomNumber && (
-                                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold">
+                                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-bold">
                                         Phòng {filterRoomNumber}
                                     </span>
                                 )}
@@ -168,38 +181,38 @@ export default function MaintenanceHistoryModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold transition cursor-pointer"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                         title="Đóng"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* KPI Metrics Cards */}
-                <div className="p-5 bg-slate-50 border-b border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
-                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+                    <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
                         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tổng số lượt</div>
                         <div className="text-xl font-black text-slate-900 mt-0.5">{stats.totalCount} phiếu</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                        <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5 font-medium">
                             <span className="text-amber-600 font-bold">{stats.fixingCount} đang sửa</span>
                             <span>•</span>
                             <span className="text-emerald-600 font-bold">{stats.completedCount} đã xong</span>
                         </div>
                     </div>
 
-                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
                         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tổng chi phí phát sinh</div>
                         <div className="text-xl font-black text-blue-700 mt-0.5">{formatCurrency(stats.totalCost)}</div>
                         <div className="text-[10px] text-slate-500 mt-0.5">Bao gồm vật tư & công thợ</div>
                     </div>
 
-                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
                         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Khách sạn chịu</div>
                         <div className="text-xl font-black text-slate-700 mt-0.5">{formatCurrency(stats.hotelCost)}</div>
                         <div className="text-[10px] text-slate-500 mt-0.5">Bảo dưỡng hao mòn tự nhiên</div>
                     </div>
 
-                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
                         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Khách bồi thường</div>
                         <div className="text-xl font-black text-rose-600 mt-0.5">{formatCurrency(stats.guestCost)}</div>
                         <div className="text-[10px] text-slate-500 mt-0.5">Tính vào Hóa đơn Checkout</div>
@@ -210,7 +223,7 @@ export default function MaintenanceHistoryModal({
                 <div className="p-4 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
                     <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
                         <div className="relative flex-1 min-w-[200px]">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Tìm mã phiếu, số phòng, tên thiết bị, vật tư..."
@@ -224,22 +237,22 @@ export default function MaintenanceHistoryModal({
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30 cursor-pointer"
                         >
                             <option value="all">Tất cả trạng thái</option>
-                            <option value="fixing">⚙️ Đang bảo trì</option>
-                            <option value="completed">✓ Đã hoàn tất</option>
+                            <option value="fixing">Đang bảo trì</option>
+                            <option value="completed">Đã hoàn tất</option>
                         </select>
 
                         {/* Bộ lọc bồi thường */}
                         <select
                             value={isGuestFaultFilter}
                             onChange={(e) => setIsGuestFaultFilter(e.target.value)}
-                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30 cursor-pointer"
                         >
                             <option value="all">Tất cả nguồn chi phí</option>
-                            <option value="hotel">🏢 Khách sạn bảo dưỡng</option>
-                            <option value="guest">⚠️ Khách đền bù</option>
+                            <option value="hotel">Khách sạn bảo dưỡng</option>
+                            <option value="guest">Khách đền bù</option>
                         </select>
                     </div>
 
@@ -249,12 +262,12 @@ export default function MaintenanceHistoryModal({
                         disabled={isLoading}
                         className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                        <span>🔄</span>
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                         <span>Làm mới</span>
                     </button>
                 </div>
 
-                {/* Table Content */}
+                {/* 2. Body Content (Table & Mobile Cards) */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
                     {isLoading ? (
                         <div className="p-16 text-center">
@@ -263,7 +276,7 @@ export default function MaintenanceHistoryModal({
                         </div>
                     ) : filteredTickets.length === 0 ? (
                         <div className="p-16 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                            <span className="text-3xl block mb-2">📦</span>
+                            <Wrench className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                             <h4 className="text-sm font-bold text-slate-800">Không có dữ liệu bảo trì phù hợp</h4>
                             <p className="text-xs text-slate-400 mt-1">Chưa có phiếu bảo trì nào được ghi nhận hoặc không khớp với bộ lọc.</p>
                         </div>
@@ -310,7 +323,7 @@ export default function MaintenanceHistoryModal({
                                                 {/* Thiết bị & Sự cố */}
                                                 <td className="py-3 px-3.5 min-w-[160px]">
                                                     <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                                                        <span>🛠️</span>
+                                                        <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                                         <span>{t.equipment_name}</span>
                                                     </div>
                                                     <div className="text-[11px] text-slate-500 mt-0.5">
@@ -404,8 +417,9 @@ export default function MaintenanceHistoryModal({
                                         {/* 1. Header Thẻ: Số phòng, Mã phiếu, Trạng thái */}
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-black text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
-                                                    🚪 P.{t.room_number}
+                                                <span className="inline-flex items-center gap-1 font-black text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
+                                                    <DoorOpen className="w-3.5 h-3.5 text-slate-500" />
+                                                    <span>P.{t.room_number}</span>
                                                 </span>
                                                 <span className="font-mono text-xs font-bold text-slate-500">
                                                     #{t.ticket_code}
@@ -430,7 +444,7 @@ export default function MaintenanceHistoryModal({
                                         {/* 2. Thiết bị & Sự cố */}
                                         <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
                                             <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                                                <span>🛠️</span>
+                                                <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                                 <span>{t.equipment_name}</span>
                                                 <span className="text-[10px] text-slate-500 font-semibold px-1.5 py-0.2 bg-white rounded border border-slate-200">
                                                     {t.issue_type_display || t.issue_type}
@@ -443,7 +457,10 @@ export default function MaintenanceHistoryModal({
                                             )}
                                             {t.parts_replaced && (
                                                 <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-700 flex items-start gap-1">
-                                                    <span className="font-bold text-slate-800 shrink-0">📦 Vật tư:</span>
+                                                    <span className="inline-flex items-center gap-1 font-bold text-slate-800 shrink-0">
+                                                        <Package className="w-3 h-3 text-slate-500" />
+                                                        <span>Vật tư:</span>
+                                                    </span>
                                                     <span className="font-medium">{t.parts_replaced}</span>
                                                 </div>
                                             )}
@@ -469,12 +486,14 @@ export default function MaintenanceHistoryModal({
                                             <div>
                                                 {t.is_guest_fault ? (
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                        <span>⚠️ Khách bồi thường</span>
+                                                        <AlertTriangle className="w-3 h-3 text-rose-500" />
+                                                        <span>Khách bồi thường</span>
                                                         {t.booking_code && <span className="font-mono">#{t.booking_code}</span>}
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                                        🏢 Khách sạn bảo dưỡng
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                        <Building2 className="w-3 h-3 text-slate-500" />
+                                                        <span>Khách sạn bảo dưỡng</span>
                                                     </span>
                                                 )}
                                             </div>
@@ -493,8 +512,8 @@ export default function MaintenanceHistoryModal({
                     )}
                 </div>
 
-                {/* Footer với Phân Trang */}
-                <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                {/* 3. Footer với Phân Trang (Sticky Bottom Action Bar) */}
+                <div className="p-4 border-t border-slate-100 bg-slate-50/90 backdrop-blur flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                     {/* Thông tin số lượng & Chọn kích thước trang */}
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span>
@@ -531,10 +550,11 @@ export default function MaintenanceHistoryModal({
                             type="button"
                             disabled={safePage <= 1}
                             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                            className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                             title="Trang trước"
                         >
-                            ‹ Trước
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                            <span>Trước</span>
                         </button>
 
                         {pageNumbers.map((p, idx) => {
@@ -566,10 +586,11 @@ export default function MaintenanceHistoryModal({
                             type="button"
                             disabled={safePage >= totalPages}
                             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                            className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                             title="Trang sau"
                         >
-                            Sau ›
+                            <span>Sau</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
                         </button>
 
                         <button

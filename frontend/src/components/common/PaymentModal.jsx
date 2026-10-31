@@ -11,12 +11,12 @@ import {
     ShieldCheck,
     AlertCircle,
     RefreshCw,
-    User,
-    ArrowRight,
     Clock,
     AlertTriangle,
     Save,
-    Trash2
+    Trash2,
+    Smartphone,
+    Loader2
 } from 'lucide-react';
 import api from '../../services/api';
 import { bookingService } from '../../services/bookingService';
@@ -109,6 +109,7 @@ export default function PaymentModal({
                         account_no: data.account_no || DEFAULT_BANK_CONFIG.account_no,
                         account_name: (data.account_name || DEFAULT_BANK_CONFIG.account_name).toUpperCase()
                     });
+                    setIsImageLoading(true);
                 }
             } catch (error) {
                 console.error('Không thể lấy cấu hình VietQR từ server, sử dụng cấu hình mặc định:', error);
@@ -122,11 +123,6 @@ export default function PaymentModal({
             isMounted = false;
         };
     }, [isOpen]);
-
-    // Reset trạng thái tải ảnh khi cấu hình thay đổi
-    useEffect(() => {
-        setIsImageLoading(true);
-    }, [bankConfig.bank_bin, bankConfig.account_no, bankConfig.account_name]);
 
     // Đếm ngược thời gian thanh toán
     useEffect(() => {
@@ -317,17 +313,17 @@ export default function PaymentModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
             {/* Backdrop click outside */}
             <div className="fixed inset-0" onClick={handleInitiateCancel} aria-hidden="true" />
 
             {/* Modal Box */}
             <div
-                className="relative bg-white rounded-3xl sm:rounded-4xl shadow-2xl border border-slate-100 max-w-4xl w-full overflow-hidden z-10"
+                className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden z-10"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header Modal */}
-                <div className="px-6 sm:px-8 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between gap-4">
+                {/* Header Modal - Fixed */}
+                <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between gap-4 shrink-0 bg-white">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 shadow-xs">
                             <QrCode className="w-5 h-5" />
@@ -368,8 +364,8 @@ export default function PaymentModal({
                     </div>
                 </div>
 
-                {/* Banner cảnh báo thời gian đếm ngược trên di động */}
-                <div className="sm:hidden px-6 py-2 bg-amber-50 border-b border-amber-100 text-amber-800 text-xs font-semibold flex items-center justify-between">
+                {/* Banner cảnh báo thời gian đếm ngược trên di động - Fixed under header */}
+                <div className="sm:hidden px-6 py-2 bg-amber-50 border-b border-amber-100 text-amber-800 text-xs font-semibold flex items-center justify-between shrink-0">
                     <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Thời gian giữ phòng còn lại:</span>
@@ -377,8 +373,9 @@ export default function PaymentModal({
                     <strong className="font-mono font-bold text-amber-900">{formatTimer(timeLeft)}</strong>
                 </div>
 
-                {/* Body: Phân chia Layout grid md:grid-cols-2 gap-6 */}
-                <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
+                {/* Body: Phân chia Layout grid md:grid-cols-2 gap-6 - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
                     {/* ========================================================================= */}
                     {/* CỘT TRÁI: THÔNG TIN THANH TOÁN                                             */}
                     {/* ========================================================================= */}
@@ -406,7 +403,7 @@ export default function PaymentModal({
                                     )}
                                 </button>
                             </div>
-                            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-rose-600 font-serif tracking-tight">
+                            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-rose-600 font-bold tracking-tight">
                                 {formatVND(totalAmount)}
                             </div>
                             <div className="mt-2 text-xs text-slate-600 flex items-center gap-2 pt-2 border-t border-amber-200/60">
@@ -575,18 +572,19 @@ export default function PaymentModal({
 
                         {/* Dòng chữ hướng dẫn */}
                         <div className="mt-4 space-y-1">
-                            <p className="text-xs sm:text-sm font-bold text-slate-900">
-                                📲 Mở app ngân hàng và quét mã để thanh toán nhanh
+                            <p className="text-xs sm:text-sm font-bold text-slate-900 flex items-center justify-center gap-1.5">
+                                <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span>Mở app ngân hàng và quét mã để thanh toán nhanh</span>
                             </p>
                             <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
                                 Tự động điền số tiền <strong className="text-slate-800">{formatVND(totalAmount)}</strong> & nội dung chuyển khoản
                             </p>
                         </div>
 
-                        {/* KHU VỰC TRẠNG THÁI TỰ ĐỘNG CHỜ NHẬN TIỀN (AUTO POLLING) */}
+                        {/* KHU VỰC TRẠNG THÁI TỰ ĐỘNG CHỜ NHẬN TIỀN (AUTO POLLING) & HÀNH ĐỘNG */}
                         <div className="w-full mt-6 space-y-3">
-                            <div className="p-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-center gap-3 text-blue-700 shadow-xs">
-                                <span className="relative flex h-3 w-3">
+                            <div className="p-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-center gap-2.5 text-blue-700 shadow-xs">
+                                <span className="relative flex h-3 w-3 shrink-0">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
                                 </span>
@@ -596,18 +594,35 @@ export default function PaymentModal({
                                 </span>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={handleInitiateCancel}
-                                disabled={isLoading}
-                                className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer disabled:opacity-50 text-center"
-                            >
-                                Hủy bỏ / Thanh toán sau
-                            </button>
+                            <div className="flex flex-col gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmPayment}
+                                    disabled={isLoading}
+                                    className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20 disabled:opacity-50"
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <CheckCircle2 className="w-4 h-4" />
+                                    )}
+                                    <span>Tôi đã chuyển khoản xong</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleInitiateCancel}
+                                    disabled={isLoading}
+                                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer disabled:opacity-50 text-center"
+                                >
+                                    Hủy bỏ / Thanh toán sau
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
             {/* ========================================================================= */}
             {/* MODAL XÁC NHẬN KHI KHÁCH BẤM "HỦY BỎ"                                      */}
@@ -620,7 +635,7 @@ export default function PaymentModal({
                         </div>
 
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900">
+                            <h3 className="text-lg font-bold text-slate-900 tracking-tight">
                                 Bạn muốn tạm dừng thanh toán?
                             </h3>
                             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
@@ -657,7 +672,7 @@ export default function PaymentModal({
                                 className="w-full py-2 px-4 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                                 {isCancellingBooking ? (
-                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                 ) : (
                                     <Trash2 className="w-3.5 h-3.5" />
                                 )}

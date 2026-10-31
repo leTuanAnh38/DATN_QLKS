@@ -1,4 +1,33 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+    Building2,
+    X,
+    AlertCircle,
+    Check,
+    CheckCircle2,
+    Sparkles,
+    Calendar,
+    CalendarCheck,
+    Clock,
+    Users,
+    BedDouble,
+    Minus,
+    Plus,
+    ChevronUp,
+    ChevronDown,
+    Star,
+    User,
+    Trash2,
+    BellRing,
+    Search,
+    FileEdit,
+    FileText,
+    QrCode,
+    Zap,
+    Copy,
+    Lightbulb,
+    Scale
+} from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 import { roomService } from '../../../../services/roomService';
 import { hotelService } from '../../../../services/hotelService';
@@ -376,7 +405,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         availableServices.forEach((svc) => {
             const catId = svc.category_id || svc.category?.id || svc.category_name || svc.category?.name || 'other';
             const catName = svc.category_name || svc.category?.name || 'Tiện ích khác';
-            const catIcon = svc.category_icon || svc.category?.icon || '🛎️';
+            const catIcon = svc.category_icon || svc.category?.icon || null;
             if (!map.has(catId)) {
                 map.set(catId, { id: catId, name: catName, icon: catIcon });
             }
@@ -643,20 +672,20 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full p-4 sm:p-8 shadow-2xl text-left max-h-[94vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 
                 {/* MODAL HEADER */}
-                <div className="flex items-start justify-between pb-4 border-b border-slate-200 mb-6">
-                    <div className="flex items-center gap-2.5 sm:gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
-                            🏢
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0 bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+                            <Building2 className="w-5 h-5 text-white" />
                         </div>
                         <div>
                             <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] sm:text-[11px] font-bold border border-blue-200 uppercase tracking-wide">
                                 Phân Hệ Khách Đoàn & Doanh Nghiệp (M.I.C.E / B2B)
                             </span>
-                            <h2 className="font-serif text-lg sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">
+                            <h2 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight mt-0.5">
                                 Tạo Đơn Đặt Phòng Theo Đoàn (Group Booking)
                             </h2>
                         </div>
@@ -665,40 +694,41 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-base cursor-pointer shrink-0"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer shrink-0"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                {error && (
-                    <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
-                        <span>⚠️</span>
-                        <span>{error}</span>
-                    </div>
-                )}
-
                 {isLoadingInit ? (
-                    <div className="py-16 text-center space-y-3">
+                    <div className="py-24 text-center space-y-3">
                         <div className="w-9 h-9 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                         <p className="text-xs text-slate-500 font-semibold">Đang tải danh mục phòng và danh bạ đối tác doanh nghiệp...</p>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        
-                        {/* KHỐI 1: THÔNG TIN ĐỐI TÁC DOANH NGHIỆP & TÊN ĐOÀN */}
-                        <div className="p-5 bg-gradient-to-br from-slate-50 to-indigo-50/30 border border-slate-200 rounded-2xl space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                    <span>🏢</span>
-                                    <span>Thông Tin Đoàn & Khách Hàng Doanh Nghiệp</span>
-                                </h3>
-                                {activePartner && (
-                                    <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300">
-                                        ✓ Ưu đãi Hợp đồng: Giảm {activePartner.discount_percent}%
-                                    </span>
-                                )}
-                            </div>
+                    <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+                            {error && (
+                                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                    <span>{error}</span>
+                                </div>
+                            )}
+                            
+                            {/* KHỐI 1: THÔNG TIN ĐỐI TÁC DOANH NGHIỆP & TÊN ĐOÀN */}
+                            <div className="p-5 bg-gradient-to-br from-slate-50 to-indigo-50/30 border border-slate-200 rounded-2xl space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                        <Building2 className="w-4 h-4 text-indigo-600" />
+                                        <span>Thông Tin Đoàn & Khách Hàng Doanh Nghiệp</span>
+                                    </h3>
+                                    {activePartner && (
+                                        <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300 flex items-center gap-1">
+                                            <Check className="w-3.5 h-3.5" />
+                                            <span>Ưu đãi Hợp đồng: Giảm {activePartner.discount_percent}%</span>
+                                        </span>
+                                    )}
+                                </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
@@ -797,14 +827,15 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                             className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 accent-blue-600 cursor-pointer"
                                         />
                                         <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                            <span>✨</span>
+                                            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                                             <span>Đăng ký tài khoản thành viên cho Trưởng đoàn</span>
                                         </span>
                                     </label>
                                     <p className="text-[11px] text-slate-500 pl-6.5 leading-relaxed">
                                         {createAccount ? (
-                                            <span className="text-blue-700 font-medium">
-                                                ✓ Hệ thống sẽ tạo tài khoản User để Trưởng đoàn có thể đăng nhập trên Website, tích điểm loyalty và theo dõi đơn đặt đoàn.
+                                            <span className="text-blue-700 font-medium flex items-center gap-1">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                                <span>Hệ thống sẽ tạo tài khoản User để Trưởng đoàn có thể đăng nhập trên Website, tích điểm loyalty và theo dõi đơn đặt đoàn.</span>
                                             </span>
                                         ) : (
                                             <span>
@@ -819,8 +850,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         {/* KHỐI 2: THỜI GIAN LƯU TRÚ & QUY MÔ ĐOÀN */}
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 p-4 bg-slate-50 border border-slate-200 rounded-2xl items-center">
                             <div>
-                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                                    🗓️ Ngày Check-in:
+                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>Ngày Check-in:</span>
                                 </label>
                                 <input
                                     type="date"
@@ -832,8 +864,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                                    ⏰ Giờ đến dự kiến (ETA):
+                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
+                                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>Giờ đến dự kiến (ETA):</span>
                                 </label>
                                 <select
                                     value={estimatedArrivalTime}
@@ -852,8 +885,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                                    🗓️ Ngày Check-out:
+                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
+                                    <CalendarCheck className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>Ngày Check-out:</span>
                                 </label>
                                 <input
                                     type="date"
@@ -865,8 +899,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                                    👥 Số khách dự kiến:
+                                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
+                                    <Users className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>Số khách dự kiến:</span>
                                 </label>
                                 <div className="flex items-center gap-2">
                                     <input
@@ -888,7 +923,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                    <span>🛏️</span>
+                                    <BedDouble className="w-4 h-4 text-indigo-600" />
                                     <span>Cơ Cấu Phòng Đoàn Cần Đặt</span>
                                 </h3>
                                 <div className="flex items-center gap-2">
@@ -938,12 +973,14 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                     {isLoadingAvail ? (
                                                         <span className="text-[10px] text-indigo-600 animate-pulse font-medium">Đang kiểm tra...</span>
                                                     ) : isSoldOut ? (
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                                                            🔴 Hết phòng
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 flex items-center">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block mr-1"></span>
+                                                            Hết phòng
                                                         </span>
                                                     ) : availRooms !== null ? (
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                            🟢 Còn: <strong>{availRooms}</strong> phòng
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mr-1"></span>
+                                                            Còn:&nbsp;<strong>{availRooms}</strong>&nbsp;phòng
                                                         </span>
                                                     ) : null}
                                                 </div>
@@ -957,7 +994,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                     onClick={() => handleRoomQtyChange(cat.id, -1)}
                                                     className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95"
                                                 >
-                                                    -
+                                                    <Minus className="w-3.5 h-3.5" />
                                                 </button>
                                                 <span className="w-8 text-center font-black text-slate-900 text-sm">{qty}</span>
                                                 <button
@@ -967,7 +1004,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                     className="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95 shadow-xs"
                                                     title={availRooms !== null && qty >= availRooms ? `Chỉ còn ${availRooms} phòng trống, không thể chọn vượt quá số phòng trống!` : ''}
                                                 >
-                                                    +
+                                                    <Plus className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         </div>
@@ -982,7 +1019,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-indigo-100">
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
-                                            <span>👥</span>
+                                            <Users className="w-4 h-4 text-indigo-600" />
                                             <span>Danh Sách Khách Lưu Trú Cho Từng Phòng & Dịch Vụ Đặt Kèm</span>
                                             <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
                                                 {totalRoomsCount} phòng • {roomingList.reduce((acc, r) => acc + (r.guests?.length || 0), 0)} khách
@@ -999,7 +1036,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                         className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
                                     >
                                         <span>{isRoomingListOpen ? 'Thu gọn' : 'Mở rộng danh sách'}</span>
-                                        <span>{isRoomingListOpen ? '▲' : '▼'}</span>
+                                        {isRoomingListOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                                     </button>
                                 </div>
 
@@ -1038,7 +1075,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                     ? 'bg-amber-50 text-amber-800 border-amber-200'
                                                                     : 'bg-slate-50 text-slate-700 border-slate-200'
                                                             }`}>
-                                                                <span>👥</span>
+                                                                <Users className="w-3 h-3 text-slate-500" />
                                                                 <span>{guestCount}/{roomCap} khách</span>
                                                                 {isFull && <span className="text-amber-600 font-semibold">(Tối đa)</span>}
                                                             </span>
@@ -1054,7 +1091,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                         : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 cursor-pointer active:scale-95'
                                                                 }`}
                                                             >
-                                                                <span>➕</span>
+                                                                <Plus className="w-3 h-3" />
                                                                 <span>Thêm người ở</span>
                                                             </button>
                                                         </div>
@@ -1076,7 +1113,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                 >
                                                                     <div className="flex items-center justify-between mb-1.5">
                                                                         <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1">
-                                                                            <span>{isPrimary ? '⭐' : '👤'}</span>
+                                                                            {isPrimary ? <Star className="w-3 h-3 text-amber-500 fill-amber-400" /> : <User className="w-3 h-3 text-slate-500" />}
                                                                             <span>{isPrimary ? 'Khách đại diện phòng' : `Khách ở cùng #${gIdx}`}</span>
                                                                         </span>
 
@@ -1086,7 +1123,8 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                 onClick={() => handleRemoveGuestFromAllocatedRoom(room.room_key, gIdx)}
                                                                                 className="text-rose-600 hover:text-rose-800 text-[10px] font-bold flex items-center gap-1 cursor-pointer p-0.5 hover:bg-rose-50 rounded transition"
                                                                             >
-                                                                                <span>✕ Xóa</span>
+                                                                                <Trash2 className="w-3 h-3" />
+                                                                                <span>Xóa</span>
                                                                             </button>
                                                                         )}
                                                                     </div>
@@ -1166,7 +1204,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                     <div className="pt-2.5 border-t border-slate-100 space-y-2">
                                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                                             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                                                                <span>🛎️</span>
+                                                                <BellRing className="w-3.5 h-3.5 text-indigo-600" />
                                                                 <span>Dịch vụ tiện ích chọn kèm phòng này</span>
                                                                 {room.services && room.services.length > 0 && (
                                                                     <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-bold text-[10px]">
@@ -1179,7 +1217,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                 onClick={() => setActiveServicePickerRoomKey(activeServicePickerRoomKey === room.room_key ? null : room.room_key)}
                                                                 className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1 transition cursor-pointer active:scale-95"
                                                             >
-                                                                <span>➕</span>
+                                                                <Plus className="w-3 h-3" />
                                                                 <span>{activeServicePickerRoomKey === room.room_key ? 'Đóng menu dịch vụ' : 'Thêm dịch vụ'}</span>
                                                             </button>
                                                         </div>
@@ -1201,7 +1239,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                 onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, -1)}
                                                                                 className="w-5 h-5 rounded bg-white hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer border border-slate-200"
                                                                             >
-                                                                                -
+                                                                                <Minus className="w-2.5 h-2.5" />
                                                                             </button>
                                                                             <span className="w-5 text-center text-xs font-black text-slate-800">{svc.quantity}</span>
                                                                             <button
@@ -1209,7 +1247,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                 onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, 1)}
                                                                                 className="w-5 h-5 rounded bg-white hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer border border-slate-200"
                                                                             >
-                                                                                +
+                                                                                <Plus className="w-2.5 h-2.5" />
                                                                             </button>
                                                                             <button
                                                                                 type="button"
@@ -1217,7 +1255,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                 className="text-slate-400 hover:text-rose-600 text-xs ml-1 cursor-pointer p-0.5"
                                                                                 title="Xóa dịch vụ"
                                                                             >
-                                                                                ✕
+                                                                                <Trash2 className="w-3 h-3" />
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -1244,9 +1282,10 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                             setServiceSearchQuery('');
                                                                             setSelectedServiceCategory('all');
                                                                         }}
-                                                                        className="text-slate-400 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold"
+                                                                        className="text-slate-400 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold flex items-center gap-1"
                                                                     >
-                                                                        ✕ Đóng
+                                                                        <X className="w-3.5 h-3.5" />
+                                                                        <span>Đóng</span>
                                                                     </button>
                                                                 </div>
 
@@ -1260,14 +1299,14 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                             placeholder="Tìm nhanh dịch vụ theo tên, tiện ích (Buffet, Spa, Xe, Giặt ủi...)"
                                                                             className="w-full pl-8 pr-8 py-1.5 bg-white border border-indigo-200/80 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                                                         />
-                                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                                                                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                                                         {serviceSearchQuery && (
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => setServiceSearchQuery('')}
-                                                                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                                                                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                                                                             >
-                                                                                ✕
+                                                                                <X className="w-3 h-3" />
                                                                             </button>
                                                                         )}
                                                                     </div>
@@ -1301,7 +1340,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                                                                         }`}
                                                                                     >
-                                                                                        <span>{cat.icon || '🛎️'}</span>
+                                                                                        {cat.icon ? <span>{cat.icon}</span> : <BellRing className="w-3 h-3" />}
                                                                                         <span>{cat.name}</span>
                                                                                         <span className="opacity-70 text-[10px]">({countInCat})</span>
                                                                                     </button>
@@ -1329,8 +1368,9 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                     >
                                                                                         <div className="min-w-0">
                                                                                             <div className="flex items-center justify-between gap-1 mb-1">
-                                                                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[130px]">
-                                                                                                    {svcItem.category_icon || '🛎️'} {svcItem.category?.name || svcItem.category_name || 'Tiện ích'}
+                                                                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[130px] flex items-center gap-1">
+                                                                                                    {svcItem.category_icon ? <span>{svcItem.category_icon}</span> : <BellRing className="w-2.5 h-2.5 text-slate-500" />}
+                                                                                                    <span>{svcItem.category?.name || svcItem.category_name || 'Tiện ích'}</span>
                                                                                                 </span>
                                                                                                 {qtyInRoom > 0 && (
                                                                                                     <span className="text-[10px] font-black text-indigo-700 bg-indigo-200/80 px-1.5 py-0.2 rounded-full">
@@ -1344,7 +1384,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                             {svcItem.description && (
                                                                                                 <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5" title={svcItem.description}>
                                                                                                     {svcItem.description}
-                                                                                                </div>
+                                                                                            </div>
                                                                                             )}
                                                                                             <div className="text-xs font-black text-indigo-700 mt-1">
                                                                                                 {formatCurrency(svcItem.price)}
@@ -1359,7 +1399,17 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                                                     : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
                                                                                             }`}
                                                                                         >
-                                                                                            <span>{qtyInRoom > 0 ? `✓ Thêm tiếp (+1)` : '➕ Thêm vào phòng'}</span>
+                                                                                            {qtyInRoom > 0 ? (
+                                                                                                <>
+                                                                                                    <Check className="w-3 h-3" />
+                                                                                                    <span>Thêm tiếp (+1)</span>
+                                                                                                </>
+                                                                                            ) : (
+                                                                                                <>
+                                                                                                    <Plus className="w-3 h-3" />
+                                                                                                    <span>Thêm vào phòng</span>
+                                                                                                </>
+                                                                                            )}
                                                                                         </button>
                                                                                     </div>
                                                                                 );
@@ -1367,7 +1417,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                         </div>
                                                                     ) : (
                                                                         <div className="text-center py-6 bg-white rounded-xl border border-dashed border-slate-200 space-y-1.5">
-                                                                            <div className="text-base">🔍</div>
+                                                                            <Search className="w-6 h-6 text-slate-300 mx-auto" />
                                                                             <p className="text-xs font-semibold text-slate-600">
                                                                                 Không tìm thấy dịch vụ nào phù hợp với từ khóa "{serviceSearchQuery}".
                                                                             </p>
@@ -1402,7 +1452,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         {/* KHỐI 4: GHI CHÚ YÊU CẦU CỦA ĐOÀN & GHI CHÚ NỘI BỘ LỄ TÂN */}
                         <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                             <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                <span>📝</span>
+                                <FileEdit className="w-4 h-4 text-slate-700" />
                                 <span>Ghi Chú & Yêu Cầu Phục Vụ Đoàn</span>
                             </h3>
 
@@ -1439,7 +1489,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                             <label className="flex items-center justify-between cursor-pointer">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-base">📑</span>
+                                    <FileText className="w-4 h-4 text-indigo-600" />
                                     <div>
                                         <span className="text-xs font-bold text-slate-900 block">Xuất Hóa đơn Giá trị gia tăng (VAT) cho Công ty</span>
                                         <span className="text-[10px] text-slate-500">Cung cấp Mã số thuế và địa chỉ công ty để bộ phận Kế toán lập hóa đơn điện tử</span>
@@ -1543,7 +1593,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                         : 'bg-amber-100 text-amber-900 border-amber-300'
                                                 }`}>
                                                     {Number(customDeposit) === grandTotal && grandTotal > 0
-                                                        ? '✓ 100% Trọn gói'
+                                                        ? '100% Trọn gói'
                                                         : isDepositCustomized
                                                         ? `Tùy chỉnh (${grandTotal > 0 ? Math.round((Number(customDeposit || 0) / grandTotal) * 100) : 0}%)`
                                                         : `Mặc định ${hotelSettings.group_deposit_percent || 50}%`}
@@ -1636,10 +1686,10 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                 {depositPaymentMethod === 'TRANSFER'
                                                     ? 'Tự động VietQR'
                                                     : depositPaymentMethod === 'CASH'
-                                                    ? '💵 Tiền mặt tại quầy'
+                                                    ? 'Tiền mặt tại quầy'
                                                     : depositPaymentMethod === 'POS'
-                                                    ? '💳 Máy quẹt POS'
-                                                    : '🏢 Bảo lãnh B2B'}
+                                                    ? 'Máy quẹt POS'
+                                                    : 'Bảo lãnh B2B'}
                                             </span>
                                         </div>
 
@@ -1648,20 +1698,20 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                             onChange={(e) => setDepositPaymentMethod(e.target.value)}
                                             className="w-full px-3.5 py-2 bg-white border-2 border-slate-200 focus:border-indigo-600 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer shadow-xs transition"
                                         >
-                                            <option value="TRANSFER">📱 Chuyển khoản VietQR (Quét tại quầy / Email)</option>
-                                            <option value="CASH">💵 Tiền mặt tại quầy lễ tân</option>
-                                            <option value="POS">💳 Quẹt thẻ máy POS</option>
-                                            <option value="CREDIT">🏢 Bảo lãnh công nợ B2B (Thanh toán sau)</option>
+                                            <option value="TRANSFER">Chuyển khoản VietQR (Quét tại quầy / Email)</option>
+                                            <option value="CASH">Tiền mặt tại quầy lễ tân</option>
+                                            <option value="POS">Quẹt thẻ máy POS</option>
+                                            <option value="CREDIT">Bảo lãnh công nợ B2B (Thanh toán sau)</option>
                                         </select>
 
                                         <div className="text-[11px] text-slate-500 pt-0.5 px-0.5 truncate">
                                             {depositPaymentMethod === 'TRANSFER'
-                                                ? '⚡ Quét mã VietQR trực tiếp tại quầy hoặc nhận qua Email'
+                                                ? 'Quét mã VietQR trực tiếp tại quầy hoặc nhận qua Email'
                                                 : depositPaymentMethod === 'CASH'
-                                                ? '💵 Thu tiền mặt trực tiếp từ Trưởng đoàn tại quầy'
+                                                ? 'Thu tiền mặt trực tiếp từ Trưởng đoàn tại quầy'
                                                 : depositPaymentMethod === 'POS'
-                                                ? '💳 Quẹt thẻ ngân hàng qua máy POS tại quầy lễ tân'
-                                                : '🏢 Ghi nhận công nợ đối tác doanh nghiệp thanh toán sau'}
+                                                ? 'Quẹt thẻ ngân hàng qua máy POS tại quầy lễ tân'
+                                                : 'Ghi nhận công nợ đối tác doanh nghiệp thanh toán sau'}
                                         </div>
                                     </div>
                                 </div>
@@ -1673,11 +1723,13 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                             <div className="flex items-center gap-2">
                                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                                 <span className="text-xs font-bold uppercase tracking-wide text-indigo-950 flex items-center gap-1.5">
-                                                    <span>📱</span> Mã VietQR Quét Trả Cọc Trực Tiếp Tại Quầy
+                                                    <QrCode className="w-4 h-4 text-indigo-600" />
+                                                    <span>Mã VietQR Quét Trả Cọc Trực Tiếp Tại Quầy</span>
                                                 </span>
                                             </div>
-                                            <span className="text-[10px] font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-full border border-indigo-200 shadow-2xs self-start sm:self-auto">
-                                                ⚡ Tự động điền STK & Số tiền cọc
+                                            <span className="text-[10px] font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-full border border-indigo-200 shadow-2xs self-start sm:self-auto flex items-center gap-1">
+                                                <Zap className="w-3 h-3 text-indigo-600" />
+                                                <span>Tự động điền STK & Số tiền cọc</span>
                                             </span>
                                         </div>
 
@@ -1714,9 +1766,19 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCopyText(bankConfig.account_no, 'stk')}
-                                                            className="px-1.5 py-0.5 text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded border border-indigo-200 transition cursor-pointer"
+                                                            className="px-2 py-0.5 text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded border border-indigo-200 transition cursor-pointer flex items-center gap-1"
                                                         >
-                                                            {copiedField === 'stk' ? '✓ Đã chép' : 'Sao chép'}
+                                                            {copiedField === 'stk' ? (
+                                                                <>
+                                                                    <Check className="w-3 h-3" />
+                                                                    <span>Đã chép</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Copy className="w-3 h-3" />
+                                                                    <span>Sao chép</span>
+                                                                </>
+                                                            )}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1733,9 +1795,19 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCopyText(transferDescription, 'content')}
-                                                            className="px-1.5 py-0.5 text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded border border-amber-300 transition cursor-pointer"
+                                                            className="px-2 py-0.5 text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded border border-amber-300 transition cursor-pointer flex items-center gap-1"
                                                         >
-                                                            {copiedField === 'content' ? '✓ Đã chép' : 'Sao chép'}
+                                                            {copiedField === 'content' ? (
+                                                                <>
+                                                                    <Check className="w-3 h-3" />
+                                                                    <span>Đã chép</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Copy className="w-3 h-3" />
+                                                                    <span>Sao chép</span>
+                                                                </>
+                                                            )}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1751,7 +1823,8 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                 : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
                                                         }`}
                                                     >
-                                                        <span>{isDepositPaidNow ? '✓ Đã xác nhận khách quét xong' : '✓ Khách đã quét thanh toán xong'}</span>
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        <span>{isDepositPaidNow ? 'Đã xác nhận khách quét xong' : 'Khách đã quét thanh toán xong'}</span>
                                                     </button>
                                                     {isDepositPaidNow && (
                                                         <button
@@ -1767,18 +1840,22 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                             </div>
                                         </div>
 
-                                        <p className="text-[10.5px] text-indigo-900/80 bg-white/80 p-2.5 rounded-xl border border-indigo-100 leading-relaxed">
-                                            💡 <strong>Khách tại quầy:</strong> Khách dùng App Ngân hàng quét trực tiếp mã QR trên màn hình. Sau khi tài khoản khách sạn báo nhận tiền, bấm nút <em>"Khách đã quét thanh toán xong"</em> để đơn được duyệt sang trạng thái <strong>Confirmed</strong> ngay lập tức.
-                                            <br />
-                                            Nếu khách đặt từ xa qua điện thoại, bạn không cần quét mã này. Hệ thống sẽ tự động gửi email kèm mã QR đến hòm thư <strong>{leaderEmail || '(chưa nhập email)'}</strong>.
+                                        <p className="text-[10.5px] text-indigo-900/80 bg-white/80 p-2.5 rounded-xl border border-indigo-100 leading-relaxed flex items-start gap-1.5">
+                                            <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                            <span>
+                                                <strong>Khách tại quầy:</strong> Khách dùng App Ngân hàng quét trực tiếp mã QR trên màn hình. Sau khi tài khoản khách sạn báo nhận tiền, bấm nút <em>"Khách đã quét thanh toán xong"</em> để đơn được duyệt sang trạng thái <strong>Confirmed</strong> ngay lập tức.
+                                                <br />
+                                                Nếu khách đặt từ xa qua điện thoại, bạn không cần quét mã này. Hệ thống sẽ tự động gửi email kèm mã QR đến hòm thư <strong>{leaderEmail || '(chưa nhập email)'}</strong>.
+                                            </span>
                                         </p>
                                     </div>
                                 )}
 
                                 {/* CHÍNH SÁCH THANH TOÁN PHÁT SINH (BILLING ROUTING) */}
                                 <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                                    <label className="text-[11px] text-slate-700 font-bold uppercase tracking-wider block">
-                                        ⚖️ Chính sách chi trả dịch vụ phát sinh tại phòng:
+                                    <label className="text-[11px] text-slate-700 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                        <Scale className="w-4 h-4 text-indigo-600" />
+                                        <span>Chính sách chi trả dịch vụ phát sinh tại phòng:</span>
                                     </label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                         <div
@@ -1834,24 +1911,38 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                         className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-400 cursor-pointer"
                                     />
                                     <div className="text-xs">
-                                        <span className="font-bold text-emerald-700 block">
-                                            ✓ Xác nhận đã thu đủ tiền cọc ngay tại quầy
+                                        <span className="font-bold text-emerald-700 flex items-center gap-1.5">
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                            <span>Xác nhận đã thu đủ tiền cọc ngay tại quầy</span>
                                         </span>
-                                        <span className="text-[11px] text-slate-500">
+                                        <span className="text-[11px] text-slate-500 block mt-0.5">
                                             Đơn đoàn sẽ được duyệt sang trạng thái <strong>ĐÃ XÁC NHẬN (Confirmed)</strong> ngay lập tức.
                                         </span>
                                     </div>
                                 </label>
                             </div>
                         </div>
+                    </div>{/* End scrollable body */}
 
-                        {/* FOOTER ACTIONS */}
-                        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
+                    {/* STICKY FOOTER ACTIONS */}
+                    <div className="px-6 py-3.5 border-t border-slate-200 bg-slate-50/90 backdrop-blur flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="text-slate-500">Đã chọn:</span>
+                            <strong className="text-slate-900 font-bold">{totalRoomsCount} phòng</strong>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-slate-500">Cọc:</span>
+                            <strong className="text-amber-700 font-bold">{formatCurrency(depositVal)}</strong>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-slate-500">Tổng HĐ:</span>
+                            <strong className="text-indigo-600 font-bold">{formatCurrency(grandTotal)}</strong>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 justify-end">
                             <button
                                 type="button"
                                 disabled={isSubmitting}
                                 onClick={onClose}
-                                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer text-center"
+                                className="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                             >
                                 Hủy bỏ
                             </button>
@@ -1859,7 +1950,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isSubmitting || totalRoomsCount === 0}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-center"
+                                className="px-5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                             >
                                 {isSubmitting ? (
                                     <>
@@ -1868,17 +1959,18 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                     </>
                                 ) : (
                                     <>
-                                        <span>✓</span>
+                                        <CheckCircle2 className="w-4 h-4" />
                                         <span>Tạo Đơn Đặt Đoàn ({totalRoomsCount} phòng)</span>
                                     </>
                                 )}
                             </button>
                         </div>
+                    </div>
 
-                    </form>
-                )}
+                </form>
+            )}
 
-            </div>
         </div>
-    );
+    </div>
+);
 }

@@ -3,16 +3,13 @@ import {
     Printer,
     X,
     FileText,
-    CheckCircle2,
     AlertCircle,
-    Building2,
-    Calendar,
-    Clock,
-    User,
     Banknote,
     Coins,
     ShieldCheck,
-    ArrowDownCircle
+    ArrowDownCircle,
+    CreditCard,
+    Loader2
 } from 'lucide-react';
 import api from '../../../../services/api';
 import paymentService from '../../../../services/paymentService';
@@ -223,7 +220,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
     };
 
     return (
-        <div className="z-report-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity overflow-y-auto print:p-0 print:bg-white print:static">
+        <div className="z-report-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 print:p-0 print:bg-white print:static">
             {/* CSS chuyên dụng cho lệnh in window.print() (khi gọi trực tiếp) */}
             <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
@@ -285,23 +282,25 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                 }
             `}} />
 
-            <div className="z-report-modal-card relative w-full max-w-3xl my-6 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:border-none print:rounded-none">
-                {/* Header Action Bar (Ẩn khi in) */}
-                <div className="no-print flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 bg-slate-50 shrink-0">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="z-report-modal-card relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200 text-left print:max-h-none print:shadow-none print:border-none print:rounded-none">
+                {/* 1. HEADER (Fixed Non-Scrolling, Ẩn khi in) */}
+                <div className="no-print shrink-0 flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-2xs shrink-0">
+                            <FileText className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-sm sm:text-base font-bold text-slate-900">Báo Cáo Kết Ca (Z-Report)</h3>
-                            <p className="text-[11px] sm:text-xs text-slate-500">Mã ca: #{shift?.shift_code || shiftId}</p>
+                            <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                                Báo Cáo Kết Ca (Z-Report)
+                            </h3>
+                            <p className="text-xs text-slate-500">Mã ca: #{shift?.shift_code || shiftId}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             type="button"
                             onClick={handlePrint}
-                            className="px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 sm:gap-2 shadow-xs cursor-pointer"
+                            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
                         >
                             <Printer className="w-4 h-4 shrink-0" />
                             <span>In Phiếu <span className="hidden sm:inline">(Ctrl+P)</span></span>
@@ -309,22 +308,22 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer shrink-0"
+                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer shrink-0"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
 
-                {/* Nội dung Báo cáo Z-Report (In ấn) */}
-                <div className="p-4 sm:p-8 overflow-y-auto space-y-6 print:overflow-visible print:p-0" id="z-report-printable" ref={reportRef}>
+                {/* 2. BODY (Scrollable, In ấn) */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 print:overflow-visible print:p-0" id="z-report-printable" ref={reportRef}>
                     {loading ? (
                         <div className="py-20 text-center">
-                            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
                             <p className="text-sm text-slate-500">Đang chuẩn bị dữ liệu Z-Report...</p>
                         </div>
                     ) : error ? (
-                        <div className="p-4 rounded-2xl bg-rose-50 text-rose-700 text-sm flex items-center gap-2">
+                        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-2">
                             <AlertCircle className="w-5 h-5" />
                             <span>{error}</span>
                         </div>
@@ -465,12 +464,14 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                                                         </td>
                                                         <td className="py-1.5 px-3 text-center whitespace-nowrap">
                                                             {v.payment_method === 'TRANSFER' ? (
-                                                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                                    💳 Chuyển khoản (TK KS)
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                                    <CreditCard className="w-3 h-3 text-blue-600" />
+                                                                    <span>Chuyển khoản (TK KS)</span>
                                                                 </span>
                                                             ) : (
-                                                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                                    💵 Tiền mặt (Két quầy)
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                    <Banknote className="w-3 h-3 text-emerald-600" />
+                                                                    <span>Tiền mặt (Két quầy)</span>
                                                                 </span>
                                                             )}
                                                         </td>
@@ -607,6 +608,31 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                             <p className="text-xs text-slate-400 mt-1">Vui lòng kiểm tra lại mã ca hoặc thử tải lại trang.</p>
                         </div>
                     )}
+                </div>
+
+                {/* 3. FOOTER (Sticky Bottom, Ẩn khi in) */}
+                <div className="no-print shrink-0 px-5 sm:px-6 py-3.5 bg-slate-50/90 backdrop-blur-xs border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span className="font-medium">Hệ thống Quản trị Khách sạn (PMS)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handlePrint}
+                            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                        >
+                            <Printer className="w-3.5 h-3.5" />
+                            <span>In Ngay</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                        >
+                            Đóng
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

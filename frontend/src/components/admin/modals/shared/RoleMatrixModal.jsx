@@ -137,7 +137,9 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                             const updated = { ...INITIAL_CRUD_MATRIX, ...prev, ...response.data.matrix };
                             try {
                                 localStorage.setItem('hotel_role_matrix', JSON.stringify(updated));
-                            } catch (_) {}
+                            } catch {
+                                // Ignore storage error
+                            }
                             return updated;
                         });
                     }
@@ -369,13 +371,13 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
     if (!isOpen || !canManageRoleMatrix) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
             <div
-                className="relative w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 1. MODAL HEADER */}
-                <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+                <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
                     <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
                         <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30 shrink-0">
                             <ShieldCheck className="w-6 h-6 text-white" />
@@ -385,8 +387,9 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                                 <h3 className="font-bold text-lg text-slate-900 tracking-tight">
                                     Ma Trận Phân Quyền Vai Trò (Role-Based Access Control)
                                 </h3>
-                                <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
-                                    RBAC 5★
+                                <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-indigo-200">
+                                    <ShieldCheck className="w-3 h-3 text-indigo-600" />
+                                    <span>RBAC 5.0</span>
                                 </span>
                             </div>
                             <p className="text-xs text-slate-500 mt-0.5">
@@ -425,7 +428,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-800 border border-slate-200 flex items-center justify-center transition cursor-pointer text-sm font-bold ml-2 shadow-xs"
+                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm ml-2 shrink-0"
                             title="Đóng cửa sổ"
                         >
                             <X className="w-4 h-4" />
@@ -739,9 +742,9 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
                     </div>
                 </div>
 
-                {/* 4. MODAL FOOTER */}
-                <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50">
-                    <div className="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5">
+                {/* 4. MODAL FOOTER (Sticky Bottom) */}
+                <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/90 backdrop-blur shrink-0">
+                    <div className="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5 font-medium">
                         <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                         <span>Dữ liệu lưu sẽ tự động đồng bộ sang bảng mã quyền của nhân viên tương ứng.</span>
                     </div>

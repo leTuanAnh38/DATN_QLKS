@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Printer, X, Lightbulb, Building2 } from 'lucide-react';
 import api from '../../../../services/api';
 
 /**
@@ -9,8 +10,6 @@ import api from '../../../../services/api';
  * - Tương thích lệnh in trình duyệt window.print() (chỉ in nội dung hóa đơn, ẩn hoàn toàn giao diện xung quanh)
  */
 export default function HotelInvoiceModal({ booking, payment, transaction, paymentMethod, onClose }) {
-    if (!booking) return null;
-
     // Tự động tải thông tin khách sạn từ Cài đặt hệ thống
     const [hotelInfo, setHotelInfo] = useState({
         hotel_name: 'Khách Sạn TA Đà Nẵng',
@@ -204,12 +203,12 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     // Nhãn dòng khấu trừ đã thanh toán trong khối Tổng kết
     const getPaidAdvanceLabel = () => {
         const code = resolvePaymentMethodCode();
-        if (code === 'MIXED') return '✓ Đã thanh toán (Hỗn hợp Tiền mặt & VietQR):';
-        if (code === 'CASH') return '✓ Đã thanh toán (Tiền mặt):';
-        if (code === 'TRANSFER') return '✓ Đã thanh toán (VietQR):';
-        if (code === 'CREDIT_CARD') return '✓ Đã thanh toán (Thẻ tín dụng):';
-        if (code === 'MOMO') return '✓ Đã thanh toán (Ví MoMo):';
-        return '✓ Đã thanh toán:';
+        if (code === 'MIXED') return 'Đã thanh toán (Hỗn hợp Tiền mặt & VietQR):';
+        if (code === 'CASH') return 'Đã thanh toán (Tiền mặt):';
+        if (code === 'TRANSFER') return 'Đã thanh toán (VietQR):';
+        if (code === 'CREDIT_CARD') return 'Đã thanh toán (Thẻ tín dụng):';
+        if (code === 'MOMO') return 'Đã thanh toán (Ví MoMo):';
+        return 'Đã thanh toán:';
     };
 
     const isGroupMaster = Boolean(booking.is_group_master || booking.is_group_booking);
@@ -258,11 +257,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     const nights = Math.max(1, Number(booking.nights) || 1);
     
     // Đối với đoàn (isGroupMaster): tiền phòng thuần được bóc tách từ các phòng con (không bao gồm tiền dịch vụ đã kê riêng)
-    const isGroupAllInclusive = isGroupMaster && (booking.billing_type === 'ALL_INCLUSIVE' || booking.is_all_inclusive);
+    const isGroupAllInclusive = isGroupMaster && (booking?.billing_type === 'ALL_INCLUSIVE' || booking?.is_all_inclusive);
 
     // Thu thập toàn bộ dịch vụ phát sinh của các phòng con trong đoàn
     const groupSubExtraServices = React.useMemo(() => {
-        if (!isGroupMaster || !Array.isArray(booking.sub_bookings)) return [];
+        if (!isGroupMaster || !Array.isArray(booking?.sub_bookings)) return [];
         const items = [];
         booking.sub_bookings.forEach((sub, sIdx) => {
             const roomNum = sub.room?.room_number || sub.room_number || `Phòng ${sIdx + 1}`;
@@ -276,21 +275,20 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             });
         });
         return items;
-    }, [isGroupMaster, booking.sub_bookings]);
+    }, [isGroupMaster, booking?.sub_bookings]);
 
     const groupSubServicesTotal = React.useMemo(() => {
         return groupSubExtraServices.reduce((sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)), 0);
     }, [groupSubExtraServices]);
 
-    // Phụ phí dịch vụ phát sinh tại phòng (In-Room Dining / Services)
-    const rawExtraServices = isGroupMaster
-        ? (isGroupAllInclusive ? groupSubExtraServices : [])
-        : (Array.isArray(booking.extra_services) ? booking.extra_services : []);
-
     // Trên Hóa đơn thanh toán: Chỉ hiển thị các khoản có phát sinh chi phí (>0đ) hoặc bồi thường thiệt hại.
     // Loại bỏ hoàn toàn các tiện ích dọn phòng miễn phí 0đ (Make-up Room) để hóa đơn chuẩn mực, không in chữ "Chưa thanh toán 0đ".
     const extraServices = React.useMemo(() => {
-        return rawExtraServices.filter((s) => {
+        const raw = isGroupMaster
+            ? (isGroupAllInclusive ? groupSubExtraServices : [])
+            : (Array.isArray(booking?.extra_services) ? booking.extra_services : []);
+
+        return raw.filter((s) => {
             const name = (s.service_name || s.name || '').toLowerCase();
             const price = Number(s.price || s.unit_price || 0);
             const total = Number(s.total_price != null ? s.total_price : (price * Number(s.quantity || 1)));
@@ -298,17 +296,17 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             if (isFreeCleaning && total === 0) return false;
             return total > 0 || price > 0 || name.includes('bồi thường');
         });
-    }, [rawExtraServices]);
+    }, [isGroupMaster, isGroupAllInclusive, groupSubExtraServices, booking?.extra_services]);
 
     const extraServicesTotal = isGroupMaster
         ? (isGroupAllInclusive ? groupSubServicesTotal : 0)
-        : (Number(booking.extra_services_total) || 
+        : (Number(booking?.extra_services_total) || 
             extraServices.reduce((sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)), 0));
 
     // Tính tiền phòng thuần:
     // Nếu là đoàn và có danh sách phòng con: tính tổng tiền phòng thực tế của các phòng con
     const groupPureRoomsAmount = React.useMemo(() => {
-        if (!isGroupMaster || !Array.isArray(booking.sub_bookings) || booking.sub_bookings.length === 0) {
+        if (!isGroupMaster || !Array.isArray(booking?.sub_bookings) || booking.sub_bookings.length === 0) {
             return null;
         }
         return booking.sub_bookings.reduce((sum, sub) => {
@@ -321,7 +319,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 : Number(sub.room_charge != null ? sub.room_charge : (sub.room_amount || subTotal));
             return sum + (subRoom > 0 ? subRoom : 0);
         }, 0);
-    }, [isGroupMaster, booking.sub_bookings]);
+    }, [isGroupMaster, booking?.sub_bookings]);
 
     const rawRoomAmount = Number(booking.room_amount || booking.total_amount) || 0;
     const roomAmount = isGroupMaster
@@ -396,7 +394,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         } else if (['MOMO'].includes(m)) {
             methodName = 'Ví MoMo';
         }
-        return `✓ Đợt ${index + 1} (${methodName}):`;
+        return `Đợt ${index + 1} (${methodName}):`;
     };
 
     const directGuestPaid = isCancelled ? 0 : (
@@ -439,6 +437,8 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     const handlePrint = () => {
         window.print();
     };
+
+    if (!booking) return null;
 
     return (
         <div
@@ -532,18 +532,17 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             onClick={handlePrint}
                             className="px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                         >
-                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
+                            <Printer className="w-4 h-4 shrink-0" />
                             <span className="hidden sm:inline">In hóa đơn (Ctrl + P)</span>
                             <span className="inline sm:hidden">In</span>
                         </button>
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-3 sm:px-3.5 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition cursor-pointer"
+                            className="px-3 sm:px-3.5 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition cursor-pointer flex items-center gap-1"
                         >
-                            Đóng
+                            <X className="w-4 h-4" />
+                            <span>Đóng</span>
                         </button>
                     </div>
                 </div>
@@ -596,15 +595,15 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             </h2>
                             {isCancelled ? (
                                 <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                    ✕ ĐƠN ĐÃ HỦY
+                                    ĐƠN ĐÃ HỦY
                                 </span>
                             ) : isCompleted ? (
                                 <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                    ✓ ĐÃ QUYẾT TOÁN & HOÀN THÀNH
+                                    ĐÃ QUYẾT TOÁN & HOÀN THÀNH
                                 </span>
                             ) : isGroupMaster ? (
                                 <span className="inline-block my-1 px-2.5 py-0.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                    ⏳ BẢN TẠM TÍNH (CHỜ QUYẾT TOÁN KHI TRẢ PHÒNG)
+                                    BẢN TẠM TÍNH (CHỜ QUYẾT TOÁN KHI TRẢ PHÒNG)
                                 </span>
                             ) : null}
                             <p className="text-xs text-slate-700 mt-1.5 font-medium">
@@ -652,7 +651,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             <div className="sm:col-span-2 p-3.5 bg-indigo-50 border border-indigo-200 rounded-lg text-xs space-y-1.5 print:bg-transparent print:border-slate-400">
                                 <div className="font-bold uppercase tracking-wider text-indigo-900 border-b border-indigo-200/60 pb-1 flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
-                                        <span>🏢</span> PHÒNG THUỘC ĐOÀN KHÁCH: {booking.group_booking_name || booking.company_name || 'Khách đoàn Doanh nghiệp'}
+                                        <Building2 className="w-3.5 h-3.5 text-indigo-700 print:text-black shrink-0" /> PHÒNG THUỘC ĐOÀN KHÁCH: {booking.group_booking_name || booking.company_name || 'Khách đoàn Doanh nghiệp'}
                                     </span>
                                     <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold print:border print:border-slate-300">
                                         MÃ ĐOÀN: #{booking.group_booking_code || ''}
@@ -779,7 +778,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                     <td className="py-3 text-center">
                                                         {isCompleted ? (
                                                             <span className="inline-block text-[10.5px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                                ✓ Đã quyết toán
+                                                                Đã quyết toán
                                                             </span>
                                                         ) : (
                                                             <span className="inline-block text-[10.5px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
@@ -815,11 +814,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                             <td className="py-3 text-center">
                                                 {isCancelled ? (
                                                     <span className="inline-block text-[10.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                        ✕ Đơn đã hủy
+                                                        Đơn đã hủy
                                                     </span>
                                                 ) : isCompleted ? (
                                                     <span className="inline-block text-[10.5px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                        ✓ Đã quyết toán
+                                                        Đã quyết toán
                                                     </span>
                                                 ) : isGroupRoom ? (
                                                     <span className="inline-block text-[10.5px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black" title="Chi phí tính vào Hóa đơn đoàn">
@@ -827,7 +826,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                     </span>
                                                 ) : isRoomPaid ? (
                                                     <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
-                                                        ✓ {getPaidMethodLabel()}
+                                                        {getPaidMethodLabel()}
                                                     </span>
                                                 ) : (
                                                     <span className="inline-block text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
@@ -908,10 +907,10 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                     {serviceIsPaid || isCompleted ? (
                                                         <span className="inline-block text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 print:border-none print:bg-transparent print:shadow-none print:p-0 print:text-black">
                                                             {isGroupMaster 
-                                                                ? '✓ Đã quyết toán' 
+                                                                ? 'Đã quyết toán' 
                                                                 : (isGroupRoom && isCompanyAllInclusive)
-                                                                ? `✓ Gộp HĐ đoàn (${resolvePaymentMethodCode() === 'TRANSFER' ? 'VietQR' : resolvePaymentMethodCode() === 'MIXED' ? 'Hỗn hợp' : resolvePaymentMethodCode() === 'CASH' ? 'Tiền mặt' : 'Đã thanh toán'})`
-                                                                : `✓ ${getPaidMethodLabel()}`
+                                                                ? `Gộp HĐ đoàn (${resolvePaymentMethodCode() === 'TRANSFER' ? 'VietQR' : resolvePaymentMethodCode() === 'MIXED' ? 'Hỗn hợp' : resolvePaymentMethodCode() === 'CASH' ? 'Tiền mặt' : 'Đã thanh toán'})`
+                                                                : `${getPaidMethodLabel()}`
                                                             }
                                                         </span>
                                                     ) : (
@@ -1043,7 +1042,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     </div>
                                     {Number(booking.deposit_amount) > 0 && (
                                         <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
-                                            <span>✓ Tiền cọc đã thanh toán ({booking.is_deposit_paid || isCompleted ? 'Đã nhận' : 'Chờ xác nhận'}):</span>
+                                            <span>Tiền cọc đã thanh toán ({booking.is_deposit_paid || isCompleted ? 'Đã nhận' : 'Chờ xác nhận'}):</span>
                                             <span className="w-36 text-right font-bold">
                                                 -{formatCurrency(booking.deposit_amount)}
                                             </span>
@@ -1051,7 +1050,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     )}
                                     {isCompleted && (
                                         <div className="flex justify-between sm:justify-end gap-6 text-purple-700 font-semibold text-[11px]">
-                                            <span>✓ Quyết toán thanh toán đợt cuối khi check-out:</span>
+                                            <span>Quyết toán thanh toán đợt cuối khi check-out:</span>
                                             <span className="w-36 text-right font-bold">
                                                 -{formatCurrency(Math.max(0, grandTotal - Number(booking.deposit_amount || 0)))}
                                             </span>
@@ -1076,8 +1075,8 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     <div className="flex justify-between sm:justify-end gap-6 text-indigo-700 font-semibold text-[11px] bg-indigo-50/60 p-1.5 rounded border border-indigo-100">
                                         <span>
                                             {isCompanyAllInclusive 
-                                                ? `🏢 Chuyển thanh toán TOÀN BỘ (Phòng & Dịch vụ) vào Hóa đơn đoàn #${booking.group_booking_code || ''}${resolvePaymentMethodCode() === 'TRANSFER' ? ' (Thanh toán qua VietQR)' : resolvePaymentMethodCode() === 'MIXED' ? ' (Thanh toán Hỗn hợp)' : ''}:` 
-                                                : `🏢 Chuyển thanh toán Tiền phòng vào Hóa đơn đoàn #${booking.group_booking_code || ''}:`
+                                                ? `Chuyển thanh toán TOÀN BỘ (Phòng & Dịch vụ) vào Hóa đơn đoàn #${booking.group_booking_code || ''}${resolvePaymentMethodCode() === 'TRANSFER' ? ' (Thanh toán qua VietQR)' : resolvePaymentMethodCode() === 'MIXED' ? ' (Thanh toán Hỗn hợp)' : ''}:` 
+                                                : `Chuyển thanh toán Tiền phòng vào Hóa đơn đoàn #${booking.group_booking_code || ''}:`
                                             }
                                         </span>
                                         <span className="w-36 text-right font-bold text-indigo-800">
@@ -1145,7 +1144,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                             </span>
                                             {isCompleted && (
                                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                    ✓ ĐÃ THANH TOÁN ĐỦ (100%)
+                                                    ĐÃ THANH TOÁN ĐỦ (100%)
                                                 </span>
                                             )}
                                         </div>
@@ -1193,8 +1192,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
                 {/* FOOTER NÚT THAO TÁC Ở ĐÁY MODAL (Ẩn khi in) */}
                 <div className="no-print bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs text-slate-500">
-                    <div className="hidden sm:block">
-                        <span>💡 Lưu ý: Trình duyệt hỗ trợ chọn <strong>"Save as PDF"</strong> (Lưu thành tệp PDF) hoặc in ra máy in A4 tiêu chuẩn.</span>
+                    <div className="hidden sm:flex items-center gap-1.5">
+                        <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span>Lưu ý: Trình duyệt hỗ trợ chọn <strong>"Save as PDF"</strong> (Lưu thành tệp PDF) hoặc in ra máy in A4 tiêu chuẩn.</span>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                         <button
@@ -1209,9 +1209,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             onClick={handlePrint}
                             className="flex-1 sm:flex-none px-5 py-2.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
+                            <Printer className="w-4 h-4" />
                             <span>In hóa đơn ngay</span>
                         </button>
                     </div>
