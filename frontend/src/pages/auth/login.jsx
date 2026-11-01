@@ -33,6 +33,7 @@ import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
+import ForgotPasswordModal from '../../components/auth/ForgotPasswordModal';
 
 // Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối và file upload local media)
 const resolveBannerUrl = (url) => {
@@ -61,6 +62,7 @@ export default function AuthBookingPage() {
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [toastNotice, setToastNotice] = useState(null);
+    const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
     // Login form state
     const [loginForm, setLoginForm] = useState({
@@ -504,7 +506,7 @@ export default function AuthBookingPage() {
                                                 </label>
                                                 <button
                                                     type="button"
-                                                    onClick={() => triggerNotice('Vui lòng liên hệ Hotline Lễ tân ' + hotline + ' hoặc bộ phận Chăm sóc khách hàng để nhận hướng dẫn khôi phục mật khẩu tức thì.')}
+                                                    onClick={() => setIsForgotPasswordOpen(true)}
                                                     className="text-xs text-amber-600 hover:text-amber-700 hover:underline font-semibold cursor-pointer"
                                                 >
                                                     Quên mật khẩu?
@@ -880,6 +882,21 @@ export default function AuthBookingPage() {
                     </div>
                 </div>
             </section>
+
+            {/* Modal Quên Mật Khẩu */}
+            <ForgotPasswordModal
+                isOpen={isForgotPasswordOpen}
+                onClose={() => setIsForgotPasswordOpen(false)}
+                onSuccess={(restoredEmail) => {
+                    setActiveTab('login');
+                    setLoginForm((prev) => ({
+                        ...prev,
+                        identifier: restoredEmail,
+                        password: '',
+                    }));
+                    setSuccessMessage('Mật khẩu của quý khách đã được cập nhật thành công! Vui lòng nhập mật khẩu mới để đăng nhập.');
+                }}
+            />
 
             {/* Reusable Footer */}
             <Footer />

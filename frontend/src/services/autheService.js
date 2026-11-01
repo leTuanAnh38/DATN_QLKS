@@ -166,6 +166,51 @@ export const authService = {
             };
         }
     },
+
+    /**
+     * Yêu cầu gửi mã OTP khôi phục mật khẩu qua Email
+     */
+    async forgotPassword(email) {
+        try {
+            const response = await api.post('/auth/forgot-password/', { email });
+            return {
+                success: response.data?.success !== false,
+                message: response.data?.message || 'Mã xác thực đã được gửi về email của quý khách.',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.email?.[0] ||
+                'Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại sau.';
+            return { success: false, message };
+        }
+    },
+
+    /**
+     * Xác nhận OTP và đặt lại mật khẩu mới
+     */
+    async resetPassword({ email, otp_code, new_password, confirm_password }) {
+        try {
+            const response = await api.post('/auth/reset-password/', {
+                email,
+                otp_code,
+                new_password,
+                confirm_password,
+            });
+            return {
+                success: response.data?.success !== false,
+                message: response.data?.message || 'Đặt lại mật khẩu thành công!',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.otp_code?.[0] ||
+                error.response?.data?.new_password?.[0] ||
+                error.response?.data?.confirm_password?.[0] ||
+                'Đã xảy ra lỗi khi đặt lại mật khẩu. Vui lòng kiểm tra lại thông tin.';
+            return { success: false, message };
+        }
+    },
 };
 
 export default authService;

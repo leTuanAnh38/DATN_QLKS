@@ -214,6 +214,43 @@ class AuditLog(models.Model):
         return f"[{self.created_at.strftime('%Y-%m-%d %H:%M:%S')}] {user_name} - {self.action} ({self.module})"
 
 
+# ==========================================
+# BẢNG 5: MÃ XÁC THỰC QUÊN MẬT KHẨU (PASSWORD RESET OTP)
+# ==========================================
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='password_reset_otps',
+        verbose_name='Tài khoản người dùng'
+    )
+    otp_code = models.CharField(max_length=6, verbose_name='Mã OTP 6 số')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Thời gian tạo')
+    expires_at = models.DateTimeField(verbose_name='Thời gian hết hạn')
+    attempts = models.PositiveSmallIntegerField(default=0, verbose_name='Số lần nhập sai')
+    is_used = models.BooleanField(default=False, verbose_name='Đã sử dụng')
+
+    class Meta:
+        verbose_name = '5. Mã OTP Đặt lại mật khẩu'
+        verbose_name_plural = '5. Mã OTP Đặt lại mật khẩu'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['otp_code', 'is_used']),
+        ]
+
+    def __str__(self):
+        status = "Đã dùng" if self.is_used else ("Hết hạn" if self.is_expired() else "Khả dụng")
+        return f"OTP {self.otp_code} ({self.user.username}) - {status}"
+
+    def is_expired(self):
+        from django.utils import timezone
+        return timezone.now() > self.expires_at
+
+    def is_valid(self):
+        return not self.is_used and not self.is_expired() and self.attempts < 5
+
+
 def get_client_ip(request):
     """Trích xuất địa chỉ IP thực tế của client từ HTTP request"""
     if not request:

@@ -2,7 +2,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from .models import GuestProfile, EmployeeProfile, AuditLog, MembershipTier
+from .models import GuestProfile, EmployeeProfile, AuditLog, MembershipTier, PasswordResetOTP
 
 User = get_user_model()
 
@@ -549,6 +549,68 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(
+        required=True,
+        error_messages={
+            'required': 'Vui lòng cung cấp địa chỉ email.',
+            'invalid': 'Địa chỉ email không đúng định dạng.'
+        }
+    )
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class ResetPasswordConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    otp_code = serializers.CharField(
+        required=True,
+        min_length=6,
+        max_length=6,
+        error_messages={
+            'required': 'Vui lòng nhập mã xác thực OTP 6 chữ số.',
+            'min_length': 'Mã OTP phải có đúng 6 chữ số.',
+            'max_length': 'Mã OTP phải có đúng 6 chữ số.'
+        }
+    )
+    new_password = serializers.CharField(
+        min_length=6,
+        required=True,
+        write_only=True,
+        error_messages={
+            'required': 'Vui lòng nhập mật khẩu mới.',
+            'min_length': 'Mật khẩu mới phải có tối thiểu 6 ký tự.'
+        }
+    )
+    confirm_password = serializers.CharField(
+        min_length=6,
+        required=True,
+        write_only=True,
+        error_messages={
+            'required': 'Vui lòng xác nhận mật khẩu mới.'
+        }
+    )
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate_otp_code(self, value):
+        clean_code = value.strip()
+        if not clean_code.isdigit() or len(clean_code) != 6:
+            raise serializers.ValidationError("Mã xác thực OTP phải là 6 chữ số.")
+        return clean_code
+
+    def validate(self, attrs):
+        new_password = attrs.get('new_password')
+        confirm_password = attrs.get('confirm_password')
+
+        if new_password != confirm_password:
+            raise serializers.ValidationError({"confirm_password": "Mật khẩu xác nhận không trùng khớp với mật khẩu mới."})
+
+        return attrs
 
 
 class UpdateProfileSerializer(serializers.ModelSerializer):

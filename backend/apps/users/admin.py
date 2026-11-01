@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, GuestProfile, EmployeeProfile, AuditLog, MembershipTier
+from .models import User, GuestProfile, EmployeeProfile, AuditLog, MembershipTier, PasswordResetOTP
 
 # Tùy chỉnh hiển thị cột trong trang Admin
 class CustomUserAdmin(UserAdmin):
@@ -40,3 +40,12 @@ admin.site.register(GuestProfile, GuestProfileAdmin)
 admin.site.register(EmployeeProfile)
 admin.site.register(AuditLog, AuditLogAdmin)
 admin.site.register(MembershipTier, MembershipTierAdmin)
+
+
+class PasswordResetOTPAdmin(admin.ModelAdmin):
+    list_display = ('user', 'otp_code', 'created_at', 'expires_at', 'attempts', 'is_used')
+    list_filter = ('is_used', 'created_at')
+    search_fields = ('user__username', 'user__email', 'otp_code')
+    readonly_fields = ('user', 'otp_code', 'created_at', 'expires_at', 'attempts', 'is_used')
+
+admin.site.register(PasswordResetOTP, PasswordResetOTPAdmin)
