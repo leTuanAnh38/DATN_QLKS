@@ -853,9 +853,13 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             service_req.status = new_status
             update_fields.append('status')
 
-            # Nếu chuyển sang "completed" (Đã hoàn thành):
-            # Tự động đồng bộ vào bảng Phụ phí phát sinh (BookingExtraService) để tính vào hóa đơn check-out
-            if old_status != 'completed' and new_status == 'completed':
+            if 'is_paid' in request.data:
+                service_req.is_paid = bool(request.data.get('is_paid'))
+                update_fields.append('is_paid')
+
+            # Đồng bộ sang BookingExtraService và ghi nhận Payment thanh toán tiền mặt tại phòng
+            effective_status = new_status or service_req.status
+            if effective_status == 'completed':
                 try:
                     clean_name = service_req.service.name if service_req.service else "Dịch vụ phòng"
                     service_name_bill = f"{clean_name} [Yêu cầu #{service_req.id}]"
@@ -877,8 +881,28 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                             price=service_req.service.price if service_req.service else service_req.unit_price,
                             is_paid=service_req.is_paid
                         )
+
+                    # Ghi nhận / Cập nhật bản ghi Payment tiền mặt tại phòng nếu đã thu tiền
+                    from ..payments.models import Payment, CashierShift
+                    txn_id = f"SVC-REQ-{service_req.id}"
+                    if service_req.is_paid:
+                        active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+                        svc_amount = service_req.total_price or ((service_req.service.price if service_req.service else 0) * service_req.quantity)
+                        pay_method = str(request.data.get('payment_method') or 'CASH').upper()
+                        Payment.objects.update_or_create(
+                            transaction_id=txn_id,
+                            defaults={
+                                'booking': service_req.booking,
+                                'amount': svc_amount,
+                                'payment_method': pay_method,
+                                'payment_status': 'COMPLETED',
+                                'shift': active_shift,
+                            }
+                        )
+                    else:
+                        Payment.objects.filter(transaction_id=txn_id).delete()
                 except Exception as e:
-                    print(f"Lỗi khi đồng bộ phụ phí BookingExtraService: {e}")
+                    print(f"Lỗi khi đồng bộ phụ phí và thanh toán dịch vụ: {e}")
 
             # Nếu chuyển từ "completed" lùi lại trạng thái khác (in_progress, pending, cancelled):
             elif old_status == 'completed' and new_status != 'completed':
@@ -887,8 +911,10 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                         booking=service_req.booking,
                         service_name__contains=f"[Yêu cầu #{service_req.id}]"
                     ).delete()
+                    from ..payments.models import Payment
+                    Payment.objects.filter(transaction_id=f"SVC-REQ-{service_req.id}").delete()
                 except Exception as e:
-                    print(f"Lỗi khi gỡ phụ phí BookingExtraService: {e}")
+                    print(f"Lỗi khi gỡ phụ phí và thanh toán BookingExtraService: {e}")
 
         # Cập nhật nhân viên / tài xế phụ trách (nếu được truyền lên hoặc tự động gán khi nhân viên xử lý đơn)
         assigned_staff_param = request.data.get('assigned_staff') or request.data.get('staff_id')
@@ -906,6 +932,10 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             if new_status in ['in_progress', 'delivering', 'completed']:
                 service_req.assigned_staff = user
                 update_fields.append('assigned_staff')
+
+        if 'is_paid' in request.data and 'is_paid' not in update_fields:
+            service_req.is_paid = bool(request.data.get('is_paid'))
+            update_fields.append('is_paid')
 
         if 'note' in request.data:
             service_req.note = request.data.get('note', '').strip()

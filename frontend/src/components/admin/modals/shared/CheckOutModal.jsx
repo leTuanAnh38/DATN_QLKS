@@ -1525,7 +1525,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                                 ) : isPaid ? (
                                                                     <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold shrink-0 inline-flex items-center gap-1">
                                                                         <CheckCircle2 className="w-2.5 h-2.5" />
-                                                                        <span>Đã trả trước</span>
+                                                                        <span>{svc.source === 'service_request' ? 'Đã thu tiền mặt' : 'Đã trả trước'}</span>
                                                                     </span>
                                                                 ) : isCompanyAllInclusive ? (
                                                                     <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-bold shrink-0 inline-flex items-center gap-1">
@@ -1653,11 +1653,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                             </tr>
                                         )}
 
-                                        {/* Dịch vụ đặt trước */}
+                                        {/* Dịch vụ đã thanh toán (Online hoặc Thu tiền mặt tại phòng) */}
                                         {Number(summary?.prepaid_services_total || 0) > 0 && (
                                             <tr>
                                                 <td colSpan={3} className="py-1.5 px-4 text-right text-slate-600 font-medium text-[11px]">
-                                                    + Dịch vụ đặt kèm trước (Đã thanh toán Online):
+                                                    + Dịch vụ đã thanh toán (Online & Tiền mặt):
                                                 </td>
                                                 <td className="py-1.5 px-4 text-right font-semibold text-slate-800 text-[11px]">
                                                     {formatCurrency(summary.prepaid_services_total)}

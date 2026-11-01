@@ -200,6 +200,22 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         return 'Đã thanh toán';
     };
 
+    // Nhãn phương thức thanh toán riêng biệt cho từng dịch vụ phát sinh
+    const getServicePaymentBadgeLabel = (service) => {
+        if (!service) return 'Đã thanh toán';
+        const method = String(service.payment_method || '').toUpperCase();
+        if (method === 'CASH' || (service.note && service.note.toLowerCase().includes('tiền mặt'))) {
+            return 'Đã thanh toán (Tiền mặt)';
+        }
+        if (method === 'TRANSFER' || method === 'VIETQR' || method === 'BANK_TRANSFER') {
+            return 'Đã thanh toán (VietQR)';
+        }
+        if (service.is_paid && (service.source === 'service_request' || service.request_id || String(service.id).startsWith('req_'))) {
+            return 'Đã thanh toán (Tiền mặt)';
+        }
+        return getPaidMethodLabel();
+    };
+
     // Nhãn dòng khấu trừ đã thanh toán trong khối Tổng kết
     const getPaidAdvanceLabel = () => {
         const code = resolvePaymentMethodCode();
@@ -385,6 +401,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     }, [booking?.payments]);
 
     const getPaymentTrancheLabel = (p, index) => {
+        if (p.transaction_id && String(p.transaction_id).startsWith('SVC-REQ')) {
+            const m = String(p.payment_method || '').toUpperCase();
+            const methodDisplay = (m === 'CASH' || !m) ? 'Tiền mặt' : m;
+            return `Đã thu ${methodDisplay.toLowerCase()} (Dịch vụ tại phòng):`;
+        }
         const m = String(p.payment_method || '').toUpperCase();
         let methodName = 'Tiền mặt';
         if (['TRANSFER', 'VIETQR', 'BANK_TRANSFER'].includes(m)) {
@@ -396,6 +417,14 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         }
         return `Đợt ${index + 1} (${methodName}):`;
     };
+
+    const paidServicesTotal = React.useMemo(() => {
+        return extraServices.filter(s => s.is_paid).reduce((sum, s) => {
+            const price = Number(s.price || s.unit_price || 0);
+            const total = Number(s.total_price != null ? s.total_price : (price * Number(s.quantity || 1)));
+            return sum + total;
+        }, 0);
+    }, [extraServices]);
 
     const directGuestPaid = isCancelled ? 0 : (
         completedPayments.length > 0
@@ -410,14 +439,16 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 ? (isCompanyAllInclusive 
                     ? directGuestPaid 
                     : (isCompleted ? (extraServicesTotal || directGuestPaid) : directGuestPaid))
-                : (isCompleted ? grandTotal : Number(booking.paid_amount ?? (isRoomPaid ? roomAmount : 0)))
+                : (isCompleted 
+                    ? grandTotal 
+                    : Math.max(directGuestPaid, Number(booking.paid_amount ?? (isRoomPaid ? roomAmount : 0)) + paidServicesTotal))
     );
     const balanceDue = isCancelled ? 0 : (
         isGroupMaster
             ? (isCompleted ? 0 : Math.max(0, grandTotal - paidAmount))
             : (isGroupRoom
                 ? (isCompleted || isCompanyAllInclusive ? 0 : Math.max(0, extraServicesTotal - paidAmount))
-                : (isCompleted ? 0 : Math.max(0, grandTotal - paidAmount)))
+                : (isCompleted || paidAmount >= grandTotal ? 0 : Math.max(0, grandTotal - paidAmount)))
     );
     const bookingCodeDisplay = `#${String(booking.booking_code || booking.group_code || '').replace('-', '')}`;
     const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
@@ -910,7 +941,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                                 ? 'Đã quyết toán' 
                                                                 : (isGroupRoom && isCompanyAllInclusive)
                                                                 ? `Gộp HĐ đoàn (${resolvePaymentMethodCode() === 'TRANSFER' ? 'VietQR' : resolvePaymentMethodCode() === 'MIXED' ? 'Hỗn hợp' : resolvePaymentMethodCode() === 'CASH' ? 'Tiền mặt' : 'Đã thanh toán'})`
-                                                                : `${getPaidMethodLabel()}`
+                                                                : getServicePaymentBadgeLabel(service)
                                                             }
                                                         </span>
                                                     ) : (
@@ -1128,6 +1159,21 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 </span>
                                             </div>
                                         ))
+                                    ) : paidServicesTotal > 0 && isRoomPaid ? (
+                                        <>
+                                            <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                                <span>{getPaidAdvanceLabel()}</span>
+                                                <span className="w-36 text-right font-bold">
+                                                    -{formatCurrency(roomAmount)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                                <span>Đã thu tiền mặt tại phòng (Dịch vụ):</span>
+                                                <span className="w-36 text-right font-bold">
+                                                    -{formatCurrency(paidServicesTotal)}
+                                                </span>
+                                            </div>
+                                        </>
                                     ) : paidAmount > 0 ? (
                                         <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
                                             <span>{getPaidAdvanceLabel()}</span>
@@ -1140,16 +1186,16 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
                                         <div className="flex items-center gap-2">
                                             <span className="font-black text-xs sm:text-sm text-slate-900 uppercase">
-                                                {isCompleted ? 'Còn lại cần thu:' : (paidAmount > 0 ? 'Thực thu khi trả phòng:' : 'Tổng thanh toán:')}
+                                                {isCompleted || balanceDue === 0 ? 'Còn lại cần thu:' : (paidAmount > 0 ? 'Thực thu khi trả phòng:' : 'Tổng thanh toán:')}
                                             </span>
-                                            {isCompleted && (
+                                            {(isCompleted || balanceDue === 0) && (
                                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                                                     ĐÃ THANH TOÁN ĐỦ (100%)
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={`font-black text-base sm:text-lg w-36 text-right ${isCompleted ? 'text-emerald-700' : 'text-slate-900'}`}>
-                                            {formatCurrency(isCompleted ? 0 : (paidAmount > 0 ? balanceDue : grandTotal))}
+                                        <span className={`font-black text-base sm:text-lg w-36 text-right ${balanceDue === 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
+                                            {formatCurrency(balanceDue)}
                                         </span>
                                     </div>
                                 </>

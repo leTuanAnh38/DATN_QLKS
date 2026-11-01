@@ -2963,6 +2963,25 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'created_at': bes.added_time.isoformat() if bes.added_time else None
             })
 
+        # 2.3. Tự động đồng bộ các ServiceRequest đã thu tiền (is_paid=True) vào bảng Payment nếu chưa có
+        try:
+            from ..payments.models import Payment, CashierShift
+            for req in booking.service_requests.filter(is_paid=True).exclude(status='cancelled'):
+                txn_id = f"SVC-REQ-{req.id}"
+                if not booking.payments.filter(transaction_id=txn_id).exists():
+                    active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+                    req_amount = req.total_price or ((req.service.price if req.service else 0) * req.quantity)
+                    Payment.objects.create(
+                        booking=booking,
+                        amount=req_amount,
+                        payment_method='CASH',
+                        payment_status='COMPLETED',
+                        shift=active_shift,
+                        transaction_id=txn_id
+                    )
+        except Exception as e:
+            print(f"Lỗi khi đồng bộ thanh toán dịch vụ trong checkout_summary: {e}")
+
         # 3. Phân tách Dịch vụ đặt trước đã thanh toán vs Dịch vụ phát sinh chưa thanh toán
         prepaid_services_total = float(sum(item['total_price'] for item in extra_services if item['is_paid']))
         unpaid_services_total = float(sum(item['total_price'] for item in extra_services if not item['is_paid']))
@@ -2984,6 +3003,12 @@ class BookingViewSet(viewsets.ModelViewSet):
             elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
                 paid_amount = float(booking.total_amount or (room_charge + prepaid_services_total))
 
+        # Đảm bảo paid_amount bao gồm cả các dịch vụ đã thu tiền (is_paid=True) nếu payments chưa ghi nhận
+        if prepaid_services_total > 0 and paid_amount < (room_charge + prepaid_services_total):
+            has_svc_payment = booking.payments.filter(transaction_id__startswith='SVC-').exists() if hasattr(booking, 'payments') else False
+            if not has_svc_payment:
+                paid_amount += prepaid_services_total
+
         # Xác định chính sách thanh toán nếu là phòng thuộc đoàn (Master-Billing)
         is_group_sub_room = bool(booking.group_booking_id and getattr(booking, 'is_master_billed', True))
         group = booking.group_booking
@@ -2994,8 +3019,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             # Toàn bộ tiền phòng và chi phí dịch vụ/minibar phát sinh được công ty bảo lãnh trả trên Hóa đơn đoàn
             remaining_amount = 0.0
         elif is_group_sub_room:
-            # Tiền phòng chuyển HĐ đoàn, khách lẻ chỉ trả dịch vụ phát sinh cá nhân tại phòng
-            remaining_amount = max(0.0, float(total_service_charge - paid_amount))
+            # Tiền phòng chuyển HĐ đoàn, khách lẻ chỉ trả dịch vụ phát sinh cá nhân chưa thanh toán
+            remaining_amount = max(0.0, float(unpaid_services_total))
         else:
             remaining_amount = max(0.0, float(grand_total - paid_amount))
 
@@ -3166,6 +3191,37 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             grand_total = float(room_charge + total_service_charge)
 
+            # Tự động đồng bộ các ServiceRequest đã thu tiền (is_paid=True) vào bảng Payment nếu chưa có
+            try:
+                from ..payments.models import Payment, CashierShift
+                for req in booking.service_requests.filter(is_paid=True).exclude(status='cancelled'):
+                    txn_id = f"SVC-REQ-{req.id}"
+                    if not booking.payments.filter(transaction_id=txn_id).exists():
+                        active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+                        req_amount = req.total_price or ((req.service.price if req.service else 0) * req.quantity)
+                        Payment.objects.create(
+                            booking=booking,
+                            amount=req_amount,
+                            payment_method='CASH',
+                            payment_status='COMPLETED',
+                            shift=active_shift,
+                            transaction_id=txn_id
+                        )
+            except Exception as e:
+                print(f"Lỗi khi đồng bộ thanh toán dịch vụ trong check_out: {e}")
+
+            # Phân tách dịch vụ đã thanh toán trước (is_paid=True)
+            prepaid_svc_total = float(sum(
+                (req.total_price or ((req.service.price if req.service else 0) * req.quantity))
+                for req in valid_requests if getattr(req, 'is_paid', False)
+            ))
+            for bes in booking.extra_services.filter(is_paid=True):
+                raw_name = (bes.service_name or '').strip()
+                if not re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
+                    clean_name = re.sub(r'\[.*?\]', '', raw_name).strip()
+                    if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() for r in valid_requests):
+                        prepaid_svc_total += float((bes.price or 0) * (bes.quantity or 1))
+
             # Xác định số tiền đã thanh toán trước và số tiền còn lại phải thu
             paid_amount = 0.0
             if hasattr(booking, 'payments'):
@@ -3174,9 +3230,14 @@ class BookingViewSet(viewsets.ModelViewSet):
                     paid_amount = float(sum(p.amount for p in completed_payments))
             if paid_amount <= 0:
                 if booking.status in ['paid', 'PAID'] or (hasattr(booking, 'invoice') and booking.invoice and booking.invoice.status == 'paid'):
-                    paid_amount = float(booking.total_amount or room_charge)
+                    paid_amount = float(booking.total_amount or (room_charge + prepaid_svc_total))
                 elif booking.note and ('vietqr: đã thanh toán' in booking.note.lower() or 'đã thanh toán thành công' in booking.note.lower()):
-                    paid_amount = float(booking.total_amount or room_charge)
+                    paid_amount = float(booking.total_amount or (room_charge + prepaid_svc_total))
+
+            if prepaid_svc_total > 0 and paid_amount < (room_charge + prepaid_svc_total):
+                has_svc_payment = booking.payments.filter(transaction_id__startswith='SVC-').exists() if hasattr(booking, 'payments') else False
+                if not has_svc_payment:
+                    paid_amount += prepaid_svc_total
 
             is_group_sub_room = bool(booking.group_booking_id and getattr(booking, 'is_master_billed', True))
             group = booking.group_booking
@@ -3189,7 +3250,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                 sub_room_charge = 0.0
                 sub_invoice_total = 0.0
             elif is_group_sub_room:
-                # Tiền phòng chuyển vào Master Folio của đoàn, số tiền khách lẻ tại quầy phải trả chỉ là dịch vụ phát sinh
+                # Tiền phòng chuyển vào Master Folio của đoàn, số tiền khách lẻ tại quầy phải trả chỉ là dịch vụ phát sinh chưa thanh toán
                 remaining_amount = max(0.0, float(total_service_charge - paid_amount))
                 sub_room_charge = 0.0
                 sub_invoice_total = float(total_service_charge)

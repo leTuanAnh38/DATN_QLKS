@@ -266,6 +266,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 'status': req.status,
                 'status_display': req.get_status_display(),
                 'is_paid': bool(getattr(req, 'is_paid', False) or services_is_paid),
+                'payment_method': 'CASH' if getattr(req, 'is_paid', False) else None,
                 'added_time': req.updated_at.isoformat() if req.updated_at else (req.created_at.isoformat() if req.created_at else None)
             })
 
@@ -302,6 +303,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 'price': float(bes.price or 0),
                 'total_price': total,
                 'is_paid': bool(getattr(bes, 'is_paid', False) or services_is_paid),
+                'payment_method': 'CASH' if getattr(bes, 'is_paid', False) else None,
                 'added_time': bes.added_time.isoformat() if bes.added_time else None
             })
 
@@ -427,26 +429,35 @@ class BookingSerializer(serializers.ModelSerializer):
         Query SUM cột amount từ bảng Payment liên kết với booking này
         NHƯNG chỉ lấy những record có status là COMPLETED.
         """
+        extra_list = self.get_extra_services(obj)
+        paid_svc_total = sum(item.get('total_price', 0) for item in extra_list if item.get('is_paid'))
+
         try:
             completed_payments = [p for p in obj.payments.all() if p.payment_status == 'COMPLETED']
             if completed_payments:
-                return float(sum(p.amount for p in completed_payments))
+                total_from_payments = float(sum(p.amount for p in completed_payments))
+                has_svc_payment = any(p.transaction_id and str(p.transaction_id).startswith('SVC-') for p in completed_payments)
+                if not has_svc_payment and paid_svc_total > 0:
+                    total_from_payments += float(paid_svc_total)
+                return total_from_payments
         except Exception:
             pass
 
         # Fallback an toàn cho dữ liệu cũ (chưa sinh bản ghi Payment)
+        paid = 0.0
         if obj.status in ['paid', 'PAID']:
-            return float(self.get_room_charge(obj))
-        try:
-            if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.status == 'paid':
-                return float(self.get_room_charge(obj))
-        except Exception:
-            pass
-        note_lower = (obj.note or '').lower()
-        if 'vietqr: đã thanh toán' in note_lower or 'đã thanh toán thành công' in note_lower:
-            return float(self.get_room_charge(obj))
+            paid = float(self.get_room_charge(obj))
+        elif hasattr(obj, 'invoice') and obj.invoice and obj.invoice.status == 'paid':
+            paid = float(self.get_room_charge(obj))
+        else:
+            note_lower = (obj.note or '').lower()
+            if 'vietqr: đã thanh toán' in note_lower or 'đã thanh toán thành công' in note_lower:
+                paid = float(self.get_room_charge(obj))
 
-        return 0.0
+        if paid_svc_total > 0:
+            paid += float(paid_svc_total)
+
+        return paid
 
     def get_is_company_all_inclusive(self, obj):
         return bool(obj.group_booking and getattr(obj.group_booking, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE')

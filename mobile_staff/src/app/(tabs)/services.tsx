@@ -12,6 +12,7 @@ import {
   ScrollView,
   Modal,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,7 @@ interface ServiceOrder {
   booking_code: string;
   room_number: string;
   guest_name: string;
+  guest_phone?: string;
   service_name: string;
   service_image?: string;
   category_name: string;
@@ -46,6 +48,7 @@ interface ServiceOrder {
   updated_at?: string;
   booking_status?: string;
   is_scheduled?: boolean;
+  is_paid?: boolean;
 }
 
 // Helper lọc bỏ các dịch vụ xe / vận chuyển (đã có tab riêng của đội lái xe)
@@ -377,6 +380,12 @@ export default function ServicesScreen() {
   // Bộ lọc danh mục nghiệp vụ cho Đơn phục vụ
   const [orderCategoryFilter, setOrderCategoryFilter] = useState<'all' | 'fnb' | 'spa' | 'laundry' | 'amenities'>('all');
 
+  // Bộ lọc phạm vi nhiệm vụ: 'all' (Tất cả) | 'my_tasks' (Việc của tôi) | 'unassigned' (Chưa ai nhận)
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'my_tasks' | 'unassigned'>('all');
+
+  // State ID món đang gạt toggle hết món / mở phục vụ
+  const [togglingCatalogId, setTogglingCatalogId] = useState<number | null>(null);
+
   // Khóa nút chống bấm đúp khi mạng lag / 4G (Double-tap Mutex)
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
@@ -441,8 +450,9 @@ export default function ServicesScreen() {
         apiClient.get('/services/categories/'),
       ]);
       const items = resItems.data.results || resItems.data.items || resItems.data.data || resItems.data || [];
+      // Lấy toàn bộ món active lẫn inactive để nhân viên phục vụ có thể kiểm soát và gạt bật/tắt (toggle) còn món / hết món
       const validCatalog = (Array.isArray(items) ? items : []).filter(
-        (s: any) => !isTransportService(s) && !isHousekeepingService(s) && s.is_active !== false
+        (s: any) => !isTransportService(s) && !isHousekeepingService(s)
       );
       setCatalogItems(validCatalog);
 
@@ -474,7 +484,25 @@ export default function ServicesScreen() {
     fetchCatalog();
   };
 
-  // KPI stats: Tách bạch 4 bước chuẩn mực + số đơn trễ hạn SLA
+  // Helper kiểm tra đơn có thuộc quyền phụ trách của nhân viên đang đăng nhập hay không
+  const checkIsMyTask = useCallback(
+    (o: ServiceOrder | any) => {
+      if (!o) return false;
+      const myUserId = user?.id;
+      if (Boolean(myUserId) && o.assigned_staff === myUserId) return true;
+
+      const myFirstName = (user?.first_name || '').trim();
+      const myUsername = (user?.username || '').trim();
+      const staffName = (o.assigned_staff_name || '').trim();
+
+      if (Boolean(myUsername) && staffName === myUsername) return true;
+      if (Boolean(myFirstName) && staffName.includes(myFirstName)) return true;
+      return false;
+    },
+    [user]
+  );
+
+  // KPI stats: Tách bạch 4 bước chuẩn mực + số đơn trễ hạn SLA + đơn của tôi + đơn chưa ai nhận
   const stats = useMemo(() => {
     const total = orders.length;
     const pending = orders.filter((o) => o.status === 'pending').length;
@@ -482,12 +510,83 @@ export default function ServicesScreen() {
     const delivering = orders.filter((o) => o.status === 'delivering').length;
     const completed = orders.filter((o) => o.status === 'completed').length;
     const overdue = orders.filter((o) => getSlaStatus(o)?.isOverdue).length;
-    return { total, pending, preparing, delivering, completed, overdue };
-  }, [orders]);
 
-  // Bộ lọc kết hợp: Trạng thái 4 bước + Danh mục 4 nhóm + Tìm kiếm + Sắp xếp thông minh
+    // Đơn của tôi CẦN XỬ LÝ (chỉ tính đơn đang hoạt động: pending, in_progress, delivering - loại trừ completed và cancelled)
+    const myTasks = orders.filter((o) => {
+      return (
+        checkIsMyTask(o) &&
+        (o.status === 'in_progress' || o.status === 'delivering' || o.status === 'pending')
+      );
+    }).length;
+
+    // Đơn chưa ai nhận (chỉ tính đơn chờ xử lý, loại trừ đơn đã hoàn thành hoặc đã hủy)
+    const unassigned = orders.filter(
+      (o) => !o.assigned_staff && o.status !== 'completed' && o.status !== 'cancelled'
+    ).length;
+
+    return { total, pending, preparing, delivering, completed, overdue, myTasks, unassigned };
+  }, [orders, checkIsMyTask]);
+
+  // Thống kê động cho 5 ô lọc trạng thái thích ứng theo phạm vi nhiệm vụ (Scope)
+  const scopeStats = useMemo(() => {
+    if (scopeFilter === 'my_tasks') {
+      const myOrders = orders.filter((o) => checkIsMyTask(o));
+      const pending = myOrders.filter((o) => o.status === 'pending').length;
+      const preparing = myOrders.filter((o) => o.status === 'in_progress').length;
+      const delivering = myOrders.filter((o) => o.status === 'delivering').length;
+      const completed = myOrders.filter((o) => o.status === 'completed').length;
+      // Tổng đơn cần làm (active tasks)
+      const total = pending + preparing + delivering;
+
+      return { total, pending, preparing, delivering, completed };
+    }
+
+    if (scopeFilter === 'unassigned') {
+      const unassignedOrders = orders.filter(
+        (o) => !o.assigned_staff && o.status !== 'completed' && o.status !== 'cancelled'
+      );
+      const pending = unassignedOrders.filter((o) => o.status === 'pending').length;
+      return {
+        total: unassignedOrders.length,
+        pending,
+        preparing: 0,
+        delivering: 0,
+        completed: 0,
+      };
+    }
+
+    // scopeFilter === 'all': Thống kê toàn khách sạn
+    return {
+      total: orders.length,
+      pending: orders.filter((o) => o.status === 'pending').length,
+      preparing: orders.filter((o) => o.status === 'in_progress').length,
+      delivering: orders.filter((o) => o.status === 'delivering').length,
+      completed: orders.filter((o) => o.status === 'completed').length,
+    };
+  }, [orders, scopeFilter, checkIsMyTask]);
+
+  // Bộ lọc kết hợp: Phạm vi nhiệm vụ + Trạng thái 4 bước + Danh mục 4 nhóm + Tìm kiếm + Sắp xếp thông minh
   const filteredOrders = useMemo(() => {
     const list = orders.filter((item) => {
+      // 1. Lọc theo Scope (Tất cả / Việc của tôi / Chưa ai nhận)
+      if (scopeFilter === 'my_tasks') {
+        const isMy = checkIsMyTask(item);
+        if (!isMy) return false;
+
+        // Đơn đã hủy không bao giờ hiển thị trong Việc của tôi
+        if (item.status === 'cancelled') return false;
+
+        // Nếu ở tab "Tất cả", chỉ hiển thị đơn CẦN LÀM (in_progress, delivering, pending)
+        // Đơn đã hoàn tất chỉ hiển thị khi nhân viên chủ động bấm tab "Đã xong"
+        if (activeTab === 'all' && item.status === 'completed') return false;
+      } else if (scopeFilter === 'unassigned') {
+        // Đơn chưa ai nhận: TUYỆT ĐỐI không hiển thị đơn có người nhận, đơn đã hủy hoặc đơn đã hoàn thành
+        if (Boolean(item.assigned_staff) || item.status === 'cancelled' || item.status === 'completed') {
+          return false;
+        }
+      }
+
+      // 2. Lọc theo Trạng thái
       let matchTab = true;
       if (activeTab === 'pending') {
         matchTab = item.status === 'pending';
@@ -499,15 +598,18 @@ export default function ServicesScreen() {
         matchTab = item.status === 'completed';
       }
 
+      // 3. Lọc theo Phân loại nghiệp vụ
       let matchCat = true;
       if (orderCategoryFilter !== 'all') {
         matchCat = getServiceCategoryType(item) === orderCategoryFilter;
       }
 
+      // 4. Tìm kiếm
       const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
         (item.guest_name && item.guest_name.toLowerCase().includes(q)) ||
+        (item.guest_phone && item.guest_phone.toLowerCase().includes(q)) ||
         (item.room_number && item.room_number.toLowerCase().includes(q)) ||
         (item.service_name && item.service_name.toLowerCase().includes(q)) ||
         (item.note && item.note.toLowerCase().includes(q));
@@ -560,7 +662,7 @@ export default function ServicesScreen() {
       const tB = new Date(b.request_time || b.created_at || 0).getTime();
       return tA - tB;
     });
-  }, [orders, activeTab, orderCategoryFilter, searchQuery]);
+  }, [orders, activeTab, orderCategoryFilter, searchQuery, scopeFilter, checkIsMyTask]);
 
   // Infinite Scroll cho Đơn phục vụ
   const [visibleOrdersCount, setVisibleOrdersCount] = useState(15);
@@ -640,7 +742,12 @@ export default function ServicesScreen() {
     }
   };
 
-  const handleUpdateStatus = async (item: ServiceOrder, newStatus: string, label: string) => {
+  const handleUpdateStatus = async (
+    item: ServiceOrder,
+    newStatus: string,
+    label: string,
+    extraPayload?: { is_paid?: boolean; payment_method?: string }
+  ) => {
     if (actionLoadingId === item.id) return;
     const lock = getServiceLockReason(item);
     if (lock && ['in_progress', 'delivering', 'completed'].includes(newStatus)) {
@@ -651,13 +758,23 @@ export default function ServicesScreen() {
     try {
       setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const res = await apiClient.patch(`/services/requests/${item.id}/`, {
+      const payload: any = {
         status: newStatus,
         assigned_staff: item.assigned_staff || user?.id,
-      });
+      };
+      if (extraPayload) {
+        if (typeof extraPayload.is_paid === 'boolean') {
+          payload.is_paid = extraPayload.is_paid;
+        }
+        if (extraPayload.payment_method) {
+          payload.payment_method = extraPayload.payment_method;
+        }
+      }
+      const res = await apiClient.patch(`/services/requests/${item.id}/`, payload);
       if (res.data.success || res.data.id) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Cập nhật thành công ✨', `Đơn phòng ${item.room_number} đã chuyển sang "${label}"!`);
+        const paidNote = extraPayload?.is_paid ? ' (Đã xác nhận thu tiền mặt)' : '';
+        Alert.alert('Cập nhật thành công ✨', `Đơn phòng ${item.room_number} đã chuyển sang "${label}"${paidNote}!`);
         await fetchOrders();
       }
     } catch (err: any) {
@@ -666,6 +783,111 @@ export default function ServicesScreen() {
     } finally {
       setActionLoadingId(null);
     }
+  };
+
+  // Popup xác nhận hình thức thanh toán khi bàn giao xong (Ghi nợ phòng vs Thu tiền mặt tại phòng)
+  const handlePromptComplete = (item: ServiceOrder, label: string) => {
+    if (actionLoadingId === item.id) return;
+    const lock = getServiceLockReason(item);
+    if (lock) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert('Chưa thể thực hiện', getServiceLockMessage(item, lock));
+      return;
+    }
+
+    const priceText = item.total_price ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí';
+
+    Alert.alert(
+      `Hoàn thành đơn Phòng ${item.room_number}`,
+      `Món/Dịch vụ: ${item.service_name} (x${item.quantity})\nTổng tiền: ${priceText}\n\nVui lòng chọn phương thức thanh toán của khách:`,
+      [
+        {
+          text: 'Quay lại',
+          style: 'cancel',
+        },
+        {
+          text: '💳 Ghi nợ hóa đơn phòng (Mặc định)',
+          onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: false }),
+        },
+        {
+          text: '💵 Đã thu tiền mặt tại chỗ',
+          onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: true, payment_method: 'CASH' }),
+        },
+      ]
+    );
+  };
+
+  // Gọi điện / Nhắn tin nhanh cho khách phòng
+  const handleCallGuest = (phone?: string, guestName?: string, roomNumber?: string) => {
+    if (phone && phone.trim()) {
+      const cleanPhone = phone.trim();
+      Alert.alert(
+        `Liên hệ khách Phòng ${roomNumber || ''}`,
+        `Khách hàng: ${guestName || 'Khách lưu trú'}\nSố điện thoại: ${cleanPhone}`,
+        [
+          { text: 'Đóng', style: 'cancel' },
+          {
+            text: '💬 Nhắn tin SMS',
+            onPress: () => {
+              Linking.openURL(`sms:${cleanPhone}?body=${encodeURIComponent(`Dạ em chào anh/chị phòng ${roomNumber || ''}, em từ bộ phận Phục vụ khách sạn TA Luxury...`)}`);
+            },
+          },
+          {
+            text: '📞 Gọi điện ngay',
+            onPress: () => {
+              Linking.openURL(`tel:${cleanPhone}`);
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Không có số điện thoại khách',
+        `Đơn đặt phòng ${roomNumber || ''} (${guestName || 'Khách lưu trú'}) chưa lưu số điện thoại cá nhân.\n\nNhân viên vui lòng bấm chuông/gõ cửa phòng trực tiếp hoặc liên hệ quầy Lễ tân qua máy bàn nội bộ để được hỗ trợ.`
+      );
+    }
+  };
+
+  // Bật/Tắt trạng thái phục vụ món ăn trên Tab Thực đơn (Catalog)
+  const handleToggleCatalogActive = async (item: any) => {
+    if (togglingCatalogId === item.id) return;
+    const isCurrentlyActive = item.is_active !== false;
+    const nextStatusText = isCurrentlyActive ? 'Tạm hết món / Ngưng phục vụ' : 'Mở phục vụ lại';
+
+    Alert.alert(
+      'Chuyển trạng thái thực đơn',
+      `Bạn có chắc chắn muốn chuyển món "${item.name}" sang: "${nextStatusText}"?`,
+      [
+        { text: 'Hủy bỏ', style: 'cancel' },
+        {
+          text: isCurrentlyActive ? 'Báo hết món' : 'Mở phục vụ',
+          style: isCurrentlyActive ? 'destructive' : 'default',
+          onPress: async () => {
+            try {
+              setTogglingCatalogId(item.id);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const res = await apiClient.patch(`/services/items/${item.id}/toggle-active/`);
+              if (res.data?.success) {
+                const updatedActive = res.data?.is_active ?? !isCurrentlyActive;
+                setCatalogItems((prev) =>
+                  prev.map((it) => (it.id === item.id ? { ...it, is_active: updatedActive } : it))
+                );
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                Alert.alert(
+                  'Thành công ✨',
+                  `Món "${item.name}" hiện đã ${updatedActive ? 'sẵn sàng phục vụ' : 'chuyển sang TẠM HẾT MÓN'}.`
+                );
+              }
+            } catch (err: any) {
+              const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái món.';
+              Alert.alert('Lỗi', msg);
+            } finally {
+              setTogglingCatalogId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCancelOrder = (item: ServiceOrder) => {
@@ -936,7 +1158,7 @@ export default function ServicesScreen() {
   const renderItem = ({ item }: { item: ServiceOrder }) => {
     const badge = getStatusBadgeConfig(item.status, item);
     const actionConfig = getServiceActionConfig(item);
-    const isMyTask = item.assigned_staff === user?.id;
+    const isMyTask = checkIsMyTask(item);
     const lockReason = ['pending', 'in_progress', 'delivering'].includes(item.status)
       ? getServiceLockReason(item)
       : null;
@@ -1021,7 +1243,7 @@ export default function ServicesScreen() {
               </View>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, flexWrap: 'wrap', gap: 6 }}>
               <Text style={styles.priceText}>
                 {item.total_price ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
               </Text>
@@ -1040,6 +1262,29 @@ export default function ServicesScreen() {
                 </Text>
                 <Ionicons name="person-circle-outline" size={13} color="#0284C7" style={{ marginLeft: 3 }} />
               </TouchableOpacity>
+
+              {/* Nút Gọi điện thoại nhanh cho khách phòng */}
+              <TouchableOpacity
+                style={[
+                  styles.quickPhoneBtn,
+                  !isDark && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }
+                ]}
+                onPress={() => handleCallGuest(item.guest_phone, item.guest_name, item.room_number)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="call" size={11} color="#059669" style={{ marginRight: 3 }} />
+                <Text style={styles.quickPhoneBtnText}>
+                  {item.guest_phone ? item.guest_phone : 'Gọi khách'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Huy hiệu đã thanh toán */}
+              {item.is_paid ? (
+                <View style={[styles.paidBadge, !isDark && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                  <Ionicons name="checkmark-circle" size={11} color="#059669" style={{ marginRight: 2 }} />
+                  <Text style={styles.paidBadgeText}>Đã thu tiền</Text>
+                </View>
+              ) : null}
             </View>
           </View>
         </View>
@@ -1142,7 +1387,7 @@ export default function ServicesScreen() {
           {item.status === 'delivering' && (
             <TouchableOpacity
               style={[styles.btnComplete, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
-              onPress={() => handleUpdateStatus(item, 'completed', actionConfig.completeSuccessMsg)}
+              onPress={() => handlePromptComplete(item, actionConfig.completeSuccessMsg)}
               activeOpacity={0.8}
               disabled={isActionLoading}
             >
@@ -1207,13 +1452,16 @@ export default function ServicesScreen() {
   const renderCatalogItem = ({ item }: { item: any }) => {
     const priceFormatted = item.price ? `${parseInt(item.price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí';
     const imageUri = getServiceItemImage(item);
+    const isAvailable = item.is_active !== false;
+
     return (
       <View
         style={[
           styles.catalogCard,
+          !isAvailable && { opacity: 0.8 },
           !isDark && {
             backgroundColor: '#FFFFFF',
-            borderColor: '#E2E8F0',
+            borderColor: isAvailable ? '#E2E8F0' : '#FECACA',
             shadowColor: '#64748B',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.08,
@@ -1222,11 +1470,19 @@ export default function ServicesScreen() {
           },
         ]}
       >
-        <Image
-          source={{ uri: imageUri }}
-          style={styles.catalogItemImg}
-          resizeMode="cover"
-        />
+        <View style={styles.catalogItemImgWrapper}>
+          <Image
+            source={{ uri: imageUri }}
+            style={[styles.catalogItemImg, !isAvailable && { opacity: 0.45 }]}
+            resizeMode="cover"
+          />
+          {!isAvailable ? (
+            <View style={styles.soldOutBadge}>
+              <Text style={styles.soldOutBadgeText}>TẠM HẾT MÓN</Text>
+            </View>
+          ) : null}
+        </View>
+
         <View style={styles.catalogItemContent}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={[styles.catalogItemName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
@@ -1244,18 +1500,79 @@ export default function ServicesScreen() {
           ) : null}
 
           <View style={styles.catalogItemBottomRow}>
-            <Text style={styles.catalogItemPrice}>{priceFormatted}</Text>
-            <TouchableOpacity
-              style={styles.catalogOrderBtn}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                openCreateOrderModal(item.id);
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="cart" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-              <Text style={styles.catalogOrderBtnText}>Gọi món</Text>
-            </TouchableOpacity>
+            <View>
+              <Text style={[styles.catalogItemPrice, !isAvailable && { color: '#94A3B8' }]}>
+                {priceFormatted}
+              </Text>
+              <Text style={{ fontSize: 10, color: isAvailable ? '#10B981' : '#EF4444', fontWeight: '800', marginTop: 1 }}>
+                {isAvailable ? '● Đang phục vụ' : '● Tạm hết món'}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {/* Nút Toggle Còn món / Hết món */}
+              <TouchableOpacity
+                style={[
+                  styles.catalogToggleBtn,
+                  !isAvailable && styles.catalogToggleBtnInactive,
+                  !isDark && {
+                    backgroundColor: isAvailable ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                    borderColor: isAvailable ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+                  }
+                ]}
+                onPress={() => handleToggleCatalogActive(item)}
+                disabled={togglingCatalogId === item.id}
+                activeOpacity={0.7}
+              >
+                {togglingCatalogId === item.id ? (
+                  <ActivityIndicator size="small" color="#EF4444" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={isAvailable ? "pause-circle-outline" : "play-circle-outline"}
+                      size={13}
+                      color={isAvailable ? "#DC2626" : "#059669"}
+                      style={{ marginRight: 3 }}
+                    />
+                    <Text
+                      style={[
+                        styles.catalogToggleBtnText,
+                        { color: isAvailable ? "#DC2626" : "#059669" }
+                      ]}
+                    >
+                      {isAvailable ? "Báo hết" : "Mở lại"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Nút Gọi món */}
+              <TouchableOpacity
+                style={[
+                  styles.catalogOrderBtn,
+                  !isAvailable && { opacity: 0.45 }
+                ]}
+                onPress={() => {
+                  if (!isAvailable) {
+                    Alert.alert(
+                      'Món đang tạm hết',
+                      `Món "${item.name}" đang được đánh dấu là tạm hết. Bạn có muốn mở lại món này trước khi gọi cho khách không?`,
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        { text: 'Mở lại phục vụ', onPress: () => handleToggleCatalogActive(item) }
+                      ]
+                    );
+                    return;
+                  }
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  openCreateOrderModal(item.id);
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="cart" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
+                <Text style={styles.catalogOrderBtnText}>Gọi món</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -1375,14 +1692,66 @@ export default function ServicesScreen() {
       {/* MODE 1: ORDERS LIST VIEW */}
       {mainViewMode === 'orders' ? (
         <>
+          {/* 1b. Dải Lọc Phạm Vi Nhiệm Vụ (Tất cả đơn / Việc của tôi / Chưa ai nhận) */}
+          <View style={{ marginBottom: 8 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scopeFilterScroll}
+            >
+              {[
+                { key: 'all', label: 'Tất cả đơn', count: stats.total, icon: 'layers-outline' },
+                { key: 'my_tasks', label: 'Việc của tôi', count: stats.myTasks, icon: 'person-outline' },
+                { key: 'unassigned', label: 'Chưa ai nhận', count: stats.unassigned, icon: 'hand-left-outline' },
+              ].map((sc) => {
+                const isSelected = scopeFilter === sc.key;
+                return (
+                  <TouchableOpacity
+                    key={sc.key}
+                    style={[
+                      styles.scopeFilterBtn,
+                      isSelected && styles.scopeFilterBtnActive,
+                      !isDark && {
+                        backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.15)' : '#FFFFFF',
+                        borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                      },
+                    ]}
+                    onPress={() => {
+                      setScopeFilter(sc.key as any);
+                      setActiveTab('all');
+                      Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={sc.icon as any}
+                      size={12}
+                      color={isSelected ? '#F59E0B' : (!isDark ? '#64748B' : '#94A3B8')}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      style={[
+                        styles.scopeFilterBtnText,
+                        isSelected && styles.scopeFilterBtnTextActive,
+                        !isDark && { color: isSelected ? '#B45309' : '#475569' },
+                      ]}
+                    >
+                      {sc.label} ({sc.count})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* 2. Dải Bộ Lọc Trạng Thái & KPI Cố Định 5 Cột Chuẩn Mực */}
           <View style={styles.fixedFilterBar}>
             {[
-              { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
-              { key: 'pending', label: 'Chờ làm', count: stats.pending, color: '#F59E0B' },
-              { key: 'in_progress', label: 'Chuẩn bị', count: stats.preparing, color: isDark ? '#38BDF8' : '#0284C7' },
-              { key: 'delivering', label: 'Đang giao', count: stats.delivering, color: isDark ? '#C084FC' : '#9333EA' },
-              { key: 'completed', label: 'Đã xong', count: stats.completed, color: isDark ? '#34D399' : '#059669' },
+              { key: 'all', label: 'Tất cả', count: scopeStats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
+              { key: 'pending', label: 'Chờ làm', count: scopeStats.pending, color: '#F59E0B' },
+              { key: 'in_progress', label: 'Chuẩn bị', count: scopeStats.preparing, color: isDark ? '#38BDF8' : '#0284C7' },
+              { key: 'delivering', label: 'Đang giao', count: scopeStats.delivering, color: isDark ? '#C084FC' : '#9333EA' },
+              { key: 'completed', label: 'Đã xong', count: scopeStats.completed, color: isDark ? '#34D399' : '#059669' },
             ].map((item) => {
               const isSelected = activeTab === item.key;
               return (
@@ -1512,10 +1881,40 @@ export default function ServicesScreen() {
             <ServiceListSkeleton />
           ) : filteredOrders.length === 0 ? (
             <View style={styles.centerContainer}>
-              <Ionicons name="restaurant-outline" size={56} color="#334155" />
-              <Text style={styles.emptyTitle}>Không có yêu cầu phục vụ nào</Text>
+              <Ionicons
+                name={
+                  scopeFilter === 'my_tasks' && activeTab === 'all'
+                    ? 'checkmark-done-circle-outline'
+                    : scopeFilter === 'unassigned'
+                    ? 'hand-left-outline'
+                    : 'restaurant-outline'
+                }
+                size={56}
+                color={
+                  scopeFilter === 'my_tasks' && activeTab === 'all'
+                    ? '#10B981'
+                    : scopeFilter === 'unassigned'
+                    ? '#38BDF8'
+                    : '#334155'
+                }
+              />
+              <Text style={styles.emptyTitle}>
+                {scopeFilter === 'my_tasks' && activeTab === 'all'
+                  ? 'Bạn không có đơn nào cần xử lý 🎉'
+                  : scopeFilter === 'unassigned'
+                  ? 'Không có đơn nào chưa nhận'
+                  : activeTab === 'completed'
+                  ? 'Chưa có đơn hoàn tất trong mục này'
+                  : 'Không có yêu cầu phục vụ nào'}
+              </Text>
               <Text style={styles.emptySubtitle}>
-                Hiện chưa có khách gọi món hoặc yêu cầu tiện ích trong mục này.
+                {scopeFilter === 'my_tasks' && activeTab === 'all'
+                  ? scopeStats.completed > 0
+                    ? `Tuyệt vời! Bạn đã hoàn thành ${scopeStats.completed} đơn. Bấm vào ô "Đã xong" để xem lại hoặc qua tab "Chưa ai nhận" để nhận thêm việc.`
+                    : 'Hiện bạn chưa có nhiệm vụ nào cần làm. Hãy qua tab "Chưa ai nhận" để tiếp nhận đơn của khách nhé!'
+                  : scopeFilter === 'unassigned'
+                  ? 'Tất cả yêu cầu phục vụ hiện tại đã được nhân viên tiếp nhận hoặc đã hoàn tất.'
+                  : 'Hiện chưa có khách gọi món hoặc yêu cầu tiện ích trong mục này.'}
               </Text>
             </View>
           ) : (
@@ -3059,6 +3458,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#1F2937',
   },
+  catalogItemImgWrapper: {
+    width: 76,
+    height: 76,
+    borderRadius: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#1E293B',
+  },
   catalogItemImg: {
     width: 76,
     height: 76,
@@ -3162,5 +3569,102 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
+  },
+  scopeFilterScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 16,
+  },
+  scopeFilterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  scopeFilterBtnActive: {
+    backgroundColor: '#F59E0B',
+    borderColor: '#D97706',
+  },
+  scopeFilterBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  scopeFilterBtnTextActive: {
+    color: '#0A0F1D',
+    fontWeight: '900',
+  },
+  quickPhoneBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  quickPhoneBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  paidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  paidBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  soldOutBadge: {
+    position: 'absolute',
+    top: 5,
+    left: 4,
+    right: 4,
+    backgroundColor: 'rgba(220, 38, 38, 0.95)',
+    paddingVertical: 2.5,
+    paddingHorizontal: 2,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  soldOutBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  catalogToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5.5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+  },
+  catalogToggleBtnInactive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  catalogToggleBtnText: {
+    fontSize: 10.5,
+    fontWeight: '800',
   },
 });
