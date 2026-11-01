@@ -80,7 +80,7 @@ export const hotelService = {
 
     /**
      * Khách hàng gửi yêu cầu dịch vụ tại phòng (POST /api/services/requests/)
-     * @param {Object} payload - { booking_id, service_id, quantity, note }
+     * @param {Object} payload - { booking_id, service_id, quantity, note } hoặc { booking_id, items: [...], note }
      */
     async createServiceRequest(payload) {
         try {
@@ -88,10 +88,12 @@ export const hotelService = {
             
             // Kích hoạt sự kiện đa tab để Kanban của Lễ tân nhảy thẻ ngay tức thì
             try {
+                const firstId = res.data?.data?.id || (res.data?.requests && res.data.requests[0]?.id) || res.data?.request?.id;
                 localStorage.setItem('pms_last_service_event', JSON.stringify({
                     type: 'service_created',
                     timestamp: Date.now(),
-                    id: res.data?.data?.id
+                    id: firstId,
+                    count: res.data?.requests?.length || 1
                 }));
                 window.dispatchEvent(new CustomEvent('pms_service_created', { detail: res.data }));
             } catch (e) {
@@ -101,6 +103,7 @@ export const hotelService = {
             return {
                 success: true,
                 data: res.data?.data || res.data?.request,
+                requests: res.data?.requests || (res.data?.data ? [res.data.data] : []),
                 message: res.data?.message || 'Yêu cầu dịch vụ đã được gửi thành công!'
             };
         } catch (error) {

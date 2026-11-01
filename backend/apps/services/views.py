@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -501,48 +502,31 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         Khách hàng gửi yêu cầu dịch vụ tại phòng:
-        Payload: {
-            "booking_id": "BK-02DE4E" (hoặc ID 7),
-            "service_id": 1,
-            "quantity": 2,
-            "note": "Mang lên lúc 19:30, ít đường"
-        }
         Hỗ trợ:
-        - Khách cá nhân đã đăng nhập: Đặt cho phòng của chính mình.
-        - Khách đoàn / Thành viên trong đoàn: Tự nhập mã booking in trên thẻ phòng (BK-xxxxxx) mà không cần tài khoản HR.
-        - Nhân viên / Quản lý: Đặt hỗ trợ cho khách phòng bất kỳ.
+        1. Gọi đơn lẻ 1 món:
+           Payload: { "booking_id": "BK-02DE4E", "service_id": 1, "quantity": 2, "note": "..." }
+        2. Gọi nhiều món cùng lúc (Giỏ dịch vụ - Service Cart):
+           Payload: {
+               "booking_id": "BK-02DE4E",
+               "items": [
+                   { "service_id": 1, "quantity": 2, "note": "Ít cay" },
+                   { "service_id": 3, "quantity": 1, "note": "" }
+               ],
+               "note": "Giao cùng lúc",
+               "is_scheduled": false,
+               "request_time": "..."
+           }
         """
         user = request.user
         data = request.data
         booking_id = data.get('booking') or data.get('booking_id')
-        service_id = data.get('service') or data.get('service_id')
-        quantity = data.get('quantity', 1)
-        note = data.get('note', '').strip()
+        items = data.get('items')
 
-        # 1. Kiểm tra đầu vào bắt buộc
+        # 1. Kiểm tra mã đặt phòng bắt buộc
         if not booking_id:
             return Response({
                 'success': False,
                 'message': 'Vui lòng nhập Mã Đặt phòng (VD: BK-02DE4E) in trên thẻ phòng hoặc phiếu nhận phòng của bạn.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        if not service_id:
-            return Response({
-                'success': False,
-                'message': 'Vui lòng chọn dịch vụ hoặc món ăn cần gọi.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            quantity = int(quantity)
-            if quantity < 1 or quantity > 99:
-                return Response({
-                    'success': False,
-                    'message': 'Số lượng yêu cầu phải từ 1 đến 99.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        except (ValueError, TypeError):
-            return Response({
-                'success': False,
-                'message': 'Số lượng không hợp lệ.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # 2. Tìm Booking theo ID hoặc booking_code
@@ -558,6 +542,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
         # 2.1. Phân quyền:
         # Nếu khách đã đăng nhập: kiểm tra tính sở hữu đơn phòng
+        is_staff_or_admin = False
         if user.is_authenticated:
             is_staff_or_admin = (
                 user.is_staff or 
@@ -598,27 +583,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 'message': f'Đơn đặt phòng {booking.booking_code} hiện chưa được xếp phòng cụ thể. Quý khách vui lòng liên hệ lễ tân để được xếp phòng trước khi gọi dịch vụ.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 3. Tìm ServiceItem
-        service_item = ServiceItem.objects.filter(pk=service_id, is_active=True).first()
-        if not service_item:
-            return Response({
-                'success': False,
-                'message': 'Dịch vụ này hiện đang tạm ngưng phục vụ hoặc không tồn tại.'
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        # 4. Tạo ServiceRequest mới
-        # Tự động gán nhân viên phụ trách nếu đơn được tạo bởi nhân viên / lễ tân
-        assigned_to = None
-        if user.is_authenticated and is_staff_or_admin:
-            target_staff_id = data.get('assigned_staff') or data.get('staff_id')
-            if target_staff_id:
-                from ..users.models import User as UserModel
-                target_user = UserModel.objects.filter(pk=target_staff_id).first()
-                if target_user:
-                    assigned_to = target_user
-            else:
-                # Nhân viên phục vụ / Lái xe tạo đơn hộ khách -> tự động nhận phụ trách
-                assigned_to = user
+        room_display = booking.room.room_number if booking.room else 'phòng'
 
         # Xử lý thời gian hẹn giờ phục vụ / giao món (Scheduled delivery)
         req_time_str = data.get('request_time')
@@ -640,11 +605,144 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         if not final_request_time:
             final_request_time = timezone.now()
 
+        # Tự động gán nhân viên phụ trách nếu đơn được tạo bởi nhân viên / lễ tân
+        assigned_to = None
+        if user.is_authenticated and is_staff_or_admin:
+            target_staff_id = data.get('assigned_staff') or data.get('staff_id')
+            if target_staff_id:
+                from ..users.models import User as UserModel
+                target_user = UserModel.objects.filter(pk=target_staff_id).first()
+                if target_user:
+                    assigned_to = target_user
+            else:
+                # Nhân viên phục vụ / Lái xe tạo đơn hộ khách -> tự động nhận phụ trách
+                assigned_to = user
+
+        general_note = data.get('note', '').strip()
+
+        # ==========================================
+        # TRƯỜNG HỢP 1: ĐẶT NHIỀU MÓN CÙNG LÚC (CART)
+        # ==========================================
+        if items and isinstance(items, list):
+            if len(items) == 0:
+                return Response({
+                    'success': False,
+                    'message': 'Giỏ dịch vụ của quý khách đang trống.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Thu thập và kiểm tra danh sách items
+            parsed_items = []
+            service_ids = []
+            for idx, raw_item in enumerate(items):
+                s_id = raw_item.get('service') or raw_item.get('service_id')
+                if not s_id:
+                    return Response({
+                        'success': False,
+                        'message': f'Món thứ {idx + 1} trong giỏ chưa có thông tin dịch vụ.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                try:
+                    qty = int(raw_item.get('quantity', 1))
+                    if qty < 1 or qty > 99:
+                        return Response({
+                            'success': False,
+                            'message': f'Số lượng món thứ {idx + 1} phải từ 1 đến 99.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                except (ValueError, TypeError):
+                    return Response({
+                        'success': False,
+                        'message': f'Số lượng món thứ {idx + 1} không hợp lệ.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                service_ids.append(s_id)
+                parsed_items.append({
+                    'service_id': s_id,
+                    'quantity': qty,
+                    'note': (raw_item.get('note') or '').strip()
+                })
+
+            # Lấy thông tin các ServiceItem hợp lệ
+            service_map = {item.id: item for item in ServiceItem.objects.filter(pk__in=service_ids, is_active=True)}
+            missing_ids = [s_id for s_id in service_ids if s_id not in service_map]
+            if missing_ids:
+                return Response({
+                    'success': False,
+                    'message': 'Một số dịch vụ trong giỏ hiện đang tạm ngưng phục vụ hoặc không tồn tại.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Tạo hàng loạt ServiceRequest trong atomic transaction
+            created_requests = []
+            with transaction.atomic():
+                for item_info in parsed_items:
+                    srv = service_map[item_info['service_id']]
+                    qty = item_info['quantity']
+                    item_note = item_info['note']
+                    combined_note = f"{item_note} ({general_note})" if item_note and general_note else (item_note or general_note)
+                    total_p = srv.price * qty
+
+                    sr = ServiceRequest.objects.create(
+                        booking=booking,
+                        service=srv,
+                        quantity=qty,
+                        unit_price=srv.price,
+                        total_price=total_p,
+                        status='pending',
+                        assigned_staff=assigned_to,
+                        note=combined_note,
+                        is_scheduled=is_scheduled_param,
+                        request_time=final_request_time
+                    )
+                    created_requests.append(sr)
+
+            serializer = ServiceRequestSerializer(created_requests, many=True, context={'request': request})
+            return Response({
+                'success': True,
+                'message': f'Đã gửi thành công {len(created_requests)} dịch vụ/món ăn cho Phòng {room_display}! Nhân viên sẽ chuẩn bị và phục vụ quý khách.',
+                'request': serializer.data[0] if serializer.data else None,
+                'requests': serializer.data,
+                'data': serializer.data[0] if serializer.data else None,
+                'count': len(created_requests),
+                'room_number': room_display
+            }, status=status.HTTP_201_CREATED)
+
+        # ==========================================
+        # TRƯỜNG HỢP 2: ĐẶT 1 MÓN ĐƠN LẺ
+        # ==========================================
+        service_id = data.get('service') or data.get('service_id')
+        quantity = data.get('quantity', 1)
+        note = general_note
+
+        if not service_id:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn dịch vụ hoặc món ăn cần gọi.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            quantity = int(quantity)
+            if quantity < 1 or quantity > 99:
+                return Response({
+                    'success': False,
+                    'message': 'Số lượng yêu cầu phải từ 1 đến 99.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'message': 'Số lượng không hợp lệ.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        service_item = ServiceItem.objects.filter(pk=service_id, is_active=True).first()
+        if not service_item:
+            return Response({
+                'success': False,
+                'message': 'Dịch vụ này hiện đang tạm ngưng phục vụ hoặc không tồn tại.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         total_price = service_item.price * quantity
         service_request = ServiceRequest.objects.create(
             booking=booking,
             service=service_item,
             quantity=quantity,
+            unit_price=service_item.price,
             total_price=total_price,
             status='pending',
             assigned_staff=assigned_to,
@@ -654,13 +752,14 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         )
 
         serializer = ServiceRequestSerializer(service_request, context={'request': request})
-        room_display = booking.room.room_number if booking.room else 'phòng'
 
         return Response({
             'success': True,
             'message': f'Đã gửi yêu cầu "{service_item.name}" cho Phòng {room_display} thành công! Nhân viên sẽ phục vụ trong ít phút.',
             'request': serializer.data,
-            'data': serializer.data
+            'requests': [serializer.data],
+            'data': serializer.data,
+            'room_number': room_display
         }, status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, *args, **kwargs):
