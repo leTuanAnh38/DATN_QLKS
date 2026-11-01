@@ -107,8 +107,8 @@ export default function GuestManagement() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Tải danh sách khách hàng từ API (có phân trang)
-    const fetchGuests = async (page = null) => {
-        setIsLoading(true);
+    const fetchGuests = async (page = null, silent = false) => {
+        if (!silent) setIsLoading(true);
         const targetPage = page !== null ? page : currentPageRef.current;
         const params = { page: targetPage };
         if (searchTerm) params.q = searchTerm;
@@ -129,7 +129,7 @@ export default function GuestManagement() {
             setTotalCount(0);
             setTotalPages(1);
         }
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
     };
 
     // Khi đổi bộ lọc -> reset về trang 1
@@ -201,7 +201,10 @@ export default function GuestManagement() {
         if (res.success) {
             setAlertMessage({ type: 'success', text: 'Cập nhật thông tin khách hàng thành công!' });
             setIsEditModalOpen(false);
-            fetchGuests();
+            if (res.guest) {
+                setGuests((prev) => prev.map((g) => (g.id === selectedGuest.id ? res.guest : g)));
+            }
+            fetchGuests(null, true);
             setTimeout(() => setAlertMessage(null), 3000);
         } else {
             setAlertMessage({ type: 'error', text: res.message || 'Cập nhật thất bại.' });
@@ -227,7 +230,7 @@ export default function GuestManagement() {
                 vip_tier: 'Bronze',
                 loyalty_points: 0,
             });
-            fetchGuests();
+            fetchGuests(null, true);
             setTimeout(() => setAlertMessage(null), 3000);
         } else {
             setAlertMessage({ type: 'error', text: res.message || 'Tạo tài khoản thất bại.' });
@@ -304,12 +307,14 @@ export default function GuestManagement() {
         setIsSubmitting(false);
 
         if (res.success) {
+            const delId = selectedGuest.id;
             setIsDeleteModalOpen(false);
+            setGuests((prev) => prev.filter((g) => g.id !== delId));
             setAlertMessage({
                 type: 'success',
                 text: `Đã xóa vĩnh viễn tài khoản khách hàng "${selectedGuest.full_name || selectedGuest.username}" thành công!`,
             });
-            fetchGuests();
+            fetchGuests(null, true);
             setTimeout(() => setAlertMessage(null), 3500);
         } else {
             setAlertMessage({

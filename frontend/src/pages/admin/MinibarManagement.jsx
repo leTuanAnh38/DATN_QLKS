@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
     Package,
     CheckCircle2,
@@ -14,7 +14,11 @@ import {
     AlertTriangle,
     X,
     Sparkles,
-    Loader2
+    Loader2,
+    Camera,
+    UploadCloud,
+    Link2,
+    ImageIcon
 } from 'lucide-react';
 import roomService from '../../services/roomService';
 import { useHasPermission } from '../../utils/permission';
@@ -48,6 +52,10 @@ export default function MinibarManagement() {
         image_url: '',
         is_active: true
     });
+    const [imageType, setImageType] = useState('url'); // 'url' | 'file'
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [filePreview, setFilePreview] = useState('');
+    const fileInputRef = useRef(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
 
@@ -58,8 +66,8 @@ export default function MinibarManagement() {
     // Toast Alert
     const [alertMessage, setAlertMessage] = useState(null);
 
-    const loadItems = useCallback(async () => {
-        setIsLoading(true);
+    const loadItems = useCallback(async (showLoading = false) => {
+        if (showLoading) setIsLoading(true);
         try {
             const res = await roomService.getMinibarItems();
             if (res.success && Array.isArray(res.data)) {
@@ -69,12 +77,12 @@ export default function MinibarManagement() {
             console.error('Error loading minibar items:', error);
             showAlert('error', 'Không thể tải danh sách mặt hàng Minibar.');
         } finally {
-            setIsLoading(false);
+            if (showLoading) setIsLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        loadItems();
+        loadItems(true);
     }, [loadItems]);
 
     const showAlert = (type, text) => {
@@ -148,6 +156,9 @@ export default function MinibarManagement() {
             image_url: '',
             is_active: true
         });
+        setSelectedFile(null);
+        setFilePreview('');
+        setImageType('url');
         setFormError('');
         setIsModalOpen(true);
     };
@@ -167,8 +178,32 @@ export default function MinibarManagement() {
             image_url: item.image_url || '',
             is_active: Boolean(item.is_active)
         });
+        setSelectedFile(null);
+        const existingImg = item.display_image || item.image || item.image_url || '';
+        setFilePreview(existingImg);
+        setImageType(item.image && !item.image_url ? 'file' : 'url');
         setFormError('');
         setIsModalOpen(true);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setFormError('Dung lượng ảnh vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn.');
+                return;
+            }
+            setSelectedFile(file);
+            setFilePreview(URL.createObjectURL(file));
+            setFormError('');
+        }
+    };
+
+    const handleClearImage = () => {
+        setSelectedFile(null);
+        setFilePreview('');
+        setFormData((prev) => ({ ...prev, image_url: '' }));
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     // Quick toggle active status
@@ -225,26 +260,55 @@ export default function MinibarManagement() {
 
         setIsSubmitting(true);
         try {
-            const payload = {
-                name: formData.name.trim(),
-                category: formData.category,
-                price: priceNum,
-                standard_quantity: standardQty,
-                image_url: formData.image_url.trim(),
-                is_active: formData.is_active
-            };
-
             let res;
-            if (editingItem) {
-                res = await roomService.updateMinibarItem(editingItem.id, payload);
+            if (imageType === 'file' && selectedFile) {
+                const data = new FormData();
+                data.append('name', formData.name.trim());
+                data.append('category', formData.category);
+                data.append('price', Math.round(priceNum));
+                data.append('standard_quantity', standardQty);
+                data.append('is_active', formData.is_active ? 'true' : 'false');
+                data.append('image', selectedFile);
+                if (formData.image_url.trim()) {
+                    data.append('image_url', formData.image_url.trim());
+                }
+
+                if (editingItem) {
+                    res = await roomService.updateMinibarItem(editingItem.id, data);
+                } else {
+                    res = await roomService.createMinibarItem(data);
+                }
             } else {
-                res = await roomService.createMinibarItem(payload);
+                const payload = {
+                    name: formData.name.trim(),
+                    category: formData.category,
+                    price: Math.round(priceNum),
+                    standard_quantity: standardQty,
+                    image_url: formData.image_url.trim(),
+                    is_active: formData.is_active
+                };
+
+                if (editingItem) {
+                    res = await roomService.updateMinibarItem(editingItem.id, payload);
+                } else {
+                    res = await roomService.createMinibarItem(payload);
+                }
             }
 
             if (res && res.success) {
                 showAlert('success', res.message || (editingItem ? 'Đã cập nhật món thành công!' : 'Đã thêm món mới thành công!'));
                 setIsModalOpen(false);
-                loadItems();
+
+                // Cập nhật trực tiếp vào danh sách trên màn hình để giữ nguyên vị trí cuộn trang (không bị nhảy lên đầu)
+                const savedData = res.data?.data || res.data;
+                if (savedData && editingItem) {
+                    setItems((prev) => prev.map((it) => (it.id === editingItem.id ? { ...it, ...savedData } : it)));
+                } else if (savedData && !editingItem) {
+                    setItems((prev) => [savedData, ...prev]);
+                }
+
+                // Đồng bộ ngầm không bật loader toàn bảng (không làm sập DOM chiều cao trang)
+                loadItems(false);
             } else {
                 setFormError(res?.message || 'Không thể lưu mặt hàng.');
             }
@@ -263,8 +327,9 @@ export default function MinibarManagement() {
             const res = await roomService.deleteMinibarItem(deletingItem.id);
             if (res && res.success) {
                 showAlert('success', `Đã xóa món "${deletingItem.name}" thành công.`);
+                setItems((prev) => prev.filter((it) => it.id !== deletingItem.id));
                 setDeletingItem(null);
-                loadItems();
+                loadItems(false);
             } else {
                 showAlert('error', res?.message || 'Xóa món thất bại.');
             }
@@ -492,11 +557,26 @@ export default function MinibarManagement() {
                                     const cat = getCategoryObj(item.category);
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50/60 transition">
-                                            {/* Name & Icon */}
+                                            {/* Name & Image / Icon */}
                                             <td className="py-3.5 px-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-lg shrink-0 shadow-2xs">
-                                                        {cat.icon}
+                                                    <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-lg shrink-0 overflow-hidden shadow-2xs relative">
+                                                        {item.display_image || item.image || item.image_url ? (
+                                                            <img
+                                                                src={item.display_image || item.image || item.image_url}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none';
+                                                                    if (e.target.nextElementSibling) {
+                                                                        e.target.nextElementSibling.style.display = 'flex';
+                                                                    }
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        <span style={{ display: (item.display_image || item.image || item.image_url) ? 'none' : 'flex' }}>
+                                                            {cat.icon}
+                                                        </span>
                                                     </div>
                                                     <div>
                                                         <div className="font-bold text-slate-900">{item.name}</div>
@@ -604,8 +684,23 @@ export default function MinibarManagement() {
                                 <div key={item.id} className="p-3.5 space-y-2.5 hover:bg-slate-50/50 transition">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-lg shrink-0 shadow-2xs">
-                                                {cat.icon}
+                                            <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-lg shrink-0 overflow-hidden shadow-2xs relative">
+                                                {item.display_image || item.image || item.image_url ? (
+                                                    <img
+                                                        src={item.display_image || item.image || item.image_url}
+                                                        alt={item.name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            if (e.target.nextElementSibling) {
+                                                                e.target.nextElementSibling.style.display = 'flex';
+                                                            }
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <span style={{ display: (item.display_image || item.image || item.image_url) ? 'none' : 'flex' }}>
+                                                    {cat.icon}
+                                                </span>
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="font-bold text-slate-900 text-xs truncate">{item.name}</div>
@@ -904,6 +999,98 @@ export default function MinibarManagement() {
                                         </label>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* HÌNH ẢNH MẶT HÀNG (Upload File / URL) */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                        <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                                        <span>Hình ảnh mặt hàng</span>
+                                    </label>
+                                    <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold text-slate-600">
+                                        <button
+                                            type="button"
+                                            onClick={() => setImageType('url')}
+                                            className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                                                imageType === 'url' ? 'bg-white text-blue-600 shadow-xs' : ''
+                                            }`}
+                                        >
+                                            <Link2 className="w-3 h-3" />
+                                            <span>Link URL</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setImageType('file')}
+                                            className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                                                imageType === 'file' ? 'bg-white text-blue-600 shadow-xs' : ''
+                                            }`}
+                                        >
+                                            <UploadCloud className="w-3 h-3" />
+                                            <span>Tải từ máy</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {imageType === 'url' ? (
+                                    <div>
+                                        <input
+                                            type="url"
+                                            value={formData.image_url}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, image_url: e.target.value });
+                                                setFilePreview(e.target.value);
+                                            }}
+                                            placeholder="https://images.unsplash.com/..."
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <span className="text-[10px] text-slate-400 mt-1 block">
+                                            Dán link ảnh trực tuyến (Unsplash, Imgur, Cloudinary...).
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            onChange={handleFileChange}
+                                            accept="image/*"
+                                            className="hidden"
+                                        />
+                                        <div
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50/40 rounded-xl p-3.5 text-center cursor-pointer transition"
+                                        >
+                                            <Camera className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                                            <span className="text-xs font-bold text-slate-700 block">
+                                                Bấm để chọn ảnh từ máy tính
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 mt-0.5 block">
+                                                Hỗ trợ JPG, PNG, WEBP (Tối đa 5MB)
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Image Preview */}
+                                {filePreview && (
+                                    <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 h-28 bg-slate-100 flex items-center justify-center group">
+                                        <img
+                                            src={filePreview}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                            onError={() => setFilePreview('')}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleClearImage}
+                                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-rose-600 text-white transition shadow-sm cursor-pointer"
+                                            title="Xóa ảnh"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Footer Buttons */}

@@ -74,6 +74,20 @@ export const paymentService = {
     },
 
     /**
+     * Lấy chi tiết một giao dịch thanh toán (kèm đầy đủ thông tin booking_details để in hóa đơn)
+     * @param {number|string} paymentId
+     */
+    async getPaymentDetail(paymentId) {
+        try {
+            const response = await api.get(`/payments/${paymentId}/`);
+            return response.data;
+        } catch (error) {
+            console.error(`Lỗi khi lấy chi tiết thanh toán #${paymentId}:`, error);
+            throw error;
+        }
+    },
+
+    /**
      * Lấy ca làm việc đang mở hiện tại của người dùng
      */
     async getCurrentShift() {

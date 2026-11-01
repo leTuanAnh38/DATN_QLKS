@@ -107,8 +107,8 @@ export default function CategoryManagement() {
     const fileInputRef = useRef(null);
 
     // Tải danh sách Hạng phòng từ Backend
-    const fetchCategories = async () => {
-        setLoading(true);
+    const fetchCategories = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const res = await roomService.getCategories({ q: searchQuery });
             if (res.success && res.categories) {
@@ -121,7 +121,7 @@ export default function CategoryManagement() {
         } catch (error) {
             console.error('Error fetching categories:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -374,7 +374,7 @@ export default function CategoryManagement() {
                     setFormSuccess(`Cập nhật hạng phòng "${formData.name}" thành công!`);
                     setTimeout(() => {
                         handleCloseModal();
-                        fetchCategories();
+                        fetchCategories(true);
                     }, 1200);
                 } else {
                     setFormError(res.message || 'Cập nhật thất bại. Vui lòng kiểm tra lại thông tin.');
@@ -386,7 +386,7 @@ export default function CategoryManagement() {
                     setFormSuccess(`Thêm mới hạng phòng "${formData.name}" thành công!`);
                     setTimeout(() => {
                         handleCloseModal();
-                        fetchCategories();
+                        fetchCategories(true);
                     }, 1200);
                 } else {
                     setFormError(res.message || 'Thêm hạng phòng thất bại.');
@@ -416,9 +416,11 @@ export default function CategoryManagement() {
         try {
             const res = await roomService.deleteCategory(categoryToDelete.id);
             if (res.success) {
+                const deletedId = categoryToDelete.id;
                 setIsDeleteModalOpen(false);
                 setCategoryToDelete(null);
-                fetchCategories();
+                setCategories((prev) => prev.filter((c) => c.id !== deletedId));
+                fetchCategories(true);
             } else {
                 setDeleteError(res.message || 'Không thể xóa hạng phòng này.');
             }

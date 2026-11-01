@@ -78,8 +78,8 @@ export default function PromotionManagement() {
     };
 
     // 5. GỌI API LẤY DANH SÁCH KHUYẾN MÃI (GET)
-    const fetchPromotions = async () => {
-        setIsLoading(true);
+    const fetchPromotions = async (silent = false) => {
+        if (!silent) setIsLoading(true);
         try {
             const res = await promotionService.getPromotions();
             if (res.success) {
@@ -91,7 +91,7 @@ export default function PromotionManagement() {
             console.error('Lỗi khi tải danh sách khuyến mãi:', error);
             showToast('error', 'Lỗi kết nối máy chủ khi lấy danh sách khuyến mãi.');
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     };
 
@@ -320,7 +320,8 @@ export default function PromotionManagement() {
                 if (res.success) {
                     showToast('success', res.message || 'Tạo voucher khuyến mãi thành công!');
                     setIsModalOpen(false);
-                    fetchPromotions();
+                    if (res.data) setPromotions((prev) => [res.data, ...prev]);
+                    fetchPromotions(true);
                 } else {
                     showToast('error', res.message);
                 }
@@ -329,7 +330,10 @@ export default function PromotionManagement() {
                 if (res.success) {
                     showToast('success', res.message || 'Cập nhật voucher khuyến mãi thành công!');
                     setIsModalOpen(false);
-                    fetchPromotions();
+                    if (res.data) {
+                        setPromotions((prev) => prev.map((p) => (p.id === editingItem.id ? res.data : p)));
+                    }
+                    fetchPromotions(true);
                 } else {
                     showToast('error', res.message);
                 }
@@ -358,8 +362,10 @@ export default function PromotionManagement() {
             const res = await promotionService.deletePromotion(deleteModal.item.id);
             if (res.success) {
                 showToast('success', `Đã xóa voucher "${deleteModal.item.code}" thành công!`);
+                const deletedId = deleteModal.item.id;
                 setDeleteModal({ isOpen: false, item: null, isDeleting: false });
-                fetchPromotions();
+                setPromotions((prev) => prev.filter((p) => p.id !== deletedId));
+                fetchPromotions(true);
             } else {
                 showToast('error', res.message);
                 setDeleteModal((prev) => ({ ...prev, isDeleting: false }));

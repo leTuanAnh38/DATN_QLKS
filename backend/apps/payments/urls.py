@@ -3,6 +3,7 @@ from .views import (
     ConfirmPaymentView,
     ConfirmPaymentByIdView,
     PaymentListView,
+    PaymentDetailView,
     PaymentConfigView,
     PaymentStatusView,
     SepayWebhookView,
@@ -18,6 +19,7 @@ from .views import (
 
 urlpatterns = [
     path('', PaymentListView.as_view(), name='payment-list'),
+    path('<int:payment_id>/', PaymentDetailView.as_view(), name='payment-detail'),
     path('confirm/', ConfirmPaymentView.as_view(), name='payment-confirm'),
     path('<int:payment_id>/confirm/', ConfirmPaymentByIdView.as_view(), name='payment-confirm-by-id'),
     path('config/', PaymentConfigView.as_view(), name='payment-config'),

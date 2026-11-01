@@ -1268,6 +1268,7 @@ class MinibarItemViewSet(viewsets.ModelViewSet):
     """
     queryset = MinibarItem.objects.filter(is_active=True).order_by('category', 'name')
     serializer_class = MinibarItemSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_permissions(self):
         # Mọi nhân viên (Buồng phòng, Lễ tân) có thể xem danh mục minibar để kiểm kê

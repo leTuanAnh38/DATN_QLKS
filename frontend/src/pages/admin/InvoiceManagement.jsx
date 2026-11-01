@@ -244,6 +244,23 @@ export default function InvoiceManagement() {
         }
     };
 
+    // Mở modal in hóa đơn / chi tiết: hiển thị ngay lập tức và tải thêm booking_details đầy đủ nếu cần
+    const handleOpenPaymentModal = async (payment) => {
+        if (!payment) return;
+        setSelectedPayment(payment);
+        if (payment.id && !payment.booking_details) {
+            try {
+                const res = await paymentService.getPaymentDetail(payment.id);
+                const fullPayment = res?.data || res;
+                if (fullPayment && fullPayment.id === payment.id) {
+                    setSelectedPayment(fullPayment);
+                }
+            } catch (err) {
+                console.warn('Lỗi khi tải chi tiết hóa đơn:', err);
+            }
+        }
+    };
+
     // =========================================================================
     // HÀM FETCH DỮ LIỆU TỪ BACKEND
     // =========================================================================
@@ -1117,7 +1134,7 @@ export default function InvoiceManagement() {
                                                     {/* Nút Xem chi tiết */}
                                                     <button
                                                         type="button"
-                                                        onClick={() => setSelectedPayment(payment)}
+                                                        onClick={() => handleOpenPaymentModal(payment)}
                                                         className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
                                                         title="Xem chi tiết phiếu thanh toán / hóa đơn"
                                                     >
@@ -1127,7 +1144,7 @@ export default function InvoiceManagement() {
                                                     {/* Nút In hóa đơn */}
                                                     <button
                                                         type="button"
-                                                        onClick={() => setSelectedPayment(payment)}
+                                                        onClick={() => handleOpenPaymentModal(payment)}
                                                         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 ${
                                                             isPending
                                                                 ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
@@ -1332,7 +1349,7 @@ export default function InvoiceManagement() {
 
                                         <button
                                             type="button"
-                                            onClick={() => setSelectedPayment(payment)}
+                                            onClick={() => handleOpenPaymentModal(payment)}
                                             className="py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1 cursor-pointer active:scale-95"
                                             title="Xem chi tiết phiếu thanh toán"
                                         >
@@ -1342,7 +1359,7 @@ export default function InvoiceManagement() {
 
                                         <button
                                             type="button"
-                                            onClick={() => setSelectedPayment(payment)}
+                                            onClick={() => handleOpenPaymentModal(payment)}
                                             className={`py-2 px-3.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                                                 isPending
                                                     ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'

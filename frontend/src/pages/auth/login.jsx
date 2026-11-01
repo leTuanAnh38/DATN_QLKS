@@ -32,7 +32,17 @@ import Footer from '../../components/layout/Footer';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
-import { useHotelSettings } from '../../store/hotelSettingStore';
+import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
+
+// Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối và file upload local media)
+const resolveBannerUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+        return url;
+    }
+    const backendBase = 'http://localhost:8000';
+    return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 export default function AuthBookingPage() {
     const navigate = useNavigate();
@@ -42,6 +52,7 @@ export default function AuthBookingPage() {
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
     const starCount = settings?.stars || 5;
     const hotline = settings?.hotline || '1900 8899';
+    const bannerLoginUrl = resolveBannerUrl(settings?.banner_login || DEFAULT_BANNERS?.banner_login || 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85');
 
     const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
     const [showPassword, setShowPassword] = useState(false);
@@ -186,7 +197,7 @@ export default function AuthBookingPage() {
             <main className="relative py-12 lg:py-16 overflow-hidden flex items-center bg-slate-950 border-b border-slate-800">
                 {/* 1. Ảnh nền Resort thư thái, sang trọng */}
                 <img
-                    src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85"
+                    src={bannerLoginUrl}
                     alt={`${hotelName} Luxury Collection`}
                     className="absolute inset-0 w-full h-full object-cover object-center"
                 />

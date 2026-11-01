@@ -171,6 +171,7 @@ class MinibarItem(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='drink', verbose_name="Phân loại")
     price = models.DecimalField(max_digits=10, decimal_places=0, default=20000, verbose_name="Đơn giá (VND)")
     standard_quantity = models.IntegerField(default=2, verbose_name="Định mức trong tủ lạnh mỗi phòng")
+    image = models.ImageField(upload_to='minibar/', null=True, blank=True, verbose_name="Hình ảnh tải lên")
     image_url = models.CharField(max_length=500, blank=True, default='', verbose_name="Đường dẫn ảnh trực tuyến")
     is_active = models.BooleanField(default=True, verbose_name="Đang phục vụ")
     created_at = models.DateTimeField(auto_now_add=True)

@@ -70,8 +70,8 @@ export default function LostAndFoundManagement() {
     const [deletingItem, setDeletingItem] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const loadData = useCallback(async () => {
-        setIsLoading(true);
+    const loadData = useCallback(async (silent = false) => {
+        if (!silent) setIsLoading(true);
         try {
             const params = {};
             if (statusFilter !== 'all') params.status = statusFilter;
@@ -92,7 +92,7 @@ export default function LostAndFoundManagement() {
         } catch (error) {
             console.error('Error fetching lost & found items:', error);
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     }, [statusFilter, categoryFilter, searchTerm]);
 
@@ -132,12 +132,19 @@ export default function LostAndFoundManagement() {
             });
 
             if (res && res.success) {
+                const returnedId = selectedItemForReturn.id;
+                const returnedToName = returnModalData.returned_to.trim();
                 setAlertMessage({
                     type: 'success',
                     text: `Đã bàn giao trao trả món đồ #${selectedItemForReturn.tracking_code} thành công!`
                 });
                 setSelectedItemForReturn(null);
-                loadData();
+                setItems((prev) =>
+                    prev.map((i) =>
+                        i.id === returnedId ? { ...i, status: 'returned', returned_to: returnedToName } : i
+                    )
+                );
+                loadData(true);
                 setTimeout(() => setAlertMessage(null), 3500);
             } else {
                 setReturnModalData((prev) => ({
@@ -161,12 +168,14 @@ export default function LostAndFoundManagement() {
         try {
             const res = await roomService.deleteLostAndFoundItem(deletingItem.id);
             if (res && res.success) {
+                const delId = deletingItem.id;
                 setAlertMessage({
                     type: 'success',
                     text: `Đã xóa vĩnh viễn phiếu đồ thất lạc #${deletingItem.tracking_code} (${deletingItem.item_name}) thành công!`
                 });
                 setDeletingItem(null);
-                loadData();
+                setItems((prev) => prev.filter((i) => i.id !== delId));
+                loadData(true);
                 setTimeout(() => setAlertMessage(null), 3500);
             } else {
                 setAlertMessage({
@@ -733,7 +742,7 @@ export default function LostAndFoundManagement() {
                         type: 'success',
                         text: res.message || 'Đã ghi nhận đồ thất lạc mới thành công!'
                     });
-                    loadData();
+                    loadData(true);
                     setTimeout(() => setAlertMessage(null), 3500);
                 }}
             />

@@ -108,6 +108,7 @@ export default function SystemSettings() {
         banner_news: DEFAULT_BANNERS.banner_news,
         banner_contact: DEFAULT_BANNERS.banner_contact,
         banner_corporate: DEFAULT_BANNERS.banner_corporate,
+        banner_login: DEFAULT_BANNERS.banner_login,
         check_in_time: '14:00',
         check_out_time: '12:00',
         early_checkin_before_6am: 100,
@@ -356,6 +357,7 @@ export default function SystemSettings() {
                 banner_news: hotelData.banner_news || DEFAULT_BANNERS.banner_news,
                 banner_promotions: hotelData.banner_promotions || DEFAULT_BANNERS.banner_promotions,
                 banner_contact: hotelData.banner_contact || DEFAULT_BANNERS.banner_contact,
+                banner_login: hotelData.banner_login || DEFAULT_BANNERS.banner_login,
             };
             const response = await api.patch('/hotel-settings/', payload);
             const resData = response.data?.data || response.data;
@@ -1112,7 +1114,7 @@ export default function SystemSettings() {
                                 <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                                     <span>Banner Các Trang Web Công Khai</span>
                                     <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                                        9 Banner (3 Slide Trang chủ + 6 Trang chuyên mục)
+                                        10 Banner (3 Slide Trang chủ + 7 Trang chuyên mục & Đăng nhập)
                                     </span>
                                 </h2>
                                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1245,6 +1247,17 @@ export default function SystemSettings() {
                                     previewSub: 'Khách Sạn TA Đà Nẵng',
                                     route: '/contact',
                                     defaultUrl: DEFAULT_BANNERS.banner_contact,
+                                },
+                                {
+                                    key: 'banner_login',
+                                    title: '10. Trang Đăng Nhập & Hội Viên VIP',
+                                    badge: 'Trang Đăng Nhập',
+                                    subtitle: 'Ảnh nền Resort toàn màn hình tại cổng Đăng nhập / Tra cứu / Hội viên VIP',
+                                    previewTag: 'Hội Viên & Đặt Phòng',
+                                    previewTitle: 'Cổng Khách Hàng Thân Thiết',
+                                    previewSub: `${hotelData.hotel_name || 'Khách Sạn TA Đà Nẵng'} VIP Collection`,
+                                    route: '/login',
+                                    defaultUrl: DEFAULT_BANNERS.banner_login,
                                 },
                             ].map((page) => {
                                 const currentUrl = hotelData[page.key] || page.defaultUrl;

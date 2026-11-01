@@ -168,8 +168,8 @@ export default function PostManagement() {
     }), [imageHandler]);
 
     // 1. Tải danh sách bài viết & chuyên mục
-    const fetchPosts = async () => {
-        setIsLoading(true);
+    const fetchPosts = async (silent = false) => {
+        if (!silent) setIsLoading(true);
         const params = { all: 1 };
         if (searchTerm) params.q = searchTerm;
         if (categoryFilter !== 'all') params.category = categoryFilter;
@@ -179,7 +179,7 @@ export default function PostManagement() {
         if (res.success) {
             setPosts(res.posts || []);
         }
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
     };
 
     const fetchCategories = async () => {
@@ -305,13 +305,16 @@ export default function PostManagement() {
 
         if (res.success) {
             setIsFormModalOpen(false);
+            if (selectedPost && res.post) {
+                setPosts((prev) => prev.map((p) => (p.id === selectedPost.id ? res.post : p)));
+            }
             setAlertMessage({
                 type: 'success',
                 text: selectedPost
                     ? `Đã cập nhật bài viết "${formData.title}" thành công!`
                     : `Tạo bài viết mới "${formData.title}" thành công!`,
             });
-            fetchPosts();
+            fetchPosts(true);
             setTimeout(() => setAlertMessage(null), 3500);
         } else {
             setAlertMessage({
@@ -330,12 +333,14 @@ export default function PostManagement() {
         setIsSubmitting(false);
 
         if (res.success) {
+            const delId = selectedPost.id;
             setIsDeleteModalOpen(false);
+            setPosts((prev) => prev.filter((p) => p.id !== delId));
             setAlertMessage({
                 type: 'success',
                 text: `Đã xóa bài viết "${selectedPost.title}" khỏi hệ thống!`,
             });
-            fetchPosts();
+            fetchPosts(true);
             setTimeout(() => setAlertMessage(null), 3500);
         } else {
             setAlertMessage({

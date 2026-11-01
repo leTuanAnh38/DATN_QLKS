@@ -11,6 +11,7 @@ export const DEFAULT_BANNERS = {
     banner_news: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85',
     banner_contact: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90',
     banner_corporate: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
+    banner_login: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85',
 };
 
 export function applyFavicon(faviconUrl) {
@@ -47,6 +48,7 @@ let currentSettings = {
     banner_news: DEFAULT_BANNERS.banner_news,
     banner_contact: DEFAULT_BANNERS.banner_contact,
     banner_corporate: DEFAULT_BANNERS.banner_corporate,
+    banner_login: DEFAULT_BANNERS.banner_login,
     check_in_time: '14:00',
     check_out_time: '12:00',
     isLoaded: false

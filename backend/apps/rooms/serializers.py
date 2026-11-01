@@ -363,10 +363,27 @@ class RoomStatusUpdateSerializer(serializers.ModelSerializer):
 
 class MinibarItemSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)
+    display_image = serializers.SerializerMethodField()
 
     class Meta:
         model = MinibarItem
-        fields = ['id', 'name', 'category', 'category_display', 'price', 'standard_quantity', 'image_url', 'is_active', 'created_at']
+        fields = [
+            'id', 'name', 'category', 'category_display', 'price',
+            'standard_quantity', 'image', 'image_url', 'display_image',
+            'is_active', 'created_at'
+        ]
+
+    def get_display_image(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            try:
+                url = obj.image.url
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+            except Exception:
+                pass
+        return obj.image_url or ''
 
 
 class MinibarCheckSerializer(serializers.ModelSerializer):

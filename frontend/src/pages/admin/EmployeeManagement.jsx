@@ -252,8 +252,8 @@ export default function EmployeeManagement() {
     };
 
     // Lấy dữ liệu nhân sự từ backend
-    const fetchEmployees = async (page = null) => {
-        setIsLoading(true);
+    const fetchEmployees = async (page = null, silent = false) => {
+        if (!silent) setIsLoading(true);
         const targetPage = page !== null ? page : currentPageRef.current;
         const params = { page: targetPage };
         if (searchTerm) params.q = searchTerm;
@@ -274,7 +274,7 @@ export default function EmployeeManagement() {
             if (res.roles) setRoles(res.roles);
             if (res.stats) setStats(res.stats);
         }
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
     };
 
     // Load khi bộ lọc thay đổi -> reset về trang 1
@@ -453,7 +453,7 @@ export default function EmployeeManagement() {
                 type: 'success',
                 text: `Đã tạo mới nhân viên "${res.employee?.full_name || createFormData.fullName}" thành công! Mật khẩu khởi tạo: ${createFormData.password}`,
             });
-            fetchEmployees();
+            fetchEmployees(null, true);
         } else {
             let errorText = res.message || 'Không thể tạo nhân viên mới. Vui lòng kiểm tra lại.';
             if (res.errors && typeof res.errors === 'object') {
@@ -559,12 +559,15 @@ export default function EmployeeManagement() {
 
         if (res.success) {
             setIsEditModalOpen(false);
+            if (res.employee) {
+                setEmployees((prev) => prev.map((e) => (e.id === selectedEmployee.id ? res.employee : e)));
+            }
             const passNote = editFormData.password ? ' (Đã cập nhật mật khẩu mới)' : '';
             setAlertMessage({
                 type: 'success',
                 text: `Cập nhật hồ sơ nhân viên ${res.employee?.full_name || editFormData.full_name} thành công!${passNote}`,
             });
-            fetchEmployees();
+            fetchEmployees(null, true);
         } else {
             setAlertMessage({
                 type: 'error',
@@ -681,11 +684,14 @@ export default function EmployeeManagement() {
 
         if (res.success) {
             setIsAssignRoleModalOpen(false);
+            if (res.employee) {
+                setEmployees((prev) => prev.map((e) => (e.id === selectedEmployee.id ? res.employee : e)));
+            }
             setAlertMessage({
                 type: 'success',
                 text: `Đã phân quyền thành công vai trò "${res.employee?.role_display || assignRoleData.role}" cho nhân viên ${selectedEmployee.full_name || selectedEmployee.username}!`,
             });
-            fetchEmployees();
+            fetchEmployees(null, true);
         } else {
             setAlertMessage({
                 type: 'error',
@@ -717,12 +723,14 @@ export default function EmployeeManagement() {
         setIsSubmitting(false);
 
         if (res.success) {
+            const delId = selectedEmployee.id;
             setIsDeleteModalOpen(false);
+            setEmployees((prev) => prev.filter((e) => e.id !== delId));
             setAlertMessage({
                 type: 'success',
                 text: `Đã xóa vĩnh viễn tài khoản nhân viên "${selectedEmployee.full_name || selectedEmployee.username}" khỏi hệ thống!`,
             });
-            fetchEmployees();
+            fetchEmployees(null, true);
         } else {
             setAlertMessage({
                 type: 'error',
@@ -754,11 +762,12 @@ export default function EmployeeManagement() {
         const actionText = emp.is_active ? 'tạm khóa' : 'kích hoạt lại';
         const res = await adminUserService.toggleEmployeeStatus(emp.id, !emp.is_active);
         if (res.success) {
+            setEmployees((prev) => prev.map((e) => (e.id === emp.id ? { ...e, is_active: !emp.is_active } : e)));
             setAlertMessage({
                 type: 'success',
                 text: `Đã ${actionText} tài khoản của nhân viên "${emp.full_name || emp.username}" thành công!`,
             });
-            fetchEmployees();
+            fetchEmployees(null, true);
         } else {
             setAlertMessage({
                 type: 'error',

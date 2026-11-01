@@ -13,7 +13,7 @@ from ..users.models import log_action
 from ..users.views import check_role_permission
 from ..notifications.models import Notification
 from .models import Payment, Invoice, PaymentConfig, CashierShift, CashOutVoucher
-from .serializers import PaymentSerializer, PaymentConfigSerializer, CashierShiftSerializer, CashOutVoucherSerializer
+from .serializers import PaymentSerializer, PaymentListSerializer, PaymentConfigSerializer, CashierShiftSerializer, CashOutVoucherSerializer
 
 class IsAdminOrOwnerUser(BasePermission):
     """
@@ -421,24 +421,33 @@ class PaymentListView(APIView):
             check_role_permission(user, 'finance', 'read')
         )
 
-        # 1. Tự động đồng bộ các Hóa đơn (Invoices) nếu là nhân viên
+        # 1. Tự động đồng bộ các Hóa đơn (Invoices) nếu là nhân viên (Tối ưu hóa: Tránh N+1 query lặp DB)
         if is_staff_or_admin:
-            invoices = Invoice.objects.select_related('booking').all()
-            for inv in invoices:
-                booking = inv.booking
-                if booking and not Payment.objects.filter(booking=booking).exists():
-                    method_code = 'TRANSFER' if str(inv.payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
-                    status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if inv.status == 'cancelled' else 'PENDING')
-                    Payment.objects.create(
-                        booking=booking,
-                        amount=inv.total_amount,
-                        payment_method=method_code,
-                        payment_status=status_code,
-                        transaction_id=f"TXN-{inv.invoice_code.replace('INV-', '')}"
-                    )
+            existing_booking_ids = set(
+                Payment.objects.filter(booking__isnull=False).values_list('booking_id', flat=True)
+            )
 
-            # 2. Đồng bộ thêm các booking lẻ đã thanh toán hợp lệ mà chưa có payment
-            # Lưu ý: Bỏ qua các phòng thuộc hợp đồng đoàn (group_booking) vì tiền phòng và quyết toán đã được hạch toán tập trung ở HĐ đoàn
+            # Đồng bộ các Invoice hợp lệ chưa có payment record
+            missing_invoices = Invoice.objects.filter(
+                booking__isnull=False
+            ).exclude(
+                booking_id__in=existing_booking_ids
+            ).select_related('booking')
+
+            new_payments = []
+            for inv in missing_invoices:
+                method_code = 'TRANSFER' if str(inv.payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+                status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if inv.status == 'cancelled' else 'PENDING')
+                new_payments.append(Payment(
+                    booking=inv.booking,
+                    amount=inv.total_amount,
+                    payment_method=method_code,
+                    payment_status=status_code,
+                    transaction_id=f"TXN-{inv.invoice_code.replace('INV-', '')}"
+                ))
+                existing_booking_ids.add(inv.booking_id)
+
+            # Đồng bộ các booking lẻ đã thanh toán hợp lệ mà chưa có payment
             paid_bookings = Booking.objects.filter(
                 models.Q(status__in=['completed', 'checked_out', 'paid', 'PAID']) |
                 models.Q(note__icontains='VietQR: Đã thanh toán') |
@@ -448,24 +457,32 @@ class PaymentListView(APIView):
             ).exclude(
                 status__in=['cancelled', 'no_show']
             ).exclude(
-                payments__isnull=False
+                id__in=existing_booking_ids
             )
 
             for b in paid_bookings:
                 note_lower = (b.note or '').lower()
                 method_code = 'TRANSFER' if ('vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower) else 'CASH'
-                Payment.objects.create(
+                new_payments.append(Payment(
                     booking=b,
                     amount=b.total_amount or 0,
                     payment_method=method_code,
                     payment_status='COMPLETED',
                     transaction_id=f"TXN-{b.booking_code.replace('BK-', '')}"
-                )
+                ))
+                existing_booking_ids.add(b.id)
 
-            # 3. Tự động dọn dẹp các bản ghi PENDING thừa của các đơn đã có giao dịch COMPLETED
+            if new_payments:
+                Payment.objects.bulk_create(new_payments, ignore_conflicts=True)
+
+            # Dọn dẹp các bản ghi PENDING thừa của các đơn đã có giao dịch COMPLETED
+            completed_booking_ids = Payment.objects.filter(
+                payment_status='COMPLETED',
+                booking__isnull=False
+            ).values_list('booking_id', flat=True)
             Payment.objects.filter(
                 payment_status='PENDING',
-                booking__payments__payment_status='COMPLETED'
+                booking_id__in=completed_booking_ids
             ).delete()
 
         queryset = Payment.objects.select_related(
@@ -473,6 +490,7 @@ class PaymentListView(APIView):
             'booking__guest',
             'booking__room',
             'booking__category',
+            'booking__invoice',
             'group_booking',
             'group_booking__corporate_partner',
             'group_booking__master_invoice'
@@ -522,12 +540,54 @@ class PaymentListView(APIView):
                 models.Q(transaction_id__icontains=search)
             )
 
-        serializer = PaymentSerializer(queryset, many=True)
+        include_details = str(request.query_params.get('include_details', '')).lower() in ['1', 'true', 'yes']
+        SerializerClass = PaymentSerializer if include_details else PaymentListSerializer
+        serializer = SerializerClass(queryset, many=True, context={'request': request})
         return Response({
             "success": True,
             "count": queryset.count(),
             "results": serializer.data
         }, status=status.HTTP_200_OK)
+
+
+class PaymentDetailView(APIView):
+    """
+    API endpoint: GET /api/payments/<payment_id>/
+    Lấy chi tiết đầy đủ của 1 giao dịch thanh toán kèm booking_details phục vụ xem chi tiết và in ấn hóa đơn.
+    Được tối ưu để chỉ truy vấn đúng 1 đơn đặt phòng khi cần hiển thị modal, tải tức thì (< 50ms).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, payment_id):
+        try:
+            payment = Payment.objects.select_related(
+                'booking',
+                'booking__guest',
+                'booking__room',
+                'booking__category',
+                'booking__invoice',
+                'group_booking',
+                'group_booking__corporate_partner',
+                'group_booking__master_invoice'
+            ).prefetch_related(
+                'group_booking__sub_bookings',
+                'group_booking__sub_bookings__room',
+                'booking__extra_services',
+                'booking__payments',
+                'booking__guests'
+            ).get(id=payment_id)
+        except Payment.DoesNotExist:
+            return Response({
+                "success": False,
+                "message": f"Không tìm thấy giao dịch thanh toán #{payment_id}."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PaymentSerializer(payment, context={'request': request})
+        return Response({
+            "success": True,
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
 
 
 class PaymentConfigView(APIView):

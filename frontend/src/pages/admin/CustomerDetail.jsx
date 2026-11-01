@@ -58,6 +58,18 @@ const formatDateTimeDisplay = (isoStr) => {
     }
 };
 
+// Helper chuẩn hóa đường dẫn ảnh dịch vụ
+const resolveImageUrl = (img) => {
+    if (!img || typeof img !== 'string') return null;
+    const trimmed = img.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+        return trimmed;
+    }
+    const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    return `${backendBase.replace(/\/+$/, '')}/${trimmed.replace(/^\/+/, '')}`;
+};
+
 // Config trạng thái đơn đặt phòng
 const BOOKING_STATUS_CONFIG = {
     pending: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-800 border-amber-300' },
@@ -824,25 +836,53 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                             const serviceName = req.service_name || req.service?.name || 'Dịch vụ phòng';
                                             const bookingCode = req.booking_code || req.booking?.booking_code || '—';
                                             const roomNum = req.room_number || req.booking?.room?.room_number || '—';
+                                            const serviceImg = resolveImageUrl(req.service_image || req.image || req.image_url || req.service?.image_url || req.service?.image);
 
                                             return (
                                                 <tr key={req.id} className="hover:bg-slate-50/70 transition">
                                                     {/* Tên dịch vụ */}
                                                     <td className="p-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 shadow-2xs">
-                                                                {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
-                                                                    <span>{req.category_icon}</span>
+                                                            <div className="relative w-12 h-12 rounded-xl shrink-0 overflow-hidden border border-slate-200/80 shadow-2xs bg-slate-50 flex items-center justify-center">
+                                                                {serviceImg ? (
+                                                                    <>
+                                                                        <img
+                                                                            src={serviceImg}
+                                                                            alt={serviceName}
+                                                                            className="w-full h-full object-cover"
+                                                                            onError={(e) => {
+                                                                                e.currentTarget.style.display = 'none';
+                                                                                const fallback = e.currentTarget.nextElementSibling;
+                                                                                if (fallback) fallback.style.display = 'flex';
+                                                                            }}
+                                                                        />
+                                                                        <div
+                                                                            className="w-full h-full bg-blue-50 text-blue-600 items-center justify-center text-sm"
+                                                                            style={{ display: 'none' }}
+                                                                        >
+                                                                            {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
+                                                                                <span className="text-base">{req.category_icon}</span>
+                                                                            ) : (
+                                                                                <Utensils className="w-5 h-5 text-blue-600" />
+                                                                            )}
+                                                                        </div>
+                                                                    </>
                                                                 ) : (
-                                                                    <Utensils className="w-4 h-4 text-blue-600" />
+                                                                    <div className="w-full h-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
+                                                                        {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
+                                                                            <span className="text-base">{req.category_icon}</span>
+                                                                        ) : (
+                                                                            <Utensils className="w-5 h-5 text-blue-600" />
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            <div>
-                                                                <strong className="block font-bold text-slate-900 text-sm">
+                                                            <div className="min-w-0">
+                                                                <strong className="block font-bold text-slate-900 text-sm truncate" title={serviceName}>
                                                                     {serviceName}
                                                                 </strong>
                                                                 {req.note && (
-                                                                    <span className="text-[11px] text-slate-400 italic block mt-0.5 line-clamp-1">
+                                                                    <span className="text-[11px] text-slate-400 italic block mt-0.5 line-clamp-1" title={req.note}>
                                                                         "{req.note}"
                                                                     </span>
                                                                 )}
@@ -927,20 +967,48 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                     const serviceName = req.service_name || req.service?.name || 'Dịch vụ phòng';
                                     const bookingCode = req.booking_code || req.booking?.booking_code || '—';
                                     const roomNum = req.room_number || req.booking?.room?.room_number || '—';
+                                    const serviceImg = resolveImageUrl(req.service_image || req.image || req.image_url || req.service?.image_url || req.service?.image);
 
                                     return (
                                         <div key={req.id} className="p-4 space-y-2.5 hover:bg-slate-50/50 transition">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex items-center gap-2.5">
-                                                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 shadow-2xs">
-                                                        {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
-                                                            <span>{req.category_icon}</span>
+                                                    <div className="relative w-11 h-11 rounded-xl shrink-0 overflow-hidden border border-slate-200/80 shadow-2xs bg-slate-50 flex items-center justify-center">
+                                                        {serviceImg ? (
+                                                            <>
+                                                                <img
+                                                                    src={serviceImg}
+                                                                    alt={serviceName}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        e.currentTarget.style.display = 'none';
+                                                                        const fallback = e.currentTarget.nextElementSibling;
+                                                                        if (fallback) fallback.style.display = 'flex';
+                                                                    }}
+                                                                />
+                                                                <div
+                                                                    className="w-full h-full bg-blue-50 text-blue-600 items-center justify-center text-xs"
+                                                                    style={{ display: 'none' }}
+                                                                >
+                                                                    {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
+                                                                        <span className="text-sm">{req.category_icon}</span>
+                                                                    ) : (
+                                                                        <Utensils className="w-4 h-4 text-blue-600" />
+                                                                    )}
+                                                                </div>
+                                                            </>
                                                         ) : (
-                                                            <Utensils className="w-4 h-4 text-blue-600" />
+                                                            <div className="w-full h-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+                                                                {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
+                                                                    <span className="text-sm">{req.category_icon}</span>
+                                                                ) : (
+                                                                    <Utensils className="w-4 h-4 text-blue-600" />
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                    <div>
-                                                        <strong className="block font-bold text-slate-900 text-xs">{serviceName}</strong>
+                                                    <div className="min-w-0">
+                                                        <strong className="block font-bold text-slate-900 text-xs truncate" title={serviceName}>{serviceName}</strong>
                                                         <span className="text-[10px] text-slate-400">{formatDateTimeDisplay(req.created_at || req.request_time)}</span>
                                                     </div>
                                                 </div>

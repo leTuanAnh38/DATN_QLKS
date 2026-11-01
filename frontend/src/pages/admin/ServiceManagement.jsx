@@ -85,8 +85,8 @@ export default function ServiceManagement() {
     };
 
     // Tải dữ liệu toàn bộ Dịch vụ và Nhóm danh mục
-    const loadAllData = async () => {
-        setIsLoading(true);
+    const loadAllData = async (showLoading = true) => {
+        if (showLoading) setIsLoading(true);
         try {
             const [catRes, itemsRes] = await Promise.all([
                 hotelService.getServiceCategories(),
@@ -99,17 +99,17 @@ export default function ServiceManagement() {
             console.error('Lỗi khi tải dữ liệu dịch vụ:', error);
             showToast('error', 'Không thể kết nối máy chủ để tải danh sách dịch vụ.');
         } finally {
-            setIsLoading(false);
+            if (showLoading) setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        loadAllData();
+        loadAllData(true);
 
         // Lắng nghe sự kiện thay đổi danh mục từ tab khác
-        const handleCatalogChanged = () => loadAllData();
+        const handleCatalogChanged = () => loadAllData(false);
         const handleStorage = (e) => {
-            if (e.key === 'pms_service_catalog_changed') loadAllData();
+            if (e.key === 'pms_service_catalog_changed') loadAllData(false);
         };
 
         window.addEventListener('pms_service_catalog_changed', handleCatalogChanged);
@@ -300,7 +300,7 @@ export default function ServiceManagement() {
             if (res.success) {
                 showToast('success', res.message || (isEditMode ? 'Cập nhật thành công!' : 'Thêm dịch vụ mới thành công!'));
                 setIsModalOpen(false);
-                loadAllData();
+                loadAllData(false);
             } else {
                 setFormError(res.message || 'Không thể lưu dịch vụ. Vui lòng kiểm tra lại dữ liệu.');
             }
@@ -377,7 +377,7 @@ export default function ServiceManagement() {
                 showToast('success', res.message);
                 setIsCategoryModalOpen(false);
                 setNewCatData({ name: '', icon: '🍽️', description: '' });
-                loadAllData();
+                loadAllData(false);
             } else {
                 showToast('error', res.message);
             }

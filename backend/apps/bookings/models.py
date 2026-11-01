@@ -337,6 +337,7 @@ class HotelSetting(models.Model):
     banner_news = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Tin Tức")
     banner_contact = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Liên Hệ")
     banner_corporate = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Đặt Đoàn (MICE)")
+    banner_login = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Đăng Nhập & Hội Viên VIP")
 
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Thời gian cập nhật")
 
@@ -372,6 +373,7 @@ class HotelSetting(models.Model):
                 'banner_news': 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85',
                 'banner_contact': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90',
                 'banner_corporate': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
+                'banner_login': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85',
                 'check_in_time': '14:00',
                 'check_out_time': '12:00',
                 'early_checkin_before_6am': 100.0,

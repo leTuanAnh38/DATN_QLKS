@@ -89,8 +89,8 @@ export default function AmenityManagement() {
     };
 
     // 5. GỌI API LẤY DANH SÁCH TIỆN NGHI (GET /api/rooms/amenities/)
-    const fetchAmenities = async () => {
-        setIsLoading(true);
+    const fetchAmenities = async (silent = false) => {
+        if (!silent) setIsLoading(true);
         try {
             const res = await amenityService.getAmenities();
             if (res.success) {
@@ -102,7 +102,7 @@ export default function AmenityManagement() {
             console.error('Lỗi khi tải danh sách tiện nghi:', error);
             showToast('error', 'Lỗi kết nối máy chủ khi lấy danh sách tiện nghi.');
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     };
 
@@ -194,7 +194,8 @@ export default function AmenityManagement() {
                 if (res.success) {
                     showToast('success', res.message || 'Thêm tiện nghi mới thành công!');
                     setIsModalOpen(false);
-                    fetchAmenities();
+                    if (res.data) setAmenities(prev => [res.data, ...prev]);
+                    fetchAmenities(true);
                 } else {
                     showToast('error', res.message);
                 }
@@ -203,7 +204,10 @@ export default function AmenityManagement() {
                 if (res.success) {
                     showToast('success', res.message || 'Cập nhật tiện nghi thành công!');
                     setIsModalOpen(false);
-                    fetchAmenities();
+                    if (res.data) {
+                        setAmenities(prev => prev.map(a => a.id === editingItem.id ? res.data : a));
+                    }
+                    fetchAmenities(true);
                 } else {
                     showToast('error', res.message);
                 }
@@ -236,11 +240,13 @@ export default function AmenityManagement() {
             const res = await amenityService.deleteAmenity(deleteModal.item.id);
             if (res.success) {
                 showToast('success', `Đã xóa tiện nghi "${deleteModal.item.name}" thành công!`);
+                const deletedId = deleteModal.item.id;
                 setDeleteModal({ isOpen: false, item: null, isDeleting: false });
+                setAmenities(prev => prev.filter(a => a.id !== deletedId));
                 if (paginatedAmenities.length === 1 && safePage > 1) {
                     setCurrentPage(safePage - 1);
                 }
-                fetchAmenities();
+                fetchAmenities(true);
             } else {
                 showToast('error', res.message);
                 setDeleteModal(prev => ({ ...prev, isDeleting: false }));
