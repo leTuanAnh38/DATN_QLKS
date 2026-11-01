@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 
 class MembershipTier(models.Model):
     """
@@ -248,4 +251,71 @@ def log_action(user, action, module, description, ip_address=None, request=None)
     except Exception as e:
         import logging
         logging.getLogger('audit_log').error(f"Lỗi ghi log thao tác: {str(e)}", exc_info=True)
-        return None
+        return None
+
+
+def write_audit_log_to_jsonl(log_obj):
+    """
+    Ghi một bản ghi nhật ký hoạt động (AuditLog) vào file JSONL trên máy chủ.
+    Đường dẫn mặc định: backend/logs/audit_logs.jsonl
+    Mỗi dòng là một chuỗi JSON độc lập (JSON Lines format), chuẩn UTF-8.
+    """
+    try:
+        from django.conf import settings
+        from django.utils import timezone
+        import json
+        import os
+
+        # Lấy đường dẫn file từ settings hoặc thư mục logs/ mặc định
+        log_file = getattr(
+            settings,
+            'AUDIT_LOG_FILE',
+            os.path.join(getattr(settings, 'BASE_DIR', ''), 'logs', 'audit_logs.jsonl')
+        )
+        os.makedirs(os.path.dirname(str(log_file)), exist_ok=True)
+
+        user = getattr(log_obj, 'user', None)
+        username = user.username if user else "Hệ thống"
+        full_name = ""
+        role = "SYSTEM"
+        if user:
+            first = getattr(user, 'first_name', '') or ''
+            last = getattr(user, 'last_name', '') or ''
+            full_name = f"{last} {first}".strip() or user.username
+            role = (getattr(user, 'role', '') or 'STAFF').upper()
+
+        if getattr(log_obj, 'created_at', None):
+            created_dt = timezone.localtime(log_obj.created_at) if timezone.is_aware(log_obj.created_at) else log_obj.created_at
+            created_str = created_dt.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            created_str = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S')
+
+        log_data = {
+            "id": log_obj.id,
+            "timestamp": created_str,
+            "user_id": user.id if user else None,
+            "username": username,
+            "full_name": full_name,
+            "role": role,
+            "action": log_obj.action,
+            "module": log_obj.module,
+            "description": log_obj.description,
+            "ip_address": log_obj.ip_address or ""
+        }
+
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(log_data, ensure_ascii=False) + '\n')
+    except Exception as e:
+        import logging
+        logging.getLogger('audit_log').error(f"Lỗi ghi file JSONL audit log: {str(e)}", exc_info=True)
+
+
+@receiver(post_save, sender=AuditLog)
+def audit_log_post_save(sender, instance, created, **kwargs):
+    """
+    Signal tự động ghi bản ghi AuditLog mới vào file JSONL trên máy chủ
+    ngay sau khi được lưu vào cơ sở dữ liệu.
+    """
+    if created:
+        write_audit_log_to_jsonl(instance)
+

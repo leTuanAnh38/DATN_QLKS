@@ -161,6 +161,11 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Thư mục lưu trữ file Logs hệ thống
+LOGS_DIR = BASE_DIR / 'logs'
+AUDIT_LOG_FILE = LOGS_DIR / 'audit_logs.jsonl'
+
+
 
 # ==========================================
 # EMAIL CONFIGURATION (SMTP Gmail)
