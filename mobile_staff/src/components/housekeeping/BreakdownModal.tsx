@@ -33,6 +33,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
   const { isDark } = useAppTheme();
   const [breakdownIssueType, setBreakdownIssueType] = useState('ac');
   const [breakdownEquipment, setBreakdownEquipment] = useState('Điều hòa Daikin');
+  const [priority, setPriority] = useState<'urgent' | 'high' | 'normal'>('normal');
   const [breakdownDesc, setBreakdownDesc] = useState('');
   const [breakdownPartsReplaced, setBreakdownPartsReplaced] = useState('');
   const [breakdownCost, setBreakdownCost] = useState('');
@@ -43,6 +44,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
     if (visible && room) {
       setBreakdownIssueType('ac');
       setBreakdownEquipment('Điều hòa Daikin');
+      setPriority(room.status === 'occupied' ? 'urgent' : 'normal');
       setBreakdownDesc('');
       setBreakdownPartsReplaced('');
       setBreakdownCost('');
@@ -72,6 +74,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
         room_id: room.id,
         equipment_name: breakdownEquipment.trim(),
         issue_type: breakdownIssueType,
+        priority: priority,
         description: breakdownDesc.trim(),
         parts_replaced: breakdownPartsReplaced.trim(),
         cost: numCost,
@@ -176,6 +179,57 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
                 </Text>
               </View>
             )}
+
+            {/* Mức độ ưu tiên sự cố */}
+            <Text style={[styles.modalSectionLabel, !isDark && { color: '#B45309' }]}>
+              Mức độ khẩn cấp (*):
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+              {[
+                { key: 'normal', label: 'Bình thường', color: '#10B981' },
+                { key: 'high', label: 'Ưu tiên cao', color: '#F59E0B' },
+                { key: 'urgent', label: '⚡ Khẩn cấp', color: '#EF4444' },
+              ].map((p) => {
+                const isSelected = priority === p.key;
+                return (
+                  <TouchableOpacity
+                    key={p.key}
+                    style={[
+                      {
+                        flex: 1,
+                        paddingVertical: 9,
+                        borderRadius: 10,
+                        backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+                        borderWidth: 1,
+                        borderColor: isDark ? '#334155' : '#E2E8F0',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      },
+                      isSelected && {
+                        backgroundColor: `${p.color}20`,
+                        borderColor: p.color,
+                        borderWidth: 1.5,
+                      },
+                    ]}
+                    onPress={() => {
+                      setPriority(p.key as any);
+                      Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: isSelected ? p.color : (isDark ? '#94A3B8' : '#64748B'),
+                        fontWeight: isSelected ? '800' : '600',
+                      }}
+                    >
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
             {/* 2. Phân loại sự cố kỹ thuật */}
             <Text style={[styles.modalSectionLabel, !isDark && { color: '#B45309' }]}>

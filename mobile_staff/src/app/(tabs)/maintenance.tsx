@@ -57,6 +57,12 @@ export default function MaintenanceScreen() {
   const [isGuestFault, setIsGuestFault] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Modal Hủy phiếu bảo trì / Báo nhầm
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [selectedCancelTicket, setSelectedCancelTicket] = useState<MaintenanceTicket | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [submittingCancel, setSubmittingCancel] = useState(false);
+
   // Modal Báo hỏng thiết bị mới (Kỹ thuật viên tự tạo phiếu bảo trì)
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [roomsList, setRoomsList] = useState<any[]>([]);
@@ -65,6 +71,7 @@ export default function MaintenanceScreen() {
   const [roomFilterText, setRoomFilterText] = useState('');
   const [equipmentName, setEquipmentName] = useState('Điều hòa Daikin');
   const [issueType, setIssueType] = useState('ac');
+  const [createPriority, setCreatePriority] = useState<'urgent' | 'high' | 'normal'>('normal');
   const [breakdownDesc, setBreakdownDesc] = useState('');
   const [createPartsReplaced, setCreatePartsReplaced] = useState('');
   const [createCost, setCreateCost] = useState('');
@@ -108,7 +115,8 @@ export default function MaintenanceScreen() {
     const total = tickets.length;
     const fixing = tickets.filter((t) => t.status === 'fixing').length;
     const completed = tickets.filter((t) => t.status === 'completed').length;
-    return { total, fixing, completed };
+    const cancelled = tickets.filter((t) => t.status === 'cancelled').length;
+    return { total, fixing, completed, cancelled };
   }, [tickets]);
 
   // Bộ lọc
@@ -119,6 +127,8 @@ export default function MaintenanceScreen() {
         matchFilter = t.status === 'fixing';
       } else if (filterStatus === 'completed') {
         matchFilter = t.status === 'completed';
+      } else if (filterStatus === 'cancelled') {
+        matchFilter = t.status === 'cancelled';
       }
 
       if (selectedIssueType !== 'all') {
@@ -232,6 +242,59 @@ export default function MaintenanceScreen() {
     }
   };
 
+  // Kỹ thuật viên nhận xử lý phiếu sự cố
+  const handleClaimTicket = async (ticket: MaintenanceTicket) => {
+    setActionLoadingId(ticket.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const res = await apiClient.post(`/rooms/maintenance-tickets/${ticket.id}/claim/`);
+      if (res.data.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Nhận việc thành công 🛠️', res.data.message || `Bạn đã nhận phụ trách xử lý phiếu #${ticket.ticket_code}`);
+        fetchTickets();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể nhận xử lý phiếu bảo trì.';
+      Alert.alert('Lỗi', msg);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Mở modal Hủy phiếu / Báo sai
+  const openCancelModal = (ticket: MaintenanceTicket) => {
+    setSelectedCancelTicket(ticket);
+    setCancelReason('');
+    setCancelModalVisible(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  // Xác nhận hủy phiếu bảo trì
+  const handleCancelTicket = async () => {
+    if (!selectedCancelTicket) return;
+    setSubmittingCancel(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const res = await apiClient.post(`/rooms/maintenance-tickets/${selectedCancelTicket.id}/cancel/`, {
+        reason: cancelReason.trim(),
+      });
+      if (res.data.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          'Đã hủy phiếu bảo trì ℹ️',
+          res.data.message || `Phiếu #${selectedCancelTicket.ticket_code} đã được hủy và phòng đã khôi phục trạng thái ban đầu.`
+        );
+        setCancelModalVisible(false);
+        fetchTickets();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể hủy phiếu bảo trì.';
+      Alert.alert('Lỗi', msg);
+    } finally {
+      setSubmittingCancel(false);
+    }
+  };
+
   const fetchRoomsList = async () => {
     try {
       setLoadingRooms(true);
@@ -243,6 +306,7 @@ export default function MaintenanceScreen() {
         setSelectedRoomId(roomsArr[0].id);
         if (roomsArr[0].status === 'occupied') {
           setCreateIsGuestFault(true);
+          setCreatePriority('urgent');
         }
       }
     } catch (e) {
@@ -266,12 +330,14 @@ export default function MaintenanceScreen() {
     } else {
       const cur = roomsList.find((r) => r.id === selectedRoomId);
       setCreateIsGuestFault(cur?.status === 'occupied');
+      setCreatePriority(cur?.status === 'occupied' ? 'urgent' : 'normal');
     }
   };
 
   const handleSelectRoom = (room: any) => {
     setSelectedRoomId(room.id);
     setCreateIsGuestFault(room.status === 'occupied');
+    setCreatePriority(room.status === 'occupied' ? 'urgent' : 'normal');
     Haptics.selectionAsync();
   };
 
@@ -300,6 +366,7 @@ export default function MaintenanceScreen() {
         room_id: selectedRoomId,
         equipment_name: equipmentName.trim(),
         issue_type: issueType,
+        priority: createPriority,
         description: breakdownDesc.trim(),
         parts_replaced: createPartsReplaced.trim(),
         cost: parsedCost,
@@ -333,11 +400,15 @@ export default function MaintenanceScreen() {
       <MaintenanceTicketCard
         item={item}
         canCompleteMaintenance={canCompleteMaintenance}
+        isTechnicianOrManager={canCompleteMaintenance}
+        currentUserId={user?.id}
         isLoading={actionLoadingId === item.id}
         onOpenComplete={openCompleteModal}
+        onClaimTicket={handleClaimTicket}
+        onOpenCancel={openCancelModal}
       />
     ),
-    [canCompleteMaintenance, actionLoadingId, openCompleteModal]
+    [canCompleteMaintenance, user?.id, actionLoadingId, openCompleteModal, handleClaimTicket, openCancelModal]
   );
 
 
@@ -375,8 +446,9 @@ export default function MaintenanceScreen() {
       {/* 2. Dải Bộ Lọc & KPI Cố Định 100% (Không bị trôi trượt khi lướt) */}
       <View style={styles.fixedFilterBar}>
         {[
-          { key: 'fixing', label: 'Cần sửa gấp', count: stats.fixing, color: isDark ? '#F87171' : '#DC2626' },
+          { key: 'fixing', label: 'Cần sửa', count: stats.fixing, color: isDark ? '#F87171' : '#DC2626' },
           { key: 'completed', label: 'Đã xong', count: stats.completed, color: isDark ? '#34D399' : '#059669' },
+          { key: 'cancelled', label: 'Đã hủy', count: stats.cancelled, color: isDark ? '#94A3B8' : '#64748B' },
           { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
         ].map((item) => {
           const isSelected = filterStatus === item.key;
@@ -809,6 +881,44 @@ export default function MaintenanceScreen() {
                 </View>
               )}
 
+              {/* Mức độ ưu tiên sự cố */}
+              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>
+                Mức độ khẩn cấp *:
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                {[
+                  { key: 'normal', label: 'Bình thường', color: '#10B981' },
+                  { key: 'high', label: 'Ưu tiên cao', color: '#F59E0B' },
+                  { key: 'urgent', label: '⚡ Khẩn cấp', color: '#EF4444' },
+                ].map((p) => {
+                  const isSelected = createPriority === p.key;
+                  return (
+                    <TouchableOpacity
+                      key={p.key}
+                      style={[
+                        styles.prioritySelectChip,
+                        !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        isSelected && { backgroundColor: `${p.color}20`, borderColor: p.color, borderWidth: 1.5 },
+                      ]}
+                      onPress={() => {
+                        setCreatePriority(p.key as any);
+                        Haptics.selectionAsync();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.prioritySelectChipText,
+                          { color: isSelected ? p.color : (isDark ? '#94A3B8' : '#64748B'), fontWeight: isSelected ? '800' : '600' },
+                        ]}
+                      >
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {/* 2. Loại sự cố */}
               <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>2. Phân loại sự cố kỹ thuật *:</Text>
               <View style={styles.issueTypeGrid}>
@@ -991,6 +1101,99 @@ export default function MaintenanceScreen() {
                   </View>
                 )}
               </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Hủy Phiếu / Báo Sai Sự Cố */}
+      <Modal visible={cancelModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' },
+            ]}
+          >
+            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
+              <View>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>
+                  Hủy Phiếu Bảo Trì / Báo Sai ℹ️
+                </Text>
+                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
+                  Mã phiếu #{selectedCancelTicket?.ticket_code} • P.{selectedCancelTicket?.room_number}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+                onPress={() => setCancelModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#64748B'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View
+                style={[
+                  styles.alertNoteBox,
+                  { backgroundColor: 'rgba(56, 189, 248, 0.08)', borderColor: 'rgba(56, 189, 248, 0.25)' },
+                ]}
+              >
+                <Ionicons name="information-circle" size={18} color="#0284C7" style={{ marginRight: 8 }} />
+                <Text style={[styles.alertNoteText, !isDark && { color: '#0369A1' }]}>
+                  Sử dụng khi kiểm tra phát hiện thiết bị hoạt động bình thường, cắm lại phích điện hoặc khách bấm nhầm remote. Phòng sẽ tự động khôi phục lại trạng thái ban đầu và gỡ khoản đền bù (nếu có).
+                </Text>
+              </View>
+
+              <Text style={[styles.inputLabel, { marginTop: 10 }, !isDark && { color: '#334155' }]}>
+                Lý do hủy / Báo sai *:
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { height: 70 },
+                  !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' },
+                ]}
+                placeholder="VD: Khách bấm nhầm remote quạt gió / Đã cắm lại phích cắm / Báo nhầm phòng..."
+                placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                multiline
+                value={cancelReason}
+                onChangeText={setCancelReason}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.cancelModalCloseBtn,
+                    !isDark && { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' },
+                  ]}
+                  onPress={() => setCancelModalVisible(false)}
+                  disabled={submittingCancel}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.cancelModalCloseText, !isDark && { color: '#475569' }]}>Để sau</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.cancelModalConfirmBtn,
+                    submittingCancel && { opacity: 0.6 },
+                  ]}
+                  onPress={handleCancelTicket}
+                  disabled={submittingCancel}
+                  activeOpacity={0.8}
+                >
+                  {submittingCancel ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="trash-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.cancelModalConfirmText}>XÁC NHẬN HỦY PHIẾU</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -1742,5 +1945,46 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#F59E0B',
     fontWeight: '600',
+  },
+  prioritySelectChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prioritySelectChipText: {
+    fontSize: 12,
+  },
+  cancelModalCloseBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalCloseText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  cancelModalConfirmBtn: {
+    flex: 1.5,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalConfirmText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

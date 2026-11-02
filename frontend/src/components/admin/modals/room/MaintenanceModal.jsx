@@ -148,17 +148,15 @@ export default function MaintenanceModal({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 1. Header (Fixed non-scrolling) */}
-                <div className={`p-4 sm:px-6 sm:py-5 border-b shrink-0 flex items-center justify-between ${
-                    mode === 'create'
+                <div className={`p-4 sm:px-6 sm:py-5 border-b shrink-0 flex items-center justify-between ${mode === 'create'
                         ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
                         : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
-                }`}>
+                    }`}>
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-xl sm:text-2xl shadow-xs border shrink-0 ${
-                            mode === 'create'
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-xl sm:text-2xl shadow-xs border shrink-0 ${mode === 'create'
                                 ? 'bg-amber-500/10 border-amber-300 text-amber-700'
                                 : 'bg-blue-500/10 border-blue-300 text-blue-700'
-                        }`}>
+                            }`}>
                             <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                         <div>
@@ -168,11 +166,10 @@ export default function MaintenanceModal({
                                         ? `Bảo Trì Phòng ${room.room_number}`
                                         : `Hoàn Tất Sửa Chữa P.${room.room_number}`}
                                 </h3>
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                                    mode === 'create'
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${mode === 'create'
                                         ? 'bg-amber-100 text-amber-800 border-amber-300'
                                         : 'bg-blue-100 text-blue-800 border-blue-300'
-                                }`}>
+                                    }`}>
                                     {mode === 'create' ? (
                                         <>
                                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
@@ -307,11 +304,10 @@ export default function MaintenanceModal({
                                                     type="button"
                                                     key={t.value}
                                                     onClick={() => setIssueType(t.value)}
-                                                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition cursor-pointer ${
-                                                        isSelected
+                                                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition cursor-pointer ${isSelected
                                                             ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold ring-2 ring-amber-400/20'
                                                             : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <IconComp className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-700' : 'text-slate-500'}`} />
                                                     <span className="text-[11px] truncate">{t.label}</span>
@@ -497,11 +493,10 @@ export default function MaintenanceModal({
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className={`w-full sm:w-auto px-5 py-2.5 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-xs text-center ${
-                                mode === 'create'
+                            className={`w-full sm:w-auto px-5 py-2.5 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-xs text-center ${mode === 'create'
                                     ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-600/20'
                                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-600/20'
-                            }`}
+                                }`}
                         >
                             {isSubmitting ? (
                                 <span>Đang xử lý...</span>

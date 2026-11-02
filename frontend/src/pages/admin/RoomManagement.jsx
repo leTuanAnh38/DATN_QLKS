@@ -742,10 +742,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             prev.map((r) =>
                 r.id === roomId
                     ? {
-                          ...r,
-                          status: newStatus,
-                          status_display: ROOM_STATUSES[newStatus]?.label || newStatus,
-                      }
+                        ...r,
+                        status: newStatus,
+                        status_display: ROOM_STATUSES[newStatus]?.label || newStatus,
+                    }
                     : r
             )
         );
@@ -1005,11 +1005,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* Alert Message Toast - Luôn hiển thị trên cùng (z-[99999]) */}
             {alertMessage && (
                 <div
-                    className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl flex items-center justify-between text-xs font-semibold border shadow-2xl transition animate-fadeIn ${
-                        alertMessage.type === 'success'
+                    className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl flex items-center justify-between text-xs font-semibold border shadow-2xl transition animate-fadeIn ${alertMessage.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : 'bg-rose-50 text-rose-800 border-rose-200'
-                    }`}
+                        }`}
                 >
                     <div className="flex items-center gap-2.5">
                         <span className="text-base">{alertMessage.type === 'success' ? '✅' : '⚠️'}</span>
@@ -1032,11 +1031,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 1. Tổng số phòng */}
                 <div
                     onClick={() => setStatusFilter('all')}
-                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
-                        statusFilter === 'all'
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${statusFilter === 'all'
                             ? 'bg-blue-50/70 border-blue-400 shadow-sm ring-2 ring-blue-500/20'
                             : 'bg-white border-slate-200/90 hover:border-blue-300 hover:shadow-xs hover:-translate-y-0.5'
-                    }`}
+                        }`}
                 >
                     <div className="flex items-start justify-between gap-2">
                         <div>
@@ -1066,11 +1064,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 2. Phòng Trống (Available) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'available' ? 'all' : 'available')}
-                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
-                        statusFilter === 'available'
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${statusFilter === 'available'
                             ? 'bg-emerald-50/70 border-emerald-400 shadow-sm ring-2 ring-emerald-500/20'
                             : 'bg-white border-slate-200/90 hover:border-emerald-300 hover:shadow-xs hover:-translate-y-0.5'
-                    }`}
+                        }`}
                 >
                     <div className="flex items-start justify-between gap-2">
                         <div>
@@ -1100,11 +1097,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 3. Có khách (Occupied) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'occupied' ? 'all' : 'occupied')}
-                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
-                        statusFilter === 'occupied'
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${statusFilter === 'occupied'
                             ? 'bg-rose-50/70 border-rose-400 shadow-sm ring-2 ring-rose-500/20'
                             : 'bg-white border-slate-200/90 hover:border-rose-300 hover:shadow-xs hover:-translate-y-0.5'
-                    }`}
+                        }`}
                 >
                     <div className="flex items-start justify-between gap-2">
                         <div>
@@ -1134,11 +1130,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 4. Đang dọn dẹp (Cleaning) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'cleaning' ? 'all' : 'cleaning')}
-                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${
-                        statusFilter === 'cleaning'
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 ${statusFilter === 'cleaning'
                             ? 'bg-amber-50/70 border-amber-400 shadow-sm ring-2 ring-amber-500/20'
                             : 'bg-white border-slate-200/90 hover:border-amber-300 hover:shadow-xs hover:-translate-y-0.5'
-                    }`}
+                        }`}
                 >
                     <div className="flex items-start justify-between gap-2">
                         <div>
@@ -1168,11 +1163,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 {/* 5. Đang bảo trì (Maintenance) */}
                 <div
                     onClick={() => setStatusFilter(statusFilter === 'maintenance' ? 'all' : 'maintenance')}
-                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 col-span-2 sm:col-span-1 ${
-                        statusFilter === 'maintenance'
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex flex-col justify-between active:scale-98 col-span-2 sm:col-span-1 ${statusFilter === 'maintenance'
                             ? 'bg-slate-100 border-slate-400 shadow-sm ring-2 ring-slate-500/20'
                             : 'bg-white border-slate-200/90 hover:border-slate-300 hover:shadow-xs hover:-translate-y-0.5'
-                    }`}
+                        }`}
                 >
                     <div className="flex items-start justify-between gap-2">
                         <div>
@@ -1288,11 +1282,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         <button
                             type="button"
                             onClick={() => setGroupByFloor(!groupByFloor)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 ${
-                                groupByFloor
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 ${groupByFloor
                                     ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
                                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }`}
+                                }`}
                             title="Gom nhóm hiển thị theo từng tầng hoặc trải phẳng toàn bộ"
                         >
                             <Layers className="w-3.5 h-3.5" />
@@ -1562,11 +1555,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     {Object.values(ROOM_STATUSES).map((st) => (
                                         <label
                                             key={st.key}
-                                            className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
-                                                createFormData.status === st.key
+                                            className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${createFormData.status === st.key
                                                     ? `${st.badgeClass} ring-2 ring-blue-500/20 font-bold`
                                                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                                            }`}
+                                                }`}
                                         >
                                             <input
                                                 type="radio"
@@ -1699,11 +1691,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     {Object.values(ROOM_STATUSES).map((st) => (
                                         <label
                                             key={st.key}
-                                            className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
-                                                editFormData.status === st.key
+                                            className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${editFormData.status === st.key
                                                     ? `${st.badgeClass} ring-2 ring-blue-500/20 font-bold`
                                                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                                            }`}
+                                                }`}
                                         >
                                             <input
                                                 type="radio"
@@ -2073,22 +2064,20 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     <button
                                         type="button"
                                         onClick={() => setAssignFilterMode('match_category')}
-                                        className={`px-3 py-1.5 rounded-lg transition cursor-pointer text-[11px] ${
-                                            assignFilterMode === 'match_category'
+                                        className={`px-3 py-1.5 rounded-lg transition cursor-pointer text-[11px] ${assignFilterMode === 'match_category'
                                                 ? 'bg-white text-emerald-800 font-bold shadow-xs'
                                                 : 'text-slate-600 hover:text-slate-900'
-                                        }`}
+                                            }`}
                                     >
                                         Cùng hạng phòng
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setAssignFilterMode('all')}
-                                        className={`px-3 py-1.5 rounded-lg transition cursor-pointer text-[11px] ${
-                                            assignFilterMode === 'all'
+                                        className={`px-3 py-1.5 rounded-lg transition cursor-pointer text-[11px] ${assignFilterMode === 'all'
                                                 ? 'bg-white text-blue-800 font-bold shadow-xs'
                                                 : 'text-slate-600 hover:text-slate-900'
-                                        }`}
+                                            }`}
                                     >
                                         Tất cả đơn chờ nhận
                                     </button>
@@ -2132,7 +2121,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 filteredEligibleBookings.map((b) => {
                                     const isCatMatch =
                                         String(b.category?.id || b.category_id || b.room?.category?.id) ===
-                                            String(assignModalRoom.category?.id || assignModalRoom.category_id) ||
+                                        String(assignModalRoom.category?.id || assignModalRoom.category_id) ||
                                         (b.category_name || b.room_type || '').toLowerCase() === (assignModalRoom.category_name || '').toLowerCase();
 
                                     const todayStr = new Date().toISOString().split('T')[0];
@@ -2160,17 +2149,16 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     return (
                                         <div
                                             key={b.id}
-                                            className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                                                isExpired
+                                            className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isExpired
                                                     ? 'bg-rose-50/40 border-rose-200'
                                                     : isEarly
-                                                    ? 'bg-amber-50/40 hover:bg-amber-50 border-amber-200'
-                                                    : isLate
-                                                    ? 'bg-orange-50/40 hover:bg-orange-50 border-orange-200'
-                                                    : isCatMatch
-                                                    ? 'bg-emerald-50/50 hover:bg-emerald-50 border-emerald-200'
-                                                    : 'bg-white hover:bg-slate-50 border-slate-200'
-                                            }`}
+                                                        ? 'bg-amber-50/40 hover:bg-amber-50 border-amber-200'
+                                                        : isLate
+                                                            ? 'bg-orange-50/40 hover:bg-orange-50 border-orange-200'
+                                                            : isCatMatch
+                                                                ? 'bg-emerald-50/50 hover:bg-emerald-50 border-emerald-200'
+                                                                : 'bg-white hover:bg-slate-50 border-slate-200'
+                                                }`}
                                         >
                                             <div className="space-y-1">
                                                 <div className="flex flex-wrap items-center gap-2">
@@ -2222,25 +2210,24 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                                 type="button"
                                                 disabled={isSubmittingAssignCheckIn || isExpired}
                                                 onClick={() => handleConfirmAssignCheckIn(b)}
-                                                className={`px-4 py-2 font-bold rounded-xl text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 text-white ${
-                                                    isExpired
+                                                className={`px-4 py-2 font-bold rounded-xl text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 text-white ${isExpired
                                                         ? 'bg-slate-400 cursor-not-allowed'
                                                         : isEarly
-                                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
-                                                        : isLate
-                                                        ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20'
-                                                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-                                                }`}
+                                                            ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                                                            : isLate
+                                                                ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20'
+                                                                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                                                    }`}
                                             >
                                                 <span>{isExpired ? '⛔' : isEarly ? '⚡' : isLate ? '⏰' : '🔑'}</span>
                                                 <span>
                                                     {isExpired
                                                         ? 'Quá hạn lưu trú'
                                                         : isEarly
-                                                        ? `Check-in sớm (${earlyDays}N)`
-                                                        : isLate
-                                                        ? `Check-in trễ (${lateDays}N)`
-                                                        : 'Gán phòng & Check-in ngay'}
+                                                            ? `Check-in sớm (${earlyDays}N)`
+                                                            : isLate
+                                                                ? `Check-in trễ (${lateDays}N)`
+                                                                : 'Gán phòng & Check-in ngay'}
                                                 </span>
                                             </button>
                                         </div>
@@ -2277,11 +2264,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3.5">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-xl font-bold ${
-                                checkInWarningModal.type === 'early' 
-                                    ? 'bg-amber-100 text-amber-600' 
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-xl font-bold ${checkInWarningModal.type === 'early'
+                                    ? 'bg-amber-100 text-amber-600'
                                     : 'bg-indigo-100 text-indigo-600'
-                            }`}>
+                                }`}>
                                 {checkInWarningModal.type === 'early' ? '⚡' : '⏰'}
                             </div>
                             <div>
@@ -2583,9 +2569,10 @@ function RoomCard({
 }) {
     const statusConfig = ROOM_STATUSES[room.status] || ROOM_STATUSES.available;
     const currentBk = room.current_booking;
+    const hasGuestContext = Boolean(currentBk || room.recent_booking);
     const isCheckMatchCurrentBooking = !room.latest_minibar_check?.booking_id || !currentBk?.id || String(room.latest_minibar_check.booking_id) === String(currentBk.id);
-    const isInspectionRequested = isCheckMatchCurrentBooking && room.latest_minibar_check?.status === 'requested';
-    const isInspectionCompleted = isCheckMatchCurrentBooking && room.latest_minibar_check?.status === 'completed' && room.status === 'occupied';
+    const isInspectionRequested = hasGuestContext && isCheckMatchCurrentBooking && room.latest_minibar_check?.status === 'requested';
+    const isInspectionCompleted = hasGuestContext && isCheckMatchCurrentBooking && room.latest_minibar_check?.status === 'completed' && room.status === 'occupied';
 
     // Phân quyền chuyên trách theo vai trò vận hành PMS:
     // 1. Minibar: Buồng phòng, Lễ tân, Quản lý, Admin (Kỹ thuật & Phục vụ không có)
@@ -2611,9 +2598,8 @@ function RoomCard({
 
     return (
         <div
-            className={`relative rounded-2xl border-2 p-3.5 flex flex-col justify-between transition-all duration-200 group ${statusConfig.cardClass} ${
-                isInspectionRequested ? 'ring-3 ring-amber-500 ring-offset-2 border-amber-500 shadow-md' : ''
-            }`}
+            className={`relative rounded-2xl border-2 p-3.5 flex flex-col justify-between transition-all duration-200 group ${statusConfig.cardClass} ${isInspectionRequested ? 'ring-3 ring-amber-500 ring-offset-2 border-amber-500 shadow-md' : ''
+                }`}
         >
             {/* Loading Overlay khi đang đổi trạng thái */}
             {isLoading && (
@@ -2941,33 +2927,40 @@ function RoomCard({
                     </button>
                 )}
 
-                {/* 3. Nút cho phòng Cleaning: Minibar + Báo đồ bỏ quên + Xác nhận dọn dẹp xong */}
+                {/* 3. Nút cho phòng Cleaning: Minibar + Báo đồ bỏ quên (nếu có khách) + Xác nhận dọn dẹp xong */}
                 {room.status === 'cleaning' && (
                     <div className="space-y-1.5">
-                        {(canAccessMinibar || canReportLostItem) && (
-                            <div className={`grid ${canAccessMinibar && canReportLostItem ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
-                                {canAccessMinibar && onOpenMinibar && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenMinibar(room)}
-                                        className="py-1.5 px-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
-                                        title="Kiểm kê đồ Minibar tủ lạnh để tính vào hóa đơn khách"
-                                    >
-                                        <Wine className="w-3.5 h-3.5" />
-                                        <span className="truncate whitespace-nowrap">Minibar</span>
-                                    </button>
-                                )}
-                                {canReportLostItem && onOpenLostItem && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenLostItem(room)}
-                                        className="py-1.5 px-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
-                                        title="Báo phát hiện đồ khách bỏ quên (Lost & Found)"
-                                    >
-                                        <Luggage className="w-3.5 h-3.5" />
-                                        <span className="truncate whitespace-nowrap">Đồ thất lạc</span>
-                                    </button>
-                                )}
+                        {hasGuestContext ? (
+                            (canAccessMinibar || canReportLostItem) && (
+                                <div className={`grid ${canAccessMinibar && canReportLostItem ? 'grid-cols-2' : 'grid-cols-1'} gap-1`}>
+                                    {canAccessMinibar && onOpenMinibar && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onOpenMinibar(room)}
+                                            className="py-1.5 px-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
+                                            title="Kiểm kê đồ Minibar tủ lạnh để tính vào hóa đơn khách"
+                                        >
+                                            <Wine className="w-3.5 h-3.5" />
+                                            <span className="truncate whitespace-nowrap">Minibar</span>
+                                        </button>
+                                    )}
+                                    {canReportLostItem && onOpenLostItem && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onOpenLostItem(room)}
+                                            className="py-1.5 px-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
+                                            title="Báo phát hiện đồ khách bỏ quên (Lost & Found)"
+                                        >
+                                            <Luggage className="w-3.5 h-3.5" />
+                                            <span className="truncate whitespace-nowrap">Đồ thất lạc</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        ) : (
+                            <div className="p-1 px-1.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-[9.5px] text-amber-800 flex items-center justify-center gap-1 font-medium">
+                                <Sparkles className="w-3 h-3 text-amber-600 shrink-0" />
+                                <span className="truncate">Vệ sinh sau sửa chữa / Phòng trống</span>
                             </div>
                         )}
                         {canMarkCleaned ? (
@@ -3042,3 +3035,4 @@ function RoomCard({
         </div>
     );
 }
+

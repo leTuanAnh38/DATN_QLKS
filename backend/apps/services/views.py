@@ -937,7 +937,17 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             service_req.is_paid = bool(request.data.get('is_paid'))
             update_fields.append('is_paid')
 
-        if 'note' in request.data:
+        # Xử lý lý do hủy đơn dịch vụ nếu có
+        cancel_reason = request.data.get('reason') or request.data.get('cancellation_reason')
+        if new_status == 'cancelled' and cancel_reason:
+            import re
+            reason_clean = str(cancel_reason).strip()
+            curr_note = (service_req.note or '').strip()
+            if '[ĐÃ HỦY:' in curr_note:
+                curr_note = re.sub(r'\[ĐÃ HỦY:.*?\]\s*', '', curr_note).strip()
+            service_req.note = f"[ĐÃ HỦY: {reason_clean}] {curr_note}".strip()
+            update_fields.append('note')
+        elif 'note' in request.data:
             service_req.note = request.data.get('note', '').strip()
             update_fields.append('note')
 
@@ -945,11 +955,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         service_req.refresh_from_db()
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
+        audit_desc = f"Cập nhật yêu cầu dịch vụ #{service_req.id} ({service_req.service.name if service_req.service else 'Dịch vụ'}) sang \"{service_req.get_status_display()}\""
+        if new_status == 'cancelled' and cancel_reason:
+            audit_desc = f"Hủy yêu cầu dịch vụ #{service_req.id} (Lý do: {cancel_reason.strip()})"
+
         log_action(
             user=user if user.is_authenticated else None,
             action='UPDATE',
             module='SERVICE',
-            description=f"Cập nhật yêu cầu dịch vụ #{service_req.id} ({service_req.service.name if service_req.service else 'Dịch vụ'}) sang \"{service_req.get_status_display()}\"",
+            description=audit_desc,
             request=request
         )
 

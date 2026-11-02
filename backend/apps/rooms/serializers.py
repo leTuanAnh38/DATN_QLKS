@@ -11,13 +11,14 @@ class MaintenanceTicketSerializer(serializers.ModelSerializer):
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
     guest_name = serializers.SerializerMethodField()
     issue_type_display = serializers.CharField(source='get_issue_type_display', read_only=True)
+    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = MaintenanceTicket
         fields = [
             'id', 'ticket_code', 'room', 'room_number', 'room_status', 'room_floor', 'equipment_name',
-            'issue_type', 'issue_type_display', 'description', 'start_date', 'completed_date',
+            'issue_type', 'issue_type_display', 'priority', 'priority_display', 'description', 'start_date', 'completed_date',
             'parts_replaced', 'cost', 'is_guest_fault', 'booking', 'booking_code',
             'guest_name', 'technician', 'technician_name', 'created_by', 'created_by_name',
             'status', 'status_display', 'note'

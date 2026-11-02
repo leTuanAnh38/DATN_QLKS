@@ -59,7 +59,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
   const { isDark } = useAppTheme();
   const config = getStatusConfig(room.status, isDark);
   const bk = room.current_booking || room.recent_booking;
-  const isInspectReq = room.latest_minibar_check?.status === 'requested';
+  const hasGuest = Boolean(bk);
+  const isInspectReq = hasGuest && room.latest_minibar_check?.status === 'requested';
 
   return (
     <Modal
@@ -252,7 +253,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                   <Ionicons name="construct" size={18} color="#D97706" style={{ marginRight: 6 }} />
                   <Text style={[styles.maintenanceIsolatedTitle, !isDark && { color: '#B45309' }]}>
-                    Phòng đang cách ly sửa chữa 🛠️
+                    Phòng đang cách ly sửa chữa
                   </Text>
                 </View>
                 <Text style={[styles.maintenanceIsolatedDesc, !isDark && { color: '#78350F' }]}>
@@ -272,7 +273,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     activeOpacity={0.8}
                   >
                     <Ionicons name="build" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-                    <Text style={styles.maintenanceGoBtnText}>Đi đến Phiếu bảo trì & Nghiệm thu 🛠️</Text>
+                    <Text style={styles.maintenanceGoBtnText}>Đi đến Phiếu bảo trì & Nghiệm thu</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -285,6 +286,26 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     ? 'Thao tác nhanh cho Buồng phòng'
                     : 'Thao tác cho Phục vụ phòng'}
                 </Text>
+                {room.status === 'cleaning' && !hasGuest && (
+                  <View
+                    style={{
+                      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+                      borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : '#FDE68A',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      marginBottom: 12,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Ionicons name="sparkles" size={15} color="#D97706" style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 12, color: !isDark ? '#B45309' : '#FBBF24', fontWeight: '600', flex: 1 }}>
+                      Vệ sinh sau sửa chữa / Phòng trống (Không có khách)
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.detailActionsGrid}>
                   {/* 1. Nút Đổi trạng thái Dọn phòng: CHỈ HIỆN khi phòng đang 'cleaning' hoặc 'available' */}
                   {canMarkCleaned && (room.status === 'cleaning' || room.status === 'available') && (
@@ -307,8 +328,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {/* 2. Kiểm Minibar: CHỈ khi phòng có khách (occupied) hoặc vừa trả phòng đang dọn (cleaning) */}
-                  {canAccessMinibar && (room.status === 'occupied' || room.status === 'cleaning') && (
+                  {/* 2. Kiểm Minibar: CHỈ khi phòng có khách (occupied) hoặc vừa trả phòng đang dọn (cleaning) VÀ có khách */}
+                  {canAccessMinibar && hasGuest && (room.status === 'occupied' || room.status === 'cleaning') && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,
@@ -357,8 +378,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {/* 4. Báo đồ bỏ quên: CHỈ cho phòng có khách hoặc đang dọn (tránh phòng trống/bảo trì) */}
-                  {canReportLostItem && (room.status === 'occupied' || room.status === 'cleaning') && (
+                  {/* 4. Báo đồ bỏ quên: CHỈ cho phòng có khách hoặc đang dọn (cleaning) VÀ có khách */}
+                  {canReportLostItem && hasGuest && (room.status === 'occupied' || room.status === 'cleaning') && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,

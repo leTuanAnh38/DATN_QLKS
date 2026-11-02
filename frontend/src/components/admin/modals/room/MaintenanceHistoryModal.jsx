@@ -282,232 +282,230 @@ export default function MaintenanceHistoryModal({
                         </div>
                     ) : (
                         <>
-                        <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
-                            <table className="w-full min-w-[750px] text-left border-collapse text-xs">
-                                <thead>
-                                    <tr className="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-bold uppercase text-[10px] tracking-wider">
-                                        <th className="py-3 px-3.5">Mã phiếu</th>
-                                        <th className="py-3 px-3">Phòng</th>
-                                        <th className="py-3 px-3.5">Thiết bị & Sự cố</th>
-                                        <th className="py-3 px-3.5">Thời gian sửa chữa</th>
-                                        <th className="py-3 px-3.5">Vật tư thay thế</th>
-                                        <th className="py-3 px-3.5 text-right">Chi phí</th>
-                                        <th className="py-3 px-3.5 text-center">Nguồn chi phí</th>
-                                        <th className="py-3 px-3.5 text-center">Trạng thái</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {paginatedTickets.map((t) => {
-                                        const isDone = t.status === 'completed';
-                                        return (
-                                            <tr
-                                                key={t.id}
-                                                className={`${
-                                                    !isDone
-                                                        ? 'bg-amber-50/30 hover:bg-amber-50/60 border-l-2 border-amber-500'
-                                                        : 'hover:bg-slate-50/80'
-                                                } transition`}
-                                            >
-                                                {/* Mã phiếu */}
-                                                <td className="py-3 px-3.5 font-mono font-bold text-slate-800 whitespace-nowrap">
-                                                    #{t.ticket_code}
-                                                </td>
+                            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
+                                <table className="w-full min-w-[750px] text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr className="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-bold uppercase text-[10px] tracking-wider">
+                                            <th className="py-3 px-3.5">Mã phiếu</th>
+                                            <th className="py-3 px-3">Phòng</th>
+                                            <th className="py-3 px-3.5">Thiết bị & Sự cố</th>
+                                            <th className="py-3 px-3.5">Thời gian sửa chữa</th>
+                                            <th className="py-3 px-3.5">Vật tư thay thế</th>
+                                            <th className="py-3 px-3.5 text-right">Chi phí</th>
+                                            <th className="py-3 px-3.5 text-center">Nguồn chi phí</th>
+                                            <th className="py-3 px-3.5 text-center">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                        {paginatedTickets.map((t) => {
+                                            const isDone = t.status === 'completed';
+                                            return (
+                                                <tr
+                                                    key={t.id}
+                                                    className={`${!isDone
+                                                            ? 'bg-amber-50/30 hover:bg-amber-50/60 border-l-2 border-amber-500'
+                                                            : 'hover:bg-slate-50/80'
+                                                        } transition`}
+                                                >
+                                                    {/* Mã phiếu */}
+                                                    <td className="py-3 px-3.5 font-mono font-bold text-slate-800 whitespace-nowrap">
+                                                        #{t.ticket_code}
+                                                    </td>
 
-                                                {/* Phòng */}
-                                                <td className="py-3 px-3 whitespace-nowrap">
-                                                    <span className="font-black text-sm text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
-                                                        P.{t.room_number}
-                                                    </span>
-                                                </td>
-
-                                                {/* Thiết bị & Sự cố */}
-                                                <td className="py-3 px-3.5 min-w-[160px]">
-                                                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                                                        <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                                        <span>{t.equipment_name}</span>
-                                                    </div>
-                                                    <div className="text-[11px] text-slate-500 mt-0.5">
-                                                        {t.issue_type_display || t.issue_type}
-                                                        {t.description && ` — ${t.description}`}
-                                                    </div>
-                                                </td>
-
-                                                {/* Thời gian */}
-                                                <td className="py-3 px-3.5 whitespace-nowrap text-slate-600 text-[11px]">
-                                                    <div>Bắt đầu: {formatDate(t.start_date)}</div>
-                                                    {t.completed_date ? (
-                                                        <div className="text-emerald-700 font-medium">Xong: {formatDate(t.completed_date)}</div>
-                                                    ) : (
-                                                        <div className="text-amber-600 font-bold italic animate-pulse">Đang khắc phục...</div>
-                                                    )}
-                                                </td>
-
-                                                {/* Vật tư thay thế */}
-                                                <td className="py-3 px-3.5 max-w-[200px]">
-                                                    {t.parts_replaced ? (
-                                                        <span className="font-medium text-slate-800 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 inline-block line-clamp-2" title={t.parts_replaced}>
-                                                            {t.parts_replaced}
+                                                    {/* Phòng */}
+                                                    <td className="py-3 px-3 whitespace-nowrap">
+                                                        <span className="font-black text-sm text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                                            P.{t.room_number}
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-slate-400 italic">Không thay vật tư</span>
-                                                    )}
-                                                </td>
+                                                    </td>
 
-                                                {/* Chi phí */}
-                                                <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                                                    <span className="font-black text-sm text-slate-900">
-                                                        {formatCurrency(t.cost)}
-                                                    </span>
-                                                </td>
-
-                                                {/* Nguồn chi phí */}
-                                                <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                                                    {t.is_guest_fault ? (
-                                                        <div className="space-y-0.5">
-                                                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                                Khách bồi thường
-                                                            </span>
-                                                            {t.booking_code && (
-                                                                <div className="text-[10px] font-mono text-slate-400">
-                                                                    #{t.booking_code}
-                                                                </div>
-                                                            )}
+                                                    {/* Thiết bị & Sự cố */}
+                                                    <td className="py-3 px-3.5 min-w-[160px]">
+                                                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                                            <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                            <span>{t.equipment_name}</span>
                                                         </div>
-                                                    ) : (
-                                                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                                            Khách sạn chịu
-                                                        </span>
-                                                    )}
-                                                </td>
+                                                        <div className="text-[11px] text-slate-500 mt-0.5">
+                                                            {t.issue_type_display || t.issue_type}
+                                                            {t.description && ` — ${t.description}`}
+                                                        </div>
+                                                    </td>
 
-                                                {/* Trạng thái */}
-                                                <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                                                    {/* Thời gian */}
+                                                    <td className="py-3 px-3.5 whitespace-nowrap text-slate-600 text-[11px]">
+                                                        <div>Bắt đầu: {formatDate(t.start_date)}</div>
+                                                        {t.completed_date ? (
+                                                            <div className="text-emerald-700 font-medium">Xong: {formatDate(t.completed_date)}</div>
+                                                        ) : (
+                                                            <div className="text-amber-600 font-bold italic animate-pulse">Đang khắc phục...</div>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Vật tư thay thế */}
+                                                    <td className="py-3 px-3.5 max-w-[200px]">
+                                                        {t.parts_replaced ? (
+                                                            <span className="font-medium text-slate-800 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 inline-block line-clamp-2" title={t.parts_replaced}>
+                                                                {t.parts_replaced}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-slate-400 italic">Không thay vật tư</span>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Chi phí */}
+                                                    <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                                                        <span className="font-black text-sm text-slate-900">
+                                                            {formatCurrency(t.cost)}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Nguồn chi phí */}
+                                                    <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                                                        {t.is_guest_fault ? (
+                                                            <div className="space-y-0.5">
+                                                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                                    Khách bồi thường
+                                                                </span>
+                                                                {t.booking_code && (
+                                                                    <div className="text-[10px] font-mono text-slate-400">
+                                                                        #{t.booking_code}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                                Khách sạn chịu
+                                                            </span>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Trạng thái */}
+                                                    <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                                                        {isDone ? (
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                Đã hoàn thành
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                Đang sửa chữa
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* DANH SÁCH THẺ PHIẾU BẢO TRÌ DI ĐỘNG (< md) - KHÔNG CẦN CUỘN NGANG */}
+                            <div className="block md:hidden space-y-3">
+                                {paginatedTickets.map((t) => {
+                                    const isDone = t.status === 'completed';
+                                    return (
+                                        <div
+                                            key={t.id}
+                                            className={`bg-white rounded-2xl border p-3.5 shadow-2xs space-y-2.5 transition ${!isDone
+                                                    ? 'border-amber-400 bg-amber-50/20 ring-1 ring-amber-400/30'
+                                                    : 'border-slate-200'
+                                                }`}
+                                        >
+                                            {/* 1. Header Thẻ: Số phòng, Mã phiếu, Trạng thái */}
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-flex items-center gap-1 font-black text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
+                                                        <DoorOpen className="w-3.5 h-3.5 text-slate-500" />
+                                                        <span>P.{t.room_number}</span>
+                                                    </span>
+                                                    <span className="font-mono text-xs font-bold text-slate-500">
+                                                        #{t.ticket_code}
+                                                    </span>
+                                                </div>
+
+                                                <div>
                                                     {isDone ? (
                                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                            Đã hoàn thành
+                                                            Đã xong
                                                         </span>
                                                     ) : (
                                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                            Đang sửa chữa
+                                                            Đang sửa
                                                         </span>
                                                     )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* DANH SÁCH THẺ PHIẾU BẢO TRÌ DI ĐỘNG (< md) - KHÔNG CẦN CUỘN NGANG */}
-                        <div className="block md:hidden space-y-3">
-                            {paginatedTickets.map((t) => {
-                                const isDone = t.status === 'completed';
-                                return (
-                                    <div
-                                        key={t.id}
-                                        className={`bg-white rounded-2xl border p-3.5 shadow-2xs space-y-2.5 transition ${
-                                            !isDone
-                                                ? 'border-amber-400 bg-amber-50/20 ring-1 ring-amber-400/30'
-                                                : 'border-slate-200'
-                                        }`}
-                                    >
-                                        {/* 1. Header Thẻ: Số phòng, Mã phiếu, Trạng thái */}
-                                        <div className="flex items-center justify-between gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="inline-flex items-center gap-1 font-black text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
-                                                    <DoorOpen className="w-3.5 h-3.5 text-slate-500" />
-                                                    <span>P.{t.room_number}</span>
-                                                </span>
-                                                <span className="font-mono text-xs font-bold text-slate-500">
-                                                    #{t.ticket_code}
-                                                </span>
-                                            </div>
-
-                                            <div>
-                                                {isDone ? (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                        Đã xong
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                        Đang sửa
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* 2. Thiết bị & Sự cố */}
-                                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
-                                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                                                <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                                <span>{t.equipment_name}</span>
-                                                <span className="text-[10px] text-slate-500 font-semibold px-1.5 py-0.2 bg-white rounded border border-slate-200">
-                                                    {t.issue_type_display || t.issue_type}
-                                                </span>
-                                            </div>
-                                            {t.description && (
-                                                <p className="text-[11px] text-slate-600 mt-1 italic">
-                                                    {t.description}
-                                                </p>
-                                            )}
-                                            {t.parts_replaced && (
-                                                <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-700 flex items-start gap-1">
-                                                    <span className="inline-flex items-center gap-1 font-bold text-slate-800 shrink-0">
-                                                        <Package className="w-3 h-3 text-slate-500" />
-                                                        <span>Vật tư:</span>
-                                                    </span>
-                                                    <span className="font-medium">{t.parts_replaced}</span>
                                                 </div>
-                                            )}
-                                        </div>
-
-                                        {/* 3. Thời gian sửa chữa */}
-                                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                                            <div>
-                                                <span>Bắt đầu: </span>
-                                                <strong className="text-slate-700">{formatDate(t.start_date)}</strong>
                                             </div>
-                                            <div>
-                                                {t.completed_date ? (
-                                                    <span>Xong: <strong className="text-emerald-700">{formatDate(t.completed_date)}</strong></span>
-                                                ) : (
-                                                    <span className="text-amber-600 font-bold italic animate-pulse">Đang khắc phục...</span>
+
+                                            {/* 2. Thiết bị & Sự cố */}
+                                            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                                                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                                    <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                    <span>{t.equipment_name}</span>
+                                                    <span className="text-[10px] text-slate-500 font-semibold px-1.5 py-0.2 bg-white rounded border border-slate-200">
+                                                        {t.issue_type_display || t.issue_type}
+                                                    </span>
+                                                </div>
+                                                {t.description && (
+                                                    <p className="text-[11px] text-slate-600 mt-1 italic">
+                                                        {t.description}
+                                                    </p>
+                                                )}
+                                                {t.parts_replaced && (
+                                                    <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-700 flex items-start gap-1">
+                                                        <span className="inline-flex items-center gap-1 font-bold text-slate-800 shrink-0">
+                                                            <Package className="w-3 h-3 text-slate-500" />
+                                                            <span>Vật tư:</span>
+                                                        </span>
+                                                        <span className="font-medium">{t.parts_replaced}</span>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
 
-                                        {/* 4. Chi phí & Nguồn chi phí */}
-                                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                                            <div>
-                                                {t.is_guest_fault ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                        <AlertTriangle className="w-3 h-3 text-rose-500" />
-                                                        <span>Khách bồi thường</span>
-                                                        {t.booking_code && <span className="font-mono">#{t.booking_code}</span>}
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                                        <Building2 className="w-3 h-3 text-slate-500" />
-                                                        <span>Khách sạn bảo dưỡng</span>
-                                                    </span>
-                                                )}
+                                            {/* 3. Thời gian sửa chữa */}
+                                            <div className="flex items-center justify-between text-[11px] text-slate-500">
+                                                <div>
+                                                    <span>Bắt đầu: </span>
+                                                    <strong className="text-slate-700">{formatDate(t.start_date)}</strong>
+                                                </div>
+                                                <div>
+                                                    {t.completed_date ? (
+                                                        <span>Xong: <strong className="text-emerald-700">{formatDate(t.completed_date)}</strong></span>
+                                                    ) : (
+                                                        <span className="text-amber-600 font-bold italic animate-pulse">Đang khắc phục...</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] text-slate-400 block font-semibold">Chi phí:</span>
-                                                <span className="font-black text-sm text-slate-900">
-                                                    {formatCurrency(t.cost)}
-                                                </span>
+
+                                            {/* 4. Chi phí & Nguồn chi phí */}
+                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                <div>
+                                                    {t.is_guest_fault ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                            <AlertTriangle className="w-3 h-3 text-rose-500" />
+                                                            <span>Khách bồi thường</span>
+                                                            {t.booking_code && <span className="font-mono">#{t.booking_code}</span>}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                            <Building2 className="w-3 h-3 text-slate-500" />
+                                                            <span>Khách sạn bảo dưỡng</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-[10px] text-slate-400 block font-semibold">Chi phí:</span>
+                                                    <span className="font-black text-sm text-slate-900">
+                                                        {formatCurrency(t.cost)}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
                         </>
                     )}
                 </div>
@@ -571,11 +569,10 @@ export default function MaintenanceHistoryModal({
                                     key={p}
                                     type="button"
                                     onClick={() => setCurrentPage(p)}
-                                    className={`min-w-[32px] h-8 px-2 text-xs font-bold rounded-lg transition cursor-pointer ${
-                                        isActive
+                                    className={`min-w-[32px] h-8 px-2 text-xs font-bold rounded-lg transition cursor-pointer ${isActive
                                             ? 'bg-amber-600 text-white shadow-xs'
                                             : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
-                                    }`}
+                                        }`}
                                 >
                                     {p}
                                 </button>

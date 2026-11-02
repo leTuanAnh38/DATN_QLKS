@@ -98,10 +98,18 @@ class MaintenanceTicket(models.Model):
         ('cancelled', 'Đã hủy phiếu'),
     )
 
+    PRIORITY_CHOICES = (
+        ('urgent', 'Khẩn cấp'),
+        ('high', 'Cao'),
+        ('normal', 'Bình thường'),
+        ('low', 'Thấp'),
+    )
+
     ticket_code = models.CharField(max_length=20, unique=True, blank=True, verbose_name="Mã phiếu bảo trì")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='maintenance_tickets', verbose_name="Phòng bảo trì")
     equipment_name = models.CharField(max_length=150, verbose_name="Tên thiết bị hư hỏng")
     issue_type = models.CharField(max_length=30, choices=ROOM_ISSUE_TYPE, default='ac', verbose_name="Phân loại sự cố")
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='normal', verbose_name="Mức độ ưu tiên")
     description = models.TextField(blank=True, default='', verbose_name="Mô tả sự cố chi tiết")
 
     # Thời gian

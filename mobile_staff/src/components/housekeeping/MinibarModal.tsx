@@ -20,6 +20,7 @@ interface MinibarItem {
   id: number;
   name: string;
   price: string;
+  standard_quantity?: number;
 }
 
 interface MinibarModalProps {
@@ -87,6 +88,10 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
     const dmg = hasDamage ? parseFloat(damageAmount || '0') || 0 : 0;
     return sum + dmg;
   }, [minibarItems, consumedCounts, hasDamage, damageAmount]);
+
+  const totalRestockCount = useMemo(() => {
+    return Object.values(consumedCounts).reduce((sum, count) => sum + count, 0);
+  }, [consumedCounts]);
 
   const handleSubmit = async () => {
     if (!room) return;
@@ -184,9 +189,25 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
                     <Text style={[styles.minibarName, !isDark && { color: '#0F172A' }]}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.minibarPrice, !isDark && { color: '#64748B' }]}>
-                      {parseInt(item.price).toLocaleString('vi-VN')} đ/lon
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                      <Text style={[styles.minibarPrice, !isDark && { color: '#64748B' }, { marginTop: 0 }]}>
+                        {parseInt(item.price).toLocaleString('vi-VN')} đ/lon
+                      </Text>
+                      <View style={[styles.minibarParBadge, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' }]}>
+                        <Ionicons name="cube-outline" size={10} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 3 }} />
+                        <Text style={[styles.minibarParText, !isDark && { color: '#475569' }]}>
+                          Định mức: {item.standard_quantity || 2}
+                        </Text>
+                      </View>
+                      {(consumedCounts[item.id] || 0) > 0 && (
+                        <View style={[styles.minibarRestockBadge, !isDark && { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' }]}>
+                          <Ionicons name="flash" size={10} color="#D97706" style={{ marginRight: 2 }} />
+                          <Text style={[styles.minibarRestockText, !isDark && { color: '#B45309' }]}>
+                            Cần bù tủ: {consumedCounts[item.id]}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                   <View
                     style={[
@@ -303,12 +324,14 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
               },
             ]}
           >
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={[styles.minibarTotalLabel, !isDark && { color: '#B45309' }]}>
                 TỔNG TIỀN PHÁT SINH
               </Text>
               <Text style={[styles.minibarTotalSub, !isDark && { color: '#78350F' }]}>
-                Đồng bộ tự động vào bill Lễ tân
+                {totalRestockCount > 0
+                  ? `⚡ Cần bù ${totalRestockCount} đồ vào tủ lạnh • Đồng bộ bill Lễ tân`
+                  : 'Đồng bộ tự động vào bill Lễ tân'}
               </Text>
             </View>
             <Text style={[styles.minibarTotalValue, !isDark && { color: '#D97706' }]}>

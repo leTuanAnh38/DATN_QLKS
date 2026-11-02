@@ -148,7 +148,10 @@ export default function HousekeepingScreen() {
     const inspectionRequested = rooms.filter(
       (r) => r.latest_minibar_check?.status === 'requested'
     ).length;
-    return { total, cleaning, available, occupied, maintenance, inspectionRequested };
+    const makeupRequested = rooms.filter(
+      (r) => Boolean(r.is_cleaning_requested)
+    ).length;
+    return { total, cleaning, available, occupied, maintenance, inspectionRequested, makeupRequested };
   }, [rooms]);
 
   // Lọc phòng theo trạng thái, tầng và tìm kiếm
@@ -157,6 +160,8 @@ export default function HousekeepingScreen() {
       let matchStatus = true;
       if (filterStatus === 'inspection') {
         matchStatus = r.latest_minibar_check?.status === 'requested';
+      } else if (filterStatus === 'makeup') {
+        matchStatus = Boolean(r.is_cleaning_requested);
       } else if (filterStatus !== 'all') {
         matchStatus = r.status === filterStatus;
       }
@@ -171,11 +176,11 @@ export default function HousekeepingScreen() {
       return matchStatus && matchFloor && matchSearch;
     });
 
-    // Tự động ưu tiên đưa các phòng Lễ tân đang đợi kiểm tra check-out lên ĐẦU danh sách
+    // Tự động ưu tiên đưa các phòng Lễ tân đang đợi kiểm tra check-out và khách yêu cầu dọn lên ĐẦU danh sách
     return list.sort((a, b) => {
-      const aReq = a.latest_minibar_check?.status === 'requested' ? 1 : 0;
-      const bReq = b.latest_minibar_check?.status === 'requested' ? 1 : 0;
-      return bReq - aReq;
+      const aWeight = a.latest_minibar_check?.status === 'requested' ? 2 : (a.is_cleaning_requested ? 1 : 0);
+      const bWeight = b.latest_minibar_check?.status === 'requested' ? 2 : (b.is_cleaning_requested ? 1 : 0);
+      return bWeight - aWeight;
     });
   }, [rooms, filterStatus, filterFloor, searchQuery]);
 
@@ -506,6 +511,73 @@ export default function HousekeepingScreen() {
         </TouchableOpacity>
       )}
 
+      {/* 2c. Banner Cảnh Báo Khách Đang Ở Yêu Cầu Dọn Phòng (Make-up Room) */}
+      {stats.makeupRequested > 0 && (
+        <TouchableOpacity
+          style={[
+            styles.urgentMakeupBar,
+            filterStatus === 'makeup' && styles.urgentMakeupBarActive,
+          ]}
+          onPress={() => {
+            setFilterStatus((prev) => (prev === 'makeup' ? 'all' : 'makeup'));
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={styles.urgentInspectionLeft}>
+            <View
+              style={[
+                styles.urgentBellIconBox,
+                { backgroundColor: '#0284C7' },
+                filterStatus === 'makeup' && { backgroundColor: '#0A0F1D' },
+              ]}
+            >
+              <Ionicons
+                name="sparkles"
+                size={14}
+                color={filterStatus === 'makeup' ? '#38BDF8' : '#FFF'}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  styles.urgentInspectionTitle,
+                  { color: filterStatus === 'makeup' ? '#0A0F1D' : (isDark ? '#38BDF8' : '#0284C7') },
+                ]}
+              >
+                {stats.makeupRequested} phòng khách đang ở yêu cầu dọn phòng!
+              </Text>
+              <Text
+                style={[
+                  styles.urgentInspectionSubtitle,
+                  filterStatus === 'makeup' && { color: '#0A0F1D', fontWeight: '700' },
+                ]}
+                numberOfLines={1}
+              >
+                Khách yêu cầu thay ga gối, dọn phòng lưu trú
+              </Text>
+            </View>
+          </View>
+          <View
+            style={[
+              styles.urgentInspectionBadge,
+              { backgroundColor: '#0284C7', borderColor: '#0284C7' },
+              filterStatus === 'makeup' && { backgroundColor: '#0A0F1D', borderColor: '#0A0F1D' },
+            ]}
+          >
+            <Text
+              style={[
+                styles.urgentInspectionBadgeText,
+                { color: '#FFF' },
+                filterStatus === 'makeup' && { color: '#38BDF8' },
+              ]}
+            >
+              {filterStatus === 'makeup' ? 'Hiện tất cả' : 'Lọc ngay ➔'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* 3. Ô Tìm Kiếm Nhanh */}
       <View style={[styles.searchWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Ionicons name="search-outline" size={18} color={colors.textSubtle} style={{ marginLeft: 12 }} />
@@ -558,6 +630,42 @@ export default function HousekeepingScreen() {
                 Tất cả các tầng ({rooms.length})
               </Text>
             </TouchableOpacity>
+
+            {stats.makeupRequested > 0 && (
+              <TouchableOpacity
+                style={[
+                  styles.floorChip,
+                  filterStatus === 'makeup'
+                    ? { backgroundColor: '#0284C7', borderColor: '#0284C7' }
+                    : !isDark
+                    ? { backgroundColor: 'rgba(2, 132, 199, 0.1)', borderColor: 'rgba(2, 132, 199, 0.35)' }
+                    : { backgroundColor: 'rgba(2, 132, 199, 0.15)', borderColor: 'rgba(2, 132, 199, 0.4)' },
+                ]}
+                onPress={() => {
+                  setFilterStatus((prev) => (prev === 'makeup' ? 'all' : 'makeup'));
+                  Haptics.selectionAsync();
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="sparkles"
+                  size={12}
+                  color={filterStatus === 'makeup' ? '#FFFFFF' : '#0284C7'}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={[
+                    styles.floorChipText,
+                    {
+                      color: filterStatus === 'makeup' ? '#FFFFFF' : '#0284C7',
+                      fontWeight: '800',
+                    },
+                  ]}
+                >
+                  Yêu cầu dọn ({stats.makeupRequested})
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {availableFloors.map((fl) => {
               const countOnFloor = rooms.filter((r) => r.floor === fl).length;

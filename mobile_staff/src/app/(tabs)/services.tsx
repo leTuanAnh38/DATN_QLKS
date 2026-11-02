@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   RefreshControl,
@@ -10,8 +9,6 @@ import {
   Alert,
   TextInput,
   ScrollView,
-  Modal,
-  Image,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,350 +20,25 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
-import { DEFAULT_API_URL } from '../../api/config';
 import { ServiceListSkeleton } from '../../components/SkeletonLoader';
-
-interface ServiceOrder {
-  id: number;
-  booking_code: string;
-  room_number: string;
-  guest_name: string;
-  guest_phone?: string;
-  service_name: string;
-  service_image?: string;
-  category_name: string;
-  category_type: string;
-  quantity: number;
-  total_price: string;
-  request_time: string | null;
-  status: string;
-  status_display: string;
-  assigned_staff: number | null;
-  assigned_staff_name: string;
-  note: string;
-  created_at: string;
-  updated_at?: string;
-  booking_status?: string;
-  is_scheduled?: boolean;
-  is_paid?: boolean;
-}
-
-// Helper lọc bỏ các dịch vụ xe / vận chuyển (đã có tab riêng của đội lái xe)
-const isTransportService = (item: any) => {
-  if (!item) return false;
-  if (item.category_type === 'transport') return true;
-  const text = `${item.name || item.service_name || ''} ${item.category_name || ''} ${item.description || ''}`.toLowerCase();
-  return (
-    text.includes('xe') ||
-    text.includes('sân bay') ||
-    text.includes('đưa đón') ||
-    text.includes('transfer') ||
-    text.includes('limousine') ||
-    text.includes('maybach') ||
-    text.includes('shuttle') ||
-    text.includes('taxi') ||
-    text.includes('đón tiễn')
-  );
-};
-
-// Helper kiểm tra tác vụ dọn dẹp phòng lưu trú (Make-up room) thuộc nghiệp vụ riêng của Buồng phòng (đã có tab Buồng phòng riêng)
-const isHousekeepingService = (item: any) => {
-  if (!item) return false;
-  const text = `${item.name || item.service_name || ''} ${item.category_name || ''} ${item.description || ''}`.toLowerCase();
-  return text.includes('make-up') || text.includes('dọn dẹp phòng lưu trú') || text.includes('dọn phòng');
-};
-
-// Helper lấy đường dẫn ảnh đầy đủ cho dịch vụ / món ăn (đồng bộ với Web)
-const getServiceItemImage = (item: any): string => {
-  const raw =
-    item?.service_image ||
-    item?.service?.image ||
-    item?.service?.image_url ||
-    item?.display_image ||
-    item?.image_url ||
-    item?.image;
-  if (!raw || typeof raw !== 'string') {
-    return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80';
-  }
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    return raw;
-  }
-  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
-  return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
-};
-
-// Helper định dạng ngày giờ đặt đơn & giờ hẹn giao
-const formatOrderTime = (dateStr?: string | null): string => {
-  if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const dateFormatted = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-    return `${timeStr} • ${dateFormatted}`;
-  } catch {
-    return dateStr;
-  }
-};
-
-// Helper phân loại nhóm dịch vụ chuẩn nghiệp vụ khách sạn 5 sao
-export const getServiceCategoryType = (item: any): 'fnb' | 'spa' | 'laundry' | 'amenities' => {
-  if (!item) return 'amenities';
-  const catType = (item.category_type || '').toLowerCase();
-  if (catType === 'spa') return 'spa';
-  if (catType === 'laundry') return 'laundry';
-  if (catType === 'fnb') return 'fnb';
-  // Backend (get_service_category_type) đã phân loại là tiện ích/buồng phòng thì tin kết quả đó,
-  // không đoán lại bằng từ khóa (vd danh mục "Tiện ích & Giặt ủi" chứa chữ "giặt" nhưng dịch vụ là tiện ích).
-  if (catType === 'amenities' || catType === 'room_amenity') return 'amenities';
-
-  const text = `${item.name || item.service_name || ''} ${item.category_name || ''} ${item.description || ''}`.toLowerCase();
-  if (
-    text.includes('spa') ||
-    text.includes('massage') ||
-    text.includes('trị liệu') ||
-    text.includes('xông hơi') ||
-    text.includes('sauna') ||
-    text.includes('wellness')
-  ) {
-    return 'spa';
-  }
-  if (
-    text.includes('giặt') ||
-    text.includes('ủi') ||
-    text.includes('laundry') ||
-    text.includes('giặt sấy') ||
-    text.includes('giặt hấp')
-  ) {
-    return 'laundry';
-  }
-  if (
-    text.includes('ẩm thực') ||
-    text.includes('đồ ăn') ||
-    text.includes('món') ||
-    text.includes('bếp') ||
-    text.includes('dining') ||
-    text.includes('f&b') ||
-    text.includes('nhà hàng') ||
-    text.includes('nước') ||
-    text.includes('rượu') ||
-    text.includes('bia') ||
-    text.includes('cà phê') ||
-    text.includes('trà') ||
-    text.includes('bánh') ||
-    text.includes('ăn uống')
-  ) {
-    return 'fnb';
-  }
-  return 'amenities';
-};
-
-// Helper cấu hình nội dung và nút bấm hành động chuẩn từng loại dịch vụ
-export const getServiceActionConfig = (item: ServiceOrder) => {
-  const cat = getServiceCategoryType(item);
-  switch (cat) {
-    case 'spa':
-      return {
-        catLabel: 'Spa & Trị liệu',
-        catIcon: 'leaf',
-        catColor: '#A855F7',
-        pendingBadge: 'Chờ nhận lịch Spa',
-        inProgressBadge: 'Đang chuẩn bị phòng Spa',
-        deliveringBadge: 'KTV đang phục vụ',
-        completedBadge: 'Đã hoàn tất liệu trình',
-        claimText: 'TIẾP NHẬN ĐẶT LỊCH SPA',
-        claimIcon: 'leaf',
-        nextStepLabel: 'KTV ĐÃ SẴN SÀNG ĐÓN KHÁCH',
-        nextStepIcon: 'sparkles',
-        completeStepLabel: 'XÁC NHẬN HOÀN TẤT LIỆU TRÌNH ✨',
-        deliveringLabel: 'KTV đang phục vụ',
-        completeSuccessMsg: 'Liệu trình Spa đã hoàn tất!',
-      };
-    case 'laundry':
-      return {
-        catLabel: 'Giặt ủi cao cấp',
-        catIcon: 'shirt',
-        catColor: '#06B6D4',
-        pendingBadge: 'Chờ thu gom đồ',
-        inProgressBadge: 'Đang giặt sấy / ủi',
-        deliveringBadge: 'Đang mang đồ lên phòng',
-        completedBadge: 'Đã giao đồ sạch',
-        claimText: 'TIẾP NHẬN GIẶT ỦI',
-        claimIcon: 'shirt',
-        nextStepLabel: 'BẮT ĐẦU MANG ĐỒ LÊN PHÒNG',
-        nextStepIcon: 'arrow-up-circle',
-        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO ĐỒ CHO KHÁCH ✨',
-        deliveringLabel: 'Đang mang đồ lên phòng',
-        completeSuccessMsg: 'Đồ giặt ủi đã bàn giao thành công!',
-      };
-    case 'amenities':
-      return {
-        catLabel: 'Tiện ích phòng',
-        catIcon: 'gift',
-        catColor: '#EC4899',
-        pendingBadge: 'Chờ chuẩn bị tiện ích',
-        inProgressBadge: 'Buồng phòng đang chuẩn bị',
-        deliveringBadge: 'Đang chuyển tới phòng',
-        completedBadge: 'Đã bàn giao tiện ích',
-        claimText: 'TIẾP NHẬN TIỆN ÍCH',
-        claimIcon: 'gift',
-        nextStepLabel: 'BẮT ĐẦU CHUYỂN TỚI PHÒNG',
-        nextStepIcon: 'walk',
-        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO ✨',
-        deliveringLabel: 'Đang chuyển tới phòng',
-        completeSuccessMsg: 'Tiện ích phòng đã được bàn giao!',
-      };
-    case 'fnb':
-    default:
-      return {
-        catLabel: 'Ẩm thực & Đồ uống',
-        catIcon: 'restaurant',
-        catColor: '#F59E0B',
-        pendingBadge: 'Chờ chế biến',
-        inProgressBadge: 'Bếp đang chế biến',
-        deliveringBadge: 'Đang mang lên phòng',
-        completedBadge: 'Đã phục vụ xong',
-        claimText: 'TIẾP NHẬN CHẾ BIẾN',
-        claimIcon: 'restaurant',
-        nextStepLabel: 'BẮT ĐẦU MANG LÊN PHÒNG',
-        nextStepIcon: 'bicycle',
-        completeStepLabel: 'XÁC NHẬN ĐÃ PHỤC VỤ MÓN ✨',
-        deliveringLabel: 'Đang mang lên phòng',
-        completeSuccessMsg: 'Món ăn đã được phục vụ tại phòng!',
-      };
-  }
-};
-
-// Khóa thực hiện dịch vụ theo ngữ cảnh — khớp backend (ServiceRequestViewSet, 'ROOM_ASSIGNMENT_REQUIRED' /
-// 'CHECKIN_REQUIRED') và Kanban Web (getServiceLockReason):
-// - null: được phép làm
-// - 'NO_ROOM': đơn chưa được gán phòng cụ thể
-// - 'WAIT_CHECKIN': đã gán phòng nhưng khách chưa check-in và dịch vụ là Ẩm thực / Spa / Giặt ủi
-//   (tiện ích buồng phòng như gối, khăn, setup phòng vẫn được làm trước khi khách tới)
-export type ServiceLockReason = 'NO_ROOM' | 'WAIT_CHECKIN' | null;
-
-export const getServiceLockReason = (item: ServiceOrder): ServiceLockReason => {
-  if (!item || isTransportService(item)) return null;
-  const room = (item.room_number || '').trim();
-  const hasRoom = room !== '' && room !== 'Chưa gán phòng' && room !== 'Chờ xếp';
-  if (!hasRoom) return 'NO_ROOM';
-  if (item.booking_status === 'checked_in') return null;
-  const cat = getServiceCategoryType(item);
-  return cat === 'fnb' || cat === 'spa' || cat === 'laundry' ? 'WAIT_CHECKIN' : null;
-};
-
-const getServiceLockMessage = (item: ServiceOrder, reason: Exclude<ServiceLockReason, null>) =>
-  reason === 'NO_ROOM'
-    ? `Đơn #${item.booking_code} chưa được gán phòng cụ thể. Vui lòng liên hệ Lễ tân gán phòng trước khi thực hiện dịch vụ!`
-    : `Khách đơn #${item.booking_code} chưa làm thủ tục nhận phòng (Check-in). Dịch vụ ẩm thực / spa / giặt ủi yêu cầu khách có mặt tại phòng để phục vụ!`;
-
-export interface SlaStatus {
-  isOverdue: boolean;
-  label: string;
-  badgeBg: string;
-  badgeTextColor: string;
-  badgeBorderColor: string;
-  borderColor: string;
-}
-
-// Helper kiểm tra và tính toán thời gian quá hạn SLA phục vụ phòng (Đồng bộ chuẩn 100% với Web Kanban)
-// QUY TẮC NGHIỆP VỤ:
-// - KHÔNG áp dụng cảnh báo SLA cho các đơn ĐẶT TRƯỚC khi khách CHƯA Check-in
-// - KHÔNG áp dụng nếu đơn chưa được xếp phòng
-// - Nếu đơn có hẹn giờ (scheduled): Chỉ tính quá hạn khi thời gian hiện tại đã vượt qua giờ hẹn
-// - Chỉ tính SLA cho khách ĐÃ CHECK-IN đang lưu trú tại phòng hoặc đơn gọi món trực tiếp
-export const getSlaStatus = (item: ServiceOrder): SlaStatus | null => {
-  if (!item || item.status === 'completed' || item.status === 'cancelled') {
-    return null;
-  }
-
-  // 1. Khách CHƯA Check-in: Đơn đặt kèm khi book phòng (Pre-order), khách chưa tới phòng nên không tính SLA
-  const isCheckedIn = item.booking_status ? item.booking_status === 'checked_in' : false;
-  if (!isCheckedIn) {
-    return null;
-  }
-
-  // 2. Đơn chưa được gán phòng: Chưa thể phục vụ vào phòng, không tính SLA
-  const room = (item.room_number || '').trim();
-  const hasRoom = room !== '' && room !== 'Chưa gán phòng' && room !== 'Chờ xếp';
-  if (!hasRoom) {
-    return null;
-  }
-
-  // 3. Nếu đơn có hẹn giờ cụ thể (Scheduled request time)
-  if (item.is_scheduled && item.request_time) {
-    const scheduledTime = new Date(item.request_time);
-    if (!isNaN(scheduledTime.getTime())) {
-      const diffMinutes = Math.floor((Date.now() - scheduledTime.getTime()) / 60000);
-      // Chưa đến giờ hẹn phục vụ -> Không tính quá hạn
-      if (diffMinutes < 0) return null;
-
-      // Đã quá giờ hẹn từ 15 phút trở lên mà vẫn chờ xử lý
-      if (item.status === 'pending' && diffMinutes >= 15) {
-        return {
-          isOverdue: true,
-          label: `Trễ hẹn >${diffMinutes}p`,
-          badgeBg: 'rgba(239, 68, 68, 0.18)',
-          badgeTextColor: '#F87171',
-          badgeBorderColor: 'rgba(239, 68, 68, 0.45)',
-          borderColor: '#EF4444',
-        };
-      }
-      if (item.status === 'in_progress' && diffMinutes >= 30) {
-        return {
-          isOverdue: true,
-          label: `Làm trễ >${diffMinutes}p`,
-          badgeBg: 'rgba(239, 68, 68, 0.18)',
-          badgeTextColor: '#F87171',
-          badgeBorderColor: 'rgba(239, 68, 68, 0.45)',
-          borderColor: '#EF4444',
-        };
-      }
-      return null;
-    }
-  }
-
-  // 4. Đơn phục vụ phòng trực tiếp (In-room service) hoặc đơn kích hoạt sau khi Check-in
-  const baseTimeStr = item.updated_at || item.created_at;
-  if (!baseTimeStr) return null;
-  const d = new Date(baseTimeStr);
-  if (isNaN(d.getTime())) return null;
-
-  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000));
-
-  if (item.status === 'pending' && elapsedMinutes >= 15) {
-    return {
-      isOverdue: true,
-      label: `Chờ >${elapsedMinutes}p`,
-      badgeBg: 'rgba(245, 158, 11, 0.18)',
-      badgeTextColor: '#FBBF24',
-      badgeBorderColor: 'rgba(245, 158, 11, 0.45)',
-      borderColor: '#F59E0B',
-    };
-  }
-  if (item.status === 'in_progress' && elapsedMinutes >= 30) {
-    return {
-      isOverdue: true,
-      label: `Làm >${elapsedMinutes}p`,
-      badgeBg: 'rgba(239, 68, 68, 0.18)',
-      badgeTextColor: '#F87171',
-      badgeBorderColor: 'rgba(239, 68, 68, 0.45)',
-      borderColor: '#EF4444',
-    };
-  }
-  if (item.status === 'delivering' && elapsedMinutes >= 20) {
-    return {
-      isOverdue: true,
-      label: `Giao >${elapsedMinutes}p`,
-      badgeBg: 'rgba(192, 132, 252, 0.18)',
-      badgeTextColor: '#C084FC',
-      badgeBorderColor: 'rgba(192, 132, 252, 0.45)',
-      borderColor: '#A855F7',
-    };
-  }
-
-  return null;
-};
+import {
+  ServiceOrder,
+  CartItem,
+  ServiceLockReason,
+  isTransportService,
+  isHousekeepingService,
+  getServiceCategoryType,
+  getServiceActionConfig,
+  getServiceLockReason,
+  getServiceLockMessage,
+  getSlaStatus,
+  getStatusBadgeConfig,
+  styles,
+  ServiceOrderCard,
+  CatalogItemCard,
+  CreateServiceOrderModal,
+  CancelServiceOrderModal,
+} from '../../components/services';
 
 export default function ServicesScreen() {
   const { user } = useAuth();
@@ -401,19 +73,25 @@ export default function ServicesScreen() {
   const [crmModalVisible, setCrmModalVisible] = useState(false);
   const [crmGuestId, setCrmGuestId] = useState<number | null>(null);
 
-  // Modal Tạo đơn gọi món / dịch vụ mới (Order hộ khách)
+  // Modal Hủy Đơn với Lý Do (Food Waste & SOP)
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [itemToCancel, setItemToCancel] = useState<ServiceOrder | null>(null);
+  const [cancelReasonOption, setCancelReasonOption] = useState<string>('Khách yêu cầu hủy / đổi món khác');
+  const [customCancelReason, setCustomCancelReason] = useState<string>('');
+  const [cancellingOrder, setCancellingOrder] = useState<boolean>(false);
+
+  // Modal Tạo đơn gọi món / dịch vụ mới (Hỗ trợ Giỏ hàng chọn nhiều món - Multi-item Cart)
   const [createOrderModalVisible, setCreateOrderModalVisible] = useState(false);
   const [occupiedRooms, setOccupiedRooms] = useState<any[]>([]);
   const [serviceCategories, setServiceCategories] = useState<any[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
   const [serviceItems, setServiceItems] = useState<any[]>([]);
   const [loadingModalData, setLoadingModalData] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
-  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
-  const [serviceSearchText, setServiceSearchText] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [orderNote, setOrderNote] = useState('');
   const [submittingOrder, setSubmittingOrder] = useState(false);
+
+  // Giỏ hàng chọn nhiều món
+  const [cart, setCart] = useState<CartItem[]>([]);
 
   // Hẹn giờ giao hàng trong Modal Tạo đơn
   const [deliveryMode, setDeliveryMode] = useState<'now' | 'scheduled'>('now');
@@ -472,7 +150,6 @@ export default function ServicesScreen() {
   }, [fetchOrders, fetchCatalog]);
 
   // Tự động đồng bộ ngầm mỗi 6 giây (nhận đơn mới khi khách đặt trên Web hoặc Lễ tân tạo đơn)
-  // Chỉ chạy khi tab hiển thị & app ở foreground
   useFocusPolling(fetchOrders, 6000);
 
   const onRefresh = () => {
@@ -535,7 +212,6 @@ export default function ServicesScreen() {
       const preparing = myOrders.filter((o) => o.status === 'in_progress').length;
       const delivering = myOrders.filter((o) => o.status === 'delivering').length;
       const completed = myOrders.filter((o) => o.status === 'completed').length;
-      // Tổng đơn cần làm (active tasks)
       const total = pending + preparing + delivering;
 
       return { total, pending, preparing, delivering, completed };
@@ -577,10 +253,9 @@ export default function ServicesScreen() {
         if (item.status === 'cancelled') return false;
 
         // Nếu ở tab "Tất cả", chỉ hiển thị đơn CẦN LÀM (in_progress, delivering, pending)
-        // Đơn đã hoàn tất chỉ hiển thị khi nhân viên chủ động bấm tab "Đã xong"
         if (activeTab === 'all' && item.status === 'completed') return false;
       } else if (scopeFilter === 'unassigned') {
-        // Đơn chưa ai nhận: TUYỆT ĐỐI không hiển thị đơn có người nhận, đơn đã hủy hoặc đơn đã hoàn thành
+        // Đơn chưa ai nhận: không hiển thị đơn có người nhận, đơn đã hủy hoặc đơn đã hoàn thành
         if (Boolean(item.assigned_staff) || item.status === 'cancelled' || item.status === 'completed') {
           return false;
         }
@@ -617,7 +292,7 @@ export default function ServicesScreen() {
       return matchTab && matchCat && matchSearch;
     });
 
-    // Sắp xếp hợp lý theo yêu cầu vận hành khách sạn:
+    // Sắp xếp hợp lý:
     // 1. Đơn trễ hạn SLA lên TOP 1 tuyệt đối để ưu tiên xử lý khẩn cấp
     // 2. Đơn chờ làm (pending) -> Đang giao (delivering) -> Đang chuẩn bị (in_progress)
     // 3. Đơn đã hoàn thành (completed) và Đã hủy (cancelled) xuống DƯỚI CÙNG
@@ -627,7 +302,6 @@ export default function ServicesScreen() {
       const isOverdueA = Boolean(slaA?.isOverdue);
       const isOverdueB = Boolean(slaB?.isOverdue);
 
-      // Đơn trễ hạn SLA ưu tiên tuyệt đối lên đầu danh sách
       if (isOverdueA !== isOverdueB) {
         return isOverdueA ? -1 : 1;
       }
@@ -649,15 +323,14 @@ export default function ServicesScreen() {
         return wA - wB;
       }
 
-      // Nhóm đã hoàn thành / hủy (w >= 8): đơn mới hoàn thành nhất lên trước (LIFO)
+      // Nhóm đã hoàn thành / hủy: LIFO
       if (wA >= 8) {
         const tA = new Date(a.updated_at || a.created_at || 0).getTime();
         const tB = new Date(b.updated_at || b.created_at || 0).getTime();
         return tB - tA;
       }
 
-      // Nhóm đang hoạt động / cùng trễ hạn SLA:
-      // Đơn đặt trước hoặc hẹn giờ sớm (chờ lâu hơn) xếp trước (FIFO)
+      // Nhóm đang hoạt động / cùng trễ hạn SLA: FIFO
       const tA = new Date(a.request_time || a.created_at || 0).getTime();
       const tB = new Date(b.request_time || b.created_at || 0).getTime();
       return tA - tB;
@@ -718,7 +391,6 @@ export default function ServicesScreen() {
 
   const handleClaim = async (item: ServiceOrder) => {
     if (actionLoadingId === item.id) return;
-    // Nhận việc = chuyển sang "Đang thực hiện" nên phải qua cùng điều kiện khóa như Web
     const lock = getServiceLockReason(item);
     if (lock) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -785,7 +457,7 @@ export default function ServicesScreen() {
     }
   };
 
-  // Popup xác nhận hình thức thanh toán khi bàn giao xong (Ghi nợ phòng vs Thu tiền mặt tại phòng)
+  // Popup xác nhận hình thức thanh toán khi bàn giao xong
   const handlePromptComplete = (item: ServiceOrder, label: string) => {
     if (actionLoadingId === item.id) return;
     const lock = getServiceLockReason(item);
@@ -890,47 +562,49 @@ export default function ServicesScreen() {
     );
   };
 
-  const handleCancelOrder = (item: ServiceOrder) => {
+  // Mở modal xác nhận hủy đơn và chọn lý do (SOP & Food waste audit)
+  const handleOpenCancelModal = (item: ServiceOrder) => {
     if (actionLoadingId === item.id) return;
-    Alert.alert(
-      'Hủy đơn dịch vụ',
-      `Bạn có chắc chắn muốn hủy đơn "${item.service_name}" của Phòng ${item.room_number}?`,
-      [
-        { text: 'Quay lại', style: 'cancel' },
-        {
-          text: 'Xác nhận hủy',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setActionLoadingId(item.id);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const res = await apiClient.patch(`/services/requests/${item.id}/`, {
-                status: 'cancelled',
-              });
-              if (res.data.success || res.data.id) {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                Alert.alert('Đã hủy', `Yêu cầu dịch vụ cho Phòng ${item.room_number} đã được hủy.`);
-                await fetchOrders();
-              }
-            } catch (err: any) {
-              const msg = err.response?.data?.message || 'Không thể hủy đơn này.';
-              Alert.alert('Lỗi', msg);
-            } finally {
-              setActionLoadingId(null);
-            }
-          },
-        },
-      ]
-    );
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setItemToCancel(item);
+    setCancelReasonOption('Khách yêu cầu hủy / đổi món khác');
+    setCustomCancelReason('');
+    setCancelModalVisible(true);
+  };
+
+  // Xác nhận hủy đơn với lý do cụ thể gửi lên backend
+  const handleConfirmCancelOrder = async () => {
+    if (!itemToCancel) return;
+    const finalReason = cancelReasonOption === 'Lý do khác'
+      ? (customCancelReason.trim() || 'Nhân viên hủy đơn')
+      : cancelReasonOption;
+
+    try {
+      setCancellingOrder(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const res = await apiClient.patch(`/services/requests/${itemToCancel.id}/`, {
+        status: 'cancelled',
+        reason: finalReason,
+      });
+      if (res.data.success || res.data.id) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert('Đã hủy đơn thành công', `Đơn phòng ${itemToCancel.room_number} đã được hủy.\nLý do: ${finalReason}`);
+        setCancelModalVisible(false);
+        setItemToCancel(null);
+        await fetchOrders();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể hủy đơn này.';
+      Alert.alert('Lỗi', msg);
+    } finally {
+      setCancellingOrder(false);
+    }
   };
 
   const openCreateOrderModal = async (defaultServiceId?: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCreateOrderModalVisible(true);
-    setQuantity(1);
     setOrderNote('');
-    setServiceSearchText('');
-    setSelectedCategoryId('all');
     setLoadingModalData(true);
     setDeliveryMode('now');
     const defaultSched = new Date();
@@ -960,9 +634,14 @@ export default function ServicesScreen() {
       );
       setServiceItems(nonTransport);
       if (defaultServiceId) {
-        setSelectedServiceId(defaultServiceId);
-      } else if (nonTransport.length > 0) {
-        setSelectedServiceId(nonTransport[0].id);
+        const found = nonTransport.find((s: any) => s.id === defaultServiceId);
+        if (found) {
+          setCart([{ service: found, quantity: 1, note: '' }]);
+        } else {
+          setCart([]);
+        }
+      } else {
+        setCart([]);
       }
 
       const cList = resCategories.data.categories || resCategories.data.results || resCategories.data.data || resCategories.data || [];
@@ -1035,36 +714,66 @@ export default function ServicesScreen() {
     );
   };
 
-  const filteredServiceItems = useMemo(() => {
-    return serviceItems.filter((s) => {
-      // 1. Lọc theo danh mục đã chọn
-      if (selectedCategoryId !== 'all') {
-        const catId = s.category_id || (typeof s.category === 'object' ? s.category?.id : s.category);
-        if (catId !== selectedCategoryId) return false;
+  // Cart helpers
+  const handleAddToCart = (service: any) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCart((prev) => {
+      const idx = prev.findIndex((i) => i.service.id === service.id);
+      if (idx >= 0) {
+        return prev.map((item, i) =>
+          i === idx ? { ...item, quantity: item.quantity + 1 } : item
+        );
       }
-      // 2. Lọc theo từ khóa tìm kiếm (tên, danh mục, mô tả)
-      if (serviceSearchText.trim()) {
-        const q = serviceSearchText.trim().toLowerCase();
-        const matchName = s.name && s.name.toLowerCase().includes(q);
-        const matchCat = s.category_name && s.category_name.toLowerCase().includes(q);
-        const matchDesc = s.description && s.description.toLowerCase().includes(q);
-        if (!matchName && !matchCat && !matchDesc) return false;
-      }
-      return true;
+      return [...prev, { service, quantity: 1, note: '' }];
     });
-  }, [serviceItems, selectedCategoryId, serviceSearchText]);
+  };
 
-  const selectedServiceItem = useMemo(() => {
-    return serviceItems.find((s) => s.id === selectedServiceId) || null;
-  }, [serviceItems, selectedServiceId]);
+  const handleUpdateCartQuantity = (serviceId: number, delta: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCart((prev) => {
+      return prev
+        .map((item) => {
+          if (item.service.id === serviceId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[];
+    });
+  };
+
+  const handleUpdateCartItemNote = (serviceId: number, note: string) => {
+    setCart((prev) =>
+      prev.map((item) =>
+        item.service.id === serviceId ? { ...item, note } : item
+      )
+    );
+  };
+
+  const handleRemoveFromCart = (serviceId: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCart((prev) => prev.filter((item) => item.service.id !== serviceId));
+  };
+
+  const totalCartCount = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  }, [cart]);
+
+  const totalCartPrice = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      const price = parseFloat(item.service.price || '0');
+      return sum + (isNaN(price) ? 0 : price * item.quantity);
+    }, 0);
+  }, [cart]);
 
   const handleCreateOrder = async () => {
     if (!selectedRoom || !selectedRoom.current_booking) {
       Alert.alert('Chưa chọn phòng', 'Vui lòng chọn phòng đang có khách lưu trú.');
       return;
     }
-    if (!selectedServiceId) {
-      Alert.alert('Chưa chọn món', 'Vui lòng chọn món ăn hoặc dịch vụ cần gọi.');
+    if (cart.length === 0) {
+      Alert.alert('Giỏ hàng trống', 'Vui lòng chọn ít nhất một món ăn hoặc dịch vụ vào giỏ hàng.');
       return;
     }
 
@@ -1075,8 +784,11 @@ export default function ServicesScreen() {
       const isScheduled = deliveryMode === 'scheduled';
       const payload: any = {
         booking: selectedRoom.current_booking.id,
-        service: selectedServiceId,
-        quantity: quantity,
+        items: cart.map((i) => ({
+          service_id: i.service.id,
+          quantity: i.quantity,
+          note: i.note ? i.note.trim() : '',
+        })),
         note: orderNote.trim(),
         is_scheduled: isScheduled,
       };
@@ -1086,498 +798,72 @@ export default function ServicesScreen() {
 
       const res = await apiClient.post('/services/requests/', payload);
 
-      if (res.data.success || res.data.id) {
+      if (res.data.success || res.data.created_count || res.data.id || Array.isArray(res.data)) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        const sName = selectedServiceItem?.name || 'Dịch vụ';
+        const itemCount = totalCartCount;
         const timeNote = isScheduled
           ? ` (Hẹn giao: ${scheduledTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})`
           : '';
         Alert.alert(
           'Tạo đơn thành công',
-          `Đã tiếp nhận yêu cầu "${sName}" (SL: ${quantity})${timeNote} cho Phòng ${selectedRoom.room_number}!`
+          `Đã tiếp nhận ${itemCount} món/dịch vụ cho Phòng ${selectedRoom.room_number}!${timeNote}`
         );
         setCreateOrderModalVisible(false);
+        setCart([]);
         fetchOrders();
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể tạo đơn dịch vụ.';
+      const msg = err.response?.data?.message || err.response?.data?.detail || 'Không thể tạo đơn dịch vụ.';
       Alert.alert('Lỗi', msg);
     } finally {
       setSubmittingOrder(false);
     }
   };
 
-  const getStatusBadgeConfig = (status: string, item?: ServiceOrder) => {
-    const actionConfig = item ? getServiceActionConfig(item) : null;
-    switch (status) {
-      case 'pending':
-        return {
-          bg: 'rgba(245, 158, 11, 0.12)',
-          border: 'rgba(245, 158, 11, 0.45)',
-          text: '#FBBF24',
-          label: actionConfig ? actionConfig.pendingBadge : 'Chờ xử lý',
-        };
-      case 'in_progress':
-        return {
-          bg: 'rgba(56, 189, 248, 0.12)',
-          border: 'rgba(56, 189, 248, 0.45)',
-          text: '#38BDF8',
-          label: actionConfig ? actionConfig.inProgressBadge : 'Đang chuẩn bị',
-        };
-      case 'delivering':
-        return {
-          bg: 'rgba(168, 85, 247, 0.14)',
-          border: 'rgba(168, 85, 247, 0.45)',
-          text: '#C084FC',
-          label: actionConfig ? actionConfig.deliveringBadge : 'Đang giao tận phòng',
-        };
-      case 'completed':
-        return {
-          bg: 'rgba(16, 185, 129, 0.12)',
-          border: 'rgba(16, 185, 129, 0.45)',
-          text: '#34D399',
-          label: actionConfig ? actionConfig.completedBadge : 'Đã phục vụ xong',
-        };
-      case 'cancelled':
-        return {
-          bg: 'rgba(239, 68, 68, 0.12)',
-          border: 'rgba(239, 68, 68, 0.4)',
-          text: '#F87171',
-          label: 'Đã hủy',
-        };
-      default:
-        return {
-          bg: '#1E293B',
-          border: '#334155',
-          text: '#94A3B8',
-          label: status,
-        };
-    }
-  };
+  const renderOrderItem = useCallback(
+    ({ item }: { item: ServiceOrder }) => {
+      const isMyTask = checkIsMyTask(item);
+      const lockReason = ['pending', 'in_progress', 'delivering'].includes(item.status)
+        ? getServiceLockReason(item)
+        : null;
+      return (
+        <ServiceOrderCard
+          item={item}
+          isDark={isDark}
+          isMyTask={isMyTask}
+          isActionLoading={actionLoadingId === item.id}
+          badge={getStatusBadgeConfig(item.status, item)}
+          actionConfig={getServiceActionConfig(item)}
+          lockReason={lockReason}
+          sla={getSlaStatus(item)}
+          onClaim={handleClaim}
+          onUpdateStatus={handleUpdateStatus}
+          onPromptComplete={handlePromptComplete}
+          onOpenCancelModal={handleOpenCancelModal}
+          onOpenCrm={() => {
+            setCrmGuestId(null);
+            setCrmModalVisible(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
+          onCallGuest={handleCallGuest}
+        />
+      );
+    },
+    [isDark, checkIsMyTask, actionLoadingId, handleClaim, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest]
+  );
 
-  const renderItem = ({ item }: { item: ServiceOrder }) => {
-    const badge = getStatusBadgeConfig(item.status, item);
-    const actionConfig = getServiceActionConfig(item);
-    const isMyTask = checkIsMyTask(item);
-    const lockReason = ['pending', 'in_progress', 'delivering'].includes(item.status)
-      ? getServiceLockReason(item)
-      : null;
-    const isActionLoading = actionLoadingId === item.id;
-    const sla = getSlaStatus(item);
-
-    return (
-      <View
-        style={[
-          styles.card,
-          !isDark && {
-            backgroundColor: '#FFFFFF',
-            borderColor: isMyTask ? '#F59E0B' : '#E2E8F0',
-            shadowColor: '#64748B',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
-            elevation: 2,
-          },
-          isMyTask && isDark && styles.cardMyTask,
-          sla?.isOverdue && { borderColor: sla.borderColor, borderWidth: 1.5 },
-        ]}
-      >
-        {/* Header Đơn */}
-        <View style={styles.cardHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' }}>
-            <View style={[styles.roomTag, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
-              <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-              <Text style={[styles.roomTagText, !isDark && { color: '#0F172A' }]}>P.{item.room_number || '?'}</Text>
-            </View>
-            {item.booking_code ? (
-              <View style={[styles.bookingCodeTag, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
-                <Text style={[styles.bookingCodeTagText, !isDark && { color: '#64748B' }]}>#{item.booking_code}</Text>
-              </View>
-            ) : null}
-            {/* Nhãn phân loại nghiệp vụ F&B / Spa / Giặt là / Tiện ích */}
-            <View style={[styles.categoryPill, { borderColor: actionConfig.catColor }]}>
-              <Ionicons name={actionConfig.catIcon as any} size={11} color={actionConfig.catColor} style={{ marginRight: 3 }} />
-              <Text style={[styles.categoryPillText, { color: actionConfig.catColor }]}>{actionConfig.catLabel}</Text>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {sla?.isOverdue ? (
-              <View
-                style={[
-                  styles.slaBadge,
-                  { backgroundColor: sla.badgeBg, borderColor: sla.badgeBorderColor, marginRight: 6 },
-                ]}
-              >
-                <Ionicons name="alert-circle" size={11} color={sla.badgeTextColor} style={{ marginRight: 3 }} />
-                <Text style={[styles.slaBadgeText, { color: sla.badgeTextColor }]}>
-                  {sla.label}
-                </Text>
-              </View>
-            ) : null}
-
-            <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
-              <Text style={[styles.statusBadgeText, { color: badge.text }]}>
-                {badge.label}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Tên Món, Ảnh Món & Số lượng */}
-        <View style={styles.foodRow}>
-          <View style={styles.foodThumbBox}>
-            <Image
-              source={{ uri: getServiceItemImage(item) }}
-              style={styles.foodThumbImg}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={[styles.serviceName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
-                {item.service_name}
-              </Text>
-              <View style={styles.quantityBadge}>
-                <Text style={styles.quantityBadgeText}>x{item.quantity}</Text>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, flexWrap: 'wrap', gap: 6 }}>
-              <Text style={styles.priceText}>
-                {item.total_price ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
-              </Text>
-              <Text style={styles.dotSeparator}>•</Text>
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center' }}
-                onPress={() => {
-                  setCrmGuestId(null);
-                  setCrmModalVisible(true);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.guestInfoText, { color: '#0284C7', fontWeight: '800' }]}>
-                  Khách: {item.guest_name}
-                </Text>
-                <Ionicons name="person-circle-outline" size={13} color="#0284C7" style={{ marginLeft: 3 }} />
-              </TouchableOpacity>
-
-              {/* Nút Gọi điện thoại nhanh cho khách phòng */}
-              <TouchableOpacity
-                style={[
-                  styles.quickPhoneBtn,
-                  !isDark && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }
-                ]}
-                onPress={() => handleCallGuest(item.guest_phone, item.guest_name, item.room_number)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="call" size={11} color="#059669" style={{ marginRight: 3 }} />
-                <Text style={styles.quickPhoneBtnText}>
-                  {item.guest_phone ? item.guest_phone : 'Gọi khách'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Huy hiệu đã thanh toán */}
-              {item.is_paid ? (
-                <View style={[styles.paidBadge, !isDark && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-                  <Ionicons name="checkmark-circle" size={11} color="#059669" style={{ marginRight: 2 }} />
-                  <Text style={styles.paidBadgeText}>Đã thu tiền</Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
-
-        {/* Thời gian đặt & Giờ hẹn giao */}
-        <View style={[styles.orderTimingBox, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
-          {item.created_at ? (
-            <View style={styles.orderTimingItem}>
-              <Ionicons name="time-outline" size={13} color="#0284C7" style={{ marginRight: 4 }} />
-              <Text style={[styles.orderTimingLabel, !isDark && { color: '#64748B' }]}>Đặt lúc:</Text>
-              <Text style={[styles.orderTimingValue, !isDark && { color: '#334155' }]}>{formatOrderTime(item.created_at)}</Text>
-            </View>
-          ) : null}
-
-          {/* Giờ hẹn giao: Chỉ hiển thị khi đơn THỰC SỰ có hẹn giờ (is_scheduled) */}
-          {item.is_scheduled && item.request_time ? (
-            <View style={[styles.orderTimingItem, styles.orderTimingScheduled]}>
-              <Ionicons name="alarm-outline" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-              <Text style={[styles.orderTimingLabel, { color: '#D97706' }]}>Hẹn giao:</Text>
-              <Text style={[styles.orderTimingValue, { color: '#D97706', fontWeight: '800' }]}>
-                {formatOrderTime(item.request_time)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Ghi chú yêu cầu đặc biệt của khách */}
-        {item.note ? (
-          <View style={[styles.noteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
-            <Ionicons name="receipt-outline" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
-            <Text style={[styles.noteText, !isDark && { color: '#334155' }]}>Yêu cầu: {item.note}</Text>
-          </View>
-        ) : null}
-
-        {/* Nhân viên tiếp nhận */}
-        <View style={styles.staffRow}>
-          <Text style={[styles.staffLabel, !isDark && { color: '#64748B' }]}>Người phụ trách:</Text>
-          <Text style={[styles.staffValue, !isDark && { color: '#334155' }, isMyTask && { color: '#F59E0B', fontWeight: '800' }]}>
-            {item.assigned_staff_name || 'Chưa ai nhận'}
-            {isMyTask ? ' (Bạn)' : ''}
-          </Text>
-        </View>
-
-        {/* Cảnh báo khóa thao tác: chưa gán phòng / khách chưa check-in */}
-        {lockReason ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.4)', borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, marginBottom: 8 }}>
-            <Ionicons name="lock-closed" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
-            <Text style={{ flex: 1, fontSize: 11.5, color: '#FBBF24', fontWeight: '700' }}>
-              {lockReason === 'NO_ROOM'
-                ? 'Chưa gán phòng — chờ Lễ tân xếp phòng'
-                : 'Khách chưa check-in — chờ khách nhận phòng'}
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Nút hành động 1 chạm - Tối ưu One-handed 50px & Chống Double-Tap */}
-        <View style={styles.actionRow}>
-          {item.status === 'pending' && (
-            <TouchableOpacity
-              style={[styles.btnClaim, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
-              onPress={() => handleClaim(item)}
-              activeOpacity={0.8}
-              disabled={isActionLoading}
-            >
-              {isActionLoading ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnClaimText}>ĐANG TIẾP NHẬN...</Text>
-                </View>
-              ) : (
-                <>
-                  <Ionicons name={actionConfig.claimIcon as any} size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnClaimText}>{actionConfig.claimText}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {item.status === 'in_progress' && (
-            <TouchableOpacity
-              style={[styles.btnDeliver, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
-              onPress={() => handleUpdateStatus(item, 'delivering', actionConfig.deliveringLabel)}
-              activeOpacity={0.8}
-              disabled={isActionLoading}
-            >
-              {isActionLoading ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnDeliverText}>ĐANG CẬP NHẬT...</Text>
-                </View>
-              ) : (
-                <>
-                  <Ionicons name={actionConfig.nextStepIcon as any} size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnDeliverText}>{actionConfig.nextStepLabel}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {item.status === 'delivering' && (
-            <TouchableOpacity
-              style={[styles.btnComplete, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
-              onPress={() => handlePromptComplete(item, actionConfig.completeSuccessMsg)}
-              activeOpacity={0.8}
-              disabled={isActionLoading}
-            >
-              {isActionLoading ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnCompleteText}>ĐANG HOÀN TẤT...</Text>
-                </View>
-              ) : (
-                <>
-                  <Ionicons name="checkmark-done" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
-                  <Text style={styles.btnCompleteText}>{actionConfig.completeStepLabel}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {item.status === 'completed' && (
-            <View
-              style={[
-                styles.doneBadge,
-                !isDark && {
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                  borderColor: 'rgba(16, 185, 129, 0.3)',
-                },
-              ]}
-            >
-              <Ionicons name="checkmark-circle" size={16} color={isDark ? '#34D399' : '#059669'} style={{ marginRight: 6 }} />
-              <Text style={[styles.doneBadgeText, !isDark && { color: '#059669' }]}>{actionConfig.completedBadge}</Text>
-            </View>
-          )}
-
-          {item.status === 'cancelled' && (
-            <View
-              style={[
-                styles.doneBadge,
-                { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.3)' },
-                !isDark && { backgroundColor: '#FEE2E2', borderColor: '#FECACA' },
-              ]}
-            >
-              <Ionicons name="close-circle" size={16} color={isDark ? '#F87171' : '#DC2626'} style={{ marginRight: 6 }} />
-              <Text style={[styles.doneBadgeText, { color: isDark ? '#F87171' : '#DC2626' }]}>Đơn đã hủy</Text>
-            </View>
-          )}
-
-          {(item.status === 'pending' || item.status === 'in_progress') && (
-            <TouchableOpacity
-              style={[styles.btnCancelOrder, isActionLoading && { opacity: 0.5 }]}
-              onPress={() => handleCancelOrder(item)}
-              activeOpacity={0.7}
-              disabled={isActionLoading}
-            >
-              <Ionicons name="close-circle-outline" size={15} color="#EF4444" style={{ marginRight: 4 }} />
-              <Text style={styles.btnCancelOrderText}>Hủy</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-  };
-
-  const renderCatalogItem = ({ item }: { item: any }) => {
-    const priceFormatted = item.price ? `${parseInt(item.price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí';
-    const imageUri = getServiceItemImage(item);
-    const isAvailable = item.is_active !== false;
-
-    return (
-      <View
-        style={[
-          styles.catalogCard,
-          !isAvailable && { opacity: 0.8 },
-          !isDark && {
-            backgroundColor: '#FFFFFF',
-            borderColor: isAvailable ? '#E2E8F0' : '#FECACA',
-            shadowColor: '#64748B',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
-            elevation: 2,
-          },
-        ]}
-      >
-        <View style={styles.catalogItemImgWrapper}>
-          <Image
-            source={{ uri: imageUri }}
-            style={[styles.catalogItemImg, !isAvailable && { opacity: 0.45 }]}
-            resizeMode="cover"
-          />
-          {!isAvailable ? (
-            <View style={styles.soldOutBadge}>
-              <Text style={styles.soldOutBadgeText}>TẠM HẾT MÓN</Text>
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.catalogItemContent}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={[styles.catalogItemName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <View style={[styles.catalogCategoryTag, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
-              <Text style={[styles.catalogCategoryTagText, !isDark && { color: '#64748B' }]}>{item.category_name || 'Dịch vụ'}</Text>
-            </View>
-          </View>
-
-          {item.description ? (
-            <Text style={[styles.catalogItemDesc, !isDark && { color: '#64748B' }]} numberOfLines={2}>
-              {item.description}
-            </Text>
-          ) : null}
-
-          <View style={styles.catalogItemBottomRow}>
-            <View>
-              <Text style={[styles.catalogItemPrice, !isAvailable && { color: '#94A3B8' }]}>
-                {priceFormatted}
-              </Text>
-              <Text style={{ fontSize: 10, color: isAvailable ? '#10B981' : '#EF4444', fontWeight: '800', marginTop: 1 }}>
-                {isAvailable ? '● Đang phục vụ' : '● Tạm hết món'}
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              {/* Nút Toggle Còn món / Hết món */}
-              <TouchableOpacity
-                style={[
-                  styles.catalogToggleBtn,
-                  !isAvailable && styles.catalogToggleBtnInactive,
-                  !isDark && {
-                    backgroundColor: isAvailable ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
-                    borderColor: isAvailable ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)',
-                  }
-                ]}
-                onPress={() => handleToggleCatalogActive(item)}
-                disabled={togglingCatalogId === item.id}
-                activeOpacity={0.7}
-              >
-                {togglingCatalogId === item.id ? (
-                  <ActivityIndicator size="small" color="#EF4444" />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={isAvailable ? "pause-circle-outline" : "play-circle-outline"}
-                      size={13}
-                      color={isAvailable ? "#DC2626" : "#059669"}
-                      style={{ marginRight: 3 }}
-                    />
-                    <Text
-                      style={[
-                        styles.catalogToggleBtnText,
-                        { color: isAvailable ? "#DC2626" : "#059669" }
-                      ]}
-                    >
-                      {isAvailable ? "Báo hết" : "Mở lại"}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              {/* Nút Gọi món */}
-              <TouchableOpacity
-                style={[
-                  styles.catalogOrderBtn,
-                  !isAvailable && { opacity: 0.45 }
-                ]}
-                onPress={() => {
-                  if (!isAvailable) {
-                    Alert.alert(
-                      'Món đang tạm hết',
-                      `Món "${item.name}" đang được đánh dấu là tạm hết. Bạn có muốn mở lại món này trước khi gọi cho khách không?`,
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        { text: 'Mở lại phục vụ', onPress: () => handleToggleCatalogActive(item) }
-                      ]
-                    );
-                    return;
-                  }
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  openCreateOrderModal(item.id);
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="cart" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-                <Text style={styles.catalogOrderBtnText}>Gọi món</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  };
+  const renderCatalogCard = useCallback(
+    ({ item }: { item: any }) => (
+      <CatalogItemCard
+        item={item}
+        isDark={isDark}
+        isToggling={togglingCatalogId === item.id}
+        onToggleActive={handleToggleCatalogActive}
+        onOrder={(it) => openCreateOrderModal(it.id)}
+      />
+    ),
+    [isDark, togglingCatalogId, handleToggleCatalogActive, openCreateOrderModal]
+  );
 
   return (
     <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
@@ -1921,7 +1207,7 @@ export default function ServicesScreen() {
             <FlatList
               data={displayedOrders}
               keyExtractor={(item) => String(item.id)}
-              renderItem={renderItem}
+              renderItem={renderOrderItem}
               initialNumToRender={8}
               maxToRenderPerBatch={8}
               windowSize={7}
@@ -2049,7 +1335,7 @@ export default function ServicesScreen() {
             <FlatList
               data={displayedCatalogItems}
               keyExtractor={(item) => String(item.id)}
-              renderItem={renderCatalogItem}
+              renderItem={renderCatalogCard}
               initialNumToRender={8}
               maxToRenderPerBatch={8}
               windowSize={7}
@@ -2067,460 +1353,49 @@ export default function ServicesScreen() {
       )}
 
       {/* Modal Tạo Yêu Cầu Dịch Vụ / Gọi Món Hộ Khách */}
-      <Modal visible={createOrderModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '92%' }, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
-            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
-              <View>
-                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Gọi Món & Đặt Dịch Vụ Mới 🛎️</Text>
-                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Tạo đơn ẩm thực, spa, tiện ích cho khách đang ở</Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
-                onPress={() => setCreateOrderModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
+      <CreateServiceOrderModal
+        visible={createOrderModalVisible}
+        onClose={() => setCreateOrderModalVisible(false)}
+        isDark={isDark}
+        loadingModalData={loadingModalData}
+        occupiedRooms={occupiedRooms}
+        selectedRoom={selectedRoom}
+        setSelectedRoom={setSelectedRoom}
+        serviceItems={serviceItems}
+        serviceCategories={serviceCategories}
+        cart={cart}
+        setCart={setCart}
+        handleAddToCart={handleAddToCart}
+        handleUpdateCartQuantity={handleUpdateCartQuantity}
+        handleRemoveFromCart={handleRemoveFromCart}
+        handleUpdateCartItemNote={handleUpdateCartItemNote}
+        totalCartCount={totalCartCount}
+        totalCartPrice={totalCartPrice}
+        deliveryMode={deliveryMode}
+        setDeliveryMode={setDeliveryMode}
+        scheduledTime={scheduledTime}
+        setScheduledTime={setScheduledTime}
+        customTimeText={customTimeText}
+        setCustomTimeText={setCustomTimeText}
+        orderNote={orderNote}
+        setOrderNote={setOrderNote}
+        submittingOrder={submittingOrder}
+        handleCreateOrder={handleCreateOrder}
+      />
 
-            {loadingModalData ? (
-              <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator color="#F59E0B" size="large" />
-                <Text style={{ color: isDark ? '#94A3B8' : '#64748B', marginTop: 12, fontSize: 13 }}>
-                  Đang tải danh sách phòng & menu dịch vụ...
-                </Text>
-              </View>
-            ) : (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 35 }}>
-                {/* 1. Chọn phòng đang có khách */}
-                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>1. Chọn phòng đang có khách *:</Text>
-                {occupiedRooms.length === 0 ? (
-                  <View style={[styles.noRoomsWarning, !isDark && { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-                    <Ionicons name="alert-circle-outline" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
-                    <Text style={[styles.noRoomsText, !isDark && { color: '#B45309' }]}>
-                      Hiện không có phòng nào có khách đã nhận phòng (Check-in).
-                    </Text>
-                  </View>
-                ) : (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.roomChipsScroll}
-                  >
-                    {occupiedRooms.map((r) => {
-                      const isSelected = selectedRoom?.id === r.id;
-                      return (
-                        <TouchableOpacity
-                          key={r.id}
-                          style={[
-                            styles.roomSelectChip,
-                            !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                            isSelected && styles.roomSelectChipActive,
-                          ]}
-                          onPress={() => {
-                            setSelectedRoom(r);
-                            Haptics.selectionAsync();
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.roomSelectChipText,
-                              !isDark && !isSelected && { color: '#0F172A' },
-                              isSelected && styles.roomSelectChipTextActive,
-                            ]}
-                          >
-                            P.{r.room_number}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.roomGuestSubText,
-                              !isDark && !isSelected && { color: '#64748B' },
-                              isSelected && { color: '#0A0F1D', fontWeight: '700' },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {r.current_booking?.guest_name || 'Khách'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                )}
-
-                {/* 2. Chọn món ăn / dịch vụ tiện ích */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, marginBottom: 4 }}>
-                  <Text style={[styles.inputLabel, { marginTop: 0, marginBottom: 0 }, !isDark && { color: '#334155' }]}>
-                    2. Chọn Món ăn & Dịch vụ ({filteredServiceItems.length}) *:
-                  </Text>
-                </View>
-
-                {/* Dải Phân Loại Danh Mục (Ẩm thực, Đồ uống, Spa, Tiện ích & Giặt ủi) */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoryPillsScroll}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.categoryFilterChip,
-                      !isDark && selectedCategoryId !== 'all' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                      selectedCategoryId === 'all' && styles.categoryFilterChipActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedCategoryId('all');
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryFilterChipText,
-                        !isDark && selectedCategoryId !== 'all' && { color: '#64748B' },
-                        selectedCategoryId === 'all' && styles.categoryFilterChipTextActive,
-                      ]}
-                    >
-                      Tất cả ({serviceItems.length})
-                    </Text>
-                  </TouchableOpacity>
-
-                  {serviceCategories
-                    .filter((c) => !isTransportService(c))
-                    .map((c) => {
-                      const isSelected = selectedCategoryId === c.id;
-                      const countInCat = serviceItems.filter(
-                        (s) => s.category_id === c.id || s.category === c.id
-                      ).length;
-                      return (
-                        <TouchableOpacity
-                          key={c.id}
-                          style={[
-                            styles.categoryFilterChip,
-                            !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                            isSelected && styles.categoryFilterChipActive,
-                          ]}
-                          onPress={() => {
-                            setSelectedCategoryId(c.id);
-                            Haptics.selectionAsync();
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.categoryFilterChipText,
-                              !isDark && !isSelected && { color: '#64748B' },
-                              isSelected && styles.categoryFilterChipTextActive,
-                            ]}
-                          >
-                            {c.icon || '🏷️'} {c.name} ({countInCat})
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                </ScrollView>
-
-                {/* Ô tìm kiếm nhanh món/dịch vụ */}
-                <View style={[styles.modalSearchBox, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}>
-                  <Ionicons name="search-outline" size={16} color={isDark ? "#64748B" : "#94A3B8"} style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={[styles.modalSearchInput, !isDark && { color: '#0F172A' }]}
-                    placeholder="Tìm nhanh: Wagyu, Trà chiều, Massage, Giặt hấp, Gối..."
-                    placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                    value={serviceSearchText}
-                    onChangeText={setServiceSearchText}
-                  />
-                  {serviceSearchText ? (
-                    <TouchableOpacity onPress={() => setServiceSearchText('')}>
-                      <Ionicons name="close-circle" size={16} color={isDark ? "#94A3B8" : "#64748B"} />
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-
-                {/* Danh sách thẻ dịch vụ - Không dùng maxHeight để tránh đè giao diện */}
-                <View style={styles.serviceItemsGrid}>
-                  {filteredServiceItems.length === 0 ? (
-                    <View style={[styles.emptyServiceNotice, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
-                      <Ionicons name="search-outline" size={24} color={isDark ? "#64748B" : "#94A3B8"} style={{ marginBottom: 6 }} />
-                      <Text style={[styles.emptyServiceNoticeText, !isDark && { color: '#64748B' }]}>
-                        Không tìm thấy dịch vụ hoặc món ăn phù hợp.
-                      </Text>
-                    </View>
-                  ) : (
-                    filteredServiceItems.map((s) => {
-                      const isSelected = selectedServiceId === s.id;
-                      const priceNum = s.price ? parseInt(s.price, 10) : 0;
-                      return (
-                        <TouchableOpacity
-                          key={s.id}
-                          style={[
-                            styles.serviceSelectCard,
-                            !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                            isSelected && styles.serviceSelectCardActive,
-                          ]}
-                          onPress={() => {
-                            setSelectedServiceId(s.id);
-                            Haptics.selectionAsync();
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Image
-                            source={{ uri: getServiceItemImage(s) }}
-                            style={styles.modalItemThumbnail}
-                            resizeMode="cover"
-                          />
-                          <View style={{ flex: 1, paddingRight: 8 }}>
-                            <View style={[styles.serviceCatTag, !isDark && { backgroundColor: '#EEF2F6', borderColor: '#E2E8F0' }]}>
-                              <Text style={[styles.serviceCatTagText, !isDark && { color: '#475569' }]}>
-                                {s.category_icon || '🏷️'} {s.category_name || 'Dịch vụ'}
-                              </Text>
-                            </View>
-                            <Text
-                              style={[
-                                styles.serviceCardTitle,
-                                !isDark && !isSelected && { color: '#0F172A' },
-                                isSelected && styles.serviceCardTitleActive,
-                              ]}
-                              numberOfLines={2}
-                            >
-                              {s.name}
-                            </Text>
-                            {s.description ? (
-                              <Text style={[styles.serviceCardDesc, !isDark && { color: '#64748B' }]} numberOfLines={1}>
-                                {s.description}
-                              </Text>
-                            ) : null}
-                            <Text style={styles.serviceCardPrice}>
-                              {priceNum > 0 ? `${priceNum.toLocaleString('vi-VN')} đ` : 'Miễn phí'}
-                            </Text>
-                          </View>
-                          <View style={[
-                            styles.selectRadioCircle,
-                            !isDark && !isSelected && { borderColor: '#CBD5E1', backgroundColor: '#FFFFFF' },
-                            isSelected && styles.selectRadioCircleActive
-                          ]}>
-                            {isSelected && <Ionicons name="checkmark" size={13} color="#0A0F1D" />}
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
-                </View>
-
-                {/* Banner xem trước dịch vụ đang chọn & Tổng tiền */}
-                {selectedServiceItem && (
-                  <View style={[styles.selectedItemBanner, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.selectedBannerLabel}>ĐANG CHỌN PHỤC VỤ:</Text>
-                      <Text style={[styles.selectedBannerName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
-                        {selectedServiceItem.name}
-                      </Text>
-                      <Text style={styles.selectedBannerMath}>
-                        {selectedServiceItem.price && parseInt(selectedServiceItem.price, 10) > 0
-                          ? `${parseInt(selectedServiceItem.price, 10).toLocaleString('vi-VN')} đ  ×  ${quantity} suất  =  ${(parseInt(selectedServiceItem.price, 10) * quantity).toLocaleString('vi-VN')} đ`
-                          : 'Dịch vụ miễn phí setup phòng lưu trú'}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* 3. Số lượng */}
-                <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>3. Số lượng suất / dịch vụ:</Text>
-                <View style={[styles.quantityCounterRow, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' }]}>
-                  <TouchableOpacity
-                    style={[styles.quantityStepBtn, !isDark && { backgroundColor: '#E2E8F0' }]}
-                    onPress={() => {
-                      setQuantity((q) => Math.max(1, q - 1));
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="remove" size={18} color={isDark ? "#F8FAFC" : "#0F172A"} />
-                  </TouchableOpacity>
-
-                  <View style={styles.quantityNumberBox}>
-                    <Text style={[styles.quantityNumberText, !isDark && { color: '#0F172A' }]}>{quantity}</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.quantityStepBtn, !isDark && { backgroundColor: '#E2E8F0' }]}
-                    onPress={() => {
-                      setQuantity((q) => q + 1);
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="add" size={18} color={isDark ? "#F8FAFC" : "#0F172A"} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* 4. Thời gian phục vụ: Giao ngay vs Hẹn giờ */}
-                <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>4. Thời gian phục vụ:</Text>
-                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-                  <TouchableOpacity
-                    style={[
-                      styles.deliveryModeBtn,
-                      !isDark && deliveryMode !== 'now' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                      deliveryMode === 'now' && styles.deliveryModeBtnActive,
-                    ]}
-                    onPress={() => {
-                      setDeliveryMode('now');
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name="flash"
-                      size={15}
-                      color={deliveryMode === 'now' ? '#0A0F1D' : '#F59E0B'}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      style={[
-                        styles.deliveryModeBtnText,
-                        !isDark && deliveryMode !== 'now' && { color: '#475569' },
-                        deliveryMode === 'now' && styles.deliveryModeBtnTextActive,
-                      ]}
-                    >
-                      Giao ngay (Bếp làm luôn)
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.deliveryModeBtn,
-                      !isDark && deliveryMode !== 'scheduled' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                      deliveryMode === 'scheduled' && styles.deliveryModeBtnActive,
-                    ]}
-                    onPress={() => {
-                      setDeliveryMode('scheduled');
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name="alarm"
-                      size={15}
-                      color={deliveryMode === 'scheduled' ? '#0A0F1D' : '#38BDF8'}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      style={[
-                        styles.deliveryModeBtnText,
-                        !isDark && deliveryMode !== 'scheduled' && { color: '#475569' },
-                        deliveryMode === 'scheduled' && styles.deliveryModeBtnTextActive,
-                      ]}
-                    >
-                      Hẹn giờ giao
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Tùy chọn giờ hẹn nếu chọn "Hẹn giờ giao" */}
-                {deliveryMode === 'scheduled' && (
-                  <View style={[styles.scheduledBox, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
-                    <Text style={[styles.scheduledSubLabel, !isDark && { color: '#64748B' }]}>Chọn nhanh mốc hẹn:</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-                      {[
-                        { label: '+15 phút', minutes: 15 },
-                        { label: '+30 phút', minutes: 30 },
-                        { label: '+45 phút', minutes: 45 },
-                        { label: '+1 tiếng', minutes: 60 },
-                        { label: '+2 tiếng', minutes: 120 },
-                      ].map((opt) => (
-                        <TouchableOpacity
-                          key={opt.label}
-                          style={[styles.quickTimeChip, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#CBD5E1' }]}
-                          onPress={() => {
-                            const d = new Date();
-                            d.setMinutes(d.getMinutes() + opt.minutes);
-                            setScheduledTime(d);
-                            setCustomTimeText(
-                              `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-                            );
-                            Haptics.selectionAsync();
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[styles.quickTimeChipText, !isDark && { color: '#334155' }]}>{opt.label}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    <Text style={[styles.scheduledSubLabel, !isDark && { color: '#64748B' }]}>Hoặc nhập giờ hẹn cụ thể (HH:mm):</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <TextInput
-                        style={[styles.timeInput, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                        placeholder="VD: 10:00, 11:30"
-                        placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                        value={customTimeText}
-                        onChangeText={(txt) => {
-                          setCustomTimeText(txt);
-                          const match = txt.trim().match(/^(\d{1,2}):(\d{2})$/);
-                          if (match) {
-                            const h = parseInt(match[1], 10);
-                            const m = parseInt(match[2], 10);
-                            if (h >= 0 && h < 24 && m >= 0 && m < 60) {
-                              const d = new Date();
-                              d.setHours(h, m, 0, 0);
-                              if (d.getTime() < Date.now()) {
-                                d.setDate(d.getDate() + 1);
-                              }
-                              setScheduledTime(d);
-                            }
-                          }
-                        }}
-                        keyboardType="numbers-and-punctuation"
-                      />
-                      <View style={[styles.scheduledPreviewBadge, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
-                        <Ionicons name="time" size={14} color="#FBBF24" style={{ marginRight: 5 }} />
-                        <Text style={[styles.scheduledPreviewText, !isDark && { color: '#B45309' }]}>
-                          Hẹn: {scheduledTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} •{' '}
-                          {scheduledTime.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
-
-                {/* 5. Ghi chú yêu cầu của khách */}
-                <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>5. Yêu cầu phục vụ / Ghi chú đặc biệt:</Text>
-                <TextInput
-                  style={[styles.modalInput, { height: 60, paddingTop: 8 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                  placeholder="VD: Không hành, ít đá, cần thêm bát đũa, gối thêm..."
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                  multiline
-                  value={orderNote}
-                  onChangeText={setOrderNote}
-                />
-
-                <TouchableOpacity
-                  style={[
-                    styles.modalConfirmBtn,
-                    (!selectedRoom || !selectedServiceId || submittingOrder) && { opacity: 0.6 },
-                  ]}
-                  onPress={handleCreateOrder}
-                  disabled={!selectedRoom || !selectedServiceId || submittingOrder}
-                  activeOpacity={0.8}
-                >
-                  {submittingOrder ? (
-                    <ActivityIndicator color="#0A0F1D" />
-                  ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Ionicons name="paper-plane" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
-                      <Text style={styles.modalConfirmBtnText}>
-                        {selectedServiceItem && parseInt(selectedServiceItem.price, 10) > 0
-                          ? `ĐẶT DỊCH VỤ • ${(parseInt(selectedServiceItem.price, 10) * quantity).toLocaleString('vi-VN')} đ`
-                          : 'TẠO YÊU CẦU PHỤC VỤ'}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
+      {/* Modal Chọn Lý Do Hủy Đơn (SOP & Food Waste Management) */}
+      <CancelServiceOrderModal
+        visible={cancelModalVisible}
+        isDark={isDark}
+        itemToCancel={itemToCancel}
+        cancelReasonOption={cancelReasonOption}
+        setCancelReasonOption={setCancelReasonOption}
+        customCancelReason={customCancelReason}
+        setCustomCancelReason={setCustomCancelReason}
+        cancellingOrder={cancellingOrder}
+        onClose={() => setCancelModalVisible(false)}
+        onConfirm={handleConfirmCancelOrder}
+      />
 
       {/* Modal Hồ Sơ Khách Hàng (CRM & Lịch Sử) */}
       <CustomerCrmModal
@@ -2531,1140 +1406,3 @@ export default function ServicesScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: '#0A0F1D',
-  },
-  topHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 10,
-  },
-  brandSubtitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#F59E0B',
-    letterSpacing: 1.5,
-  },
-  greetingTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    marginTop: 2,
-  },
-  refreshCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#111827',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  fixedFilterBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 10,
-    gap: 5,
-    marginBottom: 10,
-  },
-  fixedFilterCard: {
-    flex: 1,
-    backgroundColor: '#111827',
-    borderRadius: 14,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#1F2937',
-  },
-  fixedFilterCardSelected: {
-    borderColor: '#F59E0B',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-  },
-  fixedFilterNumber: {
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  fixedFilterLabel: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginTop: 2,
-    letterSpacing: 0.2,
-  },
-  fixedFilterLabelSelected: {
-    color: '#F59E0B',
-    fontWeight: '800',
-  },
-  orderCategoryScroll: {
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  orderCategoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#111827',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  orderCategoryChipActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
-  },
-  orderCategoryChipText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  orderCategoryChipTextActive: {
-    color: '#0A0F1D',
-    fontWeight: '800',
-  },
-  categoryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  categoryPillText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
-  searchWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#111827',
-    marginHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    height: 42,
-    marginBottom: 8,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#F8FAFC',
-    fontSize: 13,
-    paddingHorizontal: 10,
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingMessage: {
-    color: '#94A3B8',
-    marginTop: 12,
-    fontSize: 13,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#E2E8F0',
-    marginTop: 14,
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  card: {
-    backgroundColor: '#111827',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  cardMyTask: {
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    backgroundColor: '#131B2E',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  roomTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  roomTagText: {
-    color: '#F8FAFC',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  slaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  slaBadgeText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
-  deliveryModeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1E293B',
-    paddingVertical: 11,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  deliveryModeBtnActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
-  },
-  deliveryModeBtnText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  deliveryModeBtnTextActive: {
-    color: '#0A0F1D',
-    fontWeight: '800',
-  },
-  scheduledBox: {
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 12,
-  },
-  scheduledSubLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  quickTimeChip: {
-    backgroundColor: '#0F172A',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  quickTimeChipText: {
-    color: '#38BDF8',
-    fontSize: 11.5,
-    fontWeight: '700',
-  },
-  timeInput: {
-    backgroundColor: '#0F172A',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '700',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    width: 110,
-    textAlign: 'center',
-  },
-  scheduledPreviewBadge: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-  },
-  scheduledPreviewText: {
-    color: '#FBBF24',
-    fontSize: 11.5,
-    fontWeight: '700',
-  },
-  overdueAlertBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 10,
-  },
-  overdueAlertText: {
-    color: '#F87171',
-    fontSize: 12,
-    fontWeight: '700',
-    flex: 1,
-  },
-  bookingCodeTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  bookingCodeTagText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  foodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  foodThumbBox: {
-    width: 54,
-    height: 54,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#1E293B',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  foodThumbImg: {
-    width: '100%',
-    height: '100%',
-  },
-  foodIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-  },
-  orderTimingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    backgroundColor: '#0A0F1D',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  orderTimingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  orderTimingScheduled: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-  },
-  orderTimingLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '600',
-    marginRight: 4,
-  },
-  orderTimingValue: {
-    fontSize: 11.5,
-    color: '#F1F5F9',
-    fontWeight: '700',
-  },
-  serviceName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    flex: 1,
-  },
-  quantityBadge: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  quantityBadgeText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#0A0F1D',
-  },
-  priceText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#F59E0B',
-  },
-  dotSeparator: {
-    color: '#475569',
-    marginHorizontal: 6,
-  },
-  guestInfoText: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  noteBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.06)',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
-  },
-  noteText: {
-    fontSize: 12,
-    color: '#E2E8F0',
-    flex: 1,
-  },
-  staffRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-    marginBottom: 10,
-  },
-  staffLabel: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  staffValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#CBD5E1',
-  },
-  actionRow: {
-    marginTop: 4,
-  },
-  btnClaim: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F59E0B',
-    height: 48,
-    borderRadius: 14,
-  },
-  btnClaimText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#0A0F1D',
-    letterSpacing: 0.5,
-  },
-  btnDeliver: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#38BDF8',
-    height: 48,
-    borderRadius: 14,
-  },
-  btnDeliverText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#0A0F1D',
-    letterSpacing: 0.5,
-  },
-  btnComplete: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    height: 48,
-    borderRadius: 14,
-  },
-  btnCompleteText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#0A0F1D',
-    letterSpacing: 0.5,
-  },
-  doneBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-  },
-  doneBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#34D399',
-  },
-  createOrderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 14,
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  createOrderBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0A0F1D',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#0F172A',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    marginBottom: 10,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#F8FAFC',
-  },
-  modalSubtitle: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1E293B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#CBD5E1',
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  modalInput: {
-    backgroundColor: '#0A0F1D',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-    color: '#F8FAFC',
-    fontSize: 13,
-  },
-  noRoomsWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 4,
-  },
-  noRoomsText: {
-    fontSize: 11,
-    color: '#FBBF24',
-    flex: 1,
-  },
-  roomChipsScroll: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4,
-    marginBottom: 6,
-  },
-  roomSelectChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#334155',
-    alignItems: 'center',
-    minWidth: 70,
-  },
-  roomSelectChipActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
-  },
-  roomSelectChipText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#E2E8F0',
-  },
-  roomSelectChipTextActive: {
-    color: '#0A0F1D',
-  },
-  roomGuestSubText: {
-    fontSize: 10,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  categoryPillsScroll: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4,
-    marginBottom: 8,
-  },
-  categoryFilterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  categoryFilterChipActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
-  },
-  categoryFilterChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  categoryFilterChipTextActive: {
-    color: '#0A0F1D',
-    fontWeight: '900',
-  },
-  modalSearchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0A0F1D',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 40,
-    marginBottom: 10,
-  },
-  modalSearchInput: {
-    flex: 1,
-    color: '#F8FAFC',
-    fontSize: 12.5,
-  },
-  serviceItemsGrid: {
-    gap: 8,
-    marginBottom: 10,
-  },
-  serviceSelectCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  serviceSelectCardActive: {
-    borderColor: '#F59E0B',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-  },
-  serviceCatTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 4,
-  },
-  serviceCatTagText: {
-    fontSize: 10.5,
-    color: '#94A3B8',
-    fontWeight: '700',
-  },
-  serviceCardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#E2E8F0',
-  },
-  serviceCardTitleActive: {
-    color: '#F59E0B',
-    fontWeight: '800',
-  },
-  serviceCardDesc: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  serviceCardPrice: {
-    fontSize: 12,
-    color: '#34D399',
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  selectRadioCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: '#475569',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
-  },
-  selectRadioCircleActive: {
-    borderColor: '#F59E0B',
-    backgroundColor: '#F59E0B',
-  },
-  selectedItemBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  selectedBannerLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#F59E0B',
-    letterSpacing: 0.5,
-  },
-  selectedBannerName: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    marginTop: 2,
-  },
-  selectedBannerMath: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#34D399',
-    marginTop: 3,
-  },
-  emptyServiceNotice: {
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  emptyServiceNoticeText: {
-    fontSize: 12.5,
-    color: '#94A3B8',
-  },
-  quantityCounterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    alignSelf: 'flex-start',
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: '#334155',
-    marginVertical: 4,
-  },
-  quantityStepBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    backgroundColor: '#334155',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quantityNumberBox: {
-    minWidth: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quantityNumberText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#F8FAFC',
-  },
-  modalConfirmBtn: {
-    backgroundColor: '#F59E0B',
-    height: 48,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 18,
-    marginBottom: 20,
-  },
-  modalConfirmBtnText: {
-    color: '#0A0F1D',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  btnCancelOrder: {
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnCancelOrderText: {
-    color: '#F87171',
-    fontSize: 11.5,
-    fontWeight: '700',
-  },
-  headerCrmBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topModeBar: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  topModeTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    backgroundColor: '#111827',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#1F2937',
-  },
-  topModeTabActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
-  },
-  topModeTabText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  topModeTabTextActive: {
-    color: '#0A0F1D',
-    fontWeight: '900',
-  },
-  catalogCatScroll: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  catalogCatChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#111827',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
-  catalogCatChipActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
-  },
-  catalogCatChipText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#94A3B8',
-    includeFontPadding: false,
-  },
-  catalogCatChipTextActive: {
-    color: '#0A0F1D',
-    fontWeight: '900',
-  },
-  catalogCard: {
-    flexDirection: 'row',
-    backgroundColor: '#111827',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: '#1F2937',
-  },
-  catalogItemImgWrapper: {
-    width: 76,
-    height: 76,
-    borderRadius: 14,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#1E293B',
-  },
-  catalogItemImg: {
-    width: 76,
-    height: 76,
-    borderRadius: 14,
-    backgroundColor: '#1E293B',
-  },
-  modalItemThumbnail: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
-    backgroundColor: '#1E293B',
-    marginRight: 10,
-  },
-  catalogItemIconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 12,
-    backgroundColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  catalogItemContent: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'space-between',
-  },
-  catalogItemName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    flex: 1,
-  },
-  catalogCategoryTag: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 6,
-  },
-  catalogCategoryTagText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#F59E0B',
-  },
-  catalogItemDesc: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 3,
-    lineHeight: 15,
-  },
-  catalogItemBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  catalogItemPrice: {
-    fontSize: 13.5,
-    fontWeight: '900',
-    color: '#34D399',
-  },
-  catalogOrderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  catalogOrderBtnText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#0A0F1D',
-  },
-  loadMoreFooter: {
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  loadMoreText: {
-    fontSize: 12,
-    color: '#F59E0B',
-    fontWeight: '600',
-  },
-  endOfListFooter: {
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  endOfListText: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  loadMoreHintText: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  scopeFilterScroll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 16,
-  },
-  scopeFilterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  scopeFilterBtnActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#D97706',
-  },
-  scopeFilterBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  scopeFilterBtnTextActive: {
-    color: '#0A0F1D',
-    fontWeight: '900',
-  },
-  quickPhoneBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  quickPhoneBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  paidBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  paidBadgeText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#10B981',
-  },
-  soldOutBadge: {
-    position: 'absolute',
-    top: 5,
-    left: 4,
-    right: 4,
-    backgroundColor: 'rgba(220, 38, 38, 0.95)',
-    paddingVertical: 2.5,
-    paddingHorizontal: 2,
-    borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  soldOutBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 8.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-  catalogToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 5.5,
-    borderRadius: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-  },
-  catalogToggleBtnInactive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  catalogToggleBtnText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
-});
