@@ -63,6 +63,7 @@ const AmenityManagement = lazy(() => import('./AmenityManagement'));
 import LogoutConfirmModal from '../../components/common/LogoutConfirmModal';
 const PromotionManagement = lazy(() => import('./PromotionManagement'));
 const SystemLog = lazy(() => import('./SystemLog'));
+const CorporatePartnerManagement = lazy(() => import('./CorporatePartnerManagement'));
 
 // Tiện ích format ngày hiển thị DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -137,6 +138,7 @@ export default function HotelAdminDashboard({ initialTab }) {
     // 🛡️ Kiểm tra phân quyền RBAC cho từng phân hệ menu
     const canViewOverview = useHasPermission('overview', 'read');
     const canViewGuests = useHasPermission('guests', 'read');
+    const canViewCorporatePartners = useHasPermission('corporate_partners', 'read');
     const canViewEmployees = useHasPermission('employees', 'read');
     const canViewRooms = useHasPermission('rooms', 'read');
     const canViewCategories = useHasPermission('categories', 'read');
@@ -214,6 +216,8 @@ export default function HotelAdminDashboard({ initialTab }) {
             setIsCategoryMenuOpen(true);
         } else if (location.pathname === '/admin/audit-logs' || location.pathname === '/admin/logs') {
             setActiveTab('audit-logs');
+        } else if (location.pathname === '/admin/corporate-partners' || location.pathname === '/admin/b2b') {
+            setActiveTab('corporate-partners');
         } else if (location.pathname === '/admin/bookings' || location.pathname === '/admin/groups') {
             setActiveTab('bookings');
         } else if (location.pathname === '/admin/services') {
@@ -257,7 +261,9 @@ export default function HotelAdminDashboard({ initialTab }) {
             navigate('/admin/lost-and-found');
         } else if (tab === 'minibar') {
             navigate('/admin/minibar');
-        } else if (location.pathname === '/admin/profile' || location.pathname.startsWith('/admin/customers/') || location.pathname.startsWith('/admin/lost-and-found') || location.pathname.startsWith('/admin/minibar')) {
+        } else if (tab === 'corporate-partners') {
+            navigate('/admin/corporate-partners');
+        } else if (location.pathname === '/admin/profile' || location.pathname.startsWith('/admin/customers/') || location.pathname.startsWith('/admin/lost-and-found') || location.pathname.startsWith('/admin/minibar') || location.pathname.startsWith('/admin/corporate-partners')) {
             navigate('/admin?tab=' + (tab === 'overview' ? '' : tab));
         }
     };
@@ -1068,6 +1074,30 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     </button>
                                 )}
 
+                                {/* 9.1. Quản lý Đối tác Doanh nghiệp (B2B) */}
+                                {canViewCorporatePartners && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            handleSwitchTab('corporate-partners');
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${activeTab === 'corporate-partners'
+                                                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                            <span className="truncate text-left">Đối tác Doanh nghiệp</span>
+                                        </div>
+                                        <span className="shrink-0 bg-indigo-500/30 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-400/30 ml-2">
+                                            B2B
+                                        </span>
+                                    </button>
+                                )}
+
                                 {/* 10. Quản lý Đánh giá & Phản hồi */}
                                 {canViewReviews && (
                                     <button
@@ -1501,6 +1531,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* TAB 1.1: CHI TIẾT KHÁCH HÀNG / CRM PROFILE */}
                     {activeTab === 'customer-detail' && (
                         canViewGuests ? <CustomerDetail /> : renderAccessDenied('Tài khoản của bạn không có quyền xem chi tiết khách hàng.')
+                    )}
+
+                    {/* TAB 1.2: QUẢN LÝ ĐỐI TÁC DOANH NGHIỆP (B2B CORPORATE PARTNERS) */}
+                    {activeTab === 'corporate-partners' && (
+                        canViewCorporatePartners ? <CorporatePartnerManagement /> : renderAccessDenied('Tài khoản của bạn không có quyền xem Đối tác Doanh nghiệp.')
                     )}
 
                     {/* TAB 2: QUẢN LÝ NHÂN SỰ & PHÂN QUYỀN (FEATURE 2) */}
@@ -2645,7 +2680,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                     )}
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
-                    {!['overview', 'guests', 'customer-detail', 'employees', 'rooms', 'lost-and-found', 'categories', 'amenities', 'minibar', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings', 'audit-logs'].includes(activeTab) && (
+                    {!['overview', 'guests', 'customer-detail', 'corporate-partners', 'employees', 'rooms', 'lost-and-found', 'categories', 'amenities', 'minibar', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings', 'audit-logs'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 🛠️

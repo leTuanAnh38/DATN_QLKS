@@ -135,6 +135,8 @@ function App() {
         <Route path="/admin/finance" element={<AdminDashboard initialTab="invoices" />} />
         <Route path="/admin/invoices" element={<AdminDashboard initialTab="invoices" />} />
         <Route path="/admin/groups" element={<AdminDashboard initialTab="bookings" />} />
+        <Route path="/admin/corporate-partners" element={<AdminDashboard initialTab="corporate-partners" />} />
+        <Route path="/admin/b2b" element={<AdminDashboard initialTab="corporate-partners" />} />
       </Routes>
       </Suspense>
 

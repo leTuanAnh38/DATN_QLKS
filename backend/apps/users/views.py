@@ -88,6 +88,7 @@ def check_role_permission(user, module, action='read'):
             'guests': {'read': True, 'create': True, 'update': True, 'delete': False},
             'bookings': {'read': True, 'create': True, 'update': True, 'delete': False},
             'rooms': {'read': True, 'create': False, 'update': True, 'delete': False},
+            'corporate_partners': {'read': True, 'create': False, 'update': False, 'delete': False},
         },
         'cashier': {
             'overview': {'read': True, 'create': False, 'update': False, 'delete': False},
@@ -95,6 +96,7 @@ def check_role_permission(user, module, action='read'):
             'categories': {'read': True, 'create': False, 'update': False, 'delete': False},
             'bookings': {'read': True, 'create': False, 'update': False, 'delete': False},
             'guests': {'read': True, 'create': False, 'update': False, 'delete': False},
+            'corporate_partners': {'read': True, 'create': False, 'update': False, 'delete': False},
             'services': {'read': True, 'create': False, 'update': False, 'delete': False},
             'finance': {'read': True, 'create': True, 'update': True, 'delete': False},
             'reports': {'read': True, 'create': False, 'update': False, 'delete': False},

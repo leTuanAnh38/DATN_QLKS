@@ -54,6 +54,7 @@ export default function Sidebar({
     const canViewCategories = useHasPermission('categories', 'read');
     const canViewBookings = useHasPermission('bookings', 'read');
     const canViewGuests = useHasPermission('guests', 'read');
+    const canViewCorporatePartners = useHasPermission('corporate_partners', 'read');
     const canViewServices = useHasPermission('services', 'read');
     const canViewInvoices = useHasPermission('finance', 'read');
     const canViewAnalytics = useHasPermission('reports', 'read');
@@ -454,7 +455,7 @@ export default function Sidebar({
                 {/* ================================================================= */}
                 {/* NHÓM 3: KHÁCH HÀNG & MARKETING */}
                 {/* ================================================================= */}
-                {(canViewGuests || canViewReviews || canViewMarketing || canViewContacts) && (
+                {(canViewGuests || canViewCorporatePartners || canViewReviews || canViewMarketing || canViewContacts) && (
                     <div className="space-y-1">
                         <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                             Khách hàng & Marketing
@@ -479,6 +480,29 @@ export default function Sidebar({
                                 </div>
                                 <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/30">
                                     VIP
+                                </span>
+                            </button>
+                        )}
+
+                        {/* 1.1. Đối tác Doanh nghiệp (B2B) */}
+                        {canViewCorporatePartners && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectTab('corporate-partners', '/admin/corporate-partners')}
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                    activeTab === 'corporate-partners' || location.pathname === '/admin/corporate-partners'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    <span>Đối tác Doanh nghiệp</span>
+                                </div>
+                                <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/30">
+                                    B2B
                                 </span>
                             </button>
                         )}
@@ -728,13 +752,6 @@ export default function Sidebar({
                                 </span>
                             </button>
                         )}
-                    </div>
-                )}
-            </div>keLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span>Cài đặt hệ thống</span>
-                            </div>
-                        </button>
                     </div>
                 )}
             </div>

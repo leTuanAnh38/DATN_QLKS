@@ -703,6 +703,144 @@ export const bookingService = {
     },
 
     /**
+     * Lấy chi tiết một đối tác doanh nghiệp
+     * GET /api/bookings/corporate-partners/:id/
+     */
+    async getCorporatePartnerDetail(id) {
+        try {
+            const response = await api.get(`/bookings/corporate-partners/${id}/`);
+            return { success: true, data: response.data };
+        } catch (error) {
+            console.error('Lỗi khi tải chi tiết đối tác:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể lấy thông tin đối tác.'
+            };
+        }
+    },
+
+    /**
+     * Tạo mới đối tác doanh nghiệp
+     * POST /api/bookings/corporate-partners/
+     */
+    async createCorporatePartner(data) {
+        try {
+            const response = await api.post('/bookings/corporate-partners/', data);
+            return {
+                success: true,
+                message: 'Thêm mới đối tác doanh nghiệp thành công!',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi thêm đối tác doanh nghiệp:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    (typeof error.response?.data === 'object'
+                        ? Object.values(error.response?.data).flat().join(', ')
+                        : 'Không thể tạo đối tác doanh nghiệp.')
+            };
+        }
+    },
+
+    /**
+     * Cập nhật thông tin đối tác doanh nghiệp
+     * PUT/PATCH /api/bookings/corporate-partners/:id/
+     */
+    async updateCorporatePartner(id, data) {
+        try {
+            const response = await api.patch(`/bookings/corporate-partners/${id}/`, data);
+            return {
+                success: true,
+                message: 'Cập nhật đối tác doanh nghiệp thành công!',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi cập nhật đối tác doanh nghiệp:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    (typeof error.response?.data === 'object'
+                        ? Object.values(error.response?.data).flat().join(', ')
+                        : 'Không thể cập nhật đối tác doanh nghiệp.')
+            };
+        }
+    },
+
+    /**
+     * Xóa đối tác doanh nghiệp
+     * DELETE /api/bookings/corporate-partners/:id/
+     */
+    async deleteCorporatePartner(id) {
+        try {
+            const response = await api.delete(`/bookings/corporate-partners/${id}/`);
+            return {
+                success: true,
+                message: response.data?.message || 'Xóa đối tác doanh nghiệp thành công!'
+            };
+        } catch (error) {
+            console.error('Lỗi khi xóa đối tác doanh nghiệp:', error);
+            return {
+                success: false,
+                message:
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
+                    'Không thể xóa đối tác doanh nghiệp.'
+            };
+        }
+    },
+
+    /**
+     * Bật / Tắt trạng thái hoạt động của đối tác (Active / Inactive)
+     * POST /api/bookings/corporate-partners/:id/toggle-status/
+     */
+    async toggleCorporatePartnerStatus(id) {
+        try {
+            const response = await api.post(`/bookings/corporate-partners/${id}/toggle-status/`);
+            return {
+                success: true,
+                message: response.data?.message || 'Cập nhật trạng thái đối tác thành công!',
+                data: response.data?.data
+            };
+        } catch (error) {
+            console.error('Lỗi khi cập nhật trạng thái đối tác:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể đổi trạng thái đối tác.'
+            };
+        }
+    },
+
+    /**
+     * Lấy toàn bộ lịch sử đơn đặt đoàn / phòng của Đối tác Doanh nghiệp
+     * GET /api/bookings/corporate-partners/:id/bookings/
+     * @param {number|string} partnerId
+     * @param {Object} params - { status: 'all' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' }
+     */
+    async getCorporatePartnerBookings(partnerId, params = {}) {
+        try {
+            const response = await api.get(`/bookings/corporate-partners/${partnerId}/bookings/`, { params });
+            return {
+                success: true,
+                data: response.data?.data || [],
+                total_bookings: response.data?.total_bookings || 0,
+                partner: response.data?.partner
+            };
+        } catch (error) {
+            console.error('Lỗi khi tải lịch sử đơn của đối tác:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể tải lịch sử đơn đặt của đối tác.',
+                data: []
+            };
+        }
+    },
+
+    /**
      * Lấy danh sách các đơn đặt đoàn (Group Bookings)
      * GET /api/bookings/groups/
      */

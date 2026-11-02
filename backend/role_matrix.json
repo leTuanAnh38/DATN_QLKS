@@ -65,6 +65,12 @@
       "create": false,
       "update": false,
       "delete": false
+    },
+    "corporate_partners": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
     }
   },
   "service_staff": {
@@ -129,6 +135,12 @@
       "delete": false
     },
     "settings": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "corporate_partners": {
       "read": false,
       "create": false,
       "update": false,
@@ -201,6 +213,12 @@
       "create": false,
       "update": false,
       "delete": false
+    },
+    "corporate_partners": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
     }
   },
   "manager": {
@@ -268,6 +286,12 @@
       "read": false,
       "create": false,
       "update": false,
+      "delete": false
+    },
+    "corporate_partners": {
+      "read": true,
+      "create": true,
+      "update": true,
       "delete": false
     }
   },
@@ -337,6 +361,12 @@
       "create": false,
       "update": false,
       "delete": false
+    },
+    "corporate_partners": {
+      "read": true,
+      "create": false,
+      "update": false,
+      "delete": false
     }
   },
   "housekeeper": {
@@ -401,6 +431,12 @@
       "delete": false
     },
     "settings": {
+      "read": false,
+      "create": false,
+      "update": false,
+      "delete": false
+    },
+    "corporate_partners": {
       "read": false,
       "create": false,
       "update": false,

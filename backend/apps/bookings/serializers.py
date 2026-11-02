@@ -923,6 +923,9 @@ class BookingSerializer(serializers.ModelSerializer):
 # SERIALIZERS CHO ĐỐI TÁC DOANH NGHIỆP & ĐƠN ĐẶT ĐOÀN
 # ========================================================
 class CorporatePartnerSerializer(serializers.ModelSerializer):
+    total_group_bookings = serializers.SerializerMethodField()
+    total_spent = serializers.SerializerMethodField()
+
     class Meta:
         model = CorporatePartner
         fields = [
@@ -930,9 +933,18 @@ class CorporatePartnerSerializer(serializers.ModelSerializer):
             'corporate_code', 'contact_person', 'contact_phone',
             'contact_email', 'contract_number', 'discount_percent',
             'payment_terms_days', 'is_active', 'note',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at',
+            'total_group_bookings', 'total_spent'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'total_group_bookings', 'total_spent']
+
+    def get_total_group_bookings(self, obj):
+        return obj.group_bookings.count()
+
+    def get_total_spent(self, obj):
+        from django.db.models import Sum
+        val = obj.group_bookings.exclude(status='cancelled').aggregate(total=Sum('total_amount'))['total']
+        return float(val or 0)
 
 
 class GroupBookingSerializer(serializers.ModelSerializer):
