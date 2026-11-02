@@ -305,10 +305,10 @@ export default function GuestManagement() {
 
         const res = await adminUserService.deleteGuest(selectedGuest.id);
         setIsSubmitting(false);
+        setIsDeleteModalOpen(false);
 
         if (res.success) {
             const delId = selectedGuest.id;
-            setIsDeleteModalOpen(false);
             setGuests((prev) => prev.filter((g) => g.id !== delId));
             setAlertMessage({
                 type: 'success',
@@ -378,19 +378,27 @@ export default function GuestManagement() {
                 </div>
             </div>
 
-            {/* Alert Notification */}
+            {/* Alert Notification - Luôn hiển thị trên cùng (z-[99999]) */}
             {alertMessage && (
-                <div className={`p-4 rounded-2xl text-xs sm:text-sm font-medium border flex items-center gap-2.5 animate-fadeIn ${
+                <div className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl text-xs sm:text-sm font-semibold border shadow-2xl flex items-center justify-between gap-3 animate-fadeIn ${
                     alertMessage.type === 'success'
                         ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                         : 'bg-red-50 text-red-700 border-red-200'
                 }`}>
-                    {alertMessage.type === 'success' ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    ) : (
-                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-                    )}
-                    <span>{alertMessage.text}</span>
+                    <div className="flex items-center gap-2.5">
+                        {alertMessage.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                        )}
+                        <span>{alertMessage.text}</span>
+                    </div>
+                    <button
+                        onClick={() => setAlertMessage(null)}
+                        className="text-slate-400 hover:text-slate-600 text-xs p-1 rounded-md cursor-pointer ml-2"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
                 </div>
             )}
 

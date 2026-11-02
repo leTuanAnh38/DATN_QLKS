@@ -566,10 +566,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
     return (
         <div className="space-y-6 min-w-0 max-w-full">
-            {/* TOAST THÔNG BÁO NỔI */}
+            {/* TOAST THÔNG BÁO NỔI - Luôn hiển thị trên cùng (z-[99999]) */}
             {toast && (
                 <div
-                    className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toast.type === 'success'
+                    className={`fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toast.type === 'success'
                         ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
                         : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
                         }`}

@@ -167,13 +167,13 @@ export default function LostAndFoundManagement() {
         setIsDeleting(true);
         try {
             const res = await roomService.deleteLostAndFoundItem(deletingItem.id);
+            setDeletingItem(null);
             if (res && res.success) {
                 const delId = deletingItem.id;
                 setAlertMessage({
                     type: 'success',
                     text: `Đã xóa vĩnh viễn phiếu đồ thất lạc #${deletingItem.tracking_code} (${deletingItem.item_name}) thành công!`
                 });
-                setDeletingItem(null);
                 setItems((prev) => prev.filter((i) => i.id !== delId));
                 loadData(true);
                 setTimeout(() => setAlertMessage(null), 3500);
@@ -185,6 +185,7 @@ export default function LostAndFoundManagement() {
                 setTimeout(() => setAlertMessage(null), 3500);
             }
         } catch {
+            setDeletingItem(null);
             setAlertMessage({
                 type: 'error',
                 text: 'Đã có lỗi xảy ra khi xóa phiếu đồ thất lạc.'
@@ -271,10 +272,10 @@ export default function LostAndFoundManagement() {
 
     return (
         <div className="space-y-6 animate-fadeIn pb-12">
-            {/* Alert Floating */}
+            {/* Alert Floating - Luôn hiển thị trên cùng (z-[99999]) */}
             {alertMessage && (
                 <div
-                    className={`p-4 border rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-lg ${
+                    className={`fixed top-5 right-5 z-[99999] max-w-md p-4 border rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-2xl animate-fadeIn ${
                         alertMessage.type === 'success'
                             ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                             : 'bg-rose-50 border-rose-200 text-rose-800'
@@ -290,7 +291,7 @@ export default function LostAndFoundManagement() {
                     </div>
                     <button
                         onClick={() => setAlertMessage(null)}
-                        className={`p-1 rounded-lg hover:bg-black/5 transition cursor-pointer ${
+                        className={`p-1 rounded-lg hover:bg-black/5 transition cursor-pointer ml-3 ${
                             alertMessage.type === 'success' ? 'text-emerald-700' : 'text-rose-700'
                         }`}
                     >

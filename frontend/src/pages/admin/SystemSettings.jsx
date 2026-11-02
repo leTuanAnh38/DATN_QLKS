@@ -458,9 +458,9 @@ export default function SystemSettings() {
 
     return (
         <div className="space-y-6 animate-fadeIn pb-16">
-            {/* TOAST THÔNG BÁO TỰ ĐỘNG */}
+            {/* TOAST THÔNG BÁO TỰ ĐỘNG - Luôn hiển thị trên cùng (z-[99999]) */}
             {toast && (
-                <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 animate-slideInRight ${
+                <div className={`fixed top-5 right-5 z-[99999] max-w-md flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 animate-slideInRight ${
                     toast.type === 'success'
                         ? 'bg-emerald-500/95 text-white border-emerald-400 shadow-emerald-500/20'
                         : 'bg-rose-500/95 text-white border-rose-400 shadow-rose-500/20'

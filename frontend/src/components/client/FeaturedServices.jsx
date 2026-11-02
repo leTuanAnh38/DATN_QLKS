@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import {
+    Sparkles,
+    UtensilsCrossed,
+    Flower2,
+    Wine,
+    BellRing,
+    Clock,
+    Phone,
+    ArrowRight
+} from 'lucide-react';
 import hotelService from '../../services/hotelService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 
@@ -134,8 +144,8 @@ export default function FeaturedServices() {
                 {/* 1. SECTION HEADER */}
                 <div className="text-center max-w-3xl mx-auto mb-12">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-bold uppercase tracking-widest mb-3">
-                        <span>✨</span>
-                        ĐẶC QUYỀN DỊCH VỤ & ẨM THỰC {starCount} SAO
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>ĐẶC QUYỀN DỊCH VỤ & ẨM THỰC {starCount} SAO</span>
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Tinh Hoa Dịch Vụ Nghỉ Dưỡng <br />
@@ -150,25 +160,28 @@ export default function FeaturedServices() {
                     {/* Filter Tabs */}
                     <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8">
                         {[
-                            { id: 'all', label: 'Tất Cả Dịch Vụ', icon: '🌟' },
-                            { id: 'dining', label: 'Ẩm Thực Thượng Hạng', icon: '🍽️' },
-                            { id: 'spa', label: 'The Lotus Spa & Wellness', icon: '🌿' },
-                            { id: 'drinks', label: 'Đồ Uống & Bar Cao Cấp', icon: '🍸' },
-                        ].map((tab) => (
-                            <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => setActiveFilter(tab.id)}
-                                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-xs ${
-                                    activeFilter === tab.id
-                                        ? 'bg-amber-500 text-white shadow-md scale-105 border border-amber-500'
-                                        : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-                                }`}
-                            >
-                                <span>{tab.icon}</span>
-                                <span>{tab.label}</span>
-                            </button>
-                        ))}
+                            { id: 'all', label: 'Tất Cả Dịch Vụ', icon: Sparkles },
+                            { id: 'dining', label: 'Ẩm Thực Thượng Hạng', icon: UtensilsCrossed },
+                            { id: 'spa', label: 'The Lotus Spa & Wellness', icon: Flower2 },
+                            { id: 'drinks', label: 'Đồ Uống & Bar Cao Cấp', icon: Wine },
+                        ].map((tab) => {
+                            const TabIcon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setActiveFilter(tab.id)}
+                                    className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-xs cursor-pointer ${
+                                        activeFilter === tab.id
+                                            ? 'bg-amber-500 text-white shadow-md scale-105 border border-amber-500'
+                                            : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                                    }`}
+                                >
+                                    <TabIcon className="w-3.5 h-3.5" />
+                                    <span>{tab.label}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -192,12 +205,14 @@ export default function FeaturedServices() {
                     </div>
                 ) : filteredServices.length === 0 ? (
                     <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto shadow-sm">
-                        <div className="text-4xl mb-3">🛎️</div>
+                        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
+                            <BellRing className="w-7 h-7" />
+                        </div>
                         <h4 className="text-base font-bold text-slate-800">Không tìm thấy dịch vụ trong mục này</h4>
                         <p className="text-xs text-slate-500 mt-1 mb-4">Vui lòng chọn tab khác hoặc xem toàn bộ danh mục dịch vụ.</p>
                         <button
                             onClick={() => setActiveFilter('all')}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition cursor-pointer"
                         >
                             Xem Tất Cả
                         </button>
@@ -258,15 +273,16 @@ export default function FeaturedServices() {
 
                                         {/* Actions */}
                                         <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
-                                            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                                                <span>⏱️</span> Phục vụ 24/7
+                                            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                <span>Phục vụ 24/7</span>
                                             </span>
                                             <Link
                                                 to="/services"
                                                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition duration-200 shadow-sm group-hover:shadow"
                                             >
                                                 <span>Xem & Đặt Món</span>
-                                                <span>→</span>
+                                                <ArrowRight className="w-3.5 h-3.5" />
                                             </Link>
                                         </div>
                                     </div>
@@ -284,7 +300,8 @@ export default function FeaturedServices() {
 
                     <div className="space-y-3 text-center lg:text-left max-w-2xl relative z-10">
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200/80 shadow-xs">
-                            🛎️ IN-ROOM DINING & CONCIERGE SERVICE
+                            <BellRing className="w-3.5 h-3.5 text-amber-600" />
+                            <span>IN-ROOM DINING & CONCIERGE SERVICE</span>
                         </div>
                         <h3 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 leading-snug">
                             Trải Nghiệm Đầy Đủ Thực Đơn Ẩm Thực & Tiện Ích Phòng {starCount} Sao
@@ -300,13 +317,14 @@ export default function FeaturedServices() {
                             className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition shadow-lg shadow-orange-500/25 text-center flex items-center justify-center gap-2"
                         >
                             <span>Khám Phá Menu Dịch Vụ</span>
-                            <span>→</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                         <a
                             href="tel:19008899"
                             className="w-full sm:w-auto px-6 py-3.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300 font-bold text-xs sm:text-sm rounded-xl transition shadow-xs text-center flex items-center justify-center gap-2"
                         >
-                            <span>📞 Hotline Phục Vụ: 1900 8899</span>
+                            <Phone className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Hotline Phục Vụ: 1900 8899</span>
                         </a>
                     </div>
                 </div>

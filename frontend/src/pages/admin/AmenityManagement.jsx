@@ -238,10 +238,10 @@ export default function AmenityManagement() {
         setDeleteModal(prev => ({ ...prev, isDeleting: true }));
         try {
             const res = await amenityService.deleteAmenity(deleteModal.item.id);
+            setDeleteModal({ isOpen: false, item: null, isDeleting: false });
             if (res.success) {
                 showToast('success', `Đã xóa tiện nghi "${deleteModal.item.name}" thành công!`);
                 const deletedId = deleteModal.item.id;
-                setDeleteModal({ isOpen: false, item: null, isDeleting: false });
                 setAmenities(prev => prev.filter(a => a.id !== deletedId));
                 if (paginatedAmenities.length === 1 && safePage > 1) {
                     setCurrentPage(safePage - 1);
@@ -249,12 +249,11 @@ export default function AmenityManagement() {
                 fetchAmenities(true);
             } else {
                 showToast('error', res.message);
-                setDeleteModal(prev => ({ ...prev, isDeleting: false }));
             }
         } catch (error) {
             console.error('Lỗi khi xóa tiện nghi:', error);
+            setDeleteModal({ isOpen: false, item: null, isDeleting: false });
             showToast('error', 'Lỗi kết nối khi xóa tiện nghi.');
-            setDeleteModal(prev => ({ ...prev, isDeleting: false }));
         }
     };
 
@@ -265,9 +264,9 @@ export default function AmenityManagement() {
 
     return (
         <div className="space-y-6 animate-fadeIn pb-12">
-            {/* TOAST THÔNG BÁO NỔI */}
+            {/* TOAST THÔNG BÁO NỔI - Luôn hiển thị trên cùng (z-[99999]) */}
             {toast && (
-                <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 animate-slideInRight ${
+                <div className={`fixed top-5 right-5 z-[99999] max-w-md flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 animate-slideInRight ${
                     toast.type === 'success'
                         ? 'bg-emerald-500/95 text-white border-emerald-400 shadow-emerald-500/20'
                         : 'bg-rose-500/95 text-white border-rose-400 shadow-rose-500/20'

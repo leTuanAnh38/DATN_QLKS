@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+    BedDouble,
+    Calendar,
+    CalendarDays,
+    Users,
+    Search,
+    Building2,
+    ChevronLeft,
+    ChevronRight,
+    ArrowRight,
+    Newspaper,
+    Eye,
+    PenLine,
+    ShieldCheck,
+    Clock,
+    Car
+} from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import FeaturedRoomCategories from '../../components/client/FeaturedRoomCategories';
@@ -231,7 +248,7 @@ export default function TADaNangHotelLanding() {
                     className="absolute left-4 z-10 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition opacity-0 group-hover:opacity-100 cursor-pointer shadow-md"
                     aria-label="Banner trước"
                 >
-                    ❮
+                    <ChevronLeft className="w-5 h-5 text-white" />
                 </button>
                 <button
                     type="button"
@@ -239,7 +256,7 @@ export default function TADaNangHotelLanding() {
                     className="absolute right-4 z-10 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition opacity-0 group-hover:opacity-100 cursor-pointer shadow-md"
                     aria-label="Banner kế tiếp"
                 >
-                    ❯
+                    <ChevronRight className="w-5 h-5 text-white" />
                 </button>
             </section>
 
@@ -251,7 +268,7 @@ export default function TADaNangHotelLanding() {
                         {/* Field 1: Hạng phòng */}
                         <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                <span>🏨</span>
+                                <BedDouble className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Hạng phòng</span>
                             </label>
                             <select
@@ -275,7 +292,7 @@ export default function TADaNangHotelLanding() {
                         {/* Field 2: Check-in */}
                         <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group cursor-pointer">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                <span>📅</span>
+                                <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Nhận phòng</span>
                             </label>
                             <input
@@ -293,7 +310,7 @@ export default function TADaNangHotelLanding() {
                         {/* Field 3: Check-out */}
                         <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group cursor-pointer">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                <span>🗓️</span>
+                                <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Trả phòng</span>
                             </label>
                             <input
@@ -311,7 +328,7 @@ export default function TADaNangHotelLanding() {
                         {/* Field 4: Guests & Rooms */}
                         <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                <span>👥</span>
+                                <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Khách & Phòng</span>
                             </label>
                             <select
@@ -339,9 +356,7 @@ export default function TADaNangHotelLanding() {
                                 title="Tìm kiếm phòng trống phù hợp"
                                 className="w-full lg:w-auto lg:px-6 h-12 lg:h-[72px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/30 hover:shadow-orange-500/45 flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-95 transition-all duration-300 cursor-pointer"
                             >
-                                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+                                <Search className="w-5 h-5 shrink-0" />
                                 <span className="text-sm uppercase tracking-wider font-extrabold whitespace-nowrap">
                                     Tìm phòng
                                 </span>
@@ -352,7 +367,9 @@ export default function TADaNangHotelLanding() {
                     {/* Quick banner: Khách đoàn & Doanh nghiệp */}
                     <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
                         <div className="flex items-center gap-2 text-slate-600">
-                            <span className="p-1 rounded-md bg-amber-100/80 text-amber-900 font-bold text-sm">🏢</span>
+                            <span className="p-1.5 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+                                <Building2 className="w-3.5 h-3.5" />
+                            </span>
                             <span>Quý khách đặt phòng cho <strong>Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
                         </div>
                         <Link
@@ -360,7 +377,7 @@ export default function TADaNangHotelLanding() {
                             className="font-bold text-amber-800 hover:text-amber-950 bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200/90 px-3.5 py-1.5 rounded-full transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs group"
                         >
                             <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
-                            <span className="group-hover:translate-x-1 transition-transform font-bold">→</span>
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                         </Link>
                     </div>
                 </div>
@@ -380,7 +397,7 @@ export default function TADaNangHotelLanding() {
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
                     <div>
                         <div className="text-xs uppercase font-bold tracking-widest text-blue-600 mb-2 flex items-center gap-1.5">
-                            <span>📰</span>
+                            <Newspaper className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                             <span>TIN TỨC & CẨM NANG NGHỈ DƯỠNG</span>
                         </div>
                         <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
@@ -396,7 +413,7 @@ export default function TADaNangHotelLanding() {
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 hover:border-blue-600 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-xs sm:text-sm font-bold transition shadow-xs whitespace-nowrap self-start md:self-auto group"
                     >
                         <span>Xem tất cả tin tức</span>
-                        <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </Link>
                 </div>
 
@@ -415,7 +432,9 @@ export default function TADaNangHotelLanding() {
                     </div>
                 ) : latestPosts.length === 0 ? (
                     <div className="text-center py-16 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto">
-                        <div className="text-4xl mb-3">📰</div>
+                        <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                            <Newspaper className="w-7 h-7" />
+                        </div>
                         <h3 className="font-bold text-slate-800 text-base mb-1">Đang cập nhật bài viết mới</h3>
                         <p className="text-xs text-slate-500 mb-5">Hệ thống đang chuẩn bị những cẩm nang nghỉ dưỡng tuyệt vời nhất cho bạn.</p>
                         <Link to="/news" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition">
@@ -439,8 +458,8 @@ export default function TADaNangHotelLanding() {
                                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-400 text-4xl">
-                                                🏨
+                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-400">
+                                                <Building2 className="w-10 h-10 text-slate-300" />
                                             </div>
                                         )}
                                         {/* Category Badge */}
@@ -452,9 +471,15 @@ export default function TADaNangHotelLanding() {
                                     {/* Nội dung tóm tắt */}
                                     <div className="p-6 space-y-3">
                                         <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-                                            <span>📅 {formatDate(post.created_at || post.published_at)}</span>
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="w-3 h-3 text-slate-400" />
+                                                {formatDate(post.created_at || post.published_at)}
+                                            </span>
                                             <span>•</span>
-                                            <span>👁️ {post.view_count || 0} lượt xem</span>
+                                            <span className="flex items-center gap-1">
+                                                <Eye className="w-3 h-3 text-slate-400" />
+                                                {post.view_count || 0} lượt xem
+                                            </span>
                                         </div>
 
                                         <Link to={`/news/${post.slug || post.id}`}>
@@ -471,15 +496,16 @@ export default function TADaNangHotelLanding() {
 
                                 {/* Footer thẻ */}
                                 <div className="px-6 pb-6 pt-3 flex items-center justify-between border-t border-slate-100 text-xs">
-                                    <span className="text-xs text-slate-500 font-semibold truncate max-w-[140px]">
-                                        ✍️ {post.author || 'Ban Biên Tập'}
+                                    <span className="text-xs text-slate-500 font-semibold truncate max-w-[140px] flex items-center gap-1">
+                                        <PenLine className="w-3 h-3 text-slate-400" />
+                                        {post.author || 'Ban Biên Tập'}
                                     </span>
                                     <Link
                                         to={`/news/${post.slug || post.id}`}
                                         className="font-bold text-blue-600 group-hover:text-blue-700 transition flex items-center gap-1.5"
                                     >
                                         <span>Chi tiết</span>
-                                        <span className="group-hover:translate-x-1 transition-transform">→</span>
+                                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                                     </Link>
                                 </div>
                             </article>

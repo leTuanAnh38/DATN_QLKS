@@ -10,6 +10,8 @@ import {
     ChevronDown, 
     BedDouble, 
     Utensils, 
+    Building2,
+    Search,
     ShieldCheck, 
     CalendarCheck, 
     Eye, 
@@ -29,7 +31,7 @@ import { askChatbot } from '../../services/chatbotService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useAuth } from '../../store/authStore';
 
-const SESSION_STORAGE_KEY = 'ta_hotel_ai_chat_history_v3';
+const SESSION_STORAGE_KEY = 'ta_hotel_ai_chat_history_v4';
 
 // Bảng mã ngôn ngữ cho Web Speech API (STT & TTS)
 const SPEECH_LANG_MAP = {
@@ -59,38 +61,38 @@ const SUPPORTED_LANGS = [
 ];
 
 const getWelcomeMessages = (stars = 3, hotelName = 'Khách Sạn TA Đà Nẵng') => ({
-    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **${hotelName} ${stars}★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• 🏨 **Tra cứu phòng trống & Giá hôm nay**\n• 🍽️ **Thực đơn ẩm thực, Spa & Xe đưa đón sân bay**\n• 🏢 **Thủ tục đặt phòng Công ty (xuất hóa đơn VAT)**\n• 🔍 **Tra cứu trạng thái đơn đặt phòng tức thì**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
-    en: `Dear Valued Guest! I am your ${stars}-Star AI Concierge at **${hotelName}**.\n\nI am at your service 24/7 to assist with:\n• 🏨 **Room Availability & Rates (with USD conversion)**\n• 🍽️ **Fine Dining Menus, Ocean Spa & Luxury Airport Transfers**\n• 🏢 **Corporate & Group Bookings (VAT Invoices)**\n• 🔍 **Real-Time Reservation Status Lookup**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
-    ko: `고객님 안녕하십니까! **${hotelName} ${stars}성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• 🏨 **실시간 빈 객실 및 1박 요금 (KRW 원화 자동 환산)**\n• 🍽️ **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• 🏢 **기업/단체 예약 및 공식 세금계산서 발행**\n• 🔍 **실시간 예약 진행 상태 즉시 조회**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
-    zh: `尊敬的贵宾，您好！我是**${hotelName} ${stars}星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供服务：\n• 🏨 **实时客房空房与今日优惠房价（人民币CNY自动换算）**\n• 🍽️ **特色餐饮菜单、海景水疗SPA与豪华机场接送服务**\n• 🏢 **商务会奖（M.I.C.E）与企业团队预订政策**\n• 🔍 **实时预订订单进度追踪**\n\n您可以点击下方快捷问题或直接输入您的需求！`
+    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **${hotelName} ${stars}★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• **Tra cứu phòng trống & Giá hôm nay**\n• **Thực đơn ẩm thực, Spa & Xe đưa đón sân bay**\n• **Thủ tục đặt phòng Công ty (xuất hóa đơn VAT)**\n• **Tra cứu trạng thái đơn đặt phòng tức thì**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
+    en: `Dear Valued Guest! I am your ${stars}-Star AI Concierge at **${hotelName}**.\n\nI am at your service 24/7 to assist with:\n• **Room Availability & Rates (with USD conversion)**\n• **Fine Dining Menus, Ocean Spa & Luxury Airport Transfers**\n• **Corporate & Group Bookings (VAT Invoices)**\n• **Real-Time Reservation Status Lookup**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
+    ko: `고객님 안녕하십니까! **${hotelName} ${stars}성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• **실시간 빈 객실 및 1박 요금 (KRW 원화 자동 환산)**\n• **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• **기업/단체 예약 및 공식 세금계산서 발행**\n• **실시간 예약 진행 상태 즉시 조회**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
+    zh: `尊敬的贵宾，您好！我是**${hotelName} ${stars}星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供服务：\n• **实时客房空房与今日优惠房价（人民币CNY自动换算）**\n• **特色餐饮菜单、海景水疗SPA与豪华机场接送服务**\n• **商务会奖（M.I.C.E）与企业团队预订政策**\n• **实时预订订单进度追踪**\n\n您可以点击下方快捷问题或直接输入您的需求！`
 });
 
 const WELCOME_MESSAGES = getWelcomeMessages(3, 'Khách Sạn TA Đà Nẵng');
 
 const QUICK_CHIPS_BY_LANG = {
     vi: [
-        { id: 'rooms_avail', label: '🏨 Phòng trống & Giá hôm nay', query: 'Phòng trống và bảng giá phòng hôm nay thế nào?' },
-        { id: 'services_dining', label: '🍽️ Dịch vụ Spa & Xe đưa đón', query: 'Khách sạn có những dịch vụ Spa, Xe đưa đón sân bay và ẩm thực nào?' },
-        { id: 'corporate_vat', label: '🏢 Đặt phòng Công ty (VAT)', query: 'Tôi muốn tìm hiểu thủ tục đặt phòng Công ty, chính sách chiết khấu đoàn và xuất hóa đơn VAT.' },
-        { id: 'my_booking', label: '🔍 Tra cứu đơn đặt phòng', query: 'Kiểm tra thông tin đơn đặt phòng của tôi' }
+        { id: 'rooms_avail', label: 'Phòng trống & Giá hôm nay', icon: BedDouble, query: 'Phòng trống và bảng giá phòng hôm nay thế nào?' },
+        { id: 'services_dining', label: 'Dịch vụ Spa & Xe đưa đón', icon: Utensils, query: 'Khách sạn có những dịch vụ Spa, Xe đưa đón sân bay và ẩm thực nào?' },
+        { id: 'corporate_vat', label: 'Đặt phòng Công ty (VAT)', icon: Building2, query: 'Tôi muốn tìm hiểu thủ tục đặt phòng Công ty, chính sách chiết khấu đoàn và xuất hóa đơn VAT.' },
+        { id: 'my_booking', label: 'Tra cứu đơn đặt phòng', icon: Search, query: 'Kiểm tra thông tin đơn đặt phòng của tôi' }
     ],
     en: [
-        { id: 'rooms_avail', label: '🏨 Room Rates (in USD)', query: 'What are today\'s available rooms and rates in USD?' },
-        { id: 'services_dining', label: '🍽️ Dining, Spa & Shuttle', query: 'What dining, Spa and airport transfer services do you offer?' },
-        { id: 'corporate_vat', label: '🏢 Corporate & VAT Invoice', query: 'Tell me about corporate booking policies and VAT invoices.' },
-        { id: 'my_booking', label: '🔍 Track My Reservation', query: 'Check my booking reservation status' }
+        { id: 'rooms_avail', label: 'Room Rates (in USD)', icon: BedDouble, query: 'What are today\'s available rooms and rates in USD?' },
+        { id: 'services_dining', label: 'Dining, Spa & Shuttle', icon: Utensils, query: 'What dining, Spa and airport transfer services do you offer?' },
+        { id: 'corporate_vat', label: 'Corporate & VAT Invoice', icon: Building2, query: 'Tell me about corporate booking policies and VAT invoices.' },
+        { id: 'my_booking', label: 'Track My Reservation', icon: Search, query: 'Check my booking reservation status' }
     ],
     ko: [
-        { id: 'rooms_avail', label: '🏨 객실 공실 및 요금 (KRW)', query: '오늘 이용 가능한 객실과 1박 요금(KRW 원화)을 알려주세요.' },
-        { id: 'services_dining', label: '🍽️ 스파 & 공항 리무진 픽업', query: '호텔의 인룸 다이닝, 스파 및 다낭 공항 리무진 픽업 서비스 안내해 주세요.' },
-        { id: 'corporate_vat', label: '🏢 기업/단체 예약 & 세금계산서', query: '법인 단체 예약 할인 및 세금계산서 발행 정책이 어떻게 되나요?' },
-        { id: 'my_booking', label: '🔍 내 예약 내역 조회', query: '내 예약 내역 확인해 줘' }
+        { id: 'rooms_avail', label: '객실 공실 및 요금 (KRW)', icon: BedDouble, query: '오늘 이용 가능한 객실과 1박 요금(KRW 원화)을 알려주세요.' },
+        { id: 'services_dining', label: '스파 & 공항 리무진 픽업', icon: Utensils, query: '호텔의 인룸 다이닝, 스파 및 다낭 공항 리무진 픽업 서비스 안내해 주세요.' },
+        { id: 'corporate_vat', label: '기업/단체 예약 & 세금계산서', icon: Building2, query: '법인 단체 예약 할인 및 세금계산서 발행 정책이 어떻게 되나요?' },
+        { id: 'my_booking', label: '내 예약 내역 조회', icon: Search, query: '내 예약 내역 확인해 줘' }
     ],
     zh: [
-        { id: 'rooms_avail', label: '🏨 今日空房与房价 (CNY)', query: '请问今天有哪些空房和房价（人民币换算）？' },
-        { id: 'services_dining', label: '🍽️ 餐饮美食、SPA与接送机', query: '请介绍酒店的餐饮服务、SPA水疗及岘港机场接送服务。' },
-        { id: 'corporate_vat', label: '🏢 企业团队与增值税发票', query: '请问企业团队预订优惠和增值税发票政策。' },
-        { id: 'my_booking', label: '🔍 实时预订查询', query: '查询我的客房预订订单状态' }
+        { id: 'rooms_avail', label: '今日空房与房价 (CNY)', icon: BedDouble, query: '请问今天有哪些空房和房价（人民币换算）？' },
+        { id: 'services_dining', label: '餐饮美食、SPA与接送机', icon: Utensils, query: '请介绍酒店的餐饮服务、SPA水疗及岘港机场接送服务。' },
+        { id: 'corporate_vat', label: '企业团队与增值税发票', icon: Building2, query: '请问企业团队预订优惠和增值税发票政策。' },
+        { id: 'my_booking', label: '实时预订查询', icon: Search, query: '查询我的客房预订订单状态' }
     ]
 };
 
@@ -100,7 +102,7 @@ const I18N_DICT = {
         quick_title: 'Gợi ý hỏi nhanh 1 chạm:',
         auto_fill: 'Tự động điền',
         rooms_title: 'Phòng gợi ý & Bảng giá hôm nay:',
-        swipe_hint: 'Vuốt sang để xem thêm 👉',
+        swipe_hint: 'Vuốt sang để xem thêm →',
         avail_rooms: (n) => `Còn ${n} phòng`,
         sold_out: 'Tạm hết phòng',
         luxury_tag: 'Đặc Quyền VIP',
@@ -140,7 +142,7 @@ const I18N_DICT = {
         quick_title: 'Quick 1-Tap Suggestions:',
         auto_fill: 'Auto fill',
         rooms_title: 'Recommended Rooms & Rates:',
-        swipe_hint: 'Swipe to view more 👉',
+        swipe_hint: 'Swipe to view more →',
         avail_rooms: (n) => `${n} rooms left`,
         sold_out: 'Fully booked',
         luxury_tag: 'VIP Luxury',
@@ -180,7 +182,7 @@ const I18N_DICT = {
         quick_title: '빠른 1-터치 추천 질문:',
         auto_fill: '자동 입력',
         rooms_title: '추천 맞춤 객실 및 요금:',
-        swipe_hint: '옆으로 스크롤하여 더보기 👉',
+        swipe_hint: '옆으로 스크롤하여 더보기 →',
         avail_rooms: (n) => `${n}개 객실 남음`,
         sold_out: '예약 마감',
         luxury_tag: '5성급 럭셔리',
@@ -220,7 +222,7 @@ const I18N_DICT = {
         quick_title: '快捷一键提问推荐:',
         auto_fill: '自动输入',
         rooms_title: '精选推荐客房与参考房价:',
-        swipe_hint: '向右滑动查看更多 👉',
+        swipe_hint: '向右滑动查看更多 →',
         avail_rooms: (n) => `剩余 ${n} 间空房`,
         sold_out: '线上已售罄',
         luxury_tag: '五星奢华',
@@ -836,7 +838,7 @@ export default function AIChatbotWidget() {
 
                         {/* Lời chào cá nhân hóa */}
                         <p className="text-xs text-slate-700 leading-relaxed font-normal">
-                            👋 Kính chào {user?.full_name ? <strong className="text-amber-900 font-bold">{user.full_name}</strong> : 'Quý khách'}! 
+                            Kính chào {user?.full_name ? <strong className="text-amber-900 font-bold">{user.full_name}</strong> : 'Quý khách'}! 
                             <br />
                             Em có thể hỗ trợ Quý khách <span className="text-amber-800 font-semibold">tra cứu phòng giá ưu đãi hôm nay</span> hoặc giải đáp dịch vụ không ạ?
                         </p>
@@ -850,9 +852,10 @@ export default function AIChatbotWidget() {
                                     setShowCalloutBubble(false);
                                     handleQuickAsk('Cho tôi biết các phòng trống và giá hôm nay');
                                 }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 shadow-2xs transition-all active:scale-95"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 shadow-2xs transition-all active:scale-95 cursor-pointer"
                             >
-                                🏨 Giá phòng hôm nay
+                                <BedDouble className="w-3 h-3 text-amber-700" />
+                                <span>Giá phòng hôm nay</span>
                             </span>
                             <span 
                                 onClick={(e) => {
@@ -861,9 +864,10 @@ export default function AIChatbotWidget() {
                                     setShowCalloutBubble(false);
                                     handleQuickAsk('Giới thiệu các dịch vụ ăn uống và tiện ích');
                                 }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all active:scale-95"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all active:scale-95 cursor-pointer"
                             >
-                                🍽️ Menu dịch vụ
+                                <Utensils className="w-3 h-3 text-slate-600" />
+                                <span>Menu dịch vụ</span>
                             </span>
                         </div>
                     </div>
@@ -1109,16 +1113,22 @@ export default function AIChatbotWidget() {
                                                     </span>
                                                 </div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                                    {currentChips.map(chip => (
-                                                        <button
-                                                            key={chip.id}
-                                                            onClick={() => handleSendMessage(chip.query)}
-                                                            disabled={isLoading}
-                                                            className="text-left text-[11px] p-2 rounded-xl bg-amber-50/70 hover:bg-amber-100/90 border border-amber-200/90 text-slate-800 font-medium transition-all shadow-2xs hover:shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-                                                        >
-                                                            {chip.label}
-                                                        </button>
-                                                    ))}
+                                                    {currentChips.map(chip => {
+                                                        const ChipIcon = chip.icon || Sparkles;
+                                                        return (
+                                                            <button
+                                                                key={chip.id}
+                                                                onClick={() => handleSendMessage(chip.query)}
+                                                                disabled={isLoading}
+                                                                className="flex items-center gap-2 text-left text-[11px] p-2 sm:p-2.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/90 border border-amber-200/90 text-slate-800 font-medium transition-all shadow-2xs hover:shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 group"
+                                                            >
+                                                                <span className="w-5 h-5 rounded-lg bg-amber-100/90 text-amber-800 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                                                    <ChipIcon className="w-3.5 h-3.5 text-amber-700" />
+                                                                </span>
+                                                                <span className="truncate">{chip.label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}

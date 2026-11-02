@@ -144,10 +144,10 @@ export default function CorporatePartnerManagement() {
         setIsDeleting(true);
         const res = await bookingService.deleteCorporatePartner(deletePartner.id);
         setIsDeleting(false);
+        setDeletePartner(null);
         if (res.success) {
             showToast(res.message || 'Xóa đối tác thành công!');
             setPartners(prev => prev.filter(p => p.id !== deletePartner.id));
-            setDeletePartner(null);
         } else {
             showToast(res.message, 'error');
         }
@@ -173,19 +173,27 @@ export default function CorporatePartnerManagement() {
 
     return (
         <div className="space-y-6">
-            {/* TOAST THÔNG BÁO NHANH */}
+            {/* TOAST THÔNG BÁO NHANH - Luôn nổi lên trên cùng (z-[99999]) */}
             {toastMessage && (
-                <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-xl border text-sm font-semibold flex items-center gap-2.5 animate-fadeIn ${
+                <div className={`fixed top-5 right-5 z-[99999] max-w-lg px-4 py-3 rounded-2xl shadow-2xl border text-sm font-semibold flex items-start gap-3 animate-fadeIn ${
                     toastMessage.type === 'error'
-                        ? 'bg-rose-50 border-rose-200 text-rose-700'
-                        : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        ? 'bg-rose-50 border-rose-200 text-rose-800 shadow-rose-500/10'
+                        : 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-500/10'
                 }`}>
                     {toastMessage.type === 'error' ? (
-                        <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                        <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600 mt-0.5" />
                     ) : (
-                        <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+                        <Check className="w-5 h-5 shrink-0 text-emerald-600 mt-0.5" />
                     )}
-                    <span>{toastMessage.message}</span>
+                    <span className="leading-relaxed flex-1">{toastMessage.message}</span>
+                    <button
+                        type="button"
+                        onClick={() => setToastMessage(null)}
+                        className="text-slate-400 hover:text-slate-600 p-0.5 transition cursor-pointer"
+                        title="Đóng thông báo"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
             )}
 
@@ -714,17 +722,39 @@ export default function CorporatePartnerManagement() {
             {deletePartner && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
                     <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 text-center space-y-4">
-                        <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
-                            <Trash2 className="w-6 h-6" />
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto ${
+                            deletePartner.total_group_bookings > 0
+                                ? 'bg-amber-50 border border-amber-200 text-amber-600'
+                                : 'bg-rose-50 border border-rose-200 text-rose-600'
+                        }`}>
+                            {deletePartner.total_group_bookings > 0 ? (
+                                <AlertTriangle className="w-6 h-6" />
+                            ) : (
+                                <Trash2 className="w-6 h-6" />
+                            )}
                         </div>
                         <div>
-                            <h3 className="font-bold text-base text-slate-900">Xác nhận xóa đối tác?</h3>
+                            <h3 className="font-bold text-base text-slate-900">
+                                {deletePartner.total_group_bookings > 0 ? 'Không thể xóa đối tác này' : 'Xác nhận xóa đối tác?'}
+                            </h3>
                             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                                Bạn có chắc chắn muốn xóa đối tác <strong className="text-slate-800">{deletePartner.company_name}</strong> (#{deletePartner.corporate_code})?
+                                Đối tác <strong className="text-slate-800">{deletePartner.company_name}</strong> (#{deletePartner.corporate_code})
                             </p>
-                            <p className="text-[11px] text-amber-600 bg-amber-50 p-2 rounded-lg mt-2 border border-amber-200">
-                                Lưu ý: Nếu đối tác đã từng phát sinh đơn đặt đoàn hoặc đặt phòng, hệ thống sẽ từ chối xóa để bảo vệ dữ liệu kế toán.
-                            </p>
+                            {deletePartner.total_group_bookings > 0 ? (
+                                <div className="text-xs text-amber-800 bg-amber-50 p-3 rounded-xl mt-3 border border-amber-200 text-left space-y-1.5">
+                                    <p className="font-semibold flex items-center gap-1.5 text-amber-900">
+                                        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                                        Đã phát sinh {deletePartner.total_group_bookings} đơn đặt đoàn / phòng
+                                    </p>
+                                    <p className="text-[11px] text-amber-700 leading-relaxed">
+                                        Hệ thống bảo vệ lịch sử giao dịch và dữ liệu hóa đơn. Vui lòng chuyển trạng thái sang <strong>Tạm ngưng</strong> nếu không còn tiếp tục hợp tác.
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-[11px] text-amber-600 bg-amber-50 p-2 rounded-lg mt-2 border border-amber-200">
+                                    Lưu ý: Thao tác này sẽ xóa vĩnh viễn hồ sơ đối tác và không thể hoàn tác.
+                                </p>
+                            )}
                         </div>
                         <div className="flex items-center justify-center gap-3 pt-2">
                             <button
@@ -733,16 +763,32 @@ export default function CorporatePartnerManagement() {
                                 disabled={isDeleting}
                                 className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
                             >
-                                Hủy bỏ
+                                {deletePartner.total_group_bookings > 0 ? 'Đóng' : 'Hủy bỏ'}
                             </button>
-                            <button
-                                type="button"
-                                onClick={handleConfirmDelete}
-                                disabled={isDeleting}
-                                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-md shadow-rose-600/30 transition cursor-pointer"
-                            >
-                                {isDeleting ? 'Đang xóa...' : 'Đồng ý xóa'}
-                            </button>
+                            {deletePartner.total_group_bookings > 0 ? (
+                                deletePartner.is_active && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const p = deletePartner;
+                                            setDeletePartner(null);
+                                            handleOpenStatusModal(p);
+                                        }}
+                                        className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md shadow-amber-600/20 transition cursor-pointer"
+                                    >
+                                        Chuyển sang Tạm ngưng
+                                    </button>
+                                )
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmDelete}
+                                    disabled={isDeleting}
+                                    className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-md shadow-rose-600/30 transition cursor-pointer"
+                                >
+                                    {isDeleting ? 'Đang xóa...' : 'Đồng ý xóa'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

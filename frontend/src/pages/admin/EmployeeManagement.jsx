@@ -721,10 +721,10 @@ export default function EmployeeManagement() {
 
         const res = await adminUserService.deleteEmployee(selectedEmployee.id);
         setIsSubmitting(false);
+        setIsDeleteModalOpen(false);
 
         if (res.success) {
             const delId = selectedEmployee.id;
-            setIsDeleteModalOpen(false);
             setEmployees((prev) => prev.filter((e) => e.id !== delId));
             setAlertMessage({
                 type: 'success',
@@ -850,10 +850,10 @@ export default function EmployeeManagement() {
                 </div>
             </div>
 
-            {/* Alert Message Toast */}
+            {/* Alert Message Toast - Luôn hiển thị trên cùng (z-[99999]) */}
             {alertMessage && (
                 <div
-                    className={`p-4 rounded-2xl flex items-center justify-between text-xs font-medium border transition animate-fadeIn ${
+                    className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl flex items-center justify-between text-xs font-semibold border shadow-2xl transition animate-fadeIn ${
                         alertMessage.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : 'bg-rose-50 text-rose-800 border-rose-200'
@@ -869,7 +869,7 @@ export default function EmployeeManagement() {
                     </div>
                     <button
                         onClick={() => setAlertMessage(null)}
-                        className="text-slate-400 hover:text-slate-600 text-xs p-1 rounded-md cursor-pointer"
+                        className="text-slate-400 hover:text-slate-600 text-xs p-1 rounded-md cursor-pointer ml-3"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>

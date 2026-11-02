@@ -1539,10 +1539,10 @@ export default function InvoiceManagement() {
             )}
 
             {/* ================================================================= */}
-            {/* 6. TOAST THÔNG BÁO TỨC THÌ (FLOATING TOAST)                       */}
+            {/* 6. TOAST THÔNG BÁO TỨC THÌ (FLOATING TOAST) - z-[99999]           */}
             {/* ================================================================= */}
             {toast && (
-                <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-bold animate-in slide-in-from-bottom-5 duration-200 ${
+                <div className={`fixed bottom-6 right-6 z-[99999] max-w-md flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold animate-in slide-in-from-bottom-5 duration-200 ${
                     toast.type === 'success'
                         ? 'bg-slate-900 text-white border border-emerald-500/30 shadow-emerald-950/20'
                         : 'bg-rose-600 text-white shadow-rose-950/20'

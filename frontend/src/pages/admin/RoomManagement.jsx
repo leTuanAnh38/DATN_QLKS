@@ -930,9 +930,9 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
 
         const res = await roomService.deleteRoom(selectedRoom.id);
         setIsSubmitting(false);
+        setIsDeleteModalOpen(false);
 
         if (res.success) {
-            setIsDeleteModalOpen(false);
             setAlertMessage({
                 type: 'success',
                 text: res.message || `Đã xóa phòng ${selectedRoom.room_number} khỏi hệ thống!`,
@@ -1002,10 +1002,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 </div>
             </div>
 
-            {/* Alert Message Toast */}
+            {/* Alert Message Toast - Luôn hiển thị trên cùng (z-[99999]) */}
             {alertMessage && (
                 <div
-                    className={`p-4 rounded-2xl flex items-center justify-between text-xs font-medium border transition animate-fadeIn ${
+                    className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl flex items-center justify-between text-xs font-semibold border shadow-2xl transition animate-fadeIn ${
                         alertMessage.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : 'bg-rose-50 text-rose-800 border-rose-200'

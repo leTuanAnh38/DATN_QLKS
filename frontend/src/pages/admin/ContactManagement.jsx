@@ -188,10 +188,10 @@ export default function ContactManagement() {
         setIsDeleting(true);
         const res = await contactService.deleteContact(deleteTarget.id);
         setIsDeleting(false);
+        setDeleteTarget(null);
         if (res.success) {
             fetchStats();
             showToast('success', 'Đã xóa liên hệ thành công.');
-            setDeleteTarget(null);
             // Xóa bản ghi cuối của trang > 1 thì lùi về trang trước
             if (contacts.length === 1 && currentPage > 1) setCurrentPage(currentPage - 1);
             else fetchContacts();
@@ -202,10 +202,10 @@ export default function ContactManagement() {
 
     return (
         <div className="space-y-6">
-            {/* Toast */}
+            {/* Toast - Luôn hiển thị trên cùng (z-[99999]) */}
             {toast && (
                 <div
-                    className={`fixed top-5 right-5 z-[60] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold animate-fadeIn ${
+                    className={`fixed top-5 right-5 z-[99999] max-w-md flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl border text-xs font-semibold animate-fadeIn ${
                         toast.type === 'success'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border-rose-200'

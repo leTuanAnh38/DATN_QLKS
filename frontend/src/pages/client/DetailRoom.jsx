@@ -1058,12 +1058,7 @@ export default function DetailRoom() {
 
                         {/* MÔ TẢ HẠNG PHÒNG */}
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
-                            <div className="flex items-center gap-2">
-                                <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs uppercase font-bold tracking-widest flex items-center gap-1.5">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                                    Trải Nghiệm Thượng Lưu Đặc Quyền
-                                </span>
-                            </div>
+                         
                             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">
                                 Bản giao hưởng giữa kiến trúc duy mỹ và đại dương bao la
                             </h2>

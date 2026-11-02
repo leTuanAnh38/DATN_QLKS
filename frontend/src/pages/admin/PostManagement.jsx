@@ -331,10 +331,10 @@ export default function PostManagement() {
         setIsSubmitting(true);
         const res = await postService.deletePost(selectedPost.id);
         setIsSubmitting(false);
+        setIsDeleteModalOpen(false);
 
         if (res.success) {
             const delId = selectedPost.id;
-            setIsDeleteModalOpen(false);
             setPosts((prev) => prev.filter((p) => p.id !== delId));
             setAlertMessage({
                 type: 'success',
@@ -442,10 +442,10 @@ export default function PostManagement() {
                 </div>
             </div>
 
-            {/* Alert Message Toast */}
+            {/* Alert Message Toast - Luôn hiển thị trên cùng (z-[99999]) */}
             {alertMessage && (
                 <div
-                    className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between shadow-xs transition-all ${
+                    className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between shadow-2xl transition-all animate-fadeIn ${
                         alertMessage.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : 'bg-rose-50 text-rose-800 border-rose-200'

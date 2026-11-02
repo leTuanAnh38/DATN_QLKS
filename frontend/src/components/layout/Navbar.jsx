@@ -9,6 +9,7 @@ import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { Phone, CalendarClock, User, Tag, KeyRound } from 'lucide-react';
 
 const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
@@ -145,7 +146,7 @@ export default function Navbar({
                     </div>
                     <div className="flex items-center space-x-4 text-slate-600">
                         <a href={`tel:${hotlineDisplay.replace(/\s+/g, '')}`} className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer transition">
-                            <span className="text-orange-500">📞</span>
+                            <Phone className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                             Hotline 24/7: <strong className="text-slate-900">{hotlineDisplay}</strong>
                         </a>
                         <span className="text-slate-300">|</span>
@@ -439,7 +440,7 @@ export default function Navbar({
                                         onClick={() => setMobileMenuOpen(false)}
                                         className="flex items-center gap-1.5 p-2 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-blue-700 font-bold transition"
                                     >
-                                        <span className="text-sm">📋</span>
+                                        <CalendarClock className="w-4 h-4 text-blue-600 shrink-0" />
                                         <span className="truncate">Lịch sử đặt phòng</span>
                                     </Link>
                                     <Link
@@ -447,7 +448,7 @@ export default function Navbar({
                                         onClick={() => setMobileMenuOpen(false)}
                                         className="flex items-center gap-1.5 p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition"
                                     >
-                                        <span className="text-sm">👤</span>
+                                        <User className="w-4 h-4 text-slate-600 shrink-0" />
                                         <span className="truncate">Hồ sơ cá nhân</span>
                                     </Link>
                                     <Link
@@ -455,7 +456,7 @@ export default function Navbar({
                                         onClick={() => setMobileMenuOpen(false)}
                                         className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
                                     >
-                                        <span className="text-sm">🎟️</span>
+                                        <Tag className="w-4 h-4 text-amber-600 shrink-0" />
                                         <span className="truncate">Mã ưu đãi của tôi</span>
                                     </Link>
                                     <button
@@ -466,7 +467,7 @@ export default function Navbar({
                                         }}
                                         className="flex items-center gap-1.5 p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition text-left cursor-pointer"
                                     >
-                                        <span className="text-sm">🔑</span>
+                                        <KeyRound className="w-4 h-4 text-slate-600 shrink-0" />
                                         <span className="truncate">Đổi mật khẩu</span>
                                     </button>
                                 </div>

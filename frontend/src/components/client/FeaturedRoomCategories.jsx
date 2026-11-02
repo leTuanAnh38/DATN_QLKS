@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { BedDouble } from 'lucide-react';
 import roomService from '../../services/roomService';
 import RoomSlider from './RoomSlider';
 import { useHotelSettings } from '../../store/hotelSettingStore';
@@ -106,7 +107,9 @@ export default function FeaturedRoomCategories() {
                     </div>
                 ) : filteredCategories.length === 0 ? (
                     <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm">
-                        <div className="text-5xl mb-4">🏝️</div>
+                        <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+                            <BedDouble className="w-8 h-8" />
+                        </div>
                         <h3 className="text-lg font-bold text-slate-900">Chưa có hạng phòng nào trong danh mục này</h3>
                         <p className="text-xs text-slate-500 mt-2">
                             Vui lòng chọn danh mục khác hoặc quay lại xem toàn bộ danh sách phòng.

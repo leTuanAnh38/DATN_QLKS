@@ -344,16 +344,18 @@ export default function ServiceManagement() {
         setDeleting(true);
         try {
             const res = await hotelService.deleteServiceItem(serviceToDelete.id);
+            setIsDeleteModalOpen(false);
+            setServiceToDelete(null);
             if (res.success) {
                 showToast('success', res.message);
-                setIsDeleteModalOpen(false);
-                setServiceToDelete(null);
                 setServices((prev) => prev.filter((item) => item.id !== serviceToDelete.id));
             } else {
                 showToast('error', res.message);
             }
         } catch (error) {
             console.error('Lỗi khi xóa dịch vụ:', error);
+            setIsDeleteModalOpen(false);
+            setServiceToDelete(null);
             showToast('error', 'Có lỗi xảy ra khi xóa dịch vụ.');
         } finally {
             setDeleting(false);
@@ -391,11 +393,11 @@ export default function ServiceManagement() {
 
     return (
         <div className="space-y-6">
-            {/* TOAST THÔNG BÁO NỔI */}
+            {/* TOAST THÔNG BÁO NỔI - Luôn hiển thị trên cùng (z-[99999]) */}
             {toast && (
-                <div className="fixed top-6 right-6 z-50 animate-bounce">
+                <div className="fixed top-6 right-6 z-[99999] max-w-md animate-bounce">
                     <div
-                        className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-white text-xs font-bold border ${
+                        className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-2xl text-white text-xs font-bold border ${
                             toast.type === 'success'
                                 ? 'bg-emerald-600 border-emerald-400'
                                 : toast.type === 'error'

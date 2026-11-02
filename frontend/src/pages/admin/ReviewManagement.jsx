@@ -227,15 +227,16 @@ export default function ReviewManagement() {
         try {
             setIsDeleting(true);
             const res = await reviewService.deleteReview(deleteConfirmReview.id);
+            setDeleteConfirmReview(null);
 
             if (res.success || !res.message?.includes('error')) {
                 showAlert('success', `Đã xóa đánh giá của "${deleteConfirmReview.guest_name}" thành công.`);
                 setReviews((prev) => prev.filter((r) => r.id !== deleteConfirmReview.id));
-                setDeleteConfirmReview(null);
             } else {
                 showAlert('error', res.message || 'Không thể xóa đánh giá.');
             }
         } catch (err) {
+            setDeleteConfirmReview(null);
             showAlert('error', err.message || 'Lỗi khi xóa đánh giá.');
         } finally {
             setIsDeleting(false);
@@ -266,13 +267,13 @@ export default function ReviewManagement() {
 
     return (
         <div className="space-y-6">
-            {/* ALERT NOTIFICATION */}
+            {/* ALERT NOTIFICATION - Luôn hiển thị trên cùng (z-[99999]) */}
             {alertMessage && (
                 <div
-                    className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in duration-300 ${
+                    className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl text-xs font-semibold flex items-center justify-between shadow-2xl border animate-in fade-in duration-300 ${
                         alertMessage.type === 'success'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-800 border border-rose-200'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-rose-50 text-rose-800 border-rose-200'
                     }`}
                 >
                     <div className="flex items-center gap-2">
@@ -286,7 +287,7 @@ export default function ReviewManagement() {
                     <button
                         type="button"
                         onClick={() => setAlertMessage(null)}
-                        className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-black/5"
+                        className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-black/5 ml-3"
                     >
                         <X className="w-4 h-4" />
                     </button>

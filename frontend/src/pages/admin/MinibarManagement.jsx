@@ -325,15 +325,16 @@ export default function MinibarManagement() {
         setIsDeleting(true);
         try {
             const res = await roomService.deleteMinibarItem(deletingItem.id);
+            setDeletingItem(null);
             if (res && res.success) {
                 showAlert('success', `Đã xóa món "${deletingItem.name}" thành công.`);
                 setItems((prev) => prev.filter((it) => it.id !== deletingItem.id));
-                setDeletingItem(null);
                 loadItems(false);
             } else {
                 showAlert('error', res?.message || 'Xóa món thất bại.');
             }
         } catch {
+            setDeletingItem(null);
             showAlert('error', 'Đã có lỗi xảy ra khi xóa mặt hàng.');
         } finally {
             setIsDeleting(false);
@@ -342,11 +343,11 @@ export default function MinibarManagement() {
 
     return (
         <div className="space-y-6 animate-fadeIn pb-12">
-            {/* Alert Floating Toast */}
+            {/* Alert Floating Toast - Luôn nổi trên cùng (z-[99999]) */}
             {alertMessage && (
-                <div className="fixed top-5 right-5 z-50 animate-slideDown">
+                <div className="fixed top-5 right-5 z-[99999] max-w-md animate-slideDown">
                     <div
-                        className={`px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border text-xs sm:text-sm font-semibold ${
+                        className={`px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border text-xs sm:text-sm font-semibold ${
                             alertMessage.type === 'success'
                                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                 : 'bg-rose-50 text-rose-800 border-rose-200'
