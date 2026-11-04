@@ -346,3 +346,43 @@ export const getStatusBadgeConfig = (status: string, item?: ServiceOrder): Statu
       };
   }
 };
+
+export interface AllergyWarningInfo {
+  hasAllergy: boolean;
+  title: string;
+  matchedKeywords: string[];
+}
+
+/**
+ * Helper phát hiện tự động yêu cầu Dị ứng thực phẩm / Ăn kiêng đặc biệt trong ghi chú đơn
+ * Chuẩn khách sạn 5 sao: Bếp & Phục vụ không bao giờ được bỏ sót cảnh báo dị ứng!
+ */
+export const detectAllergyWarning = (note?: string | null): AllergyWarningInfo | null => {
+  if (!note || typeof note !== 'string') return null;
+  const lower = note.toLowerCase();
+
+  // Bỏ tiền tố lý do hủy nếu có
+  const clean = lower.replace(/\[đã hủy:.*?\]/g, '').trim();
+  if (!clean) return null;
+
+  const allergyKeywords = [
+    'dị ứng', 'di ung', 'allergy', 'allergic', 'allergies',
+    'hải sản', 'hai san', 'seafood', 'tôm', 'cua', 'mực', 'shrimp', 'crab', 'squid',
+    'đậu phộng', 'dau phong', 'đậu phụng', 'dau phung', 'lạc', 'peanut', 'peanuts', 'nuts',
+    'ăn chay', 'an chay', 'chay', 'vegetarian', 'vegan', 'halal', 'kosher',
+    'không cay', 'khong cay', 'không ớt', 'khong ot', 'no spicy', 'ít cay', 'it cay',
+    'không hành', 'khong hanh', 'không tỏi', 'khong toi', 'no onion', 'no garlic',
+    'không sữa', 'khong sua', 'lactose', 'dairy', 'gluten', 'trứng', 'egg', 'kiêng'
+  ];
+
+  const matched = allergyKeywords.filter((kw) => clean.includes(kw));
+  if (matched.length === 0) return null;
+
+  const isDietary = matched.some((k) => k.includes('chay') || k.includes('vegan') || k.includes('halal') || k.includes('kiêng'));
+
+  return {
+    hasAllergy: true,
+    title: isDietary ? 'YÊU CẦU ĂN KIÊNG / CHAY' : 'CẢNH BÁO DỊ ỨNG THỰC PHẨM',
+    matchedKeywords: matched,
+  };
+};

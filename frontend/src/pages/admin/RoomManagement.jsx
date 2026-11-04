@@ -2569,6 +2569,7 @@ function RoomCard({
 }) {
     const statusConfig = ROOM_STATUSES[room.status] || ROOM_STATUSES.available;
     const currentBk = room.current_booking;
+    const hasCurrentGuest = Boolean(currentBk);
     const hasGuestContext = Boolean(currentBk || room.recent_booking);
     const isCheckMatchCurrentBooking = !room.latest_minibar_check?.booking_id || !currentBk?.id || String(room.latest_minibar_check.booking_id) === String(currentBk.id);
     const isInspectionRequested = hasGuestContext && isCheckMatchCurrentBooking && room.latest_minibar_check?.status === 'requested';
@@ -2966,12 +2967,16 @@ function RoomCard({
                         {canMarkCleaned ? (
                             <button
                                 type="button"
-                                onClick={() => onStatusChange(room.id, 'available', room.room_number)}
-                                className="w-full py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer animate-pulse"
-                                title="Xác nhận buồng phòng dọn xong để đưa phòng về trạng thái Sẵn sàng"
+                                onClick={() => onStatusChange(room.id, hasCurrentGuest ? 'occupied' : 'available', room.room_number)}
+                                className={`w-full py-1.5 px-2 text-white text-[10px] font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                                    hasCurrentGuest
+                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                                        : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 animate-pulse'
+                                }`}
+                                title={hasCurrentGuest ? 'Xác nhận dọn xong, phòng trở lại trạng thái Có khách' : 'Xác nhận buồng phòng dọn xong để đưa phòng về trạng thái Sẵn sàng'}
                             >
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Đã dọn xong → Sẵn sàng</span>
+                                <span>{hasCurrentGuest ? 'Dọn xong → Khách ở tiếp' : 'Đã dọn xong → Sẵn sàng'}</span>
                             </button>
                         ) : (
                             <div className="w-full py-1.5 px-2 bg-amber-100/90 text-amber-800 text-[10px] font-medium rounded-xl border border-amber-300 text-center flex items-center justify-center gap-1 shadow-2xs">

@@ -24,6 +24,8 @@ export interface MaintenanceSummary {
 export interface RoomItem {
   id: number;
   room_number: string;
+  category_id?: number;
+  category?: number | { id: number; name: string };
   category_name?: string;
   status: 'available' | 'occupied' | 'cleaning' | 'maintenance';
   status_display?: string;

@@ -14,6 +14,8 @@ import {
   Image,
   Linking,
   Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,10 +80,11 @@ export default function LostFoundScreen() {
         Alert.alert('Cần cấp quyền', 'Ứng dụng cần quyền Camera để chụp ảnh hiện vật.');
         return;
       }
+      // Tối ưu camera iPhone 14 Pro: chất lượng 0.6, chụp nhanh 1 chạm không cần crop
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.8,
+        allowsEditing: false,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setSelectedImage(result.assets[0]);
@@ -102,7 +105,7 @@ export default function LostFoundScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setSelectedImage(result.assets[0]);
@@ -572,194 +575,216 @@ export default function LostFoundScreen() {
 
       {/* Modal Khai Báo Đồ Nhặt Được Mới */}
       <Modal visible={createModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
-            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
-              <View>
-                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Khai Báo Đồ Khách Bỏ Quên</Text>
-                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Ghi nhận vào sổ Lost & Found để Lễ tân quản lý</Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
-                onPress={() => setCreateModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Tên vật phẩm nhặt được (*):</Text>
-              <TextInput
-                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                placeholder="VD: Ví nam cầm tay, Tai nghe AirPods, Hộ chiếu..."
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                value={itemName}
-                onChangeText={setItemName}
-              />
-
-              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Số phòng phát hiện (hoặc khu vực):</Text>
-              <TextInput
-                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                placeholder="VD: 204 (hoặc Hồ bơi tầng 3, Ghế sảnh...)"
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                value={roomNumber}
-                onChangeText={setRoomNumber}
-              />
-
-              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Phân loại tài sản:</Text>
-              <View style={styles.categoryChipsRow}>
-                {CATEGORIES.map((c) => (
-                  <TouchableOpacity
-                    key={c.key}
-                    style={[
-                      styles.categoryChip,
-                      !isDark && category !== c.key && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                      category === c.key && styles.categoryChipActive,
-                    ]}
-                    onPress={() => setCategory(c.key)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={c.icon as any}
-                      size={13}
-                      color={category === c.key ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
-                      style={{ marginRight: 4 }}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        !isDark && category !== c.key && { color: '#475569' },
-                        category === c.key && styles.categoryChipTextActive,
-                      ]}
-                    >
-                      {c.label.split(' ')[0]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={Keyboard.dismiss}
+            />
+            <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+              <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
+                <View>
+                  <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Khai Báo Đồ Khách Bỏ Quên</Text>
+                  <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Ghi nhận vào sổ Lost & Found để Lễ tân quản lý</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+                  onPress={() => setCreateModalVisible(false)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
+                </TouchableOpacity>
               </View>
 
-              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Mô tả đặc điểm / Vị trí tìm thấy:</Text>
-              <TextInput
-                style={[styles.modalInput, { height: 60 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                placeholder="VD: Nhặt được dưới chân giường, màu đen da bò..."
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                multiline
-                value={description}
-                onChangeText={setDescription}
-              />
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Tên vật phẩm nhặt được (*):</Text>
+                <TextInput
+                  style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                  placeholder="VD: Ví nam cầm tay, Tai nghe AirPods, Hộ chiếu..."
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  value={itemName}
+                  onChangeText={setItemName}
+                />
 
-              {/* Chụp ảnh hiện vật */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>Ảnh chụp hiện vật (Camera hoặc Thư viện):</Text>
-              {selectedImage ? (
-                <View style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: selectedImage.uri }} style={styles.imagePreview} resizeMode="cover" />
-                  <View style={styles.imagePreviewOverlay}>
+                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Số phòng phát hiện (hoặc khu vực):</Text>
+                <TextInput
+                  style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                  placeholder="VD: 204 (hoặc Hồ bơi tầng 3, Ghế sảnh...)"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  value={roomNumber}
+                  onChangeText={setRoomNumber}
+                />
+
+                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Phân loại tài sản:</Text>
+                <View style={styles.categoryChipsRow}>
+                  {CATEGORIES.map((c) => (
                     <TouchableOpacity
-                      style={styles.imageActionBtn}
+                      key={c.key}
+                      style={[
+                        styles.categoryChip,
+                        !isDark && category !== c.key && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                        category === c.key && styles.categoryChipActive,
+                      ]}
+                      onPress={() => setCategory(c.key)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={c.icon as any}
+                        size={13}
+                        color={category === c.key ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          !isDark && category !== c.key && { color: '#475569' },
+                          category === c.key && styles.categoryChipTextActive,
+                        ]}
+                      >
+                        {c.label.split(' ')[0]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Mô tả đặc điểm / Vị trí tìm thấy:</Text>
+                <TextInput
+                  style={[styles.modalInput, { height: 60 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                  placeholder="VD: Nhặt được dưới chân giường, màu đen da bò..."
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  multiline
+                  value={description}
+                  onChangeText={setDescription}
+                />
+
+                {/* Chụp ảnh hiện vật */}
+                <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>Ảnh chụp hiện vật (Camera hoặc Thư viện):</Text>
+                {selectedImage ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image source={{ uri: selectedImage.uri }} style={styles.imagePreview} resizeMode="cover" />
+                    <View style={styles.imagePreviewOverlay}>
+                      <TouchableOpacity
+                        style={styles.imageActionBtn}
+                        onPress={takePhoto}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="camera" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                        <Text style={styles.imageActionBtnText}>Chụp lại</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.imageActionBtn, { backgroundColor: '#EF4444' }]}
+                        onPress={() => setSelectedImage(null)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="trash" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                        <Text style={styles.imageActionBtnText}>Xóa ảnh</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.photoPickerRow}>
+                    <TouchableOpacity
+                      style={[styles.photoPickerBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}
                       onPress={takePhoto}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="camera" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
-                      <Text style={styles.imageActionBtnText}>Chụp lại</Text>
+                      <Ionicons name="camera" size={20} color="#F59E0B" />
+                      <Text style={[styles.photoPickerText, !isDark && { color: '#475569' }]}>Chụp ảnh camera</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.imageActionBtn, { backgroundColor: '#EF4444' }]}
-                      onPress={() => setSelectedImage(null)}
+                      style={[styles.photoPickerBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}
+                      onPress={pickImage}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="trash" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
-                      <Text style={styles.imageActionBtnText}>Xóa ảnh</Text>
+                      <Ionicons name="images" size={20} color="#3B82F6" />
+                      <Text style={[styles.photoPickerText, { color: '#3B82F6' }]}>Chọn từ thư viện</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
-              ) : (
-                <View style={styles.photoPickerRow}>
-                  <TouchableOpacity
-                    style={[styles.photoPickerBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}
-                    onPress={takePhoto}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="camera" size={20} color="#F59E0B" />
-                    <Text style={[styles.photoPickerText, !isDark && { color: '#475569' }]}>Chụp ảnh camera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.photoPickerBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}
-                    onPress={pickImage}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="images" size={20} color="#3B82F6" />
-                    <Text style={[styles.photoPickerText, { color: '#3B82F6' }]}>Chọn từ thư viện</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={[styles.modalConfirmBtn, submitting && { opacity: 0.6 }]}
-                onPress={handleCreate}
-                disabled={submitting}
-                activeOpacity={0.8}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#0A0F1D" />
-                ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="cloud-upload" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
-                    <Text style={styles.modalConfirmBtnText}>LƯU VÀO SỔ LỄ TÂN</Text>
-                  </View>
                 )}
-              </TouchableOpacity>
-            </ScrollView>
+
+                <TouchableOpacity
+                  style={[styles.modalConfirmBtn, submitting && { opacity: 0.6 }]}
+                  onPress={handleCreate}
+                  disabled={submitting}
+                  activeOpacity={0.8}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#0A0F1D" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="cloud-upload" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
+                      <Text style={styles.modalConfirmBtnText}>LƯU VÀO SỔ LỄ TÂN</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Bàn Giao Trả Khách */}
       <Modal visible={returnModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlayCenter}>
-          <View style={[styles.modalCenterContent, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', shadowColor: '#64748B' }]}>
-            <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Bàn Giao Trả Khách</Text>
-            <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
-              Vật phẩm: {selectedItem?.item_name} (#{selectedItem?.tracking_code})
-            </Text>
-
-            <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Họ tên người nhận lại (*):</Text>
-            <TextInput
-              style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-              placeholder="VD: Anh Tuấn (SĐT: 0912...)"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              value={returnedTo}
-              onChangeText={setReturnedTo}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        >
+          <View style={styles.modalOverlayCenter}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={Keyboard.dismiss}
             />
+            <View style={[styles.modalCenterContent, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+              <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Bàn Giao Trả Khách</Text>
+              <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
+                Vật phẩm: {selectedItem?.item_name} (#{selectedItem?.tracking_code})
+              </Text>
 
-            <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Ghi chú biên bản bàn giao:</Text>
-            <TextInput
-              style={[styles.modalInput, { height: 50 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-              placeholder="Khách đã kiểm tra đủ tài sản..."
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              value={returnNote}
-              onChangeText={setReturnNote}
-            />
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Họ tên người nhận lại (*):</Text>
+              <TextInput
+                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                placeholder="VD: Anh Tuấn (SĐT: 0912...)"
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                value={returnedTo}
+                onChangeText={setReturnedTo}
+              />
 
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
-              <TouchableOpacity
-                style={[styles.modalCancelBtn, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}
-                onPress={() => setReturnModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.modalCancelText, !isDark && { color: '#64748B' }]}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleReturn}
-                disabled={returning}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalSaveText}>Xác Nhận Đã Trả</Text>
-              </TouchableOpacity>
+              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Ghi chú biên bản bàn giao:</Text>
+              <TextInput
+                style={[styles.modalInput, { height: 50 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                placeholder="Khách đã kiểm tra đủ tài sản..."
+                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                value={returnNote}
+                onChangeText={setReturnNote}
+              />
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}
+                  onPress={() => setReturnModalVisible(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalCancelText, !isDark && { color: '#64748B' }]}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleReturn}
+                  disabled={returning}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalSaveText}>Xác Nhận Đã Trả</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Xem Ảnh Hiện Vật Phóng To */}

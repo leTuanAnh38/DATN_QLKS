@@ -8,9 +8,15 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  StyleSheet,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
 import { MAINTENANCE_ISSUE_TYPES, EQUIPMENT_SUGGESTIONS } from '../../constants/maintenance';
 import { styles } from './styles';
@@ -22,6 +28,7 @@ interface BreakdownModalProps {
   room: RoomItem | null;
   onClose: () => void;
   onSuccess: () => void;
+  onOpenChangeRoom?: (room: RoomItem, booking: any, initialData?: { reason?: string; issueType?: string; equipment?: string }) => void;
 }
 
 export const BreakdownModal: React.FC<BreakdownModalProps> = ({
@@ -29,6 +36,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
   room,
   onClose,
   onSuccess,
+  onOpenChangeRoom,
 }) => {
   const { isDark } = useAppTheme();
   const [breakdownIssueType, setBreakdownIssueType] = useState('ac');
@@ -38,6 +46,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
   const [breakdownPartsReplaced, setBreakdownPartsReplaced] = useState('');
   const [breakdownCost, setBreakdownCost] = useState('');
   const [isGuestFault, setIsGuestFault] = useState(false);
+  const [evidenceImage, setEvidenceImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -49,8 +58,51 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
       setBreakdownPartsReplaced('');
       setBreakdownCost('');
       setIsGuestFault(room.status === 'occupied');
+      setEvidenceImage(null);
     }
   }, [visible, room?.id]);
+
+  const takePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Camera để chụp ảnh hiện trường hư hại.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setEvidenceImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở camera:', e);
+    }
+  };
+
+  const pickLibrary = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Thư viện ảnh để chọn ảnh.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setEvidenceImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở thư viện ảnh:', e);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!room) return;
@@ -70,17 +122,33 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
     const currentBk = room.current_booking || room.recent_booking;
 
     try {
-      const res = await apiClient.post('/rooms/maintenance-tickets/', {
-        room_id: room.id,
-        equipment_name: breakdownEquipment.trim(),
-        issue_type: breakdownIssueType,
-        priority: priority,
-        description: breakdownDesc.trim(),
-        parts_replaced: breakdownPartsReplaced.trim(),
-        cost: numCost,
-        is_guest_fault: isGuestFault,
-        booking_id: isGuestFault && currentBk ? currentBk.id : null,
-      });
+      const formData = new FormData();
+      formData.append('room_id', String(room.id));
+      formData.append('equipment_name', breakdownEquipment.trim());
+      formData.append('issue_type', breakdownIssueType);
+      formData.append('priority', priority);
+      formData.append('description', breakdownDesc.trim());
+      formData.append('parts_replaced', breakdownPartsReplaced.trim());
+      formData.append('cost', String(numCost));
+      formData.append('is_guest_fault', String(isGuestFault));
+      if (isGuestFault && currentBk) {
+        formData.append('booking_id', String(currentBk.id));
+      }
+
+      if (evidenceImage) {
+        const uri = evidenceImage.uri;
+        const filename = uri.split('/').pop() || 'photo.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        // @ts-ignore
+        formData.append('image_before', {
+          uri: uri,
+          name: filename,
+          type: type,
+        });
+      }
+
+      const res = await apiClient.post('/rooms/maintenance-tickets/', formData);
 
       if (res.data?.success || res.data?.id) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -104,49 +172,63 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
-        <View
-          style={[
-            styles.modalCardLarge,
-            !isDark && {
-              backgroundColor: '#FFFFFF',
-              borderTopColor: '#E2E8F0',
-              shadowColor: '#64748B',
-            },
-          ]}
-        >
-          {/* Top Header Bar */}
-          <View style={styles.modalTopBar}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-              <View
-                style={[
-                  styles.modalIconCircle,
-                  !isDark && { backgroundColor: '#FEE2E2', borderColor: '#FECACA' },
-                ]}
-              >
-                <Ionicons name="construct" size={20} color="#DC2626" />
-              </View>
-              <View style={{ marginLeft: 10, flex: 1 }}>
-                <Text style={[styles.modalRoomTitle, !isDark && { color: '#0F172A' }]}>
-                  Báo Hỏng Phòng {room.room_number}
-                </Text>
-                <Text
-                  style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}
-                  numberOfLines={1}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
+          />
+          <View
+            style={[
+              styles.modalCardLarge,
+              !isDark && {
+                backgroundColor: '#FFFFFF',
+                borderTopColor: '#E2E8F0',
+                shadowColor: '#64748B',
+              },
+            ]}
+          >
+            {/* Top Header Bar */}
+            <View style={styles.modalTopBar}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                <View
+                  style={[
+                    styles.modalIconCircle,
+                    !isDark && { backgroundColor: '#FEE2E2', borderColor: '#FECACA' },
+                  ]}
                 >
-                  Tầng {room.floor} • {room.category_name || 'Phòng Deluxe'}
-                </Text>
+                  <Ionicons name="construct" size={20} color="#DC2626" />
+                </View>
+                <View style={{ marginLeft: 10, flex: 1 }}>
+                  <Text style={[styles.modalRoomTitle, !isDark && { color: '#0F172A' }]}>
+                    Báo Hỏng Phòng {room.room_number}
+                  </Text>
+                  <Text
+                    style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}
+                    numberOfLines={1}
+                  >
+                    Tầng {room.floor} • {room.category_name || 'Phòng Deluxe'}
+                  </Text>
+                </View>
               </View>
+              <TouchableOpacity
+                style={[styles.modalCloseCircle, !isDark && { backgroundColor: '#F1F5F9' }]}
+                onPress={onClose}
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.modalCloseCircle, !isDark && { backgroundColor: '#F1F5F9' }]}
-              onPress={onClose}
-            >
-              <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
-            </TouchableOpacity>
-          </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 25 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 25 }}
+            >
             {/* 1. Banner cảnh báo nếu phòng đang có khách */}
             {room.current_booking && (
               <View
@@ -174,9 +256,35 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
                     #{room.current_booking.booking_code}
                   </Text>
                 </View>
-                <Text style={[styles.occupiedNoticeSub, !isDark && { color: '#78350F' }]}>
-                  💡 Lưu ý: Khách đang ở trong phòng. Kỹ thuật viên cần liên hệ quầy Lễ tân hoặc gõ cửa xin phép trước khi vào sửa chữa.
-                </Text>
+
+                <View style={{ marginTop: 6, gap: 3 }}>
+                  <Text style={[styles.occupiedNoticeSub, !isDark && { color: '#78350F' }]}>
+                    • <Text style={{ fontWeight: '800' }}>Sửa nhanh tại chỗ:</Text> Kỹ thuật xử lý xong, phòng vẫn giữ khách ở tiếp.
+                  </Text>
+                  <Text style={[styles.occupiedNoticeSub, !isDark && { color: '#78350F' }]}>
+                    • <Text style={{ fontWeight: '800' }}>Sự cố nặng:</Text> Vui lòng đổi phòng cho khách ngay trước khi cách ly phòng dài ngày.
+                  </Text>
+                </View>
+
+                {onOpenChangeRoom && (
+                  <TouchableOpacity
+                    style={styles.btnChangeRoomUrgent}
+                    onPress={() => {
+                      onClose();
+                      onOpenChangeRoom(room, room.current_booking, {
+                        reason: breakdownEquipment ? `Hỏng ${breakdownEquipment}: ${breakdownDesc}` : 'Sự cố thiết bị phòng',
+                        issueType: breakdownIssueType,
+                        equipment: breakdownEquipment,
+                      });
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="swap-horizontal" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.btnChangeRoomUrgentText}>
+                      Sự cố nặng? Đổi phòng cho khách ngay 
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
@@ -432,6 +540,61 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
               )}
             </View>
 
+            {/* 7. Ảnh hiện trường hư hại (Before) */}
+            <Text style={[styles.modalSectionLabel, { marginTop: 14 }, !isDark && { color: '#B45309' }]}>
+              7. Ảnh hiện trường hư hại (Bằng chứng đối soát):
+            </Text>
+            {evidenceImage ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: evidenceImage.uri }} style={styles.imagePreview} resizeMode="cover" />
+                <View style={styles.imagePreviewOverlay}>
+                  <TouchableOpacity
+                    style={styles.imageActionBtn}
+                    onPress={takePhoto}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="camera" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                    <Text style={styles.imageActionBtnText}>Chụp lại</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.imageActionBtn, { backgroundColor: '#EF4444' }]}
+                    onPress={() => setEvidenceImage(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="trash" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                    <Text style={styles.imageActionBtnText}>Xóa ảnh</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.photoPickerRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.photoPickerBtn,
+                    !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                  ]}
+                  onPress={takePhoto}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="camera" size={20} color={isDark ? '#F59E0B' : '#D97706'} />
+                  <Text style={[styles.photoPickerText, !isDark && { color: '#D97706' }]}>
+                    Chụp ảnh camera
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.photoPickerBtn,
+                    !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                  ]}
+                  onPress={pickLibrary}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="images" size={20} color="#0284C7" />
+                  <Text style={[styles.photoPickerText, { color: '#0284C7' }]}>Chọn từ thư viện</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Thông báo cách ly */}
             <View
               style={[
@@ -464,6 +627,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
           </ScrollView>
         </View>
       </View>
-    </Modal>
-  );
+    </KeyboardAvoidingView>
+  </Modal>
+);
 };

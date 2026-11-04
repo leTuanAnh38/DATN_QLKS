@@ -8,6 +8,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -43,6 +47,7 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
   const [damageDesc, setDamageDesc] = useState('');
   const [damageAmount, setDamageAmount] = useState('');
   const [checkNote, setCheckNote] = useState('');
+  const [isRestocked, setIsRestocked] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
 
@@ -53,6 +58,7 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
       setDamageDesc('');
       setDamageAmount('');
       setCheckNote('');
+      setIsRestocked(true);
       fetchMinibarItems();
     }
   }, [visible, room?.id]);
@@ -106,6 +112,14 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
         quantity: consumedCounts[it.id],
       }));
 
+    // Gắn nhãn trạng thái bù tủ lạnh vào phiếu kiểm tra để Lễ tân & Tổ trưởng buồng phòng đối soát
+    const restockNote = totalRestockCount > 0
+      ? (isRestocked
+          ? `[ĐÃ BÙ ${totalRestockCount} MÓN VÀO TỦ LẠNH]`
+          : `[CHƯA BÙ TỦ LẠNH - CẦN BỔ SUNG ${totalRestockCount} MÓN]`)
+      : '';
+    const finalNote = [checkNote.trim(), restockNote].filter(Boolean).join(' • ');
+
     try {
       const res = await apiClient.post('/rooms/minibar-checks/', {
         room_id: room.id,
@@ -113,7 +127,8 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
         has_damage: hasDamage,
         damage_description: damageDesc,
         damage_amount: parseFloat(damageAmount || '0'),
-        note: checkNote,
+        is_restocked: isRestocked,
+        note: finalNote,
       });
 
       if (res.data?.success) {
@@ -134,228 +149,305 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
-        <View
-          style={[
-            styles.modalCard,
-            !isDark && {
-              backgroundColor: '#FFFFFF',
-              borderTopColor: '#E2E8F0',
-              shadowColor: '#64748B',
-            },
-          ]}
-        >
-          <View style={styles.modalTopBar}>
-            <View>
-              <Text style={[styles.modalRoomTitle, !isDark && { color: '#0F172A' }]}>
-                Phòng {room.room_number}
-              </Text>
-              <Text style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}>
-                Kiểm kê Minibar & Hư hại trước Check-out
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.modalCloseCircle, !isDark && { backgroundColor: '#F1F5F9' }]}
-              onPress={onClose}
-            >
-              <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-            <Text style={[styles.modalSectionLabel, !isDark && { color: '#B45309' }]}>
-              1. Danh mục Minibar đã dùng:
-            </Text>
-            {loadingItems ? (
-              <ActivityIndicator color="#F59E0B" style={{ marginVertical: 12 }} />
-            ) : minibarItems.length === 0 ? (
-              <Text style={{ color: isDark ? '#64748B' : '#94A3B8', fontSize: 13, marginVertical: 8 }}>
-                Không có danh mục minibar khả dụng.
-              </Text>
-            ) : (
-              minibarItems.map((item) => (
-                <View
-                  key={item.id}
-                  style={[
-                    styles.minibarItemRow,
-                    !isDark && {
-                      backgroundColor: '#F8FAFC',
-                      borderWidth: 1,
-                      borderColor: '#E2E8F0',
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={[styles.minibarName, !isDark && { color: '#0F172A' }]}>
-                      {item.name}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                      <Text style={[styles.minibarPrice, !isDark && { color: '#64748B' }, { marginTop: 0 }]}>
-                        {parseInt(item.price).toLocaleString('vi-VN')} đ/lon
-                      </Text>
-                      <View style={[styles.minibarParBadge, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' }]}>
-                        <Ionicons name="cube-outline" size={10} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 3 }} />
-                        <Text style={[styles.minibarParText, !isDark && { color: '#475569' }]}>
-                          Định mức: {item.standard_quantity || 2}
-                        </Text>
-                      </View>
-                      {(consumedCounts[item.id] || 0) > 0 && (
-                        <View style={[styles.minibarRestockBadge, !isDark && { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' }]}>
-                          <Ionicons name="flash" size={10} color="#D97706" style={{ marginRight: 2 }} />
-                          <Text style={[styles.minibarRestockText, !isDark && { color: '#B45309' }]}>
-                            Cần bù tủ: {consumedCounts[item.id]}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  <View
-                    style={[
-                      styles.stepperContainer,
-                      !isDark && { backgroundColor: '#FFFFFF', borderColor: '#CBD5E1' },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        styles.stepperBtn,
-                        !isDark && { backgroundColor: '#F1F5F9' },
-                      ]}
-                      onPress={() => handleQuantityChange(item.id, -1)}
-                    >
-                      <Ionicons name="remove" size={16} color={isDark ? '#FFF' : '#0F172A'} />
-                    </TouchableOpacity>
-                    <Text style={[styles.stepperValue, !isDark && { color: '#0F172A' }]}>
-                      {consumedCounts[item.id] || 0}
-                    </Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.stepperBtn,
-                        !isDark && { backgroundColor: '#F1F5F9' },
-                      ]}
-                      onPress={() => handleQuantityChange(item.id, 1)}
-                    >
-                      <Ionicons name="add" size={16} color={isDark ? '#FFF' : '#0F172A'} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))
-            )}
-
-            <Text style={[styles.modalSectionLabel, { marginTop: 16 }, !isDark && { color: '#B45309' }]}>
-              2. Hư hại tài sản phòng (nếu có):
-            </Text>
-            <TouchableOpacity
-              style={styles.damageCheckboxRow}
-              onPress={() => setHasDamage(!hasDamage)}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={hasDamage ? 'checkbox' : 'square-outline'}
-                size={22}
-                color={hasDamage ? '#EF4444' : isDark ? '#64748B' : '#94A3B8'}
-              />
-              <Text style={[styles.damageCheckboxText, !isDark && { color: '#1E293B' }]}>
-                Có vỡ đồ / hư hại cần bồi thường
-              </Text>
-            </TouchableOpacity>
-
-            {hasDamage && (
-              <View style={{ marginTop: 8 }}>
-                <TextInput
-                  style={[
-                    styles.modalTextInput,
-                    !isDark && {
-                      backgroundColor: '#F8FAFC',
-                      borderColor: '#CBD5E1',
-                      color: '#0F172A',
-                    },
-                  ]}
-                  placeholder="Mô tả hư hại (VD: Vỡ 1 cốc thủy tinh, rách khăn tắm...)"
-                  placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                  value={damageDesc}
-                  onChangeText={setDamageDesc}
-                />
-                <TextInput
-                  style={[
-                    styles.modalTextInput,
-                    !isDark && {
-                      backgroundColor: '#F8FAFC',
-                      borderColor: '#CBD5E1',
-                      color: '#0F172A',
-                    },
-                  ]}
-                  placeholder="Số tiền đền bù (VNĐ) - VD: 50000"
-                  placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                  keyboardType="numeric"
-                  value={damageAmount}
-                  onChangeText={setDamageAmount}
-                />
-              </View>
-            )}
-
-            <Text style={[styles.modalSectionLabel, { marginTop: 16 }, !isDark && { color: '#B45309' }]}>
-              3. Ghi chú kiểm tra:
-            </Text>
-            <TextInput
-              style={[
-                styles.modalTextInput,
-                { height: 60 },
-                !isDark && {
-                  backgroundColor: '#F8FAFC',
-                  borderColor: '#CBD5E1',
-                  color: '#0F172A',
-                },
-              ]}
-              placeholder="Ghi chú thêm cho lễ tân (nếu có)..."
-              placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-              multiline
-              value={checkNote}
-              onChangeText={setCheckNote}
-            />
-          </ScrollView>
-
-          {/* Thanh tổng tiền tạm tính Minibar & Bồi thường */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
+          />
           <View
             style={[
-              styles.minibarTotalBar,
+              styles.modalCard,
               !isDark && {
-                backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                borderColor: 'rgba(245, 158, 11, 0.35)',
+                backgroundColor: '#FFFFFF',
+                borderTopColor: '#E2E8F0',
+                shadowColor: '#64748B',
               },
             ]}
           >
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.minibarTotalLabel, !isDark && { color: '#B45309' }]}>
-                TỔNG TIỀN PHÁT SINH
+            <View style={styles.modalTopBar}>
+              <View>
+                <Text style={[styles.modalRoomTitle, !isDark && { color: '#0F172A' }]}>
+                  Phòng {room.room_number}
+                </Text>
+                <Text style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}>
+                  Kiểm kê Minibar & Hư hại trước Check-out
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.modalCloseCircle, !isDark && { backgroundColor: '#F1F5F9' }]}
+                onPress={onClose}
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={{ maxHeight: Platform.OS === 'ios' ? 320 : 360 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={[styles.modalSectionLabel, !isDark && { color: '#B45309' }]}>
+                1. Danh mục Minibar đã dùng:
               </Text>
-              <Text style={[styles.minibarTotalSub, !isDark && { color: '#78350F' }]}>
-                {totalRestockCount > 0
-                  ? `⚡ Cần bù ${totalRestockCount} đồ vào tủ lạnh • Đồng bộ bill Lễ tân`
-                  : 'Đồng bộ tự động vào bill Lễ tân'}
+              {loadingItems ? (
+                <ActivityIndicator color="#F59E0B" style={{ marginVertical: 12 }} />
+              ) : minibarItems.length === 0 ? (
+                <Text style={{ color: isDark ? '#64748B' : '#94A3B8', fontSize: 13, marginVertical: 8 }}>
+                  Không có danh mục minibar khả dụng.
+                </Text>
+              ) : (
+                minibarItems.map((item) => (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.minibarItemRow,
+                      !isDark && {
+                        backgroundColor: '#F8FAFC',
+                        borderWidth: 1,
+                        borderColor: '#E2E8F0',
+                      },
+                    ]}
+                  >
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={[styles.minibarName, !isDark && { color: '#0F172A' }]}>
+                        {item.name}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                        <Text style={[styles.minibarPrice, !isDark && { color: '#64748B' }, { marginTop: 0 }]}>
+                          {parseInt(item.price).toLocaleString('vi-VN')} đ/lon
+                        </Text>
+                        <View style={[styles.minibarParBadge, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' }]}>
+                          <Ionicons name="cube-outline" size={10} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 3 }} />
+                          <Text style={[styles.minibarParText, !isDark && { color: '#475569' }]}>
+                            Định mức: {item.standard_quantity || 2}
+                          </Text>
+                        </View>
+                        {(consumedCounts[item.id] || 0) > 0 && (
+                          <View style={[styles.minibarRestockBadge, !isDark && { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' }]}>
+                            <Ionicons name="flash" size={10} color="#D97706" style={{ marginRight: 2 }} />
+                            <Text style={[styles.minibarRestockText, !isDark && { color: '#B45309' }]}>
+                              Cần bù tủ: {consumedCounts[item.id]}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.stepperContainer,
+                        !isDark && { backgroundColor: '#FFFFFF', borderColor: '#CBD5E1' },
+                      ]}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.stepperBtn,
+                          !isDark && { backgroundColor: '#F1F5F9' },
+                        ]}
+                        onPress={() => handleQuantityChange(item.id, -1)}
+                      >
+                        <Ionicons name="remove" size={16} color={isDark ? '#FFF' : '#0F172A'} />
+                      </TouchableOpacity>
+                      <Text style={[styles.stepperValue, !isDark && { color: '#0F172A' }]}>
+                        {consumedCounts[item.id] || 0}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.stepperBtn,
+                          !isDark && { backgroundColor: '#F1F5F9' },
+                        ]}
+                        onPress={() => handleQuantityChange(item.id, 1)}
+                      >
+                        <Ionicons name="add" size={16} color={isDark ? '#FFF' : '#0F172A'} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+
+              <Text style={[styles.modalSectionLabel, { marginTop: 16 }, !isDark && { color: '#B45309' }]}>
+                2. Hư hại tài sản phòng (nếu có):
+              </Text>
+              <TouchableOpacity
+                style={styles.damageCheckboxRow}
+                onPress={() => setHasDamage(!hasDamage)}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={hasDamage ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={hasDamage ? '#EF4444' : isDark ? '#64748B' : '#94A3B8'}
+                />
+                <Text style={[styles.damageCheckboxText, !isDark && { color: '#1E293B' }]}>
+                  Có vỡ đồ / hư hại cần bồi thường
+                </Text>
+              </TouchableOpacity>
+
+              {hasDamage && (
+                <View style={{ marginTop: 8 }}>
+                  <TextInput
+                    style={[
+                      styles.modalTextInput,
+                      !isDark && {
+                        backgroundColor: '#F8FAFC',
+                        borderColor: '#CBD5E1',
+                        color: '#0F172A',
+                      },
+                    ]}
+                    placeholder="Mô tả hư hại (VD: Vỡ 1 cốc thủy tinh, rách khăn tắm...)"
+                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                    value={damageDesc}
+                    onChangeText={setDamageDesc}
+                  />
+                  <TextInput
+                    style={[
+                      styles.modalTextInput,
+                      !isDark && {
+                        backgroundColor: '#F8FAFC',
+                        borderColor: '#CBD5E1',
+                        color: '#0F172A',
+                      },
+                    ]}
+                    placeholder="Số tiền đền bù (VNĐ) - VD: 50000"
+                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                    keyboardType="numeric"
+                    value={damageAmount}
+                    onChangeText={setDamageAmount}
+                  />
+                </View>
+              )}
+
+              {/* 3. Xác nhận Bù đồ tủ lạnh Minibar (Hotel SOP Restock Verification) */}
+              {totalRestockCount > 0 && (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={[styles.modalSectionLabel, !isDark && { color: '#B45309' }]}>
+                    3. Xác nhận bù tủ lạnh ({totalRestockCount} món):
+                  </Text>
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: isRestocked
+                        ? (isDark ? 'rgba(16, 185, 129, 0.14)' : '#ECFDF5')
+                        : (isDark ? 'rgba(239, 68, 68, 0.14)' : '#FEF2F2'),
+                      borderColor: isRestocked ? '#10B981' : '#EF4444',
+                      borderWidth: 1.5,
+                      borderRadius: 12,
+                      padding: 12,
+                      marginTop: 6,
+                    }}
+                    onPress={() => {
+                      setIsRestocked((prev) => !prev);
+                      Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={isRestocked ? 'checkbox' : 'square-outline'}
+                      size={24}
+                      color={isRestocked ? '#10B981' : '#EF4444'}
+                    />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: '800',
+                          color: isRestocked
+                            ? (isDark ? '#34D399' : '#059669')
+                            : (isDark ? '#F87171' : '#DC2626'),
+                        }}
+                      >
+                        {isRestocked
+                          ? `Đã bù đủ ${totalRestockCount} đồ vào tủ lạnh phòng ✨`
+                          : `Chưa bù đồ tủ lạnh (Cần xe Trolley bổ sung gấp)`}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: isDark ? '#94A3B8' : '#64748B',
+                          marginTop: 2,
+                        }}
+                      >
+                        {isRestocked
+                          ? 'Đã lấy đồ từ xe đẩy bù đầy đủ theo định mức minibar.'
+                          : 'Xe đẩy hết hàng, hệ thống sẽ lưu cảnh báo để ca sau bổ sung.'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <Text style={[styles.modalSectionLabel, { marginTop: 16 }, !isDark && { color: '#B45309' }]}>
+                {totalRestockCount > 0 ? '4. Ghi chú kiểm tra:' : '3. Ghi chú kiểm tra:'}
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalTextInput,
+                  { height: 60 },
+                  !isDark && {
+                    backgroundColor: '#F8FAFC',
+                    borderColor: '#CBD5E1',
+                    color: '#0F172A',
+                  },
+                ]}
+                placeholder="Ghi chú thêm cho lễ tân (nếu có)..."
+                placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                multiline
+                value={checkNote}
+                onChangeText={setCheckNote}
+              />
+            </ScrollView>
+
+            {/* Thanh tổng tiền tạm tính Minibar & Bồi thường */}
+            <View
+              style={[
+                styles.minibarTotalBar,
+                !isDark && {
+                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                  borderColor: 'rgba(245, 158, 11, 0.35)',
+                },
+              ]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.minibarTotalLabel, !isDark && { color: '#B45309' }]}>
+                  TỔNG TIỀN PHÁT SINH
+                </Text>
+                <Text style={[styles.minibarTotalSub, !isDark && { color: '#78350F' }]}>
+                  {totalRestockCount > 0
+                    ? isRestocked
+                      ? `⚡ Cần bù ${totalRestockCount} đồ (ĐÃ BÙ ĐỦ TỦ LẠNH) • Đồng bộ bill`
+                      : `⚠️ Chưa bù ${totalRestockCount} đồ tủ lạnh • Cần bổ sung • Đồng bộ bill`
+                    : 'Đồng bộ tự động vào bill Lễ tân'}
+                </Text>
+              </View>
+              <Text style={[styles.minibarTotalValue, !isDark && { color: '#D97706' }]}>
+                {totalMinibarCost.toLocaleString('vi-VN')} đ
               </Text>
             </View>
-            <Text style={[styles.minibarTotalValue, !isDark && { color: '#D97706' }]}>
-              {totalMinibarCost.toLocaleString('vi-VN')} đ
-            </Text>
-          </View>
 
-          <TouchableOpacity
-            style={[styles.modalConfirmBtn, submitting && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={submitting}
-            activeOpacity={0.8}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#0A0F1D" />
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="receipt-outline" size={18} color="#0A0F1D" style={{ marginRight: 6 }} />
-                <Text style={styles.modalConfirmBtnText}>LƯU & ĐỒNG BỘ HÓA ĐƠN</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalConfirmBtn, submitting && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={submitting}
+              activeOpacity={0.8}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#0A0F1D" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="receipt-outline" size={18} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.modalConfirmBtnText}>LƯU & ĐỒNG BỘ HÓA ĐƠN</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

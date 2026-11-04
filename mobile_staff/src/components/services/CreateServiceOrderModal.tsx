@@ -8,11 +8,15 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { CartItem } from './types';
-import { isTransportService, getServiceItemImage } from './serviceHelpers';
+import { isTransportService, getServiceItemImage, detectAllergyWarning } from './serviceHelpers';
 import { styles } from './styles';
 
 export interface CreateServiceOrderModalProps {
@@ -103,40 +107,54 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View
-          style={[
-            styles.modalContent,
-            { maxHeight: '92%' },
-            !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' },
-          ]}
-        >
-          {/* Modal Header */}
-          <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
-            <View>
-              <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Gọi Món & Đặt Dịch Vụ Mới 🛎️</Text>
-              <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
-                Tạo đơn ẩm thực, spa, tiện ích cho khách đang ở
-              </Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              { maxHeight: '92%' },
+              !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' },
+            ]}
+          >
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
+              <View>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Gọi Món & Đặt Dịch Vụ Mới 🛎️</Text>
+                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
+                  Tạo đơn ẩm thực, spa, tiện ích cho khách đang ở
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+                onPress={onClose}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#64748B'} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#64748B'} />
-            </TouchableOpacity>
-          </View>
 
-          {loadingModalData ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <ActivityIndicator color="#F59E0B" size="large" />
-              <Text style={{ color: isDark ? '#94A3B8' : '#64748B', marginTop: 12, fontSize: 13 }}>
-                Đang tải danh sách phòng & menu dịch vụ...
-              </Text>
-            </View>
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 35 }}>
+            {loadingModalData ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator color="#F59E0B" size="large" />
+                <Text style={{ color: isDark ? '#94A3B8' : '#64748B', marginTop: 12, fontSize: 13 }}>
+                  Đang tải danh sách phòng & menu dịch vụ...
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 35 }}
+                keyboardShouldPersistTaps="handled"
+              >
               {/* 1. Chọn phòng đang có khách */}
               <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>1. Chọn phòng đang có khách *:</Text>
               {occupiedRooms.length === 0 ? (
@@ -437,6 +455,25 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                           value={item.note || ''}
                           onChangeText={(txt) => handleUpdateCartItemNote(item.service.id, txt)}
                         />
+                        {detectAllergyWarning(item.note) && (
+                          <View
+                            style={[
+                              styles.allergyBanner,
+                              { marginTop: 6, marginBottom: 2, paddingVertical: 6, paddingHorizontal: 8 },
+                              !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+                            ]}
+                          >
+                            <View style={styles.allergyBannerTitleRow}>
+                              <Ionicons name="warning" size={13} color="#DC2626" style={{ marginRight: 4 }} />
+                              <Text style={[styles.allergyBannerTitle, { fontSize: 11 }, !isDark && { color: '#B91C1C' }]}>
+                                {detectAllergyWarning(item.note)?.title}
+                              </Text>
+                            </View>
+                            <Text style={[styles.allergyBannerText, { fontSize: 11, marginTop: 1 }, !isDark && { color: '#991B1B' }]}>
+                              Yêu cầu đặc biệt cho món này đã được ghi nhận!
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     );
                   })}
@@ -612,6 +649,26 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                 onChangeText={setOrderNote}
               />
 
+              {detectAllergyWarning(orderNote) && (
+                <View
+                  style={[
+                    styles.allergyBanner,
+                    { marginTop: 8, marginBottom: 12 },
+                    !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+                  ]}
+                >
+                  <View style={styles.allergyBannerTitleRow}>
+                    <Ionicons name="warning" size={15} color="#DC2626" style={{ marginRight: 6 }} />
+                    <Text style={[styles.allergyBannerTitle, !isDark && { color: '#B91C1C' }]}>
+                      {detectAllergyWarning(orderNote)?.title}
+                    </Text>
+                  </View>
+                  <Text style={[styles.allergyBannerText, !isDark && { color: '#991B1B' }]}>
+                    Hệ thống đã nhận diện lưu ý sức khỏe/ăn kiêng và sẽ ghim cảnh báo đỏ cho Bếp & Nhân viên phục vụ!
+                  </Text>
+                </View>
+              )}
+
               <TouchableOpacity
                 style={[
                   styles.modalConfirmBtn,
@@ -638,6 +695,7 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
           )}
         </View>
       </View>
-    </Modal>
-  );
+    </KeyboardAvoidingView>
+  </Modal>
+);
 };

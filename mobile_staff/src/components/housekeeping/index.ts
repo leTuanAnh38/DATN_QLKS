@@ -5,3 +5,4 @@ export * from './MinibarModal';
 export * from './BreakdownModal';
 export * from './LostFoundModal';
 export * from './RoomDetailModal';
+export * from './ChangeRoomModal';

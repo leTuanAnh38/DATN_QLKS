@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ServiceOrder, ServiceLockReason, SlaStatus, StatusBadgeConfig } from './types';
-import { getServiceItemImage, formatOrderTime, getServiceActionConfig } from './serviceHelpers';
+import { getServiceItemImage, formatOrderTime, getServiceActionConfig, detectAllergyWarning } from './serviceHelpers';
 import { styles } from './styles';
 
 export interface ServiceOrderCardProps {
@@ -44,6 +44,11 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
   onOpenCrm,
   onCallGuest,
 }) => {
+  const allergyInfo = detectAllergyWarning(item.note);
+  const cleanNoteText = item.note
+    ? item.note.replace(/\[ĐÃ HỦY:.*?\]\s*/, '').trim() || item.note
+    : '';
+
   return (
     <View
       style={[
@@ -59,6 +64,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
         },
         isMyTask && isDark && styles.cardMyTask,
         sla?.isOverdue && { borderColor: sla.borderColor, borderWidth: 1.5 },
+        allergyInfo?.hasAllergy && { borderColor: '#EF4444', borderWidth: 1.5 },
       ]}
     >
       {/* Header Đơn */}
@@ -78,6 +84,16 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
             <Ionicons name={actionConfig.catIcon as any} size={11} color={actionConfig.catColor} style={{ marginRight: 3 }} />
             <Text style={[styles.categoryPillText, { color: actionConfig.catColor }]}>{actionConfig.catLabel}</Text>
           </View>
+
+          {/* Huy hiệu Cảnh Báo Dị Ứng / Ăn Kiêng Nổi Bật */}
+          {allergyInfo && (
+            <View style={[styles.allergyBadgePill, !isDark && { backgroundColor: '#FEE2E2', borderColor: '#FECACA' }]}>
+              <Ionicons name="warning" size={10} color="#DC2626" style={{ marginRight: 3 }} />
+              <Text style={[styles.allergyBadgePillText, !isDark && { color: '#B91C1C' }]}>
+                {allergyInfo.title === 'CẢNH BÁO DỊ ỨNG THỰC PHẨM' ? '⚠️ DỊ ỨNG' : '🥗 ĂN KIÊNG'}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -198,14 +214,28 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
         </View>
       ) : null}
 
-      {/* Ghi chú yêu cầu đặc biệt của khách */}
-      {item.note && (!item.note.includes('[ĐÃ HỦY:') || item.note.replace(/\[ĐÃ HỦY:.*?\]\s*/, '').trim().length > 0) ? (
-        <View style={[styles.noteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
-          <Ionicons name="receipt-outline" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
-          <Text style={[styles.noteText, !isDark && { color: '#334155' }]}>
-            Yêu cầu: {item.note.replace(/\[ĐÃ HỦY:.*?\]\s*/, '').trim() || item.note}
-          </Text>
-        </View>
+      {/* Ghi chú yêu cầu đặc biệt của khách (Phân tách nổi bật nếu có CẢNH BÁO DỊ ỨNG) */}
+      {cleanNoteText ? (
+        allergyInfo ? (
+          <View style={[styles.allergyBanner, !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+            <View style={styles.allergyBannerTitleRow}>
+              <Ionicons name="warning" size={15} color="#DC2626" style={{ marginRight: 6 }} />
+              <Text style={[styles.allergyBannerTitle, !isDark && { color: '#B91C1C' }]}>
+                {allergyInfo.title}
+              </Text>
+            </View>
+            <Text style={[styles.allergyBannerText, !isDark && { color: '#991B1B' }]}>
+              Lưu ý Bếp & Phục vụ: {cleanNoteText}
+            </Text>
+          </View>
+        ) : (
+          <View style={[styles.noteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
+            <Ionicons name="receipt-outline" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
+            <Text style={[styles.noteText, !isDark && { color: '#334155' }]}>
+              Yêu cầu: {cleanNoteText}
+            </Text>
+          </View>
+        )
       ) : null}
 
       {/* Nhân viên tiếp nhận */}

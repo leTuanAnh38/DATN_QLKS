@@ -10,9 +10,18 @@ import {
     AlertTriangle,
     Building2,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Camera,
+    Image as ImageIcon
 } from 'lucide-react';
 import roomService from '../../../../services/roomService';
+const resolveImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const backendOrigin = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
+    return `${backendOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 
 export default function MaintenanceHistoryModal({
     isOpen,
@@ -27,6 +36,7 @@ export default function MaintenanceHistoryModal({
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'fixing', 'completed'
     const [isGuestFaultFilter, setIsGuestFaultFilter] = useState('all'); // 'all', 'guest', 'hotel'
+    const [previewPhoto, setPreviewPhoto] = useState(null);
 
     // Phân trang
     const [currentPage, setCurrentPage] = useState(1);
@@ -152,9 +162,10 @@ export default function MaintenanceHistoryModal({
     if (!isOpen) return null;
 
     return (
+        <>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
             <div
-                className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 1. Header (Fixed non-scrolling) */}
@@ -282,18 +293,19 @@ export default function MaintenanceHistoryModal({
                         </div>
                     ) : (
                         <>
-                            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
-                                <table className="w-full min-w-[750px] text-left border-collapse text-xs">
+                            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs bg-white">
+                                <table className="w-full min-w-[980px] text-left border-collapse text-xs">
                                     <thead>
                                         <tr className="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-bold uppercase text-[10px] tracking-wider">
-                                            <th className="py-3 px-3.5">Mã phiếu</th>
-                                            <th className="py-3 px-3">Phòng</th>
-                                            <th className="py-3 px-3.5">Thiết bị & Sự cố</th>
-                                            <th className="py-3 px-3.5">Thời gian sửa chữa</th>
-                                            <th className="py-3 px-3.5">Vật tư thay thế</th>
-                                            <th className="py-3 px-3.5 text-right">Chi phí</th>
-                                            <th className="py-3 px-3.5 text-center">Nguồn chi phí</th>
-                                            <th className="py-3 px-3.5 text-center">Trạng thái</th>
+                                            <th className="py-3 px-3 whitespace-nowrap w-[105px]">Mã phiếu</th>
+                                            <th className="py-3 px-2 text-center whitespace-nowrap w-[75px]">Phòng</th>
+                                            <th className="py-3 px-3 min-w-[150px]">Thiết bị & Sự cố</th>
+                                            <th className="py-3 px-3 whitespace-nowrap w-[130px]">Thời gian</th>
+                                            <th className="py-3 px-3 w-[120px]">Vật tư thay thế</th>
+                                            <th className="py-3 px-2 text-center whitespace-nowrap w-[95px]">Ảnh hiện trường</th>
+                                            <th className="py-3 px-3 text-right whitespace-nowrap w-[95px]">Chi phí</th>
+                                            <th className="py-3 px-3 text-center whitespace-nowrap w-[120px]">Nguồn chi phí</th>
+                                            <th className="py-3 pl-3 pr-4 text-center whitespace-nowrap min-w-[125px]">Trạng thái</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
@@ -308,19 +320,19 @@ export default function MaintenanceHistoryModal({
                                                         } transition`}
                                                 >
                                                     {/* Mã phiếu */}
-                                                    <td className="py-3 px-3.5 font-mono font-bold text-slate-800 whitespace-nowrap">
+                                                    <td className="py-3 px-3 font-mono font-bold text-slate-800 whitespace-nowrap">
                                                         #{t.ticket_code}
                                                     </td>
 
                                                     {/* Phòng */}
-                                                    <td className="py-3 px-3 whitespace-nowrap">
+                                                    <td className="py-3 px-2 text-center whitespace-nowrap">
                                                         <span className="font-black text-sm text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
                                                             P.{t.room_number}
                                                         </span>
                                                     </td>
 
                                                     {/* Thiết bị & Sự cố */}
-                                                    <td className="py-3 px-3.5 min-w-[160px]">
+                                                    <td className="py-3 px-3 min-w-[150px]">
                                                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
                                                             <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                                             <span>{t.equipment_name}</span>
@@ -332,7 +344,7 @@ export default function MaintenanceHistoryModal({
                                                     </td>
 
                                                     {/* Thời gian */}
-                                                    <td className="py-3 px-3.5 whitespace-nowrap text-slate-600 text-[11px]">
+                                                    <td className="py-3 px-3 whitespace-nowrap text-slate-600 text-[11px]">
                                                         <div>Bắt đầu: {formatDate(t.start_date)}</div>
                                                         {t.completed_date ? (
                                                             <div className="text-emerald-700 font-medium">Xong: {formatDate(t.completed_date)}</div>
@@ -342,7 +354,7 @@ export default function MaintenanceHistoryModal({
                                                     </td>
 
                                                     {/* Vật tư thay thế */}
-                                                    <td className="py-3 px-3.5 max-w-[200px]">
+                                                    <td className="py-3 px-3 max-w-[160px]">
                                                         {t.parts_replaced ? (
                                                             <span className="font-medium text-slate-800 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 inline-block line-clamp-2" title={t.parts_replaced}>
                                                                 {t.parts_replaced}
@@ -352,15 +364,66 @@ export default function MaintenanceHistoryModal({
                                                         )}
                                                     </td>
 
+                                                    {/* Ảnh hiện trường Before & After */}
+                                                    <td className="py-3 px-2 text-center whitespace-nowrap">
+                                                        <div className="flex items-center justify-center gap-1.5">
+                                                            {t.image_before ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setPreviewPhoto({
+                                                                        url: resolveImageUrl(t.image_before),
+                                                                        title: `Hiện trường hư hại - Phòng ${t.room_number}`,
+                                                                        subtitle: `Phiếu #${t.ticket_code} • Thiết bị: ${t.equipment_name}`
+                                                                    })}
+                                                                    className="group relative w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-amber-500 shadow-2xs transition cursor-pointer"
+                                                                    title="Bấm để phóng to ảnh hiện trường trước khi sửa"
+                                                                >
+                                                                    <img
+                                                                        src={resolveImageUrl(t.image_before)}
+                                                                        alt="Trước"
+                                                                        className="w-full h-full object-cover group-hover:scale-110 transition duration-200"
+                                                                    />
+                                                                    <span className="absolute bottom-0 inset-x-0 bg-slate-900/75 text-[8.5px] text-amber-300 font-bold leading-tight py-0.5">
+                                                                        Trước
+                                                                    </span>
+                                                                </button>
+                                                            ) : null}
+                                                            {t.image_after ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setPreviewPhoto({
+                                                                        url: resolveImageUrl(t.image_after),
+                                                                        title: `Nghiệm thu hoàn tất - Phòng ${t.room_number}`,
+                                                                        subtitle: `Phiếu #${t.ticket_code} • Kỹ thuật đã xử lý xong`
+                                                                    })}
+                                                                    className="group relative w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-500 shadow-2xs transition cursor-pointer"
+                                                                    title="Bấm để phóng to ảnh nghiệm thu sau sửa chữa"
+                                                                >
+                                                                    <img
+                                                                        src={resolveImageUrl(t.image_after)}
+                                                                        alt="Sau"
+                                                                        className="w-full h-full object-cover group-hover:scale-110 transition duration-200"
+                                                                    />
+                                                                    <span className="absolute bottom-0 inset-x-0 bg-emerald-800/80 text-[8.5px] text-emerald-200 font-bold leading-tight py-0.5">
+                                                                        Sau
+                                                                    </span>
+                                                                </button>
+                                                            ) : null}
+                                                            {!t.image_before && !t.image_after && (
+                                                                <span className="text-slate-300 text-[11px]">—</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+
                                                     {/* Chi phí */}
-                                                    <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                                                    <td className="py-3 px-3 text-right whitespace-nowrap">
                                                         <span className="font-black text-sm text-slate-900">
                                                             {formatCurrency(t.cost)}
                                                         </span>
                                                     </td>
 
                                                     {/* Nguồn chi phí */}
-                                                    <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                                                    <td className="py-3 px-2 text-center whitespace-nowrap">
                                                         {t.is_guest_fault ? (
                                                             <div className="space-y-0.5">
                                                                 <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -380,7 +443,7 @@ export default function MaintenanceHistoryModal({
                                                     </td>
 
                                                     {/* Trạng thái */}
-                                                    <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                                                    <td className="py-3 px-2 text-center whitespace-nowrap">
                                                         {isDone ? (
                                                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -478,6 +541,54 @@ export default function MaintenanceHistoryModal({
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {/* Ảnh hiện trường Before & After */}
+                                            {(t.image_before || t.image_after) && (
+                                                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                                        <Camera className="w-3 h-3 text-slate-400" />
+                                                        <span>Ảnh hiện trường:</span>
+                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        {t.image_before && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setPreviewPhoto({
+                                                                    url: resolveImageUrl(t.image_before),
+                                                                    title: `Hiện trường hư hại - Phòng ${t.room_number}`,
+                                                                    subtitle: `Phiếu #${t.ticket_code} • Thiết bị: ${t.equipment_name}`
+                                                                })}
+                                                                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-[10px] font-bold cursor-pointer transition"
+                                                            >
+                                                                <img
+                                                                    src={resolveImageUrl(t.image_before)}
+                                                                    alt="Trước"
+                                                                    className="w-4 h-4 rounded object-cover"
+                                                                />
+                                                                <span>Ảnh ban đầu</span>
+                                                            </button>
+                                                        )}
+                                                        {t.image_after && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setPreviewPhoto({
+                                                                    url: resolveImageUrl(t.image_after),
+                                                                    title: `Nghiệm thu hoàn tất - Phòng ${t.room_number}`,
+                                                                    subtitle: `Phiếu #${t.ticket_code} • Kỹ thuật đã xử lý xong`
+                                                                })}
+                                                                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-[10px] font-bold cursor-pointer transition"
+                                                            >
+                                                                <img
+                                                                    src={resolveImageUrl(t.image_after)}
+                                                                    alt="Sau"
+                                                                    className="w-4 h-4 rounded object-cover"
+                                                                />
+                                                                <span>Ảnh nghiệm thu</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* 4. Chi phí & Nguồn chi phí */}
                                             <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
@@ -601,5 +712,55 @@ export default function MaintenanceHistoryModal({
                 </div>
             </div>
         </div>
+
+            {/* Modal Phóng to Ảnh Hiện trường (Lightbox) */}
+            {previewPhoto && (
+                <div
+                    className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fadeIn"
+                    onClick={() => setPreviewPhoto(null)}
+                >
+                    <div
+                        className="relative max-w-3xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-white">
+                            <div>
+                                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Camera className="w-4 h-4 text-amber-400" />
+                                    <span>{previewPhoto.title}</span>
+                                </h4>
+                                {previewPhoto.subtitle && (
+                                    <p className="text-xs text-slate-400 mt-0.5">{previewPhoto.subtitle}</p>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setPreviewPhoto(null)}
+                                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-black flex items-center justify-center p-3 overflow-hidden">
+                            <img
+                                src={previewPhoto.url}
+                                alt={previewPhoto.title}
+                                className="max-h-[68vh] w-auto max-w-full object-contain rounded-xl"
+                            />
+                        </div>
+                        <div className="p-3 bg-slate-900 text-center border-t border-slate-800">
+                            <a
+                                href={previewPhoto.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-amber-400 hover:text-amber-300 font-semibold underline"
+                            >
+                                Mở ảnh gốc trong tab mới ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

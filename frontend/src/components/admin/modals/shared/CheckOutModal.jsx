@@ -31,13 +31,21 @@ import {
     QrCode,
     Banknote,
     FileText,
-    Lock
+    Lock,
+    Camera
 } from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 import { paymentService } from '../../../../services/paymentService';
 import hotelService from '../../../../services/hotelService';
 import roomService from '../../../../services/roomService';
 import api from '../../../../services/api';
+const resolveImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const backendOrigin = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
+    return `${backendOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 
 // Helper render icon cho confirm modal thông báo
 const renderConfirmIcon = (icon, type) => {
@@ -178,6 +186,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         late_checkout_after_6pm: 100
     });
     const [applyLateSurcharge, setApplyLateSurcharge] = useState(true);
+    const [damagePhotoPreview, setDamagePhotoPreview] = useState(null);
 
     // Hàm refresh lại bảng kê sau khi thao tác dịch vụ hoặc buồng phòng hoàn thành kiểm tra
     const refreshSummary = useCallback(async () => {
@@ -869,6 +878,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     if (!booking) return null;
 
     return (
+        <>
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 max-w-4xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
@@ -1328,6 +1338,56 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                         Trang thiết bị và đồ dùng trong phòng đầy đủ, hoạt động bình thường.
                                                     </p>
                                                 )}
+                                                {/* Ảnh bằng chứng đối soát hiện trường từ Buồng phòng / Kỹ thuật */}
+                                                {summary?.damage_tickets && summary.damage_tickets.length > 0 && (
+                                                    <div className="mt-2.5 pt-2 border-t border-rose-200/60 space-y-2">
+                                                        <div className="text-[10.5px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
+                                                            <Camera className="w-3.5 h-3.5 text-rose-600" />
+                                                            <span>Ảnh bằng chứng hiện trường ({summary.damage_tickets.length} phiếu):</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            {summary.damage_tickets.map((dt) => (
+                                                                <div key={dt.id} className="flex items-center gap-2.5 bg-rose-50/50 p-2 rounded-xl border border-rose-200 shadow-2xs">
+                                                                    {dt.image_before ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setDamagePhotoPreview({
+                                                                                url: resolveImageUrl(dt.image_before),
+                                                                                title: `Hiện trường hư hại - ${dt.equipment_name}`,
+                                                                                subtitle: `Phiếu #${dt.ticket_code} • Phụ phí: ${formatCurrency(dt.cost)}`
+                                                                            })}
+                                                                            className="group relative w-12 h-12 rounded-lg overflow-hidden border border-rose-300 hover:ring-2 hover:ring-rose-400 cursor-pointer transition shrink-0"
+                                                                            title="Bấm phóng to ảnh ban đầu"
+                                                                        >
+                                                                            <img src={resolveImageUrl(dt.image_before)} alt="Trước" className="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
+                                                                            <span className="absolute bottom-0 inset-x-0 bg-slate-900/80 text-[8px] text-amber-300 font-bold text-center py-0.5">Trước</span>
+                                                                        </button>
+                                                                    ) : null}
+                                                                    {dt.image_after ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setDamagePhotoPreview({
+                                                                                url: resolveImageUrl(dt.image_after),
+                                                                                title: `Nghiệm thu sau sửa - ${dt.equipment_name}`,
+                                                                                subtitle: `Phiếu #${dt.ticket_code} • Kỹ thuật đã sửa xong`
+                                                                            })}
+                                                                            className="group relative w-12 h-12 rounded-lg overflow-hidden border border-emerald-300 hover:ring-2 hover:ring-emerald-400 cursor-pointer transition shrink-0"
+                                                                            title="Bấm phóng to ảnh sau sửa"
+                                                                        >
+                                                                            <img src={resolveImageUrl(dt.image_after)} alt="Sau" className="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
+                                                                            <span className="absolute bottom-0 inset-x-0 bg-emerald-900/80 text-[8px] text-emerald-200 font-bold text-center py-0.5">Sau</span>
+                                                                        </button>
+                                                                    ) : null}
+                                                                    <div className="text-[11px] min-w-0 flex-1">
+                                                                        <div className="font-bold text-slate-800 truncate">{dt.equipment_name}</div>
+                                                                        <div className="text-rose-600 font-extrabold">{formatCurrency(dt.cost)}</div>
+                                                                        <div className="text-[10px] text-slate-500 font-mono">#{dt.ticket_code}</div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -1515,6 +1575,30 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                                     </span>
                                                                     <span>{svc.service_name}</span>
                                                                 </span>
+                                                                {isDamage && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const matchingTicket = (summary?.damage_tickets || []).find(
+                                                                                (dt) => (svc.service_name || '').toLowerCase().includes((dt.equipment_name || '').toLowerCase()) || dt.image_before
+                                                                            ) || (summary?.damage_tickets || [])[0];
+                                                                            if (matchingTicket?.image_before) {
+                                                                                setDamagePhotoPreview({
+                                                                                    url: resolveImageUrl(matchingTicket.image_before),
+                                                                                    title: `Bằng chứng hư hại: ${matchingTicket.equipment_name || svc.service_name}`,
+                                                                                    subtitle: `Phiếu #${matchingTicket.ticket_code || ''} • Do Buồng phòng/Kỹ thuật chụp tại hiện trường`
+                                                                                });
+                                                                            } else {
+                                                                                alert('Chưa có ảnh đính kèm cho mục bồi thường này.');
+                                                                            }
+                                                                        }}
+                                                                        className="px-2 py-0.5 rounded-md bg-rose-100 hover:bg-rose-200 text-rose-800 text-[10px] font-bold border border-rose-300 inline-flex items-center gap-1 cursor-pointer transition shrink-0 ml-1"
+                                                                        title="Xem ảnh bằng chứng hư hại hiện trường"
+                                                                    >
+                                                                        <Camera className="w-3 h-3 text-rose-600" />
+                                                                        <span>Xem ảnh</span>
+                                                                    </button>
+                                                                )}
 
                                                                 {/* Huy hiệu thanh toán */}
                                                                 {isZeroPrice ? (
@@ -2199,5 +2283,56 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
             </div>
         </div>
+
+            {/* Modal Phóng to Ảnh Hư hại Đối soát (Lightbox) */}
+            {damagePhotoPreview && (
+                <div
+                    className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fadeIn"
+                    onClick={() => setDamagePhotoPreview(null)}
+                >
+                    <div
+                        className="relative max-w-3xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-white">
+                            <div>
+                                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Camera className="w-4 h-4 text-rose-400" />
+                                    <span>{damagePhotoPreview.title}</span>
+                                </h4>
+                                {damagePhotoPreview.subtitle && (
+                                    <p className="text-xs text-slate-400 mt-0.5">{damagePhotoPreview.subtitle}</p>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setDamagePhotoPreview(null)}
+                                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-black flex items-center justify-center p-3 overflow-hidden">
+                            <img
+                                src={damagePhotoPreview.url}
+                                alt={damagePhotoPreview.title}
+                                className="max-h-[68vh] w-auto max-w-full object-contain rounded-xl"
+                            />
+                        </div>
+                        <div className="p-3 bg-slate-900 text-center border-t border-slate-800 flex items-center justify-between px-6">
+                            <span className="text-xs text-slate-400">Bằng chứng hiện trường lưu trên hệ thống PMS</span>
+                            <a
+                                href={damagePhotoPreview.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-amber-400 hover:text-amber-300 font-semibold underline"
+                            >
+                                Mở ảnh gốc trong tab mới ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

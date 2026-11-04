@@ -30,6 +30,7 @@ import {
   BreakdownModal,
   LostFoundModal,
   RoomDetailModal,
+  ChangeRoomModal,
 } from '../../components/housekeeping';
 
 export default function HousekeepingScreen() {
@@ -79,6 +80,19 @@ export default function HousekeepingScreen() {
 
   // Modal Quản Lý Đặt Phòng & Lịch Lưu Trú (Timeline)
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
+
+  // Modal Đổi Phòng Cho Khách Lưu Trú (Room Move khi có sự cố nặng)
+  const [changeRoomModalVisible, setChangeRoomModalVisible] = useState(false);
+  const [changeRoomData, setChangeRoomData] = useState<{
+    room: RoomItem | null;
+    booking: any | null;
+    initialReason?: string;
+    initialIssueType?: string;
+    initialEquipment?: string;
+  }>({
+    room: null,
+    booking: null,
+  });
 
   // Modal Hồ Sơ Khách Hàng CRM & Lịch Sử
   const [crmModalVisible, setCrmModalVisible] = useState(false);
@@ -191,10 +205,21 @@ export default function HousekeepingScreen() {
       return;
     }
     const isCleaning = room.status === 'cleaning';
-    const nextStatus = isCleaning ? 'available' : 'cleaning';
-    const actionTitle = isCleaning ? 'Xác nhận ĐÃ DỌN SẠCH' : 'Bắt đầu DỌN DẸP';
+    const hasActiveGuest = Boolean(room.current_booking);
+
+    // Nếu phòng đang dọn dẹp:
+    // - Nếu phòng có khách đang ở -> Chuyển về 'occupied' (Khách tiếp tục ở)
+    // - Nếu phòng trống -> Chuyển về 'available' (Phòng sạch đón khách mới)
+    const nextStatus = isCleaning ? (hasActiveGuest ? 'occupied' : 'available') : 'cleaning';
+
+    const actionTitle = isCleaning
+      ? (hasActiveGuest ? 'Hoàn tất dọn phòng khách ở' : 'Xác nhận ĐÃ DỌN SẠCH')
+      : 'Bắt đầu DỌN DẸP';
+
     const actionDesc = isCleaning
-      ? `Phòng ${room.room_number} đã được lau dọn, thay ga gối sạch sẽ và sẵn sàng đón khách?`
+      ? (hasActiveGuest
+          ? `Phòng ${room.room_number} hiện đang có khách lưu trú (${room.current_booking?.guest_name || 'Khách'}). Xác nhận đã lau dọn sạch sẽ để phòng trở lại trạng thái "Có khách"?`
+          : `Phòng ${room.room_number} đã được lau dọn, thay ga gối sạch sẽ và sẵn sàng đón khách mới?`)
       : `Bắt đầu ca dọn dẹp cho Phòng ${room.room_number}?`;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -202,7 +227,7 @@ export default function HousekeepingScreen() {
     Alert.alert(actionTitle, actionDesc, [
       { text: 'Để sau', style: 'cancel' },
       {
-        text: isCleaning ? 'Đã xong ✨' : 'Vào dọn 🧹',
+        text: isCleaning ? (hasActiveGuest ? 'Khách ở tiếp ✨' : 'Đã xong ✨') : 'Vào dọn 🧹',
         style: 'default',
         onPress: async () => {
           setActionLoadingId(room.id);
@@ -293,6 +318,21 @@ export default function HousekeepingScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const openChangeRoomModal = (
+    room: RoomItem,
+    booking: any,
+    initialData?: { reason?: string; issueType?: string; equipment?: string }
+  ) => {
+    setChangeRoomData({
+      room,
+      booking: booking || room.current_booking || room.recent_booking,
+      initialReason: initialData?.reason,
+      initialIssueType: initialData?.issueType,
+      initialEquipment: initialData?.equipment,
+    });
+    setChangeRoomModalVisible(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   // Handler được giữ trong ref và bọc wrapper ổn định để RoomCard (React.memo) không
   // bị render lại mỗi khi state của màn hình đổi (nhập ô tìm kiếm, mở modal...).
@@ -744,6 +784,7 @@ export default function HousekeepingScreen() {
         room={breakdownRoom}
         onClose={() => setBreakdownModalVisible(false)}
         onSuccess={fetchRooms}
+        onOpenChangeRoom={openChangeRoomModal}
       />
 
       {/* Modal Khai Báo Đồ Khách Bỏ Quên */}
@@ -769,6 +810,7 @@ export default function HousekeepingScreen() {
         onOpenMinibar={openMinibarCheck}
         onOpenLostFound={openLostFoundModal}
         onOpenBreakdown={openBreakdownModal}
+        onOpenChangeRoom={openChangeRoomModal}
         onOpenCrm={(guestId) => {
           setCrmGuestId(guestId);
           setCrmModalVisible(true);
@@ -776,6 +818,18 @@ export default function HousekeepingScreen() {
         onNavigateServices={() => router.navigate('/(tabs)/services')}
         onNavigateTransport={() => router.navigate('/(tabs)/transport')}
         onNavigateMaintenance={() => router.navigate('/(tabs)/maintenance')}
+      />
+
+      {/* Modal Đổi Phòng Cho Khách Lưu Trú (Sự cố nặng) */}
+      <ChangeRoomModal
+        visible={changeRoomModalVisible}
+        room={changeRoomData.room}
+        booking={changeRoomData.booking}
+        initialReason={changeRoomData.initialReason}
+        initialIssueType={changeRoomData.initialIssueType}
+        initialEquipment={changeRoomData.initialEquipment}
+        onClose={() => setChangeRoomModalVisible(false)}
+        onSuccess={fetchRooms}
       />
 
       {/* Modal Quản Lý Đặt Phòng & Lịch Trình */}

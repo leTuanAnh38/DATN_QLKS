@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
+  Image,
+  Modal,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { MAINTENANCE_ISSUE_TYPES } from '../../constants/maintenance';
+import { MAINTENANCE_ISSUE_TYPES, calculateTicketSLA } from '../../constants/maintenance';
 import { Palette } from '../../constants/theme';
 import { useAppTheme } from '../../contexts/ThemeContext';
 
@@ -33,6 +36,8 @@ export interface MaintenanceTicket {
   technician_name: string;
   start_date: string;
   note?: string;
+  image_before?: string | null;
+  image_after?: string | null;
 }
 
 export interface MaintenanceTicketCardProps {
@@ -73,6 +78,14 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
   };
   const isOccupied = item.room_status === 'occupied';
   const isCleaning = item.room_status === 'cleaning';
+  const floor = item.room_floor || (item.room_number && item.room_number.length >= 3 ? item.room_number.slice(0, -2) : undefined);
+
+  const [previewImage, setPreviewImage] = useState<{ uri: string; title: string } | null>(null);
+
+  const slaStatus = useMemo(
+    () => calculateTicketSLA(item.start_date, item.priority, item.room_status, isFixing),
+    [item.start_date, item.priority, item.room_status, isFixing]
+  );
 
   return (
     <View
@@ -80,7 +93,7 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
         styles.card,
         !isDark && {
           backgroundColor: '#FFFFFF',
-          borderColor: isUrgent ? '#EF4444' : isFixing ? 'rgba(239, 68, 68, 0.4)' : '#E2E8F0',
+          borderColor: slaStatus?.isOverdue ? '#EF4444' : isUrgent ? '#EF4444' : isFixing ? 'rgba(239, 68, 68, 0.4)' : '#E2E8F0',
           shadowColor: '#64748B',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.08,
@@ -88,7 +101,7 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
           elevation: 2,
         },
         isFixing && isDark && styles.cardFixing,
-        isUrgent && { borderWidth: 1.5, borderColor: '#EF4444' },
+        (isUrgent || slaStatus?.isOverdue) && { borderWidth: 1.5, borderColor: '#EF4444' },
       ]}
     >
       {/* Header phiếu */}
@@ -97,7 +110,7 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
           <View style={[styles.roomTag, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
             <Ionicons name="bed" size={13} color={Palette.gold.main} style={{ marginRight: 4 }} />
             <Text style={[styles.roomTagText, !isDark && { color: '#0F172A' }]}>
-              Phòng {item.room_number}{item.room_floor ? ` • T.${item.room_floor}` : ''}
+              Phòng {item.room_number}{floor ? ` • T.${floor}` : ''}
             </Text>
           </View>
 
@@ -158,6 +171,36 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
           </Text>
         </View>
       </View>
+
+      {/* SLA đếm thời gian chờ xử lý sự cố thiết bị */}
+      {isFixing && slaStatus && (
+        <View
+          style={[
+            styles.slaContainer,
+            {
+              backgroundColor: slaStatus.statusBadge.bg,
+              borderColor: slaStatus.statusBadge.border,
+            },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons
+              name={slaStatus.isOverdue ? 'alert-circle' : 'time-outline'}
+              size={13}
+              color={slaStatus.statusBadge.color}
+              style={{ marginRight: 5 }}
+            />
+            <Text style={[styles.slaText, { color: slaStatus.statusBadge.color }]}>
+              {slaStatus.statusBadge.label}
+            </Text>
+          </View>
+          <Text style={[styles.slaSubText, { color: slaStatus.statusBadge.color }]}>
+            {slaStatus.isOverdue
+              ? `Vượt chuẩn ${slaStatus.slaLimitMinutes}p`
+              : `Chuẩn SLA: ${slaStatus.slaLimitMinutes}p`}
+          </Text>
+        </View>
+      )}
 
       {/* Cảnh báo SOP 5 sao: Phòng có khách lưu trú */}
       {isOccupied && !isCancelled && (
@@ -229,6 +272,42 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
           <Text style={[styles.guestFaultBadgeText, !isDark && { color: '#DC2626' }]}>
             Khách làm hư hỏng • {item.cost ? `Bồi thường: ${Number(item.cost).toLocaleString('vi-VN')} đ` : 'Đã lập biên bản'}
           </Text>
+        </View>
+      ) : null}
+
+      {/* Bằng chứng hình ảnh hiện trường (Before & After) */}
+      {(item.image_before || item.image_after) ? (
+        <View style={styles.evidenceContainer}>
+          <Text style={[styles.evidenceHeaderTitle, !isDark && { color: '#64748B' }]}>
+            Bằng chứng hình ảnh hiện trường:
+          </Text>
+          <View style={styles.evidenceRow}>
+            {item.image_before ? (
+              <TouchableOpacity
+                style={[styles.evidenceThumbWrapper, !isDark && { borderColor: '#E2E8F0' }]}
+                onPress={() => setPreviewImage({ uri: item.image_before!, title: 'Ảnh hiện trường hư hại (Trước sửa)' })}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: item.image_before }} style={styles.evidenceThumb} />
+                <View style={[styles.evidenceBadge, { backgroundColor: '#EF4444' }]}>
+                  <Text style={styles.evidenceBadgeText}>Hiện trường</Text>
+                </View>
+              </TouchableOpacity>
+            ) : null}
+
+            {item.image_after ? (
+              <TouchableOpacity
+                style={[styles.evidenceThumbWrapper, !isDark && { borderColor: '#E2E8F0' }]}
+                onPress={() => setPreviewImage({ uri: item.image_after!, title: 'Ảnh sau khi sửa chữa (Nghiệm thu)' })}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: item.image_after }} style={styles.evidenceThumb} />
+                <View style={[styles.evidenceBadge, { backgroundColor: '#10B981' }]}>
+                  <Text style={styles.evidenceBadgeText}>Đã sửa xong</Text>
+                </View>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
       ) : null}
 
@@ -323,6 +402,35 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
           </View>
         )}
       </View>
+
+      {/* Lightbox Modal xem ảnh toàn màn hình */}
+      {previewImage ? (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
+          <View style={styles.lightboxOverlay}>
+            <SafeAreaView style={{ flex: 1, width: '100%' }}>
+              <View style={styles.lightboxHeader}>
+                <Text style={styles.lightboxTitle} numberOfLines={1}>
+                  {previewImage.title} • P.{item.room_number}
+                </Text>
+                <TouchableOpacity
+                  style={styles.lightboxCloseBtn}
+                  onPress={() => setPreviewImage(null)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.lightboxBody}>
+                <Image
+                  source={{ uri: previewImage.uri }}
+                  style={styles.lightboxImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </SafeAreaView>
+          </View>
+        </Modal>
+      ) : null}
     </View>
   );
 });
@@ -372,6 +480,25 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 11,
     fontWeight: '800',
+  },
+  slaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 10,
+    borderWidth: 1,
+  },
+  slaText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  slaSubText: {
+    fontSize: 10.5,
+    fontWeight: '600',
   },
   sopAlertBanner: {
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -598,5 +725,85 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#94A3B8',
+  },
+  evidenceContainer: {
+    marginBottom: 10,
+    marginTop: 2,
+  },
+  evidenceHeaderTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  evidenceRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  evidenceThumbWrapper: {
+    position: 'relative',
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  evidenceThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 9,
+  },
+  evidenceBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  evidenceBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  lightboxOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'space-between',
+  },
+  lightboxHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  lightboxTitle: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+    marginRight: 10,
+  },
+  lightboxCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  lightboxImage: {
+    width: '100%',
+    height: '85%',
   },
 });

@@ -120,6 +120,10 @@ class MaintenanceTicket(models.Model):
     parts_replaced = models.CharField(max_length=255, blank=True, default='', verbose_name="Vật tư thay thế (VD: 1 Củ sen Inax, Tụ quạt 35uF)")
     cost = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Chi phí thay thế / sửa chữa (VND)")
 
+    # Bằng chứng hình ảnh hiện trường (Before & After)
+    image_before = models.ImageField(upload_to='maintenance/before/', null=True, blank=True, verbose_name="Ảnh hiện trường hư hại (Before)")
+    image_after = models.ImageField(upload_to='maintenance/after/', null=True, blank=True, verbose_name="Ảnh sau khi sửa chữa (After)")
+
     # Trách nhiệm chi trả
     is_guest_fault = models.BooleanField(default=False, verbose_name="Do khách làm hỏng (Khách bồi thường)?")
     booking = models.ForeignKey(

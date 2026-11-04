@@ -121,6 +121,7 @@ function RoomCard({
 
   const currentBk = item.current_booking;
   const recentBk = item.recent_booking;
+  const hasCurrentGuest = Boolean(currentBk);
   const hasGuest = Boolean(currentBk || recentBk);
   const guestName = isOccupied
     ? (currentBk?.guest_name || recentBk?.guest_name)
@@ -247,10 +248,23 @@ function RoomCard({
           )}
         </View>
       ) : isCleaning ? (
-        <View style={[styles.cleaningInfoCard, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
-          <View style={styles.guestNameRow}>
-            <Ionicons name="sparkles" size={11} color={!isDark ? '#D97706' : '#FBBF24'} style={{ marginRight: 4 }} />
-            <Text style={[styles.cleaningGuestText, !isDark && { color: '#B45309' }]} numberOfLines={1}>
+        <View
+          style={[
+            styles.cleaningInfoCard,
+            !guestName && { justifyContent: 'center', paddingVertical: 7 },
+            !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' },
+          ]}
+        >
+          <View style={[styles.guestNameRow, !guestName && { justifyContent: 'center', marginBottom: 0 }]}>
+            <Ionicons name="sparkles" size={11} color={!isDark ? '#D97706' : '#FBBF24'} style={{ marginRight: 5 }} />
+            <Text
+              style={[
+                styles.cleaningGuestText,
+                !isDark && { color: '#B45309' },
+                !guestName && { flex: 0, textAlign: 'center' },
+              ]}
+              numberOfLines={1}
+            >
               {guestName ? `Khách: ${guestName}` : 'Vệ sinh sau sửa chữa / Phòng trống'}
             </Text>
           </View>
@@ -260,14 +274,14 @@ function RoomCard({
         </View>
       ) : isMaintenance ? (
         <View style={[styles.maintenanceInfoCard, !isDark && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.22)' }]}>
-          <Ionicons name="construct" size={11} color="#EF4444" style={{ marginRight: 4 }} />
+          <Ionicons name="construct" size={11} color="#EF4444" style={{ marginRight: 5 }} />
           <Text style={[styles.maintenanceEquipText, !isDark && { color: '#B91C1C' }]} numberOfLines={1}>
             {item.active_maintenance?.equipment_name || 'Đang bảo trì'}
           </Text>
         </View>
       ) : (
         <View style={[styles.availableInfoCard, !isDark && { backgroundColor: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.22)' }]}>
-          <Ionicons name="checkmark-circle" size={11} color={!isDark ? '#059669' : '#34D399'} style={{ marginRight: 4 }} />
+          <Ionicons name="checkmark-circle" size={11} color={!isDark ? '#059669' : '#34D399'} style={{ marginRight: 5 }} />
           <Text style={[styles.availableInfoText, !isDark && { color: '#047857' }]} numberOfLines={1}>
             Sẵn sàng đón khách
           </Text>
@@ -335,7 +349,7 @@ function RoomCard({
           <TouchableOpacity
             style={[
               styles.actionFullBtn,
-              { backgroundColor: '#10B981' },
+              { backgroundColor: hasCurrentGuest ? '#0284C7' : '#10B981' },
               actionLoading && { opacity: 0.65 },
             ]}
             onPress={() => onToggleCleaning(item)}
@@ -345,10 +359,9 @@ function RoomCard({
             {actionLoading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <>
-                <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                <Text style={[styles.actionFullBtnText, { color: '#FFFFFF' }]}>Đã dọn xong ✨</Text>
-              </>
+              <Text style={[styles.actionFullBtnText, { color: '#FFFFFF' }]}>
+                {hasCurrentGuest ? 'Đã dọn xong (Khách ở tiếp) ✨' : 'Đã dọn xong ✨'}
+              </Text>
             )}
           </TouchableOpacity>
         </View>

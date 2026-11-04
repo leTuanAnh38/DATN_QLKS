@@ -1704,8 +1704,13 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra quyền theo ma trận RBAC
-        if not (user.is_superuser or check_role_permission(user, 'bookings', 'update')):
+        # 1. Kiểm tra quyền theo ma trận RBAC (Hỗ trợ đổi phòng khẩn cấp cho nhân viên khách sạn)
+        can_change_room = (
+            user.is_superuser or 
+            check_role_permission(user, 'bookings', 'update') or
+            getattr(user, 'role', '') in ['admin', 'manager', 'owner', 'receptionist', 'housekeeper', 'technician']
+        )
+        if not can_change_room:
             return Response({
                 'success': False,
                 'message': 'Bạn không có quyền thực hiện đổi phòng cho khách (Yêu cầu quyền Cập nhật đơn đặt phòng).'
@@ -1822,7 +1827,8 @@ class BookingViewSet(viewsets.ModelViewSet):
                     cost = int(raw_cost) if raw_cost.isdigit() else 0
                 except (ValueError, TypeError):
                     cost = 0
-                is_guest_fault = bool(request.data.get('is_guest_fault', False))
+                raw_guest_fault = request.data.get('is_guest_fault', False)
+                is_guest_fault = bool(raw_guest_fault is True or str(raw_guest_fault).lower() in ['true', '1'])
 
                 ticket_code = f"MT-{uuid.uuid4().hex[:6].upper()}"
                 created_ticket = MaintenanceTicket.objects.create(
@@ -1838,6 +1844,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                     status='fixing',
                     created_by=user if user.is_authenticated else None
                 )
+                if 'image_before' in request.FILES:
+                    created_ticket.image_before = request.FILES['image_before']
+                    created_ticket.save(update_fields=['image_before'])
 
                 # NẾU DO KHÁCH LÀM HỎNG: Tự động cộng mục bồi thường vào đơn đặt phòng của khách!
                 if is_guest_fault and cost > 0:
@@ -1866,9 +1875,11 @@ class BookingViewSet(viewsets.ModelViewSet):
             ).distinct()
 
             old_status_text = "Đang bảo trì" if old_room_status == 'maintenance' else "Cần dọn dẹp"
+            from ..users.models import User as UserModel
+            role_display = dict(UserModel.ROLE_CHOICES).get(getattr(user, 'role', ''), "Nhân viên")
             notif_title = f"🔄 [ĐỔI PHÒNG] Khách P.{old_room.room_number} chuyển sang P.{new_room.room_number}!"
             notif_msg = (
-                f"Lễ tân ({staff_name}) đã thực hiện Đổi phòng cho khách lưu trú:\n"
+                f"{role_display} ({staff_name}) đã thực hiện Đổi phòng cho khách lưu trú:\n"
                 f"• Khách hàng: {guest_display} (#{booking.booking_code})\n"
                 f"• Phòng cũ: P.{old_room.room_number} ➔ Trạng thái mới: {old_status_text}\n"
                 f"• Phòng mới: P.{new_room.room_number} (Tầng {new_room.floor})\n"
@@ -2982,6 +2993,23 @@ class BookingViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Lỗi khi đồng bộ thanh toán dịch vụ trong checkout_summary: {e}")
 
+        # 2.4. Lấy danh sách phiếu hư hại/bảo trì do khách làm hỏng kèm ảnh bằng chứng
+        damage_tickets = []
+        for mt in booking.maintenance_tickets.all().order_by('-start_date'):
+            damage_tickets.append({
+                'id': mt.id,
+                'ticket_code': mt.ticket_code,
+                'equipment_name': mt.equipment_name,
+                'issue_type': mt.issue_type,
+                'issue_type_display': mt.get_issue_type_display(),
+                'description': mt.description,
+                'cost': float(mt.cost or 0),
+                'is_guest_fault': mt.is_guest_fault,
+                'status': mt.status,
+                'image_before': request.build_absolute_uri(mt.image_before.url) if mt.image_before else None,
+                'image_after': request.build_absolute_uri(mt.image_after.url) if mt.image_after else None,
+            })
+
         # 3. Phân tách Dịch vụ đặt trước đã thanh toán vs Dịch vụ phát sinh chưa thanh toán
         prepaid_services_total = float(sum(item['total_price'] for item in extra_services if item['is_paid']))
         unpaid_services_total = float(sum(item['total_price'] for item in extra_services if not item['is_paid']))
@@ -3071,6 +3099,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             'promotion_code': (booking.applied_promotion.code if booking.applied_promotion else (getattr(booking, 'promotion_code', None) or '')),
             'total_discount': mem_discount + promo_discount,
             'extra_services': extra_services,
+            'damage_tickets': damage_tickets,
             'prepaid_services_total': prepaid_services_total,
             'unpaid_services_total': unpaid_services_total,
             'service_charge': total_service_charge,

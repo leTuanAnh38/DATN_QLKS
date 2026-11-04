@@ -29,6 +29,7 @@ interface RoomDetailModalProps {
   onOpenMinibar: (room: RoomItem) => void;
   onOpenLostFound: (room: RoomItem) => void;
   onOpenBreakdown: (room: RoomItem) => void;
+  onOpenChangeRoom?: (room: RoomItem, booking: any, initialData?: { reason?: string; issueType?: string; equipment?: string }) => void;
   onOpenCrm: (guestId: number) => void;
   onNavigateServices: () => void;
   onNavigateTransport: () => void;
@@ -49,6 +50,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
   onOpenMinibar,
   onOpenLostFound,
   onOpenBreakdown,
+  onOpenChangeRoom,
   onOpenCrm,
   onNavigateServices,
   onNavigateTransport,
@@ -409,6 +411,23 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     >
                       <Ionicons name="construct" size={16} color="#EF4444" style={{ marginRight: 6 }} />
                       <Text style={[styles.detailToolBtnText, { color: '#EF4444' }]}>Báo hỏng thiết bị</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* 6. Đổi phòng khẩn cấp: CHỈ cho phòng có khách */}
+                  {room.status === 'occupied' && onOpenChangeRoom && (
+                    <TouchableOpacity
+                      style={[
+                        styles.detailToolBtn,
+                        { borderColor: 'rgba(99, 102, 241, 0.4)', backgroundColor: 'rgba(99, 102, 241, 0.08)' },
+                      ]}
+                      onPress={() => {
+                        onClose();
+                        onOpenChangeRoom(room, room.current_booking);
+                      }}
+                    >
+                      <Ionicons name="swap-horizontal" size={16} color="#6366F1" style={{ marginRight: 6 }} />
+                      <Text style={[styles.detailToolBtnText, { color: '#6366F1' }]}>Đổi phòng cho khách (Sự cố nặng) ⚡</Text>
                     </TouchableOpacity>
                   )}
                 </View>

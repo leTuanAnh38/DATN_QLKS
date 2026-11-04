@@ -21,7 +21,7 @@ class MaintenanceTicketSerializer(serializers.ModelSerializer):
             'issue_type', 'issue_type_display', 'priority', 'priority_display', 'description', 'start_date', 'completed_date',
             'parts_replaced', 'cost', 'is_guest_fault', 'booking', 'booking_code',
             'guest_name', 'technician', 'technician_name', 'created_by', 'created_by_name',
-            'status', 'status_display', 'note'
+            'status', 'status_display', 'note', 'image_before', 'image_after'
         ]
         read_only_fields = ['id', 'ticket_code', 'start_date']
 

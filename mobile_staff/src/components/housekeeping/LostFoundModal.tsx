@@ -9,6 +9,10 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -65,10 +69,11 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
         Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Camera để chụp ảnh hiện vật.');
         return;
       }
+      // Tối ưu cho camera iPhone 14 Pro: chất lượng 0.6, tắt crop để nhân viên chụp 1 chạm nhanh
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.8,
+        allowsEditing: false,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setLfImage(result.assets[0]);
@@ -89,7 +94,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setLfImage(result.assets[0]);
@@ -158,36 +163,50 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
-        <View
-          style={[
-            styles.modalCard,
-            { maxHeight: '90%' },
-            !isDark && {
-              backgroundColor: '#FFFFFF',
-              borderTopColor: '#E2E8F0',
-              shadowColor: '#64748B',
-            },
-          ]}
-        >
-          <View style={styles.modalTopBar}>
-            <View>
-              <Text style={[styles.modalRoomTitle, !isDark && { color: '#0F172A' }]}>
-                Phòng {room.room_number}
-              </Text>
-              <Text style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}>
-                Khai Báo Đồ Khách Bỏ Quên 🧳
-              </Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
+          />
+          <View
+            style={[
+              styles.modalCard,
+              { maxHeight: '90%' },
+              !isDark && {
+                backgroundColor: '#FFFFFF',
+                borderTopColor: '#E2E8F0',
+                shadowColor: '#64748B',
+              },
+            ]}
+          >
+            <View style={styles.modalTopBar}>
+              <View>
+                <Text style={[styles.modalRoomTitle, !isDark && { color: '#0F172A' }]}>
+                  Phòng {room.room_number}
+                </Text>
+                <Text style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}>
+                  Khai Báo Đồ Khách Bỏ Quên 🧳
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={onClose}
+                style={[styles.modalCloseCircle, !isDark && { backgroundColor: '#F1F5F9' }]}
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[styles.modalCloseCircle, !isDark && { backgroundColor: '#F1F5F9' }]}
-            >
-              <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#475569'} />
-            </TouchableOpacity>
-          </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
             {/* Phân loại tài sản */}
             <Text style={[styles.modalSectionLabel, !isDark && { color: '#B45309' }]}>
               1. Phân loại tài sản:
@@ -380,6 +399,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
           </ScrollView>
         </View>
       </View>
-    </Modal>
-  );
+    </KeyboardAvoidingView>
+  </Modal>
+);
 };

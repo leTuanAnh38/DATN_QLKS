@@ -654,14 +654,6 @@ class AdminRoomStatusUpdateView(APIView):
                 'message': 'Vai trò của bạn không được phép thay đổi trực tiếp trạng thái phòng. Kỹ thuật viên vui lòng thao tác qua phiếu Bảo trì.'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        if user_role == 'housekeeper':
-            new_status = request.data.get('status')
-            if new_status not in ['available', 'cleaning']:
-                return Response({
-                    'success': False,
-                    'message': 'Nhân viên buồng phòng chỉ được cập nhật trạng thái dọn dẹp phòng (Trống/Đang dọn).'
-                }, status=status.HTTP_403_FORBIDDEN)
-
         try:
             room = Room.objects.select_related('category').get(pk=pk)
         except Room.DoesNotExist:
@@ -673,12 +665,39 @@ class AdminRoomStatusUpdateView(APIView):
         update_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
         requested_status = update_data.get('status')
 
+        if user_role == 'housekeeper':
+            # Buồng phòng được phép:
+            # 1. Chuyển phòng sang 'cleaning' hoặc 'available' (đối với phòng trống)
+            # 2. Chuyển phòng sang 'occupied' (khi hoàn tất dọn phòng đang có khách ở / sau bảo trì)
+            allowed_statuses = ['available', 'cleaning']
+            if active_booking and old_status in ['cleaning', 'maintenance']:
+                allowed_statuses.append('occupied')
+
+            if requested_status not in allowed_statuses:
+                return Response({
+                    'success': False,
+                    'message': 'Nhân viên buồng phòng chỉ được cập nhật trạng thái dọn dẹp phòng (Trống/Đang dọn).'
+                }, status=status.HTTP_403_FORBIDDEN)
+
         # CHẶN LỄ TÂN TỰ Ý DUYỆT PHÒNG SẠCH: Chỉ Buồng phòng (housekeeper) hoặc Quản lý/Admin mới có quyền nghiệm thu dọn xong
         if user_role == 'receptionist' and old_status == 'cleaning' and requested_status == 'available':
             return Response({
                 'success': False,
                 'message': 'Chỉ nhân viên Buồng phòng (Housekeeping) hoặc Quản lý mới có quyền xác nhận hoàn tất dọn dẹp phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
+
+        # NGHIỆP VỤ BẢO TRÌ & DỌN DẸP KHI PHÒNG ĐANG CÓ KHÁCH LƯU TRÚ:
+        # Nếu phòng đang ở trạng thái 'cleaning' hoặc 'maintenance' và phòng có khách lưu trú (active_booking):
+        # Khi Buồng phòng xác nhận dọn xong (requested_status là 'available' hoặc 'occupied'),
+        # phòng PHẢI TỰ ĐỘNG CHUYỂN VỀ 'occupied' (Có khách) để khách tiếp tục sinh hoạt, KHÔNG chuyển sang 'available'.
+        if active_booking and old_status in ['cleaning', 'maintenance']:
+            if requested_status in ['available', 'occupied']:
+                update_data['status'] = 'occupied'
+                requested_status = 'occupied'
+                room.is_cleaning_requested = False
+                room.cleaning_request_note = ''
+                room.cleaning_requested_at = None
+                room.save(update_fields=['is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
 
         # CHẶN LỖI NGHIỆP VỤ: Không cho phép đổi trạng thái thủ công khi phòng đang có khách lưu trú
         # Bắt buộc phải qua quy trình "Trả phòng & Quyết toán" (Check-out) hoặc "Đổi phòng" (Room Move)
@@ -901,7 +920,11 @@ class AdminRoomCompleteCleaningView(APIView):
         room.is_cleaning_requested = False
         room.cleaning_request_note = ''
         room.cleaning_requested_at = None
-        room.save(update_fields=['is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
+        if room.status == 'cleaning':
+            room.status = 'occupied' if active_booking else 'available'
+            room.save(update_fields=['status', 'is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
+        else:
+            room.save(update_fields=['is_cleaning_requested', 'cleaning_request_note', 'cleaning_requested_at'])
 
         # Gửi thông báo đến Lễ tân & Quản lý
         try:
@@ -970,6 +993,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
     queryset = MaintenanceTicket.objects.select_related('room', 'booking', 'technician', 'created_by')
     serializer_class = MaintenanceTicketSerializer
     permission_classes = [IsHotelStaffOrAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -1020,7 +1044,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         description = request.data.get('description', '')
         parts_replaced = request.data.get('parts_replaced', '')
         cost = int(request.data.get('cost') or 0)
-        is_guest_fault = bool(request.data.get('is_guest_fault', False))
+        is_guest_fault_val = request.data.get('is_guest_fault', False)
+        is_guest_fault = is_guest_fault_val in [True, 'true', 'True', '1', 1]
         booking_id = request.data.get('booking') or request.data.get('booking_id')
         technician_id = request.data.get('technician') or request.data.get('technician_id')
 
@@ -1034,6 +1059,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         if technician_id:
             technician = User.objects.filter(pk=technician_id).first()
 
+        image_before = request.FILES.get('image_before') or request.FILES.get('image')
+
         ticket = MaintenanceTicket.objects.create(
             room=room,
             equipment_name=equipment_name,
@@ -1046,7 +1073,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
             booking=booking,
             technician=technician,
             created_by=request.user if request.user.is_authenticated else None,
-            status='fixing'
+            status='fixing',
+            image_before=image_before
         )
 
         # 1. CÁCH LY PHÒNG: Tự động chuyển phòng sang 'maintenance'
@@ -1161,15 +1189,20 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         parts_replaced = request.data.get('parts_replaced', ticket.parts_replaced)
         cost = int(request.data.get('cost') or ticket.cost or 0)
         note = request.data.get('note', '')
-        is_guest_fault = request.data.get('is_guest_fault')
-        if is_guest_fault is not None:
-            ticket.is_guest_fault = bool(is_guest_fault)
+        is_guest_fault_val = request.data.get('is_guest_fault')
+        if is_guest_fault_val is not None:
+            ticket.is_guest_fault = is_guest_fault_val in [True, 'true', 'True', '1', 1]
 
         ticket.parts_replaced = parts_replaced
         ticket.cost = cost
         ticket.note = note
         ticket.completed_date = timezone.now()
         ticket.status = 'completed'
+
+        image_after = request.FILES.get('image_after') or request.FILES.get('image')
+        if image_after:
+            ticket.image_after = image_after
+
         if request.user.is_authenticated and not ticket.technician:
             ticket.technician = request.user
         ticket.save()

@@ -1,4 +1,4 @@
-﻿import { StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   safeContainer: {
@@ -435,6 +435,46 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: '#E2E8F0',
     flex: 1,
+  },
+  allergyBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#EF4444',
+  },
+  allergyBannerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  allergyBannerTitle: {
+    fontSize: 11.5,
+    fontWeight: '900',
+    color: '#EF4444',
+    letterSpacing: 0.3,
+  },
+  allergyBannerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FCA5A5',
+  },
+  allergyBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    borderColor: '#EF4444',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  allergyBadgePillText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#EF4444',
+    letterSpacing: 0.2,
   },
   staffRow: {
     flexDirection: 'row',

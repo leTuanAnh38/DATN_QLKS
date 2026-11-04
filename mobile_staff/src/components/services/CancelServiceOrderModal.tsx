@@ -7,6 +7,10 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -39,35 +43,49 @@ export const CancelServiceOrderModal: React.FC<CancelServiceOrderModalProps> = (
   onConfirm,
 }) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.modalOverlay}>
-        <View
-          style={[
-            styles.modalContent,
-            { maxHeight: '85%' },
-            !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0' },
-          ]}
-        >
-          <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
-            <View>
-              <Text style={[styles.modalTitle, { color: '#EF4444' }]}>Hủy Yêu Cầu Dịch Vụ ⚠️</Text>
-              <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
-                {itemToCancel
-                  ? `Phòng ${itemToCancel.room_number || '---'} • ${itemToCancel.service_name} (SL: ${itemToCancel.quantity || 1})`
-                  : 'Xác nhận hủy đơn phục vụ'}
-              </Text>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              { maxHeight: '85%' },
+              !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0' },
+            ]}
+          >
+            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
+              <View>
+                <Text style={[styles.modalTitle, { color: '#EF4444' }]}>Hủy Yêu Cầu Dịch Vụ ⚠️</Text>
+                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
+                  {itemToCancel
+                    ? `Phòng ${itemToCancel.room_number || '---'} • ${itemToCancel.service_name} (SL: ${itemToCancel.quantity || 1})`
+                    : 'Xác nhận hủy đơn phục vụ'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+                onPress={onClose}
+                activeOpacity={0.7}
+                disabled={cancellingOrder}
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#64748B'} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
-              onPress={onClose}
-              activeOpacity={0.7}
-              disabled={cancellingOrder}
-            >
-              <Ionicons name="close" size={20} color={isDark ? '#94A3B8' : '#64748B'} />
-            </TouchableOpacity>
-          </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 25, paddingTop: 10 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 25, paddingTop: 10 }}
+            >
             <Text style={[styles.inputLabel, { marginTop: 0, marginBottom: 10 }, !isDark && { color: '#334155' }]}>
               Vui lòng chọn lý do hủy (Lưu nhật ký kiểm toán hệ thống) *:
             </Text>
@@ -160,6 +178,7 @@ export const CancelServiceOrderModal: React.FC<CancelServiceOrderModalProps> = (
           </ScrollView>
         </View>
       </View>
-    </Modal>
-  );
+    </KeyboardAvoidingView>
+  </Modal>
+);
 };

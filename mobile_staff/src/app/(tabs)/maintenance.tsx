@@ -11,15 +11,21 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
 import {
   MAINTENANCE_ISSUE_TYPES,
   EQUIPMENT_SUGGESTIONS,
+  PARTS_SUGGESTIONS,
   getRoomStatusColor,
   getRoomStatusLabel,
 } from '../../constants/maintenance';
@@ -45,6 +51,7 @@ export default function MaintenanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('fixing');
   const [selectedIssueType, setSelectedIssueType] = useState<string>('all');
+  const [selectedFloor, setSelectedFloor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
@@ -55,6 +62,7 @@ export default function MaintenanceScreen() {
   const [cost, setCost] = useState('');
   const [note, setNote] = useState('');
   const [isGuestFault, setIsGuestFault] = useState(false);
+  const [completeEvidenceImage, setCompleteEvidenceImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Modal Hủy phiếu bảo trì / Báo nhầm
@@ -76,6 +84,7 @@ export default function MaintenanceScreen() {
   const [createPartsReplaced, setCreatePartsReplaced] = useState('');
   const [createCost, setCreateCost] = useState('');
   const [createIsGuestFault, setCreateIsGuestFault] = useState(false);
+  const [createEvidenceImage, setCreateEvidenceImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [submittingCreate, setSubmittingCreate] = useState(false);
 
   const selectedRoom = useMemo(() => {
@@ -119,6 +128,21 @@ export default function MaintenanceScreen() {
     return { total, fixing, completed, cancelled };
   }, [tickets]);
 
+  // Danh sách các tầng thực tế có sự cố phát sinh
+  const availableFloors = useMemo(() => {
+    const floorsSet = new Set<string>();
+    tickets.forEach((t) => {
+      const fl = t.room_floor ? String(t.room_floor) : (t.room_number && t.room_number.length >= 3 ? t.room_number.slice(0, -2) : null);
+      if (fl) floorsSet.add(fl);
+    });
+    return Array.from(floorsSet).sort((a, b) => {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.localeCompare(b);
+    });
+  }, [tickets]);
+
   // Bộ lọc
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
@@ -137,6 +161,13 @@ export default function MaintenanceScreen() {
         }
       }
 
+      if (selectedFloor !== 'all') {
+        const tFloor = t.room_floor ? String(t.room_floor) : (t.room_number && t.room_number.length >= 3 ? t.room_number.slice(0, -2) : null);
+        if (tFloor !== selectedFloor) {
+          matchFilter = false;
+        }
+      }
+
       const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
@@ -148,7 +179,7 @@ export default function MaintenanceScreen() {
 
       return matchFilter && matchSearch;
     });
-  }, [tickets, filterStatus, selectedIssueType, searchQuery]);
+  }, [tickets, filterStatus, selectedIssueType, selectedFloor, searchQuery]);
 
   // Infinite Scroll
   const [visibleCount, setVisibleCount] = useState(15);
@@ -156,7 +187,7 @@ export default function MaintenanceScreen() {
 
   useEffect(() => {
     setVisibleCount(15);
-  }, [filterStatus, searchQuery]);
+  }, [filterStatus, selectedIssueType, selectedFloor, searchQuery]);
 
   const displayedTickets = useMemo(() => {
     return filteredTickets.slice(0, visibleCount);
@@ -208,8 +239,51 @@ export default function MaintenanceScreen() {
     setCost(ticket.cost ? String(ticket.cost) : '0');
     setNote('');
     setIsGuestFault(Boolean(ticket.is_guest_fault));
+    setCompleteEvidenceImage(null);
     setCompleteModalVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const takeCompletePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Camera để chụp ảnh nghiệm thu hoàn tất.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setCompleteEvidenceImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở camera:', e);
+    }
+  };
+
+  const pickCompleteLibrary = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Thư viện ảnh để chọn ảnh.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setCompleteEvidenceImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở thư viện ảnh:', e);
+    }
   };
 
   const handleComplete = async () => {
@@ -218,12 +292,26 @@ export default function MaintenanceScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const res = await apiClient.post(`/rooms/maintenance-tickets/${selectedTicket.id}/complete/`, {
-        parts_replaced: partsReplaced,
-        cost: parseInt(cost || '0', 10),
-        note: note,
-        is_guest_fault: isGuestFault,
-      });
+      const formData = new FormData();
+      formData.append('parts_replaced', partsReplaced);
+      formData.append('cost', String(parseInt(cost || '0', 10)));
+      formData.append('note', note);
+      formData.append('is_guest_fault', String(isGuestFault));
+
+      if (completeEvidenceImage) {
+        const uri = completeEvidenceImage.uri;
+        const filename = uri.split('/').pop() || 'photo_after.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        // @ts-ignore
+        formData.append('image_after', {
+          uri: uri,
+          name: filename,
+          type: type,
+        });
+      }
+
+      const res = await apiClient.post(`/rooms/maintenance-tickets/${selectedTicket.id}/complete/`, formData);
 
       if (res.data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -324,6 +412,7 @@ export default function MaintenanceScreen() {
     setCreatePartsReplaced('');
     setCreateCost('');
     setRoomFilterText('');
+    setCreateEvidenceImage(null);
     setCreateModalVisible(true);
     if (roomsList.length === 0) {
       fetchRoomsList();
@@ -331,6 +420,48 @@ export default function MaintenanceScreen() {
       const cur = roomsList.find((r) => r.id === selectedRoomId);
       setCreateIsGuestFault(cur?.status === 'occupied');
       setCreatePriority(cur?.status === 'occupied' ? 'urgent' : 'normal');
+    }
+  };
+
+  const takeCreatePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Camera để chụp ảnh hiện trường hư hại.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setCreateEvidenceImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở camera:', e);
+    }
+  };
+
+  const pickCreateLibrary = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Thư viện ảnh để chọn ảnh.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setCreateEvidenceImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở thư viện ảnh:', e);
     }
   };
 
@@ -362,17 +493,33 @@ export default function MaintenanceScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const res = await apiClient.post('/rooms/maintenance-tickets/', {
-        room_id: selectedRoomId,
-        equipment_name: equipmentName.trim(),
-        issue_type: issueType,
-        priority: createPriority,
-        description: breakdownDesc.trim(),
-        parts_replaced: createPartsReplaced.trim(),
-        cost: parsedCost,
-        is_guest_fault: createIsGuestFault,
-        booking_id: (createIsGuestFault && activeBooking) ? activeBooking.id : null,
-      });
+      const formData = new FormData();
+      formData.append('room_id', String(selectedRoomId));
+      formData.append('equipment_name', equipmentName.trim());
+      formData.append('issue_type', issueType);
+      formData.append('priority', createPriority);
+      formData.append('description', breakdownDesc.trim());
+      formData.append('parts_replaced', createPartsReplaced.trim());
+      formData.append('cost', String(parsedCost));
+      formData.append('is_guest_fault', String(createIsGuestFault));
+      if (createIsGuestFault && activeBooking) {
+        formData.append('booking_id', String(activeBooking.id));
+      }
+
+      if (createEvidenceImage) {
+        const uri = createEvidenceImage.uri;
+        const filename = uri.split('/').pop() || 'photo_before.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        // @ts-ignore
+        formData.append('image_before', {
+          uri: uri,
+          name: filename,
+          type: type,
+        });
+      }
+
+      const res = await apiClient.post('/rooms/maintenance-tickets/', formData);
 
       if (res.data.success || res.data.id) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -510,7 +657,96 @@ export default function MaintenanceScreen() {
         ) : null}
       </View>
 
-      {/* 4. Chips Phân Loại Sự Cố Thiết Bị */}
+      {/* 4. Chips Lọc Theo Tầng (Floor Filter) */}
+      {availableFloors.length > 0 && (
+        <View style={styles.floorChipsContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.floorChipsScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.floorChip,
+                !isDark && {
+                  backgroundColor: selectedFloor === 'all' ? '#0284C7' : '#FFFFFF',
+                  borderColor: selectedFloor === 'all' ? '#0284C7' : '#E2E8F0',
+                  shadowColor: '#64748B',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 1,
+                },
+                selectedFloor === 'all' && isDark && styles.floorChipActive,
+              ]}
+              onPress={() => {
+                setSelectedFloor('all');
+                Haptics.selectionAsync();
+              }}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.floorChipText,
+                  !isDark && { color: selectedFloor === 'all' ? '#FFFFFF' : '#475569' },
+                  selectedFloor === 'all' && isDark && styles.floorChipTextActive,
+                ]}
+              >
+                Tất cả tầng
+              </Text>
+            </TouchableOpacity>
+
+            {availableFloors.map((fl) => {
+              const isSelected = selectedFloor === fl;
+              const count = tickets.filter((t) => {
+                const tFl = t.room_floor ? String(t.room_floor) : (t.room_number && t.room_number.length >= 3 ? t.room_number.slice(0, -2) : null);
+                return tFl === fl;
+              }).length;
+              return (
+                <TouchableOpacity
+                  key={fl}
+                  style={[
+                    styles.floorChip,
+                    !isDark && {
+                      backgroundColor: isSelected ? '#0284C7' : '#FFFFFF',
+                      borderColor: isSelected ? '#0284C7' : '#E2E8F0',
+                      shadowColor: '#64748B',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    },
+                    isSelected && isDark && styles.floorChipActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedFloor(fl);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="layers-outline"
+                    size={12}
+                    color={isSelected ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text
+                    style={[
+                      styles.floorChipText,
+                      !isDark && { color: isSelected ? '#FFFFFF' : '#475569' },
+                      isSelected && { color: '#FFFFFF', fontWeight: '800' },
+                    ]}
+                  >
+                    Tầng {fl} ({count})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* 5. Chips Phân Loại Sự Cố Thiết Bị */}
       <View style={styles.issueChipsContainer}>
         <ScrollView
           horizontal
@@ -627,133 +863,264 @@ export default function MaintenanceScreen() {
       )}
 
       {/* Modal Nghiệm thu Hoàn tất sửa chữa */}
-      <Modal visible={completeModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
-            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
-              <View>
-                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>
-                  Nghiệm Thu Phòng {selectedTicket?.room_number}
-                </Text>
-                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
-                  Thiết bị: {selectedTicket?.equipment_name}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
-                onPress={() => setCompleteModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Linh kiện / Vật tư đã thay:</Text>
-              <TextInput
-                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                placeholder="VD: Thay tụ quạt Daikin, vòi sen tắm..."
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                value={partsReplaced}
-                onChangeText={setPartsReplaced}
-              />
-
-              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Chi phí vật tư phát sinh (VNĐ):</Text>
-              <TextInput
-                style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                placeholder="0"
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                keyboardType="numeric"
-                value={cost}
-                onChangeText={setCost}
-              />
-
-              {/* Phân loại trách nhiệm chi phí: Do khách làm hỏng hay hao mòn khách sạn */}
-              <TouchableOpacity
-                style={[
-                  styles.guestFaultToggleRow,
-                  !isDark && !isGuestFault && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                  isGuestFault && styles.guestFaultToggleRowActive,
-                ]}
-                onPress={() => {
-                  setIsGuestFault(!isGuestFault);
-                  Haptics.selectionAsync();
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={isGuestFault ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={isGuestFault ? '#EF4444' : (isDark ? '#64748B' : '#94A3B8')}
-                />
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={[styles.guestFaultTitle, !isDark && !isGuestFault && { color: '#0F172A' }, isGuestFault && { color: '#F87171' }]}>
-                    Do khách làm hư hỏng (Tính phí bồi thường)
+      <Modal visible={completeModalVisible} transparent animationType="slide" onRequestClose={() => setCompleteModalVisible(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={Keyboard.dismiss}
+            />
+            <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+              <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
+                <View>
+                  <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>
+                    Nghiệm Thu Phòng {selectedTicket?.room_number}
                   </Text>
-                  <Text style={[styles.guestFaultSubtitle, !isDark && { color: '#64748B' }]}>
-                    {isGuestFault
-                      ? '⚠️ Phụ phí bồi thường sẽ tự động cộng vào hóa đơn khách tại Lễ tân.'
-                      : 'Hao mòn tự nhiên trong vận hành (Khách sạn chịu chi phí bảo trì).'}
+                  <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
+                    Thiết bị: {selectedTicket?.equipment_name}
                   </Text>
                 </View>
-              </TouchableOpacity>
-
-              <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Ghi chú kiểm tra bàn giao:</Text>
-              <TextInput
-                style={[styles.modalInput, { height: 60 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                placeholder="Thiết bị hoạt động êm, mát, sạch sẽ..."
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-                multiline
-                value={note}
-                onChangeText={setNote}
-              />
-
-              <View style={[styles.alertNoteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
-                <Ionicons name="information-circle" size={18} color="#F59E0B" style={{ marginRight: 8 }} />
-                <Text style={[styles.alertNoteText, !isDark && { color: '#B45309' }]}>
-                  Sau khi xác nhận, Phòng {selectedTicket?.room_number} sẽ tự động chuyển sang trạng thái "Đang dọn dẹp" để bộ phận Buồng phòng vào lau dọn sẵn sàng đón khách.
-                </Text>
+                <TouchableOpacity
+                  style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+                  onPress={() => setCompleteModalVisible(false)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={[styles.modalConfirmBtn, submitting && { opacity: 0.6 }]}
-                onPress={handleComplete}
-                disabled={submitting}
-                activeOpacity={0.8}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#0A0F1D" />
-                ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="shield-checkmark" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
-                    <Text style={styles.modalConfirmBtnText}>XÁC NHẬN BÀN GIAO PHÒNG</Text>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {/* Ảnh hiện trường ban đầu (nếu có người báo trước) */}
+                {selectedTicket?.image_before && (
+                  <View style={[styles.initialEvidenceBox, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+                    <View style={styles.initialEvidenceHeader}>
+                      <Ionicons name="image" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
+                      <Text style={[styles.initialEvidenceTitle, !isDark && { color: '#0F172A' }]}>
+                        Ảnh hiện trường ban đầu (Buồng phòng gửi):
+                      </Text>
+                    </View>
+                    <Image
+                      source={{ uri: selectedTicket.image_before }}
+                      style={styles.initialEvidenceImage}
+                      resizeMode="cover"
+                    />
                   </View>
                 )}
-              </TouchableOpacity>
-            </ScrollView>
+
+                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Linh kiện / Vật tư đã thay:</Text>
+                <TextInput
+                  style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                  placeholder="VD: Thay tụ quạt Daikin, vòi sen tắm..."
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  value={partsReplaced}
+                  onChangeText={setPartsReplaced}
+                />
+
+                {/* Gợi ý linh kiện nhanh cho Nghiệm thu */}
+                {selectedTicket && PARTS_SUGGESTIONS[selectedTicket.issue_type] && (
+                  <View style={[styles.suggestionRow, { marginBottom: 10 }]}>
+                    <Text style={[styles.suggestionTitle, !isDark && { color: '#64748B' }]}>Gợi ý vật tư nhanh:</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 6 }}
+                    >
+                      {PARTS_SUGGESTIONS[selectedTicket.issue_type].map((p) => (
+                        <TouchableOpacity
+                          key={p}
+                          style={[
+                            styles.quickEquipChip,
+                            !isDark && partsReplaced !== p && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
+                            partsReplaced === p && styles.quickEquipChipActive,
+                          ]}
+                          onPress={() => {
+                            setPartsReplaced(p);
+                            Haptics.selectionAsync();
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.quickEquipChipText,
+                              !isDark && partsReplaced !== p && { color: '#475569' },
+                              partsReplaced === p && styles.quickEquipChipTextActive,
+                            ]}
+                          >
+                            + {p}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Chi phí vật tư phát sinh (VNĐ):</Text>
+                <TextInput
+                  style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                  placeholder="0"
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  keyboardType="numeric"
+                  value={cost}
+                  onChangeText={setCost}
+                />
+
+                {/* Phân loại trách nhiệm chi phí: Do khách làm hỏng hay hao mòn khách sạn */}
+                <TouchableOpacity
+                  style={[
+                    styles.guestFaultToggleRow,
+                    !isDark && !isGuestFault && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                    isGuestFault && styles.guestFaultToggleRowActive,
+                  ]}
+                  onPress={() => {
+                    setIsGuestFault(!isGuestFault);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name={isGuestFault ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={isGuestFault ? '#EF4444' : (isDark ? '#64748B' : '#94A3B8')}
+                  />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={[styles.guestFaultTitle, !isDark && !isGuestFault && { color: '#0F172A' }, isGuestFault && { color: '#F87171' }]}>
+                      Do khách làm hư hỏng (Tính phí bồi thường)
+                    </Text>
+                    <Text style={[styles.guestFaultSubtitle, !isDark && { color: '#64748B' }]}>
+                      {isGuestFault
+                        ? '⚠️ Phụ phí bồi thường sẽ tự động cộng vào hóa đơn khách tại Lễ tân.'
+                        : 'Hao mòn tự nhiên trong vận hành (Khách sạn chịu chi phí bảo trì).'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>Ghi chú kiểm tra bàn giao:</Text>
+                <TextInput
+                  style={[styles.modalInput, { height: 60 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
+                  placeholder="Thiết bị hoạt động êm, mát, sạch sẽ..."
+                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  multiline
+                  value={note}
+                  onChangeText={setNote}
+                />
+
+                {/* Ảnh chụp nghiệm thu sau khi sửa chữa */}
+                <Text style={[styles.inputLabel, { marginTop: 10 }, !isDark && { color: '#334155' }]}>
+                  Ảnh nghiệm thu sau sửa chữa (Bằng chứng hoàn thành):
+                </Text>
+                {completeEvidenceImage ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image source={{ uri: completeEvidenceImage.uri }} style={styles.imagePreview} resizeMode="cover" />
+                    <View style={styles.imagePreviewOverlay}>
+                      <TouchableOpacity
+                        style={styles.imageActionBtn}
+                        onPress={takeCompletePhoto}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="camera" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                        <Text style={styles.imageActionBtnText}>Chụp lại</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.imageActionBtn, { backgroundColor: '#EF4444' }]}
+                        onPress={() => setCompleteEvidenceImage(null)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="trash" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                        <Text style={styles.imageActionBtnText}>Xóa ảnh</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.photoPickerRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.photoPickerBtn,
+                        !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                      ]}
+                      onPress={takeCompletePhoto}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="camera" size={20} color={isDark ? '#F59E0B' : '#D97706'} />
+                      <Text style={[styles.photoPickerText, !isDark && { color: '#D97706' }]}>
+                        Chụp ảnh nghiệm thu
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.photoPickerBtn,
+                        !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                      ]}
+                      onPress={pickCompleteLibrary}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="images" size={20} color="#0284C7" />
+                      <Text style={[styles.photoPickerText, { color: '#0284C7' }]}>Chọn từ thư viện</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <View style={[styles.alertNoteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
+                  <Ionicons name="information-circle" size={18} color="#F59E0B" style={{ marginRight: 8 }} />
+                  <Text style={[styles.alertNoteText, !isDark && { color: '#B45309' }]}>
+                    Sau khi xác nhận, Phòng {selectedTicket?.room_number} sẽ tự động chuyển sang trạng thái "Đang dọn dẹp" để bộ phận Buồng phòng vào lau dọn sẵn sàng đón khách.
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.modalConfirmBtn, submitting && { opacity: 0.6 }]}
+                  onPress={handleComplete}
+                  disabled={submitting}
+                  activeOpacity={0.8}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#0A0F1D" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="shield-checkmark" size={17} color="#0A0F1D" style={{ marginRight: 6 }} />
+                      <Text style={styles.modalConfirmBtnText}>XÁC NHẬN BÀN GIAO PHÒNG</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Báo Hỏng Thiết Bị Mới (Kỹ Thuật Viên Tự Tạo Phiếu) */}
-      <Modal visible={createModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '90%' }, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
-            <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
-              <View>
-                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Báo Sự Cố Thiết Bị 🛠️</Text>
-                <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Tạo phiếu bảo trì & cách ly phòng</Text>
+      <Modal visible={createModalVisible} transparent animationType="slide" onRequestClose={() => setCreateModalVisible(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={Keyboard.dismiss}
+            />
+            <View style={[styles.modalContent, { maxHeight: '90%' }, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
+              <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
+                <View>
+                  <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Báo Sự Cố Thiết Bị 🛠️</Text>
+                  <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Tạo phiếu bảo trì & cách ly phòng</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
+                  onPress={() => setCreateModalVisible(false)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={[styles.modalCloseBtn, !isDark && { backgroundColor: '#F1F5F9' }]}
-                onPress={() => setCreateModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* 1. Chọn phòng */}
               <Text style={[styles.inputLabel, !isDark && { color: '#334155' }]}>1. Chọn phòng gặp sự cố *:</Text>
               {loadingRooms ? (
@@ -1027,6 +1394,42 @@ export default function MaintenanceScreen() {
                 value={createPartsReplaced}
                 onChangeText={setCreatePartsReplaced}
               />
+              {PARTS_SUGGESTIONS[issueType] && (
+                <View style={[styles.suggestionRow, { marginBottom: 6 }]}>
+                  <Text style={[styles.suggestionTitle, !isDark && { color: '#64748B' }]}>Gợi ý vật tư:</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 6 }}
+                  >
+                    {PARTS_SUGGESTIONS[issueType].map((p) => (
+                      <TouchableOpacity
+                        key={p}
+                        style={[
+                          styles.quickEquipChip,
+                          !isDark && createPartsReplaced !== p && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
+                          createPartsReplaced === p && styles.quickEquipChipActive,
+                        ]}
+                        onPress={() => {
+                          setCreatePartsReplaced(p);
+                          Haptics.selectionAsync();
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.quickEquipChipText,
+                            !isDark && createPartsReplaced !== p && { color: '#475569' },
+                            createPartsReplaced === p && styles.quickEquipChipTextActive,
+                          ]}
+                        >
+                          + {p}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               {/* 6. Phân loại trách nhiệm chi phí & Đền bù */}
               <View style={[styles.costFaultBox, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
@@ -1079,6 +1482,61 @@ export default function MaintenanceScreen() {
                 )}
               </View>
 
+              {/* 7. Ảnh hiện trường hư hại */}
+              <Text style={[styles.inputLabel, { marginTop: 14 }, !isDark && { color: '#334155' }]}>
+                7. Ảnh hiện trường hư hại (Bằng chứng đối soát):
+              </Text>
+              {createEvidenceImage ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image source={{ uri: createEvidenceImage.uri }} style={styles.imagePreview} resizeMode="cover" />
+                  <View style={styles.imagePreviewOverlay}>
+                    <TouchableOpacity
+                      style={styles.imageActionBtn}
+                      onPress={takeCreatePhoto}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="camera" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                      <Text style={styles.imageActionBtnText}>Chụp lại</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.imageActionBtn, { backgroundColor: '#EF4444' }]}
+                      onPress={() => setCreateEvidenceImage(null)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="trash" size={14} color="#F8FAFC" style={{ marginRight: 4 }} />
+                      <Text style={styles.imageActionBtnText}>Xóa ảnh</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.photoPickerRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.photoPickerBtn,
+                      !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                    ]}
+                    onPress={takeCreatePhoto}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="camera" size={20} color={isDark ? '#F59E0B' : '#D97706'} />
+                    <Text style={[styles.photoPickerText, !isDark && { color: '#D97706' }]}>
+                      Chụp ảnh camera
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.photoPickerBtn,
+                      !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+                    ]}
+                    onPress={pickCreateLibrary}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="images" size={20} color="#0284C7" />
+                    <Text style={[styles.photoPickerText, { color: '#0284C7' }]}>Chọn từ thư viện</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <View style={[styles.alertNoteBox, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
                 <Ionicons name="information-circle" size={17} color="#F59E0B" style={{ marginRight: 8 }} />
                 <Text style={[styles.alertNoteText, !isDark && { color: '#B45309' }]}>
@@ -1104,11 +1562,22 @@ export default function MaintenanceScreen() {
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </KeyboardAvoidingView>
+    </Modal>
 
-      {/* Modal Hủy Phiếu / Báo Sai Sự Cố */}
-      <Modal visible={cancelModalVisible} transparent animationType="fade">
+    {/* Modal Hủy Phiếu / Báo Sai Sự Cố */}
+    <Modal visible={cancelModalVisible} transparent animationType="fade" onRequestClose={() => setCancelModalVisible(false)}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
         <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
+          />
           <View
             style={[
               styles.modalContent,
@@ -1133,7 +1602,7 @@ export default function MaintenanceScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View
                 style={[
                   styles.alertNoteBox,
@@ -1197,7 +1666,8 @@ export default function MaintenanceScreen() {
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </KeyboardAvoidingView>
+    </Modal>
     </SafeAreaView>
   );
 }
@@ -1869,6 +2339,37 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '500',
   },
+  floorChipsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  floorChipsScroll: {
+    gap: 8,
+    paddingRight: 16,
+  },
+  floorChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  floorChipActive: {
+    backgroundColor: '#0284C7',
+    borderColor: '#0284C7',
+  },
+  floorChipText: {
+    fontSize: 11.5,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  floorChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
   issueChipsContainer: {
     paddingHorizontal: 16,
     marginBottom: 12,
@@ -1986,5 +2487,86 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  initialEvidenceBox: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 10,
+    marginBottom: 12,
+  },
+  initialEvidenceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  initialEvidenceTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  initialEvidenceImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: 8,
+  },
+  imagePreviewContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 150,
+  },
+  imagePreviewOverlay: {
+    flexDirection: 'row',
+    padding: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    gap: 8,
+  },
+  imageActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  imageActionBtnText: {
+    color: '#F8FAFC',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  photoPickerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 12,
+  },
+  photoPickerBtn: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderStyle: 'dashed',
+    gap: 6,
+  },
+  photoPickerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#A78BFA',
   },
 });
