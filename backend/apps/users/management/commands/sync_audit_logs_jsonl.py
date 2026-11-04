@@ -31,11 +31,11 @@ class Command(BaseCommand):
 
         if overwrite:
             mode = 'w'
-            self.stdout.write(self.style.WARNING(f"Dang ghi de toan bo file: {log_file} ..."))
+            self.stdout.write(self.style.WARNING(f"Đang ghi đè toàn bộ file: {log_file} ..."))
             queryset = AuditLog.objects.all().select_related('user').order_by('id')
         else:
             if os.path.exists(log_file):
-                # Doc cac ID da co de tranh ghi trung
+                # Đọc các ID đã có để tránh ghi trùng
                 try:
                     with open(log_file, 'r', encoding='utf-8') as f:
                         for line in f:
@@ -48,18 +48,18 @@ class Command(BaseCommand):
                                 except json.JSONDecodeError:
                                     continue
                 except Exception as e:
-                    self.stderr.write(self.style.WARNING(f"Khong the doc file cu ({e}), tien hanh dong bo binh thuong."))
+                    self.stderr.write(self.style.WARNING(f"Không thể đọc file cũ ({e}), tiến hành đồng bộ bình thường."))
 
             max_id = max(existing_ids) if existing_ids else 0
-            self.stdout.write(self.style.NOTICE(f"File hien co {len(existing_ids)} ban ghi (ID cao nhat: {max_id}). Dang tim ban ghi moi..."))
+            self.stdout.write(self.style.NOTICE(f"File hiện có {len(existing_ids)} bản ghi (ID cao nhất: {max_id}). Đang tìm bản ghi mới..."))
             queryset = AuditLog.objects.filter(id__gt=max_id).select_related('user').order_by('id')
 
         total_to_write = queryset.count()
         if total_to_write == 0:
-            self.stdout.write(self.style.SUCCESS(f"File JSONL da hoan toan dong bo voi Database ({AuditLog.objects.count()} ban ghi). Khong co ban ghi moi!"))
+            self.stdout.write(self.style.SUCCESS(f"File JSONL đã hoàn toàn đồng bộ với Database ({AuditLog.objects.count()} bản ghi). Không có bản ghi mới cần ghi!"))
             return
 
-        self.stdout.write(self.style.NOTICE(f"Bat dau xuat {total_to_write} ban ghi vao '{log_file}'..."))
+        self.stdout.write(self.style.NOTICE(f"Bắt đầu xuất {total_to_write} bản ghi vào '{log_file}'..."))
 
         count = 0
         with open(log_file, mode, encoding='utf-8') as f:
@@ -95,5 +95,4 @@ class Command(BaseCommand):
                 f.write(json.dumps(log_data, ensure_ascii=False) + '\n')
                 count += 1
 
-        self.stdout.write(self.style.SUCCESS(f"Thanh cong! Da ghi {count} ban ghi vao file: {log_file}"))
-
+        self.stdout.write(self.style.SUCCESS(f"Thành công! Đã ghi {count} bản ghi vào file: {log_file}"))

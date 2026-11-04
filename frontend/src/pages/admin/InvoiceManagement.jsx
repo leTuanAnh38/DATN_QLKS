@@ -693,7 +693,7 @@ export default function InvoiceManagement() {
                             <ArrowUpRight className="w-3.5 h-3.5" />
                         </div>
                     </div>
-                    <div className="text-xl sm:text-2xl font-black text-emerald-600 mt-1 font-serif">
+                    <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-1 font-sans tabular-nums tracking-tight">
                         {formatVND(stats.totalRevenue)}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-0.5">Từ {stats.completedCount} giao dịch thành công</p>

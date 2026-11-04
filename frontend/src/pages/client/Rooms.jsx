@@ -32,6 +32,14 @@ const formatDateDisplay = (dateStr) => {
     }
 };
 
+const formatDateToInput = (date) => {
+    const d = new Date(date);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${year}-${month}-${day}`;
+};
+
 /**
  * Trang Danh sách Phòng nghỉ & Suites dành cho Khách hàng (RoomsPage)
  * Sử dụng useEffect gọi API lấy danh sách RoomCategory thực tế từ Django Backend
@@ -50,6 +58,15 @@ export default function RoomsAndSuitesPage() {
     const checkOutParam = searchParams.get('checkOut') || location.state?.checkOutDate || '';
     const guestsParam = searchParams.get('guests') || (location.state?.guestCount ? String(location.state.guestCount) : '');
     const categoryParam = searchParams.get('category') || location.state?.roomType || 'all';
+
+    const defaultToday = formatDateToInput(new Date());
+    const defaultTomorrowObj = new Date();
+    defaultTomorrowObj.setDate(defaultTomorrowObj.getDate() + 1);
+    const defaultTomorrow = formatDateToInput(defaultTomorrowObj);
+
+    const effectiveCheckIn = (checkInParam && checkInParam.trim() !== '') ? checkInParam : defaultToday;
+    const effectiveCheckOut = (checkOutParam && checkOutParam.trim() !== '') ? checkOutParam : defaultTomorrow;
+    const effectiveGuests = (guestsParam && guestsParam.trim() !== '') ? guestsParam : '2';
 
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -489,14 +506,14 @@ export default function RoomsAndSuitesPage() {
                                             <div className="flex items-center gap-1.5 shrink-0">
                                                 <Link
                                                     to={`/rooms/${room.id}`}
-                                                    state={{ checkInDate: checkInParam, checkOutDate: checkOutParam, guestCount: guestsParam }}
+                                                    state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
                                                     className="px-2.5 sm:px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition whitespace-nowrap shrink-0"
                                                 >
                                                     Xem chi tiết
                                                 </Link>
                                                 <Link
                                                     to={`/checkout/${room.id}`}
-                                                    state={{ checkInDate: checkInParam, checkOutDate: checkOutParam, guestCount: guestsParam }}
+                                                    state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
                                                     className="px-3 sm:px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-md shadow-orange-500/25 transition-all transform active:scale-95 whitespace-nowrap shrink-0 hover:scale-[1.02]"
                                                 >
                                                     Đặt ngay

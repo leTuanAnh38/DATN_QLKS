@@ -417,7 +417,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-sans tabular-nums">
                             {isLoading ? (
                                 <div className="h-7 w-32 bg-slate-200 animate-pulse rounded"></div>
                             ) : (
@@ -442,7 +442,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                         <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
                             <span>Lũy kế toàn thời gian:</span>
-                            <strong className="text-slate-700 font-medium">
+                            <strong className="text-slate-700 font-semibold font-sans tabular-nums">
                                 {formatVND(summary.all_time_revenue)}
                             </strong>
                         </div>
@@ -469,7 +469,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-sans tabular-nums">
                             {isLoading ? (
                                 <div className="h-7 w-32 bg-slate-200 animate-pulse rounded"></div>
                             ) : (
@@ -481,7 +481,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                         <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
                             <span>Đêm phòng đã bán:</span>
-                            <strong className="text-cyan-700 font-bold">
+                            <strong className="text-cyan-700 font-bold font-sans tabular-nums">
                                 {summary.sold_room_nights ?? 0} đêm
                             </strong>
                         </div>
@@ -508,7 +508,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-sans tabular-nums">
                             {isLoading ? (
                                 <div className="h-7 w-32 bg-slate-200 animate-pulse rounded"></div>
                             ) : (
@@ -520,7 +520,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                         <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
                             <span>Lưu trú TB (ALOS):</span>
-                            <strong className="text-indigo-700 font-bold">
+                            <strong className="text-indigo-700 font-bold font-sans tabular-nums">
                                 {summary.alos ?? 1.0} đêm/khách
                             </strong>
                         </div>
@@ -539,7 +539,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-sans tabular-nums">
                             {isLoading ? (
                                 <div className="h-7 w-24 bg-slate-200 animate-pulse rounded"></div>
                             ) : (
@@ -552,7 +552,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                         <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
                             <span>Tổng đơn toàn hệ thống:</span>
-                            <strong className="text-slate-700 font-medium">
+                            <strong className="text-slate-700 font-semibold font-sans tabular-nums">
                                 {summary.all_time_bookings ?? 0} đơn
                             </strong>
                         </div>
@@ -571,7 +571,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif flex items-baseline gap-2">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-sans tabular-nums flex items-baseline gap-2">
                             {isLoading ? (
                                 <div className="h-7 w-20 bg-slate-200 animate-pulse rounded"></div>
                             ) : (
@@ -592,7 +592,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                         <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
                             <span>Phòng trống sẵn sàng:</span>
-                            <strong className="text-emerald-600 font-bold">
+                            <strong className="text-emerald-600 font-bold font-sans tabular-nums">
                                 {summary.available_rooms ?? 0} phòng
                             </strong>
                         </div>
@@ -611,7 +611,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-sans tabular-nums">
                             {isLoading ? (
                                 <div className="h-7 w-32 bg-slate-200 animate-pulse rounded"></div>
                             ) : (
@@ -623,7 +623,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                         <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
                             <span>Đang dọn / Bảo trì:</span>
-                            <strong className="text-amber-600 font-medium">
+                            <strong className="text-amber-600 font-semibold font-sans tabular-nums">
                                 {(summary.cleaning_rooms || 0) + (summary.maintenance_rooms || 0)} phòng
                             </strong>
                         </div>
@@ -1126,7 +1126,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                                                 {seg.percentage}%
                                             </span>
                                         </div>
-                                        <div className="text-base font-black text-slate-900 font-serif">
+                                        <div className="text-base font-bold text-slate-900 font-sans tabular-nums">
                                             {formatVND(seg.amount)}
                                         </div>
                                         <span className="text-[10px] text-slate-500">
@@ -1342,7 +1342,7 @@ export default function Analytics({ onNavigateToCustomer }) {
 
                                             {/* Tổng chi tiêu */}
                                             <td className="py-3.5 px-5 text-right">
-                                                <div className="font-black text-emerald-600 text-sm font-serif">
+                                                <div className="font-bold text-emerald-600 text-sm font-sans tabular-nums">
                                                     {formatVND(customer.total_spent)}
                                                 </div>
                                                 <span className="text-[10px] text-slate-400">
@@ -1483,7 +1483,7 @@ export default function Analytics({ onNavigateToCustomer }) {
 
                                             {/* Tổng doanh thu */}
                                             <td className="py-3.5 px-5 text-right">
-                                                <div className="font-black text-indigo-700 text-sm font-serif">
+                                                <div className="font-bold text-indigo-700 text-sm font-sans tabular-nums">
                                                     {formatVND(partner.total_revenue)}
                                                 </div>
                                                 <span className="text-[10px] text-slate-400">

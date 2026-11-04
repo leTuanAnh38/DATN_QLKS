@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { Camera, Maximize2, Users, BedDouble, ChevronLeft, ChevronRight } from 'lucide-react';
 
+const formatDateToInput = (date) => {
+    const d = new Date(date);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${year}-${month}-${day}`;
+};
+
 /**
  * Component Carousel/Slider hiển thị danh sách phòng cho Trang chủ
  * Quản lý currentIndex bằng useState, hiển thị tối đa 3 thẻ trên 1 hàng (Desktop)
@@ -15,6 +23,12 @@ export default function RoomSlider({ rooms = [] }) {
     const [itemsPerPage, setItemsPerPage] = useState(3);
     const [isHovered, setIsHovered] = useState(false);
     const [slideDirection, setSlideDirection] = useState('forward'); // 'forward' | 'backward'
+
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayStr = formatDateToInput(today);
+    const tomorrowStr = formatDateToInput(tomorrow);
 
     // Tính toán số lượng thẻ hiển thị theo kích thước màn hình
     // Desktop: 3 cards, Tablet: 2 cards, Mobile: 1 card
@@ -265,12 +279,14 @@ export default function RoomSlider({ rooms = [] }) {
                                             <div className="flex items-center gap-1.5 shrink-0">
                                                 <Link
                                                     to={`/rooms/${room.id}`}
+                                                    state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
                                                     className="px-2.5 sm:px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition whitespace-nowrap shrink-0"
                                                 >
                                                     Xem chi tiết
                                                 </Link>
                                                 <Link
                                                     to={`/checkout/${room.id}`}
+                                                    state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
                                                     className="px-3 sm:px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-md shadow-orange-500/25 transition-all transform active:scale-95 whitespace-nowrap shrink-0 hover:scale-[1.02]"
                                                 >
                                                     Đặt ngay

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import { hotelService } from '../../services/hotelService';
@@ -75,15 +75,24 @@ export default function Checkout() {
     const [roomError, setRoomError] = useState(null);
 
     // 2. State Ngày Check-in & Check-out
+    const [searchParams] = useSearchParams();
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfterTomorrow = new Date(today);
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
 
-    // Lấy ngày truyền từ trang trước (nếu có) hoặc mặc định
-    const defaultCheckIn = location.state?.checkInDate || formatDateToInput(tomorrow);
-    const defaultCheckOut = location.state?.checkOutDate || formatDateToInput(dayAfterTomorrow);
+    const todayStr = formatDateToInput(today);
+    const tomorrowStr = formatDateToInput(tomorrow);
+
+    // Lấy ngày truyền từ trang trước (qua location.state hoặc URL searchParams) hoặc mặc định là Hôm nay -> Ngày mai
+    const incomingCheckIn = location.state?.checkInDate || searchParams.get('checkIn');
+    const incomingCheckOut = location.state?.checkOutDate || searchParams.get('checkOut');
+
+    const defaultCheckIn = (incomingCheckIn && typeof incomingCheckIn === 'string' && incomingCheckIn.trim() !== '')
+        ? incomingCheckIn.trim()
+        : todayStr;
+    const defaultCheckOut = (incomingCheckOut && typeof incomingCheckOut === 'string' && incomingCheckOut.trim() !== '')
+        ? incomingCheckOut.trim()
+        : tomorrowStr;
 
     const [checkInDate, setCheckInDate] = useState(defaultCheckIn);
     const [checkOutDate, setCheckOutDate] = useState(defaultCheckOut);

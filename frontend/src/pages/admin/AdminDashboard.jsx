@@ -1725,8 +1725,8 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 <DollarSign className="w-4 h-4" />
                                             </div>
                                         </div>
-                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
-                                            {(dashboardData?.revenue?.total_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500 font-sans">VND</span>
+                                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1 font-sans tabular-nums tracking-tight">
+                                            {(dashboardData?.revenue?.total_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-500 font-sans ml-1">VND</span>
                                         </div>
                                         <div className="flex items-center text-xs font-bold gap-1.5 pt-0.5">
                                             {(dashboardData?.revenue?.growth_rate || 0) >= 0 ? (
@@ -1762,8 +1762,8 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 <BedDouble className="w-4 h-4" />
                                             </div>
                                         </div>
-                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
-                                            {(dashboardData?.revenue?.room_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500 font-sans">VND</span>
+                                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1 font-sans tabular-nums tracking-tight">
+                                            {(dashboardData?.revenue?.room_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-500 font-sans ml-1">VND</span>
                                         </div>
                                         <div className="text-xs text-slate-500 pt-0.5 flex items-center gap-1.5">
                                             <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 text-[10px]">
@@ -1795,8 +1795,8 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 <Utensils className="w-4 h-4" />
                                             </div>
                                         </div>
-                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
-                                            {(dashboardData?.revenue?.service_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500 font-sans">VND</span>
+                                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1 font-sans tabular-nums tracking-tight">
+                                            {(dashboardData?.revenue?.service_revenue || 0).toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-500 font-sans ml-1">VND</span>
                                         </div>
                                         <div className="text-xs text-slate-500 pt-0.5 flex items-center gap-1.5">
                                             <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60 text-[10px]">
@@ -1822,8 +1822,8 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 <Receipt className="w-4 h-4" />
                                             </div>
                                         </div>
-                                        <div className="text-xl sm:text-2xl font-black text-slate-900 mb-1 font-serif tracking-tight">
-                                            {dashboardData?.revenue?.paid_invoices_count || 0} <span className="text-xs font-normal text-slate-500 font-sans">Hóa đơn</span>
+                                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1 font-sans tabular-nums tracking-tight">
+                                            {dashboardData?.revenue?.paid_invoices_count || 0} <span className="text-xs font-semibold text-slate-500 font-sans ml-1">Hóa đơn</span>
                                         </div>
                                         {/* Progress bar đạt chỉ tiêu */}
                                         <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mt-2">
@@ -1835,7 +1835,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     </div>
                                     <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                                         <span>Mục tiêu kỳ:</span>
-                                        <strong className="text-slate-800">
+                                        <strong className="text-slate-800 font-bold tabular-nums">
                                             {(dashboardData?.revenue?.target_revenue || 0).toLocaleString('vi-VN')} đ
                                         </strong>
                                     </div>
@@ -1898,11 +1898,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-baseline justify-between mb-1">
-                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                    <div className="text-xl font-bold text-slate-900 font-sans tabular-nums">
                                                         {pulse.check_in.arrived}
-                                                        <span className="text-xs font-normal text-slate-400">/{pulse.check_in.total_expected} phòng</span>
+                                                        <span className="text-xs font-normal text-slate-400 font-sans">/{pulse.check_in.total_expected} phòng</span>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60">
+                                                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60 font-sans">
                                                         {pulse.check_in.remaining} phòng chưa đến
                                                     </span>
                                                 </div>
@@ -1937,11 +1937,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-baseline justify-between mb-1">
-                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                    <div className="text-xl font-bold text-slate-900 font-sans tabular-nums">
                                                         {pulse.check_out.departed}
-                                                        <span className="text-xs font-normal text-slate-400">/{pulse.check_out.total_expected} phòng</span>
+                                                        <span className="text-xs font-normal text-slate-400 font-sans">/{pulse.check_out.total_expected} phòng</span>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60">
+                                                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60 font-sans">
                                                         {pulse.check_out.remaining} phòng đang ở
                                                     </span>
                                                 </div>
@@ -1972,11 +1972,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-baseline justify-between mb-1">
-                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                    <div className="text-xl font-bold text-slate-900 font-sans tabular-nums">
                                                         {pulse.in_house.occupied_rooms}
-                                                        <span className="text-xs font-normal text-slate-400">/{pulse.in_house.total_rooms} phòng</span>
+                                                        <span className="text-xs font-normal text-slate-400 font-sans">/{pulse.in_house.total_rooms} phòng</span>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 font-sans">
                                                         Lấp đầy {pulse.in_house.occupancy_rate}%
                                                     </span>
                                                 </div>
@@ -2007,11 +2007,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-baseline justify-between mb-1">
-                                                    <div className="text-xl font-bold text-slate-900 font-serif">
+                                                    <div className="text-xl font-bold text-slate-900 font-sans tabular-nums">
                                                         {pulse.housekeeping.available_clean}
-                                                        <span className="text-xs font-normal text-slate-400"> phòng sạch</span>
+                                                        <span className="text-xs font-normal text-slate-400 font-sans"> phòng sạch</span>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                                                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 font-sans">
                                                         {pulse.housekeeping.cleaning_dirty} đang dọn
                                                     </span>
                                                 </div>

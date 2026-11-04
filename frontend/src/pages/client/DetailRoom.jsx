@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
     BedDouble,
     Bath,
@@ -144,6 +144,8 @@ export default function DetailRoom() {
     const { id, roomId, slug } = useParams();
     const currentRoomId = id || roomId || slug;
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
 
     // Các state quản lý Dữ liệu, Loading và Lỗi
     const [room, setRoom] = useState(null);
@@ -154,7 +156,8 @@ export default function DetailRoom() {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
     const [selectedPackage] = useState('standard'); // Gói cố định: 'standard' (đã bỏ lựa chọn gói kèm theo)
-    const [guestCount, setGuestCount] = useState(2);
+    const incomingGuests = location.state?.guestCount || searchParams.get('guests');
+    const [guestCount, setGuestCount] = useState(incomingGuests ? Math.max(1, Number(incomingGuests)) : 2);
     const [similarRooms, setSimilarRooms] = useState([]);
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const [availability, setAvailability] = useState(null);
@@ -173,7 +176,6 @@ export default function DetailRoom() {
     const lightboxTouchEndY = useRef(0);
     const isLightboxSwiping = useRef(false);
 
-    const location = useLocation();
     const { user, isAuthenticated } = useAuth();
 
     // State quản lý đánh giá thực tế từ CSDL
@@ -337,12 +339,22 @@ export default function DetailRoom() {
         }
     };
 
-    // Quản lý ngày Check-in & Check-out (Mặc định hôm nay -> 2 đêm sau)
+    // Quản lý ngày Check-in & Check-out (Đồng bộ nhận từ location.state / URL hoặc mặc định hôm nay -> ngày mai)
+    const incomingCheckIn = location.state?.checkInDate || searchParams.get('checkIn');
+    const incomingCheckOut = location.state?.checkOutDate || searchParams.get('checkOut');
+
     const today = new Date();
-    const defaultCheckInDate = formatDateToInput(today);
-    const defaultCheckOut = new Date(today);
-    defaultCheckOut.setDate(defaultCheckOut.getDate() + 2);
-    const defaultCheckOutDate = formatDateToInput(defaultCheckOut);
+    const defaultCheckInDate = (incomingCheckIn && typeof incomingCheckIn === 'string' && incomingCheckIn.trim() !== '')
+        ? incomingCheckIn.trim()
+        : formatDateToInput(today);
+
+    const defaultTomorrow = new Date(defaultCheckInDate);
+    defaultTomorrow.setDate(defaultTomorrow.getDate() + 1);
+    const fallbackCheckOutDate = formatDateToInput(defaultTomorrow);
+
+    const defaultCheckOutDate = (incomingCheckOut && typeof incomingCheckOut === 'string' && incomingCheckOut.trim() !== '')
+        ? incomingCheckOut.trim()
+        : fallbackCheckOutDate;
 
     const [checkInDate, setCheckInDate] = useState(defaultCheckInDate);
     const [checkOutDate, setCheckOutDate] = useState(defaultCheckOutDate);

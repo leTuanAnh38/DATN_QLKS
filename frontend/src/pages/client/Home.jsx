@@ -24,6 +24,20 @@ import FeaturedServices from '../../components/client/FeaturedServices';
 import postService from '../../services/postService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 
+// Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối, local media và tự động nâng cấp ảnh mờ)
+const resolveBannerUrl = (url, fallback) => {
+    if (!url) return fallback || '';
+    // Nếu đang trỏ vào ảnh cũ bị mờ hạt (photo-1571896349842-33c89424de2d), tự động nâng cấp sang ảnh 4K sắc nét
+    if (typeof url === 'string' && url.includes('photo-1571896349842-33c89424de2d')) {
+        return fallback || 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=2070&q=90';
+    }
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+        return url;
+    }
+    const backendBase = 'http://localhost:8000';
+    return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 // Tiện ích ngày tháng
 const getTodayStr = () => {
     const d = new Date();
@@ -70,9 +84,9 @@ export default function TADaNangHotelLanding() {
     const [isLoadingNews, setIsLoadingNews] = useState(true);
 
     const { settings } = useHotelSettings();
-    const bannerHome1 = settings?.banner_home || DEFAULT_BANNERS.banner_home;
-    const bannerHome2 = settings?.banner_home_2 || DEFAULT_BANNERS.banner_home_2;
-    const bannerHome3 = settings?.banner_home_3 || DEFAULT_BANNERS.banner_home_3;
+    const bannerHome1 = resolveBannerUrl(settings?.banner_home, DEFAULT_BANNERS.banner_home);
+    const bannerHome2 = resolveBannerUrl(settings?.banner_home_2, DEFAULT_BANNERS.banner_home_2);
+    const bannerHome3 = resolveBannerUrl(settings?.banner_home_3, DEFAULT_BANNERS.banner_home_3);
     const hotelName = settings?.hotel_name || "Khách Sạn TA Đà Nẵng";
 
     // Danh sách ảnh banner chạy luân phiên (Slider 3 ảnh)
@@ -179,6 +193,8 @@ export default function TADaNangHotelLanding() {
                         <img
                             src={b.url}
                             alt={b.title}
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            decoding="async"
                             className={`w-full h-full object-cover object-center transition-transform duration-7000 ease-out ${
                                 currentBanner === idx ? 'scale-105' : 'scale-100'
                             }`}

@@ -1,5 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import {
+    User,
+    Award,
+    ShieldCheck,
+    KeyRound,
+    Lock,
+    LogOut,
+    Camera,
+    CheckCircle2,
+    AlertCircle,
+    Calendar,
+    MapPin,
+    Mail,
+    Phone,
+    Heart,
+    Sparkles,
+    Ticket,
+    History,
+    Edit3,
+    X,
+    ChevronRight,
+    CreditCard,
+    Globe,
+    UserCheck,
+    ArrowRight
+} from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import ChangePasswordModal from '../../components/auth/ChangePasswordModal';
@@ -18,15 +44,37 @@ const getAvatarUrl = (avatar) => {
     return `${backendBase}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
 };
 
+// Helper định dạng ngày tháng sang dd/mm/yyyy
+const formatDateVN = (dateStr) => {
+    if (!dateStr) return 'Chưa cập nhật';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+        return dateStr;
+    }
+};
+
 export default function Profile() {
     const navigate = useNavigate();
-    const { user, isAuthenticated, updateUser } = useAuth();
+    const location = useLocation();
+    const { user, isAuthenticated, logout } = useAuth();
     const fileInputRef = useRef(null);
+
+    // Tab đang chọn: 'info' | 'membership'
+    const [activeTab, setActiveTab] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        const t = params.get('tab');
+        if (t === 'membership') return t;
+        return 'info';
+    });
 
     // Modal state
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+    const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
-    // Chế độ chỉnh sửa: false = Chế độ xem, true = Đang chỉnh sửa
+    // Chế độ chỉnh sửa thông tin: false = Chế độ xem, true = Đang chỉnh sửa
     const [isEditing, setIsEditing] = useState(false);
 
     // Form fields state
@@ -120,7 +168,8 @@ export default function Profile() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Tự động mở chế độ chỉnh sửa nếu đang ở chế độ xem
+        // Chuyển sang tab thông tin và mở chế độ chỉnh sửa
+        setActiveTab('info');
         if (!isEditing) setIsEditing(true);
 
         // Kiểm tra dung lượng (tối đa 5MB)
@@ -156,6 +205,13 @@ export default function Profile() {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
+    };
+
+    // Xử lý đăng xuất tài khoản
+    const handleLogout = () => {
+        setIsLogoutConfirmOpen(false);
+        logout();
+        navigate('/login');
     };
 
     // Xử lý nộp form cập nhật
@@ -207,12 +263,11 @@ export default function Profile() {
                         preferences: result.user.guest_profile?.preferences || result.user.preferences || '',
                     });
                 }
-                // Tự ẩn thông báo sau 4 giây
                 setTimeout(() => setSuccessMessage(null), 4000);
             } else {
                 setErrorMessage(result.message || 'Cập nhật thất bại. Vui lòng kiểm tra lại thông tin.');
             }
-        } catch (err) {
+        } catch {
             setIsLoading(false);
             setErrorMessage('Đã xảy ra sự cố khi lưu hồ sơ. Vui lòng thử lại sau.');
         }
@@ -245,509 +300,739 @@ export default function Profile() {
         );
     }
 
+    const tierName = user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)';
+    const totalPoints = (user?.total_points ?? user?.guest_profile?.loyalty_points ?? 0);
+
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-amber-100 selection:text-amber-900">
+        <div className="min-h-screen bg-slate-50/60 flex flex-col justify-between selection:bg-amber-100 selection:text-amber-900">
             <Navbar />
 
             {/* 1. BREADCRUMB THANH ĐIỀU HƯỚNG */}
-            <div className="bg-slate-100/80 border-b border-slate-200/60 py-3">
+            <div className="bg-slate-100/80 border-b border-slate-200/60 py-2.5">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500">
                         <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
                         <span>/</span>
-                        <span className="text-slate-900 font-semibold">Hồ sơ cá nhân & Tài khoản</span>
+                        <span className="text-slate-900 font-semibold">Tài khoản & Hồ sơ</span>
                     </nav>
                 </div>
             </div>
 
-            {/* 2. HEADER TIÊU ĐỀ */}
-            <header className="bg-white border-b border-slate-100 py-8">
+            {/* 2. HEADER TIÊU ĐỀ & ĐIỀU HƯỚNG */}
+            <header className="bg-white border-b border-slate-200/80 pt-6 pb-2 shadow-2xs">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                         <div>
-                           
-                            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                                 Hồ Sơ Của Tôi
                             </h1>
-                            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
-                                Quản lý thông tin định danh, tùy chọn kỳ nghỉ và cập nhật ảnh đại diện tài khoản.
+                            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                                Quản lý thông tin định danh, tùy chọn kỳ nghỉ và đặc quyền hội viên khách sạn TA.
                             </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                            {isStaffRole(user) ? (
-                                <div className="flex items-center gap-2">
-                                    <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-xs">
-                                        🛡️ {getRoleTitle(user?.role)}
-                                    </span>
-                                    <Link
-                                        to="/admin"
-                                        className="px-4 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
-                                    >
-                                        Vào Bàn Quản Trị →
-                                    </Link>
-                                </div>
-                            ) : (
-                                <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200 shadow-xs inline-flex items-center gap-1.5">
-                                    <span className="text-blue-600">👑</span>
-                                    <span>Hạng Hội Viên:</span>
-                                    <strong className="font-bold text-slate-900">{user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}</strong>
-                                </span>
-                            )}
-                        </div>
+
+                        {isStaffRole(user) && (
+                            <Link
+                                to="/admin"
+                                className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition flex items-center gap-1.5 self-start sm:self-auto"
+                            >
+                                <span>Vào Bàn Quản Trị</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                            </Link>
+                        )}
+                    </div>
+
+                    {/* TAB NAVIGATION BAR (2 TABS GỌN GÀNG) */}
+                    <div className="flex items-center gap-2 border-t border-slate-100 mt-5 pt-3 overflow-x-auto no-scrollbar">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveTab('info');
+                                navigate('/profile?tab=info', { replace: true });
+                            }}
+                            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+                                activeTab === 'info'
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            }`}
+                        >
+                            <User className="w-4 h-4" />
+                            <span>Thông Tin Cá Nhân & Tài Khoản</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveTab('membership');
+                                navigate('/profile?tab=membership', { replace: true });
+                            }}
+                            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+                                activeTab === 'membership'
+                                    ? 'bg-amber-600 text-white shadow-md shadow-amber-500/25'
+                                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            }`}
+                        >
+                            <Award className="w-4 h-4" />
+                            <span>Thẻ Hội Viên & Điểm Thưởng</span>
+                            <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                                activeTab === 'membership' ? 'bg-amber-700/80 text-white' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                                {tierName}
+                            </span>
+                        </button>
                     </div>
                 </div>
             </header>
 
-            {/* 2. MAIN PROFILE CONTAINER */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1">
-                {/* KHU VỰC THẺ THÀNH VIÊN & TIẾN TRÌNH THĂNG HẠNG (LOYALTY) */}
-                <MembershipCard user={user} />
+            {/* 3. MAIN TAB CONTENT */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+                {/* Alerts Feedback */}
+                {successMessage && (
+                    <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm rounded-2xl flex items-center gap-3 shadow-xs animate-fadeIn">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        <span className="font-semibold flex-1">{successMessage}</span>
+                    </div>
+                )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {errorMessage && (
+                    <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm rounded-2xl flex items-center gap-3 shadow-xs animate-fadeIn">
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                        <span className="font-semibold flex-1">{errorMessage}</span>
+                    </div>
+                )}
 
-                    {/* CỘT BÊN TRÁI: CARD AVATAR & THẺ HỘI VIÊN (4 CỘT) */}
-                    <div className="lg:col-span-4 space-y-6">
-                        {/* Card Avatar & Tải ảnh đại diện */}
-                        <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100 text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700" />
+                {/* ========================================================================= */}
+                {/* TAB 1: THÔNG TIN CÁ NHÂN & SỞ THÍCH                                        */}
+                {/* ========================================================================= */}
+                {activeTab === 'info' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                        {/* CỘT TRÁI (4 CỘT): AVATAR & TỔNG QUAN TÀI KHOẢN */}
+                        <div className="lg:col-span-4 space-y-6">
+                            {/* Card Avatar */}
+                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 text-center relative overflow-hidden">
+                                <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700" />
 
-                            {/* Avatar Display */}
-                            <div className="relative z-10 -mt-2 flex flex-col items-center">
-                                <div className="relative group">
-                                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-tr from-blue-700 via-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold text-3xl transition-transform duration-300 group-hover:scale-105">
-                                        {avatarPreview ? (
-                                            <img
-                                                src={avatarPreview}
-                                                alt={user?.full_name || 'Avatar'}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span>{getInitials(formData.fullName || user?.username)}</span>
+                                <div className="relative z-10 -mt-2 flex flex-col items-center">
+                                    <div className="relative group">
+                                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gradient-to-tr from-blue-700 via-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold text-2xl transition-transform duration-300 group-hover:scale-105">
+                                            {avatarPreview ? (
+                                                <img
+                                                    src={avatarPreview}
+                                                    alt={formData.fullName || 'Avatar'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span>{getInitials(formData.fullName || user?.username)}</span>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!isEditing) setIsEditing(true);
+                                                fileInputRef.current?.click();
+                                            }}
+                                            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white border-2 border-white shadow-md flex items-center justify-center cursor-pointer transition transform hover:scale-110"
+                                            title="Thay đổi ảnh đại diện"
+                                        >
+                                            <Camera className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+
+                                    <h3 className="font-bold text-slate-900 text-base sm:text-lg mt-3">
+                                        {formData.fullName || user?.username}
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-0.5 truncate max-w-full">
+                                        {user?.email || 'Tài khoản khách hàng TA'}
+                                    </p>
+
+                                    {/* Action Buttons for Avatar */}
+                                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!isEditing) setIsEditing(true);
+                                                fileInputRef.current?.click();
+                                            }}
+                                            className="px-3.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                                        >
+                                            <Camera className="w-3.5 h-3.5" />
+                                            <span>Chọn ảnh mới</span>
+                                        </button>
+
+                                        {isEditing && (avatarPreview || user?.avatar) && (
+                                            <button
+                                                type="button"
+                                                onClick={handleResetToDefaultAvatar}
+                                                className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer"
+                                            >
+                                                Về mặc định
+                                            </button>
                                         )}
                                     </div>
-
-                                    {/* Camera badge trigger file upload */}
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (!isEditing) setIsEditing(true);
-                                            fileInputRef.current?.click();
-                                        }}
-                                        className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white border-2 border-white shadow-lg flex items-center justify-center cursor-pointer transition transform hover:scale-110"
-                                        title="Thay đổi ảnh đại diện"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileChange}
-                                    accept="image/png, image/jpeg, image/webp, image/jpg"
-                                    className="hidden"
-                                />
-
-                                <h2 className="font-serif font-bold text-slate-900 text-xl mt-4">
-                                    {formData.fullName || user?.username}
-                                </h2>
-                                <p className="text-xs text-slate-500 mt-0.5">
-                                    {user?.email || user?.phone_number || 'Khách hàng VIP'}
-                                </p>
-
-                                {/* Action Buttons for Avatar */}
-                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (!isEditing) setIsEditing(true);
-                                            fileInputRef.current?.click();
-                                        }}
-                                        className="px-3.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer flex items-center gap-1.5"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                        </svg>
-                                        <span>Tải ảnh lên</span>
-                                    </button>
-
-                                    {isEditing && (avatarPreview || user?.avatar) && (
-                                        <button
-                                            type="button"
-                                            onClick={handleResetToDefaultAvatar}
-                                            className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition cursor-pointer"
-                                        >
-                                            Về mặc định
-                                        </button>
-                                    )}
-                                </div>
-                                <span className="text-[10px] text-slate-400 mt-2">
-                                    Hỗ trợ JPG, PNG, WEBP (tối đa 5MB)
-                                </span>
-                            </div>
-
-                            {/* Card Chi Tiết Thẻ Thành Viên */}
-                            <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-2 gap-3 text-left">
-                                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Hạng thẻ</span>
-                                    <span className="font-bold text-slate-900 text-sm flex items-center gap-1 mt-0.5">
-                                        👑 {user?.current_tier?.name || user?.guest_profile?.vip_tier || 'Đồng (Bronze)'}
+                                    <span className="text-[10px] text-slate-400 mt-2">
+                                        Hỗ trợ JPG, PNG, WEBP (tối đa 5MB)
                                     </span>
                                 </div>
-                                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Điểm tích lũy</span>
-                                    <span className="font-bold text-blue-600 text-sm mt-0.5 block">
-                                        {(user?.total_points ?? user?.guest_profile?.loyalty_points ?? 0).toLocaleString('vi-VN')} pts
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Card Menu Tiện Ích Nhanh */}
-                        <div className="bg-white rounded-3xl p-5 shadow-xl border border-slate-100 divide-y divide-slate-100">
-                            <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">
-                                Tiện ích tài khoản
-                            </h3>
-                            <button
-                                type="button"
-                                onClick={() => setIsChangePasswordOpen(true)}
-                                className="w-full py-3 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl px-2 transition text-left cursor-pointer"
-                            >
-                                <span className="flex items-center gap-2.5">
-                                    <span className="w-4 h-4 flex items-center justify-center text-blue-600">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                                        </svg>
-                                    </span>
-                                    <span>Đổi mật khẩu tài khoản</span>
-                                </span>
-                                <span className="text-slate-400">›</span>
-                            </button>
-                            <Link
-                                to="/promotions"
-                                className="w-full py-3 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl px-2 transition text-left cursor-pointer"
-                            >
-                                <span className="flex items-center gap-2.5">
-                                    <span className="w-4 h-4 flex items-center justify-center text-blue-600">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                                        </svg>
-                                    </span>
-                                    <span>Mã giảm giá đặc quyền của tôi</span>
-                                </span>
-                                <span className="text-slate-400">›</span>
-                            </Link>
-                            <Link
-                                to="/booking-history"
-                                className="w-full py-3 flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl px-2 transition text-left cursor-pointer"
-                            >
-                                <span className="flex items-center gap-2.5">
-                                    <span className="w-4 h-4 flex items-center justify-center text-blue-600">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </span>
-                                    <span>Lịch sử đặt phòng & Tra cứu</span>
-                                </span>
-                                <span className="text-slate-400">›</span>
-                            </Link>
-                        </div>
-                    </div>
-
-                    {/* CỘT BÊN PHẢI: FORM CHỈNH SỬA THÔNG TIN CÁ NHÂN (8 CỘT) */}
-                    <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100">
-                        <div className="border-b border-slate-100 pb-5 mb-6">
-                            <div className="flex items-center gap-2.5 mb-1">
-                                <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
-                                    Thông Tin Cá Nhân
-                                </h2>
-                                {isEditing ? (
-                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                                        <span>✏️</span>
-                                        <span>Đang chỉnh sửa</span>
-                                    </span>
-                                ) : (
-                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
-                                        <span>👁️</span>
-                                        <span>Chế độ xem</span>
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-slate-500">
-                                Cập nhật thông tin chính xác giúp quá trình nhận phòng và nhận đặc quyền diễn ra nhanh chóng
-                            </p>
-                        </div>
-
-                        {/* Alerts */}
-                        {successMessage && (
-                            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm rounded-2xl flex items-center gap-3 animate-fadeIn">
-                                <span className="text-lg">✅</span>
-                                <span className="font-medium flex-1">{successMessage}</span>
-                            </div>
-                        )}
-
-                        {errorMessage && (
-                            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm rounded-2xl flex items-center gap-3 animate-fadeIn">
-                                <span className="text-lg">⚠️</span>
-                                <span className="font-medium flex-1">{errorMessage}</span>
-                            </div>
-                        )}
-
-                        {/* Form Cập Nhật */}
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                {/* Họ và tên */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Họ và tên đầy đủ <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        disabled={!isEditing}
-                                        value={formData.fullName}
-                                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                        placeholder="Ví dụ: Nguyễn Văn An"
-                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                            !isEditing
-                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                        }`}
-                                    />
-                                </div>
-
-                                {/* Số điện thoại */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Số điện thoại di động <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        required
-                                        disabled={!isEditing}
-                                        value={formData.phoneNumber}
-                                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                                        placeholder="Ví dụ: 0912345678"
-                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                            !isEditing
-                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                        }`}
-                                    />
-                                </div>
-
-                                {/* Email */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Địa chỉ Email <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="email"
-                                        required
-                                        disabled={!isEditing}
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        placeholder="email@example.com"
-                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                            !isEditing
-                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                        }`}
-                                    />
-                                </div>
-
-                                {/* Loại giấy tờ & Số CCCD / Passport */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Giấy tờ định danh
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <select
-                                            disabled={!isEditing}
-                                            value={formData.idType}
-                                            onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
-                                            className={`w-32 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${
-                                                !isEditing
-                                                    ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed'
-                                                    : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                            }`}
-                                        >
-                                            <option value="CCCD">CCCD / CMND</option>
-                                            <option value="PASSPORT">Hộ chiếu</option>
-                                            <option value="OTHER">Khác</option>
-                                        </select>
-                                        <input
-                                            type="text"
-                                            disabled={!isEditing}
-                                            value={formData.idCardNumber}
-                                            onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
-                                            placeholder={isEditing ? "Nhập số CCCD/Passport" : "Chưa cập nhật"}
-                                            className={`flex-1 px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                                !isEditing
-                                                    ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                                    : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                            }`}
-                                        />
+                                {/* Trạng thái bảo mật hồ sơ */}
+                                <div className="mt-5 pt-4 border-t border-slate-100 space-y-2 text-left text-xs">
+                                    <div className="flex items-center justify-between py-1">
+                                        <span className="text-slate-500 flex items-center gap-1.5">
+                                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                                            <span>Số điện thoại:</span>
+                                        </span>
+                                        {formData.phoneNumber ? (
+                                            <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 text-[10px] flex items-center gap-1">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                Đã liên kết
+                                            </span>
+                                        ) : (
+                                            <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 text-[10px]">
+                                                Chưa có
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center justify-between py-1">
+                                        <span className="text-slate-500 flex items-center gap-1.5">
+                                            <CreditCard className="w-3.5 h-3.5 text-slate-400" />
+                                            <span>CCCD / Passport:</span>
+                                        </span>
+                                        {formData.idCardNumber ? (
+                                            <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60 text-[10px] flex items-center gap-1">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                Đã cập nhật
+                                            </span>
+                                        ) : (
+                                            <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 text-[10px]">
+                                                Chưa cập nhật
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center justify-between py-1">
+                                        <span className="text-slate-500 flex items-center gap-1.5">
+                                            <Award className="w-3.5 h-3.5 text-slate-400" />
+                                            <span>Hạng hội viên:</span>
+                                        </span>
+                                        <span className="font-bold text-slate-800">
+                                            {tierName}
+                                        </span>
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Ngày sinh */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Ngày sinh
-                                    </label>
-                                    <input
-                                        type="date"
-                                        disabled={!isEditing}
-                                        value={formData.dateOfBirth}
-                                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                            !isEditing
-                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                        }`}
-                                    />
-                                </div>
-
-                                {/* Giới tính */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Giới tính
-                                    </label>
-                                    <select
-                                        disabled={!isEditing}
-                                        value={formData.gender}
-                                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                            !isEditing
-                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed'
-                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                        }`}
+                            {/* Card Tiện ích tài khoản & Thao tác nhanh */}
+                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-1.5">
+                                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1">
+                                    Cài đặt & Tiện ích
+                                </h4>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('membership')}
+                                    className="w-full p-2.5 rounded-xl hover:bg-amber-50/60 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Award className="w-4 h-4 text-amber-600" />
+                                        <span>Thẻ Hội Viên & Điểm Tích Lũy</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsChangePasswordOpen(true)}
+                                    className="w-full p-2.5 rounded-xl hover:bg-blue-50/60 text-slate-700 hover:text-blue-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Lock className="w-4 h-4 text-blue-600" />
+                                        <span>Đổi Mật Khẩu Đăng Nhập</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                                <Link
+                                    to="/booking-history"
+                                    className="w-full p-2.5 rounded-xl hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <History className="w-4 h-4 text-indigo-600" />
+                                        <span>Lịch Sử Đặt Phòng & Tra Cứu</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                                <Link
+                                    to="/promotions"
+                                    className="w-full p-2.5 rounded-xl hover:bg-purple-50/60 text-slate-700 hover:text-purple-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Ticket className="w-4 h-4 text-purple-600" />
+                                        <span>Mã Giảm Giá Của Tôi</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                                <div className="pt-1 border-t border-slate-100 mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsLogoutConfirmOpen(true)}
+                                        className="w-full p-2.5 rounded-xl hover:bg-rose-50 text-rose-600 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                     >
-                                        <option value="Nam">Nam</option>
-                                        <option value="Nữ">Nữ</option>
-                                        <option value="Khác">Khác</option>
-                                    </select>
-                                </div>
-
-                                {/* Quốc tịch */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                        Quốc tịch
-                                    </label>
-                                    <input
-                                        type="text"
-                                        disabled={!isEditing}
-                                        value={formData.nationality}
-                                        onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                                        placeholder="Ví dụ: Việt Nam"
-                                        className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                            !isEditing
-                                                ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                                : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                        }`}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Địa chỉ liên hệ */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                    Địa chỉ thường trú / Thành phố
-                                </label>
-                                <input
-                                    type="text"
-                                    disabled={!isEditing}
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    placeholder={isEditing ? "Ví dụ: Quận 1, TP. Hồ Chí Minh" : "Chưa cập nhật địa chỉ"}
-                                    className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                        !isEditing
-                                            ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                            : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                    }`}
-                                />
-                            </div>
-
-                            {/* Sở thích lưu trú */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                    Sở thích & Yêu cầu lưu trú đặc biệt
-                                </label>
-                                <textarea
-                                    rows={3}
-                                    disabled={!isEditing}
-                                    value={formData.preferences}
-                                    onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
-                                    placeholder={isEditing ? "Ví dụ: Thích phòng tầng cao, gối lông vũ mềm, không hút thuốc, đồ ăn ít đường..." : "Chưa có ghi chú sở thích đặc biệt"}
-                                    className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm transition ${
-                                        !isEditing
-                                            ? 'bg-slate-100/80 border border-slate-200 text-slate-700 cursor-not-allowed select-text'
-                                            : 'bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white'
-                                    }`}
-                                />
-                                <span className="text-[11px] text-slate-400 mt-1 block">
-                                    Đội ngũ quản gia khách sạn TA sẽ chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.
-                                </span>
-                            </div>
-
-                            {/* Actions Button */}
-                            <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                                <div className="text-xs text-slate-400">
-                                    {isEditing ? (
-                                        <>Các trường có dấu <span className="text-red-500">*</span> là bắt buộc.</>
-                                    ) : (
-                                        <span className="flex items-center gap-1.5 text-slate-500">
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                                            Hồ sơ đang ở chế độ xem. Nhấn nút <strong>Cập nhật</strong> để chỉnh sửa.
+                                        <span className="flex items-center gap-2.5">
+                                            <LogOut className="w-4 h-4 text-rose-500" />
+                                            <span>Đăng Xuất Tài Khoản</span>
                                         </span>
-                                    )}
+                                        <ChevronRight className="w-3.5 h-3.5 text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+                                    </button>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    {!isEditing ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsEditing(true)}
-                                            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition duration-200 flex items-center gap-2 cursor-pointer"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                            <span>Cập nhật</span>
-                                        </button>
-                                    ) : (
-                                        <>
+                            </div>
+                        </div>
+
+                        {/* CỘT PHẢI (8 CỘT): THÔNG TIN ĐỊNH DANH (VIEW & EDIT FORM) */}
+                        <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
+                            {/* Card Header with Quick Edit Trigger Button */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-6 border-b border-slate-100">
+                                <div>
+                                    <div className="flex items-center gap-2.5">
+                                        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                            {isEditing ? 'Chỉnh Sửa Hồ Sơ Cá Nhân' : 'Hồ Sơ Định Danh & Liên Hệ'}
+                                        </h2>
+                                        {isEditing ? (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                Đang chỉnh sửa
+                                            </span>
+                                        ) : (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                                Chế độ xem
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {isEditing
+                                            ? 'Cập nhật thông tin chính xác giúp quá trình nhận phòng lễ tân diễn ra nhanh chóng.'
+                                            : 'Thông tin cá nhân dùng để đối chiếu khi nhận phòng tại khách sạn TA Đà Nẵng.'}
+                                    </p>
+                                </div>
+
+                                {/* Nút Chỉnh sửa ở ngay góc trên bên phải */}
+                                {!isEditing && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditing(true)}
+                                        className="self-start sm:self-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                                    >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                        <span>Chỉnh Sửa Hồ Sơ</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* CHẾ ĐỘ XEM (VIEW MODE) - GIAO DIỆN SẠCH SẼ, SANG TRỌNG */}
+                            {!isEditing ? (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {/* Họ và tên */}
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
+                                            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                                                <User className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                    Họ và tên
+                                                </span>
+                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 truncate">
+                                                    {formData.fullName || 'Chưa cập nhật'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Số điện thoại */}
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
+                                            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+                                                <Phone className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                        Số điện thoại
+                                                    </span>
+                                                    {formData.phoneNumber && (
+                                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60">
+                                                            Đã liên kết
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 font-mono">
+                                                    {formData.phoneNumber || 'Chưa cập nhật'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Email */}
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
+                                            <div className="p-2 rounded-xl bg-purple-50 text-purple-600 shrink-0">
+                                                <Mail className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                        Địa chỉ Email
+                                                    </span>
+                                                    {formData.email && (
+                                                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200/60">
+                                                            Đã xác minh
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 truncate">
+                                                    {formData.email || 'Chưa cập nhật'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Giấy tờ định danh */}
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
+                                            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
+                                                <CreditCard className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                    {formData.idType === 'PASSPORT' ? 'Hộ chiếu (Passport)' : 'Căn cước công dân (CCCD)'}
+                                                </span>
+                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 font-mono">
+                                                    {formData.idCardNumber || 'Chưa cập nhật'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Ngày sinh */}
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
+                                            <div className="p-2 rounded-xl bg-amber-50 text-amber-600 shrink-0">
+                                                <Calendar className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                    Ngày sinh
+                                                </span>
+                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 font-sans tabular-nums">
+                                                    {formatDateVN(formData.dateOfBirth)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Giới tính */}
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
+                                            <div className="p-2 rounded-xl bg-teal-50 text-teal-600 shrink-0">
+                                                <UserCheck className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                    Giới tính & Quốc tịch
+                                                </span>
+                                                <span className="font-bold text-slate-900 text-sm block mt-0.5">
+                                                    {formData.gender || 'Nam'} • {formData.nationality || 'Việt Nam'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Địa chỉ thường trú */}
+                                        <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
+                                            <div className="p-2 rounded-xl bg-rose-50 text-rose-600 shrink-0">
+                                                <MapPin className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                    Địa chỉ thường trú / Thành phố
+                                                </span>
+                                                <span className="font-bold text-slate-900 text-sm block mt-0.5">
+                                                    {formData.address || 'Chưa cập nhật địa chỉ thường trú'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Khối Sở Thích Lưu Trú */}
+                                    <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-amber-50/30 border border-amber-200/70">
+                                        <div className="flex items-center gap-2 mb-2 text-amber-900 font-bold text-sm">
+                                            <Heart className="w-4 h-4 text-amber-600 fill-amber-500" />
+                                            <span>Sở thích & Yêu cầu phòng đặc biệt</span>
+                                        </div>
+                                        <p className="text-xs text-slate-700 leading-relaxed italic bg-white/80 p-3 rounded-xl border border-amber-200/50">
+                                            &ldquo;{formData.preferences || 'Chưa có ghi chú sở thích. Quý khách có thể ghi chú loại gối mềm, phòng tầng cao, view biển hoặc lưu ý ăn uống để đội ngũ khách sạn phục vụ chu đáo nhất.'}&rdquo;
+                                        </p>
+                                        <span className="text-[11px] text-amber-800/80 mt-2 block">
+                                            ✨ Đội ngũ quản gia khách sạn TA luôn sẵn sàng chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* CHẾ ĐỘ CHỈNH SỬA (EDIT FORM) */
+                                <form onSubmit={handleSubmit} className="space-y-5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {/* Họ và tên */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Họ và tên đầy đủ <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.fullName}
+                                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                                placeholder="Ví dụ: Nguyễn Văn An"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                            />
+                                        </div>
+
+                                        {/* Số điện thoại */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Số điện thoại di động <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                required
+                                                value={formData.phoneNumber}
+                                                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                                                placeholder="Ví dụ: 0912345678"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition font-mono"
+                                            />
+                                        </div>
+
+                                        {/* Email */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Địa chỉ Email <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="email"
+                                                required
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                placeholder="email@example.com"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                            />
+                                        </div>
+
+                                        {/* Loại giấy tờ & Số CCCD / Passport */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Giấy tờ định danh
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <select
+                                                    value={formData.idType}
+                                                    onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
+                                                    className="w-32 px-2.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition cursor-pointer"
+                                                >
+                                                    <option value="CCCD">CCCD / CMND</option>
+                                                    <option value="PASSPORT">Hộ chiếu</option>
+                                                    <option value="OTHER">Khác</option>
+                                                </select>
+                                                <input
+                                                    type="text"
+                                                    value={formData.idCardNumber}
+                                                    onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
+                                                    placeholder="Nhập số giấy tờ"
+                                                    className="flex-1 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition font-mono"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Ngày sinh */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Ngày sinh
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={formData.dateOfBirth}
+                                                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {/* Giới tính */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Giới tính
+                                            </label>
+                                            <select
+                                                value={formData.gender}
+                                                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition cursor-pointer"
+                                            >
+                                                <option value="Nam">Nam</option>
+                                                <option value="Nữ">Nữ</option>
+                                                <option value="Khác">Khác</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Quốc tịch */}
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Quốc tịch
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.nationality}
+                                                onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                                                placeholder="Ví dụ: Việt Nam"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                            />
+                                        </div>
+
+                                        {/* Địa chỉ thường trú */}
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Địa chỉ thường trú / Thành phố
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.address}
+                                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                                placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                            />
+                                        </div>
+
+                                        {/* Sở thích lưu trú */}
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                                Sở thích & Yêu cầu lưu trú đặc biệt
+                                            </label>
+                                            <textarea
+                                                rows={3}
+                                                value={formData.preferences}
+                                                onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
+                                                placeholder="Ví dụ: Thích phòng tầng cao, gối lông vũ mềm, không hút thuốc, đồ ăn ít đường..."
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition resize-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Bottom Form Actions */}
+                                    <div className="pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                                        <span className="text-xs text-slate-400">
+                                            Các trường có dấu <span className="text-rose-500 font-bold">*</span> là bắt buộc.
+                                        </span>
+                                        <div className="flex items-center gap-3">
                                             <button
                                                 type="button"
                                                 onClick={handleCancelEdit}
                                                 disabled={isLoading}
-                                                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl transition duration-200 cursor-pointer disabled:opacity-60"
+                                                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl transition cursor-pointer disabled:opacity-60"
                                             >
                                                 Hủy bỏ
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition duration-200 flex items-center gap-2 cursor-pointer"
+                                                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 transition flex items-center gap-2 cursor-pointer"
                                             >
                                                 {isLoading && (
-                                                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                                 )}
-                                                <span>{isLoading ? 'Đang Lưu Thay Đổi...' : 'Lưu Thay Đổi Hồ Sơ'}</span>
+                                                <span>{isLoading ? 'Đang lưu...' : 'Lưu Thay Đổi Hồ Sơ'}</span>
                                             </button>
-                                        </>
-                                    )}
+                                        </div>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* TAB 2: THẺ HỘI VIÊN & ĐIỂM THƯỞNG (LOYALTY CLUB)                            */}
+                {/* ========================================================================= */}
+                {activeTab === 'membership' && (
+                    <div className="space-y-8 animate-fadeIn">
+                        {/* Virtual ATM Card Component */}
+                        <MembershipCard user={user} />
+
+                        {/* Thẻ hướng dẫn quyền lợi hội viên */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Card 1: Quy chế tích điểm */}
+                            <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2.5 mb-3">
+                                        <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                                            <Award className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="font-bold text-slate-900 text-base">
+                                            Chính Sách Tích Lũy Điểm
+                                        </h3>
+                                    </div>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                        Mỗi <strong>100.000 VNĐ</strong> thanh toán đặt phòng hoặc dịch vụ thành công tại Khách Sạn TA Đà Nẵng, quý khách sẽ được tích lũy <strong>1 điểm (pts)</strong>.
+                                    </p>
+                                    <div className="mt-4 space-y-2 text-xs text-slate-600">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <span>Điểm thưởng tích lũy tự động sau khi trả phòng (Check-out).</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <span>Điểm được bảo lưu vĩnh viễn và dùng để thăng hạng thẻ tự động.</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <span>Thăng hạng thẻ mở khóa chiết khấu phòng trực tiếp vào hóa đơn.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                                    <span className="text-slate-500">Tích thêm điểm ngay:</span>
+                                    <Link
+                                        to="/rooms"
+                                        className="text-blue-600 font-bold hover:underline flex items-center gap-1"
+                                    >
+                                        <span>Đặt phòng kỳ nghỉ</span>
+                                        <ArrowRight className="w-3.5 h-3.5" />
+                                    </Link>
                                 </div>
                             </div>
-                        </form>
+
+                            {/* Card 2: Lối tắt ưu đãi */}
+                            <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2.5 mb-3">
+                                        <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+                                            <Ticket className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="font-bold text-slate-900 text-base">
+                                            Voucher & Ưu Đãi Dành Riêng
+                                        </h3>
+                                    </div>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                        Hội viên Khách sạn TA được hưởng kho voucher đặc quyền, ưu tiên nhận phòng sớm khi phòng sạch và giảm giá dịch vụ ăn uống F&B.
+                                    </p>
+                                    <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                                        <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Ưu đãi phòng</span>
+                                            <strong className="text-slate-900 font-bold text-sm mt-0.5 block">
+                                                Giảm đến 15%
+                                            </strong>
+                                        </div>
+                                        <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Lễ tân đón tiếp</span>
+                                            <strong className="text-purple-700 font-bold text-sm mt-0.5 block">
+                                                VIP Concierge
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                                    <span className="text-slate-500">Xem danh sách voucher:</span>
+                                    <Link
+                                        to="/promotions"
+                                        className="text-purple-600 font-bold hover:underline flex items-center gap-1"
+                                    >
+                                        <span>Khám phá ưu đãi</span>
+                                        <ArrowRight className="w-3.5 h-3.5" />
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
             </main>
 
             {/* Footer */}
@@ -758,6 +1043,41 @@ export default function Profile() {
                 isOpen={isChangePasswordOpen}
                 onClose={() => setIsChangePasswordOpen(false)}
             />
+
+            {/* Modal Xác Nhận Đăng Xuất */}
+            {isLogoutConfirmOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+                    <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl border border-slate-100 text-center space-y-4">
+                        <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <LogOut className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">
+                                Đăng xuất tài khoản?
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-1">
+                                Quý khách có chắc chắn muốn đăng xuất khỏi tài khoản khách sạn TA không?
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsLogoutConfirmOpen(false)}
+                                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                            >
+                                Ở lại
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-sm cursor-pointer"
+                            >
+                                Đăng xuất
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

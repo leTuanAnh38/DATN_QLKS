@@ -29,6 +29,10 @@ body {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Custom Rich Text Editor (ReactQuill) Styles */
 .custom-quill-editor .ql-toolbar {
   border: none !important;
