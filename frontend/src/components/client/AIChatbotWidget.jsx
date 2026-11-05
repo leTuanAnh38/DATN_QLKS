@@ -799,7 +799,7 @@ export default function AIChatbotWidget() {
     const currentChips = QUICK_CHIPS_BY_LANG[selectedLang] || QUICK_CHIPS_BY_LANG.vi;
 
     return (
-        <aside aria-label="Khung trò chuyện Trợ lý AI Khách Sạn TA Đà Nẵng">
+        <aside aria-label="Khung trò chuyện Trợ lý AI Khách Sạn TA Đà Nẵng" className="print:hidden no-print">
             {/* 1. NÚT MỞ CHAT NỔI (FLOATING BUTTON) TÔNG SÁNG TRANG NHÃ DỊU MẮT & BONG BÓNG CHÀO ĐÓN */}
             <div className={`fixed z-50 select-none flex flex-col items-end ${hasMobileStickyBar ? 'bottom-20 right-4 sm:bottom-6 sm:right-6' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'}`}>
                 {/* Bong bóng chào đón thông minh (Proactive Callout Bubble) */}

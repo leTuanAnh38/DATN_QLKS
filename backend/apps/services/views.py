@@ -359,9 +359,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         user = self.request.user
         # Luôn tạo mới QuerySet để tránh stale result_cache
         base_qs = ServiceRequest.objects.select_related(
-            'booking', 'booking__room', 'booking__category', 'booking__guest',
+            'booking', 'booking__room', 'booking__room__category', 'booking__category', 'booking__guest',
             'service', 'service__category', 'assigned_staff'
-        ).exclude(
+        ).prefetch_related('booking__guests').exclude(
             Q(service__name__icontains='Make-up') | Q(service__name__icontains='dọn dẹp phòng lưu trú')
         ).order_by('-created_at')
 
@@ -777,10 +777,33 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 if service_req.status != 'pending':
                     return Response({
                         'success': False,
-                        'message': 'Yêu cầu chỉ có thể hủy khi đang ở trạng thái Chờ xử lý.'
+                        'message': 'Yêu cầu chỉ có thể hủy khi đang ở trạng thái Chờ xử lý (nhân viên chưa tiếp nhận chuẩn bị).'
                     }, status=status.HTTP_400_BAD_REQUEST)
+                if service_req.is_paid:
+                    return Response({
+                        'success': False,
+                        'message': 'Dịch vụ này đã thanh toán trước. Quý khách vui lòng liên hệ Lễ tân để được hỗ trợ hủy và hoàn tiền.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                req_booking_code = str(request.data.get('booking_code') or request.query_params.get('booking_code') or '').strip()
+                if req_booking_code and service_req.booking and service_req.booking.booking_code.upper() != req_booking_code.upper():
+                    return Response({
+                        'success': False,
+                        'message': 'Mã đặt phòng xác thực không khớp với đơn dịch vụ.'
+                    }, status=status.HTTP_403_FORBIDDEN)
                 service_req.status = 'cancelled'
                 service_req.save(update_fields=['status', 'updated_at'])
+                BookingExtraService.objects.filter(
+                    booking=service_req.booking,
+                    is_paid=False,
+                    service_name__contains=f"[Yêu cầu #{service_req.id}]"
+                ).delete()
+                log_action(
+                    user=user if user.is_authenticated else (service_req.booking.guest if service_req.booking else None),
+                    action='UPDATE',
+                    module='SERVICE',
+                    description=f"Khách hàng hủy yêu cầu dịch vụ #{service_req.id} ({service_req.service.name if service_req.service else 'Dịch vụ'})",
+                    request=request
+                )
                 serializer = self.get_serializer(service_req, context={'request': request})
                 return Response({
                     'success': True,
@@ -799,16 +822,40 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             getattr(user, 'role', '') != 'guest'
         )
 
-        # Nếu là khách hàng: Chỉ cho phép hủy khi đơn còn pending
+        # Nếu là khách hàng: Chỉ cho phép hủy đơn của chính mình khi còn pending và chưa thanh toán
         if not is_staff_or_admin:
             if new_status == 'cancelled':
+                if service_req.booking and service_req.booking.guest and service_req.booking.guest != user:
+                    req_booking_code = str(request.data.get('booking_code') or '').strip()
+                    if not req_booking_code or service_req.booking.booking_code.upper() != req_booking_code.upper():
+                        return Response({
+                            'success': False,
+                            'message': 'Bạn không có quyền hủy yêu cầu dịch vụ của phòng khác.'
+                        }, status=status.HTTP_403_FORBIDDEN)
                 if service_req.status != 'pending':
                     return Response({
                         'success': False,
-                        'message': 'Yêu cầu chỉ có thể hủy khi đang ở trạng thái Chờ xử lý.'
+                        'message': 'Yêu cầu chỉ có thể hủy khi đang ở trạng thái Chờ xử lý (nhân viên chưa tiếp nhận chuẩn bị).'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                if service_req.is_paid:
+                    return Response({
+                        'success': False,
+                        'message': 'Dịch vụ này đã thanh toán trước. Quý khách vui lòng liên hệ Lễ tân để được hỗ trợ hủy và hoàn tiền.'
                     }, status=status.HTTP_400_BAD_REQUEST)
                 service_req.status = 'cancelled'
                 service_req.save(update_fields=['status', 'updated_at'])
+                BookingExtraService.objects.filter(
+                    booking=service_req.booking,
+                    is_paid=False,
+                    service_name__contains=f"[Yêu cầu #{service_req.id}]"
+                ).delete()
+                log_action(
+                    user=user if user.is_authenticated else (service_req.booking.guest if service_req.booking else None),
+                    action='UPDATE',
+                    module='SERVICE',
+                    description=f"Khách hàng hủy yêu cầu dịch vụ #{service_req.id} ({service_req.service.name if service_req.service else 'Dịch vụ'})",
+                    request=request
+                )
                 serializer = self.get_serializer(service_req, context={'request': request})
                 return Response({
                     'success': True,
@@ -904,11 +951,12 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(f"Lỗi khi đồng bộ phụ phí và thanh toán dịch vụ: {e}")
 
-            # Nếu chuyển từ "completed" lùi lại trạng thái khác (in_progress, pending, cancelled):
-            elif old_status == 'completed' and new_status != 'completed':
+            # Nếu chuyển sang "cancelled" hoặc lùi từ "completed" sang trạng thái khác: gỡ phụ phí chưa thanh toán khỏi Folio
+            elif new_status == 'cancelled' or (old_status == 'completed' and new_status != 'completed'):
                 try:
                     BookingExtraService.objects.filter(
                         booking=service_req.booking,
+                        is_paid=False,
                         service_name__contains=f"[Yêu cầu #{service_req.id}]"
                     ).delete()
                     from ..payments.models import Payment
@@ -955,9 +1003,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         service_req.refresh_from_db()
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
-        audit_desc = f"Cập nhật yêu cầu dịch vụ #{service_req.id} ({service_req.service.name if service_req.service else 'Dịch vụ'}) sang \"{service_req.get_status_display()}\""
-        if new_status == 'cancelled' and cancel_reason:
-            audit_desc = f"Hủy yêu cầu dịch vụ #{service_req.id} (Lý do: {cancel_reason.strip()})"
+        svc_label = service_req.service.name if service_req.service else 'Dịch vụ'
+        room_label = service_req.booking.room.room_number if (service_req.booking and service_req.booking.room) else 'Chưa xếp phòng'
+        audit_desc = f"Cập nhật yêu cầu dịch vụ #{service_req.id} ({svc_label} - P.{room_label}) sang \"{service_req.get_status_display()}\""
+        if new_status == 'completed':
+            amt_val = float(service_req.total_price or 0)
+            pay_label = "Đã thu tiền mặt tại phòng" if service_req.is_paid else "Ghi nợ vào Folio phòng"
+            audit_desc = f"Hoàn tất phục vụ #{service_req.id} ({svc_label} - P.{room_label}): {amt_val:,.0f} VND ({pay_label})"
+        elif new_status == 'cancelled' and cancel_reason:
+            audit_desc = f"Hủy yêu cầu dịch vụ #{service_req.id} ({svc_label} - P.{room_label}) (Lý do: {cancel_reason.strip()})"
 
         log_action(
             user=user if user.is_authenticated else None,
@@ -1013,6 +1067,12 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         GIỮ NGUYÊN trạng thái 'pending' để nhân viên F&B/Spa tự tiếp nhận trên Kanban.
         Có thể cập nhật thời gian hẹn phục vụ (request_time) nếu khách hẹn giờ (ví dụ: 1 tiếng nữa).
         """
+        user = request.user
+        if not (user.is_authenticated and (user.is_staff or user.is_superuser or getattr(user, 'role', '') != 'guest')):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn mới có quyền phát chuông điều phối dịch vụ.'
+            }, status=status.HTTP_403_FORBIDDEN)
         service_req = self.get_object()
         booking = service_req.booking
         guest_name = ''
@@ -1329,6 +1389,13 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         POST /api/services/requests/<id>/assign/
         Body: { "staff_id": 12 }
         """
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        if not (user.is_authenticated and (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist'])):
+            return Response({
+                'success': False,
+                'message': 'Chỉ Quản lý hoặc Lễ tân mới có quyền phân công nhân viên thực hiện dịch vụ.'
+            }, status=status.HTTP_403_FORBIDDEN)
         service_req = self.get_object()
         staff_id = request.data.get('staff_id')
         if not staff_id:

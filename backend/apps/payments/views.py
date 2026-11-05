@@ -31,15 +31,28 @@ class IsAdminOrOwnerUser(BasePermission):
 class ConfirmPaymentView(APIView):
     """
     API endpoint: POST /api/payments/confirm/
-    Xác nhận thanh toán chuyển khoản VietQR cho đơn đặt phòng.
+    Xác nhận thanh toán cho đơn đặt phòng lẻ hoặc đơn đoàn bởi Thu ngân / Lễ tân / Quản lý:
     Payload:
     - booking_id: ID hoặc booking_code của đơn đặt phòng
-    - amount: Số tiền thanh toán (bắt buộc phải khớp với total_amount)
+    - amount: Số tiền thanh toán (bắt buộc phải khớp với total_amount hoặc remaining_balance)
     - payment_method: Phương thức (mặc định 'TRANSFER')
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        user = request.user
+        can_confirm = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'cashier', 'owner'] or
+            check_role_permission(user, 'finance', 'update') or
+            check_role_permission(user, 'finance', 'create')
+        )
+        if not can_confirm:
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền xác nhận thu tiền (Yêu cầu vai trò Thu ngân / Lễ tân / Quản lý).'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         booking_id = request.data.get('booking_id')
         amount = request.data.get('amount')
         payment_method = request.data.get('payment_method', 'TRANSFER')
@@ -582,6 +595,39 @@ class PaymentDetailView(APIView):
                 "message": f"Không tìm thấy giao dịch thanh toán #{payment_id}."
             }, status=status.HTTP_404_NOT_FOUND)
 
+        # Kiểm tra quyền truy cập (IDOR Guardrail):
+        # Nhân viên lễ tân, thu ngân, quản lý, admin được xem tất cả. Khách hàng chỉ xem giao dịch của chính mình/đoàn mình.
+        user = request.user
+        is_staff_or_admin = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'cashier', 'owner'] or
+            check_role_permission(user, 'finance', 'read')
+        )
+        if not is_staff_or_admin:
+            is_owner = False
+            user_email = getattr(user, 'email', '')
+            user_phone = getattr(user, 'phone', '')
+
+            if payment.booking and payment.booking.guest_id == user.id:
+                is_owner = True
+            elif payment.group_booking:
+                if user_email and (
+                    (payment.group_booking.leader_email and payment.group_booking.leader_email.lower() == user_email.lower()) or
+                    (payment.group_booking.corporate_partner and payment.group_booking.corporate_partner.contact_email and payment.group_booking.corporate_partner.contact_email.lower() == user_email.lower())
+                ):
+                    is_owner = True
+                elif user_phone and (
+                    payment.group_booking.leader_phone == user_phone or
+                    (payment.group_booking.corporate_partner and payment.group_booking.corporate_partner.contact_phone == user_phone)
+                ):
+                    is_owner = True
+
+            if not is_owner:
+                return Response({
+                    "success": False,
+                    "message": "Bạn không có quyền truy cập thông tin giao dịch này."
+                }, status=status.HTTP_403_FORBIDDEN)
+
         serializer = PaymentSerializer(payment, context={'request': request})
         return Response({
             "success": True,
@@ -820,6 +866,15 @@ class SepayWebhookView(APIView):
             transfer_amount = Decimal(str(amount_val or 0))
         except (ValueError, TypeError):
             transfer_amount = Decimal('0')
+
+        # Kiểm tra tính Idempotent (Chống gọi trùng lặp Webhook SePay gây nhân bản thanh toán / spam email)
+        txn_id = f"SEPAY-{sepay_id}" if sepay_id else (f"SEPAY-{reference_code}" if reference_code else None)
+        if txn_id and Payment.objects.filter(transaction_id=txn_id, payment_status='COMPLETED').exists():
+            return Response({
+                "success": True,
+                "message": f"Webhook SePay: Giao dịch {txn_id} đã được xử lý và ghi nhận thành công trước đó (Idempotency).",
+                "data": {"transaction_id": txn_id}
+            }, status=status.HTTP_200_OK)
 
         # Xử lý đơn Đặt Đoàn (Group Booking)
         if group_booking:
@@ -1150,7 +1205,21 @@ class CurrentShiftView(APIView):
 
     def get(self, request):
         user = request.user
-        is_manager = bool(user.is_superuser or user.role in ['admin', 'owner', 'manager'])
+        can_view_shift = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier'] or
+            check_role_permission(user, 'finance', 'read')
+        )
+        if not can_view_shift:
+            return Response({
+                'success': True,
+                'has_active_shift': False,
+                'is_manager_view': False,
+                'active_shift': None,
+                'shift': None
+            }, status=status.HTTP_200_OK)
+
+        is_manager = bool(user.is_superuser or getattr(user, 'role', '') in ['admin', 'owner', 'manager'])
 
         # 1. Tìm ca đang mở của chính user trước
         active_shift = CashierShift.objects.filter(user=user, status='OPEN').first()
@@ -1196,6 +1265,18 @@ class OpenShiftView(APIView):
 
     def post(self, request):
         user = request.user
+
+        # 0. Kiểm tra phân quyền RBAC: Chỉ Thu ngân, Lễ tân, Quản lý, Admin mới được mở ca thu ngân
+        can_open_shift = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'cashier', 'owner'] or
+            check_role_permission(user, 'finance', 'create')
+        )
+        if not can_open_shift:
+            return Response({
+                'success': False,
+                'message': "Bạn không có quyền mở ca thu ngân / lễ tân."
+            }, status=status.HTTP_403_FORBIDDEN)
 
         # 1. Kiểm tra nếu user đang có ca chưa kết thúc
         existing_open = CashierShift.objects.filter(user=user, status='OPEN').first()

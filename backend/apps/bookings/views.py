@@ -3288,6 +3288,22 @@ class BookingViewSet(viewsets.ModelViewSet):
                 sub_room_charge = float(room_charge)
                 sub_invoice_total = float(grand_total)
 
+            # Chốt chặn tài chính (Financial Guardrail):
+            # Nếu phòng vẫn còn nợ (remaining_amount > 0) và không thuộc diện công ty ALL_INCLUSIVE:
+            # Bắt buộc phải có xác nhận thanh toán (confirm_settle hoặc settle_remaining). Nếu không, từ chối Check-out!
+            if remaining_amount > 0 and not is_company_all_inclusive:
+                confirm_settle = bool(
+                    request.data.get('confirm_settle', False) or 
+                    request.data.get('settle_remaining', False)
+                )
+                if not confirm_settle:
+                    return Response({
+                        'success': False,
+                        'code': 'UNSETTLED_DEBT',
+                        'message': f"Chốt chặn tài chính: Đơn #{booking.booking_code} vẫn còn công nợ chưa thanh toán ({remaining_amount:,.0f} VND). Vui lòng thu tiền hoặc xác nhận thanh toán trước khi hoàn tất trả phòng!",
+                        'remaining_amount': remaining_amount
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
             # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền & thông tin VAT công ty
             is_company_invoice = bool(request.data.get('is_company_invoice', False))
             company_name = str(request.data.get('company_name') or '').strip() or None
@@ -3383,10 +3399,12 @@ class BookingViewSet(viewsets.ModelViewSet):
                 booking.service_requests.filter(is_paid=False).update(is_paid=True)
                 booking.extra_services.filter(is_paid=False).update(is_paid=True)
 
-            # 4. Cập nhật bảng Room: Đổi trạng thái phòng thành cleaning (Đang dọn dẹp)
+            # 4. Cập nhật bảng Room: Nếu phòng đang có phiếu bảo trì chờ sửa ('fixing') thì chuyển sang 'maintenance',
+            # ngược lại chuyển sang 'cleaning' (Đang dọn dẹp) để Buồng phòng xử lý
             room_info = None
             if booking.room:
-                booking.room.status = 'cleaning'
+                has_active_maintenance = booking.room.maintenance_tickets.filter(status='fixing').exists()
+                booking.room.status = 'maintenance' if has_active_maintenance else 'cleaning'
                 booking.room.save(update_fields=['status'])
                 room_info = {
                     'id': booking.room.id,

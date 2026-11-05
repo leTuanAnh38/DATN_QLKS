@@ -715,17 +715,40 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
                 Notification.objects.bulk_create(staff_notifications)
 
         elif instance.status == 'cancelled' and prev_status != 'cancelled':
+            cancel_note_str = f" Lý do/Ghi chú: {instance.note}" if instance.note else ""
             if guest:
                 Notification.objects.create(
                     recipient=guest,
                     title="✕ Yêu cầu dịch vụ đã bị hủy",
                     message=(
-                        f"Yêu cầu dịch vụ \"{service_name}\" cho phòng {room_label} đã bị hủy."
+                        f"Yêu cầu dịch vụ \"{service_name}\" cho phòng {room_label} đã bị hủy.{cancel_note_str}"
                     ),
                     notification_type='service',
                     action_url=guest_url,
                     priority='normal'
                 )
+
+            # Báo cho Nhân viên / Bộ phận phụ trách để ngừng chuẩn bị món / dịch vụ kịp thời
+            staff_users = get_staff_and_admin_users(
+                exclude_user_id=guest.id if guest else None,
+                category_type=cat_type
+            )
+            cancel_staff_notifs = [
+                Notification(
+                    recipient=staff,
+                    title=f"✕ [HỦY DỊCH VỤ] Phòng {room_label}",
+                    message=(
+                        f"Yêu cầu dịch vụ \"{service_name}\" (SL: {instance.quantity}) tại phòng {room_label} "
+                        f"đã chuyển sang trạng thái ĐÃ HỦY.{cancel_note_str}"
+                    ),
+                    notification_type='service',
+                    action_url=staff_url,
+                    priority='normal'
+                )
+                for staff in staff_users
+            ]
+            if cancel_staff_notifs:
+                Notification.objects.bulk_create(cancel_staff_notifs)
 
     except Exception as e:
         logger.error(f"Lỗi khi tạo thông báo cho ServiceRequest #{getattr(instance, 'pk', 'N/A')}: {e}")

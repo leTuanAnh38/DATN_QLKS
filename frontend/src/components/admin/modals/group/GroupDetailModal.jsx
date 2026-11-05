@@ -331,7 +331,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         closeConfirm();
         try {
             setIsActionLoading(true);
-            const res = await bookingService.checkOut(bookingId, { payment_method: 'transfer' });
+            const res = await bookingService.checkOut(bookingId, { payment_method: 'transfer', confirm_settle: true });
             if (res.success) {
                 setActionMessage({ type: 'success', text: `Check-out phòng ${roomNumber || bookingId} thành công! Phòng đã chuyển sang trạng thái Dọn dẹp.` });
                 if (typeof onRefresh === 'function') onRefresh(null, false);
@@ -408,6 +408,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             const payload = {
                 payment_method: settlementPaymentMethod,
                 mark_invoice_paid: true,
+                confirm_settle: true,
                 is_company_invoice: isCompanyInvoice,
                 company_name: isCompanyInvoice ? companyName.trim() : null,
                 company_tax_code: isCompanyInvoice ? companyTaxCode.trim() : null,

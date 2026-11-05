@@ -56,10 +56,30 @@ class Invoice(models.Model):
         code_ref = self.booking.booking_code if self.booking else (self.group_booking.group_code if self.group_booking else "N/A")
         return f"{self.invoice_code} - {code_ref}"
 
-    # Tự động sinh mã hóa đơn (VD: INV-9A8B7C)
+    # Tự động sinh mã hóa đơn (VD: INV-9A8B7C) và bóc tách Phí dịch vụ (5%) + Thuế VAT (8%) nếu là Hóa đơn Công ty
     def save(self, *args, **kwargs):
         if not self.invoice_code:
             self.invoice_code = f"INV-{uuid.uuid4().hex[:6].upper()}"
+        is_corp = bool(
+            self.is_company_invoice or
+            self.company_name or
+            self.company_tax_code or
+            (self.booking and getattr(self.booking, 'customer_type', '') == 'CORPORATE') or
+            self.group_booking_id
+        )
+        if is_corp and self.total_amount and Decimal(str(self.total_amount)) > 0:
+            try:
+                from ..bookings.models import HotelSetting
+                hs = HotelSetting.get_solo()
+                svc_rate = Decimal(str(hs.service_charge_percent or 5)) / Decimal('100')
+                vat_rate = Decimal(str(hs.vat_percent or 8)) / Decimal('100')
+            except Exception:
+                svc_rate = Decimal('0.05')
+                vat_rate = Decimal('0.08')
+            multiplier = (Decimal('1') + svc_rate) * (Decimal('1') + vat_rate)
+            total_dec = Decimal(str(self.total_amount))
+            base_pre_tax = (total_dec / multiplier).quantize(Decimal('1'))
+            self.tax = max(Decimal('0'), total_dec - base_pre_tax)
         super().save(*args, **kwargs)
 
     class Meta:

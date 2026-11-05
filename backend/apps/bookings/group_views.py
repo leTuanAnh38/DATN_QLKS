@@ -230,8 +230,11 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return GroupBooking.objects.none()
 
-        qs = GroupBooking.objects.select_related('corporate_partner').prefetch_related(
-            'sub_bookings', 'sub_bookings__room', 'sub_bookings__category', 'sub_bookings__guests'
+        from django.db.models import Prefetch
+        from .serializers import optimize_booking_queryset
+        qs = GroupBooking.objects.select_related('corporate_partner', 'master_invoice').prefetch_related(
+            Prefetch('sub_bookings', queryset=optimize_booking_queryset(Booking.objects.all())),
+            'payments'
         ).all().order_by('-created_at')
 
         search = self.request.query_params.get('search', '').strip()
@@ -882,10 +885,53 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
         sub_bookings = group.sub_bookings.exclude(status__in=['cancelled', 'completed', 'checked_out'])
 
         with transaction.atomic():
+            # Cập nhật hoặc tạo Master Invoice thanh toán toàn bộ cho đoàn
+            from ..payments.models import Invoice, Payment, CashierShift
+            payment_method = request.data.get('payment_method', 'transfer')
+            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+            
+            # Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE):
+            # Tự động quét và gom toàn bộ phụ phí dịch vụ phát sinh chưa thanh toán của tất cả phòng con vào hóa đơn đoàn
+            unpaid_incidental_services = 0.0
+            sub_ids = list(group.sub_bookings.values_list('id', flat=True))
+            unpaid_bes = None
+            if getattr(group, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE':
+                unpaid_bes = BookingExtraService.objects.filter(booking_id__in=sub_ids, is_paid=False)
+                unpaid_incidental_services = float(sum((b.price or 0) * (b.quantity or 1) for b in unpaid_bes))
+
+            # Tính toán chính xác số tiền đã thanh toán (Cọc + các đợt thanh toán trước)
+            completed_payments = Payment.objects.filter(group_booking=group, payment_status='COMPLETED')
+            total_paid = float(sum(p.amount for p in completed_payments)) if completed_payments.exists() else 0.0
+            if total_paid <= 0 and group.is_deposit_paid:
+                total_paid = float(group.deposit_amount or 0)
+
+            total_contract = float(group.total_amount or 0) + unpaid_incidental_services
+            remaining_balance = max(0.0, total_contract - total_paid)
+
+            corp = group.corporate_partner
+            payment_terms_days = getattr(corp, 'payment_terms_days', 0) if corp else 0
+            has_credit_terms = bool(payment_terms_days > 0)
+            confirm_settle = bool(
+                request.data.get('confirm_settle', False) or 
+                request.data.get('mark_invoice_paid', False)
+            )
+
+            # Chốt chặn tài chính (Financial Guardrail):
+            # Nếu còn công nợ chưa thanh toán VÀ đối tác không có hạn mức công nợ trả sau (payment_terms_days == 0):
+            # Bắt buộc phải có xác nhận thanh toán nốt phần nợ. Nếu không, chặn Check-out!
+            if remaining_balance > 0 and not has_credit_terms and not confirm_settle:
+                return Response({
+                    'success': False,
+                    'code': 'UNSETTLED_GROUP_DEBT',
+                    'message': f"Chốt chặn tài chính: Đoàn #{group.group_code} vẫn còn công nợ chưa thanh toán ({remaining_balance:,.0f} VND). Doanh nghiệp không có hạn mức công nợ trả sau. Vui lòng quyết toán trước khi hoàn tất Check-out!",
+                    'remaining_balance': remaining_balance
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             checked_out_count = 0
             for b in sub_bookings:
                 if b.room:
-                    b.room.status = 'cleaning'
+                    has_active_maintenance = b.room.maintenance_tickets.filter(status='fixing').exists()
+                    b.room.status = 'maintenance' if has_active_maintenance else 'cleaning'
                     b.room.save(update_fields=['status'])
 
                 b.status = 'completed'
@@ -896,36 +942,25 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             group.status = 'completed'
             group.save(update_fields=['status'])
 
-            # Cập nhật hoặc tạo Master Invoice thanh toán toàn bộ cho đoàn
-            from ..payments.models import Invoice, Payment
-            payment_method = request.data.get('payment_method', 'transfer')
-            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
-            
-            # Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE):
-            # Tự động quét và gom toàn bộ phụ phí dịch vụ phát sinh chưa thanh toán của tất cả phòng con vào hóa đơn đoàn
-            unpaid_incidental_services = 0.0
-            if getattr(group, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE':
-                sub_ids = list(group.sub_bookings.values_list('id', flat=True))
-                unpaid_bes = BookingExtraService.objects.filter(booking_id__in=sub_ids, is_paid=False)
-                unpaid_incidental_services = float(sum((b.price or 0) * (b.quantity or 1) for b in unpaid_bes))
-                # Đánh dấu các dịch vụ này là đã thanh toán theo hóa đơn đoàn
+            # Đánh dấu các dịch vụ này là đã thanh toán theo hóa đơn đoàn
+            if unpaid_bes:
                 unpaid_bes.update(is_paid=True)
                 ServiceRequest.objects.filter(booking_id__in=sub_ids, is_paid=False).update(is_paid=True)
-
-            deposit_paid = float(group.deposit_amount or 0) if group.is_deposit_paid else 0.0
-            total_contract = float(group.total_amount or 0) + unpaid_incidental_services
-            remaining_balance = max(0.0, total_contract - deposit_paid)
 
             master_inv = getattr(group, 'master_invoice', None)
             if not master_inv:
                 master_inv = Invoice.objects.filter(group_booking=group).first()
 
-            corp = group.corporate_partner
             is_company_invoice = bool(request.data.get('is_company_invoice', True))
             comp_name = request.data.get('company_name') or (corp.company_name if corp else group.group_name)
             tax_code = request.data.get('company_tax_code') or (corp.tax_code if corp else '')
             addr = request.data.get('company_address') or (corp.company_address if corp else '')
             email = request.data.get('invoice_recipient_email') or (corp.contact_email if corp else group.leader_email)
+
+            # Nếu có bảo lãnh công nợ trả sau B2B và chưa thanh toán: hóa đơn để pending
+            is_settled = bool(remaining_balance <= 0 or confirm_settle)
+            inv_status = 'paid' if is_settled else 'pending'
+            inv_paid_at = now if is_settled else None
 
             if not master_inv:
                 master_inv = Invoice.objects.create(
@@ -933,9 +968,9 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                     room_charge=float(group.total_amount or 0),
                     service_charge=unpaid_incidental_services,
                     total_amount=total_contract,
-                    status='paid',
+                    status=inv_status,
                     payment_method=payment_method,
-                    paid_at=now,
+                    paid_at=inv_paid_at,
                     is_company_invoice=is_company_invoice,
                     company_name=comp_name,
                     company_tax_code=tax_code,
@@ -945,8 +980,8 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
             else:
                 master_inv.service_charge = float(master_inv.service_charge or 0) + unpaid_incidental_services
                 master_inv.total_amount = total_contract
-                master_inv.status = 'paid'
-                master_inv.paid_at = now
+                master_inv.status = inv_status
+                master_inv.paid_at = inv_paid_at
                 master_inv.payment_method = payment_method
                 if is_company_invoice:
                     master_inv.is_company_invoice = True
@@ -956,13 +991,20 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                     master_inv.invoice_recipient_email = email
                 master_inv.save()
 
-            # Ghi nhận Payment cho số tiền còn lại (nếu có)
-            if remaining_balance > 0 and request.data.get('mark_invoice_paid', True):
+            # Lấy ca thu ngân hiện tại để liên kết giao dịch thanh toán
+            active_shift = CashierShift.objects.filter(user=user, status='OPEN').first()
+            if not active_shift:
+                active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
+
+            # Ghi nhận Payment cho số tiền còn lại (nếu có thanh toán)
+            if remaining_balance > 0 and confirm_settle:
                 Payment.objects.create(
                     group_booking=group,
                     amount=remaining_balance,
                     payment_method=method_code,
-                    payment_status='COMPLETED'
+                    payment_status='COMPLETED',
+                    shift=active_shift,
+                    transaction_id=f"TXN-GRP-CO-{master_inv.invoice_code.replace('INV-', '')}"
                 )
 
         log_action(user, 'UPDATE', 'BOOKING', f"Check-out đoàn #{group.group_code} ({checked_out_count} phòng). Quyết toán Master Invoice {total_contract:,.0f} đ.", request=request)

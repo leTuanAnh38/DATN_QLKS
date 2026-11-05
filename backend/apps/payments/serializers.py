@@ -95,8 +95,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             b = obj.booking
             if hasattr(b, 'guest_phone') and b.guest_phone:
                 return b.guest_phone
-            if b.guest and hasattr(b.guest, 'phone'):
-                return b.guest.phone or ''
+            if b.guest:
+                return getattr(b.guest, 'phone_number', None) or getattr(b.guest, 'phone', None) or ''
         return ''
 
     def get_room_number(self, obj):

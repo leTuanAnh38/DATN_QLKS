@@ -58,6 +58,8 @@ const formatDateTimeDisplay = (isoStr) => {
     }
 };
 
+import { getBackendOrigin } from '../../utils/mediaUrl';
+
 // Helper chuẩn hóa đường dẫn ảnh dịch vụ
 const resolveImageUrl = (img) => {
     if (!img || typeof img !== 'string') return null;
@@ -66,7 +68,7 @@ const resolveImageUrl = (img) => {
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
         return trimmed;
     }
-    const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    const backendBase = getBackendOrigin();
     return `${backendBase.replace(/\/+$/, '')}/${trimmed.replace(/^\/+/, '')}`;
 };
 

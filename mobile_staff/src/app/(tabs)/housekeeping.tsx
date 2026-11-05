@@ -198,8 +198,9 @@ export default function HousekeepingScreen() {
     });
   }, [rooms, filterStatus, filterFloor, searchQuery]);
 
-  // Đổi trạng thái phòng 1 chạm
+  // Đổi trạng thái phòng 1 chạm (Chống bấm đúp khi đang xử lý)
   const handleToggleCleaning = async (room: RoomItem) => {
+    if (actionLoadingId === room.id) return;
     if (!canMarkCleaned) {
       Alert.alert('Không có quyền', 'Nghiệp vụ xác nhận dọn phòng thuộc thẩm quyền của nhân viên Buồng phòng.');
       return;
@@ -253,6 +254,7 @@ export default function HousekeepingScreen() {
 
   // Xác nhận hoàn tất dọn dẹp phòng lưu trú (Make-up room) cho khách đang ở
   const handleCompleteMakeUpCleaning = async (room: RoomItem) => {
+    if (actionLoadingId === room.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       'Hoàn tất dọn phòng khách ở',

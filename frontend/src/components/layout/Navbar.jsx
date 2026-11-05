@@ -9,16 +9,10 @@ import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { Phone, CalendarClock, User, Tag, KeyRound } from 'lucide-react';
 
-const getAvatarUrl = (avatar) => {
-    if (!avatar) return null;
-    if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')) {
-        return avatar;
-    }
-    const backendBase = 'http://localhost:8000';
-    return `${backendBase}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
-};
+const getAvatarUrl = (avatar) => resolveMediaUrl(avatar, null);
 
 export default function Navbar({
     actionText = 'Đặt phòng ngay',

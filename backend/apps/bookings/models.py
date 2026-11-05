@@ -344,6 +344,14 @@ class HotelSetting(models.Model):
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)
+        try:
+            from ..payments.models import Invoice
+            for inv in Invoice.objects.select_related('booking').all():
+                inv.save(update_fields=['tax'])
+        except Exception:
+            pass
+        return
+        super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         pass

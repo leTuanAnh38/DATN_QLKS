@@ -33,16 +33,10 @@ import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import MembershipCard from '../../components/client/MembershipCard';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // Helper chuẩn hóa đường dẫn avatar từ backend
-const getAvatarUrl = (avatar) => {
-    if (!avatar) return null;
-    if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')) {
-        return avatar;
-    }
-    const backendBase = 'http://localhost:8000';
-    return `${backendBase}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
-};
+const getAvatarUrl = (avatar) => resolveMediaUrl(avatar, null);
 
 // Helper định dạng ngày tháng sang dd/mm/yyyy
 const formatDateVN = (dateStr) => {

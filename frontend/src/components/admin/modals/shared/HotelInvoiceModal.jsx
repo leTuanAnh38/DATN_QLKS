@@ -17,7 +17,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng',
         hotline: '1900 8899',
         email: 'contact@tahotel.vn',
-        tax_code: '0401234567'
+        tax_code: '0401234567',
+        vat_percent: 8,
+        service_charge_percent: 5
     });
 
     useEffect(() => {
@@ -34,6 +36,8 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         hotline: data.hotline || prev.hotline,
                         email: data.email || prev.email,
                         tax_code: data.tax_code || prev.tax_code,
+                        vat_percent: data.vat_percent != null ? Number(data.vat_percent) : prev.vat_percent,
+                        service_charge_percent: data.service_charge_percent != null ? Number(data.service_charge_percent) : prev.service_charge_percent,
                     }));
                 }
             })
@@ -466,7 +470,22 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
     // Kích hoạt lệnh in trình duyệt
     const handlePrint = () => {
-        window.print();
+        const printableEl = document.getElementById('hotel-invoice-printable');
+        if (!printableEl) {
+            window.print();
+            return;
+        }
+        const printWindow = window.open('', '_blank', 'width=900,height=850');
+        if (!printWindow) {
+            window.print();
+            return;
+        }
+        const styleNodes = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+            .map((node) => node.outerHTML)
+            .join('\n');
+        printWindow.document.open();
+        printWindow.document.write(`<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8" /><title>Hóa Đơn Đặt Phòng ${bookingCodeDisplay}</title>${styleNodes}<style>@page { size: A4 portrait; margin: 12mm 15mm; } html, body { background: #ffffff !important; color: #111827 !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } #hotel-invoice-printable { position: static !important; width: 100% !important; max-width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #111827 !important; } .no-print { display: none !important; }</style></head><body>${printableEl.outerHTML}<script>window.onload=function(){setTimeout(function(){window.focus();window.print();window.close();},250);};</script></body></html>`);
+        printWindow.document.close();
     };
 
     if (!booking) return null;
@@ -497,7 +516,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         visibility: visible !important;
                     }
                     #hotel-invoice-printable {
-                        position: absolute !important;
+                        position: fixed !important;
                         left: 0 !important;
                         top: 0 !important;
                         width: 100% !important;
@@ -583,7 +602,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                     <div
                         id="hotel-invoice-printable"
                         className="p-5 sm:p-10 bg-white text-slate-900 font-sans min-w-[620px] sm:min-w-0"
-                        style={{ minHeight: '680px', color: '#111827' }}
+                        style={{ color: '#111827' }}
                     >
                     {/* 1. HEADER: THÔNG TIN KHÁCH SẠN VÀ TIÊU ĐỀ HÓA ĐƠN */}
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4">
@@ -1062,6 +1081,15 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     {formatCurrency(grandTotal)}
                                 </span>
                             </div>
+
+                            {(booking.customer_type === 'CORPORATE' || booking.company_name || booking.invoice?.company_name || isGroupMaster) && grandTotal > 0 && (
+                                <div className="flex justify-between sm:justify-end gap-6 text-[10px] text-slate-500 italic">
+                                    <span>* Đã bao gồm {Number(hotelInfo.service_charge_percent ?? 5)}% Phí phục vụ & {Number(hotelInfo.vat_percent ?? 8)}% Thuế GTGT (VAT):</span>
+                                    <span className="w-36 text-right font-medium">
+                                        ({formatCurrency(Math.round(grandTotal - (grandTotal / ((1 + Number(hotelInfo.service_charge_percent ?? 5) / 100) * (1 + Number(hotelInfo.vat_percent ?? 8) / 100)))))})
+                                    </span>
+                                </div>
+                            )}
 
                             {isGroupMaster ? (
                                 <>

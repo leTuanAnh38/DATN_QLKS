@@ -979,6 +979,9 @@ class GroupBookingSerializer(serializers.ModelSerializer):
         return 1
 
     def get_total_rooms(self, obj):
+        sub_cache = getattr(obj, '_prefetched_objects_cache', {}).get('sub_bookings')
+        if sub_cache is not None:
+            return len(sub_cache)
         return obj.sub_bookings.count()
 
     def get_deposit_status(self, obj):
@@ -997,12 +1000,17 @@ class GroupBookingSerializer(serializers.ModelSerializer):
         return max(0.0, float(obj.total_amount or 0) - deposit)
 
     def get_sub_bookings(self, obj):
-        bookings = obj.sub_bookings.select_related('category', 'room', 'guest').prefetch_related('guests').all()
+        sub_cache = getattr(obj, '_prefetched_objects_cache', {}).get('sub_bookings')
+        if sub_cache is not None:
+            return BookingSerializer(sub_cache, many=True, context=self.context).data
+        bookings = optimize_booking_queryset(obj.sub_bookings.all())
         return BookingSerializer(bookings, many=True, context=self.context).data
 
     def get_rooms_summary(self, obj):
         summary = {}
-        for b in obj.sub_bookings.select_related('category', 'room').all():
+        sub_cache = getattr(obj, '_prefetched_objects_cache', {}).get('sub_bookings')
+        bookings_iter = sub_cache if sub_cache is not None else obj.sub_bookings.select_related('category', 'room').all()
+        for b in bookings_iter:
             cat_name = b.category.name if b.category else "Chưa phân loại"
             if cat_name not in summary:
                 summary[cat_name] = {'category_name': cat_name, 'count': 0, 'assigned_rooms': []}

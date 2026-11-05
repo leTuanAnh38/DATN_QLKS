@@ -23,6 +23,7 @@ import FeaturedRoomCategories from '../../components/client/FeaturedRoomCategori
 import FeaturedServices from '../../components/client/FeaturedServices';
 import postService from '../../services/postService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối, local media và tự động nâng cấp ảnh mờ)
 const resolveBannerUrl = (url, fallback) => {
@@ -31,11 +32,7 @@ const resolveBannerUrl = (url, fallback) => {
     if (typeof url === 'string' && url.includes('photo-1571896349842-33c89424de2d')) {
         return fallback || 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=2070&q=90';
     }
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-        return url;
-    }
-    const backendBase = 'http://localhost:8000';
-    return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
+    return resolveMediaUrl(url, fallback || '');
 };
 
 // Tiện ích ngày tháng

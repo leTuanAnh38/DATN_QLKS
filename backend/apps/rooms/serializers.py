@@ -157,10 +157,16 @@ class RoomCategorySerializer(serializers.ModelSerializer):
         return data
 
     def get_feature_image(self, obj):
-        # Lấy ảnh có is_feature=True trước, nếu không có thì lấy ảnh đầu tiên
-        feature_img = obj.images.filter(is_feature=True).first()
-        if not feature_img:
-            feature_img = obj.images.first()
+        # Ưu tiên duyệt trên bộ nhớ cache nếu đã prefetch_related('images') để tránh N+1 query
+        images_cache = getattr(obj, '_prefetched_objects_cache', {}).get('images')
+        if images_cache is not None:
+            feature_img = next((img for img in images_cache if img.is_feature), None)
+            if not feature_img and len(images_cache) > 0:
+                feature_img = images_cache[0]
+        else:
+            feature_img = obj.images.filter(is_feature=True).first()
+            if not feature_img:
+                feature_img = obj.images.first()
         if feature_img and feature_img.image:
             request = self.context.get('request')
             if request:
@@ -169,6 +175,11 @@ class RoomCategorySerializer(serializers.ModelSerializer):
         return None
 
     def get_total_rooms_count(self, obj):
+        if hasattr(obj, 'rooms_count_annotated') and obj.rooms_count_annotated is not None:
+            return obj.rooms_count_annotated
+        rooms_cache = getattr(obj, '_prefetched_objects_cache', {}).get('rooms')
+        if rooms_cache is not None:
+            return len(rooms_cache)
         return obj.rooms.count()
 
     def validate_base_price(self, value):
@@ -257,12 +268,12 @@ class RoomSerializer(serializers.ModelSerializer):
                     'booking_id': check.booking_id,
                     'status': check.status,
                     'status_display': check.get_status_display(),
-                    'total_amount': float(check.total_amount),
-                    'has_damage': check.has_damage,
-                    'damage_description': check.damage_description,
-                    'damage_amount': float(check.damage_amount),
-                    'items_consumed': check.items_consumed,
-                    'note': check.note,
+                    'total_amount': float(check.total_amount or 0),
+                    'has_damage': bool(check.has_damage),
+                    'damage_description': check.damage_description or '',
+                    'damage_amount': float(check.damage_amount or 0),
+                    'items_consumed': check.items_consumed if isinstance(check.items_consumed, list) else [],
+                    'note': check.note or '',
                     'created_at': check.created_at,
                     'completed_at': check.completed_at,
                     'inspector_name': inspector_name,
@@ -274,7 +285,11 @@ class RoomSerializer(serializers.ModelSerializer):
 
     def get_active_maintenance(self, obj):
         try:
-            ticket = obj.maintenance_tickets.filter(status='fixing').first()
+            tickets_cache = getattr(obj, '_prefetched_objects_cache', {}).get('maintenance_tickets')
+            if tickets_cache is not None:
+                ticket = next((t for t in tickets_cache if t.status == 'fixing'), None)
+            else:
+                ticket = obj.maintenance_tickets.filter(status='fixing').first()
             if ticket:
                 return MaintenanceTicketSerializer(ticket).data
             return None
@@ -293,11 +308,13 @@ class RoomSerializer(serializers.ModelSerializer):
         if not id_card and guest and hasattr(guest, 'guest_profile') and guest.guest_profile:
             id_card = guest.guest_profile.id_card_number or ''
 
+        resolved_guest_name = guest_name or (bk.guest_name or 'Khách lưu trú')
         return {
             'id': bk.id,
             'booking_code': bk.booking_code,
             'guest_id': bk.guest_id,
-            'guest_name': guest_name or (bk.guest_name or 'Khách lưu trú'),
+            'guest_name': resolved_guest_name,
+            'customer_name': resolved_guest_name,
             'guest_phone': (guest.phone_number if guest else '') or (bk.guest_phone or ''),
             'guest_email': (guest.email if guest else '') or (bk.guest_email or ''),
             'identity_card': id_card,
@@ -314,18 +331,26 @@ class RoomSerializer(serializers.ModelSerializer):
 
     def get_current_booking(self, obj):
         try:
-            # Lấy đơn đặt phòng đang lưu trú (status='checked_in')
-            bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
+            bookings_cache = getattr(obj, '_prefetched_objects_cache', {}).get('bookings')
+            if bookings_cache is not None:
+                bk = next((b for b in bookings_cache if b.status == 'checked_in'), None)
+            else:
+                bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
             return self._format_booking_data(bk, obj)
         except Exception:
             return None
 
     def get_recent_booking(self, obj):
         try:
-            # Ưu tiên đơn đang ở, nếu không có lấy đơn vừa hoàn tất gần nhất (cho buồng phòng dọn kiểm kê)
-            bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
-            if not bk:
-                bk = obj.bookings.filter(status__in=['completed', 'checked_in']).select_related('guest', 'category').order_by('-updated_at', '-id').first()
+            bookings_cache = getattr(obj, '_prefetched_objects_cache', {}).get('bookings')
+            if bookings_cache is not None:
+                bk = next((b for b in bookings_cache if b.status == 'checked_in'), None)
+                if not bk:
+                    bk = next((b for b in bookings_cache if b.status in ['completed', 'checked_in']), None)
+            else:
+                bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
+                if not bk:
+                    bk = obj.bookings.filter(status__in=['completed', 'checked_in']).select_related('guest', 'category').order_by('-updated_at', '-id').first()
             return self._format_booking_data(bk, obj)
         except Exception:
             return None

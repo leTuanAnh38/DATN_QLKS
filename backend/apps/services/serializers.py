@@ -167,7 +167,11 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
     def get_guest_name(self, obj):
         if obj.booking:
             try:
-                primary_guest = obj.booking.guests.filter(is_primary=True).first() or obj.booking.guests.first()
+                guests_cache = getattr(obj.booking, '_prefetched_objects_cache', {}).get('guests')
+                if guests_cache is not None:
+                    primary_guest = next((g for g in guests_cache if g.is_primary), None) or (guests_cache[0] if len(guests_cache) > 0 else None)
+                else:
+                    primary_guest = obj.booking.guests.filter(is_primary=True).first() or obj.booking.guests.first()
                 if primary_guest and primary_guest.full_name:
                     return primary_guest.full_name.strip()
             except Exception:

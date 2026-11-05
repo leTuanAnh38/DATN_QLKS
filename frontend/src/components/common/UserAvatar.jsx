@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 /**
  * Helper chuyển đường dẫn avatar tương đối thành URL đầy đủ
  */
-export const getFullAvatarUrl = (avatar) => {
-    if (!avatar) return null;
-    if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')) {
-        return avatar;
-    }
-    const backendBase = 'http://localhost:8000';
-    return `${backendBase}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
-};
+export const getFullAvatarUrl = (avatar) => resolveMediaUrl(avatar, null);
 
 /**
  * Helper trích xuất 2 ký tự viết tắt của Họ Tên

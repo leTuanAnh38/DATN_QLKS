@@ -42,7 +42,7 @@ import api from '../../../../services/api';
 const resolveImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const backendOrigin = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
+    const backendOrigin = (import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000/api`).replace(/\/api\/?$/, '');
     return `${backendOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
@@ -788,7 +788,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                 company_name: isCompanyInvoice ? companyName.trim() : null,
                 company_tax_code: isCompanyInvoice ? companyTaxCode.trim() : null,
                 company_address: isCompanyInvoice ? companyAddress.trim() : null,
-                invoice_recipient_email: isCompanyInvoice ? invoiceRecipientEmail.trim() : null
+                invoice_recipient_email: isCompanyInvoice ? invoiceRecipientEmail.trim() : null,
+                confirm_settle: isDebtPaid || isPaymentSettled
             });
 
             if (res.success && res.data) {

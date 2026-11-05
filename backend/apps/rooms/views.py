@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
-from django.db.models import Q, Count, Avg, Case, When, Value, IntegerField
+from django.db.models import Q, Count, Avg, Case, When, Value, IntegerField, Prefetch
 from django.utils import timezone
 from django.utils.text import slugify
 from ..users.models import log_action, User
@@ -436,7 +436,23 @@ class AdminRoomListCreateView(APIView):
                 'message': 'Bạn không có quyền xem sơ đồ phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        queryset = Room.objects.select_related('category').all()
+        queryset = Room.objects.select_related('category').prefetch_related(
+            'category__images',
+            'category__amenities',
+            'category__rooms',
+            Prefetch(
+                'bookings',
+                queryset=Booking.objects.filter(status__in=['checked_in', 'completed']).select_related('guest', 'guest__guest_profile', 'category').order_by('-updated_at', '-id')
+            ),
+            Prefetch(
+                'maintenance_tickets',
+                queryset=MaintenanceTicket.objects.filter(status='fixing').select_related('room', 'booking', 'booking__guest', 'technician', 'created_by')
+            ),
+            Prefetch(
+                'minibar_checks',
+                queryset=MinibarCheck.objects.select_related('inspector', 'requested_by').order_by('-created_at')
+            )
+        ).all()
 
         # 1. Tìm kiếm theo số phòng hoặc tên loại phòng
         q = request.query_params.get('q', '').strip()
@@ -487,8 +503,11 @@ class AdminRoomListCreateView(APIView):
             Room.objects.values_list('floor', flat=True).distinct().order_by('floor')
         )
 
-        # Danh sách categories để frontend render dropdown
-        categories = RoomCategory.objects.all().order_by('base_price')
+        # Danh sách categories để frontend render dropdown (đã prefetch tránh N+1)
+        categories = RoomCategory.objects.prefetch_related('images', 'amenities', 'rooms').annotate(
+            avg_rating=Avg('reviews__overall_rating', filter=Q(reviews__is_visible=True)),
+            total_reviews=Count('reviews', filter=Q(reviews__is_visible=True))
+        ).order_by('base_price')
 
         serializer = RoomSerializer(queryset, many=True)
 
@@ -680,11 +699,29 @@ class AdminRoomStatusUpdateView(APIView):
                 }, status=status.HTTP_403_FORBIDDEN)
 
         # CHẶN LỄ TÂN TỰ Ý DUYỆT PHÒNG SẠCH: Chỉ Buồng phòng (housekeeper) hoặc Quản lý/Admin mới có quyền nghiệm thu dọn xong
-        if user_role == 'receptionist' and old_status == 'cleaning' and requested_status == 'available':
+        if user_role == 'receptionist' and old_status in ['cleaning', 'maintenance'] and requested_status == 'available':
             return Response({
                 'success': False,
                 'message': 'Chỉ nhân viên Buồng phòng (Housekeeping) hoặc Quản lý mới có quyền xác nhận hoàn tất dọn dẹp phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
+
+        # CHỐT CHẶN STATE MACHINE (MAINTENANCE -> CLEANING):
+        # 1. Không cho phép nhảy cóc trực tiếp từ 'maintenance' sang 'available' khi phòng không có khách lưu trú.
+        #    Sau bảo trì bắt buộc phải qua bước 'cleaning' để Buồng phòng dọn vệ sinh và kiểm tra lại.
+        if old_status == 'maintenance' and requested_status == 'available' and not active_booking:
+            return Response({
+                'success': False,
+                'message': f'Phòng {room.room_number} đang ở trạng thái Bảo trì. Theo chuẩn vận hành 5 sao, sau khi sửa chữa xong phòng bắt buộc phải chuyển sang "Đang dọn dẹp" (Cleaning) để Buồng phòng vệ sinh trước khi mở bán.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Nếu phòng đang có phiếu bảo trì chưa hoàn tất (status='fixing'), không cho phép đổi trạng thái thoát khỏi 'maintenance' thủ công
+        if old_status == 'maintenance' and requested_status != 'maintenance':
+            has_fixing_ticket = room.maintenance_tickets.filter(status='fixing').exists()
+            if has_fixing_ticket and not request.user.is_superuser and user_role not in ['admin', 'owner', 'manager']:
+                return Response({
+                    'success': False,
+                    'message': f'Phòng {room.room_number} vẫn còn phiếu sự cố kỹ thuật đang xử lý. Vui lòng nghiệm thu hoàn tất hoặc hủy phiếu bảo trì trước khi đổi trạng thái phòng.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # NGHIỆP VỤ BẢO TRÌ & DỌN DẸP KHI PHÒNG ĐANG CÓ KHÁCH LƯU TRÚ:
         # Nếu phòng đang ở trạng thái 'cleaning' hoặc 'maintenance' và phòng có khách lưu trú (active_booking):
@@ -990,7 +1027,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
     - POST /api/rooms/maintenance-tickets/: Báo hỏng thiết bị (Tự động chuyển phòng sang 'maintenance')
     - POST /api/rooms/maintenance-tickets/{id}/complete/: Hoàn thành sửa chữa (Tự động chuyển phòng sang 'cleaning' để buồng phòng dọn dẹp)
     """
-    queryset = MaintenanceTicket.objects.select_related('room', 'booking', 'technician', 'created_by')
+    queryset = MaintenanceTicket.objects.select_related('room', 'booking', 'booking__guest', 'technician', 'created_by')
     serializer_class = MaintenanceTicketSerializer
     permission_classes = [IsHotelStaffOrAdmin]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -1052,8 +1089,15 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         booking = None
         if booking_id:
             booking = Booking.objects.filter(pk=booking_id).first()
-        elif room.status == 'occupied':
+        else:
             booking = room.bookings.filter(status='checked_in').first()
+            if not booking and is_guest_fault:
+                # Dự phòng khi khách đang làm thủ tục trả phòng hoặc vừa check-out (trong 24h)
+                cutoff = timezone.now() - timezone.timedelta(hours=24)
+                booking = room.bookings.filter(
+                    status='completed',
+                    actual_check_out__gte=cutoff
+                ).order_by('-actual_check_out', '-id').first()
 
         technician = None
         if technician_id:
@@ -1081,14 +1125,42 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         room.status = 'maintenance'
         room.save(update_fields=['status'])
 
-        # 2. XỬ LÝ TIỀN ĐỀN BÙ: Nếu khách làm hỏng và có đơn đặt phòng + chi phí > 0
+        # 2. XỬ LÝ TIỀN ĐỀN BÙ: Nếu khách làm hỏng và có đơn đặt phòng + chi phí > 0 (Chống trùng lặp với MinibarCheck)
         if is_guest_fault and booking and cost > 0:
-            BookingExtraService.objects.create(
+            existing_damage_bes = BookingExtraService.objects.filter(
                 booking=booking,
-                service_name=f"Bồi thường hỏng thiết bị: {equipment_name}",
-                quantity=1,
-                price=cost
-            )
+                is_paid=False
+            ).filter(
+                Q(service_name__icontains=f"Bồi thường hỏng thiết bị: {equipment_name}") |
+                Q(service_name__icontains=f"[Đền bù hư hại] {equipment_name}")
+            ).first()
+            if existing_damage_bes:
+                existing_damage_bes.price = cost
+                existing_damage_bes.save(update_fields=['price'])
+            else:
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name=f"Bồi thường hỏng thiết bị: {equipment_name}",
+                    quantity=1,
+                    price=cost,
+                    is_paid=False
+                )
+
+            # Đồng bộ sang phiếu MinibarCheck đang mở của phòng/booking (để Lễ tân thấy ngay trên CheckOutModal)
+            pending_mc = room.minibar_checks.filter(booking=booking).order_by('-created_at').first()
+            if pending_mc:
+                pending_mc.has_damage = True
+                desc_str = f"{equipment_name}: {description}".strip(': ')
+                pending_mc.damage_description = (
+                    f"{pending_mc.damage_description}; {desc_str}".strip('; ')
+                    if pending_mc.damage_description and equipment_name not in pending_mc.damage_description
+                    else desc_str
+                )
+                pending_mc.damage_amount = max(float(pending_mc.damage_amount or 0), float(cost))
+                if pending_mc.status == 'requested':
+                    pending_mc.status = 'completed'
+                    pending_mc.completed_at = timezone.now()
+                pending_mc.save()
 
         # 3. Ghi nhận Nhật ký thao tác
         fault_text = f" (Khách bồi thường {cost:,.0f} đ)" if (is_guest_fault and cost > 0) else " (Bảo dưỡng khách sạn)"
@@ -1211,7 +1283,10 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         if ticket.is_guest_fault and ticket.booking and cost > 0:
             bes = BookingExtraService.objects.filter(
                 booking=ticket.booking,
-                service_name__contains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}"
+                is_paid=False
+            ).filter(
+                Q(service_name__icontains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}") |
+                Q(service_name__icontains=f"[Đền bù hư hại] {ticket.equipment_name}")
             ).first()
             if bes:
                 bes.price = cost
@@ -1221,19 +1296,26 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                     booking=ticket.booking,
                     service_name=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}",
                     quantity=1,
-                    price=cost
+                    price=cost,
+                    is_paid=False
                 )
         elif ticket.booking:
-            # Nếu nghiệm thu xác nhận không phải lỗi khách hoặc chi phí = 0: Gỡ phụ phí khỏi hóa đơn
+            # Nếu nghiệm thu xác nhận không phải lỗi khách hoặc chi phí = 0: Gỡ phụ phí chưa thanh toán khỏi hóa đơn
             BookingExtraService.objects.filter(
                 booking=ticket.booking,
-                service_name__contains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}"
+                is_paid=False
+            ).filter(
+                Q(service_name__icontains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}") |
+                Q(service_name__icontains=f"[Đền bù hư hại] {ticket.equipment_name}")
             ).delete()
 
-        # 4. QUY TRÌNH BÀN GIAO: Chuyển phòng từ 'maintenance' sang 'cleaning' (Đang dọn dẹp)
+        # 4. QUY TRÌNH BÀN GIAO:
+        # Chỉ chuyển phòng từ 'maintenance' sang 'cleaning' khi phòng KHÔNG còn phiếu bảo trì nào khác đang 'fixing'
         room = ticket.room
-        room.status = 'cleaning'
-        room.save(update_fields=['status'])
+        remaining_fixing = room.maintenance_tickets.filter(status='fixing').exclude(pk=ticket.pk).exists()
+        if not remaining_fixing:
+            room.status = 'cleaning'
+            room.save(update_fields=['status'])
 
         log_action(
             user=request.user,
@@ -1372,20 +1454,29 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
             ticket.technician = request.user
         ticket.save()
 
-        # Khôi phục trạng thái phòng ban đầu (Có khách nếu đang lưu trú, hoặc Trống nếu không)
+        # Khôi phục trạng thái phòng phù hợp theo State Machine khách sạn 5 sao:
+        # - Nếu vẫn còn phiếu bảo trì khác đang sửa ('fixing') -> giữ nguyên 'maintenance'
+        # - Nếu phòng đang có khách lưu trú ('checked_in') -> về 'occupied'
+        # - Nếu không có khách -> về 'cleaning' để Buồng phòng kiểm tra vệ sinh trước khi mở bán
         room = ticket.room
+        has_other_fixing = room.maintenance_tickets.filter(status='fixing').exclude(id=ticket.id).exists()
         active_booking = room.bookings.filter(status='checked_in').first()
-        if active_booking:
+        if has_other_fixing:
+            room.status = 'maintenance'
+        elif active_booking:
             room.status = 'occupied'
         else:
-            room.status = 'available'
+            room.status = 'cleaning'
         room.save(update_fields=['status'])
 
-        # Gỡ khoản bồi thường nếu có lập trước đó
+        # Gỡ khoản bồi thường chưa thanh toán nếu có lập trước đó
         if ticket.booking:
             BookingExtraService.objects.filter(
                 booking=ticket.booking,
-                service_name__contains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}"
+                is_paid=False
+            ).filter(
+                Q(service_name__contains=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}") |
+                Q(service_name__contains=f"[Đền bù hư hại] {ticket.equipment_name}")
             ).delete()
 
         staff_name = request.user.get_full_name() or request.user.username
@@ -1477,7 +1568,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
     - GET /api/rooms/minibar-checks/?room_id=...
     - POST /api/rooms/minibar-checks/: Buồng phòng gửi kết quả kiểm tra minibar -> Tự động đồng bộ vào Folio thanh toán!
     """
-    queryset = MinibarCheck.objects.select_related('room', 'booking', 'inspector').order_by('-created_at')
+    queryset = MinibarCheck.objects.select_related('room', 'booking', 'booking__guest', 'inspector', 'requested_by').order_by('-created_at')
     serializer_class = MinibarCheckSerializer
     permission_classes = [IsHotelStaffOrAdmin]
 
@@ -1696,7 +1787,20 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             )
 
         extra_services_created = 0
+        maintenance_ticket_created = None
         if booking:
+            # Xóa các khoản Minibar / Đền bù hư hại CHƯA THANH TOÁN của lần kiểm kê trước (tránh nhân đôi công nợ khi gửi lại phiếu)
+            BookingExtraService.objects.filter(
+                booking=booking,
+                is_paid=False,
+                service_name__startswith='[Minibar]'
+            ).delete()
+            BookingExtraService.objects.filter(
+                booking=booking,
+                is_paid=False,
+                service_name__startswith='[Đền bù hư hại]'
+            ).delete()
+
             # 1. Tự động đồng bộ các món Minibar vào BookingExtraService
             if valid_consumed:
                 for it in valid_consumed:
@@ -1712,14 +1816,43 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             # 2. Tự động đồng bộ khoản Đền bù hư hại (nếu có) vào BookingExtraService
             if has_damage and damage_amt > 0:
                 damage_label = damage_desc or "Bồi thường hư hại phòng"
-                BookingExtraService.objects.create(
+                already_billed_by_ticket = BookingExtraService.objects.filter(
                     booking=booking,
-                    service_name=f"[Đền bù hư hại] {damage_label}",
-                    quantity=1,
-                    price=damage_amt,
-                    is_paid=False
+                    service_name__startswith="Bồi thường hỏng thiết bị:"
+                ).exists()
+                if not already_billed_by_ticket:
+                    BookingExtraService.objects.create(
+                        booking=booking,
+                        service_name=f"[Đền bù hư hại] {damage_label}",
+                        quantity=1,
+                        price=damage_amt,
+                        is_paid=False
+                    )
+                    extra_services_created += 1
+
+        # 3. Phân tách rõ nghiệp vụ khách sạn 5 sao:
+        # - Hư hại vật tư tiêu hao/đồ dùng rời (vỡ ly, cốc, bẩn khăn...): Chỉ tính phí đền bù vào Folio cho Thu ngân, Buồng phòng tự thay mới trong lúc dọn (KHÔNG chuyển sang MAINTENANCE).
+        # - Chỉ khi có cờ requires_maintenance=True (hỏng thiết bị kỹ thuật cố định cần thợ sửa): Mới tạo MaintenanceTicket và báo Kỹ thuật viên.
+        requires_maintenance = bool(request.data.get('requires_maintenance', False))
+        if has_damage and requires_maintenance and (damage_desc or damage_amt > 0):
+            damage_label = damage_desc or "Thiết bị phòng hư hại khi kiểm phòng"
+            existing_ticket = room.maintenance_tickets.filter(status='fixing').first()
+            if not existing_ticket:
+                maintenance_ticket_created = MaintenanceTicket.objects.create(
+                    room=room,
+                    booking=booking,
+                    reported_by=request.user if request.user.is_authenticated else None,
+                    issue_type='broken_item',
+                    priority='urgent',
+                    equipment_name=damage_label[:120],
+                    description=f"Phát hiện hư hại kỹ thuật khi kiểm phòng Check-out: {damage_label}. {note}".strip(),
+                    status='fixing',
+                    is_guest_fault=True,
+                    cost=damage_amt
                 )
-                extra_services_created += 1
+            if room.status != 'occupied':
+                room.status = 'maintenance'
+                room.save(update_fields=['status'])
 
         staff_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Buồng phòng"
         guest_name_str = ""
@@ -1734,18 +1867,22 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 guest_name_str = "Khách lưu trú"
         guest_label = f" (Khách #{booking.booking_code} - {guest_name_str})" if booking else ""
 
-        # Gửi thông báo đến Lễ tân, Thu ngân, Quản lý
+        # Gửi thông báo đến Lễ tân, Thu ngân, Quản lý (chỉ gửi thêm Kỹ thuật khi thực sự có yêu cầu sửa chữa kỹ thuật requires_maintenance=True)
         try:
             consumed_desc = ", ".join([f"{it['name']} x{it['quantity']}" for it in valid_consumed]) if valid_consumed else "Không dùng Minibar"
             target_roles = ['receptionist', 'cashier', 'admin']
-            if has_damage and damage_amt > 0:
+            if has_damage and (damage_amt > 0 or damage_desc):
                 target_roles.append('manager')
+            if maintenance_ticket_created:
+                target_roles.append('technician')
             recipients = User.objects.filter(
                 Q(role__in=target_roles) |
                 (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'housekeeper', 'service_staff', 'technician']))
             ).distinct()
             notif_title = f"✅ [HOÀN TẤT KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
-            damage_text = f"\n• Hư hại / Đền bù: {damage_amt:,.0f} đ ({damage_desc})" if (has_damage and damage_amt > 0) else "\n• Hư hại phòng: Không phát sinh"
+            damage_text = f"\n• Hư hại / Đền bù: {damage_amt:,.0f} đ ({damage_desc})" if (has_damage and (damage_amt > 0 or damage_desc)) else "\n• Hư hại phòng: Không phát sinh"
+            if maintenance_ticket_created:
+                damage_text += f"\n• Đã tự động tạo phiếu bảo trì #{maintenance_ticket_created.ticket_code} cho bộ phận Kỹ thuật."
             notif_message = (
                 f"Buồng phòng ({staff_name}) đã hoàn tất kiểm tra phòng {room.room_number}.\n"
                 f"• Minibar: {consumed_desc} ({total_amount:,.0f} VNĐ)"

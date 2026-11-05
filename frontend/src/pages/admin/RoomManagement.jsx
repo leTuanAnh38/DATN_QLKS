@@ -3020,6 +3020,8 @@ function RoomCard({
                                 <>
                                     {room.status === 'cleaning' ? (
                                         <option value="available" disabled>🟢 Trống (Chờ buồng dọn xong)</option>
+                                    ) : room.status === 'maintenance' ? (
+                                        <option value="available" disabled>🟢 Trống (Phải qua Đang dọn)</option>
                                     ) : (
                                         <option value="available">🟢 Trống (Available)</option>
                                     )}

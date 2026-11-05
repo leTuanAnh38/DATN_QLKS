@@ -287,7 +287,7 @@ export default function MaintenanceScreen() {
   };
 
   const handleComplete = async () => {
-    if (!selectedTicket) return;
+    if (!selectedTicket || submitting) return;
     setSubmitting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -330,8 +330,9 @@ export default function MaintenanceScreen() {
     }
   };
 
-  // Kỹ thuật viên nhận xử lý phiếu sự cố
+  // Kỹ thuật viên nhận xử lý phiếu sự cố (Chống bấm đúp)
   const handleClaimTicket = async (ticket: MaintenanceTicket) => {
+    if (actionLoadingId === ticket.id) return;
     setActionLoadingId(ticket.id);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {

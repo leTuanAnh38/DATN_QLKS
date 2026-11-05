@@ -645,7 +645,8 @@ export default function ServicesMenu() {
         const requestId = orderToCancel.id;
         try {
             setCancellingRequestId(requestId);
-            const res = await hotelService.cancelServiceRequest(requestId);
+            const bookingCodeArg = orderToCancel.booking_code || sessionStorage.getItem('pms_guest_booking_code') || null;
+            const res = await hotelService.cancelServiceRequest(requestId, bookingCodeArg);
             if (res.success) {
                 showToast('success', res.message || 'Đã hủy yêu cầu đặt món thành công.');
                 setOrderHistory((prev) =>
@@ -658,6 +659,8 @@ export default function ServicesMenu() {
                 setOrderToCancel(null);
             } else {
                 showToast('error', res.message || 'Không thể hủy yêu cầu đặt món.');
+                fetchOrderHistory(true);
+                setOrderToCancel(null);
             }
         } catch (err) {
             showToast('error', err.message || 'Lỗi khi hủy yêu cầu.');
@@ -679,6 +682,18 @@ export default function ServicesMenu() {
     const activeOrdersCount = useMemo(() => {
         return orderHistory.filter((o) => o.status === 'pending' || o.status === 'in_progress' || o.status === 'delivering').length;
     }, [orderHistory]);
+
+    // Tự động đồng bộ 2 chiều (Polling 6s) khi có đơn đang xử lý hoặc đang mở Modal theo dõi tiến trình
+    // Giúp thanh tiến trình 4 bước và nút Hủy cập nhật tức thì khi Nhân viên thao tác trên App Mobile
+    useEffect(() => {
+        if (!isHistoryModalOpen && activeOrdersCount === 0) return;
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                fetchOrderHistory(true);
+            }
+        }, 6000);
+        return () => clearInterval(interval);
+    }, [isHistoryModalOpen, activeOrdersCount, isAuthenticated]);
 
     const historyStats = useMemo(() => {
         const total = orderHistory.length;
@@ -2300,8 +2315,8 @@ export default function ServicesMenu() {
                                                                         </span>
                                                                     </div>
 
-                                                                    {/* Nút Hủy nếu đang Pending */}
-                                                                    {isPending && (
+                                                                    {/* Nút Hủy nếu đang Pending và chưa thanh toán trước */}
+                                                                    {isPending && !item.is_paid && (
                                                                         <button
                                                                             type="button"
                                                                             disabled={cancellingRequestId === item.id}
@@ -2311,6 +2326,11 @@ export default function ServicesMenu() {
                                                                             <X className="w-3 h-3" />
                                                                             <span>{cancellingRequestId === item.id ? 'Đang hủy...' : 'Hủy yêu cầu'}</span>
                                                                         </button>
+                                                                    )}
+                                                                    {isPending && item.is_paid && (
+                                                                        <span className="self-end sm:self-auto px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                                                                            Đã thanh toán trước (Liên hệ Lễ tân nếu cần đổi/hủy)
+                                                                        </span>
                                                                     )}
                                                                 </div>
                                                             </div>

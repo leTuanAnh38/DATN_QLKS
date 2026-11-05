@@ -143,9 +143,11 @@ export const hotelService = {
      * Khách hàng hủy yêu cầu dịch vụ khi còn chờ xử lý (PATCH /api/services/requests/:id/)
      * @param {number|string} id 
      */
-    async cancelServiceRequest(id) {
+    async cancelServiceRequest(id, bookingCode = null) {
         try {
-            const res = await api.patch(`/services/requests/${id}/`, { status: 'cancelled' });
+            const payload = { status: 'cancelled' };
+            if (bookingCode) payload.booking_code = bookingCode;
+            const res = await api.patch(`/services/requests/${id}/`, payload);
             
             // Broadcast sự kiện để Kanban và Menu cập nhật ngay lập tức
             try {

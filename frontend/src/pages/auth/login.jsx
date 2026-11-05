@@ -34,16 +34,10 @@ import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import ForgotPasswordModal from '../../components/auth/ForgotPasswordModal';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối và file upload local media)
-const resolveBannerUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-        return url;
-    }
-    const backendBase = 'http://localhost:8000';
-    return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
-};
+const resolveBannerUrl = (url) => resolveMediaUrl(url, '');
 
 export default function AuthBookingPage() {
     const navigate = useNavigate();
