@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     BedDouble,
@@ -76,6 +76,8 @@ const formatDate = (dateStr) => {
 
 export default function TADaNangHotelLanding() {
     const navigate = useNavigate();
+    const checkInRef = useRef(null);
+    const checkOutRef = useRef(null);
     const [roomType, setRoomType] = useState('all');
     const [checkInDate, setCheckInDate] = useState(getTodayStr());
     const [checkOutDate, setCheckOutDate] = useState(getTomorrowStr());
@@ -276,14 +278,14 @@ export default function TADaNangHotelLanding() {
                 </button>
             </section>
 
-            {/* 4. FLOATING BOOKING SEARCH BAR WIDGET */}
-            <div className="relative z-20 max-w-7xl mx-auto px-4 -mt-14 sm:-mt-16">
-                <div className="bg-white rounded-3xl shadow-2xl shadow-slate-900/10 border border-slate-100 p-4 sm:p-5 transition-all duration-300">
-                    {/* Form Fields: 4 Input fields + Expanded Luxury Search Button */}
-                    <form onSubmit={handleSearchRooms} className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+            {/* 4. FLOATING BOOKING SEARCH BAR WIDGET (Tối ưu nhỏ gọn, tinh tế & hiện đại) */}
+            <div className="relative z-20 max-w-6xl mx-auto px-4 -mt-11 sm:-mt-13">
+                <div className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-900/8 border border-slate-200/80 p-3 sm:p-4 transition-all duration-300">
+                    {/* Form Fields: 4 Input fields + Search Button */}
+                    <form onSubmit={handleSearchRooms} className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 sm:gap-2.5">
                         {/* Field 1: Hạng phòng */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group">
-                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        <div className="flex-1 px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group">
+                            <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
                                 <BedDouble className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Hạng phòng</span>
                             </label>
@@ -297,53 +299,73 @@ export default function TADaNangHotelLanding() {
                                 <option value="suite">Executive & Grand Suite</option>
                                 <option value="penthouse">Presidential & Penthouse</option>
                             </select>
-                            <div className="text-[11px] text-amber-700 font-medium truncate mt-1">
+                            <div className="text-[10.5px] text-amber-700 font-medium truncate mt-0.5">
                                 {roomType === 'all' && 'Tất cả các loại phòng'}
                                 {roomType === 'deluxe' && 'Hướng biển panorama'}
-                                {roomType === 'suite' && 'Phòng khách & Ban công riêng'}
+                                {roomType === 'suite' && 'Phòng khách & Ban công'}
                                 {roomType === 'penthouse' && 'Hồ bơi vô cực trên cao'}
                             </div>
                         </div>
 
-                        {/* Field 2: Check-in */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group cursor-pointer">
-                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        {/* Field 2: Check-in (Hỗ trợ click mở lịch ngay lập tức) */}
+                        <div
+                            onClick={() => {
+                                try {
+                                    checkInRef.current?.showPicker();
+                                } catch {
+                                    checkInRef.current?.focus();
+                                }
+                            }}
+                            className="flex-1 px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer"
+                        >
+                            <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                 <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Nhận phòng</span>
                             </label>
                             <input
+                                ref={checkInRef}
                                 type="date"
                                 min={getTodayStr()}
                                 value={checkInDate}
                                 onChange={handleCheckInChange}
                                 className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
                             />
-                            <div className="text-[11px] text-amber-800 font-semibold truncate mt-1">
+                            <div className="text-[10.5px] text-amber-800 font-semibold truncate mt-0.5">
                                 {getWeekdayName(checkInDate)} (từ 14:00)
                             </div>
                         </div>
 
-                        {/* Field 3: Check-out */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group cursor-pointer">
-                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        {/* Field 3: Check-out (Hỗ trợ click mở lịch ngay lập tức) */}
+                        <div
+                            onClick={() => {
+                                try {
+                                    checkOutRef.current?.showPicker();
+                                } catch {
+                                    checkOutRef.current?.focus();
+                                }
+                            }}
+                            className="flex-1 px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer"
+                        >
+                            <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                 <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Trả phòng</span>
                             </label>
                             <input
+                                ref={checkOutRef}
                                 type="date"
                                 min={getTomorrowStr(checkInDate)}
                                 value={checkOutDate}
                                 onChange={handleCheckOutChange}
                                 className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
                             />
-                            <div className="text-[11px] text-emerald-700 font-semibold truncate mt-1">
+                            <div className="text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
                                 {getWeekdayName(checkOutDate)} ({calculateNights()} đêm lưu trú)
                             </div>
                         </div>
 
                         {/* Field 4: Guests & Rooms */}
-                        <div className="flex-1 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 transition group">
-                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        <div className="flex-1 px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group">
+                            <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
                                 <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                 <span>Khách & Phòng</span>
                             </label>
@@ -354,46 +376,46 @@ export default function TADaNangHotelLanding() {
                             >
                                 <option value="1">1 Khách (1 Người lớn)</option>
                                 <option value="2">2 Khách (2 Người lớn)</option>
-                                <option value="3">3 Khách (2 Lớn + 1 Trẻ em)</option>
-                                <option value="4">4 Khách (Gia đình 4 người)</option>
+                                <option value="3">3 Khách (2 Lớn + 1 Trẻ)</option>
+                                <option value="4">4 Khách (Gia đình)</option>
                                 <option value="6">5+ Khách (Đoàn du lịch)</option>
                             </select>
-                            <div className="text-[11px] text-amber-800 font-medium truncate mt-1">
+                            <div className="text-[10.5px] text-amber-800 font-medium truncate mt-0.5">
                                 {Number(guests) === 1 && '1 Giường King / Queen'}
                                 {Number(guests) === 2 && '1 Phòng Suite / Deluxe'}
-                                {Number(guests) >= 3 && 'Hỗ trợ nôi & giường phụ'}
+                                {Number(guests) >= 3 && 'Hỗ trợ thêm nôi / giường phụ'}
                             </div>
                         </div>
 
-                        {/* Field 5: Action Button (Nút Tìm phòng nổi bật với text và hiệu ứng hoàng gia) */}
+                        {/* Field 5: Action Button (Nút Tìm phòng tinh gọn, cân đối) */}
                         <div className="flex items-center justify-center shrink-0">
                             <button
                                 type="submit"
                                 title="Tìm kiếm phòng trống phù hợp"
-                                className="w-full lg:w-auto lg:px-6 h-12 lg:h-[72px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/30 hover:shadow-orange-500/45 flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-95 transition-all duration-300 cursor-pointer"
+                                className="w-full lg:w-auto px-6 lg:px-7 h-11 lg:h-[58px] bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-md shadow-orange-500/25 hover:shadow-orange-500/40 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
                             >
-                                <Search className="w-5 h-5 shrink-0" />
-                                <span className="text-sm uppercase tracking-wider font-extrabold whitespace-nowrap">
+                                <Search className="w-4 h-4 shrink-0" />
+                                <span className="whitespace-nowrap">
                                     Tìm phòng
                                 </span>
                             </button>
                         </div>
                     </form>
 
-                    {/* Quick banner: Khách đoàn & Doanh nghiệp */}
-                    <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2 text-slate-600">
-                            <span className="p-1.5 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
-                                <Building2 className="w-3.5 h-3.5" />
+                    {/* Quick banner: Khách đoàn & Doanh nghiệp (Tinh gọn & thanh thoát) */}
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                        <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs">
+                            <span className="p-1 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                                <Building2 className="w-3 h-3" />
                             </span>
                             <span>Quý khách đặt phòng cho <strong>Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
                         </div>
                         <Link
                             to="/corporate-booking"
-                            className="font-bold text-amber-800 hover:text-amber-950 bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200/90 px-3.5 py-1.5 rounded-full transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs group"
+                            className="font-bold text-amber-800 hover:text-amber-950 bg-amber-50/80 hover:bg-amber-100/90 border border-amber-200/90 px-3 py-1 rounded-full transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
                         >
                             <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                     </div>
                 </div>
