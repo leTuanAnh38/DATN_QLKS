@@ -79,7 +79,7 @@ const STANDARD_AMENITY_GROUPS = [
         title: 'Không gian & Giường ngủ',
         icon: BedDouble,
         items: [
-            'Đệm Simmons Beautyrest Black chuẩn khách sạn 6 sao',
+            'Đệm Simmons Beautyrest Black cao cấp chuẩn quốc tế',
             'Bộ ga gối lụa tơ tằm Ai Cập mật độ 600 sợi dệt',
             'Phòng khách riêng biệt với sofa Ligne Roset Pháp',
             'Menu 6 loại gối chống dị ứng cá nhân hóa theo yêu cầu'
@@ -1259,7 +1259,7 @@ export default function DetailRoom() {
                                         <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
                                             Thời gian nhận phòng (Check-in)
                                         </span>
-                                        <div className="text-base font-bold text-slate-900">Từ 14:00</div>
+                                        <div className="text-base font-bold text-slate-900">Từ {settings?.check_in_time || '14:00'}</div>
                                         <p className="text-slate-500 mt-0.5 leading-relaxed">
                                             Hỗ trợ nhận phòng sớm miễn phí tùy theo tình trạng phòng sẵn có lúc đến.
                                         </p>
@@ -1274,7 +1274,7 @@ export default function DetailRoom() {
                                         <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
                                             Thời gian trả phòng (Check-out)
                                         </span>
-                                        <div className="text-base font-bold text-slate-900">Trước 12:00</div>
+                                        <div className="text-base font-bold text-slate-900">Trước {settings?.check_out_time || '12:00'}</div>
                                         <p className="text-amber-700 font-semibold mt-0.5 leading-relaxed">
                                             Hội viên VIP được ưu tiên hỗ trợ check-out trễ linh hoạt đến 16:00.
                                         </p>
@@ -1749,7 +1749,7 @@ export default function DetailRoom() {
                                                             <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px]">
                                                                 👑
                                                             </div>
-                                                            <span>Phản hồi từ Ban Quản Lý Khách Sạn TA Resort</span>
+                                                            <span>Phản hồi từ Ban Quản Lý {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}</span>
                                                         </div>
                                                         <p className="text-xs text-slate-800 leading-relaxed italic pl-7">
                                                             "{rev.admin_reply}"
@@ -1945,16 +1945,16 @@ export default function DetailRoom() {
                             <div className="space-y-2 pt-2 text-[11px] text-slate-500">
                                 <div className="flex items-center gap-2">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                    <span>Cam kết giá tốt nhất trực tiếp từ Khách Sạn TA</span>
+                                    <span>Cam kết giá tốt nhất trực tiếp từ {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                    <span>Miễn phí hủy phòng trước 24 giờ nhận phòng</span>
+                                    <span>Miễn phí hủy phòng trước {settings?.cancellation_free_hours || 24} giờ nhận phòng</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                     <span className="flex items-center gap-1">
-                                        Hỗ trợ tư vấn phòng VIP: <PhoneCall className="w-3 h-3 text-amber-500 inline" /> <strong className="text-slate-700">1900 8899</strong>
+                                        Hỗ trợ tư vấn phòng VIP: <PhoneCall className="w-3 h-3 text-amber-500 inline" /> <strong className="text-slate-700">{settings?.hotline || '1900 8899'}</strong>
                                     </span>
                                 </div>
                             </div>

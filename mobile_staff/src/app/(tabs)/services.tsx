@@ -33,6 +33,7 @@ import {
   getServiceLockMessage,
   getSlaStatus,
   getStatusBadgeConfig,
+  formatOrderTime,
   styles,
   ServiceOrderCard,
   CatalogItemCard,
@@ -42,7 +43,7 @@ import {
 
 export default function ServicesScreen() {
   const { user } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors, isDark, hotelStars, hotelName } = useAppTheme();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,8 +53,14 @@ export default function ServicesScreen() {
   // Bộ lọc danh mục nghiệp vụ cho Đơn phục vụ
   const [orderCategoryFilter, setOrderCategoryFilter] = useState<'all' | 'fnb' | 'spa' | 'laundry' | 'amenities'>('all');
 
+  // Bộ lọc theo Tầng (Floor Filter) giúp nhân viên đẩy xe giao món cuốn chiếu theo tầng
+  const [selectedFloor, setSelectedFloor] = useState<string>('all');
+
   // Bộ lọc phạm vi nhiệm vụ: 'all' (Tất cả) | 'my_tasks' (Việc của tôi) | 'unassigned' (Chưa ai nhận)
   const [scopeFilter, setScopeFilter] = useState<'all' | 'my_tasks' | 'unassigned'>('all');
+
+  // Ẩn/hiện bộ lọc nâng cao (Phạm vi, Danh mục, Tầng) để tiết kiệm diện tích màn hình
+  const [showFilters, setShowFilters] = useState(false);
 
   // State ID món đang gạt toggle hết món / mở phục vụ
   const [togglingCatalogId, setTogglingCatalogId] = useState<number | null>(null);
@@ -241,7 +248,24 @@ export default function ServicesScreen() {
     };
   }, [orders, scopeFilter, checkIsMyTask]);
 
-  // Bộ lọc kết hợp: Phạm vi nhiệm vụ + Trạng thái 4 bước + Danh mục 4 nhóm + Tìm kiếm + Sắp xếp thông minh
+  // Danh sách các tầng thực tế có đơn dịch vụ phát sinh
+  const availableFloors = useMemo(() => {
+    const floorsSet = new Set<string>();
+    orders.forEach((o) => {
+      const fl = o.room_floor
+        ? String(o.room_floor)
+        : (o.room_number && /^\d{3,}$/.test(o.room_number.trim()) ? o.room_number.trim().slice(0, -2) : null);
+      if (fl) floorsSet.add(fl);
+    });
+    return Array.from(floorsSet).sort((a, b) => {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.localeCompare(b);
+    });
+  }, [orders]);
+
+  // Bộ lọc kết hợp: Phạm vi nhiệm vụ + Trạng thái 4 bước + Danh mục 4 nhóm + Tầng + Tìm kiếm + Sắp xếp thông minh
   const filteredOrders = useMemo(() => {
     const list = orders.filter((item) => {
       // 1. Lọc theo Scope (Tất cả / Việc của tôi / Chưa ai nhận)
@@ -279,7 +303,16 @@ export default function ServicesScreen() {
         matchCat = getServiceCategoryType(item) === orderCategoryFilter;
       }
 
-      // 4. Tìm kiếm
+      // 4. Lọc theo Tầng
+      let matchFloor = true;
+      if (selectedFloor !== 'all') {
+        const itemFloor = item.room_floor
+          ? String(item.room_floor)
+          : (item.room_number && /^\d{3,}$/.test(item.room_number.trim()) ? item.room_number.trim().slice(0, -2) : '');
+        matchFloor = itemFloor === selectedFloor;
+      }
+
+      // 5. Tìm kiếm
       const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
@@ -289,7 +322,7 @@ export default function ServicesScreen() {
         (item.service_name && item.service_name.toLowerCase().includes(q)) ||
         (item.note && item.note.toLowerCase().includes(q));
 
-      return matchTab && matchCat && matchSearch;
+      return matchTab && matchCat && matchFloor && matchSearch;
     });
 
     // Sắp xếp hợp lý:
@@ -335,7 +368,7 @@ export default function ServicesScreen() {
       const tB = new Date(b.request_time || b.created_at || 0).getTime();
       return tA - tB;
     });
-  }, [orders, activeTab, orderCategoryFilter, searchQuery, scopeFilter, checkIsMyTask]);
+  }, [orders, activeTab, orderCategoryFilter, selectedFloor, searchQuery, scopeFilter, checkIsMyTask]);
 
   // Infinite Scroll cho Đơn phục vụ
   const [visibleOrdersCount, setVisibleOrdersCount] = useState(15);
@@ -389,14 +422,7 @@ export default function ServicesScreen() {
     );
   };
 
-  const handleClaim = async (item: ServiceOrder) => {
-    if (actionLoadingId === item.id) return;
-    const lock = getServiceLockReason(item);
-    if (lock) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert('Chưa thể thực hiện', getServiceLockMessage(item, lock));
-      return;
-    }
+  const executeClaim = async (item: ServiceOrder) => {
     try {
       setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -408,25 +434,59 @@ export default function ServicesScreen() {
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Không thể nhận đơn này.';
-      Alert.alert('Lỗi', msg);
+      Alert.alert('Thông báo', msg);
+      await fetchOrders();
     } finally {
       setActionLoadingId(null);
     }
   };
 
-  const handleUpdateStatus = async (
+  const handleClaim = async (item: ServiceOrder) => {
+    if (actionLoadingId === item.id) return;
+    const lock = getServiceLockReason(item);
+    if (lock) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert('Chưa thể thực hiện', getServiceLockMessage(item, lock));
+      return;
+    }
+
+    // Cảnh báo thông minh nếu đơn có hẹn giờ giao và còn cách giờ hẹn > 30 phút
+    if (item.is_scheduled && item.request_time) {
+      const schedDate = new Date(item.request_time);
+      if (!isNaN(schedDate.getTime())) {
+        const diffMinutes = Math.floor((schedDate.getTime() - Date.now()) / 60000);
+        if (diffMinutes > 30) {
+          const waitStr =
+            diffMinutes >= 60
+              ? `${Math.floor(diffMinutes / 60)} giờ ${diffMinutes % 60} phút`
+              : `${diffMinutes} phút`;
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          Alert.alert(
+            '⏰ Đơn hẹn giờ phục vụ',
+            `Khách Phòng ${item.room_number} hẹn giao lúc ${formatOrderTime(item.request_time)} (còn khoảng ${waitStr} nữa).\n\nNếu báo Bếp chế biến quá sớm món ăn có thể bị nguội. Bạn có chắc chắn muốn tiếp nhận chuẩn bị ngay từ bây giờ không?`,
+            [
+              { text: 'Để gần giờ hẹn', style: 'cancel' },
+              {
+                text: 'Vẫn tiếp nhận ngay',
+                style: 'default',
+                onPress: () => executeClaim(item),
+              },
+            ]
+          );
+          return;
+        }
+      }
+    }
+
+    await executeClaim(item);
+  };
+
+  const executeUpdateStatus = async (
     item: ServiceOrder,
     newStatus: string,
     label: string,
     extraPayload?: { is_paid?: boolean; payment_method?: string }
   ) => {
-    if (actionLoadingId === item.id) return;
-    const lock = getServiceLockReason(item);
-    if (lock && ['in_progress', 'delivering', 'completed'].includes(newStatus)) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert('Chưa thể thực hiện', getServiceLockMessage(item, lock));
-      return;
-    }
     try {
       setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -457,6 +517,41 @@ export default function ServicesScreen() {
     }
   };
 
+  const handleUpdateStatus = async (
+    item: ServiceOrder,
+    newStatus: string,
+    label: string,
+    extraPayload?: { is_paid?: boolean; payment_method?: string },
+    skipOwnershipCheck?: boolean
+  ) => {
+    if (actionLoadingId === item.id) return;
+    const lock = getServiceLockReason(item);
+    if (lock && ['in_progress', 'delivering', 'completed'].includes(newStatus)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert('Chưa thể thực hiện', getServiceLockMessage(item, lock));
+      return;
+    }
+
+    // Khóa bảo vệ chống bấm nhầm đơn đang do đồng nghiệp khác phụ trách
+    if (!skipOwnershipCheck && Boolean(item.assigned_staff) && !checkIsMyTask(item)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        '⚠️ Đơn đang do đồng nghiệp phụ trách',
+        `Đơn Phòng ${item.room_number} (${item.service_name}) hiện đang do nhân viên "${item.assigned_staff_name || 'Đồng nghiệp'}" phụ trách.\n\nBạn có chắc chắn muốn hỗ trợ cập nhật trạng thái thay đồng nghiệp không?`,
+        [
+          { text: 'Hủy bỏ', style: 'cancel' },
+          {
+            text: 'Xác nhận hỗ trợ',
+            onPress: () => executeUpdateStatus(item, newStatus, label, extraPayload),
+          },
+        ]
+      );
+      return;
+    }
+
+    await executeUpdateStatus(item, newStatus, label, extraPayload);
+  };
+
   // Popup xác nhận hình thức thanh toán khi bàn giao xong
   const handlePromptComplete = (item: ServiceOrder, label: string) => {
     if (actionLoadingId === item.id) return;
@@ -467,26 +562,45 @@ export default function ServicesScreen() {
       return;
     }
 
-    const priceText = item.total_price ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí';
+    const showPaymentMethodAlert = () => {
+      const priceText = item.total_price ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí';
+      Alert.alert(
+        `Hoàn thành đơn Phòng ${item.room_number}`,
+        `Món/Dịch vụ: ${item.service_name} (x${item.quantity})\nTổng tiền: ${priceText}\n\nVui lòng chọn phương thức thanh toán của khách:`,
+        [
+          {
+            text: 'Quay lại',
+            style: 'cancel',
+          },
+          {
+            text: '💳 Ghi nợ hóa đơn phòng (Mặc định)',
+            onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: false }, true),
+          },
+          {
+            text: '💵 Đã thu tiền mặt tại chỗ',
+            onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: true, payment_method: 'CASH' }, true),
+          },
+        ]
+      );
+    };
 
-    Alert.alert(
-      `Hoàn thành đơn Phòng ${item.room_number}`,
-      `Món/Dịch vụ: ${item.service_name} (x${item.quantity})\nTổng tiền: ${priceText}\n\nVui lòng chọn phương thức thanh toán của khách:`,
-      [
-        {
-          text: 'Quay lại',
-          style: 'cancel',
-        },
-        {
-          text: '💳 Ghi nợ hóa đơn phòng (Mặc định)',
-          onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: false }),
-        },
-        {
-          text: '💵 Đã thu tiền mặt tại chỗ',
-          onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: true, payment_method: 'CASH' }),
-        },
-      ]
-    );
+    if (Boolean(item.assigned_staff) && !checkIsMyTask(item)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        '⚠️ Đơn đang do đồng nghiệp phụ trách',
+        `Đơn Phòng ${item.room_number} (${item.service_name}) hiện đang do nhân viên "${item.assigned_staff_name || 'Đồng nghiệp'}" phụ trách.\n\nBạn có chắc chắn muốn xác nhận bàn giao hoàn tất thay đồng nghiệp không?`,
+        [
+          { text: 'Hủy bỏ', style: 'cancel' },
+          {
+            text: 'Tiếp tục hoàn tất',
+            onPress: showPaymentMethodAlert,
+          },
+        ]
+      );
+      return;
+    }
+
+    showPaymentMethodAlert();
   };
 
   // Gọi điện / Nhắn tin nhanh cho khách phòng
@@ -841,7 +955,7 @@ export default function ServicesScreen() {
           onPromptComplete={handlePromptComplete}
           onOpenCancelModal={handleOpenCancelModal}
           onOpenCrm={() => {
-            setCrmGuestId(null);
+            setCrmGuestId(item.guest_id || null);
             setCrmModalVisible(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
@@ -867,11 +981,13 @@ export default function ServicesScreen() {
 
   return (
     <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* 1. Header Khách Sạn */}
+      {/* 1. Header Khách Sạn (Tinh gọn trên 1 dòng) */}
       <View style={styles.topHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
-          <Text style={[styles.greetingTitle, { color: colors.text }]}>Phục Vụ & Gọi Món 🍽️</Text>
+        <View style={{ flex: 1, marginRight: 6 }}>
+          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
+            Phục Vụ & Dịch Vụ
+          </Text>
         </View>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
@@ -978,58 +1094,6 @@ export default function ServicesScreen() {
       {/* MODE 1: ORDERS LIST VIEW */}
       {mainViewMode === 'orders' ? (
         <>
-          {/* 1b. Dải Lọc Phạm Vi Nhiệm Vụ (Tất cả đơn / Việc của tôi / Chưa ai nhận) */}
-          <View style={{ marginBottom: 8 }}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scopeFilterScroll}
-            >
-              {[
-                { key: 'all', label: 'Tất cả đơn', count: stats.total, icon: 'layers-outline' },
-                { key: 'my_tasks', label: 'Việc của tôi', count: stats.myTasks, icon: 'person-outline' },
-                { key: 'unassigned', label: 'Chưa ai nhận', count: stats.unassigned, icon: 'hand-left-outline' },
-              ].map((sc) => {
-                const isSelected = scopeFilter === sc.key;
-                return (
-                  <TouchableOpacity
-                    key={sc.key}
-                    style={[
-                      styles.scopeFilterBtn,
-                      isSelected && styles.scopeFilterBtnActive,
-                      !isDark && {
-                        backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.15)' : '#FFFFFF',
-                        borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
-                      },
-                    ]}
-                    onPress={() => {
-                      setScopeFilter(sc.key as any);
-                      setActiveTab('all');
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={sc.icon as any}
-                      size={12}
-                      color={isSelected ? '#F59E0B' : (!isDark ? '#64748B' : '#94A3B8')}
-                      style={{ marginRight: 4 }}
-                    />
-                    <Text
-                      style={[
-                        styles.scopeFilterBtnText,
-                        isSelected && styles.scopeFilterBtnTextActive,
-                        !isDark && { color: isSelected ? '#B45309' : '#475569' },
-                      ]}
-                    >
-                      {sc.label} ({sc.count})
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
           {/* 2. Dải Bộ Lọc Trạng Thái & KPI Cố Định 5 Cột Chuẩn Mực */}
           <View style={styles.fixedFilterBar}>
             {[
@@ -1080,59 +1144,288 @@ export default function ServicesScreen() {
             })}
           </View>
 
-          {/* 2b. Dải Lọc Theo Nhóm Nghiệp Vụ (F&B / Spa / Giặt là / Tiện ích) */}
-          <View style={{ marginBottom: 10 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.orderCategoryScroll}>
-              {[
-                { key: 'all', label: 'Tất cả danh mục', icon: 'grid-outline' },
-                { key: 'fnb', label: 'Ẩm thực (F&B) 🍽️', icon: 'restaurant-outline' },
-                { key: 'spa', label: 'Spa Trị liệu 🌿', icon: 'leaf-outline' },
-                { key: 'laundry', label: 'Giặt ủi 🧺', icon: 'shirt-outline' },
-                { key: 'amenities', label: 'Tiện ích phòng 🛎️', icon: 'gift-outline' },
-              ].map((cat) => {
-                const isSelected = orderCategoryFilter === cat.key;
-                return (
-                  <TouchableOpacity
-                    key={cat.key}
-                    style={[
-                      styles.orderCategoryChip,
-                      !isDark && {
-                        backgroundColor: isSelected ? '#F59E0B' : '#FFFFFF',
-                        borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
-                        shadowColor: '#64748B',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.05,
-                        shadowRadius: 2,
-                        elevation: 1,
-                      },
-                      isSelected && isDark && styles.orderCategoryChipActive,
-                    ]}
-                    onPress={() => {
-                      setOrderCategoryFilter(cat.key as any);
-                      Haptics.selectionAsync();
+          {/* 3. Ô Tìm Kiếm Kết Hợp Nút [Bộ Lọc ▾] Gọn Gàng Trên 1 Dòng */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
+            <View
+              style={[
+                styles.searchWrapper,
+                { flex: 1, marginHorizontal: 0, marginBottom: 0 },
+                !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+              ]}
+            >
+              <Ionicons name="search-outline" size={17} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 10 }} />
+              <TextInput
+                style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
+                placeholder="Tìm phòng, tên món, tên khách..."
+                placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                clearButtonMode="while-editing"
+              />
+              {searchQuery ? (
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 6 }}>
+                  <Ionicons name="close-circle" size={17} color="#94A3B8" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* Nút Bật/Tắt Bộ Lọc Nâng Cao (Phạm vi, Danh mục, Tầng) */}
+            {(() => {
+              const activeFilterCount =
+                (scopeFilter !== 'all' ? 1 : 0) +
+                (orderCategoryFilter !== 'all' ? 1 : 0) +
+                (selectedFloor !== 'all' ? 1 : 0);
+              const isHighlighted = showFilters || activeFilterCount > 0;
+              return (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    height: 40,
+                    paddingHorizontal: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    backgroundColor: isHighlighted
+                      ? 'rgba(245, 158, 11, 0.16)'
+                      : (isDark ? '#1E293B' : '#FFFFFF'),
+                    borderColor: isHighlighted ? '#F59E0B' : (isDark ? '#334155' : '#E2E8F0'),
+                  }}
+                  onPress={() => {
+                    setShowFilters((prev) => !prev);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons
+                    name={showFilters ? 'options' : 'options-outline'}
+                    size={16}
+                    color={isHighlighted ? '#F59E0B' : (isDark ? '#CBD5E1' : '#475569')}
+                    style={{ marginRight: 5 }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '800',
+                      color: isHighlighted ? (isDark ? '#FBBF24' : '#B45309') : (isDark ? '#CBD5E1' : '#475569'),
                     }}
-                    activeOpacity={0.7}
                   >
-                    <Ionicons
-                      name={cat.icon as any}
-                      size={13}
-                      color={isSelected ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
-                      style={{ marginRight: 5 }}
-                    />
-                    <Text
-                      style={[
-                        styles.orderCategoryChipText,
-                        !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
-                        isSelected && styles.orderCategoryChipTextActive,
-                      ]}
-                    >
-                      {cat.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                    Lọc{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                  </Text>
+                  <Ionicons
+                    name={showFilters ? 'chevron-up' : 'chevron-down'}
+                    size={13}
+                    color={isHighlighted ? '#F59E0B' : (isDark ? '#94A3B8' : '#64748B')}
+                    style={{ marginLeft: 3 }}
+                  />
+                </TouchableOpacity>
+              );
+            })()}
           </View>
+
+          {/* Nếu đang thu gọn bộ lọc nhưng có tiêu chí lọc phụ đang bật -> Hiện thanh tóm tắt nhỏ kèm nút Xóa lọc */}
+          {!showFilters && (scopeFilter !== 'all' || orderCategoryFilter !== 'all' || selectedFloor !== 'all') && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginHorizontal: 14,
+                marginBottom: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 9,
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FEF3C7',
+                borderWidth: 1,
+                borderColor: 'rgba(245, 158, 11, 0.35)',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#FBBF24' : '#B45309', flex: 1 }} numberOfLines={1}>
+                Đang lọc:{' '}
+                {[
+                  scopeFilter === 'my_tasks' ? 'Việc của tôi' : scopeFilter === 'unassigned' ? 'Chưa ai nhận' : null,
+                  orderCategoryFilter === 'fnb'
+                    ? 'Ẩm thực'
+                    : orderCategoryFilter === 'spa'
+                    ? 'Spa'
+                    : orderCategoryFilter === 'laundry'
+                    ? 'Giặt ủi'
+                    : orderCategoryFilter === 'amenities'
+                    ? 'Tiện ích'
+                    : null,
+                  selectedFloor !== 'all' ? `Tầng ${selectedFloor}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' • ')}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setScopeFilter('all');
+                  setOrderCategoryFilter('all');
+                  setSelectedFloor('all');
+                  Haptics.selectionAsync();
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}
+              >
+                <Ionicons name="close-circle" size={14} color={isDark ? '#FBBF24' : '#B45309'} style={{ marginRight: 3 }} />
+                <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>Bỏ lọc</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Khung Bộ Lọc Mở Rộng (Chỉ hiển thị khi bấm nút [Lọc ▾]) */}
+          {showFilters && (
+            <View
+              style={{
+                marginHorizontal: 14,
+                marginBottom: 10,
+                paddingVertical: 8,
+                borderRadius: 14,
+                backgroundColor: isDark ? '#111827' : '#F8FAFC',
+                borderWidth: 1,
+                borderColor: isDark ? '#1E293B' : '#E2E8F0',
+                gap: 8,
+              }}
+            >
+              {/* Dải 1: Phạm vi nhiệm vụ */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scopeFilterScroll}>
+                {[
+                  { key: 'all', label: 'Tất cả đơn', count: stats.total, icon: 'layers-outline' },
+                  { key: 'my_tasks', label: 'Việc của tôi', count: stats.myTasks, icon: 'person-outline' },
+                  { key: 'unassigned', label: 'Chưa ai nhận', count: stats.unassigned, icon: 'hand-left-outline' },
+                ].map((sc) => {
+                  const isSelected = scopeFilter === sc.key;
+                  return (
+                    <TouchableOpacity
+                      key={sc.key}
+                      style={[
+                        styles.scopeFilterBtn,
+                        isSelected && styles.scopeFilterBtnActive,
+                        !isDark && {
+                          backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.15)' : '#FFFFFF',
+                          borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                        },
+                      ]}
+                      onPress={() => {
+                        setScopeFilter(sc.key as any);
+                        setActiveTab('all');
+                        Haptics.selectionAsync();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={sc.icon as any}
+                        size={12}
+                        color={isSelected ? '#F59E0B' : (!isDark ? '#64748B' : '#94A3B8')}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text
+                        style={[
+                          styles.scopeFilterBtnText,
+                          isSelected && styles.scopeFilterBtnTextActive,
+                          !isDark && { color: isSelected ? '#B45309' : '#475569' },
+                        ]}
+                      >
+                        {sc.label} ({sc.count})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Dải 2: Nhóm nghiệp vụ (F&B / Spa / Giặt là / Tiện ích) */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.orderCategoryScroll}>
+                {[
+                  { key: 'all', label: 'Mọi danh mục', icon: 'grid-outline' },
+                  { key: 'fnb', label: 'Ẩm thực (F&B) 🍽️', icon: 'restaurant-outline' },
+                  { key: 'spa', label: 'Spa Trị liệu 🌿', icon: 'leaf-outline' },
+                  { key: 'laundry', label: 'Giặt ủi 🧺', icon: 'shirt-outline' },
+                  { key: 'amenities', label: 'Tiện ích phòng 🛎️', icon: 'gift-outline' },
+                ].map((cat) => {
+                  const isSelected = orderCategoryFilter === cat.key;
+                  return (
+                    <TouchableOpacity
+                      key={cat.key}
+                      style={[
+                        styles.orderCategoryChip,
+                        !isDark && {
+                          backgroundColor: isSelected ? '#F59E0B' : '#FFFFFF',
+                          borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                        },
+                        isSelected && isDark && styles.orderCategoryChipActive,
+                      ]}
+                      onPress={() => {
+                        setOrderCategoryFilter(cat.key as any);
+                        Haptics.selectionAsync();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={cat.icon as any}
+                        size={12}
+                        color={isSelected ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text
+                        style={[
+                          styles.orderCategoryChipText,
+                          !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
+                          isSelected && styles.orderCategoryChipTextActive,
+                        ]}
+                      >
+                        {cat.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Dải 3: Lọc theo Tầng */}
+              {availableFloors.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.orderCategoryScroll}>
+                  {[{ key: 'all', label: 'Mọi tầng' }, ...availableFloors.map((fl) => ({ key: fl, label: `Tầng ${fl}` }))].map((flItem) => {
+                    const isSelected = selectedFloor === flItem.key;
+                    return (
+                      <TouchableOpacity
+                        key={flItem.key}
+                        style={[
+                          styles.orderCategoryChip,
+                          !isDark && {
+                            backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.15)' : '#FFFFFF',
+                            borderColor: isSelected ? '#0284C7' : '#E2E8F0',
+                          },
+                          isSelected && isDark && {
+                            backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                            borderColor: '#38BDF8',
+                          },
+                        ]}
+                        onPress={() => {
+                          setSelectedFloor(flItem.key);
+                          Haptics.selectionAsync();
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name="layers-outline"
+                          size={12}
+                          color={isSelected ? (isDark ? '#38BDF8' : '#0284C7') : (isDark ? '#94A3B8' : '#64748B')}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text
+                          style={[
+                            styles.orderCategoryChipText,
+                            !isDark && { color: isSelected ? '#0284C7' : '#475569' },
+                            isSelected && { color: isDark ? '#38BDF8' : '#0284C7', fontWeight: '800' },
+                          ]}
+                        >
+                          {flItem.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
+          )}
 
           {/* Cảnh báo đơn trễ hạn SLA nếu có */}
           {stats.overdue > 0 && (
@@ -1143,24 +1436,6 @@ export default function ServicesScreen() {
               </Text>
             </View>
           )}
-
-          {/* 3. Ô Tìm Kiếm Nhanh */}
-          <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
-            <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
-            <TextInput
-              style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
-              placeholder="Tìm theo số phòng, tên món, tên khách..."
-              placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              clearButtonMode="while-editing"
-            />
-            {searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 8 }}>
-                <Ionicons name="close-circle" size={18} color="#94A3B8" />
-              </TouchableOpacity>
-            ) : null}
-          </View>
 
           {/* 4. Danh Sách Đơn Món */}
           {loading ? (

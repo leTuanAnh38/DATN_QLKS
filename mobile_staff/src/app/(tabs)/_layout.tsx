@@ -47,10 +47,10 @@ export default function TabLayout() {
             shadowRadius: 12,
           },
           tabBarLabelStyle: {
-            fontSize: 12,
+            fontSize: isManagerOrAdmin ? 10.5 : 11.5,
             fontWeight: '700',
-            letterSpacing: 0.3,
-            marginTop: 3,
+            letterSpacing: 0.2,
+            marginTop: 2,
           },
         }}
         screenListeners={{
@@ -63,7 +63,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="housekeeping"
           options={{
-            title: role === 'technician' ? 'Sơ đồ phòng' : 'Phòng',
+            title: 'Phòng',
             href: canAccessHousekeeping ? undefined : null,
             tabBarIcon: ({ color, focused }) => (
               <Ionicons

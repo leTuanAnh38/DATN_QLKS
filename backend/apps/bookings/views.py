@@ -2946,12 +2946,34 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'created_at': req.created_at.isoformat() if req.created_at else None
             })
 
-        # 2.2. Từ BookingExtraService (Phụ phí lễ tân đã thêm tại quầy)
+        # 2.1.5. Tự động đồng bộ bù (Self-healing) các phiếu kiểm phòng MinibarCheck có hư hại nhưng trước đó chưa ghi vào BookingExtraService
+        try:
+            for mc in booking.minibar_checks.filter(status='completed', has_damage=True, damage_amount__gt=0):
+                dmg_label = (mc.damage_description or 'Bồi thường hư hại phòng').strip()
+                has_entry = booking.extra_services.filter(
+                    Q(service_name__icontains=dmg_label) |
+                    Q(service_name__icontains=f"[Đền bù hư hại] {dmg_label}")
+                ).exists()
+                if not has_entry:
+                    r_prefix = f"[P.{mc.room.room_number}] " if mc.room else ""
+                    BookingExtraService.objects.create(
+                        booking=booking,
+                        service_name=f"{r_prefix}[Đền bù hư hại] {dmg_label}",
+                        quantity=1,
+                        price=mc.damage_amount,
+                        is_paid=False
+                    )
+        except Exception as e:
+            print(f"Lỗi tự động đồng bộ đền bù hư hại từ MinibarCheck: {e}")
+
+        # 2.2. Từ BookingExtraService (Phụ phí lễ tân đã thêm tại quầy / Minibar / Đền bù hư hại)
         for bes in booking.extra_services.all().order_by('added_time'):
             raw_name = (bes.service_name or '').strip()
             if re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
                 continue
             clean_name = re.sub(r'\(x\d+\)', '', raw_name)
+            clean_name = re.sub(r'\[Đền bù hư hại\]\s*', 'Đền bù hư hại: ', clean_name, flags=re.IGNORECASE)
+            clean_name = re.sub(r'\[Minibar\]\s*', 'Minibar: ', clean_name, flags=re.IGNORECASE)
             clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()
             total = float((bes.price or 0) * (bes.quantity or 1))
 
@@ -2993,7 +3015,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Lỗi khi đồng bộ thanh toán dịch vụ trong checkout_summary: {e}")
 
-        # 2.4. Lấy danh sách phiếu hư hại/bảo trì do khách làm hỏng kèm ảnh bằng chứng
+        # 2.4. Lấy danh sách phiếu hư hại/bảo trì do khách làm hỏng kèm ảnh bằng chứng (gồm cả Kỹ thuật & Kiểm phòng Minibar)
         damage_tickets = []
         for mt in booking.maintenance_tickets.all().order_by('-start_date'):
             damage_tickets.append({
@@ -3008,6 +3030,32 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'status': mt.status,
                 'image_before': request.build_absolute_uri(mt.image_before.url) if mt.image_before else None,
                 'image_after': request.build_absolute_uri(mt.image_after.url) if mt.image_after else None,
+            })
+
+        for mc in booking.minibar_checks.filter(status='completed', has_damage=True).order_by('-completed_at', '-created_at'):
+            dmg_label = (mc.damage_description or 'Hư hại đồ dùng phòng').strip()
+            if any((dt.get('equipment_name') or '').strip().lower() == dmg_label.lower() for dt in damage_tickets):
+                continue
+            dmg_img_url = None
+            raw_mc_note = mc.note or ''
+            img_match = re.search(r'\[DAMAGE_IMG:(.*?)\]', raw_mc_note)
+            if img_match:
+                extracted_path = img_match.group(1).strip()
+                if extracted_path:
+                    dmg_img_url = request.build_absolute_uri(extracted_path) if not extracted_path.startswith('http') else extracted_path
+            clean_mc_note = re.sub(r'\s*\[DAMAGE_IMG:.*?\]', '', raw_mc_note).strip()
+            damage_tickets.append({
+                'id': f"mc_{mc.id}",
+                'ticket_code': mc.check_code,
+                'equipment_name': dmg_label,
+                'issue_type': 'minibar_damage',
+                'issue_type_display': 'Hư hại đồ dùng (Kiểm phòng)',
+                'description': clean_mc_note or f"Buồng phòng ghi nhận khi kiểm phòng P.{mc.room.room_number if mc.room else ''}: {dmg_label}",
+                'cost': float(mc.damage_amount or 0),
+                'is_guest_fault': True,
+                'status': 'completed',
+                'image_before': dmg_img_url,
+                'image_after': None,
             })
 
         # 3. Phân tách Dịch vụ đặt trước đã thanh toán vs Dịch vụ phát sinh chưa thanh toán

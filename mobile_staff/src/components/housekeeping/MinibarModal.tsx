@@ -12,9 +12,11 @@ import {
   Platform,
   Keyboard,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
 import { styles } from './styles';
 import type { RoomItem } from './types';
@@ -46,6 +48,8 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
   const [hasDamage, setHasDamage] = useState(false);
   const [damageDesc, setDamageDesc] = useState('');
   const [damageAmount, setDamageAmount] = useState('');
+  const [requiresMaintenance, setRequiresMaintenance] = useState(false);
+  const [damageImage, setDamageImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [checkNote, setCheckNote] = useState('');
   const [isRestocked, setIsRestocked] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -53,10 +57,26 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
 
   useEffect(() => {
     if (visible && room) {
-      setConsumedCounts({});
-      setHasDamage(false);
-      setDamageDesc('');
-      setDamageAmount('');
+      const latestCheck = room.latest_minibar_check;
+      const isExistingCompleted = latestCheck?.status === 'completed';
+      const initialCounts: Record<number, number> = {};
+      if (isExistingCompleted && Array.isArray(latestCheck?.items_consumed)) {
+        latestCheck.items_consumed.forEach((it: any) => {
+          const id = Number(it.item_id || it.id);
+          const qty = Number(it.quantity || 0);
+          if (id && qty > 0) initialCounts[id] = qty;
+        });
+      }
+      setConsumedCounts(initialCounts);
+      setHasDamage(Boolean(isExistingCompleted && latestCheck?.has_damage));
+      setDamageDesc(isExistingCompleted && latestCheck?.damage_description ? String(latestCheck.damage_description) : '');
+      setDamageAmount(
+        isExistingCompleted && latestCheck?.damage_amount && Number(latestCheck.damage_amount) > 0
+          ? String(Math.round(Number(latestCheck.damage_amount)))
+          : ''
+      );
+      setRequiresMaintenance(false);
+      setDamageImage(null);
       setCheckNote('');
       setIsRestocked(true);
       fetchMinibarItems();
@@ -76,6 +96,48 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
     }
   };
 
+  const takeDamagePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Camera để chụp ảnh minh chứng hư hại.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setDamageImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở camera:', e);
+    }
+  };
+
+  const pickDamagePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Cần cấp quyền', 'Vui lòng cấp quyền Thư viện ảnh để chọn ảnh minh chứng.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setDamageImage(result.assets[0]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      console.warn('Lỗi mở thư viện ảnh:', e);
+    }
+  };
+
   const handleQuantityChange = (itemId: number, delta: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setConsumedCounts((prev) => {
@@ -85,15 +147,20 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
     });
   };
 
+  const parsedDamageAmount = useMemo(() => {
+    if (!hasDamage) return 0;
+    const cleaned = String(damageAmount || '0').replace(/[.,\s]/g, '');
+    return parseFloat(cleaned) || 0;
+  }, [hasDamage, damageAmount]);
+
   const totalMinibarCost = useMemo(() => {
     let sum = 0;
     minibarItems.forEach((it) => {
       const q = consumedCounts[it.id] || 0;
       sum += q * (parseFloat(it.price) || 0);
     });
-    const dmg = hasDamage ? parseFloat(damageAmount || '0') || 0 : 0;
-    return sum + dmg;
-  }, [minibarItems, consumedCounts, hasDamage, damageAmount]);
+    return sum + parsedDamageAmount;
+  }, [minibarItems, consumedCounts, parsedDamageAmount]);
 
   const totalRestockCount = useMemo(() => {
     return Object.values(consumedCounts).reduce((sum, count) => sum + count, 0);
@@ -120,16 +187,55 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
       : '';
     const finalNote = [checkNote.trim(), restockNote].filter(Boolean).join(' • ');
 
+    // Xác định chính xác booking_id và check_id đang hoạt động của phòng
+    const activeBookingId =
+      room.current_booking?.id ||
+      room.recent_booking?.id ||
+      room.latest_minibar_check?.booking_id ||
+      room.latest_minibar_check?.booking ||
+      undefined;
+    const activeCheckId = room.latest_minibar_check?.id || undefined;
+
     try {
-      const res = await apiClient.post('/rooms/minibar-checks/', {
-        room_id: room.id,
-        items: itemsPayload,
-        has_damage: hasDamage,
-        damage_description: damageDesc,
-        damage_amount: parseFloat(damageAmount || '0'),
-        is_restocked: isRestocked,
-        note: finalNote,
-      });
+      let res;
+      if (hasDamage && damageImage) {
+        const formData = new FormData();
+        formData.append('room_id', String(room.id));
+        if (activeBookingId) formData.append('booking_id', String(activeBookingId));
+        if (activeCheckId) formData.append('check_id', String(activeCheckId));
+        formData.append('items', JSON.stringify(itemsPayload));
+        formData.append('has_damage', String(hasDamage));
+        formData.append('damage_description', damageDesc.trim());
+        formData.append('damage_amount', String(parsedDamageAmount));
+        formData.append('requires_maintenance', String(Boolean(hasDamage && requiresMaintenance)));
+        formData.append('is_restocked', String(isRestocked));
+        formData.append('note', finalNote);
+
+        const uri = damageImage.uri;
+        const filename = uri.split('/').pop() || 'damage_evidence.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+        // @ts-ignore
+        formData.append('image_before', {
+          uri,
+          name: filename,
+          type,
+        });
+        res = await apiClient.post('/rooms/minibar-checks/', formData);
+      } else {
+        res = await apiClient.post('/rooms/minibar-checks/', {
+          room_id: room.id,
+          booking_id: activeBookingId,
+          check_id: activeCheckId,
+          items: itemsPayload,
+          has_damage: hasDamage,
+          damage_description: damageDesc.trim(),
+          damage_amount: parsedDamageAmount,
+          requires_maintenance: Boolean(hasDamage && requiresMaintenance),
+          is_restocked: isRestocked,
+          note: finalNote,
+        });
+      }
 
       if (res.data?.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -171,12 +277,14 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
             ]}
           >
             <View style={styles.modalTopBar}>
-              <View>
+              <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={[styles.modalRoomTitle, !isDark && { color: '#0F172A' }]}>
                   Phòng {room.room_number}
                 </Text>
-                <Text style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}>
-                  Kiểm kê Minibar & Hư hại trước Check-out
+                <Text style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]} numberOfLines={1}>
+                  {(room.current_booking || room.recent_booking)
+                    ? `Khách: ${(room.current_booking || room.recent_booking)?.guest_name} (#${(room.current_booking || room.recent_booking)?.booking_code})`
+                    : 'Kiểm kê Minibar & Hư hại trước Check-out'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -319,6 +427,123 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
                     value={damageAmount}
                     onChangeText={setDamageAmount}
                   />
+
+                  {/* Đính kèm ảnh minh chứng hiện trường hư hại */}
+                  <View style={{ marginTop: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#CBD5E1' : '#334155', marginBottom: 6 }}>
+                      Ảnh minh chứng hiện trường (Đối chiếu tại quầy Lễ tân):
+                    </Text>
+                    {damageImage ? (
+                      <View style={{ position: 'relative', alignSelf: 'flex-start', marginBottom: 8 }}>
+                        <Image
+                          source={{ uri: damageImage.uri }}
+                          style={{ width: 110, height: 82, borderRadius: 10, borderWidth: 1, borderColor: '#EF4444' }}
+                        />
+                        <TouchableOpacity
+                          style={{
+                            position: 'absolute',
+                            top: -6,
+                            right: -6,
+                            backgroundColor: '#EF4444',
+                            borderRadius: 12,
+                            width: 22,
+                            height: 22,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onPress={() => setDamageImage(null)}
+                        >
+                          <Ionicons name="close" size={14} color="#FFF" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#334155' : '#CBD5E1',
+                            borderRadius: 10,
+                            paddingVertical: 9,
+                          }}
+                          onPress={takeDamagePhoto}
+                          activeOpacity={0.75}
+                        >
+                          <Ionicons name="camera" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#F8FAFC' : '#0F172A' }}>
+                            Chụp ảnh
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#334155' : '#CBD5E1',
+                            borderRadius: 10,
+                            paddingVertical: 9,
+                          }}
+                          onPress={pickDamagePhoto}
+                          activeOpacity={0.75}
+                        >
+                          <Ionicons name="images-outline" size={16} color="#38BDF8" style={{ marginRight: 6 }} />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#F8FAFC' : '#0F172A' }}>
+                            Thư viện
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Phân tách Hư hại đồ rời vs Hỏng thiết bị kỹ thuật cố định */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: requiresMaintenance
+                        ? (isDark ? 'rgba(239, 68, 68, 0.14)' : '#FEF2F2')
+                        : (isDark ? '#1E293B' : '#F8FAFC'),
+                      borderColor: requiresMaintenance ? '#EF4444' : (isDark ? '#334155' : '#CBD5E1'),
+                      borderWidth: 1.2,
+                      borderRadius: 10,
+                      padding: 10,
+                      marginTop: 4,
+                    }}
+                    onPress={() => {
+                      setRequiresMaintenance((prev) => !prev);
+                      Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={requiresMaintenance ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={requiresMaintenance ? '#EF4444' : (isDark ? '#94A3B8' : '#64748B')}
+                    />
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                      <Text
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: '800',
+                          color: requiresMaintenance ? '#EF4444' : (isDark ? '#E2E8F0' : '#1E293B'),
+                        }}
+                      >
+                        🛠️ Cần Kỹ thuật viên sửa chữa (Thiết bị cố định)
+                      </Text>
+                      <Text style={{ fontSize: 11, color: isDark ? '#94A3B8' : '#64748B', marginTop: 2 }}>
+                        {requiresMaintenance
+                          ? 'Sẽ tự động lập phiếu Bảo trì & khóa phòng chờ Kỹ thuật sửa.'
+                          : 'Chỉ tính phí đền bù đồ rời (ly, khăn...), Buồng phòng tự thay mới.'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
               )}
 

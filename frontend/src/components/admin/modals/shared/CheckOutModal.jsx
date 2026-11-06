@@ -1324,15 +1324,32 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                     )}
                                                 </div>
                                                 {inspectionData?.has_damage ? (
-                                                    <div className="text-[11px] text-rose-800 bg-rose-50 p-2 rounded-lg border border-rose-200 space-y-0.5">
-                                                        <p className="font-bold inline-flex items-center gap-1">
-                                                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                                            <span>Có hư hại ghi nhận:</span>
-                                                        </p>
-                                                        <p className="leading-relaxed">{inspectionData.damage_description || 'Hư hại đồ dùng trong phòng'}</p>
-                                                        <p className="font-semibold text-rose-900 mt-1">
-                                                            Đã cộng khoản đền bù <strong>{formatCurrency(inspectionData.damage_amount)}</strong> vào bảng kê Folio bên dưới.
-                                                        </p>
+                                                    <div className="text-[11px] text-rose-800 bg-rose-50 p-2.5 rounded-lg border border-rose-200 flex items-center justify-between gap-2.5">
+                                                        <div className="space-y-1 flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                                                <span className="font-bold text-rose-800">Hư hại khi kiểm phòng:</span>
+                                                                <span className="font-extrabold text-slate-900">{inspectionData.damage_description || 'Hư hại đồ dùng phòng'}</span>
+                                                            </div>
+                                                            <p className="font-medium text-rose-900">
+                                                                Đã cộng khoản đền bù <strong>{formatCurrency(inspectionData.damage_amount)}</strong> vào bảng kê Folio bên dưới.
+                                                            </p>
+                                                        </div>
+                                                        {inspectionData?.damage_image && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDamagePhotoPreview({
+                                                                    url: resolveImageUrl(inspectionData.damage_image),
+                                                                    title: `Hiện trường kiểm phòng - ${inspectionData.damage_description || 'Hư hại đồ dùng'}`,
+                                                                    subtitle: `Phiếu #${inspectionData.check_code} • Phụ phí: ${formatCurrency(inspectionData.damage_amount)}`
+                                                                })}
+                                                                className="group relative w-12 h-12 rounded-lg overflow-hidden border border-rose-300 hover:ring-2 hover:ring-rose-400 cursor-pointer transition shrink-0"
+                                                                title="Bấm phóng to ảnh hiện trường hư hại"
+                                                            >
+                                                                <img src={resolveImageUrl(inspectionData.damage_image)} alt="Hiện trường" className="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
+                                                                <span className="absolute bottom-0 inset-x-0 bg-rose-900/85 text-[8px] text-white font-bold text-center py-0.5">Ảnh chụp</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <p className="text-[11px] text-slate-500 italic">
@@ -1343,46 +1360,75 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 {summary?.damage_tickets && summary.damage_tickets.length > 0 && (
                                                     <div className="mt-2.5 pt-2 border-t border-rose-200/60 space-y-2">
                                                         <div className="text-[10.5px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
-                                                            <Camera className="w-3.5 h-3.5 text-rose-600" />
-                                                            <span>Ảnh bằng chứng hiện trường ({summary.damage_tickets.length} phiếu):</span>
+                                                            <Camera className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                                            <span>Hồ sơ hư hại & Ảnh bằng chứng hiện trường ({summary.damage_tickets.length} mục):</span>
                                                         </div>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        <div className="flex flex-col gap-2">
                                                             {summary.damage_tickets.map((dt) => (
-                                                                <div key={dt.id} className="flex items-center gap-2.5 bg-rose-50/50 p-2 rounded-xl border border-rose-200 shadow-2xs">
-                                                                    {dt.image_before ? (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setDamagePhotoPreview({
-                                                                                url: resolveImageUrl(dt.image_before),
-                                                                                title: `Hiện trường hư hại - ${dt.equipment_name}`,
-                                                                                subtitle: `Phiếu #${dt.ticket_code} • Phụ phí: ${formatCurrency(dt.cost)}`
-                                                                            })}
-                                                                            className="group relative w-12 h-12 rounded-lg overflow-hidden border border-rose-300 hover:ring-2 hover:ring-rose-400 cursor-pointer transition shrink-0"
-                                                                            title="Bấm phóng to ảnh ban đầu"
-                                                                        >
-                                                                            <img src={resolveImageUrl(dt.image_before)} alt="Trước" className="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
-                                                                            <span className="absolute bottom-0 inset-x-0 bg-slate-900/80 text-[8px] text-amber-300 font-bold text-center py-0.5">Trước</span>
-                                                                        </button>
-                                                                    ) : null}
-                                                                    {dt.image_after ? (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setDamagePhotoPreview({
-                                                                                url: resolveImageUrl(dt.image_after),
-                                                                                title: `Nghiệm thu sau sửa - ${dt.equipment_name}`,
-                                                                                subtitle: `Phiếu #${dt.ticket_code} • Kỹ thuật đã sửa xong`
-                                                                            })}
-                                                                            className="group relative w-12 h-12 rounded-lg overflow-hidden border border-emerald-300 hover:ring-2 hover:ring-emerald-400 cursor-pointer transition shrink-0"
-                                                                            title="Bấm phóng to ảnh sau sửa"
-                                                                        >
-                                                                            <img src={resolveImageUrl(dt.image_after)} alt="Sau" className="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
-                                                                            <span className="absolute bottom-0 inset-x-0 bg-emerald-900/80 text-[8px] text-emerald-200 font-bold text-center py-0.5">Sau</span>
-                                                                        </button>
-                                                                    ) : null}
+                                                                <div key={dt.id} className="flex items-center gap-2.5 bg-rose-50/50 p-2 rounded-xl border border-rose-200 shadow-2xs overflow-hidden">
+                                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                                        {dt.image_before ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setDamagePhotoPreview({
+                                                                                    url: resolveImageUrl(dt.image_before),
+                                                                                    title: `Hiện trường hư hại - ${dt.equipment_name}`,
+                                                                                    subtitle: `Phiếu #${dt.ticket_code} • Phụ phí: ${formatCurrency(dt.cost)}`
+                                                                                })}
+                                                                                className="group relative w-11 h-11 rounded-lg overflow-hidden border border-rose-300 hover:ring-2 hover:ring-rose-400 cursor-pointer transition shrink-0"
+                                                                                title="Bấm phóng to ảnh hiện trường"
+                                                                            >
+                                                                                <img src={resolveImageUrl(dt.image_before)} alt="Trước" className="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
+                                                                                <span className="absolute bottom-0 inset-x-0 bg-slate-900/80 text-[7.5px] text-amber-300 font-bold text-center py-0.5">
+                                                                                    {dt.issue_type === 'minibar_damage' ? 'Hiện trường' : 'Trước'}
+                                                                                </span>
+                                                                            </button>
+                                                                        ) : !dt.image_after ? (
+                                                                            <div className="w-11 h-11 rounded-lg bg-rose-100/70 border border-dashed border-rose-300 flex flex-col items-center justify-center text-rose-400 shrink-0" title="Chưa có ảnh đính kèm">
+                                                                                <Camera className="w-3.5 h-3.5" />
+                                                                                <span className="text-[7px] font-bold mt-0.5">Chưa có ảnh</span>
+                                                                            </div>
+                                                                        ) : null}
+                                                                        {dt.image_after ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setDamagePhotoPreview({
+                                                                                    url: resolveImageUrl(dt.image_after),
+                                                                                    title: `Nghiệm thu sau sửa - ${dt.equipment_name}`,
+                                                                                    subtitle: `Phiếu #${dt.ticket_code} • Kỹ thuật đã sửa xong`
+                                                                                })}
+                                                                                className="group relative w-11 h-11 rounded-lg overflow-hidden border border-emerald-300 hover:ring-2 hover:ring-emerald-400 cursor-pointer transition shrink-0"
+                                                                                title="Bấm phóng to ảnh sau sửa"
+                                                                            >
+                                                                                <img src={resolveImageUrl(dt.image_after)} alt="Sau" className="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
+                                                                                <span className="absolute bottom-0 inset-x-0 bg-emerald-900/80 text-[7.5px] text-emerald-200 font-bold text-center py-0.5">Sau</span>
+                                                                            </button>
+                                                                        ) : null}
+                                                                    </div>
                                                                     <div className="text-[11px] min-w-0 flex-1">
-                                                                        <div className="font-bold text-slate-800 truncate">{dt.equipment_name}</div>
-                                                                        <div className="text-rose-600 font-extrabold">{formatCurrency(dt.cost)}</div>
-                                                                        <div className="text-[10px] text-slate-500 font-mono">#{dt.ticket_code}</div>
+                                                                        <div className="flex items-center justify-between gap-2">
+                                                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 leading-none ${
+                                                                                    dt.issue_type === 'minibar_damage'
+                                                                                        ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                                                                        : 'bg-rose-100 text-rose-800 border-rose-300'
+                                                                                }`}>
+                                                                                    {dt.issue_type === 'minibar_damage' ? 'Kiểm phòng' : 'Kỹ thuật'}
+                                                                                </span>
+                                                                                <span className="font-bold text-slate-800 truncate" title={dt.equipment_name}>
+                                                                                    {dt.equipment_name}
+                                                                                </span>
+                                                                            </div>
+                                                                            <span className="text-rose-600 font-extrabold font-mono shrink-0">
+                                                                                {formatCurrency(dt.cost)}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between gap-2 mt-1 text-[10px] text-slate-500">
+                                                                            <span className="font-mono">Mã phiếu: #{dt.ticket_code}</span>
+                                                                            <span className="truncate">
+                                                                                {dt.issue_type === 'minibar_damage' ? 'Buồng phòng ghi nhận' : 'Bảo trì thiết bị'}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             ))}

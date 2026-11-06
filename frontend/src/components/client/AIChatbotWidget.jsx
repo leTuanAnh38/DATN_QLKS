@@ -185,7 +185,7 @@ const I18N_DICT = {
         swipe_hint: '옆으로 스크롤하여 더보기 →',
         avail_rooms: (n) => `${n}개 객실 남음`,
         sold_out: '예약 마감',
-        luxury_tag: '5성급 럭셔리',
+        luxury_tag: 'VIP 럭셔리',
         max_guests: (b, c) => `${b} • 최대 ${c}인`,
         price_from: '최저 요금:',
         per_night: ' /1박',
@@ -225,7 +225,7 @@ const I18N_DICT = {
         swipe_hint: '向右滑动查看更多 →',
         avail_rooms: (n) => `剩余 ${n} 间空房`,
         sold_out: '线上已售罄',
-        luxury_tag: '五星奢华',
+        luxury_tag: 'VIP奢华',
         max_guests: (b, c) => `${b} • 最多容纳 ${c} 人`,
         price_from: '起拍价:',
         per_night: ' /晚',
@@ -706,8 +706,9 @@ export default function AIChatbotWidget() {
 
             const data = await askChatbot(query, history);
 
+            const hotlineNum = settings?.hotline || '1900 8899';
             const botTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-            const botReplyText = data?.reply || 'Dạ em xin lỗi Quý khách, hệ thống đang bận một chút. Quý khách vui lòng thử lại hoặc liên hệ Hotline 1900 8899 để được hỗ trợ tức thì ạ!';
+            const botReplyText = data?.reply || `Dạ em xin lỗi Quý khách, hệ thống đang bận một chút. Quý khách vui lòng thử lại hoặc liên hệ Hotline ${hotlineNum} để được hỗ trợ tức thì ạ!`;
             const detectedLang = data?.detected_lang || selectedLang || 'vi';
 
             if (data?.detected_lang && ['vi', 'en', 'ko', 'zh'].includes(data.detected_lang)) {
@@ -733,17 +734,18 @@ export default function AIChatbotWidget() {
             }
         } catch (error) {
             console.error('Lỗi khi gọi API Chatbot:', error);
+            const hotlineNum = settings?.hotline || '1900 8899';
             const errorMsg = {
                 id: `error-${Date.now()}`,
                 role: 'model',
                 detected_lang: selectedLang,
                 text: selectedLang === 'en' 
-                    ? 'I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **1900 8899** for immediate assistance!'
+                    ? `I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **${hotlineNum}** for immediate assistance!`
                     : selectedLang === 'ko'
-                    ? '일시적인 네트워크 지연이 발생했습니다. 24시간 컨시어지 핫라인 **1900 8899**로 연락 주시면 즉시 도와드리겠습니다!'
+                    ? `일시적인 네트워크 지연이 발생했습니다. 24시간 컨시어지 핫라인 **${hotlineNum}**로 연락 주시면 즉시 도와드리겠습니다!`
                     : selectedLang === 'zh'
-                    ? '抱歉系统连接暂时受阻。请致电24小时前台热线 **1900 8899** 获取即时帮助！'
-                    : 'Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **1900 8899** để được chuyên viên hỗ trợ ngay ạ!',
+                    ? `抱歉系统连接暂时受阻。请致电24小时前台热线 **${hotlineNum}** 获取即时帮助！`
+                    : `Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **${hotlineNum}** để được chuyên viên hỗ trợ ngay ạ!`,
                 time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
             };
             setMessages(prev => [...prev, errorMsg]);
@@ -1278,12 +1280,12 @@ export default function AIChatbotWidget() {
                                                                     {dict.booking_history}
                                                                 </button>
                                                                 <a
-                                                                    href="tel:19008899"
+                                                                    href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
                                                                     className="py-1.5 px-3 text-[10px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-center flex items-center justify-center gap-1"
                                                                     title="Gọi Hotline hỗ trợ lễ tân 24/7"
                                                                 >
                                                                     <Phone className="w-3 h-3 text-slate-500" />
-                                                                    {dict.hotline_call}
+                                                                    {dict.hotline_call.replace('1900 8899', settings?.hotline || '1900 8899')}
                                                                 </a>
                                                             </div>
                                                         </div>

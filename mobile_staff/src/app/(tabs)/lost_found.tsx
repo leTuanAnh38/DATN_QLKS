@@ -44,12 +44,13 @@ const CATEGORIES = [
 
 export default function LostFoundScreen() {
   const { user } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors, isDark, hotelStars, hotelName } = useAppTheme();
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showCategories, setShowCategories] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
@@ -160,7 +161,9 @@ export default function LostFoundScreen() {
     return items.filter((it) => {
       let matchStatus = true;
       if (filterStatus === 'stored') {
-        matchStatus = it.status === 'stored' || it.status === 'contacted';
+        matchStatus = it.status === 'stored';
+      } else if (filterStatus === 'contacted') {
+        matchStatus = it.status === 'contacted';
       } else if (filterStatus === 'returned') {
         matchStatus = it.status === 'returned';
       }
@@ -359,7 +362,7 @@ export default function LostFoundScreen() {
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
+          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
           <Text style={[styles.greetingTitle, { color: colors.text }]}>Đồ Thất Lạc 🧳</Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -384,12 +387,13 @@ export default function LostFoundScreen() {
         </View>
       </View>
 
-      {/* 2. Dải Bộ Lọc & KPI Cố Định 100% */}
+      {/* 2. Dải Bộ Lọc & KPI Cố Định 4 Cột Cân Đối */}
       <View style={styles.fixedFilterBar}>
         {[
           { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
-          { key: 'stored', label: 'Đang lưu kho', count: stats.stored, color: '#F59E0B' },
-          { key: 'returned', label: 'Đã trao trả', count: stats.returned, color: isDark ? '#34D399' : '#059669' },
+          { key: 'stored', label: 'Lưu kho', count: stats.stored, color: '#F59E0B' },
+          { key: 'contacted', label: 'Đã liên hệ', count: stats.contacted, color: isDark ? '#38BDF8' : '#0284C7' },
+          { key: 'returned', label: 'Đã trả', count: stats.returned, color: isDark ? '#34D399' : '#059669' },
         ].map((item) => {
           const isSelected = filterStatus === item.key;
           return (
@@ -432,116 +436,155 @@ export default function LostFoundScreen() {
         })}
       </View>
 
-      {/* Thống kê bổ sung (khớp web): đã liên hệ khách & tỷ lệ trao trả */}
-      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, paddingHorizontal: 16, marginBottom: 6 }}>
-        <Text style={{ fontSize: 11.5, color: isDark ? '#94A3B8' : '#64748B', fontWeight: '600' }}>
-          Đã liên hệ khách: <Text style={{ color: '#0284C7', fontWeight: '800' }}>{stats.contacted}</Text>
-        </Text>
-        <Text style={{ fontSize: 11.5, color: isDark ? '#94A3B8' : '#64748B', fontWeight: '600' }}>
-          Tỷ lệ trao trả: <Text style={{ color: isDark ? '#34D399' : '#059669', fontWeight: '800' }}>{stats.returnRate}%</Text>
-        </Text>
-      </View>
-
-      {/* 3. Ô Tìm Kiếm Nhanh */}
-      <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
-        <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
-        <TextInput
-          style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
-          placeholder="Tìm tên đồ vật, mã #LF, số phòng..."
-          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          clearButtonMode="while-editing"
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 8 }}>
-            <Ionicons name="close-circle" size={18} color="#94A3B8" />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      {/* 4. Chips Phân Loại Danh Mục Đồ Thất Lạc */}
-      <View style={styles.categoryChipsContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryChipsScroll}
+      {/* 3. Ô Tìm Kiếm Kết Hợp Nút [Lọc ▾] Trên 1 Dòng */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
+        <View
+          style={[
+            styles.searchWrapper,
+            { flex: 1, marginHorizontal: 0, marginBottom: 0 },
+            !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+          ]}
         >
-          <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              !isDark && {
-                backgroundColor: selectedCategory === 'all' ? '#F59E0B' : '#FFFFFF',
-                borderColor: selectedCategory === 'all' ? '#F59E0B' : '#E2E8F0',
-                shadowColor: '#64748B',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
-              },
-              selectedCategory === 'all' && isDark && styles.categoryChipActive,
-            ]}
-            onPress={() => {
-              setSelectedCategory('all');
-              Haptics.selectionAsync();
+          <Ionicons name="search-outline" size={17} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 10 }} />
+          <TextInput
+            style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
+            placeholder="Tìm tên đồ vật, mã #LF, số phòng..."
+            placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 6 }}>
+              <Ionicons name="close-circle" size={17} color="#94A3B8" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            height: 40,
+            paddingHorizontal: 12,
+            borderRadius: 12,
+            borderWidth: 1,
+            backgroundColor:
+              showCategories || selectedCategory !== 'all'
+                ? 'rgba(245, 158, 11, 0.16)'
+                : (isDark ? '#1E293B' : '#FFFFFF'),
+            borderColor:
+              showCategories || selectedCategory !== 'all'
+                ? '#F59E0B'
+                : (isDark ? '#334155' : '#E2E8F0'),
+          }}
+          onPress={() => {
+            setShowCategories((prev) => !prev);
+            Haptics.selectionAsync();
+          }}
+          activeOpacity={0.75}
+        >
+          <Ionicons
+            name={showCategories ? 'options' : 'options-outline'}
+            size={16}
+            color={showCategories || selectedCategory !== 'all' ? '#F59E0B' : (isDark ? '#CBD5E1' : '#475569')}
+            style={{ marginRight: 5 }}
+          />
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: '800',
+              color:
+                showCategories || selectedCategory !== 'all'
+                  ? (isDark ? '#FBBF24' : '#B45309')
+                  : (isDark ? '#CBD5E1' : '#475569'),
             }}
-            activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.categoryChipText,
-                !isDark && { color: selectedCategory === 'all' ? '#0A0F1D' : '#475569' },
-                selectedCategory === 'all' && isDark && styles.categoryChipTextActive,
-              ]}
-            >
-              Tất cả ({items.length})
-            </Text>
-          </TouchableOpacity>
-          {CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat.key;
-            const count = items.filter((it) => it.category === cat.key).length;
-            return (
-              <TouchableOpacity
-                key={cat.key}
-                style={[
-                  styles.categoryChip,
-                  !isDark && {
-                    backgroundColor: isSelected ? '#F59E0B' : '#FFFFFF',
-                    borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
-                    shadowColor: '#64748B',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  },
-                  isSelected && isDark && styles.categoryChipActive,
-                ]}
-                onPress={() => {
-                  setSelectedCategory(cat.key);
-                  Haptics.selectionAsync();
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={cat.icon as any}
-                  size={13}
-                  color={isSelected ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
-                  style={{ marginRight: 5 }}
-                />
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
-                    isSelected && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {cat.label.split('(')[0].trim()} {count > 0 ? `(${count})` : ''}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            Lọc{selectedCategory !== 'all' ? ' (1)' : ''}
+          </Text>
+          <Ionicons
+            name={showCategories ? 'chevron-up' : 'chevron-down'}
+            size={13}
+            color={showCategories || selectedCategory !== 'all' ? '#F59E0B' : (isDark ? '#94A3B8' : '#64748B')}
+            style={{ marginLeft: 3 }}
+          />
+        </TouchableOpacity>
       </View>
+
+      {/* 4. Chips Phân Loại Danh Mục Đồ Thất Lạc (Chỉ hiện khi bấm [Lọc ▾]) */}
+      {showCategories && (
+        <View style={styles.categoryChipsContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryChipsScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.categoryChip,
+                !isDark && {
+                  backgroundColor: selectedCategory === 'all' ? '#F59E0B' : '#FFFFFF',
+                  borderColor: selectedCategory === 'all' ? '#F59E0B' : '#E2E8F0',
+                },
+                selectedCategory === 'all' && isDark && styles.categoryChipActive,
+              ]}
+              onPress={() => {
+                setSelectedCategory('all');
+                Haptics.selectionAsync();
+              }}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  !isDark && { color: selectedCategory === 'all' ? '#0A0F1D' : '#475569' },
+                  selectedCategory === 'all' && isDark && styles.categoryChipTextActive,
+                ]}
+              >
+                Tất cả ({items.length})
+              </Text>
+            </TouchableOpacity>
+            {CATEGORIES.map((cat) => {
+              const isSelected = selectedCategory === cat.key;
+              const count = items.filter((it) => it.category === cat.key).length;
+              return (
+                <TouchableOpacity
+                  key={cat.key}
+                  style={[
+                    styles.categoryChip,
+                    !isDark && {
+                      backgroundColor: isSelected ? '#F59E0B' : '#FFFFFF',
+                      borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                    },
+                    isSelected && isDark && styles.categoryChipActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedCategory(cat.key);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={cat.icon as any}
+                    size={13}
+                    color={isSelected ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
+                    style={{ marginRight: 5 }}
+                  />
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
+                      isSelected && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {cat.label.split('(')[0].trim()} {count > 0 ? `(${count})` : ''}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       {/* 5. Danh Sách Đồ Thất Lạc */}
       {loading ? (

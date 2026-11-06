@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Appearance, ColorSchemeName } from 'react-native';
+import { Appearance, AppState, ColorSchemeName } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Colors, Palette, ThemeColors } from '../constants/theme';
+import apiClient from '../api/client';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
@@ -13,6 +14,9 @@ interface ThemeContextType {
   isDark: boolean;
   colors: ThemeColors;
   palette: typeof Palette;
+  hotelStars: number;
+  hotelName: string;
+  refreshHotelSettings: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   toggleTheme: () => Promise<void>;
 }
@@ -27,6 +31,28 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [systemScheme, setSystemScheme] = useState<ColorSchemeName>(
     Appearance.getColorScheme() ?? 'dark'
   );
+  const [hotelStars, setHotelStars] = useState<number>(5);
+  const [hotelName, setHotelName] = useState<string>('TA LUXURY HOTEL');
+
+  const refreshHotelSettings = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/hotel-settings/');
+      const data = res.data?.data || res.data;
+      if (data) {
+        if (data.stars !== undefined && data.stars !== null) {
+          const parsedStars = Number(data.stars);
+          if (!isNaN(parsedStars) && parsedStars >= 1 && parsedStars <= 5) {
+            setHotelStars(parsedStars);
+          }
+        }
+        if (data.hotel_name && typeof data.hotel_name === 'string') {
+          setHotelName(data.hotel_name.trim());
+        }
+      }
+    } catch {
+      // Giữ nguyên giá trị mặc định nếu mất kết nối tạm thời
+    }
+  }, []);
 
   useEffect(() => {
     // 1. Khôi phục theme đã lưu
@@ -40,15 +66,24 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.warn('Lỗi đọc cấu hình theme từ SecureStore:', err);
       });
 
-    // 2. Lắng nghe thay đổi theme hệ thống của thiết bị
+    // 2. Đồng bộ số sao & tên khách sạn từ Cài đặt hệ thống
+    refreshHotelSettings();
+
+    // 3. Lắng nghe thay đổi theme hệ thống & khi mở lại ứng dụng
     const listener = Appearance.addChangeListener(({ colorScheme }) => {
       setSystemScheme(colorScheme ?? 'dark');
+    });
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        refreshHotelSettings();
+      }
     });
 
     return () => {
       listener.remove();
+      appStateSub.remove();
     };
-  }, []);
+  }, [refreshHotelSettings]);
 
   const setThemeMode = useCallback(async (mode: ThemeMode) => {
     setThemeModeState(mode);
@@ -81,10 +116,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isDark,
       colors,
       palette: Palette,
+      hotelStars,
+      hotelName,
+      refreshHotelSettings,
       setThemeMode,
       toggleTheme,
     }),
-    [themeMode, resolvedTheme, isDark, colors, setThemeMode, toggleTheme]
+    [themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode, toggleTheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -100,6 +138,9 @@ export function useAppTheme(): ThemeContextType {
       isDark: true,
       colors: Colors.dark,
       palette: Palette,
+      hotelStars: 5,
+      hotelName: 'TA LUXURY HOTEL',
+      refreshHotelSettings: async () => {},
       setThemeMode: async () => {},
       toggleTheme: async () => {},
     };

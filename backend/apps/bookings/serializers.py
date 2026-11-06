@@ -279,8 +279,10 @@ class BookingSerializer(serializers.ModelSerializer):
             if re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
                 continue
 
-            # Chuẩn hóa tên: bỏ các đuôi phụ trợ như '(x2)' hoặc '[...]'
+            # Chuẩn hóa tên: giữ lại nhãn Đền bù hư hại / Minibar và bỏ các đuôi phụ trợ như '(x2)' hoặc '[P.101]'
             clean_name = re.sub(r'\(x\d+\)', '', raw_name)
+            clean_name = re.sub(r'\[Đền bù hư hại\]\s*', 'Đền bù hư hại: ', clean_name, flags=re.IGNORECASE)
+            clean_name = re.sub(r'\[Minibar\]\s*', 'Minibar: ', clean_name, flags=re.IGNORECASE)
             clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()
             total = float((bes.price or 0) * (bes.quantity or 1))
 

@@ -6,6 +6,9 @@ export interface BookingSummary {
   guest_name: string;
   guest_phone?: string;
   guest_email?: string;
+  guest_tier_name?: string | null;
+  guest_tier_code?: string | null;
+  is_vip?: boolean;
   check_in_date?: string;
   check_out_date?: string;
   status?: string;

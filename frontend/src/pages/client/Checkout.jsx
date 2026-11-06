@@ -2414,7 +2414,7 @@ export default function Checkout() {
                         </h2>
 
                         <p className="text-xs sm:text-sm text-slate-500 mb-6">
-                            Đơn đặt phòng của quý khách tại <strong>Khách Sạn TA Đà Nẵng</strong> đã được tiếp nhận và xử lý thành công.
+                            Đơn đặt phòng của quý khách tại <strong>{hotelSettings.hotel_name || 'Khách Sạn TA Đà Nẵng'}</strong> đã được tiếp nhận và xử lý thành công.
                         </p>
 
                         {/* Mã đặt phòng & Hộp sao chép */}

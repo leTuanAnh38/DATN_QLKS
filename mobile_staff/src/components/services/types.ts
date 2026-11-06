@@ -2,8 +2,13 @@ export interface ServiceOrder {
   id: number;
   booking_code: string;
   room_number: string;
+  room_floor?: number | null;
+  guest_id?: number | null;
   guest_name: string;
   guest_phone?: string;
+  guest_tier_name?: string | null;
+  guest_tier_code?: string | null;
+  is_vip?: boolean;
   service_name: string;
   service_image?: string;
   category_name: string;

@@ -63,7 +63,7 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
   onClaimTicket,
   onOpenCancel,
 }) => {
-  const { isDark } = useAppTheme();
+  const { isDark, hotelStars } = useAppTheme();
   const isFixing = item.status === 'fixing';
   const isCancelled = item.status === 'cancelled';
   const isCompleted = item.status === 'completed';
@@ -202,12 +202,12 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
         </View>
       )}
 
-      {/* Cảnh báo SOP 5 sao: Phòng có khách lưu trú */}
+      {/* Cảnh báo SOP theo tiêu chuẩn sao khách sạn: Phòng có khách lưu trú */}
       {isOccupied && !isCancelled && (
         <View style={styles.sopAlertBanner}>
           <View style={styles.sopBadge}>
             <Ionicons name="warning" size={12} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={styles.sopBadgeText}>SOP 5 SAO • CÓ KHÁCH</Text>
+            <Text style={styles.sopBadgeText}>SOP {hotelStars} SAO • CÓ KHÁCH</Text>
           </View>
           <Text style={styles.sopBannerText}>
             Phòng có khách lưu trú{item.guest_name ? ` (${item.guest_name})` : ''} • Tuân thủ SOP: Gõ cửa 3 lần, xưng "Kỹ thuật phòng" trước khi vào!

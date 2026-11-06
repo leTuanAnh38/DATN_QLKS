@@ -41,7 +41,7 @@ import {
 
 export default function MaintenanceScreen() {
   const { user } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors, isDark, hotelStars, hotelName } = useAppTheme();
   // Khớp web (RoomManagement.canCompleteMaintenance): chỉ Kỹ thuật & quản lý mới được nghiệm thu phiếu
   const canCompleteMaintenance = Boolean(
     user?.is_superuser || ['technician', 'admin', 'owner', 'manager'].includes(user?.role || '')
@@ -53,6 +53,7 @@ export default function MaintenanceScreen() {
   const [selectedIssueType, setSelectedIssueType] = useState<string>('all');
   const [selectedFloor, setSelectedFloor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   // Modal hoàn tất sửa chữa
@@ -565,7 +566,7 @@ export default function MaintenanceScreen() {
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
+          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
           <Text style={[styles.greetingTitle, { color: colors.text }]}>Kỹ Thuật & Bảo Trì 🛠️</Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -640,105 +641,281 @@ export default function MaintenanceScreen() {
         })}
       </View>
 
-      {/* 3. Ô Tìm Kiếm Nhanh */}
-      <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
-        <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
-        <TextInput
-          style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
-          placeholder="Tìm theo số phòng, mã phiếu, tên thiết bị..."
-          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          clearButtonMode="while-editing"
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 8 }}>
-            <Ionicons name="close-circle" size={18} color="#94A3B8" />
-          </TouchableOpacity>
-        ) : null}
+      {/* 3. Ô Tìm Kiếm Kết Hợp Nút [Lọc ▾] Gọn Gàng Trên 1 Dòng */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
+        <View
+          style={[
+            styles.searchWrapper,
+            { flex: 1, marginHorizontal: 0, marginBottom: 0 },
+            !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+          ]}
+        >
+          <Ionicons name="search-outline" size={17} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 10 }} />
+          <TextInput
+            style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
+            placeholder="Tìm số phòng, mã phiếu, thiết bị..."
+            placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 6 }}>
+              <Ionicons name="close-circle" size={17} color="#94A3B8" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {(() => {
+          const activeFilterCount = (selectedFloor !== 'all' ? 1 : 0) + (selectedIssueType !== 'all' ? 1 : 0);
+          const isHighlighted = showFilters || activeFilterCount > 0;
+          return (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                height: 40,
+                paddingHorizontal: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                backgroundColor: isHighlighted
+                  ? 'rgba(245, 158, 11, 0.16)'
+                  : (isDark ? '#1E293B' : '#FFFFFF'),
+                borderColor: isHighlighted ? '#F59E0B' : (isDark ? '#334155' : '#E2E8F0'),
+              }}
+              onPress={() => {
+                setShowFilters((prev) => !prev);
+                Haptics.selectionAsync();
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons
+                name={showFilters ? 'options' : 'options-outline'}
+                size={16}
+                color={isHighlighted ? '#F59E0B' : (isDark ? '#CBD5E1' : '#475569')}
+                style={{ marginRight: 5 }}
+              />
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '800',
+                  color: isHighlighted ? (isDark ? '#FBBF24' : '#B45309') : (isDark ? '#CBD5E1' : '#475569'),
+                }}
+              >
+                Lọc{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </Text>
+              <Ionicons
+                name={showFilters ? 'chevron-up' : 'chevron-down'}
+                size={13}
+                color={isHighlighted ? '#F59E0B' : (isDark ? '#94A3B8' : '#64748B')}
+                style={{ marginLeft: 3 }}
+              />
+            </TouchableOpacity>
+          );
+        })()}
       </View>
 
-      {/* 4. Chips Lọc Theo Tầng (Floor Filter) */}
-      {availableFloors.length > 0 && (
-        <View style={styles.floorChipsContainer}>
+      {/* Thanh tóm tắt lọc phụ khi đang thu gọn */}
+      {!showFilters && (selectedFloor !== 'all' || selectedIssueType !== 'all') && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginHorizontal: 14,
+            marginBottom: 8,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            borderRadius: 9,
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FEF3C7',
+            borderWidth: 1,
+            borderColor: 'rgba(245, 158, 11, 0.35)',
+          }}
+        >
+          <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#FBBF24' : '#B45309', flex: 1 }} numberOfLines={1}>
+            Đang lọc:{' '}
+            {[
+              selectedFloor !== 'all' ? `Tầng ${selectedFloor}` : null,
+              selectedIssueType !== 'all'
+                ? MAINTENANCE_ISSUE_TYPES.find((c) => c.key === selectedIssueType)?.label || selectedIssueType
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' • ')}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedFloor('all');
+              setSelectedIssueType('all');
+              Haptics.selectionAsync();
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}
+          >
+            <Ionicons name="close-circle" size={14} color={isDark ? '#FBBF24' : '#B45309'} style={{ marginRight: 3 }} />
+            <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>Bỏ lọc</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 4. Khung Bộ Lọc Mở Rộng (Tầng & Phân Loại Sự Cố - Chỉ hiển thị khi bấm [Lọc ▾]) */}
+      {showFilters && (
+        <View
+          style={{
+            marginHorizontal: 14,
+            marginBottom: 10,
+            paddingVertical: 8,
+            borderRadius: 14,
+            backgroundColor: isDark ? '#111827' : '#F8FAFC',
+            borderWidth: 1,
+            borderColor: isDark ? '#1E293B' : '#E2E8F0',
+            gap: 8,
+          }}
+        >
+          {/* Chips Lọc Theo Tầng */}
+          {availableFloors.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.floorChipsScroll}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.floorChip,
+                  !isDark && {
+                    backgroundColor: selectedFloor === 'all' ? '#0284C7' : '#FFFFFF',
+                    borderColor: selectedFloor === 'all' ? '#0284C7' : '#E2E8F0',
+                  },
+                  selectedFloor === 'all' && isDark && styles.floorChipActive,
+                ]}
+                onPress={() => {
+                  setSelectedFloor('all');
+                  Haptics.selectionAsync();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.floorChipText,
+                    !isDark && { color: selectedFloor === 'all' ? '#FFFFFF' : '#475569' },
+                    selectedFloor === 'all' && isDark && styles.floorChipTextActive,
+                  ]}
+                >
+                  Tất cả tầng
+                </Text>
+              </TouchableOpacity>
+
+              {availableFloors.map((fl) => {
+                const isSelected = selectedFloor === fl;
+                const count = tickets.filter((t) => {
+                  const tFl = t.room_floor ? String(t.room_floor) : (t.room_number && t.room_number.length >= 3 ? t.room_number.slice(0, -2) : null);
+                  return tFl === fl;
+                }).length;
+                return (
+                  <TouchableOpacity
+                    key={fl}
+                    style={[
+                      styles.floorChip,
+                      !isDark && {
+                        backgroundColor: isSelected ? '#0284C7' : '#FFFFFF',
+                        borderColor: isSelected ? '#0284C7' : '#E2E8F0',
+                      },
+                      isSelected && isDark && styles.floorChipActive,
+                    ]}
+                    onPress={() => {
+                      setSelectedFloor(fl);
+                      Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="layers-outline"
+                      size={12}
+                      color={isSelected ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      style={[
+                        styles.floorChipText,
+                        !isDark && { color: isSelected ? '#FFFFFF' : '#475569' },
+                        isSelected && { color: '#FFFFFF', fontWeight: '800' },
+                      ]}
+                    >
+                      Tầng {fl} ({count})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {/* Chips Phân Loại Sự Cố Thiết Bị */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.floorChipsScroll}
+            contentContainerStyle={styles.issueChipsScroll}
           >
             <TouchableOpacity
               style={[
-                styles.floorChip,
+                styles.issueChip,
                 !isDark && {
-                  backgroundColor: selectedFloor === 'all' ? '#0284C7' : '#FFFFFF',
-                  borderColor: selectedFloor === 'all' ? '#0284C7' : '#E2E8F0',
-                  shadowColor: '#64748B',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 2,
-                  elevation: 1,
+                  backgroundColor: selectedIssueType === 'all' ? '#F59E0B' : '#FFFFFF',
+                  borderColor: selectedIssueType === 'all' ? '#F59E0B' : '#E2E8F0',
                 },
-                selectedFloor === 'all' && isDark && styles.floorChipActive,
+                selectedIssueType === 'all' && isDark && styles.issueChipActive,
               ]}
               onPress={() => {
-                setSelectedFloor('all');
+                setSelectedIssueType('all');
                 Haptics.selectionAsync();
               }}
               activeOpacity={0.7}
             >
               <Text
                 style={[
-                  styles.floorChipText,
-                  !isDark && { color: selectedFloor === 'all' ? '#FFFFFF' : '#475569' },
-                  selectedFloor === 'all' && isDark && styles.floorChipTextActive,
+                  styles.issueChipText,
+                  !isDark && { color: selectedIssueType === 'all' ? '#0A0F1D' : '#475569' },
+                  selectedIssueType === 'all' && isDark && styles.issueChipTextActive,
                 ]}
               >
-                Tất cả tầng
+                Tất cả ({tickets.length})
               </Text>
             </TouchableOpacity>
-
-            {availableFloors.map((fl) => {
-              const isSelected = selectedFloor === fl;
-              const count = tickets.filter((t) => {
-                const tFl = t.room_floor ? String(t.room_floor) : (t.room_number && t.room_number.length >= 3 ? t.room_number.slice(0, -2) : null);
-                return tFl === fl;
-              }).length;
+            {MAINTENANCE_ISSUE_TYPES.map((cat) => {
+              const isSelected = selectedIssueType === cat.key;
+              const count = tickets.filter((t) => t.issue_type === cat.key).length;
               return (
                 <TouchableOpacity
-                  key={fl}
+                  key={cat.key}
                   style={[
-                    styles.floorChip,
+                    styles.issueChip,
                     !isDark && {
-                      backgroundColor: isSelected ? '#0284C7' : '#FFFFFF',
-                      borderColor: isSelected ? '#0284C7' : '#E2E8F0',
-                      shadowColor: '#64748B',
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 2,
-                      elevation: 1,
+                      backgroundColor: isSelected ? `${cat.color}22` : '#FFFFFF',
+                      borderColor: isSelected ? cat.color : '#E2E8F0',
                     },
-                    isSelected && isDark && styles.floorChipActive,
+                    isSelected && isDark && {
+                      backgroundColor: `${cat.color}22`,
+                      borderColor: cat.color,
+                    },
                   ]}
                   onPress={() => {
-                    setSelectedFloor(fl);
+                    setSelectedIssueType(cat.key);
                     Haptics.selectionAsync();
                   }}
                   activeOpacity={0.7}
                 >
                   <Ionicons
-                    name="layers-outline"
-                    size={12}
-                    color={isSelected ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')}
-                    style={{ marginRight: 4 }}
+                    name={cat.icon as any}
+                    size={13}
+                    color={isSelected ? cat.color : (isDark ? '#94A3B8' : '#64748B')}
+                    style={{ marginRight: 5 }}
                   />
                   <Text
                     style={[
-                      styles.floorChipText,
-                      !isDark && { color: isSelected ? '#FFFFFF' : '#475569' },
-                      isSelected && { color: '#FFFFFF', fontWeight: '800' },
+                      styles.issueChipText,
+                      !isDark && { color: isSelected ? cat.color : '#475569' },
+                      isSelected && { color: cat.color, fontWeight: '800' },
                     ]}
                   >
-                    Tầng {fl} ({count})
+                    {cat.label} {count > 0 ? `(${count})` : ''}
                   </Text>
                 </TouchableOpacity>
               );
@@ -746,92 +923,6 @@ export default function MaintenanceScreen() {
           </ScrollView>
         </View>
       )}
-
-      {/* 5. Chips Phân Loại Sự Cố Thiết Bị */}
-      <View style={styles.issueChipsContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.issueChipsScroll}
-        >
-          <TouchableOpacity
-            style={[
-              styles.issueChip,
-              !isDark && {
-                backgroundColor: selectedIssueType === 'all' ? '#F59E0B' : '#FFFFFF',
-                borderColor: selectedIssueType === 'all' ? '#F59E0B' : '#E2E8F0',
-                shadowColor: '#64748B',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
-              },
-              selectedIssueType === 'all' && isDark && styles.issueChipActive,
-            ]}
-            onPress={() => {
-              setSelectedIssueType('all');
-              Haptics.selectionAsync();
-            }}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.issueChipText,
-                !isDark && { color: selectedIssueType === 'all' ? '#0A0F1D' : '#475569' },
-                selectedIssueType === 'all' && isDark && styles.issueChipTextActive,
-              ]}
-            >
-              Tất cả ({tickets.length})
-            </Text>
-          </TouchableOpacity>
-          {MAINTENANCE_ISSUE_TYPES.map((cat) => {
-            const isSelected = selectedIssueType === cat.key;
-            const count = tickets.filter((t) => t.issue_type === cat.key).length;
-            return (
-              <TouchableOpacity
-                key={cat.key}
-                style={[
-                  styles.issueChip,
-                  !isDark && {
-                    backgroundColor: isSelected ? `${cat.color}22` : '#FFFFFF',
-                    borderColor: isSelected ? cat.color : '#E2E8F0',
-                    shadowColor: '#64748B',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  },
-                  isSelected && isDark && {
-                    backgroundColor: `${cat.color}22`,
-                    borderColor: cat.color,
-                  },
-                ]}
-                onPress={() => {
-                  setSelectedIssueType(cat.key);
-                  Haptics.selectionAsync();
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={cat.icon as any}
-                  size={13}
-                  color={isSelected ? cat.color : (isDark ? '#94A3B8' : '#64748B')}
-                  style={{ marginRight: 5 }}
-                />
-                <Text
-                  style={[
-                    styles.issueChipText,
-                    !isDark && { color: isSelected ? cat.color : '#475569' },
-                    isSelected && { color: cat.color, fontWeight: '800' },
-                  ]}
-                >
-                  {cat.label} {count > 0 ? `(${count})` : ''}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
 
       {/* 5. Danh Sách Phiếu Sửa Chữa */}
       {loading ? (

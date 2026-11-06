@@ -328,7 +328,7 @@ export default function TADaNangHotelLanding() {
                                 className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
                             />
                             <div className="text-[10.5px] text-amber-800 font-semibold truncate mt-0.5">
-                                {getWeekdayName(checkInDate)} (từ 14:00)
+                                {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
                             </div>
                         </div>
 

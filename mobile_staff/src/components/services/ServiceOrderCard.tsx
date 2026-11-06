@@ -48,6 +48,27 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
   const cleanNoteText = item.note
     ? item.note.replace(/\[ĐÃ HỦY:.*?\]\s*/, '').trim() || item.note
     : '';
+  const floorLabel = item.room_floor
+    ? String(item.room_floor)
+    : (item.room_number && /^\d{3,}$/.test(item.room_number.trim()) ? item.room_number.trim().slice(0, -2) : null);
+
+  // Tính khoảng thời gian còn lại tới giờ hẹn giao (để cảnh báo không chế biến quá sớm)
+  const scheduledCountdown = (() => {
+    if (!item.is_scheduled || !item.request_time || item.status === 'completed' || item.status === 'cancelled') {
+      return null;
+    }
+    const schedTime = new Date(item.request_time);
+    if (isNaN(schedTime.getTime())) return null;
+    const diffMins = Math.floor((schedTime.getTime() - Date.now()) / 60000);
+    if (diffMins <= 0) return null;
+    const waitText =
+      diffMins >= 60 ? `${Math.floor(diffMins / 60)}h ${diffMins % 60}p` : `${diffMins} phút`;
+    return {
+      diffMins,
+      isTooEarly: diffMins > 30,
+      text: `Còn ${waitText} nữa đến giờ hẹn`,
+    };
+  })();
 
   return (
     <View
@@ -72,7 +93,9 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' }}>
           <View style={[styles.roomTag, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
             <Ionicons name="bed" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={[styles.roomTagText, !isDark && { color: '#0F172A' }]}>P.{item.room_number || '?'}</Text>
+            <Text style={[styles.roomTagText, !isDark && { color: '#0F172A' }]}>
+              P.{item.room_number || '?'}{floorLabel ? ` • T.${floorLabel}` : ''}
+            </Text>
           </View>
           {item.booking_code ? (
             <View style={[styles.bookingCodeTag, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
@@ -154,6 +177,24 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
               <Ionicons name="person-circle-outline" size={13} color="#0284C7" style={{ marginLeft: 3 }} />
             </TouchableOpacity>
 
+            {/* Huy hiệu Khách VIP (Gold / Diamond) */}
+            {item.is_vip ? (
+              <View
+                style={{
+                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+                  borderColor: '#F59E0B',
+                  borderWidth: 1,
+                  borderRadius: 6,
+                  paddingHorizontal: 6,
+                  paddingVertical: 1.5,
+                }}
+              >
+                <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
+                  {item.guest_tier_code === 'DIAMOND' ? '👑 VIP KIM CƯƠNG' : '⭐ VIP VÀNG'}
+                </Text>
+              </View>
+            ) : null}
+
             {/* Nút Gọi điện thoại nhanh cho khách phòng */}
             <TouchableOpacity
               style={[
@@ -201,6 +242,45 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
           </View>
         ) : null}
       </View>
+
+      {/* Banner nhắc nhở đơn hẹn giờ chưa tới lúc chế biến */}
+      {scheduledCountdown && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: scheduledCountdown.isTooEarly
+              ? (isDark ? 'rgba(245, 158, 11, 0.14)' : '#FEF3C7')
+              : (isDark ? 'rgba(56, 189, 248, 0.14)' : '#E0F2FE'),
+            borderColor: scheduledCountdown.isTooEarly ? '#F59E0B' : '#0284C7',
+            borderWidth: 1,
+            borderRadius: 9,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            marginBottom: 8,
+          }}
+        >
+          <Ionicons
+            name="alarm"
+            size={14}
+            color={scheduledCountdown.isTooEarly ? '#D97706' : '#0284C7'}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={{
+              flex: 1,
+              fontSize: 11.5,
+              fontWeight: '800',
+              color: scheduledCountdown.isTooEarly
+                ? (isDark ? '#FBBF24' : '#B45309')
+                : (isDark ? '#38BDF8' : '#0369A1'),
+            }}
+          >
+            ⏰ {scheduledCountdown.text}
+            {scheduledCountdown.isTooEarly ? ' • Tránh làm món quá sớm!' : ' • Chuẩn bị phục vụ!'}
+          </Text>
+        </View>
+      )}
 
       {/* Lý do hủy nếu đơn bị hủy */}
       {item.status === 'cancelled' && item.note && item.note.includes('[ĐÃ HỦY:') ? (

@@ -36,7 +36,7 @@ import {
 
 export default function TransportScreen() {
   const { user } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors, isDark, hotelStars, hotelName } = useAppTheme();
   const [requests, setRequests] = useState<ServiceRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -383,8 +383,10 @@ export default function TransportScreen() {
       {/* 1. Header Khách Sạn & Thông Tin Đội Xe */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
-          <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>Đội Xe & Vận Chuyển 🚗</Text>
+          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
+            Đội Xe & Vận Chuyển 🚗
+          </Text>
         </View>
         <View style={styles.headerRightActions}>
           <TouchableOpacity

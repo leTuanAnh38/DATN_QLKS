@@ -320,11 +320,11 @@ export default function FeaturedServices() {
                             <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                         <a
-                            href="tel:19008899"
+                            href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
                             className="w-full sm:w-auto px-6 py-3.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300 font-bold text-xs sm:text-sm rounded-xl transition shadow-xs text-center flex items-center justify-center gap-2"
                         >
                             <Phone className="w-3.5 h-3.5 text-amber-600" />
-                            <span>Hotline Phục Vụ: 1900 8899</span>
+                            <span>Hotline Phục Vụ: {settings?.hotline || '1900 8899'}</span>
                         </a>
                     </div>
                 </div>

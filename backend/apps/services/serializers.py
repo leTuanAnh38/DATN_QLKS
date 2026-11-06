@@ -81,9 +81,14 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
     booking_status = serializers.CharField(source='booking.status', read_only=True)
     room_number = serializers.SerializerMethodField()
+    room_floor = serializers.SerializerMethodField()
     room_name = serializers.SerializerMethodField()
+    guest_id = serializers.IntegerField(source='booking.guest_id', read_only=True)
     guest_name = serializers.SerializerMethodField()
     guest_phone = serializers.SerializerMethodField()
+    guest_tier_name = serializers.SerializerMethodField()
+    guest_tier_code = serializers.SerializerMethodField()
+    is_vip = serializers.SerializerMethodField()
 
     # Thông tin chi tiết về dịch vụ
     service_id = serializers.PrimaryKeyRelatedField(
@@ -111,9 +116,14 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'booking_code',
             'booking_status',
             'room_number',
+            'room_floor',
             'room_name',
+            'guest_id',
             'guest_name',
             'guest_phone',
+            'guest_tier_name',
+            'guest_tier_code',
+            'is_vip',
             'service_id',
             'service_name',
             'service_price',
@@ -156,6 +166,36 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         if obj.booking and obj.booking.room:
             return obj.booking.room.room_number
         return 'Chưa gán phòng'
+
+    def get_room_floor(self, obj):
+        if obj.booking and obj.booking.room:
+            return obj.booking.room.floor
+        return None
+
+    def get_guest_tier_name(self, obj):
+        try:
+            guest = obj.booking.guest if obj.booking else None
+            tier = getattr(guest, 'current_tier', None) if guest else None
+            return tier.name if tier else None
+        except Exception:
+            return None
+
+    def get_guest_tier_code(self, obj):
+        try:
+            guest = obj.booking.guest if obj.booking else None
+            tier = getattr(guest, 'current_tier', None) if guest else None
+            return (tier.code or '').upper() if tier else None
+        except Exception:
+            return None
+
+    def get_is_vip(self, obj):
+        try:
+            guest = obj.booking.guest if obj.booking else None
+            tier = getattr(guest, 'current_tier', None) if guest else None
+            code = (tier.code or '').upper() if tier else ''
+            return code in ['GOLD', 'DIAMOND']
+        except Exception:
+            return False
 
     def get_room_name(self, obj):
         if obj.booking and obj.booking.category:

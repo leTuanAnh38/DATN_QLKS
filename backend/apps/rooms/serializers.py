@@ -308,6 +308,11 @@ class RoomSerializer(serializers.ModelSerializer):
         if not id_card and guest and hasattr(guest, 'guest_profile') and guest.guest_profile:
             id_card = guest.guest_profile.id_card_number or ''
 
+        guest_tier = getattr(guest, 'current_tier', None) if guest else None
+        tier_code = (guest_tier.code or '').upper() if guest_tier else ''
+        tier_name = guest_tier.name if guest_tier else None
+        is_vip = tier_code in ['GOLD', 'DIAMOND']
+
         resolved_guest_name = guest_name or (bk.guest_name or 'Khách lưu trú')
         return {
             'id': bk.id,
@@ -318,6 +323,9 @@ class RoomSerializer(serializers.ModelSerializer):
             'guest_phone': (guest.phone_number if guest else '') or (bk.guest_phone or ''),
             'guest_email': (guest.email if guest else '') or (bk.guest_email or ''),
             'identity_card': id_card,
+            'guest_tier_name': tier_name,
+            'guest_tier_code': tier_code or None,
+            'is_vip': is_vip,
             'check_in_date': bk.check_in_date,
             'check_out_date': bk.check_out_date,
             'actual_check_in': bk.actual_check_in,
@@ -335,7 +343,7 @@ class RoomSerializer(serializers.ModelSerializer):
             if bookings_cache is not None:
                 bk = next((b for b in bookings_cache if b.status == 'checked_in'), None)
             else:
-                bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
+                bk = obj.bookings.filter(status='checked_in').select_related('guest', 'guest__current_tier', 'category').first()
             return self._format_booking_data(bk, obj)
         except Exception:
             return None
@@ -348,9 +356,9 @@ class RoomSerializer(serializers.ModelSerializer):
                 if not bk:
                     bk = next((b for b in bookings_cache if b.status in ['completed', 'checked_in']), None)
             else:
-                bk = obj.bookings.filter(status='checked_in').select_related('guest', 'category').first()
+                bk = obj.bookings.filter(status='checked_in').select_related('guest', 'guest__current_tier', 'category').first()
                 if not bk:
-                    bk = obj.bookings.filter(status__in=['completed', 'checked_in']).select_related('guest', 'category').order_by('-updated_at', '-id').first()
+                    bk = obj.bookings.filter(status__in=['completed', 'checked_in']).select_related('guest', 'guest__current_tier', 'category').order_by('-updated_at', '-id').first()
             return self._format_booking_data(bk, obj)
         except Exception:
             return None
@@ -419,6 +427,7 @@ class MinibarCheckSerializer(serializers.ModelSerializer):
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
     guest_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    damage_image = serializers.SerializerMethodField()
 
     class Meta:
         model = MinibarCheck
@@ -426,10 +435,39 @@ class MinibarCheckSerializer(serializers.ModelSerializer):
             'id', 'check_code', 'room', 'room_number', 'booking', 'booking_code',
             'guest_name', 'inspector', 'inspector_name', 'requested_by', 'requested_by_name',
             'status', 'status_display', 'items_consumed', 'total_amount',
-            'has_damage', 'damage_description', 'damage_amount',
+            'has_damage', 'damage_description', 'damage_amount', 'damage_image',
             'note', 'created_at', 'completed_at'
         ]
         read_only_fields = ['id', 'check_code', 'created_at']
+
+    def get_damage_image(self, obj):
+        import re
+        raw_note = obj.note or ''
+        match = re.search(r'\[DAMAGE_IMG:(.*?)\]', raw_note)
+        if match:
+            img_path = match.group(1).strip()
+            if img_path:
+                request = self.context.get('request')
+                if request and not img_path.startswith('http'):
+                    return request.build_absolute_uri(img_path)
+                return img_path
+        if obj.has_damage and obj.booking_id and obj.damage_description and obj.room_id:
+            ticket = obj.room.maintenance_tickets.filter(
+                booking_id=obj.booking_id,
+                equipment_name__icontains=obj.damage_description.strip()
+            ).first()
+            if ticket and ticket.image_before:
+                request = self.context.get('request')
+                url = ticket.image_before.url
+                return request.build_absolute_uri(url) if request else url
+        return None
+
+    def to_representation(self, instance):
+        import re
+        data = super().to_representation(instance)
+        if data.get('note'):
+            data['note'] = re.sub(r'\s*\[DAMAGE_IMG:.*?\]', '', data['note']).strip()
+        return data
 
     def get_inspector_name(self, obj):
         if obj.inspector:

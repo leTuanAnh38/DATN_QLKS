@@ -359,7 +359,8 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         user = self.request.user
         # Luôn tạo mới QuerySet để tránh stale result_cache
         base_qs = ServiceRequest.objects.select_related(
-            'booking', 'booking__room', 'booking__room__category', 'booking__category', 'booking__guest',
+            'booking', 'booking__room', 'booking__room__category', 'booking__category',
+            'booking__guest', 'booking__guest__current_tier',
             'service', 'service__category', 'assigned_staff'
         ).prefetch_related('booking__guests').exclude(
             Q(service__name__icontains='Make-up') | Q(service__name__icontains='dọn dẹp phòng lưu trú')
@@ -1346,6 +1347,16 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         perm_resp = self._check_staff_service_permission(user, service_req, action_name='tiếp nhận')
         if perm_resp is not None:
             return perm_resp
+
+        # Chốt chặn chống tranh chấp / ghi đè đơn (Race Condition Claim Guard):
+        # Nếu đơn đã có nhân viên khác tiếp nhận (và không có cờ force), từ chối ghi đè để tránh 2 nhân viên cùng làm 1 đơn
+        force_claim = str(request.data.get('force', '')).lower() in ['1', 'true', 'yes']
+        if service_req.assigned_staff and service_req.assigned_staff != user and not force_claim:
+            assigned_name = service_req.assigned_staff.get_full_name().strip() or service_req.assigned_staff.username
+            return Response({
+                'success': False,
+                'message': f'Đơn này đã được nhân viên "{assigned_name}" tiếp nhận xử lý trước đó.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Nhận việc khi đơn đang pending = chuyển sang in_progress -> phải qua cùng điều kiện khóa như PATCH
         if service_req.status == 'pending':

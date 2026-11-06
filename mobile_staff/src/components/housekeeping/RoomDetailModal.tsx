@@ -360,7 +360,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                       }}
                     >
                       <Ionicons name="restaurant" size={16} color="#0284C7" style={{ marginRight: 6 }} />
-                      <Text style={[styles.detailToolBtnText, { color: '#0284C7' }]}>Thêm dịch vụ & Gọi món 🍽️</Text>
+                      <Text style={[styles.detailToolBtnText, { color: '#0284C7' }]}>Thêm dịch vụ & Gọi món</Text>
                     </TouchableOpacity>
                   )}
 
@@ -376,7 +376,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                       }}
                     >
                       <Ionicons name="car-sport" size={16} color="#D97706" style={{ marginRight: 6 }} />
-                      <Text style={[styles.detailToolBtnText, { color: '#D97706' }]}>Đặt xe đưa đón 🚗</Text>
+                      <Text style={[styles.detailToolBtnText, { color: '#D97706' }]}>Đặt xe đưa đón</Text>
                     </TouchableOpacity>
                   )}
 
@@ -427,7 +427,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                       }}
                     >
                       <Ionicons name="swap-horizontal" size={16} color="#6366F1" style={{ marginRight: 6 }} />
-                      <Text style={[styles.detailToolBtnText, { color: '#6366F1' }]}>Đổi phòng cho khách (Sự cố nặng) ⚡</Text>
+                      <Text style={[styles.detailToolBtnText, { color: '#6366F1' }]}>Đổi phòng cho khách (Sự cố nặng)</Text>
                     </TouchableOpacity>
                   )}
                 </View>

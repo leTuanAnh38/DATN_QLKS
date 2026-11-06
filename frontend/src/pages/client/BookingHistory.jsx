@@ -2017,7 +2017,7 @@ export default function BookingHistory() {
                             <div className="flex items-center justify-between">
                                 <span>Ngày trả phòng hiện tại:</span>
                                 <strong className="text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
-                                    {formatDateDisplay(extendModalBooking.check_out_date)} (trước 12:00)
+                                    {formatDateDisplay(extendModalBooking.check_out_date)} (trước {settings?.check_out_time || '12:00'})
                                 </strong>
                             </div>
                         </div>

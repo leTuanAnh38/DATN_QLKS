@@ -123,6 +123,10 @@ function RoomCard({
   const recentBk = item.recent_booking;
   const hasCurrentGuest = Boolean(currentBk);
   const hasGuest = Boolean(currentBk || recentBk);
+  const activeBk = isOccupied ? (currentBk || recentBk) : (recentBk || currentBk);
+  const isVipGuest = Boolean(activeBk?.is_vip);
+  const vipTierCode = activeBk?.guest_tier_code;
+  const vipBadgeLabel = vipTierCode === 'DIAMOND' ? '👑 VIP KIM CƯƠNG' : '⭐ VIP VÀNG';
   const guestName = isOccupied
     ? (currentBk?.guest_name || recentBk?.guest_name)
     : isCleaning
@@ -230,6 +234,24 @@ function RoomCard({
               {guestName || 'Khách lưu trú'}
             </Text>
           </View>
+          {isVipGuest && (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: vipTierCode === 'DIAMOND' ? 'rgba(245, 158, 11, 0.22)' : 'rgba(245, 158, 11, 0.14)',
+                borderColor: '#F59E0B',
+                borderWidth: 1,
+                borderRadius: 6,
+                paddingHorizontal: 6,
+                paddingVertical: 1.5,
+                marginBottom: 4,
+              }}
+            >
+              <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
+                {vipBadgeLabel}
+              </Text>
+            </View>
+          )}
           <View style={styles.guestMetaRow}>
             {bookingCode ? (
               <Text style={[styles.bookingCodeBadge, !isDark && { color: '#2563EB' }]}>#{bookingCode}</Text>
@@ -268,16 +290,44 @@ function RoomCard({
               {guestName ? `Khách: ${guestName}` : 'Vệ sinh sau sửa chữa / Phòng trống'}
             </Text>
           </View>
-          {bookingCode ? (
-            <Text style={[styles.bookingCodeCleaning, !isDark && { color: '#D97706' }]}>#{bookingCode}</Text>
-          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+            {bookingCode ? (
+              <Text style={[styles.bookingCodeCleaning, !isDark && { color: '#D97706' }]}>#{bookingCode}</Text>
+            ) : <View />}
+            {isVipGuest && (
+              <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
+                {vipBadgeLabel}
+              </Text>
+            )}
+          </View>
         </View>
       ) : isMaintenance ? (
-        <View style={[styles.maintenanceInfoCard, !isDark && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.22)' }]}>
-          <Ionicons name="construct" size={11} color="#EF4444" style={{ marginRight: 5 }} />
-          <Text style={[styles.maintenanceEquipText, !isDark && { color: '#B91C1C' }]} numberOfLines={1}>
-            {item.active_maintenance?.equipment_name || 'Đang bảo trì'}
-          </Text>
+        <View
+          style={[
+            styles.maintenanceInfoCard,
+            { flexDirection: 'column', alignItems: 'flex-start' },
+            !isDark && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.22)' },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+            <Ionicons name="construct" size={11} color="#EF4444" style={{ marginRight: 5 }} />
+            <Text style={[styles.maintenanceEquipText, !isDark && { color: '#B91C1C' }]} numberOfLines={1}>
+              {item.active_maintenance?.equipment_name || 'Đang bảo trì'}
+            </Text>
+          </View>
+          {item.active_maintenance?.description ? (
+            <Text
+              style={{
+                fontSize: 10,
+                color: isDark ? '#FCA5A5' : '#DC2626',
+                marginTop: 2,
+                fontStyle: 'italic',
+              }}
+              numberOfLines={1}
+            >
+              Lỗi: {item.active_maintenance.description}
+            </Text>
+          ) : null}
         </View>
       ) : (
         <View style={[styles.availableInfoCard, !isDark && { backgroundColor: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.22)' }]}>

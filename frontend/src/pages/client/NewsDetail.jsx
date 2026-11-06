@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import postService from '../../services/postService';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 import {
     Calendar,
     Eye,
@@ -19,6 +20,9 @@ import {
 export default function NewsDetail() {
     const { slug } = useParams();
     const navigate = useNavigate();
+    const { settings } = useHotelSettings();
+    const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
+    const starCount = settings?.stars || 3;
 
     const [post, setPost] = useState(null);
     const [latestPosts, setLatestPosts] = useState([]);
@@ -183,7 +187,7 @@ export default function NewsDetail() {
                                                 {post.author || 'Ban Biên Tập'}
                                             </span>
                                             <span className="text-[10px] text-slate-400 block">
-                                                Khách Sạn TA Đà Nẵng • 5-Star Luxury Resort
+                                                {hotelName} • {starCount}-Star Luxury Resort
                                             </span>
                                         </div>
                                     </div>

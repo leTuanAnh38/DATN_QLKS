@@ -28,7 +28,7 @@ import BookingManagementModal from '../../components/BookingManagementModal';
 
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
-  const { themeMode, resolvedTheme, isDark, colors, setThemeMode } = useAppTheme();
+  const { themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode } = useAppTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const [refreshing, setRefreshing] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
@@ -179,7 +179,7 @@ export default function ProfileScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await Promise.all([refreshProfile(), measureLatency()]);
+    await Promise.all([refreshProfile(), measureLatency(), refreshHotelSettings()]);
     setRefreshing(false);
   };
 
@@ -323,7 +323,7 @@ export default function ProfileScreen() {
       {/* 1. Header Khách Sạn & Chuông Thông Báo */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
+          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
           <Text style={styles.greetingTitle}>Hồ Sơ Cá Nhân 👤</Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -372,7 +372,9 @@ export default function ProfileScreen() {
                   <Text style={styles.quickEditBtnText}>Sửa</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.staffUsername}>@{user?.username} • ID: NV-{user?.employee_code || user?.id || '01'}</Text>
+              <Text style={styles.staffUsername}>
+                @{user?.username} • ID: {user?.employee_code || `NV-${user?.id || '01'}`}
+              </Text>
             </View>
           </View>
 
@@ -399,21 +401,27 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Hàng 3 chỉ số KPI mini tích hợp */}
+          {/* Hàng 3 chỉ số vận hành thực tế của tài khoản & kết nối */}
           <View style={styles.idKpiRow}>
             <View style={styles.idKpiCol}>
-              <Text style={styles.idKpiVal}>4.98<Text style={styles.idKpiUnit}>/5</Text></Text>
-              <Text style={styles.idKpiLbl}>⭐ Đánh giá</Text>
+              <Text style={styles.idKpiVal}>
+                {user?.employee_code || `NV-${user?.id || '01'}`}
+              </Text>
+              <Text style={styles.idKpiLbl}>🪪 Mã nhân sự</Text>
             </View>
             <View style={styles.idKpiDivider} />
             <View style={styles.idKpiCol}>
-              <Text style={[styles.idKpiVal, { color: colors.emerald }]}>99.4%</Text>
-              <Text style={styles.idKpiLbl}>🎯 Hoàn thành</Text>
+              <Text style={[styles.idKpiVal, { color: colors.emerald }]} numberOfLines={1}>
+                {user?.shift || 'Ca Sáng'}
+              </Text>
+              <Text style={styles.idKpiLbl}>⏰ Ca làm việc</Text>
             </View>
             <View style={styles.idKpiDivider} />
             <View style={styles.idKpiCol}>
-              <Text style={[styles.idKpiVal, { color: colors.sky }]}>100%</Text>
-              <Text style={styles.idKpiLbl}>⏱️ Đúng giờ</Text>
+              <Text style={[styles.idKpiVal, { color: colors.sky }]}>
+                {serverLatency !== null ? `${serverLatency}ms` : '4G/WiFi'}
+              </Text>
+              <Text style={styles.idKpiLbl}>⚡ Độ trễ API</Text>
             </View>
           </View>
 
@@ -506,7 +514,7 @@ export default function ProfileScreen() {
               <Ionicons name="clipboard-outline" size={17} color={colors.gold} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.actionTitle}>Sổ Bàn Giao Ca Trực 5 Sao</Text>
+              <Text style={styles.actionTitle}>Sổ Bàn Giao Ca Trực {hotelStars} Sao</Text>
               <Text style={styles.actionDesc} numberOfLines={1}>
                 {handoverNote ? `Lưu ý: "${handoverNote}"` : 'Chạm để cập nhật ghi chú bàn giao ca tiếp theo'}
               </Text>

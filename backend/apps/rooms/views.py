@@ -442,7 +442,7 @@ class AdminRoomListCreateView(APIView):
             'category__rooms',
             Prefetch(
                 'bookings',
-                queryset=Booking.objects.filter(status__in=['checked_in', 'completed']).select_related('guest', 'guest__guest_profile', 'category').order_by('-updated_at', '-id')
+                queryset=Booking.objects.filter(status__in=['checked_in', 'completed']).select_related('guest', 'guest__guest_profile', 'guest__current_tier', 'category').order_by('-updated_at', '-id')
             ),
             Prefetch(
                 'maintenance_tickets',
@@ -1140,7 +1140,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
             else:
                 BookingExtraService.objects.create(
                     booking=booking,
-                    service_name=f"Bồi thường hỏng thiết bị: {equipment_name}",
+                    service_name=f"[P.{room.room_number}] Bồi thường hỏng thiết bị: {equipment_name}",
                     quantity=1,
                     price=cost,
                     is_paid=False
@@ -1294,7 +1294,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
             else:
                 BookingExtraService.objects.create(
                     booking=ticket.booking,
-                    service_name=f"Bồi thường hỏng thiết bị: {ticket.equipment_name}",
+                    service_name=f"[P.{ticket.room.room_number}] Bồi thường hỏng thiết bị: {ticket.equipment_name}",
                     quantity=1,
                     price=cost,
                     is_paid=False
@@ -1571,6 +1571,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
     queryset = MinibarCheck.objects.select_related('room', 'booking', 'booking__guest', 'inspector', 'requested_by').order_by('-created_at')
     serializer_class = MinibarCheckSerializer
     permission_classes = [IsHotelStaffOrAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -1692,18 +1693,20 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         room_id = request.query_params.get('room_id')
         booking_id = request.query_params.get('booking_id')
         qs = self.get_queryset()
-        if booking_id:
+        if booking_id and room_id:
+            qs = qs.filter(Q(booking_id=booking_id) | Q(room_id=room_id, booking__isnull=True))
+        elif booking_id:
             qs = qs.filter(booking_id=booking_id)
         elif room_id:
             qs = qs.filter(room_id=room_id)
         else:
             return Response({'success': False, 'message': 'Thiếu tham số room_id hoặc booking_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        latest_check = qs.first()
+        latest_check = qs.order_by('-completed_at', '-created_at').first()
         if not latest_check:
             return Response({'success': True, 'check': None}, status=status.HTTP_200_OK)
 
-        return Response({'success': True, 'check': MinibarCheckSerializer(latest_check).data}, status=status.HTTP_200_OK)
+        return Response({'success': True, 'check': MinibarCheckSerializer(latest_check, context={'request': request}).data}, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         room_id = request.data.get('room_id') or request.data.get('room')
@@ -1716,17 +1719,30 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'message': 'Không tìm thấy phòng tương ứng.'}, status=status.HTTP_404_NOT_FOUND)
 
         items_consumed = request.data.get('items', [])
-        note = request.data.get('note', '').strip()
+        if isinstance(items_consumed, str):
+            import json
+            try:
+                items_consumed = json.loads(items_consumed)
+            except Exception:
+                items_consumed = []
+
+        import re
+        note = re.sub(r'\s*\[DAMAGE_IMG:.*?\]', '', str(request.data.get('note', '') or '')).strip()
         booking_id = request.data.get('booking_id') or request.data.get('booking')
-        has_damage = bool(request.data.get('has_damage', False))
-        damage_desc = request.data.get('damage_description', '').strip()
-        damage_amt = float(request.data.get('damage_amount') or 0)
+        has_damage_val = request.data.get('has_damage', False)
+        has_damage = has_damage_val in [True, 'true', 'True', '1', 1]
+        damage_desc = str(request.data.get('damage_description', '') or '').strip()
+        raw_dmg_amt = str(request.data.get('damage_amount') or '0').replace(',', '').replace('.', '').replace(' ', '').strip()
+        try:
+            damage_amt = float(raw_dmg_amt) if raw_dmg_amt else 0.0
+        except (ValueError, TypeError):
+            damage_amt = float(request.data.get('damage_amount') or 0)
         check_id = request.data.get('check_id')
 
         booking = None
-        if booking_id:
+        if booking_id and str(booking_id) not in ['', 'null', 'undefined', 'None']:
             booking = Booking.objects.filter(pk=booking_id).first()
-        else:
+        if not booking:
             # Tự động tìm booking: ưu tiên checked_in, nếu không có lấy booking vừa completed gần nhất (trong vòng 24h)
             booking = room.bookings.filter(status='checked_in').first()
             if not booking:
@@ -1753,10 +1769,37 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         now = timezone.now()
         # Tìm phiếu requested đang chờ (nếu có) để hoàn tất cập nhật
         check = None
-        if check_id:
+        if check_id and str(check_id) not in ['', 'null', 'undefined', 'None']:
             check = MinibarCheck.objects.filter(pk=check_id).first()
         if not check:
             check = room.minibar_checks.filter(status='requested').order_by('-created_at').first()
+        if not check and booking:
+            check = booking.minibar_checks.filter(status='requested').order_by('-created_at').first()
+
+        # Giữ lại ảnh bằng chứng cũ nếu phiếu đã có và lần gửi này không đính kèm ảnh mới
+        prev_damage_img_url = None
+        if check and check.note:
+            prev_match = re.search(r'\[DAMAGE_IMG:(.*?)\]', check.note)
+            if prev_match:
+                prev_damage_img_url = prev_match.group(1).strip()
+
+        req_maint_val = request.data.get('requires_maintenance', False)
+        requires_maintenance = req_maint_val in [True, 'true', 'True', '1', 1]
+        image_before = request.FILES.get('image_before') or request.FILES.get('image')
+        saved_damage_img_url = prev_damage_img_url if has_damage else None
+
+        # Lưu ảnh minh chứng hiện trường ngay cả khi là hư hại đồ rời (vỡ cốc, bẩn khăn...) không cần gọi Kỹ thuật
+        if has_damage and image_before and not requires_maintenance:
+            try:
+                from django.core.files.storage import default_storage
+                import os, uuid
+                ext = os.path.splitext(image_before.name)[1] or '.jpg'
+                saved_path = default_storage.save(f"maintenance/before/minibar_{uuid.uuid4().hex[:8].upper()}{ext}", image_before)
+                saved_damage_img_url = default_storage.url(saved_path)
+            except Exception:
+                pass
+
+        stored_note = f"{note} [DAMAGE_IMG:{saved_damage_img_url}]".strip() if (has_damage and saved_damage_img_url) else note
 
         if check:
             check.status = 'completed'
@@ -1765,7 +1808,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             check.has_damage = has_damage
             check.damage_description = damage_desc if has_damage else ''
             check.damage_amount = damage_amt if has_damage else 0
-            check.note = note
+            check.note = stored_note
             check.inspector = request.user if request.user.is_authenticated else None
             check.completed_at = now
             if booking and not check.booking:
@@ -1782,31 +1825,36 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 has_damage=has_damage,
                 damage_description=damage_desc if has_damage else '',
                 damage_amount=damage_amt if has_damage else 0,
-                note=note,
+                note=stored_note,
                 completed_at=now
             )
 
         extra_services_created = 0
         maintenance_ticket_created = None
+        room_prefix = f"[P.{room.room_number}]"
         if booking:
             # Xóa các khoản Minibar / Đền bù hư hại CHƯA THANH TOÁN của lần kiểm kê trước (tránh nhân đôi công nợ khi gửi lại phiếu)
             BookingExtraService.objects.filter(
                 booking=booking,
-                is_paid=False,
-                service_name__startswith='[Minibar]'
+                is_paid=False
+            ).filter(
+                Q(service_name__startswith='[Minibar]') |
+                Q(service_name__startswith=f'{room_prefix} [Minibar]')
             ).delete()
             BookingExtraService.objects.filter(
                 booking=booking,
-                is_paid=False,
-                service_name__startswith='[Đền bù hư hại]'
+                is_paid=False
+            ).filter(
+                Q(service_name__startswith='[Đền bù hư hại]') |
+                Q(service_name__startswith=f'{room_prefix} [Đền bù hư hại]')
             ).delete()
 
-            # 1. Tự động đồng bộ các món Minibar vào BookingExtraService
+            # 1. Tự động đồng bộ các món Minibar vào BookingExtraService (Gắn rõ số phòng cho Hóa đơn đoàn)
             if valid_consumed:
                 for it in valid_consumed:
                     BookingExtraService.objects.create(
                         booking=booking,
-                        service_name=f"[Minibar] {it['name']}",
+                        service_name=f"{room_prefix} [Minibar] {it['name']}",
                         quantity=it['quantity'],
                         price=it['price'],
                         is_paid=False
@@ -1816,14 +1864,15 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
             # 2. Tự động đồng bộ khoản Đền bù hư hại (nếu có) vào BookingExtraService
             if has_damage and damage_amt > 0:
                 damage_label = damage_desc or "Bồi thường hư hại phòng"
+                # Chỉ bỏ qua nếu chính hạng mục hư hại này đã được tính phí từ phiếu bảo trì trùng tên
                 already_billed_by_ticket = BookingExtraService.objects.filter(
                     booking=booking,
-                    service_name__startswith="Bồi thường hỏng thiết bị:"
+                    service_name__icontains=f"Bồi thường hỏng thiết bị: {damage_label}"
                 ).exists()
                 if not already_billed_by_ticket:
                     BookingExtraService.objects.create(
                         booking=booking,
-                        service_name=f"[Đền bù hư hại] {damage_label}",
+                        service_name=f"{room_prefix} [Đền bù hư hại] {damage_label}",
                         quantity=1,
                         price=damage_amt,
                         is_paid=False
@@ -1833,7 +1882,6 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         # 3. Phân tách rõ nghiệp vụ khách sạn 5 sao:
         # - Hư hại vật tư tiêu hao/đồ dùng rời (vỡ ly, cốc, bẩn khăn...): Chỉ tính phí đền bù vào Folio cho Thu ngân, Buồng phòng tự thay mới trong lúc dọn (KHÔNG chuyển sang MAINTENANCE).
         # - Chỉ khi có cờ requires_maintenance=True (hỏng thiết bị kỹ thuật cố định cần thợ sửa): Mới tạo MaintenanceTicket và báo Kỹ thuật viên.
-        requires_maintenance = bool(request.data.get('requires_maintenance', False))
         if has_damage and requires_maintenance and (damage_desc or damage_amt > 0):
             damage_label = damage_desc or "Thiết bị phòng hư hại khi kiểm phòng"
             existing_ticket = room.maintenance_tickets.filter(status='fixing').first()
@@ -1841,15 +1889,27 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 maintenance_ticket_created = MaintenanceTicket.objects.create(
                     room=room,
                     booking=booking,
-                    reported_by=request.user if request.user.is_authenticated else None,
-                    issue_type='broken_item',
+                    created_by=request.user if request.user.is_authenticated else None,
+                    issue_type='other',
                     priority='urgent',
                     equipment_name=damage_label[:120],
                     description=f"Phát hiện hư hại kỹ thuật khi kiểm phòng Check-out: {damage_label}. {note}".strip(),
                     status='fixing',
                     is_guest_fault=True,
-                    cost=damage_amt
+                    cost=damage_amt,
+                    image_before=image_before
                 )
+                if maintenance_ticket_created.image_before:
+                    saved_damage_img_url = maintenance_ticket_created.image_before.url
+                    check.note = f"{note} [DAMAGE_IMG:{saved_damage_img_url}]".strip()
+                    check.save(update_fields=['note'])
+            elif image_before and not existing_ticket.image_before:
+                existing_ticket.image_before = image_before
+                existing_ticket.save(update_fields=['image_before'])
+                if existing_ticket.image_before:
+                    saved_damage_img_url = existing_ticket.image_before.url
+                    check.note = f"{note} [DAMAGE_IMG:{saved_damage_img_url}]".strip()
+                    check.save(update_fields=['note'])
             if room.status != 'occupied':
                 room.status = 'maintenance'
                 room.save(update_fields=['status'])
@@ -1924,7 +1984,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         return Response({
             'success': True,
             'message': summary_msg,
-            'check': MinibarCheckSerializer(check).data,
+            'check': MinibarCheckSerializer(check, context={'request': request}).data,
             'extra_services_created': extra_services_created,
             'booking_id': booking.id if booking else None
         }, status=status.HTTP_201_CREATED)

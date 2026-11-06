@@ -35,7 +35,7 @@ import {
 
 export default function HousekeepingScreen() {
   const { user } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors, isDark, hotelStars, hotelName } = useAppTheme();
   const userRole = user?.role || '';
   const isServiceStaff = userRole === 'service_staff';
   const isTechnician = userRole === 'technician';
@@ -59,6 +59,7 @@ export default function HousekeepingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterFloor, setFilterFloor] = useState<number | 'all'>('all');
+  const [showFloors, setShowFloors] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
@@ -386,7 +387,7 @@ export default function HousekeepingScreen() {
       {/* 1. Header Khách Sạn & Chuông Thông Báo */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={styles.brandSubtitle}>TA LUXURY HOTEL</Text>
+          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
           <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>
             {user?.role === 'service_staff'
               ? 'Sơ Đồ Phòng'
@@ -489,158 +490,191 @@ export default function HousekeepingScreen() {
         })}
       </View>
 
-      {/* 2b. Banner Cảnh Báo Lễ Tân Đợi Kiểm Tra (Chỉ Buồng phòng & Quản lý) */}
-      {canAccessMinibar && stats.inspectionRequested > 0 && (
-        <TouchableOpacity
-          style={[
-            styles.urgentInspectionBar,
-            filterStatus === 'inspection' && styles.urgentInspectionBarActive,
-          ]}
-          onPress={() => {
-            setFilterStatus((prev) => (prev === 'inspection' ? 'all' : 'inspection'));
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          }}
-          activeOpacity={0.8}
-        >
-          <View style={styles.urgentInspectionLeft}>
-            <View
-              style={[
-                styles.urgentBellIconBox,
-                filterStatus === 'inspection' && { backgroundColor: '#0A0F1D' },
-              ]}
+      {/* 2b. Dải Cảnh Báo Khẩn Cấp Tinh Gọn Trên 1 Dòng (Check-out & Yêu cầu dọn phòng) */}
+      {((canAccessMinibar && stats.inspectionRequested > 0) || stats.makeupRequested > 0) && (
+        <View style={{ flexDirection: 'row', marginHorizontal: 12, marginBottom: 8, gap: 8 }}>
+          {canAccessMinibar && stats.inspectionRequested > 0 && (
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                borderRadius: 11,
+                backgroundColor: filterStatus === 'inspection' ? '#F59E0B' : 'rgba(245, 158, 11, 0.14)',
+                borderWidth: 1,
+                borderColor: '#F59E0B',
+              }}
+              onPress={() => {
+                setFilterStatus((prev) => (prev === 'inspection' ? 'all' : 'inspection'));
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }}
+              activeOpacity={0.8}
             >
-              <Ionicons
-                name="notifications"
-                size={14}
-                color={filterStatus === 'inspection' ? '#F59E0B' : '#FFF'}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Ionicons
+                  name="notifications"
+                  size={13}
+                  color={filterStatus === 'inspection' ? '#0A0F1D' : '#F59E0B'}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '800',
+                    color: filterStatus === 'inspection' ? '#0A0F1D' : (isDark ? '#FBBF24' : '#B45309'),
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {stats.inspectionRequested} phòng chờ Check-out
+                </Text>
+              </View>
               <Text
-                style={[
-                  styles.urgentInspectionTitle,
-                  filterStatus === 'inspection' && { color: '#0A0F1D' },
-                ]}
+                style={{
+                  fontSize: 10,
+                  fontWeight: '900',
+                  color: filterStatus === 'inspection' ? '#0A0F1D' : '#F59E0B',
+                  marginLeft: 6,
+                }}
               >
-                {stats.inspectionRequested} phòng cần kiểm tra Check-out gấp!
+                {filterStatus === 'inspection' ? '✕' : 'Lọc ➔'}
               </Text>
-              <Text
-                style={[
-                  styles.urgentInspectionSubtitle,
-                  filterStatus === 'inspection' && { color: '#1E293B', fontWeight: '600' },
-                ]}
-                numberOfLines={1}
-              >
-                Lễ tân đang đợi kiểm Minibar & Hư hại để chốt bill
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[
-              styles.urgentInspectionBadge,
-              filterStatus === 'inspection' && { backgroundColor: '#0A0F1D', borderColor: '#0A0F1D' },
-            ]}
-          >
-            <Text
-              style={[
-                styles.urgentInspectionBadgeText,
-                filterStatus === 'inspection' && { color: '#F59E0B' },
-              ]}
+            </TouchableOpacity>
+          )}
+
+          {stats.makeupRequested > 0 && (
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                borderRadius: 11,
+                backgroundColor: filterStatus === 'makeup' ? '#0284C7' : 'rgba(2, 132, 199, 0.14)',
+                borderWidth: 1,
+                borderColor: '#0284C7',
+              }}
+              onPress={() => {
+                setFilterStatus((prev) => (prev === 'makeup' ? 'all' : 'makeup'));
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }}
+              activeOpacity={0.8}
             >
-              {filterStatus === 'inspection' ? 'Hiện tất cả' : 'Lọc ngay ➔'}
-            </Text>
-          </View>
-        </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Ionicons
+                  name="sparkles"
+                  size={13}
+                  color={filterStatus === 'makeup' ? '#FFFFFF' : '#38BDF8'}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '800',
+                    color: filterStatus === 'makeup' ? '#FFFFFF' : (isDark ? '#38BDF8' : '#0284C7'),
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {stats.makeupRequested} phòng yêu cầu dọn
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: '900',
+                  color: filterStatus === 'makeup' ? '#FFFFFF' : (isDark ? '#38BDF8' : '#0284C7'),
+                  marginLeft: 6,
+                }}
+              >
+                {filterStatus === 'makeup' ? '✕' : 'Lọc ➔'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
 
-      {/* 2c. Banner Cảnh Báo Khách Đang Ở Yêu Cầu Dọn Phòng (Make-up Room) */}
-      {stats.makeupRequested > 0 && (
-        <TouchableOpacity
+      {/* 3. Ô Tìm Kiếm Kết Hợp Nút [Tầng ▾] Gọn Gàng Trên 1 Dòng */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginBottom: 8, gap: 8 }}>
+        <View
           style={[
-            styles.urgentMakeupBar,
-            filterStatus === 'makeup' && styles.urgentMakeupBarActive,
+            styles.searchWrapper,
+            { flex: 1, marginHorizontal: 0, marginBottom: 0, backgroundColor: colors.card, borderColor: colors.border },
           ]}
-          onPress={() => {
-            setFilterStatus((prev) => (prev === 'makeup' ? 'all' : 'makeup'));
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          }}
-          activeOpacity={0.8}
         >
-          <View style={styles.urgentInspectionLeft}>
-            <View
-              style={[
-                styles.urgentBellIconBox,
-                { backgroundColor: '#0284C7' },
-                filterStatus === 'makeup' && { backgroundColor: '#0A0F1D' },
-              ]}
-            >
-              <Ionicons
-                name="sparkles"
-                size={14}
-                color={filterStatus === 'makeup' ? '#38BDF8' : '#FFF'}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  styles.urgentInspectionTitle,
-                  { color: filterStatus === 'makeup' ? '#0A0F1D' : (isDark ? '#38BDF8' : '#0284C7') },
-                ]}
-              >
-                {stats.makeupRequested} phòng khách đang ở yêu cầu dọn phòng!
-              </Text>
-              <Text
-                style={[
-                  styles.urgentInspectionSubtitle,
-                  filterStatus === 'makeup' && { color: '#0A0F1D', fontWeight: '700' },
-                ]}
-                numberOfLines={1}
-              >
-                Khách yêu cầu thay ga gối, dọn phòng lưu trú
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[
-              styles.urgentInspectionBadge,
-              { backgroundColor: '#0284C7', borderColor: '#0284C7' },
-              filterStatus === 'makeup' && { backgroundColor: '#0A0F1D', borderColor: '#0A0F1D' },
-            ]}
-          >
-            <Text
-              style={[
-                styles.urgentInspectionBadgeText,
-                { color: '#FFF' },
-                filterStatus === 'makeup' && { color: '#38BDF8' },
-              ]}
-            >
-              {filterStatus === 'makeup' ? 'Hiện tất cả' : 'Lọc ngay ➔'}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      )}
+          <Ionicons name="search-outline" size={17} color={colors.textSubtle} style={{ marginLeft: 10 }} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Tìm nhanh số phòng (VD: 101, 202...)"
+            placeholderTextColor={colors.textSubtle}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            keyboardType="numeric"
+            clearButtonMode="while-editing"
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 6 }}>
+              <Ionicons name="close-circle" size={17} color="#94A3B8" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
 
-      {/* 3. Ô Tìm Kiếm Nhanh */}
-      <View style={[styles.searchWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Ionicons name="search-outline" size={18} color={colors.textSubtle} style={{ marginLeft: 12 }} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Tìm nhanh số phòng (VD: 101, 202...)"
-          placeholderTextColor={colors.textSubtle}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          keyboardType="numeric"
-          clearButtonMode="while-editing"
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 8 }}>
-            <Ionicons name="close-circle" size={18} color="#94A3B8" />
+        {availableFloors.length > 1 && (
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              height: 40,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              backgroundColor:
+                showFloors || filterFloor !== 'all'
+                  ? 'rgba(245, 158, 11, 0.16)'
+                  : (isDark ? '#1E293B' : '#FFFFFF'),
+              borderColor: showFloors || filterFloor !== 'all' ? '#F59E0B' : (isDark ? '#334155' : '#E2E8F0'),
+            }}
+            onPress={() => {
+              setShowFloors((prev) => !prev);
+              Haptics.selectionAsync();
+            }}
+            activeOpacity={0.75}
+          >
+            <Ionicons
+              name="layers-outline"
+              size={15}
+              color={showFloors || filterFloor !== 'all' ? '#F59E0B' : (isDark ? '#CBD5E1' : '#475569')}
+              style={{ marginRight: 5 }}
+            />
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '800',
+                color:
+                  showFloors || filterFloor !== 'all'
+                    ? (isDark ? '#FBBF24' : '#B45309')
+                    : (isDark ? '#CBD5E1' : '#475569'),
+              }}
+            >
+              {filterFloor === 'all' ? 'Tầng' : `Tầng ${filterFloor}`}
+            </Text>
+            <Ionicons
+              name={showFloors ? 'chevron-up' : 'chevron-down'}
+              size={13}
+              color={showFloors || filterFloor !== 'all' ? '#F59E0B' : (isDark ? '#94A3B8' : '#64748B')}
+              style={{ marginLeft: 3 }}
+            />
           </TouchableOpacity>
-        ) : null}
+        )}
       </View>
 
-      {/* 4. Bộ Lọc Theo Tầng (Tối ưu nghiệp vụ Buồng phòng) */}
-      {availableFloors.length > 1 && (
+      {/* 4. Bộ Lọc Theo Tầng Mở Rộng (Chỉ hiện khi bấm [Tầng ▾]) */}
+      {showFloors && availableFloors.length > 1 && (
         <View style={styles.floorFilterWrapper}>
           <ScrollView
             horizontal
@@ -669,45 +703,9 @@ export default function HousekeepingScreen() {
                   filterFloor === 'all' && isDark && styles.floorChipTextActive,
                 ]}
               >
-                Tất cả các tầng ({rooms.length})
+                Tất cả tầng ({rooms.length})
               </Text>
             </TouchableOpacity>
-
-            {stats.makeupRequested > 0 && (
-              <TouchableOpacity
-                style={[
-                  styles.floorChip,
-                  filterStatus === 'makeup'
-                    ? { backgroundColor: '#0284C7', borderColor: '#0284C7' }
-                    : !isDark
-                    ? { backgroundColor: 'rgba(2, 132, 199, 0.1)', borderColor: 'rgba(2, 132, 199, 0.35)' }
-                    : { backgroundColor: 'rgba(2, 132, 199, 0.15)', borderColor: 'rgba(2, 132, 199, 0.4)' },
-                ]}
-                onPress={() => {
-                  setFilterStatus((prev) => (prev === 'makeup' ? 'all' : 'makeup'));
-                  Haptics.selectionAsync();
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="sparkles"
-                  size={12}
-                  color={filterStatus === 'makeup' ? '#FFFFFF' : '#0284C7'}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  style={[
-                    styles.floorChipText,
-                    {
-                      color: filterStatus === 'makeup' ? '#FFFFFF' : '#0284C7',
-                      fontWeight: '800',
-                    },
-                  ]}
-                >
-                  Yêu cầu dọn ({stats.makeupRequested})
-                </Text>
-              </TouchableOpacity>
-            )}
 
             {availableFloors.map((fl) => {
               const countOnFloor = rooms.filter((r) => r.floor === fl).length;

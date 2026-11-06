@@ -177,7 +177,7 @@ export default function NewsList() {
                         </h1>
 
                         <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
-                            Cập nhật những thông tin mới nhất về văn hóa du lịch, nghệ thuật ẩm thực tinh tế và các sự kiện, ưu đãi đặc quyền tại Khách Sạn TA Đà Nẵng.
+                            Cập nhật những thông tin mới nhất về văn hóa du lịch, nghệ thuật ẩm thực tinh tế và các sự kiện, ưu đãi đặc quyền tại {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}.
                         </p>
                     </div>
                 </div>
@@ -295,7 +295,7 @@ export default function NewsList() {
                                                 {featuredPost.author || 'Ban Biên Tập'}
                                             </span>
                                             <span className="text-[10px] text-slate-400 block">
-                                                Khách Sạn TA Đà Nẵng
+                                                {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                             </span>
                                         </div>
                                     </div>
