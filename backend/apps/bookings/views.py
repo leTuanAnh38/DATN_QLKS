@@ -3262,7 +3262,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                     service_name='Phụ thu trả phòng muộn (Late Check-out)',
                     quantity=1,
                     price=late_checkout_surcharge,
-                    is_paid=True
+                    # Chưa thu tiền: khoản này nằm trong remaining_amount và sẽ được ghi nhận
+                    # thành Payment ở bước thanh toán checkout; is_paid sẽ được bật sau đó.
+                    is_paid=False
                 )
                 total_service_charge += late_checkout_surcharge
 

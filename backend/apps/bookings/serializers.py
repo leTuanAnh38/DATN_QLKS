@@ -248,6 +248,33 @@ class BookingSerializer(serializers.ModelSerializer):
             obj.invoice.status == 'paid'
         )
 
+        # Xác định phương thức thanh toán THỰC TẾ của từng khoản dịch vụ dựa trên bảng Payment
+        # (thay vì mặc định 'CASH'): ưu tiên payment gắn trực tiếp (SVC-REQ-<id>), sau đó khớp theo số tiền
+        # với các đợt thanh toán lẻ, cuối cùng là phương thức của đợt quyết toán lúc check-out.
+        completed_pays = [p for p in obj.payments.all() if p.payment_status == 'COMPLETED']
+        by_txn = {str(p.transaction_id): p for p in completed_pays if p.transaction_id}
+        checkout_pay = next((p for p in completed_pays if str(p.transaction_id or '').startswith('TXN-CHECKOUT')), None)
+        room_pay_ids = {id(p) for p in completed_pays if str(p.transaction_id or '').startswith(('TXN-BK-', 'TXN-INV-'))}
+        loose_pool = [
+            p for p in completed_pays
+            if str(p.transaction_id or '').startswith('TXN-')
+            and not str(p.transaction_id).startswith('TXN-CHECKOUT')
+            and id(p) not in room_pay_ids
+        ]
+
+        def resolve_pm(txn_id, amount, is_paid):
+            if not is_paid:
+                return None
+            if txn_id and txn_id in by_txn:
+                return by_txn[txn_id].payment_method
+            for p in loose_pool:
+                if abs(float(p.amount) - float(amount)) < 1.0:
+                    loose_pool.remove(p)
+                    return p.payment_method
+            if checkout_pay:
+                return checkout_pay.payment_method
+            return 'CASH'
+
         for req in sorted((r for r in obj.service_requests.all() if r.status != 'cancelled'), key=lambda r: _ts(r.created_at)):
             clean_item_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
             total = float(req.total_price or ((req.service.price if req.service else 0) * req.quantity))
@@ -266,7 +293,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 'status': req.status,
                 'status_display': req.get_status_display(),
                 'is_paid': bool(getattr(req, 'is_paid', False) or services_is_paid),
-                'payment_method': 'CASH' if getattr(req, 'is_paid', False) else None,
+                'payment_method': resolve_pm(f"SVC-REQ-{req.id}", total, getattr(req, 'is_paid', False) or services_is_paid),
                 'added_time': req.updated_at.isoformat() if req.updated_at else (req.created_at.isoformat() if req.created_at else None)
             })
 
@@ -305,7 +332,7 @@ class BookingSerializer(serializers.ModelSerializer):
                 'price': float(bes.price or 0),
                 'total_price': total,
                 'is_paid': bool(getattr(bes, 'is_paid', False) or services_is_paid),
-                'payment_method': 'CASH' if getattr(bes, 'is_paid', False) else None,
+                'payment_method': resolve_pm(None, total, getattr(bes, 'is_paid', False) or services_is_paid),
                 'added_time': bes.added_time.isoformat() if bes.added_time else None
             })
 

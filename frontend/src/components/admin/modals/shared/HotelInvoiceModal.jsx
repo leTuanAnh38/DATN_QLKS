@@ -214,9 +214,17 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         if (method === 'TRANSFER' || method === 'VIETQR' || method === 'BANK_TRANSFER') {
             return 'Đã thanh toán (VietQR)';
         }
+        const payList = Array.isArray(booking?.payments) ? booking.payments.filter(p => p.payment_status === 'COMPLETED') : [];
+        const labelOf = (m) => ['TRANSFER', 'VIETQR', 'BANK_TRANSFER'].includes(String(m || '').toUpperCase()) ? 'Đã thanh toán (VietQR)' : 'Đã thanh toán (Tiền mặt)';
+        const coPay = payList.find(p => String(p.transaction_id || '').startsWith('TXN-CHECKOUT'));
         if (service.is_paid && (service.source === 'service_request' || service.request_id || String(service.id).startsWith('req_'))) {
+            const reqId = service.request_id || String(service.id).replace('req_', '');
+            const reqPay = payList.find(p => String(p.transaction_id || '') === 'SVC-REQ-' + reqId);
+            if (reqPay) return labelOf(reqPay.payment_method);
+            if (coPay) return labelOf(coPay.payment_method);
             return 'Đã thanh toán (Tiền mặt)';
         }
+        if (coPay && service.is_paid && !service.payment_method) return labelOf(coPay.payment_method);
         return getPaidMethodLabel();
     };
 
