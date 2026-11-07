@@ -208,6 +208,12 @@ export default function CorporateBooking() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [preparedGroupPayload, setPreparedGroupPayload] = useState(null);
     const [modalError, setModalError] = useState('');
+    const [toastNotice, setToastNotice] = useState(null); // { type: 'warning' | 'error' | 'success', text: '' }
+
+    const showToastNotice = (type, text) => {
+        setToastNotice({ type, text });
+        setTimeout(() => setToastNotice(null), 4000);
+    };
 
     // Tự động kiểm tra trạng thái thanh toán VietQR (Long Polling 3s/lần)
     useEffect(() => {
@@ -410,7 +416,7 @@ export default function CorporateBooking() {
             prev.map((room) => {
                 if (room.room_key !== roomKey) return room;
                 if (room.guests.length >= room.capacity) {
-                    alert(`Hạng phòng "${room.category_name}" chỉ có sức chứa tối đa ${room.capacity} khách. Không thể thêm vượt quá sức chứa quy định!`);
+                    showToastNotice('warning', `Hạng phòng "${room.category_name}" chỉ có sức chứa tối đa ${room.capacity} khách. Không thể thêm vượt quá quy định!`);
                     return room;
                 }
                 const newGuest = {
@@ -903,13 +909,13 @@ export default function CorporateBooking() {
                                     placeholder="Nhập mã (VD: FPT2026, VIETTEL2026...)"
                                     value={corporateCodeInput}
                                     onChange={(e) => setCorporateCodeInput(e.target.value.toUpperCase())}
-                                    className="flex-1 px-4 py-3 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="flex-1 px-4 py-3 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                 />
                                 <button
                                     type="button"
                                     disabled={isValidatingCode || !corporateCodeInput.trim()}
                                     onClick={handleApplyCorporateCode}
-                                    className="px-6 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-2xl shadow-md shadow-orange-500/20 hover:shadow-orange-500/35 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
+                                    className="px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-2xl shadow-md shadow-sky-900/20 hover:shadow-sky-500/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
                                 >
                                     {isValidatingCode ? 'Đang kiểm tra...' : 'Áp Dụng Mã'}
                                 </button>
@@ -967,7 +973,7 @@ export default function CorporateBooking() {
                                     min={todayStr}
                                     value={checkInDate}
                                     onChange={(e) => setCheckInDate(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition font-sans tabular-nums"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums"
                                 />
                             </div>
 
@@ -980,7 +986,7 @@ export default function CorporateBooking() {
                                     min={checkInDate || todayStr}
                                     value={checkOutDate}
                                     onChange={(e) => setCheckOutDate(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition font-sans tabular-nums"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums"
                                 />
                             </div>
 
@@ -1086,7 +1092,7 @@ export default function CorporateBooking() {
                                                     type="button"
                                                     disabled={isSoldOut || (availRooms !== null && qty >= availRooms)}
                                                     onClick={() => handleRoomQtyChange(cat.id, 1)}
-                                                    className="w-8 h-8 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:from-slate-200 disabled:to-slate-200 disabled:cursor-not-allowed text-white font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95 shadow-2xs"
+                                                    className="w-8 h-8 rounded-lg bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:from-slate-200 disabled:to-slate-200 disabled:cursor-not-allowed text-white font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95 shadow-2xs"
                                                     title={availRooms !== null && qty >= availRooms ? `Chỉ còn ${availRooms} phòng trống` : ''}
                                                 >
                                                     <Plus className="w-3.5 h-3.5" />
@@ -1118,7 +1124,7 @@ export default function CorporateBooking() {
                                     placeholder="VD: Đoàn Hội Thảo FPT Đà Nẵng"
                                     value={groupName}
                                     onChange={(e) => setGroupName(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                 />
                             </div>
 
@@ -1131,7 +1137,7 @@ export default function CorporateBooking() {
                                     placeholder="Họ và tên"
                                     value={leaderName}
                                     onChange={(e) => setLeaderName(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                     required
                                 />
                             </div>
@@ -1145,7 +1151,7 @@ export default function CorporateBooking() {
                                     placeholder="0912..."
                                     value={leaderPhone}
                                     onChange={(e) => setLeaderPhone(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                     required
                                 />
                             </div>
@@ -1159,7 +1165,7 @@ export default function CorporateBooking() {
                                     placeholder="truongdoan@company.com"
                                     value={leaderEmail}
                                     onChange={(e) => setLeaderEmail(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                 />
                             </div>
 
@@ -1180,7 +1186,7 @@ export default function CorporateBooking() {
                                     placeholder="12 số CCCD hoặc mã Hộ chiếu (Passport)"
                                     value={identityCard}
                                     onChange={(e) => setIdentityCard(e.target.value.toUpperCase())}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                 />
                                 <p className="text-[10px] text-slate-400 mt-1">
                                     Phục vụ khai báo lưu trú tạm trú nhanh theo quy định.
@@ -1196,7 +1202,7 @@ export default function CorporateBooking() {
                                     placeholder="VD: Cần hỗ trợ check-in sớm, bố trí phòng gần nhau..."
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                 />
                                 <p className="text-[10px] text-slate-400 mt-1">
                                     Khách sạn sẽ tiếp nhận và phản hồi theo khả năng đáp ứng.
@@ -1233,7 +1239,7 @@ export default function CorporateBooking() {
                                             placeholder="Tên đầy đủ theo giấy phép ĐKKD"
                                             value={companyName}
                                             onChange={(e) => setCompanyName(e.target.value)}
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                             required={isCompanyInvoice}
                                         />
                                     </div>
@@ -1244,7 +1250,7 @@ export default function CorporateBooking() {
                                             placeholder="VD: 0101248141"
                                             value={companyTaxCode}
                                             onChange={(e) => setCompanyTaxCode(e.target.value)}
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                             required={isCompanyInvoice}
                                         />
                                     </div>
@@ -1255,7 +1261,7 @@ export default function CorporateBooking() {
                                             placeholder="ketoan@company.com"
                                             value={invoiceRecipientEmail}
                                             onChange={(e) => setInvoiceRecipientEmail(e.target.value)}
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                         />
                                     </div>
                                     <div className="sm:col-span-2">
@@ -1265,7 +1271,7 @@ export default function CorporateBooking() {
                                             placeholder="Địa chỉ trụ sở công ty..."
                                             value={companyAddress}
                                             onChange={(e) => setCompanyAddress(e.target.value)}
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                         />
                                     </div>
                                 </div>
@@ -1562,7 +1568,7 @@ export default function CorporateBooking() {
                                                                         value={serviceSearchQuery}
                                                                         onChange={(e) => setServiceSearchQuery(e.target.value)}
                                                                         placeholder="Tìm nhanh dịch vụ theo tên, tiện ích (Buffet, Spa, Xe, Giặt ủi...)"
-                                                                        className="w-full pl-8 pr-8 py-1.5 bg-white border border-amber-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                                                        className="w-full pl-8 pr-8 py-1.5 bg-white border border-amber-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                                                     />
                                                                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                                                     {serviceSearchQuery && (
@@ -1601,7 +1607,7 @@ export default function CorporateBooking() {
                                                                                     onClick={() => setSelectedServiceCategory(cat.id)}
                                                                                     className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
                                                                                         String(selectedServiceCategory) === String(cat.id)
-                                                                                            ? 'bg-amber-600 text-white shadow-2xs'
+                                                                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-2xs'
                                                                                             : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                                                                     }`}
                                                                                 >
@@ -1659,7 +1665,7 @@ export default function CorporateBooking() {
                                                                                         onClick={() => handleAddServiceToRoom(room.room_key, svcItem)}
                                                                                         className={`mt-2 w-full py-1.5 px-2 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1 active:scale-95 ${
                                                                                             qtyInRoom > 0
-                                                                                                ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-2xs'
+                                                                                                ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white hover:from-sky-700 hover:to-blue-800 shadow-2xs'
                                                                                                 : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
                                                                                         }`}
                                                                                     >
@@ -1890,7 +1896,7 @@ export default function CorporateBooking() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting || totalRoomsCount === 0}
-                                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-orange-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                                 {isSubmitting ? (
                                     <>
@@ -2151,7 +2157,7 @@ export default function CorporateBooking() {
                                     type="button"
                                     onClick={handleConfirmGroupBooking}
                                     disabled={isSubmitting}
-                                    className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                    className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                                 >
                                     {isSubmitting ? (
                                         <>
@@ -2225,7 +2231,7 @@ export default function CorporateBooking() {
                                             <button
                                                 type="button"
                                                 onClick={() => navigate('/booking-history')}
-                                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer"
                                             >
                                                 Xem Lịch Sử Đặt Phòng
                                             </button>
@@ -2353,6 +2359,21 @@ export default function CorporateBooking() {
                     );
                 })()}
             </main>
+
+            {/* Toast Thông báo sang trọng */}
+            {toastNotice && (
+                <div className="fixed top-24 right-4 sm:right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-4 duration-300 max-w-md bg-white border-slate-200 text-slate-800 shadow-slate-900/10">
+                    <AlertCircle className={`w-5 h-5 shrink-0 ${toastNotice.type === 'warning' ? 'text-amber-500' : toastNotice.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`} />
+                    <span className="flex-1">{toastNotice.text}</span>
+                    <button
+                        type="button"
+                        onClick={() => setToastNotice(null)}
+                        className="text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer transition"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
 
             <Footer />
         </div>

@@ -310,7 +310,7 @@ export default function PromotionsPage() {
             points: 'Từ 300 điểm',
             pointsDesc: 'Chi tiêu tích lũy từ 30.000.000đ',
             badge: 'PHỔ BIẾN NHẤT',
-            btnClass: 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold shadow-md shadow-amber-500/20',
+            btnClass: 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold shadow-md shadow-sky-900/20',
             benefits: [
                 'Tự động chiết khấu 10% tiền phòng mọi đơn đặt',
                 'Linh hoạt Check-in sớm & Check-out muộn (khi có phòng)',
@@ -495,7 +495,7 @@ export default function PromotionsPage() {
                                 onClick={() => setActivePromoTab('all')}
                                 className={`px-4 py-2 rounded-xl transition cursor-pointer ${
                                     activePromoTab === 'all'
-                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/20'
+                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                             >
@@ -506,7 +506,7 @@ export default function PromotionsPage() {
                                 onClick={() => setActivePromoTab('percentage')}
                                 className={`px-4 py-2 rounded-xl transition cursor-pointer ${
                                     activePromoTab === 'percentage'
-                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/20'
+                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                             >
@@ -517,7 +517,7 @@ export default function PromotionsPage() {
                                 onClick={() => setActivePromoTab('fixed')}
                                 className={`px-4 py-2 rounded-xl transition cursor-pointer ${
                                     activePromoTab === 'fixed'
-                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/20'
+                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                             >
@@ -655,7 +655,7 @@ export default function PromotionsPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleApplyAndBook(promo.code)}
-                                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white font-bold text-xs shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span>Sử Dụng Ngay</span>
                                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -752,7 +752,7 @@ export default function PromotionsPage() {
                                         <button
                                             type="button"
                                             onClick={() => handleApplyAndBook(pkg.code)}
-                                            className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                            className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
                                             <span>Đặt Gói Này Ngay</span>
                                             <ArrowRight className="w-3.5 h-3.5" />
@@ -1022,7 +1022,7 @@ export default function PromotionsPage() {
                         <div className="flex items-center gap-3 shrink-0">
                             <a
                                 href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
-                                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-md shadow-amber-400/20 transition cursor-pointer"
+                                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-sky-900/20 transition cursor-pointer"
                             >
                                 <PhoneCall className="w-4 h-4" />
                                 <span>{settings?.hotline || '1900 8899'}</span>

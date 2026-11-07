@@ -800,7 +800,7 @@ export default function Checkout() {
                         className={`flex-shrink-0 px-5 py-3 rounded-2xl text-white font-bold text-sm transition relative overflow-hidden group ${
                             availability?.is_sold_out
                                 ? 'bg-slate-400 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 shadow-lg shadow-orange-500/25 active:scale-95 cursor-pointer'
+                                : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 shadow-lg shadow-sky-900/20 active:scale-95 cursor-pointer'
                         }`}
                     >
                         {isSubmitting ? (
@@ -833,7 +833,7 @@ export default function Checkout() {
                         <p className="text-xs text-slate-500 mb-6">{roomError}</p>
                         <Link
                             to="/rooms"
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition cursor-pointer"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20 transition cursor-pointer"
                         >
                             <span>← Quay lại danh sách phòng</span>
                         </Link>
@@ -2043,7 +2043,7 @@ export default function Checkout() {
                                     disabled={isSubmitting || availability?.is_sold_out}
                                     className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 relative overflow-hidden group ${availability?.is_sold_out
                                             ? 'bg-slate-400 cursor-not-allowed shadow-none'
-                                            : 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 shadow-orange-500/30 hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
+                                            : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/25 hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
                                         }`}
                                 >
                                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform pointer-events-none" />
@@ -2306,7 +2306,7 @@ export default function Checkout() {
                                 type="button"
                                 onClick={handleExecuteBooking}
                                 disabled={isSubmitting}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                                 {isSubmitting ? (
                                     <>
@@ -2508,7 +2508,7 @@ export default function Checkout() {
                         <div className="flex flex-col sm:flex-row items-center gap-3">
                             <Link
                                 to="/booking-history"
-                                className="w-full sm:w-1/2 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/25 transition transform active:scale-95 text-center flex items-center justify-center gap-1.5"
+                                className="w-full sm:w-1/2 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20 transition transform active:scale-95 text-center flex items-center justify-center gap-1.5"
                             >
                                 <span>Xem lịch sử đặt phòng</span>
                                 <ArrowRight className="w-3.5 h-3.5" />

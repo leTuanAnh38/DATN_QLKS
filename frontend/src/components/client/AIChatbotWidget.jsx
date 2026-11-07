@@ -442,7 +442,8 @@ export default function AIChatbotWidget() {
     const toggleSpeakMessage = (msg) => {
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
             const dict = I18N_DICT[selectedLang] || I18N_DICT.vi;
-            alert(dict.voice_not_supported || 'Trình duyệt không hỗ trợ Text-to-Speech.');
+            setVoiceError(dict.voice_not_supported || 'Trình duyệt không hỗ trợ Text-to-Speech.');
+            setTimeout(() => setVoiceError(null), 4000);
             return;
         }
 
@@ -498,7 +499,8 @@ export default function AIChatbotWidget() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
             const dict = I18N_DICT[selectedLang] || I18N_DICT.vi;
-            alert(dict.voice_not_supported);
+            setVoiceError(dict.voice_not_supported || 'Trình duyệt không hỗ trợ nhận diện giọng nói.');
+            setTimeout(() => setVoiceError(null), 4000);
             return;
         }
 
@@ -811,26 +813,26 @@ export default function AIChatbotWidget() {
                             setIsOpen(true);
                             setShowCalloutBubble(false);
                         }}
-                        className="mb-3.5 p-3.5 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-amber-300/90 shadow-[0_15px_35px_-5px_rgba(217,119,6,0.28)] text-slate-800 max-w-[280px] sm:max-w-[320px] cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-400 group relative hover:border-amber-400 transition-all select-none"
+                        className="mb-3.5 p-3.5 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-[0_15px_35px_-5px_rgba(15,23,42,0.14)] text-slate-800 max-w-[280px] sm:max-w-[320px] cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-400 group relative hover:border-sky-300 transition-all select-none"
                         role="region"
                         aria-label="Thông điệp chào mừng từ Trợ lý AI"
                     >
                         {/* Mũi tên trỏ xuống dưới góc phải */}
-                        <div className="absolute -bottom-2 right-8 sm:right-10 w-4 h-4 bg-white/95 border-b border-r border-amber-300/90 rotate-45 transform" />
+                        <div className="absolute -bottom-2 right-8 sm:right-10 w-4 h-4 bg-white/95 border-b border-r border-slate-200/90 rotate-45 transform" />
 
                         {/* Header bong bóng */}
-                        <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-amber-100">
+                        <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-100">
                             <div className="flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-spin" style={{ animationDuration: '6s' }} />
+                                <span className="text-[11px] font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1">
+                                    <Bot className="w-3.5 h-3.5 text-sky-600" />
                                     Trợ Lý AI {starCount}★
                                 </span>
                             </div>
                             <button
                                 type="button"
                                 onClick={handleDismissBubble}
-                                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-amber-50 transition-colors cursor-pointer"
+                                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                                 title="Đóng thông báo"
                                 aria-label="Đóng thông điệp chào mừng"
                             >
@@ -839,14 +841,14 @@ export default function AIChatbotWidget() {
                         </div>
 
                         {/* Lời chào cá nhân hóa */}
-                        <p className="text-xs text-slate-700 leading-relaxed font-normal">
-                            Kính chào {user?.full_name ? <strong className="text-amber-900 font-bold">{user.full_name}</strong> : 'Quý khách'}! 
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                            Kính chào {user?.full_name ? <strong className="text-slate-900 font-bold">{user.full_name}</strong> : 'Quý khách'}! 
                             <br />
-                            Em có thể hỗ trợ Quý khách <span className="text-amber-800 font-semibold">tra cứu phòng giá ưu đãi hôm nay</span> hoặc giải đáp dịch vụ không ạ?
+                            Em có thể hỗ trợ Quý khách <span className="text-sky-700 font-semibold">tra cứu phòng giá ưu đãi hôm nay</span> hoặc giải đáp dịch vụ không ạ?
                         </p>
 
                         {/* Gợi ý nhanh 1 chạm */}
-                        <div className="mt-2.5 pt-2 flex flex-wrap gap-1.5 border-t border-amber-50">
+                        <div className="mt-2.5 pt-2 flex flex-wrap gap-1.5 border-t border-slate-100">
                             <span 
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -854,9 +856,9 @@ export default function AIChatbotWidget() {
                                     setShowCalloutBubble(false);
                                     handleQuickAsk('Cho tôi biết các phòng trống và giá hôm nay');
                                 }}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200/80 shadow-2xs transition-all active:scale-95 cursor-pointer"
                             >
-                                <BedDouble className="w-3 h-3 text-amber-700" />
+                                <BedDouble className="w-3 h-3 text-sky-600" />
                                 <span>Giá phòng hôm nay</span>
                             </span>
                             <span 
@@ -875,56 +877,45 @@ export default function AIChatbotWidget() {
                     </div>
                 )}
 
-                {/* Nút Floating Button chính */}
+                {/* Nút Floating Button chính - Phong cách Soft Sky & Pearl White dịu mắt, thanh lịch */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`relative group flex items-center gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full 
-                        bg-white/95 backdrop-blur-md text-slate-800 font-medium shadow-xl
-                        border-2 border-amber-300 hover:border-amber-400 hover:bg-amber-50/40
-                        transition-all duration-300 ease-out cursor-pointer
-                        hover:scale-105 active:scale-95
-                        shadow-[0_10px_30px_-5px_rgba(217,119,6,0.28)]`}
+                    className="relative group flex items-center gap-2.5 pl-2.5 pr-4 py-2 sm:pl-3 sm:pr-4 sm:py-2.5 rounded-full bg-gradient-to-r from-sky-50/95 via-white to-cyan-50/95 hover:from-sky-100/90 hover:via-white hover:to-cyan-100/90 backdrop-blur-md text-slate-800 font-medium border border-sky-200/90 hover:border-sky-300 transition-all duration-300 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_26px_-6px_rgba(14,165,233,0.22)]"
                     title={`Trợ Lý Ảo AI - ${hotelName} ${starCount}★ (Multilingual Concierge)`}
                     aria-expanded={isOpen}
                     aria-label={`Mở khung trò chuyện với Trợ lý AI ${starCount} sao`}
                 >
-                    {/* Hiệu ứng hào quang Vàng Gold dịu nhẹ */}
-                    <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-200 opacity-25 blur group-hover:opacity-45 transition duration-500 animate-pulse" />
-
-                    {/* Hiệu ứng vệt sáng ánh kim lướt qua (Shimmer) */}
+                    {/* Hiệu ứng vệt sáng dịu nhẹ lướt qua (Shimmer) */}
                     <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-                        <span className="absolute -inset-full top-0 bg-gradient-to-r from-transparent via-white/50 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                        <span className="absolute -inset-full top-0 bg-gradient-to-r from-transparent via-sky-200/30 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                     </span>
 
-                    {/* Khối nội dung chính của Nút */}
-                    <div className="relative flex items-center gap-2.5">
-                        <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 via-amber-300 to-amber-200 text-amber-950 font-bold shadow-xs">
-                            <Sparkles className="w-4 h-4 text-amber-900 animate-spin" style={{ animationDuration: '8s' }} />
-                        </div>
-
-                        <div className="hidden sm:flex flex-col text-left">
-                            <span className="text-xs font-bold text-slate-800 tracking-wider uppercase">
-                                Trợ Lý AI {starCount}★
-                            </span>
-                            <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-normal">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                                Online 24/7
-                            </span>
-                        </div>
-
-                        {/* Nút icon mũi tên / đóng */}
-                        <div className="text-amber-700 pl-0.5 flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 group-hover:bg-amber-100/90 border border-amber-200/80 transition-colors">
+                    {/* Avatar AI Xanh Biển dịu mắt + Chấm Online gắn trực tiếp */}
+                    <div className="relative flex-shrink-0">
+                        <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-sky-500 via-blue-500 to-cyan-500 text-white shadow-sm shadow-sky-500/25">
                             {isOpen ? (
-                                <ChevronDown className="w-4 h-4 text-amber-700" />
+                                <ChevronDown className="w-4 h-4 text-white transition-transform duration-200" />
                             ) : (
-                                <MessageSquare className="w-4 h-4 text-amber-700" />
+                                <Bot className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-white" />
                             )}
                         </div>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                    </div>
+
+                    {/* Chữ hiển thị tinh gọn, dịu mắt */}
+                    <div className="hidden sm:flex flex-col text-left pr-0.5">
+                        <span className="text-xs font-bold text-slate-800 tracking-wide flex items-center gap-1 leading-tight">
+                            <span>Trợ Lý AI</span>
+                            <span className="text-amber-500 text-[10px] font-extrabold">{starCount}★</span>
+                        </span>
+                        <span className="text-[10px] text-sky-600 font-medium leading-tight mt-0.5">
+                            Online 24/7
+                        </span>
                     </div>
 
                     {/* Huy hiệu tin nhắn mới chưa đọc */}
                     {hasUnread && !isOpen && (
-                        <span className="absolute -top-1.5 -left-1.5 flex h-4 w-4">
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 border-2 border-white text-[9px] font-bold text-white items-center justify-center">
                                 1
@@ -937,23 +928,23 @@ export default function AIChatbotWidget() {
             {/* 2. CỬA SỔ CHAT WINDOW SANG TRỌNG DỊU MẮT */}
             {isOpen && (
                 <div 
-                    className={`fixed z-50 flex flex-col rounded-2xl bg-white shadow-2xl border border-amber-200/80 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 ${
+                    className={`fixed z-50 flex flex-col rounded-2xl bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 ${
                         hasMobileStickyBar
                             ? 'inset-x-2.5 bottom-20 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]'
                             : 'inset-x-2.5 bottom-2.5 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]'
                     }`}
                     style={{
-                        boxShadow: '0 20px 50px -10px rgba(0, 0, 0, 0.12), 0 0 20px 2px rgba(245, 158, 11, 0.08)'
+                        boxShadow: '0 20px 45px -12px rgba(14, 165, 233, 0.16), 0 8px 20px -6px rgba(15, 23, 42, 0.08)'
                     }}
                 >
-                    {/* A. HEADER TÔNG VÀNG CHAMPAGNE & TRẮNG NGÀ NHẸ NHÀNG, DỊU MẮT */}
-                    <header className="bg-gradient-to-r from-amber-50/95 via-[#fdfbf7] to-amber-100/60 text-slate-800 px-3.5 py-2.5 border-b border-amber-200/80 flex items-center justify-between shadow-xs select-none">
+                    {/* A. HEADER TÔNG XANH PASTEL & TRẮNG NGỌC TRAI DỊU MẮT */}
+                    <header className="bg-gradient-to-r from-sky-50/95 via-white to-cyan-50/90 text-slate-800 px-4 py-3 border-b border-sky-100/90 flex items-center justify-between shadow-2xs select-none">
                         {/* Bên trái: Avatar + Tên trợ lý và trạng thái (Không bao giờ rớt dòng) */}
                         <div className="flex items-center gap-2.5 min-w-0">
                             <div className="relative flex-shrink-0">
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-400 via-amber-300 to-amber-200 p-0.5 shadow-xs">
-                                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-amber-800 font-serif font-black text-sm">
-                                        TA
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 via-blue-500 to-cyan-500 p-0.5 shadow-xs">
+                                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-sky-600">
+                                        <Bot className="w-4 h-4" />
                                     </div>
                                 </div>
                                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white"></span>
@@ -964,7 +955,7 @@ export default function AIChatbotWidget() {
                                     <h2 className="text-sm font-bold text-slate-800 tracking-tight font-sans m-0 whitespace-nowrap">
                                         Trợ Lý AI {starCount}★
                                     </h2>
-                                    <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-semibold tracking-wider flex-shrink-0 uppercase">
+                                    <span className="text-[9px] bg-sky-100/80 text-sky-700 border border-sky-200 px-1.5 py-0.2 rounded font-semibold tracking-wider flex-shrink-0 uppercase">
                                         Concierge
                                     </span>
                                 </div>
@@ -982,17 +973,17 @@ export default function AIChatbotWidget() {
                             <div className="relative">
                                 <button
                                     onClick={() => setShowLangDropdown(!showLangDropdown)}
-                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-white/95 hover:bg-amber-100/80 text-slate-700 border border-amber-200/90 shadow-2xs transition-all cursor-pointer active:scale-95"
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-sky-50 text-slate-700 border border-sky-200/80 shadow-2xs transition-all cursor-pointer active:scale-95"
                                     title="Chọn ngôn ngữ / Select language"
                                     aria-label="Chọn ngôn ngữ giao tiếp"
                                 >
                                     <span className="text-sm leading-none">{SUPPORTED_LANGS.find(l => l.code === selectedLang)?.flag}</span>
-                                    <span className="font-bold text-[11px] text-amber-900">{selectedLang.toUpperCase()}</span>
-                                    <ChevronDown className="w-3 h-3 text-amber-700" />
+                                    <span className="font-bold text-[11px] text-sky-700">{selectedLang.toUpperCase()}</span>
+                                    <ChevronDown className="w-3 h-3 text-slate-400" />
                                 </button>
                                 
                                 {showLangDropdown && (
-                                    <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-xl border border-amber-200 py-1 z-30 animate-in fade-in zoom-in-95">
+                                    <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95">
                                         <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                                             Ngôn ngữ / Language
                                         </div>
@@ -1003,15 +994,15 @@ export default function AIChatbotWidget() {
                                                     handleSwitchLang(lang.code);
                                                     setShowLangDropdown(false);
                                                 }}
-                                                className={`w-full px-2.5 py-1.5 text-left text-xs flex items-center justify-between hover:bg-amber-50 transition-colors cursor-pointer ${
-                                                    selectedLang === lang.code ? 'font-bold text-amber-900 bg-amber-50/80' : 'text-slate-700'
+                                                className={`w-full px-2.5 py-1.5 text-left text-xs flex items-center justify-between hover:bg-sky-50 transition-colors cursor-pointer ${
+                                                    selectedLang === lang.code ? 'font-bold text-sky-700 bg-sky-50/80' : 'text-slate-700'
                                                 }`}
                                             >
                                                 <span className="flex items-center gap-2">
                                                     <span>{lang.flag}</span>
                                                     <span>{lang.label}</span>
                                                 </span>
-                                                {selectedLang === lang.code && <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>}
+                                                {selectedLang === lang.code && <span className="w-1.5 h-1.5 rounded-full bg-sky-600"></span>}
                                             </button>
                                         ))}
                                     </div>
@@ -1020,7 +1011,7 @@ export default function AIChatbotWidget() {
 
                             <button
                                 onClick={handleResetChat}
-                                className="p-1.5 text-slate-400 hover:text-amber-700 hover:bg-amber-100/70 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
                                 title="Làm mới cuộc trò chuyện"
                                 aria-label="Làm mới cuộc trò chuyện"
                             >
@@ -1028,7 +1019,7 @@ export default function AIChatbotWidget() {
                             </button>
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-amber-100/70 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                                 title="Thu nhỏ khung chat"
                                 aria-label="Thu nhỏ khung chat"
                             >
@@ -1039,15 +1030,15 @@ export default function AIChatbotWidget() {
 
                     {/* HỘP THOẠI XÁC NHẬN LÀM MỚI TINH TẾ NGAY TRONG WIDGET */}
                     {showResetConfirm && (
-                        <div className="bg-amber-50/95 border-b border-amber-200/90 px-3.5 py-2.5 flex items-center justify-between text-xs text-amber-900 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="bg-sky-50/95 border-b border-sky-200/80 px-3.5 py-2.5 flex items-center justify-between text-xs text-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
                             <span className="font-medium flex items-center gap-1.5 text-slate-700">
-                                <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                                <RotateCcw className="w-3.5 h-3.5 text-sky-600" />
                                 Làm mới toàn bộ cuộc trò chuyện?
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={confirmResetChat}
-                                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-[11px] font-semibold transition-colors cursor-pointer shadow-xs active:scale-95"
+                                    className="px-2.5 py-1 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-md text-[11px] font-semibold transition-colors cursor-pointer shadow-xs active:scale-95"
                                 >
                                     Đồng ý
                                 </button>
@@ -1086,7 +1077,7 @@ export default function AIChatbotWidget() {
                                     className={`flex items-start gap-2.5 ${isBot ? 'justify-start' : 'justify-end'}`}
                                 >
                                     {isBot && (
-                                        <div className="w-7 h-7 rounded-full bg-amber-100 border border-amber-300 text-amber-800 flex-shrink-0 flex items-center justify-center text-xs shadow-xs mt-0.5">
+                                        <div className="w-7 h-7 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex-shrink-0 flex items-center justify-center text-xs shadow-2xs mt-0.5">
                                             <Bot className="w-4 h-4" />
                                         </div>
                                     )}
@@ -1095,7 +1086,7 @@ export default function AIChatbotWidget() {
                                         className={`rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] shadow-xs ${
                                             isBot
                                                 ? `bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] ${hasSuggestions ? 'w-full max-w-[94%] sm:max-w-[92%]' : 'max-w-[85%]'}`
-                                                : 'bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-tr-xs shadow-md shadow-amber-600/20 max-w-[85%]'
+                                                : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white rounded-tr-xs shadow-md shadow-sky-900/15 max-w-[85%]'
                                         }`}
                                     >
                                         <div className="whitespace-pre-wrap leading-relaxed">
@@ -1392,7 +1383,7 @@ export default function AIChatbotWidget() {
                                                                             disabled={!isAvailable}
                                                                             className={`flex-1 py-1.5 px-1 text-[10px] font-bold rounded-lg transition-all text-center cursor-pointer flex items-center justify-center gap-1 ${
                                                                                 isAvailable
-                                                                                    ? 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-xs active:scale-95'
+                                                                                    ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white shadow-xs active:scale-95'
                                                                                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                                                                             }`}
                                                                             title={isAvailable ? "Đặt phòng này ngay" : "Phòng hiện đã kín"}
@@ -1603,7 +1594,7 @@ export default function AIChatbotWidget() {
                                 placeholder={currentDict.input_placeholder}
                                 disabled={isLoading}
                                 className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 
-                                    placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 
+                                    placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 focus:bg-white
                                     transition-all disabled:opacity-50"
                             />
 
@@ -1616,7 +1607,7 @@ export default function AIChatbotWidget() {
                                 className={`p-2.5 rounded-xl font-medium transition-all duration-200 cursor-pointer flex items-center justify-center relative ${
                                     isListening
                                         ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/30 ring-2 ring-rose-400 ring-offset-1 animate-pulse'
-                                        : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300/90 shadow-2xs hover:shadow-xs active:scale-95'
+                                        : 'bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 shadow-2xs hover:shadow-xs active:scale-95'
                                 }`}
                                 title={isListening ? currentDict.voice_stop : 'Bấm để nói câu hỏi bằng Micro (Voice AI)'}
                                 aria-label="Nói câu hỏi bằng Micro"
@@ -1624,7 +1615,7 @@ export default function AIChatbotWidget() {
                                 {isListening ? (
                                     <MicOff className="w-4 h-4 text-white" />
                                 ) : (
-                                    <Mic className="w-4 h-4 text-amber-700" />
+                                    <Mic className="w-4 h-4 text-sky-700" />
                                 )}
                             </button>
 
@@ -1633,7 +1624,7 @@ export default function AIChatbotWidget() {
                                 disabled={!inputValue.trim() || isLoading}
                                 className={`p-2.5 rounded-xl font-medium transition-all duration-200 cursor-pointer flex items-center justify-center ${
                                     inputValue.trim() && !isLoading
-                                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs active:scale-95 border border-amber-500'
+                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white shadow-xs active:scale-95 border border-sky-500'
                                         : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                                 }`}
                                 title="Gửi tin nhắn"

@@ -198,7 +198,7 @@ export default function NewsList() {
                                     onClick={() => setSelectedCategory(cat.value)}
                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 ${
                                         isActive
-                                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/20'
+                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-2 ring-sky-400/20'
                                             : 'bg-white text-slate-600 hover:text-amber-600 hover:bg-amber-50/50 border border-slate-200 hover:border-amber-200'
                                     }`}
                                 >
@@ -365,7 +365,7 @@ export default function NewsList() {
                                         setSearchTerm('');
                                         setSelectedCategory('all');
                                     }}
-                                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer"
+                                    className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer"
                                 >
                                     Xem tất cả bài viết
                                 </button>
@@ -481,7 +481,7 @@ export default function NewsList() {
                                             onClick={() => handlePageChange(pageNum)}
                                             className={`w-9 h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
                                                 isActive
-                                                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/20'
+                                                    ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-2 ring-sky-400/20'
                                                     : 'bg-white text-slate-700 hover:text-amber-600 hover:bg-amber-50/50 border border-slate-200 shadow-2xs hover:border-amber-200 active:scale-95'
                                             }`}
                                             aria-current={isActive ? 'page' : undefined}

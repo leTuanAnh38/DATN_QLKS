@@ -31,40 +31,40 @@ export default function MembershipCard({ user }) {
         const c = String(code || '').toUpperCase();
         if (c.includes('DIAMOND') || c.includes('KIM CƯƠNG')) {
             return {
-                bg: 'bg-gradient-to-tr from-slate-950 via-cyan-900 to-indigo-950 border-cyan-400/40 text-cyan-50 shadow-cyan-950/50',
-                chip: 'from-cyan-200 to-cyan-400 border-cyan-300',
-                badgeBg: 'bg-cyan-500/20 text-cyan-200 border-cyan-400/30',
-                glow: 'bg-cyan-400/20',
-                tierLabel: 'DIAMOND MEMBER',
-                discountColor: 'text-cyan-300'
+                bg: 'bg-gradient-to-tr from-stone-950 via-slate-900 to-neutral-950 border-amber-400/50 text-amber-50 shadow-2xl shadow-black/80 ring-1 ring-amber-400/20',
+                chip: 'from-amber-200 via-yellow-300 to-amber-400 border-amber-300',
+                badgeBg: 'bg-amber-400/20 text-amber-300 border-amber-400/40',
+                glow: 'bg-amber-400/15',
+                tierLabel: 'DIAMOND VIP MEMBER',
+                discountColor: 'text-amber-300'
             };
         }
         if (c.includes('GOLD') || c.includes('VÀNG')) {
             return {
-                bg: 'bg-gradient-to-tr from-amber-700 via-amber-500 to-yellow-600 border-amber-300/50 text-amber-50 shadow-amber-950/50',
-                chip: 'from-yellow-200 to-amber-300 border-yellow-300',
-                badgeBg: 'bg-amber-900/30 text-yellow-200 border-yellow-300/40',
-                glow: 'bg-yellow-300/20',
-                tierLabel: 'GOLD MEMBER',
+                bg: 'bg-gradient-to-tr from-amber-800 via-amber-600 to-yellow-600 border-amber-300/60 text-amber-50 shadow-2xl shadow-amber-950/60 ring-1 ring-amber-300/30',
+                chip: 'from-yellow-100 via-amber-200 to-yellow-400 border-yellow-200',
+                badgeBg: 'bg-amber-900/40 text-yellow-200 border-yellow-300/50',
+                glow: 'bg-yellow-300/25',
+                tierLabel: 'GOLD VIP MEMBER',
                 discountColor: 'text-yellow-200'
             };
         }
         if (c.includes('SILVER') || c.includes('BẠC')) {
             return {
-                bg: 'bg-gradient-to-tr from-slate-700 via-gray-600 to-slate-900 border-slate-300/40 text-slate-100 shadow-slate-950/50',
-                chip: 'from-slate-200 to-gray-300 border-slate-300',
-                badgeBg: 'bg-white/15 text-slate-100 border-white/20',
-                glow: 'bg-white/15',
+                bg: 'bg-gradient-to-tr from-slate-800 via-zinc-700 to-slate-900 border-slate-300/50 text-slate-100 shadow-xl shadow-slate-950/60 ring-1 ring-slate-400/20',
+                chip: 'from-slate-100 via-zinc-200 to-slate-300 border-slate-300',
+                badgeBg: 'bg-white/15 text-slate-100 border-white/30',
+                glow: 'bg-white/20',
                 tierLabel: 'SILVER MEMBER',
                 discountColor: 'text-slate-200'
             };
         }
-        // Mặc định: Bronze (Đồng)
+        // Mặc định: Bronze (Đồng Ánh Kim)
         return {
-            bg: 'bg-gradient-to-tr from-amber-900 via-stone-800 to-orange-950 border-amber-600/40 text-amber-100 shadow-orange-950/50',
-            chip: 'from-amber-300 to-orange-400 border-amber-400',
-            badgeBg: 'bg-amber-500/20 text-amber-200 border-amber-500/30',
-            glow: 'bg-amber-500/15',
+            bg: 'bg-gradient-to-tr from-stone-900 via-amber-950 to-stone-950 border-amber-700/50 text-amber-100 shadow-xl shadow-amber-950/60 ring-1 ring-amber-600/20',
+            chip: 'from-amber-200 via-amber-300 to-amber-500 border-amber-400',
+            badgeBg: 'bg-amber-500/20 text-amber-200 border-amber-500/40',
+            glow: 'bg-amber-500/20',
             tierLabel: 'BRONZE MEMBER',
             discountColor: 'text-amber-300'
         };
@@ -75,12 +75,12 @@ export default function MembershipCard({ user }) {
     const discountVal = Number(currentTier.discount_percent) || 0;
 
     return (
-        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-100 relative overflow-hidden mb-8 sm:mb-10">
+        <div className="bg-gradient-to-b from-white via-amber-50/15 to-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-100/60 relative overflow-hidden mb-8 sm:mb-10">
             {/* Tiêu đề Box */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-amber-100/60 mb-6">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                        <span className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/60">
                             <Award className="w-5 h-5" />
                         </span>
                         <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
@@ -98,8 +98,8 @@ export default function MembershipCard({ user }) {
                             Ưu đãi giảm {discountVal}% phòng
                         </span>
                     ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50/80 text-amber-800 border border-amber-200/80">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                             Hội viên khởi đầu • Tích điểm thăng hạng
                         </span>
                     )}
@@ -120,10 +120,10 @@ export default function MembershipCard({ user }) {
                         <div className="flex justify-between items-start z-10">
                             <div>
                                 <span className="text-[10px] tracking-[0.25em] font-extrabold uppercase opacity-85 block text-white/90">
-                                    HOTEL LUXURY RESORT
+                                    TA ĐÀ NẴNG LUXURY RESORT & RETREAT
                                 </span>
                                 <h3 className="text-base font-black tracking-wider flex items-center gap-1.5 mt-0.5 uppercase drop-shadow-sm">
-                                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                                    <Sparkles className="w-4 h-4 text-amber-300" />
                                     {currentTier.name}
                                 </h3>
                             </div>
@@ -204,8 +204,8 @@ export default function MembershipCard({ user }) {
                             </div>
 
                             {nextTier ? (
-                                <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200/80 inline-flex items-center gap-1.5 self-start sm:self-auto">
-                                    <Zap className="w-3.5 h-3.5 text-blue-600" />
+                                <span className="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-200/80 inline-flex items-center gap-1.5 self-start sm:self-auto">
+                                    <Zap className="w-3.5 h-3.5 text-amber-600" />
                                     Cần thêm {nextTier.points_needed} điểm để thăng hạng {nextTier.name}
                                 </span>
                             ) : (
@@ -219,7 +219,7 @@ export default function MembershipCard({ user }) {
                         {/* Thanh Progress Bar */}
                         <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden shadow-inner relative p-0.5">
                             <div
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-700 ease-out shadow-xs"
+                                className="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 h-full rounded-full transition-all duration-700 ease-out shadow-xs"
                                 style={{ width: `${progressPercent}%` }}
                             />
                         </div>
@@ -229,7 +229,7 @@ export default function MembershipCard({ user }) {
                             {nextTier ? (
                                 <>
                                     💡 Quý khách đang có <strong className="text-slate-900 font-bold">{totalPoints}</strong> điểm. 
-                                    Cần thêm <strong className="text-blue-600 font-bold">{nextTier.points_needed}</strong> điểm nữa 
+                                    Cần thêm <strong className="text-amber-700 font-bold">{nextTier.points_needed}</strong> điểm nữa 
                                     để thăng hạng <strong className="text-slate-900 font-bold">{nextTier.name}</strong> (Hưởng ưu đãi giảm {Number(nextTier.discount_percent)}% cho các lần đặt phòng tiếp theo).
                                 </>
                             ) : (
@@ -243,7 +243,7 @@ export default function MembershipCard({ user }) {
                     {/* Lưới đặc quyền & Quy tắc */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="p-3.5 rounded-xl border border-slate-200/80 bg-white flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0">
+                            <div className="p-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 shrink-0">
                                 <Zap className="w-4 h-4" />
                             </div>
                             <div>

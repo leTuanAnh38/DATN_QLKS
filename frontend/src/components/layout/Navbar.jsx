@@ -139,15 +139,15 @@ export default function Navbar({
                         )}
                     </div>
                     <div className="flex items-center space-x-4 text-slate-600">
-                        <a href={`tel:${hotlineDisplay.replace(/\s+/g, '')}`} className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer transition">
+                        <a href={`tel:${hotlineDisplay.replace(/\s+/g, '')}`} className="flex items-center gap-1.5 hover:text-amber-700 cursor-pointer transition">
                             <Phone className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                             Hotline 24/7: <strong className="text-slate-900">{hotlineDisplay}</strong>
                         </a>
                         <span className="text-slate-300">|</span>
                         <div className="flex items-center space-x-2">
-                            <span className="cursor-pointer hover:text-blue-600">🇻🇳 VND</span>
+                            <span className="cursor-pointer hover:text-amber-700">🇻🇳 VND</span>
                             <span>/</span>
-                            <span className="cursor-pointer hover:text-blue-600">Tiếng Việt</span>
+                            <span className="cursor-pointer hover:text-amber-700">Tiếng Việt</span>
                         </div>
                     </div>
                 </div>
@@ -165,15 +165,15 @@ export default function Navbar({
                                 className="h-11 max-w-[170px] object-contain rounded-xl shadow-xs group-hover:scale-105 transition-transform"
                             />
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/30 flex-shrink-0 group-hover:scale-105 transition-transform">
-                                <span className="text-white font-serif font-black text-xl tracking-tighter">TA</span>
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 border border-amber-500/40 flex items-center justify-center shadow-md shadow-slate-900/30 flex-shrink-0 group-hover:scale-105 transition-transform">
+                                <span className="text-amber-400 font-serif font-black text-xl tracking-tighter">TA</span>
                             </div>
                         )}
                         <div className="flex flex-col">
-                            <span className="font-serif font-bold text-slate-900 text-lg leading-tight tracking-wide whitespace-nowrap group-hover:text-blue-600 transition-colors">
+                            <span className="font-serif font-bold text-slate-900 text-lg leading-tight tracking-wide whitespace-nowrap group-hover:text-amber-700 transition-colors">
                                 {settings?.hotel_name ? settings.hotel_name.slice(0, 24) : 'KHÁCH SẠN TA'}
                             </span>
-                            <span className="text-[10px] font-semibold text-blue-600 tracking-[0.2em] uppercase whitespace-nowrap">
+                            <span className="text-[10px] font-semibold text-amber-700 tracking-[0.2em] uppercase whitespace-nowrap">
                                 {settings?.hotel_slogan ? settings.hotel_slogan.slice(0, 36) : `ĐÀ NẴNG ${'★'.repeat(settings?.stars || 3)}`}
                             </span>
                         </div>
@@ -189,8 +189,8 @@ export default function Navbar({
                                     to={item.path}
                                     className={`whitespace-nowrap transition-colors duration-200 py-1 ${
                                         active
-                                            ? 'text-blue-600 font-bold border-b-2 border-blue-600'
-                                            : 'text-slate-700 hover:text-blue-600'
+                                            ? 'text-amber-700 font-bold border-b-2 border-amber-600'
+                                            : 'text-slate-700 hover:text-amber-700'
                                     }`}
                                 >
                                     {item.name}
@@ -205,7 +205,7 @@ export default function Navbar({
                         <Link
                             to={actionLink}
                             onClick={handleActionClick}
-                            className="hidden sm:inline-flex items-center gap-2 px-3.5 xl:px-4.5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white font-bold text-xs xl:text-[13px] rounded-xl shadow-md shadow-orange-500/25 hover:shadow-lg hover:shadow-orange-500/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
+                            className="hidden sm:inline-flex items-center gap-2 px-3.5 xl:px-4.5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs xl:text-[13px] rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
                         >
                             <svg className="w-4 h-4 text-white/95 group-hover:scale-110 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -221,9 +221,9 @@ export default function Navbar({
                             // Khi CHƯA đăng nhập: Hiển thị Nút Đăng nhập hiện đại
                             <Link
                                 to="/login"
-                                className="inline-flex items-center gap-2 px-3 xl:px-3.5 py-2 xl:py-2.5 rounded-xl text-xs xl:text-[13px] font-semibold text-slate-700 hover:text-blue-600 bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-blue-400 shadow-xs hover:shadow-md hover:shadow-blue-500/10 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
+                                className="inline-flex items-center gap-2 px-3 xl:px-3.5 py-2 xl:py-2.5 rounded-xl text-xs xl:text-[13px] font-semibold text-slate-700 hover:text-slate-950 bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-amber-400 shadow-xs hover:shadow-md hover:shadow-amber-900/10 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
                             >
-                                <div className="w-5 h-5 rounded-lg bg-white border border-slate-200 group-hover:border-blue-300 group-hover:bg-blue-600 text-slate-600 group-hover:text-white flex items-center justify-center transition-all duration-200 shrink-0">
+                                <div className="w-5 h-5 rounded-lg bg-white border border-slate-200 group-hover:border-amber-400 group-hover:bg-amber-600 text-slate-600 group-hover:text-white flex items-center justify-center transition-all duration-200 shrink-0">
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
@@ -274,10 +274,10 @@ export default function Navbar({
                                                 <Link
                                                     to="/admin"
                                                     onClick={() => setUserMenuOpen(false)}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-blue-600 bg-blue-50/80 hover:bg-blue-100/80 transition text-left cursor-pointer border-b border-blue-100 mb-1"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-amber-900 bg-amber-50/90 hover:bg-amber-100/90 transition text-left cursor-pointer border-b border-amber-200/80 mb-1"
                                                 >
-                                                    <span className="w-5 h-5 flex items-center justify-center shrink-0 text-blue-600">
-                                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <span className="w-5 h-5 flex items-center justify-center shrink-0 text-amber-700">
+                                                        <svg className="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         </svg>
@@ -290,10 +290,10 @@ export default function Navbar({
                                             <Link
                                                 to="/profile"
                                                 onClick={() => setUserMenuOpen(false)}
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 hover:text-blue-600 transition text-left cursor-pointer"
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-amber-50/50 hover:text-amber-800 transition text-left cursor-pointer"
                                             >
-                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-black">
-                                                    <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-slate-600">
+                                                    <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                     </svg>
                                                 </span>
@@ -304,10 +304,10 @@ export default function Navbar({
                                             <Link
                                                 to="/promotions"
                                                 onClick={() => setUserMenuOpen(false)}
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 hover:text-blue-600 transition text-left cursor-pointer"
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-amber-50/50 hover:text-amber-800 transition text-left cursor-pointer"
                                             >
-                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-black">
-                                                    <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-slate-600">
+                                                    <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                                                     </svg>
                                                 </span>
@@ -318,10 +318,10 @@ export default function Navbar({
                                             <Link
                                                 to="/booking-history"
                                                 onClick={() => setUserMenuOpen(false)}
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 hover:text-blue-600 transition text-left cursor-pointer"
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-amber-50/50 hover:text-amber-800 transition text-left cursor-pointer"
                                             >
-                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-black">
-                                                    <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-slate-600">
+                                                    <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
                                                 </span>
@@ -335,10 +335,10 @@ export default function Navbar({
                                                     setUserMenuOpen(false);
                                                     setIsChangePasswordOpen(true);
                                                 }}
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 hover:text-blue-600 transition text-left cursor-pointer"
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-amber-50/50 hover:text-amber-800 transition text-left cursor-pointer"
                                             >
-                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-black">
-                                                    <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <span className="w-5 h-5 flex items-center justify-center shrink-0 text-slate-600">
+                                                    <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                                     </svg>
                                                 </span>
@@ -432,9 +432,9 @@ export default function Navbar({
                                     <Link
                                         to="/booking-history"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-1.5 p-2 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-blue-700 font-bold transition"
+                                        className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
                                     >
-                                        <CalendarClock className="w-4 h-4 text-blue-600 shrink-0" />
+                                        <CalendarClock className="w-4 h-4 text-amber-600 shrink-0" />
                                         <span className="truncate">Lịch sử đặt phòng</span>
                                     </Link>
                                     <Link
@@ -477,8 +477,8 @@ export default function Navbar({
                                     onClick={() => setMobileMenuOpen(false)}
                                     className={`block px-3 py-2 rounded-lg text-sm font-medium ${
                                         active
-                                            ? 'bg-blue-50 text-blue-600 font-semibold'
-                                            : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'
+                                            ? 'bg-amber-50 text-amber-800 font-bold border-l-4 border-amber-600'
+                                            : 'text-slate-700 hover:bg-amber-50/50 hover:text-amber-800'
                                     }`}
                                 >
                                     {item.name}
@@ -493,7 +493,7 @@ export default function Navbar({
                                     setMobileMenuOpen(false);
                                     handleActionClick(e);
                                 }}
-                                className="w-full py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-bold text-sm rounded-xl shadow-md text-center flex items-center justify-center gap-2"
+                                className="w-full py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white font-bold text-sm rounded-xl shadow-md shadow-sky-900/20 text-center flex items-center justify-center gap-2"
                             >
                                 <svg className="w-4 h-4 text-white/95" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -505,7 +505,7 @@ export default function Navbar({
                                 <Link
                                     to="/login"
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="w-full py-2.5 text-center text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition flex items-center justify-center gap-2"
+                                    className="w-full py-2.5 text-center text-xs font-bold text-slate-800 bg-slate-50 hover:bg-white border border-slate-200 hover:border-amber-400 rounded-xl transition flex items-center justify-center gap-2"
                                 >
                                     <div className="w-5 h-5 rounded-md bg-white border border-slate-200 text-slate-600 flex items-center justify-center">
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -519,7 +519,7 @@ export default function Navbar({
                                     <Link
                                         to="/admin"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="w-full py-2.5 text-center text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
+                                        className="w-full py-2.5 text-center text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-xl transition"
                                     >
                                         ⚙️ Cổng Quản Trị & Bàn Làm Việc
                                     </Link>

@@ -92,7 +92,7 @@ export default function ContactPage() {
 
     const [copiedAddress, setCopiedAddress] = useState(false);
     const [activeFaq, setActiveFaq] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSugmitting] = useState(false);
     const [toast, setToast] = useState(null); // { type: 'success' | 'error', text }
 
     // FAQ list - bound to dynamic hotel name and check-in / check-out times
@@ -126,7 +126,7 @@ export default function ContactPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
-        setIsSubmitting(true);
+        setIsSugmitting(true);
 
         // Backend chỉ lưu name/email/subject/message nên các thông tin bổ sung được đính kèm vào cuối nội dung
         const extraLines = [
@@ -143,7 +143,7 @@ export default function ContactPage() {
             message: messageWithExtras,
         });
 
-        setIsSubmitting(false);
+        setIsSugmitting(false);
 
         if (res.success) {
             showToast('success', 'Gửi liên hệ thành công! Chúng tôi sẽ phản hồi Quý khách trong thời gian sớm nhất.');
@@ -270,7 +270,7 @@ export default function ContactPage() {
                                         value={formData.fullName}
                                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                         placeholder="Nguyễn Văn A"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
@@ -283,7 +283,7 @@ export default function ContactPage() {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         placeholder="(+84) 90 123 4567"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                             </div>
@@ -299,7 +299,7 @@ export default function ContactPage() {
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         placeholder="guest@domain.com"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
@@ -310,7 +310,7 @@ export default function ContactPage() {
                                         <select
                                             value={formData.department}
                                             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:bg-white transition shadow-2xs appearance-none pr-10 cursor-pointer"
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs appearance-none pr-10 cursor-pointer"
                                         >
                                             <option value="reservations">Đặt phòng lưu trú & Suite</option>
                                             <option value="dining">Dịch vụ Ẩm thực & Bar (F&B)</option>
@@ -335,7 +335,7 @@ export default function ContactPage() {
                                     value={formData.subject}
                                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                     placeholder="Ví dụ: Đặt phòng Ocean Penthouse dịp kỷ niệm ngày cưới"
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:bg-white transition shadow-2xs"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                 />
                             </div>
 
@@ -353,7 +353,7 @@ export default function ContactPage() {
                                     value={formData.message}
                                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                     placeholder="Quý khách có thể cung cấp thêm thông tin về số lượng khách, chế độ ăn uống đặc biệt (thuần chay, gluten-free), sở thích gối lông vũ / thảo mộc, hoặc mong muốn đón sân bay chuyên biệt..."
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
                                 />
                             </div>
 
@@ -374,7 +374,7 @@ export default function ContactPage() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? (
                                     <>

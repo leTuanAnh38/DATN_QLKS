@@ -144,7 +144,7 @@ export default function NewsDetail() {
                         </p>
                         <Link
                             to="/news"
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             <span>Quay lại Trang Tin Tức</span>
@@ -251,7 +251,7 @@ export default function NewsDetail() {
                                     <button
                                         type="button"
                                         onClick={handleCopyLink}
-                                        className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl shadow-md shadow-amber-500/20 transition cursor-pointer flex items-center gap-2"
+                                        className="px-4 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center gap-2"
                                     >
                                         {isCopied ? (
                                             <>
@@ -329,7 +329,7 @@ export default function NewsDetail() {
                                 </p>
                                 <Link
                                     to="/rooms"
-                                    className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs text-center rounded-xl shadow-md shadow-amber-500/20 transition group"
+                                    className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs text-center rounded-xl shadow-md shadow-sky-900/20 transition group"
                                 >
                                     <span>Khám Phá Phòng Nghỉ</span>
                                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

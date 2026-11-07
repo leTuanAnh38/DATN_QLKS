@@ -284,7 +284,7 @@ export default function Profile() {
                     </p>
                     <Link
                         to="/login"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/30 transition duration-200"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 transition duration-200"
                     >
                         <span>🔑 Đăng nhập ngay</span>
                     </Link>
@@ -305,7 +305,7 @@ export default function Profile() {
             <div className="bg-slate-100/80 border-b border-slate-200/60 py-2.5">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                        <Link to="/" className="hover:text-sky-600 transition">Trang chủ</Link>
                         <span>/</span>
                         <span className="text-slate-900 font-semibold">Tài khoản & Hồ sơ</span>
                     </nav>
@@ -313,11 +313,12 @@ export default function Profile() {
             </div>
 
             {/* 2. HEADER TIÊU ĐỀ & ĐIỀU HƯỚNG */}
-            <header className="bg-white border-b border-slate-200/80 pt-6 pb-2 shadow-2xs">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <header className="bg-white border-b border-slate-200/80 pt-6 pb-2 shadow-2xs relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                           
+                            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 tracking-tight">
                                 Hồ Sơ Của Tôi
                             </h1>
                             <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -328,7 +329,7 @@ export default function Profile() {
                         {isStaffRole(user) && (
                             <Link
                                 to="/admin"
-                                className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition flex items-center gap-1.5 self-start sm:self-auto"
+                                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white shadow-md shadow-sky-900/15 transition flex items-center gap-1.5 self-start sm:self-auto"
                             >
                                 <span>Vào Bàn Quản Trị</span>
                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -346,7 +347,7 @@ export default function Profile() {
                             }}
                             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
                                 activeTab === 'info'
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                                    ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                         >
@@ -362,14 +363,16 @@ export default function Profile() {
                             }}
                             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
                                 activeTab === 'membership'
-                                    ? 'bg-amber-600 text-white shadow-md shadow-amber-500/25'
+                                    ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                         >
-                            <Award className="w-4 h-4" />
+                            <Award className="w-4 h-4 text-amber-500" />
                             <span>Thẻ Hội Viên & Điểm Thưởng</span>
-                            <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
-                                activeTab === 'membership' ? 'bg-amber-700/80 text-white' : 'bg-amber-100 text-amber-800'
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                activeTab === 'membership'
+                                    ? 'bg-amber-400/20 text-amber-200 border-amber-300/40'
+                                    : 'bg-amber-50 text-amber-800 border-amber-200/80'
                             }`}>
                                 {tierName}
                             </span>
@@ -404,11 +407,15 @@ export default function Profile() {
                         <div className="lg:col-span-4 space-y-6">
                             {/* Card Avatar */}
                             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 text-center relative overflow-hidden">
-                                <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700" />
+                                {/* Dải nền Xanh Biển Pastel dịu mắt, thanh lịch */}
+                                <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-sky-100/90 via-blue-50/80 to-cyan-100/90 border-b border-sky-200/50 overflow-hidden">
+                                    <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-sky-300/25 blur-2xl pointer-events-none" />
+                                    <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-cyan-300/25 blur-xl pointer-events-none" />
+                                </div>
 
-                                <div className="relative z-10 -mt-2 flex flex-col items-center">
+                                <div className="relative z-10 mt-1 flex flex-col items-center">
                                     <div className="relative group">
-                                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gradient-to-tr from-blue-700 via-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold text-2xl transition-transform duration-300 group-hover:scale-105">
+                                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gradient-to-tr from-sky-600 via-blue-600 to-cyan-700 flex items-center justify-center text-white font-bold text-2xl transition-transform duration-300 group-hover:scale-105">
                                             {avatarPreview ? (
                                                 <img
                                                     src={avatarPreview}
@@ -426,19 +433,27 @@ export default function Profile() {
                                                 if (!isEditing) setIsEditing(true);
                                                 fileInputRef.current?.click();
                                             }}
-                                            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white border-2 border-white shadow-md flex items-center justify-center cursor-pointer transition transform hover:scale-110"
+                                            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white border-2 border-white shadow-md flex items-center justify-center cursor-pointer transition transform hover:scale-110"
                                             title="Thay đổi ảnh đại diện"
                                         >
                                             <Camera className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
 
-                                    <h3 className="font-bold text-slate-900 text-base sm:text-lg mt-3">
+                                    <h3 className="font-serif font-bold text-slate-900 text-lg sm:text-xl mt-3">
                                         {formData.fullName || user?.username}
                                     </h3>
-                                    <p className="text-xs text-slate-400 mt-0.5 truncate max-w-full">
+                                    <p className="text-xs text-slate-500 mt-0.5 truncate max-w-full">
                                         {user?.email || 'Tài khoản khách hàng TA'}
                                     </p>
+
+                                    {/* Huy hiệu Hạng Hội Viên nổi bật ngay dưới tên */}
+                                    <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-50 via-yellow-50/80 to-amber-50 border border-amber-200/80 shadow-2xs">
+                                        <Award className="w-3.5 h-3.5 text-amber-600" />
+                                        <span className="text-[11px] font-extrabold tracking-wide text-amber-900">
+                                            Hội viên {tierName}
+                                        </span>
+                                    </div>
 
                                     {/* Action Buttons for Avatar */}
                                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -448,7 +463,7 @@ export default function Profile() {
                                                 if (!isEditing) setIsEditing(true);
                                                 fileInputRef.current?.click();
                                             }}
-                                            className="px-3.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                                            className="px-3.5 py-1.5 text-xs font-semibold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200/60 rounded-xl transition cursor-pointer flex items-center gap-1.5"
                                         >
                                             <Camera className="w-3.5 h-3.5" />
                                             <span>Chọn ảnh mới</span>
@@ -477,12 +492,12 @@ export default function Profile() {
                                             <span>Số điện thoại:</span>
                                         </span>
                                         {formData.phoneNumber ? (
-                                            <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 text-[10px] flex items-center gap-1">
-                                                <CheckCircle2 className="w-3 h-3" />
+                                            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 text-[10px] flex items-center gap-1">
+                                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                                 Đã liên kết
                                             </span>
                                         ) : (
-                                            <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 text-[10px]">
+                                            <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 text-[10px]">
                                                 Chưa có
                                             </span>
                                         )}
@@ -493,23 +508,23 @@ export default function Profile() {
                                             <span>CCCD / Passport:</span>
                                         </span>
                                         {formData.idCardNumber ? (
-                                            <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60 text-[10px] flex items-center gap-1">
-                                                <CheckCircle2 className="w-3 h-3" />
+                                            <span className="font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/60 text-[10px] flex items-center gap-1">
+                                                <CheckCircle2 className="w-3 h-3 text-sky-600" />
                                                 Đã cập nhật
                                             </span>
                                         ) : (
-                                            <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 text-[10px]">
+                                            <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 text-[10px]">
                                                 Chưa cập nhật
                                             </span>
                                         )}
                                     </div>
                                     <div className="flex items-center justify-between py-1">
                                         <span className="text-slate-500 flex items-center gap-1.5">
-                                            <Award className="w-3.5 h-3.5 text-slate-400" />
-                                            <span>Hạng hội viên:</span>
+                                            <Award className="w-3.5 h-3.5 text-amber-500" />
+                                            <span>Điểm tích lũy:</span>
                                         </span>
                                         <span className="font-bold text-slate-800">
-                                            {tierName}
+                                            {totalPoints.toLocaleString('vi-VN')} pts
                                         </span>
                                     </div>
                                 </div>
@@ -523,10 +538,10 @@ export default function Profile() {
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('membership')}
-                                    className="w-full p-2.5 rounded-xl hover:bg-amber-50/60 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full p-2.5 rounded-xl hover:bg-amber-50/70 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
-                                        <Award className="w-4 h-4 text-amber-600" />
+                                        <Award className="w-4 h-4 text-amber-500" />
                                         <span>Thẻ Hội Viên & Điểm Tích Lũy</span>
                                     </span>
                                     <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
@@ -534,30 +549,30 @@ export default function Profile() {
                                 <button
                                     type="button"
                                     onClick={() => setIsChangePasswordOpen(true)}
-                                    className="w-full p-2.5 rounded-xl hover:bg-blue-50/60 text-slate-700 hover:text-blue-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
-                                        <Lock className="w-4 h-4 text-blue-600" />
+                                        <Lock className="w-4 h-4 text-sky-600" />
                                         <span>Đổi Mật Khẩu Đăng Nhập</span>
                                     </span>
                                     <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                                 <Link
                                     to="/booking-history"
-                                    className="w-full p-2.5 rounded-xl hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
-                                        <History className="w-4 h-4 text-indigo-600" />
+                                        <History className="w-4 h-4 text-sky-600" />
                                         <span>Lịch Sử Đặt Phòng & Tra Cứu</span>
                                     </span>
                                     <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                                 </Link>
                                 <Link
                                     to="/promotions"
-                                    className="w-full p-2.5 rounded-xl hover:bg-purple-50/60 text-slate-700 hover:text-purple-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
-                                        <Ticket className="w-4 h-4 text-purple-600" />
+                                        <Ticket className="w-4 h-4 text-sky-600" />
                                         <span>Mã Giảm Giá Của Tôi</span>
                                     </span>
                                     <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
@@ -583,8 +598,8 @@ export default function Profile() {
                             {/* Card Header with Quick Edit Trigger Button */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-6 border-b border-slate-100">
                                 <div>
-                                    <div className="flex items-center gap-2.5">
-                                        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                    <div className="flex items-center gap-2.5 flex-wrap">
+                                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
                                             {isEditing ? 'Chỉnh Sửa Hồ Sơ Cá Nhân' : 'Hồ Sơ Định Danh & Liên Hệ'}
                                         </h2>
                                         {isEditing ? (
@@ -592,7 +607,7 @@ export default function Profile() {
                                                 Đang chỉnh sửa
                                             </span>
                                         ) : (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/70">
                                                 Chế độ xem
                                             </span>
                                         )}
@@ -609,7 +624,7 @@ export default function Profile() {
                                     <button
                                         type="button"
                                         onClick={() => setIsEditing(true)}
-                                        className="self-start sm:self-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                                        className="self-start sm:self-auto px-4 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/15 transition flex items-center gap-1.5 cursor-pointer shrink-0"
                                     >
                                         <Edit3 className="w-3.5 h-3.5" />
                                         <span>Chỉnh Sửa Hồ Sơ</span>
@@ -622,8 +637,8 @@ export default function Profile() {
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {/* Họ và tên */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
-                                            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
+                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <User className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0">
@@ -637,8 +652,8 @@ export default function Profile() {
                                         </div>
 
                                         {/* Số điện thoại */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
-                                            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
+                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <Phone className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -652,15 +667,21 @@ export default function Profile() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 font-mono">
-                                                    {formData.phoneNumber || 'Chưa cập nhật'}
-                                                </span>
+                                                {formData.phoneNumber ? (
+                                                    <span className="font-bold text-slate-900 text-sm block mt-0.5 font-mono">
+                                                        {formData.phoneNumber}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 italic text-xs block mt-0.5">
+                                                        Chưa cập nhật số điện thoại
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Email */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
-                                            <div className="p-2 rounded-xl bg-purple-50 text-purple-600 shrink-0">
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
+                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <Mail className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -669,7 +690,7 @@ export default function Profile() {
                                                         Địa chỉ Email
                                                     </span>
                                                     {formData.email && (
-                                                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200/60">
+                                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60">
                                                             Đã xác minh
                                                         </span>
                                                     )}
@@ -681,38 +702,61 @@ export default function Profile() {
                                         </div>
 
                                         {/* Giấy tờ định danh */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
-                                            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
+                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <CreditCard className="w-4 h-4" />
                                             </div>
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                                                     {formData.idType === 'PASSPORT' ? 'Hộ chiếu (Passport)' : 'Căn cước công dân (CCCD)'}
                                                 </span>
-                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 font-mono">
-                                                    {formData.idCardNumber || 'Chưa cập nhật'}
-                                                </span>
+                                                {formData.idCardNumber ? (
+                                                    <span className="font-bold text-slate-900 text-sm block mt-0.5 font-mono">
+                                                        {formData.idCardNumber}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 italic text-xs block mt-0.5">
+                                                        Chưa cập nhật giấy tờ
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Ngày sinh */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
-                                            <div className="p-2 rounded-xl bg-amber-50 text-amber-600 shrink-0">
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
+                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <Calendar className="w-4 h-4" />
                                             </div>
-                                            <div className="min-w-0">
-                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                                                    Ngày sinh
-                                                </span>
-                                                <span className="font-bold text-slate-900 text-sm block mt-0.5 font-sans tabular-nums">
-                                                    {formatDateVN(formData.dateOfBirth)}
-                                                </span>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                                        Ngày sinh
+                                                    </span>
+                                                    {!formData.dateOfBirth && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsEditing(true)}
+                                                            className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline cursor-pointer"
+                                                        >
+                                                            + Bổ sung
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {formData.dateOfBirth ? (
+                                                    <span className="font-bold text-slate-900 text-sm block mt-0.5 font-sans tabular-nums">
+                                                        {formatDateVN(formData.dateOfBirth)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 italic text-xs block mt-0.5">
+                                                        Chưa cập nhật (Nhận ưu đãi sinh nhật)
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Giới tính */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
-                                            <div className="p-2 rounded-xl bg-teal-50 text-teal-600 shrink-0">
+                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
+                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <UserCheck className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0">
@@ -726,17 +770,23 @@ export default function Profile() {
                                         </div>
 
                                         {/* Địa chỉ thường trú */}
-                                        <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-start gap-3">
-                                            <div className="p-2 rounded-xl bg-rose-50 text-rose-600 shrink-0">
+                                        <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
+                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <MapPin className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                                                     Địa chỉ thường trú / Thành phố
                                                 </span>
-                                                <span className="font-bold text-slate-900 text-sm block mt-0.5">
-                                                    {formData.address || 'Chưa cập nhật địa chỉ thường trú'}
-                                                </span>
+                                                {formData.address ? (
+                                                    <span className="font-bold text-slate-900 text-sm block mt-0.5">
+                                                        {formData.address}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 italic text-xs block mt-0.5">
+                                                        Chưa cập nhật địa chỉ thường trú
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -770,7 +820,7 @@ export default function Profile() {
                                                 value={formData.fullName}
                                                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                                 placeholder="Ví dụ: Nguyễn Văn An"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -785,7 +835,7 @@ export default function Profile() {
                                                 value={formData.phoneNumber}
                                                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                                                 placeholder="Ví dụ: 0912345678"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition font-mono"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
                                             />
                                         </div>
 
@@ -800,7 +850,7 @@ export default function Profile() {
                                                 value={formData.email}
                                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                                 placeholder="email@example.com"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -813,7 +863,7 @@ export default function Profile() {
                                                 <select
                                                     value={formData.idType}
                                                     onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
-                                                    className="w-32 px-2.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition cursor-pointer"
+                                                    className="w-32 px-2.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
                                                 >
                                                     <option value="CCCD">CCCD / CMND</option>
                                                     <option value="PASSPORT">Hộ chiếu</option>
@@ -824,7 +874,7 @@ export default function Profile() {
                                                     value={formData.idCardNumber}
                                                     onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
                                                     placeholder="Nhập số giấy tờ"
-                                                    className="flex-1 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition font-mono"
+                                                    className="flex-1 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
                                                 />
                                             </div>
                                         </div>
@@ -838,7 +888,7 @@ export default function Profile() {
                                                 type="date"
                                                 value={formData.dateOfBirth}
                                                 onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition cursor-pointer"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
                                             />
                                         </div>
 
@@ -850,7 +900,7 @@ export default function Profile() {
                                             <select
                                                 value={formData.gender}
                                                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition cursor-pointer"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
                                             >
                                                 <option value="Nam">Nam</option>
                                                 <option value="Nữ">Nữ</option>
@@ -868,7 +918,7 @@ export default function Profile() {
                                                 value={formData.nationality}
                                                 onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
                                                 placeholder="Ví dụ: Việt Nam"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -882,7 +932,7 @@ export default function Profile() {
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                                 placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -896,7 +946,7 @@ export default function Profile() {
                                                 value={formData.preferences}
                                                 onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
                                                 placeholder="Ví dụ: Thích phòng tầng cao, gối lông vũ mềm, không hút thuốc, đồ ăn ít đường..."
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition resize-none"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition resize-none"
                                             />
                                         </div>
                                     </div>
@@ -918,7 +968,7 @@ export default function Profile() {
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 transition flex items-center gap-2 cursor-pointer"
+                                                className="px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition flex items-center gap-2 cursor-pointer"
                                             >
                                                 {isLoading && (
                                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -947,10 +997,10 @@ export default function Profile() {
                             <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
                                 <div>
                                     <div className="flex items-center gap-2.5 mb-3">
-                                        <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                                        <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
                                             <Award className="w-5 h-5" />
                                         </div>
-                                        <h3 className="font-bold text-slate-900 text-base">
+                                        <h3 className="font-serif font-bold text-slate-900 text-lg">
                                             Chính Sách Tích Lũy Điểm
                                         </h3>
                                     </div>
@@ -976,7 +1026,7 @@ export default function Profile() {
                                     <span className="text-slate-500">Tích thêm điểm ngay:</span>
                                     <Link
                                         to="/rooms"
-                                        className="text-blue-600 font-bold hover:underline flex items-center gap-1"
+                                        className="text-sky-600 hover:text-sky-700 font-bold hover:underline flex items-center gap-1"
                                     >
                                         <span>Đặt phòng kỳ nghỉ</span>
                                         <ArrowRight className="w-3.5 h-3.5" />
@@ -988,10 +1038,10 @@ export default function Profile() {
                             <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
                                 <div>
                                     <div className="flex items-center gap-2.5 mb-3">
-                                        <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+                                        <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
                                             <Ticket className="w-5 h-5" />
                                         </div>
-                                        <h3 className="font-bold text-slate-900 text-base">
+                                        <h3 className="font-serif font-bold text-slate-900 text-lg">
                                             Voucher & Ưu Đãi Dành Riêng
                                         </h3>
                                     </div>
@@ -1007,7 +1057,7 @@ export default function Profile() {
                                         </div>
                                         <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
                                             <span className="text-[10px] uppercase font-bold text-slate-400 block">Lễ tân đón tiếp</span>
-                                            <strong className="text-purple-700 font-bold text-sm mt-0.5 block">
+                                            <strong className="text-sky-700 font-bold text-sm mt-0.5 block">
                                                 VIP Concierge
                                             </strong>
                                         </div>
@@ -1017,7 +1067,7 @@ export default function Profile() {
                                     <span className="text-slate-500">Xem danh sách voucher:</span>
                                     <Link
                                         to="/promotions"
-                                        className="text-purple-600 font-bold hover:underline flex items-center gap-1"
+                                        className="text-sky-600 hover:text-sky-700 font-bold hover:underline flex items-center gap-1"
                                     >
                                         <span>Khám phá ưu đãi</span>
                                         <ArrowRight className="w-3.5 h-3.5" />

@@ -207,16 +207,16 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                     {step < 3 && (
                         <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100/80">
                             <div className={`flex items-center gap-2 text-xs font-semibold ${step === 1 ? 'text-amber-600' : 'text-slate-400'}`}>
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                     1
                                 </span>
                                 <span>Nhập Email</span>
                             </div>
                             <div className="flex-1 h-0.5 bg-slate-100 mx-1">
-                                <div className={`h-full bg-amber-500 transition-all duration-300 ${step === 2 ? 'w-full' : 'w-0'}`} />
+                                <div className={`h-full bg-sky-600 transition-all duration-300 ${step === 2 ? 'w-full' : 'w-0'}`} />
                             </div>
                             <div className={`flex items-center gap-2 text-xs font-semibold ${step === 2 ? 'text-amber-600' : 'text-slate-400'}`}>
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                     2
                                 </span>
                                 <span>Xác thực OTP & Đổi mật khẩu</span>
@@ -273,7 +273,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-amber-500/25 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? (
                                     <>
@@ -410,7 +410,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-amber-500/25 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? (
                                     <>

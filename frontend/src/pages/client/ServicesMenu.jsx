@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import hotelService from '../../services/hotelService';
@@ -151,6 +151,7 @@ export const getServiceLabels = (serviceName = '', categoryName = '') => {
 };
 
 export default function ServicesMenu() {
+    const location = useLocation();
     const { user, isAuthenticated } = useAuth();
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
@@ -360,6 +361,16 @@ export default function ServicesMenu() {
             window.removeEventListener('focus', handleFocus);
         };
     }, [isAuthenticated]);
+
+    // Tự động mở modal lịch sử dịch vụ khi URL có ?history=true hoặc ?tab=history (VD: được điều hướng từ chuông thông báo)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('history') === 'true' || params.get('tab') === 'history' || location.state?.openHistory) {
+            const targetBooking = !isAuthenticated ? sessionStorage.getItem('pms_guest_booking_code') : null;
+            fetchOrderHistory(false, targetBooking);
+            setIsHistoryModalOpen(true);
+        }
+    }, [location.search, location.state, isAuthenticated]);
 
     // Lọc danh sách món / dịch vụ
     const filteredItems = useMemo(() => {
@@ -757,7 +768,7 @@ export default function ServicesMenu() {
     }, [sortedHistory, historyPage]);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white flex flex-col justify-between">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white flex flex-col justify-between">
             <div>
                 <Navbar />
 
@@ -808,7 +819,7 @@ export default function ServicesMenu() {
                                         {activeBookings.map((b) => (
                                             <span
                                                 key={b.id}
-                                                className="px-3 py-1 rounded-lg bg-amber-600 text-white font-semibold text-[11px] shadow-xs"
+                                                className="px-3 py-1 rounded-lg bg-gradient-to-r from-sky-600 to-blue-700 text-white font-semibold text-[11px] shadow-xs"
                                             >
                                                 Phòng {b.room_number} • Mã #{b.booking_code}
                                             </span>
@@ -912,7 +923,7 @@ export default function ServicesMenu() {
                             <button
                                 type="button"
                                 onClick={() => setSuccessOrderInfo(null)}
-                                className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white rounded-xl text-xs font-bold transition shadow-md shadow-amber-500/25 cursor-pointer"
+                                className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white rounded-xl text-xs font-bold transition shadow-md shadow-sky-900/20 cursor-pointer"
                             >
                                 Đã hiểu & Tiếp tục xem Menu
                             </button>
@@ -931,7 +942,7 @@ export default function ServicesMenu() {
                                 onClick={() => setSelectedCategory('all')}
                                 className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 ${
                                     selectedCategory === 'all'
-                                        ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25 ring-1 ring-amber-500'
+                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-1 ring-sky-500'
                                         : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
                                 }`}
                             >
@@ -946,7 +957,7 @@ export default function ServicesMenu() {
                                     onClick={() => setSelectedCategory(cat.id)}
                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 ${
                                         String(selectedCategory) === String(cat.id)
-                                            ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25 ring-1 ring-amber-500'
+                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-1 ring-sky-500'
                                             : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
                                     }`}
                                 >
@@ -973,7 +984,7 @@ export default function ServicesMenu() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Tìm món ăn, đồ uống, spa, tiện ích..."
-                                    className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs transition"
+                                    className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition"
                                 />
                                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                                 {searchQuery && (
@@ -988,20 +999,6 @@ export default function ServicesMenu() {
                                 )}
                             </div>
 
-                            {cart.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCartModalOpen(true)}
-                                    className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold text-xs flex items-center gap-2 transition cursor-pointer shrink-0 shadow-md shadow-amber-600/25 border border-amber-400/40 active:scale-95"
-                                    title="Xem giỏ món dịch vụ"
-                                >
-                                    <ShoppingBag className="w-4 h-4 text-amber-200" />
-                                    <span className="hidden sm:inline">Giỏ dịch vụ</span>
-                                    <span className="px-1.5 py-0.2 rounded-full bg-white text-slate-900 text-[10px] font-black">
-                                        {totalCartCount}
-                                    </span>
-                                </button>
-                            )}
                         </div>
                     </div>
 
@@ -1030,7 +1027,7 @@ export default function ServicesMenu() {
                                     setSelectedCategory('all');
                                     setSearchQuery('');
                                 }}
-                                className="mt-3 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-bold transition shadow-md shadow-amber-600/25 cursor-pointer"
+                                className="mt-3 px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white rounded-xl text-xs font-bold transition shadow-md shadow-sky-900/20 cursor-pointer"
                             >
                                 Xem tất cả thực đơn
                             </button>
@@ -1106,8 +1103,8 @@ export default function ServicesMenu() {
                                                 </div>
 
                                                 {inCart && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-bold shadow-2xs shrink-0">
-                                                        <Check className="w-3 h-3 text-amber-600 stroke-[3]" />
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-300 text-sky-900 text-[11px] font-bold shadow-2xs shrink-0">
+                                                        <Check className="w-3 h-3 text-sky-600 stroke-[3]" />
                                                         Trong giỏ: {inCart.quantity}
                                                     </span>
                                                 )}
@@ -1116,22 +1113,22 @@ export default function ServicesMenu() {
                                             {/* Hàng 2: Nút thao tác (Không bao giờ bị tràn lề) */}
                                             {inCart ? (
                                                 <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                                    <div className="inline-flex items-center justify-between border border-amber-300 rounded-xl bg-amber-50/80 shadow-2xs overflow-hidden h-9">
+                                                    <div className="inline-flex items-center justify-between border border-sky-300 rounded-xl bg-sky-50/80 shadow-2xs overflow-hidden h-9">
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQuantity(item.id, -1, true)}
-                                                            className="w-8 h-full flex items-center justify-center text-amber-900 hover:bg-amber-200/60 transition cursor-pointer"
+                                                            className="w-8 h-full flex items-center justify-center text-sky-900 hover:bg-sky-200/60 transition cursor-pointer"
                                                             title="Giảm 1"
                                                         >
                                                             <Minus className="w-3.5 h-3.5" />
                                                         </button>
-                                                        <span className="text-xs font-black text-amber-950 px-1 text-center">
+                                                        <span className="text-xs font-black text-sky-950 px-1 text-center">
                                                             {inCart.quantity}
                                                         </span>
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQuantity(item.id, 1, true)}
-                                                            className="w-8 h-full flex items-center justify-center text-amber-900 hover:bg-amber-200/60 transition cursor-pointer"
+                                                            className="w-8 h-full flex items-center justify-center text-sky-900 hover:bg-sky-200/60 transition cursor-pointer"
                                                             title="Tăng 1"
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
@@ -1140,7 +1137,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-9 px-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
+                                                        className="h-9 px-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-sky-900/20 cursor-pointer"
                                                         title="Gọi riêng món này ngay"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
@@ -1152,16 +1149,16 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => addToCart(item, 1)}
-                                                        className="h-9 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
+                                                        className="h-9 px-2 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-900 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
                                                         title="Thêm món này vào giỏ để gọi nhiều món một lúc"
                                                     >
-                                                        <Plus className="w-3.5 h-3.5 text-amber-600 stroke-[2.5]" />
+                                                        <Plus className="w-3.5 h-3.5 text-sky-600 stroke-[2.5]" />
                                                         <span>Thêm giỏ</span>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-9 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                                        className="h-9 px-2 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-1"
                                                         title="Gọi riêng món này ngay lập tức"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
@@ -1215,7 +1212,7 @@ export default function ServicesMenu() {
                                             aria-current={p === safePage ? 'page' : undefined}
                                             className={`w-9 h-9 rounded-xl text-xs font-bold transition cursor-pointer border ${
                                                 p === safePage
-                                                    ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/25'
+                                                    ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white border-sky-600 shadow-md shadow-sky-900/20'
                                                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                                             }`}
                                         >
@@ -1309,7 +1306,7 @@ export default function ServicesMenu() {
                                                     value={selectedBookingId}
                                                     onChange={(e) => setSelectedBookingId(e.target.value)}
                                                     required
-                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
+                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                                                 >
                                                     {activeBookings.map((b) => (
                                                         <option key={b.id} value={b.id}>
@@ -1339,7 +1336,7 @@ export default function ServicesMenu() {
                                                     onChange={(e) => setSelectedBookingId(e.target.value.toUpperCase())}
                                                     placeholder="Nhập Mã Booking (VD: BK-02DE4E)"
                                                     required
-                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase tracking-wider shadow-2xs"
+                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 uppercase tracking-wider shadow-2xs"
                                                 />
                                             </div>
                                         )}
@@ -1409,7 +1406,7 @@ export default function ServicesMenu() {
                                                 }`}
                                             >
                                                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                                    deliveryMode === 'now' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                    deliveryMode === 'now' ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white' : 'bg-slate-100 text-slate-500'
                                                 }`}>
                                                     <Zap className="w-3.5 h-3.5" />
                                                 </div>
@@ -1435,7 +1432,7 @@ export default function ServicesMenu() {
                                                 }`}
                                             >
                                                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                                    deliveryMode === 'scheduled' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                    deliveryMode === 'scheduled' ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white' : 'bg-slate-100 text-slate-500'
                                                 }`}>
                                                     <Clock className="w-3.5 h-3.5" />
                                                 </div>
@@ -1464,7 +1461,7 @@ export default function ServicesMenu() {
                                                                 const d = new Date(Date.now() + item.mins * 60 * 1000);
                                                                 setScheduledDateTime(formatToLocalDateTimeString(d));
                                                             }}
-                                                            className="px-2 py-1 rounded-lg bg-white hover:bg-amber-100 border border-slate-200 text-slate-700 text-[10px] font-semibold transition cursor-pointer"
+                                                            className="px-2 py-1 rounded-lg bg-white hover:bg-sky-100 border border-slate-200 text-slate-700 text-[10px] font-semibold transition cursor-pointer"
                                                         >
                                                             {item.label}
                                                         </button>
@@ -1480,7 +1477,7 @@ export default function ServicesMenu() {
                                                         value={scheduledDateTime}
                                                         min={formatToLocalDateTimeString(new Date())}
                                                         onChange={(e) => setScheduledDateTime(e.target.value)}
-                                                        className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                                        className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                                     />
                                                 </div>
 
@@ -1501,7 +1498,7 @@ export default function ServicesMenu() {
                                             value={note}
                                             onChange={(e) => setNote(e.target.value)}
                                             placeholder="Ví dụ: Mang lên lúc 19:30, ít đường, nhiều đá, khăn tắm thêm, sốt để riêng..."
-                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs resize-none"
+                                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs resize-none"
                                         ></textarea>
                                     </div>
                                 </div>
@@ -1519,7 +1516,7 @@ export default function ServicesMenu() {
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                                     >
                                         {isSubmitting ? (
                                             <>
@@ -1544,27 +1541,14 @@ export default function ServicesMenu() {
                     <button
                         type="button"
                         onClick={() => setIsCartModalOpen(true)}
-                        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 px-5 py-3.5 rounded-full bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-white shadow-2xl shadow-amber-600/40 border border-amber-400/50 font-bold text-xs flex items-center gap-3 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
+                        className="fixed bottom-[4.5rem] left-4 sm:bottom-[5.25rem] sm:left-6 z-40 px-4 py-3 rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-xl shadow-sky-900/30 border border-sky-300/40 font-bold text-xs flex items-center gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
                         title="Xem giỏ dịch vụ và gửi yêu cầu nhiều món cùng lúc"
                     >
-                        <div className="relative">
-                            <ShoppingBag className="w-5 h-5 text-amber-200 group-hover:rotate-12 transition-transform" />
-                            <span className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-black shadow-xs">
-                                {totalCartCount}
-                            </span>
-                        </div>
-                        <div className="text-left">
-                            <div className="text-[11px] font-medium text-amber-200 leading-tight">
-                                Giỏ món ({cart.length})
-                            </div>
-                            <div className="text-sm font-black tracking-tight">
-                                {totalCartPrice.toLocaleString('vi-VN')} VND
-                            </div>
-                        </div>
-                        <div className="pl-1 border-l border-amber-500/40 flex items-center gap-1 text-amber-200 group-hover:text-white">
-                            <span className="text-xs font-bold hidden sm:inline">Xem & Đặt</span>
-                            <ChevronRight className="w-4 h-4" />
-                        </div>
+                        <ShoppingBag className="w-4 h-4 text-sky-100 group-hover:rotate-12 transition-transform" />
+                        <span>Giỏ Dịch Vụ</span>
+                        <span className="px-2 py-0.5 rounded-full bg-white text-sky-800 text-[10px] font-black shadow-xs">
+                            {totalCartCount}
+                        </span>
                     </button>
                 )}
 
@@ -1633,7 +1617,7 @@ export default function ServicesMenu() {
                                     <button
                                         type="button"
                                         onClick={() => setIsCartModalOpen(false)}
-                                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold transition shadow-md shadow-amber-500/25 cursor-pointer"
+                                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition shadow-md shadow-sky-900/20 cursor-pointer"
                                     >
                                         Khám phá Menu dịch vụ
                                     </button>
@@ -1719,7 +1703,7 @@ export default function ServicesMenu() {
                                                                 value={ci.note || ''}
                                                                 onChange={(e) => updateCartItemNote(ci.id, e.target.value)}
                                                                 placeholder="Ghi chú món này (VD: ít đá, không hành, sốt để riêng...)"
-                                                                className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                                                                className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500"
                                                             />
                                                         </div>
                                                     </div>
@@ -1737,7 +1721,7 @@ export default function ServicesMenu() {
                                                     value={cartBookingId}
                                                     onChange={(e) => setCartBookingId(e.target.value)}
                                                     required
-                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
+                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                                                 >
                                                     {activeBookings.map((b) => (
                                                         <option key={b.id} value={b.id}>
@@ -1752,7 +1736,7 @@ export default function ServicesMenu() {
                                                     onChange={(e) => setCartBookingId(e.target.value.toUpperCase())}
                                                     placeholder="Nhập Mã Booking (VD: BK-02DE4E in trên bìa thẻ phòng)"
                                                     required
-                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase tracking-wider shadow-2xs"
+                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 uppercase tracking-wider shadow-2xs"
                                                 />
                                             )}
                                             <span className="text-[10px] text-slate-400 mt-1 block">
@@ -1779,7 +1763,7 @@ export default function ServicesMenu() {
                                                     }`}
                                                 >
                                                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                                        cartDeliveryMode === 'now' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                        cartDeliveryMode === 'now' ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white' : 'bg-slate-100 text-slate-500'
                                                     }`}>
                                                         <Zap className="w-3.5 h-3.5" />
                                                     </div>
@@ -1805,7 +1789,7 @@ export default function ServicesMenu() {
                                                     }`}
                                                 >
                                                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                                        cartDeliveryMode === 'scheduled' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'
+                                                        cartDeliveryMode === 'scheduled' ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white' : 'bg-slate-100 text-slate-500'
                                                     }`}>
                                                         <Clock className="w-3.5 h-3.5" />
                                                     </div>
@@ -1833,7 +1817,7 @@ export default function ServicesMenu() {
                                                                     const d = new Date(Date.now() + item.mins * 60 * 1000);
                                                                     setCartScheduledDateTime(formatToLocalDateTimeString(d));
                                                                 }}
-                                                                className="px-2 py-1 rounded-lg bg-white hover:bg-amber-100 border border-slate-200 text-slate-700 text-[10px] font-semibold transition cursor-pointer"
+                                                                className="px-2 py-1 rounded-lg bg-white hover:bg-sky-100 border border-slate-200 text-slate-700 text-[10px] font-semibold transition cursor-pointer"
                                                             >
                                                                 {item.label}
                                                             </button>
@@ -1849,7 +1833,7 @@ export default function ServicesMenu() {
                                                             value={cartScheduledDateTime}
                                                             min={formatToLocalDateTimeString(new Date())}
                                                             onChange={(e) => setCartScheduledDateTime(e.target.value)}
-                                                            className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                                            className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                                         />
                                                     </div>
                                                 </div>
@@ -1866,7 +1850,7 @@ export default function ServicesMenu() {
                                                 value={cartGeneralNote}
                                                 onChange={(e) => setCartGeneralNote(e.target.value)}
                                                 placeholder="Ví dụ: Giao cùng lúc khi các món đã nấu xong, mang thêm 2 bộ chén đĩa..."
-                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
+                                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                                             />
                                         </div>
 
@@ -1901,7 +1885,7 @@ export default function ServicesMenu() {
                                         <button
                                             type="submit"
                                             disabled={isSubmittingCart}
-                                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                                         >
                                             {isSubmittingCart ? (
                                                 <>
@@ -2031,7 +2015,7 @@ export default function ServicesMenu() {
                                             onClick={() => setHistoryFilter(tab.key)}
                                             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                                                 isActive
-                                                    ? 'bg-amber-600 text-white shadow-sm ring-1 ring-amber-500'
+                                                    ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-sm ring-1 ring-sky-500'
                                                     : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
                                             }`}
                                         >
@@ -2084,7 +2068,7 @@ export default function ServicesMenu() {
                                         <button
                                             type="button"
                                             onClick={() => setIsHistoryModalOpen(false)}
-                                            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl transition shadow-md shadow-amber-500/25 cursor-pointer"
+                                            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold rounded-xl transition shadow-md shadow-sky-900/20 cursor-pointer"
                                         >
                                             Xem Menu ngay
                                         </button>
@@ -2371,7 +2355,7 @@ export default function ServicesMenu() {
                                                 onClick={() => setHistoryPage(p)}
                                                 className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
                                                     historyPage === p
-                                                        ? 'bg-amber-600 text-white shadow-xs'
+                                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-xs'
                                                         : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                                                 }`}
                                             >

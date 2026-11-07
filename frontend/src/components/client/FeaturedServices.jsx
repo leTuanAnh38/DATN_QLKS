@@ -138,7 +138,7 @@ export default function FeaturedServices() {
         <section id="menu-dich-vu" className="py-20 bg-gradient-to-b from-white via-slate-50 to-slate-100 relative overflow-hidden">
             {/* Background Decorator Lights */}
             <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-amber-200/20 blur-[130px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-10 right-0 w-[450px] h-[450px] bg-blue-100/30 blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-10 right-0 w-[450px] h-[450px] bg-amber-100/20 blur-[120px] rounded-full pointer-events-none" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 {/* 1. SECTION HEADER */}
@@ -149,7 +149,7 @@ export default function FeaturedServices() {
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Tinh Hoa Dịch Vụ Nghỉ Dưỡng <br />
-                        <span className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent">
                             Phục Vụ Tận Phòng 24/7
                         </span>
                     </h2>
@@ -173,7 +173,7 @@ export default function FeaturedServices() {
                                     onClick={() => setActiveFilter(tab.id)}
                                     className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-xs cursor-pointer ${
                                         activeFilter === tab.id
-                                            ? 'bg-amber-500 text-white shadow-md scale-105 border border-amber-500'
+                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 scale-105 border border-sky-600'
                                             : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
                                     }`}
                                 >
@@ -212,7 +212,7 @@ export default function FeaturedServices() {
                         <p className="text-xs text-slate-500 mt-1 mb-4">Vui lòng chọn tab khác hoặc xem toàn bộ danh mục dịch vụ.</p>
                         <button
                             onClick={() => setActiveFilter('all')}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition cursor-pointer"
+                            className="px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-900/20 transition cursor-pointer"
                         >
                             Xem Tất Cả
                         </button>
@@ -228,10 +228,10 @@ export default function FeaturedServices() {
                             return (
                                 <div
                                     key={item.id}
-                                    className="group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-amber-300 transition-all duration-300 flex flex-col justify-between"
+                                    className="group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-amber-300 transition-all duration-300 flex flex-col justify-between h-full"
                                 >
                                     {/* Image Wrapper */}
-                                    <div className="relative h-60 overflow-hidden bg-slate-100">
+                                    <div className="relative h-60 overflow-hidden bg-slate-100 shrink-0">
                                         <img
                                             src={imgSrc}
                                             alt={item.name}
@@ -247,7 +247,7 @@ export default function FeaturedServices() {
                                         </span>
 
                                         {/* Status Badge Top Right */}
-                                        <span className="absolute top-4 right-4 inline-flex items-center px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
+                                        <span className="absolute top-4 right-4 inline-flex items-center px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-600 to-amber-700 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
                                             {badgeText}
                                         </span>
 
@@ -263,23 +263,23 @@ export default function FeaturedServices() {
                                     {/* Body Content */}
                                     <div className="p-6 flex-1 flex flex-col justify-between">
                                         <div>
-                                            <h3 className="font-serif text-lg font-bold text-slate-900 group-hover:text-amber-700 transition line-clamp-1 mb-2">
+                                            <h3 className="font-serif text-lg font-bold text-slate-900 group-hover:text-amber-700 transition line-clamp-1 min-h-[1.75rem] mb-2">
                                                 {item.name}
                                             </h3>
-                                            <p className="text-slate-500 text-xs sm:text-sm line-clamp-2 leading-relaxed mb-6 font-normal">
+                                            <p className="text-slate-500 text-xs sm:text-sm line-clamp-2 leading-relaxed font-normal min-h-[2.5rem] mb-6">
                                                 {item.description || `Dịch vụ đẳng cấp được chế tác riêng phục vụ khách hàng lưu trú tại ${hotelName}.`}
                                             </p>
                                         </div>
 
-                                        {/* Actions */}
-                                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                                        {/* Actions pinned at bottom */}
+                                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
                                             <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
                                                 <Clock className="w-3.5 h-3.5 text-slate-400" />
                                                 <span>Phục vụ 24/7</span>
                                             </span>
                                             <Link
                                                 to="/services"
-                                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition duration-200 shadow-sm group-hover:shadow"
+                                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-bold text-xs transition duration-200 shadow-md shadow-sky-900/20 group-hover:shadow"
                                             >
                                                 <span>Xem & Đặt Món</span>
                                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -296,7 +296,7 @@ export default function FeaturedServices() {
                 <div className="mt-16 bg-white rounded-3xl p-8 sm:p-12 text-slate-800 shadow-xl shadow-slate-200/60 border border-slate-200/90 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
                     {/* Background Glow nhẹ nhàng */}
                     <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -left-20 -top-20 w-80 h-80 bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -left-20 -top-20 w-80 h-80 bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
 
                     <div className="space-y-3 text-center lg:text-left max-w-2xl relative z-10">
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200/80 shadow-xs">
@@ -314,7 +314,7 @@ export default function FeaturedServices() {
                     <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 w-full lg:w-auto relative z-10">
                         <Link
                             to="/services"
-                            className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition shadow-lg shadow-orange-500/25 text-center flex items-center justify-center gap-2"
+                            className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition shadow-lg shadow-sky-900/20 text-center flex items-center justify-center gap-2"
                         >
                             <span>Khám Phá Menu Dịch Vụ</span>
                             <ArrowRight className="w-3.5 h-3.5" />

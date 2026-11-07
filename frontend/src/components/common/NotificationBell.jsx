@@ -239,6 +239,22 @@ export default function NotificationBell({ theme = 'light' }) {
 
         // Nếu là khách hàng
         if (!isStaff) {
+            if (
+                type === 'service' || 
+                titleLower.includes('dịch vụ') || 
+                titleLower.includes('bếp') || 
+                titleLower.includes('món') || 
+                titleLower.includes('ẩm thực') || 
+                titleLower.includes('spa') || 
+                titleLower.includes('xe') || 
+                messageLower.includes('srq-') ||
+                messageLower.includes('món ăn')
+            ) {
+                return '/services?history=true';
+            }
+            if (type === 'promotion' || titleLower.includes('ưu đãi') || titleLower.includes('khuyến mãi') || titleLower.includes('voucher')) {
+                return '/promotions';
+            }
             return '/booking-history';
         }
 

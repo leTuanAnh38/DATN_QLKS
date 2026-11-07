@@ -175,7 +175,7 @@ export default function TADaNangHotelLanding() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-600 selection:text-white">
             <Navbar />
 
 
@@ -208,7 +208,7 @@ export default function TADaNangHotelLanding() {
                 <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white py-12">
                     <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight mb-4 drop-shadow-md transition-all duration-700">
                         {bannerImages[currentBanner].title} <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-sky-100 to-amber-100">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300">
                             {bannerImages[currentBanner].subtitle}
                         </span>
                     </h1>
@@ -389,7 +389,7 @@ export default function TADaNangHotelLanding() {
                             <button
                                 type="submit"
                                 title="Tìm kiếm phòng trống phù hợp"
-                                className="w-full lg:w-auto px-6 lg:px-7 h-11 lg:h-[58px] bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-md shadow-orange-500/25 hover:shadow-orange-500/40 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
+                                className="w-full lg:w-auto px-6 lg:px-7 h-11 lg:h-[58px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-md shadow-sky-900/20 hover:shadow-sky-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
                             >
                                 <Search className="w-4 h-4 shrink-0" />
                                 <span className="whitespace-nowrap">
@@ -431,8 +431,8 @@ export default function TADaNangHotelLanding() {
                 {/* Header Tiêu đề */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
                     <div>
-                        <div className="text-xs uppercase font-bold tracking-widest text-blue-600 mb-2 flex items-center gap-1.5">
-                            <Newspaper className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <div className="text-xs uppercase font-bold tracking-widest text-amber-700 mb-2 flex items-center gap-1.5">
+                            <Newspaper className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                             <span>TIN TỨC & CẨM NANG NGHỈ DƯỠNG</span>
                         </div>
                         <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
@@ -445,7 +445,7 @@ export default function TADaNangHotelLanding() {
 
                     <Link
                         to="/news"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 hover:border-blue-600 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-xs sm:text-sm font-bold transition shadow-xs whitespace-nowrap self-start md:self-auto group"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 hover:border-amber-600 hover:bg-amber-50/50 text-slate-700 hover:text-amber-800 text-xs sm:text-sm font-bold transition shadow-xs whitespace-nowrap self-start md:self-auto group"
                     >
                         <span>Xem tất cả tin tức</span>
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -467,12 +467,12 @@ export default function TADaNangHotelLanding() {
                     </div>
                 ) : latestPosts.length === 0 ? (
                     <div className="text-center py-16 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto">
-                        <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center justify-center mx-auto mb-3">
                             <Newspaper className="w-7 h-7" />
                         </div>
                         <h3 className="font-bold text-slate-800 text-base mb-1">Đang cập nhật bài viết mới</h3>
                         <p className="text-xs text-slate-500 mb-5">Hệ thống đang chuẩn bị những cẩm nang nghỉ dưỡng tuyệt vời nhất cho bạn.</p>
-                        <Link to="/news" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition">
+                        <Link to="/news" className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/20 transition">
                             Khám phá chuyên trang Tin tức
                         </Link>
                     </div>
@@ -518,7 +518,7 @@ export default function TADaNangHotelLanding() {
                                         </div>
 
                                         <Link to={`/news/${post.slug || post.id}`}>
-                                            <h3 className="font-serif font-bold text-lg text-slate-900 group-hover:text-blue-600 transition line-clamp-2 leading-snug">
+                                            <h3 className="font-serif font-bold text-lg text-slate-900 group-hover:text-amber-700 transition line-clamp-2 leading-snug">
                                                 {post.title}
                                             </h3>
                                         </Link>
@@ -537,7 +537,7 @@ export default function TADaNangHotelLanding() {
                                     </span>
                                     <Link
                                         to={`/news/${post.slug || post.id}`}
-                                        className="font-bold text-blue-600 group-hover:text-blue-700 transition flex items-center gap-1.5"
+                                        className="font-bold text-amber-700 group-hover:text-amber-800 transition flex items-center gap-1.5"
                                     >
                                         <span>Chi tiết</span>
                                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

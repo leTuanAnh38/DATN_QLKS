@@ -157,14 +157,14 @@ export default function RoomsAndSuitesPage() {
     });
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white flex flex-col">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-600 selection:text-white flex flex-col">
             <Navbar />
 
             {/* BREADCRUMB */}
             <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                        <Link to="/" className="hover:text-blue-600 transition">Trang chủ</Link>
+                        <Link to="/" className="hover:text-amber-700 transition">Trang chủ</Link>
                         <span>/</span>
                         <span className="text-slate-900 font-semibold">Phòng nghỉ & Suites</span>
                     </nav>
@@ -230,7 +230,7 @@ export default function RoomsAndSuitesPage() {
                                     onClick={() => setSelectedTab(tab.id)}
                                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                                         selectedTab === tab.id
-                                            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-md shadow-orange-500/25 scale-[1.02]'
+                                            ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 scale-[1.02]'
                                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900'
                                     }`}
                                 >
@@ -274,16 +274,16 @@ export default function RoomsAndSuitesPage() {
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
                 {/* Active Search Banner nếu có tham số tìm kiếm từ trang chủ */}
                 {hasActiveSearch && (
-                    <div className="mb-8 p-4 sm:p-5 bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 border border-blue-200/90 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                    <div className="mb-8 p-4 sm:p-5 bg-gradient-to-r from-amber-50/70 via-slate-50 to-amber-50/40 border border-amber-200/90 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                         <div className="flex items-center gap-3.5">
-                            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl font-bold shadow-md shadow-blue-600/20 shrink-0">
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center text-xl font-bold shadow-md shadow-amber-900/20 shrink-0">
                                 🔍
                             </div>
                             <div>
-                                <div className="text-[11px] text-blue-700 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                                <div className="text-[11px] text-amber-800 font-extrabold uppercase tracking-wider flex items-center gap-2">
                                     <span>Yêu cầu tìm kiếm của Quý khách</span>
                                     {searchNights > 0 && (
-                                        <span className="px-2.5 py-0.5 rounded-full bg-blue-200/70 text-blue-950 font-bold text-[10px]">
+                                        <span className="px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-950 font-bold text-[10px]">
                                             {searchNights} đêm lưu trú
                                         </span>
                                     )}
@@ -358,7 +358,7 @@ export default function RoomsAndSuitesPage() {
                                 setSearchQuery('');
                                 setSelectedTab('all');
                             }}
-                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30"
+                            className="mt-4 px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20"
                         >
                             Xem Tất Cả Hạng Phòng
                         </button>
@@ -397,7 +397,7 @@ export default function RoomsAndSuitesPage() {
                             return (
                                 <div
                                     key={room.id}
-                                    className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
+                                    className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full group"
                                 >
                                     {/* Ảnh đại diện chính to ở trên */}
                                     <div className="relative h-64 w-full overflow-hidden bg-slate-900 shrink-0">
@@ -457,20 +457,20 @@ export default function RoomsAndSuitesPage() {
                                     <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
                                         <div>
                                             {/* Tên Hạng Phòng */}
-                                            <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-1">
+                                            <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1 min-h-[1.75rem]">
                                                 <Link to={`/rooms/${room.id}`}>{room.name}</Link>
                                             </h3>
 
                                             {/* Mô tả ngắn */}
-                                            <p className="mt-3 text-xs text-slate-600 line-clamp-2 leading-relaxed font-normal">
+                                            <p className="mt-3 text-xs text-slate-600 line-clamp-2 leading-relaxed font-normal min-h-[2.5rem]">
                                                 {room.short_description ||
                                                     room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
                                                     `Phòng nghỉ thượng lưu được trang bị đầy đủ nội thất nhập khẩu, view biển panorama và tiện ích ${settings?.stars || 3} sao đồng bộ.`}
                                             </p>
                                         </div>
 
-                                        {/* Giá tiền & Nút Đặt phòng ngay */}
-                                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                                        {/* Giá tiền & Nút Đặt phòng ngay ghim thẳng hàng ở đáy thẻ */}
+                                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2 mt-auto">
                                             <div className="min-w-0 flex-1">
                                                 {hasPromo ? (
                                                     <>
@@ -514,7 +514,7 @@ export default function RoomsAndSuitesPage() {
                                                 <Link
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
-                                                    className="px-3 sm:px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-md shadow-orange-500/25 transition-all transform active:scale-95 whitespace-nowrap shrink-0 hover:scale-[1.02]"
+                                                    className="px-3 sm:px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/30 transition-all transform active:scale-95 whitespace-nowrap shrink-0 hover:scale-[1.02]"
                                                 >
                                                     Đặt ngay
                                                 </Link>

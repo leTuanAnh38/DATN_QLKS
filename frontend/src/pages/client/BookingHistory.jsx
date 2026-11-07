@@ -643,7 +643,7 @@ export default function BookingHistory() {
                         </p>
                         <Link
                             to="/login"
-                            className="px-6 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/25 transition inline-flex items-center gap-2 cursor-pointer"
+                            className="px-6 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition inline-flex items-center gap-2 cursor-pointer"
                         >
                             <LogIn className="w-4 h-4" />
                             <span>Đăng nhập ngay</span>
@@ -718,7 +718,7 @@ export default function BookingHistory() {
                                         placeholder="Tìm theo Mã đơn (BK-...), Mã đoàn (GRP-...), phòng..."
                                         value={searchKeyword}
                                         onChange={(e) => setSearchKeyword(e.target.value)}
-                                        className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                        className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                     />
                                     <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
                                     {searchKeyword && (
@@ -749,7 +749,7 @@ export default function BookingHistory() {
                                         onClick={() => setStatusFilter(tab.key)}
                                         className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                                             statusFilter === tab.key
-                                                ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-md shadow-orange-500/20'
+                                                ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                         }`}
                                     >
@@ -832,7 +832,7 @@ export default function BookingHistory() {
                                 </p>
                                 <Link
                                     to="/rooms"
-                                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition inline-flex items-center gap-2 cursor-pointer"
+                                    className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition inline-flex items-center gap-2 cursor-pointer"
                                 >
                                     <BedDouble className="w-4 h-4" />
                                     <span>Khám phá phòng nghỉ ngay</span>
@@ -1286,7 +1286,7 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setSelectedPaymentBooking(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-orange-500/25 active:scale-95"
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-sky-900/20 active:scale-95"
                                                                     title="Mở mã QR quét thanh toán chuyển khoản"
                                                                 >
                                                                     <QrCode className="w-3.5 h-3.5" />
@@ -1337,7 +1337,7 @@ export default function BookingHistory() {
                                                                                     handleOpenReviewModal(booking);
                                                                                 }
                                                                             }}
-                                                                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-amber-500/25 active:scale-95"
+                                                                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-sky-900/20 active:scale-95"
                                                                         >
                                                                             <Star className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
                                                                             <span>Đánh giá</span>
@@ -1807,7 +1807,7 @@ export default function BookingHistory() {
                                 type="button"
                                 disabled={isSubmittingReview}
                                 onClick={handleSubmitReview}
-                                className="w-1/2 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/25 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                className="w-1/2 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                             >
                                 {isSubmittingReview ? (
                                     <>
@@ -1962,7 +1962,7 @@ export default function BookingHistory() {
                         <button
                             type="button"
                             onClick={() => setViewReviewModalBooking(null)}
-                            className="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                         >
                             Đóng
                         </button>
@@ -2087,7 +2087,7 @@ export default function BookingHistory() {
                                 type="button"
                                 onClick={handleConfirmExtendStay}
                                 disabled={isSubmittingExtend || !extendCalculation.isValid}
-                                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/25 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                             >
                                 {isSubmittingExtend ? (
                                     <>

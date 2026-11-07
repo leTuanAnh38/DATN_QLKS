@@ -47,7 +47,7 @@ export default function FeaturedRoomCategories() {
     return (
         <section className="py-16 sm:py-20 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
             {/* Background elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-100/40 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20"></div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -59,7 +59,7 @@ export default function FeaturedRoomCategories() {
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
-                        <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-600 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent">
                             Đẳng Cấp & Sang Trọng
                         </span>
                     </h2>
@@ -81,7 +81,7 @@ export default function FeaturedRoomCategories() {
                                 onClick={() => setFilterType(tab.id)}
                                 className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 shadow-xs cursor-pointer ${
                                     filterType === tab.id
-                                        ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-orange-500/30 shadow-md scale-105'
+                                        ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-sky-900/20 shadow-md scale-105'
                                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 hover:border-slate-300'
                                 }`}
                             >

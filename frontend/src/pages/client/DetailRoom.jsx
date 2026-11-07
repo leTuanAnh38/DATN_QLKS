@@ -44,6 +44,18 @@ const formatDateToInput = (date) => {
     return `${year}-${month}-${day}`;
 };
 
+// Hàm tiện ích lấy ngày tiếp theo (YYYY-MM-DD) để đảm bảo Check-out luôn sau Check-in
+const getNextDayString = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        d.setDate(d.getDate() + 1);
+        return formatDateToInput(d);
+    } catch {
+        return '';
+    }
+};
+
 // Ảnh mặc định bổ trợ cao cấp nếu Hạng phòng chưa upload đủ 5 ảnh
 const FALLBACK_GALLERY = [
     {
@@ -189,6 +201,13 @@ export default function DetailRoom() {
     const [reviewComment, setReviewComment] = useState('');
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
     const [reviewToast, setReviewToast] = useState(null);
+    const [copiedShareLink, setCopiedShareLink] = useState(false);
+    const [toastNotice, setToastNotice] = useState(null);
+
+    const showToastNotice = (type, text) => {
+        setToastNotice({ type, text });
+        setTimeout(() => setToastNotice(null), 3500);
+    };
 
     const showReviewToast = (type, text) => {
         setReviewToast({ type, text });
@@ -683,7 +702,7 @@ export default function DetailRoom() {
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                             <Link
                                 to="/rooms"
-                                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-500/25 transition transform active:scale-95 flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold shadow-lg shadow-sky-900/20 transition transform active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <ArrowRight className="w-4 h-4 rotate-180" /> Xem danh sách phòng nghỉ
                             </Link>
@@ -752,16 +771,39 @@ export default function DetailRoom() {
                     <div className="flex items-center space-x-4 text-xs font-semibold text-slate-600">
                         <button
                             type="button"
-                            onClick={() => {
-                                if (navigator.clipboard) {
-                                    navigator.clipboard.writeText(window.location.href);
-                                    alert('Đã sao chép liên kết phòng vào clipboard!');
+                            onClick={async () => {
+                                try {
+                                    if (navigator?.clipboard?.writeText) {
+                                        await navigator.clipboard.writeText(window.location.href);
+                                    } else {
+                                        const ta = document.createElement('textarea');
+                                        ta.value = window.location.href;
+                                        document.body.appendChild(ta);
+                                        ta.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(ta);
+                                    }
+                                    setCopiedShareLink(true);
+                                    showToastNotice('success', 'Đã sao chép liên kết phòng vào bộ nhớ tạm thành công!');
+                                    setTimeout(() => setCopiedShareLink(false), 2500);
+                                } catch {
+                                    showToastNotice('info', 'Đã sao chép liên kết phòng!');
                                 }
                             }}
                             className="flex items-center gap-1.5 hover:text-amber-600 transition cursor-pointer"
+                            title="Chia sẻ liên kết hạng phòng"
                         >
-                            <Share2 className="w-4 h-4 text-slate-500" />
-                            Chia sẻ
+                            {copiedShareLink ? (
+                                <>
+                                    <Check className="w-4 h-4 text-emerald-600" />
+                                    <span className="text-emerald-700 font-bold">Đã sao chép</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Share2 className="w-4 h-4 text-slate-500" />
+                                    <span>Chia sẻ</span>
+                                </>
+                            )}
                         </button>
                         <button
                             type="button"
@@ -1602,7 +1644,7 @@ export default function DetailRoom() {
                                             type="button"
                                             onClick={handleSubmitReview}
                                             disabled={isSubmittingReview}
-                                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs transition shadow-md shadow-orange-500/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition shadow-md shadow-sky-900/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
                                         >
                                             {isSubmittingReview ? (
                                                 <>
@@ -1639,7 +1681,7 @@ export default function DetailRoom() {
                                     <button
                                         type="button"
                                         onClick={() => setBookingToReview(eligibleBooking)}
-                                        className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                                        className="px-4 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
                                     >
                                         <Star className="w-3.5 h-3.5 fill-white" />
                                         <span>Viết Đánh Giá Ngay</span>
@@ -1813,9 +1855,7 @@ export default function DetailRoom() {
                                                 const newIn = e.target.value;
                                                 setCheckInDate(newIn);
                                                 if (newIn >= checkOutDate) {
-                                                    const nextDay = new Date(newIn);
-                                                    nextDay.setDate(nextDay.getDate() + 1);
-                                                    setCheckOutDate(formatDateToInput(nextDay));
+                                                    setCheckOutDate(getNextDayString(newIn));
                                                 }
                                             }}
                                             className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
@@ -1825,9 +1865,16 @@ export default function DetailRoom() {
                                         <span className="block text-[10px] text-slate-400 uppercase font-semibold">Trả phòng</span>
                                         <input
                                             type="date"
-                                            min={checkInDate}
+                                            min={getNextDayString(checkInDate)}
                                             value={checkOutDate}
-                                            onChange={(e) => setCheckOutDate(e.target.value)}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val > checkInDate) {
+                                                    setCheckOutDate(val);
+                                                } else {
+                                                    setCheckOutDate(getNextDayString(checkInDate));
+                                                }
+                                            }}
                                             className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
                                         />
                                     </div>
@@ -1924,16 +1971,17 @@ export default function DetailRoom() {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    const validatedCheckOut = checkOutDate > checkInDate ? checkOutDate : getNextDayString(checkInDate);
                                     navigate(`/checkout/${room.id}`, {
                                         state: {
                                             checkInDate,
-                                            checkOutDate,
+                                            checkOutDate: validatedCheckOut,
                                             guestCount,
                                             selectedPackage
                                         }
                                     });
                                 }}
-                                className="group relative w-full py-4 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 text-white font-bold text-sm rounded-2xl shadow-xl shadow-orange-500/25 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all overflow-hidden cursor-pointer"
+                                className="group relative w-full py-4 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-sm rounded-2xl shadow-xl shadow-sky-900/20 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all overflow-hidden cursor-pointer"
                             >
                                 <span className="absolute inset-0 w-1/2 h-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none" />
                                 <ShieldCheck className="w-4 h-4 text-white/90" />
@@ -2049,7 +2097,7 @@ export default function DetailRoom() {
                                                 </div>
                                                 <Link
                                                     to={`/rooms/${sRoom.id}`}
-                                                    className="px-3 py-1.5 bg-amber-50 hover:bg-gradient-to-r hover:from-orange-500 hover:to-amber-500 text-amber-800 hover:text-white rounded-xl text-xs font-bold transition shadow-2xs"
+                                                    className="px-3 py-1.5 bg-sky-50 hover:bg-gradient-to-r hover:from-sky-600 hover:to-blue-700 text-sky-800 hover:text-white rounded-xl text-xs font-bold transition shadow-2xs"
                                                 >
                                                     Xem chi tiết
                                                 </Link>
@@ -2173,16 +2221,17 @@ export default function DetailRoom() {
                     <button
                         type="button"
                         onClick={() => {
+                            const validatedCheckOut = checkOutDate > checkInDate ? checkOutDate : getNextDayString(checkInDate);
                             const el = document.getElementById('dat-phong');
                             if (el) {
                                 el.scrollIntoView({ behavior: 'smooth' });
                             } else {
                                 navigate(`/checkout/${room.id}`, {
-                                    state: { checkInDate, checkOutDate, guestCount, selectedPackage }
+                                    state: { checkInDate, checkOutDate: validatedCheckOut, guestCount, selectedPackage }
                                 });
                             }
                         }}
-                        className="group relative px-5 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/30 active:scale-95 transition-all flex items-center gap-2 overflow-hidden cursor-pointer"
+                        className="group relative px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 active:scale-95 transition-all flex items-center gap-2 overflow-hidden cursor-pointer"
                     >
                         <ShieldCheck className="w-4 h-4 text-white/90" />
                         <span>Đặt phòng ngay</span>
@@ -2190,6 +2239,21 @@ export default function DetailRoom() {
                     </button>
                 </div>
             </aside>
+
+            {/* Toast Thông báo sang trọng */}
+            {toastNotice && (
+                <div className="fixed top-24 right-4 sm:right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-4 duration-300 max-w-md bg-white border-slate-200 text-slate-800 shadow-slate-900/10">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <span className="flex-1">{toastNotice.text}</span>
+                    <button
+                        type="button"
+                        onClick={() => setToastNotice(null)}
+                        className="text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer transition"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
 
             <Footer />
         </div>

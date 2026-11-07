@@ -118,7 +118,7 @@ export default function RoomSlider({ rooms = [] }) {
                         type="button"
                         onClick={handlePrev}
                         aria-label="Phòng trước đó"
-                        className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-500 hover:text-white hover:border-amber-500 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+                        className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
                     >
                         <ChevronLeft className="w-5 h-5" />
                     </button>
@@ -127,7 +127,7 @@ export default function RoomSlider({ rooms = [] }) {
                         type="button"
                         onClick={handleNext}
                         aria-label="Phòng tiếp theo"
-                        className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-500 hover:text-white hover:border-amber-500 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+                        className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
@@ -231,19 +231,19 @@ export default function RoomSlider({ rooms = [] }) {
                                     {/* Thân thẻ thông tin */}
                                     <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                                         <div>
-                                            <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-1">
+                                            <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1 min-h-[1.75rem]">
                                                 <Link to={`/rooms/${room.id}`}>{room.name}</Link>
                                             </h3>
 
-                                            <p className="mt-2 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
+                                            <p className="mt-2 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal min-h-[2.5rem]">
                                                 {room.short_description ||
                                                     room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
                                                     `Không gian nghỉ dưỡng sang trọng view biển trọn vẹn, trang bị đầy đủ tiện nghi cao cấp ${starCount} sao.`}
                                             </p>
                                         </div>
 
-                                        {/* Giá tiền và Nút "Đặt ngay" */}
-                                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                                        {/* Giá tiền và Nút "Đặt ngay" được ghim thẳng hàng ở đáy thẻ */}
+                                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-auto">
                                             <div className="min-w-0 flex-1">
                                                 {hasPromo ? (
                                                     <>
@@ -287,7 +287,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                 <Link
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
-                                                    className="px-3 sm:px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-md shadow-orange-500/25 transition-all transform active:scale-95 whitespace-nowrap shrink-0 hover:scale-[1.02]"
+                                                    className="px-3 sm:px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/30 transition-all transform active:scale-95 whitespace-nowrap shrink-0 hover:scale-[1.02]"
                                                 >
                                                     Đặt ngay
                                                 </Link>
@@ -312,7 +312,7 @@ export default function RoomSlider({ rooms = [] }) {
                             aria-label={`Trang ${idx + 1}`}
                             className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                                 currentIndex === idx
-                                    ? 'w-8 bg-gradient-to-r from-amber-500 to-orange-500 shadow-xs'
+                                    ? 'w-8 bg-gradient-to-r from-sky-600 to-blue-700 shadow-xs'
                                     : 'w-2 bg-slate-300 hover:bg-slate-400'
                             }`}
                         />
