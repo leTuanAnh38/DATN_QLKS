@@ -582,7 +582,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             {/* HEADER PHÂN HỆ QUẢN LÝ ĐẶT PHÒNG */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
                 <div>
-                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h2 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <CalendarCheck className="w-6 h-6 text-blue-600" />
                         <span>Quản Lý Danh Sách Đặt Phòng</span>
                     </h2>

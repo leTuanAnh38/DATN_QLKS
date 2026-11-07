@@ -869,7 +869,7 @@ export default function Checkout() {
                                             <CalendarDays className="w-5 h-5 text-amber-600" />
                                         </div>
                                         <div>
-                                            <h2 className="font-serif font-bold text-lg text-slate-900">
+                                            <h2 className="font-sans font-bold text-lg text-slate-900">
                                                 Thời gian lưu trú
                                             </h2>
                                         </div>
@@ -994,7 +994,7 @@ export default function Checkout() {
                                             <User className="w-5 h-5 text-amber-600" />
                                         </div>
                                         <div>
-                                            <h2 className="font-serif font-bold text-lg text-slate-900">
+                                            <h2 className="font-sans font-bold text-lg text-slate-900">
                                                 Thông tin người liên hệ & nhận phòng
                                             </h2>
                                         </div>
@@ -1662,7 +1662,7 @@ export default function Checkout() {
                                         <Tag className="w-5 h-5 text-amber-600" />
                                     </div>
                                     <div>
-                                        <h2 className="font-serif font-bold text-lg text-slate-900">
+                                        <h2 className="font-sans font-bold text-lg text-slate-900">
                                             Mã giảm giá & Khuyến mãi (Promo Code)
                                         </h2>
                                     </div>
@@ -1752,7 +1752,7 @@ export default function Checkout() {
                                         <FileText className="w-5 h-5 text-amber-600" />
                                     </div>
                                     <div>
-                                        <h2 className="font-serif font-bold text-lg text-slate-900">
+                                        <h2 className="font-sans font-bold text-lg text-slate-900">
                                             Yêu cầu đặc biệt & Ghi chú
                                         </h2>
                                     </div>
@@ -1798,7 +1798,7 @@ export default function Checkout() {
                                         <CreditCard className="w-5 h-5 text-amber-600" />
                                     </div>
                                     <div>
-                                        <h2 className="font-serif font-bold text-lg text-slate-900">
+                                        <h2 className="font-sans font-bold text-lg text-slate-900">
                                             Phương thức thanh toán
                                         </h2>
                                     </div>

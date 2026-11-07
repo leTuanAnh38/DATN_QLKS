@@ -248,13 +248,16 @@ const handlePrintSlip = (item) => {
         <head>
             <title>Phiếu Dịch Vụ #${item.id} - Phòng ${item.room_number || ''}</title>
             <meta charset="utf-8" />
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
             <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 24px; color: #0f172a; max-width: 440px; margin: 0 auto; line-height: 1.5; }
+                body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; padding: 24px; color: #0f172a; max-width: 440px; margin: 0 auto; line-height: 1.5; font-variant-numeric: tabular-nums; }
                 .header { text-align: center; border-bottom: 2px dashed #94a3b8; padding-bottom: 12px; margin-bottom: 14px; }
                 .hotel-name { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; margin: 0; color: #0f172a; }
                 .hotel-sub { font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-top: 3px; }
                 .title { font-size: 15px; font-weight: 800; text-transform: uppercase; margin: 10px 0 6px 0; color: #2563eb; }
-                .room-badge { display: inline-block; background: #eff6ff; color: #1d4ed8; padding: 5px 12px; border-radius: 8px; font-size: 17px; font-weight: 800; margin: 6px 0; border: 1.5px solid #bfdbfe; }
+                .room-badge { font-family: 'JetBrains Mono', monospace; display: inline-block; background: #eff6ff; color: #1d4ed8; padding: 5px 12px; border-radius: 8px; font-size: 17px; font-weight: 800; margin: 6px 0; border: 1.5px solid #bfdbfe; font-variant-numeric: tabular-nums; }
                 .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin: 4px 0; }
                 .meta-label { color: #64748b; }
                 .meta-value { font-weight: 600; color: #0f172a; }
@@ -880,7 +883,7 @@ export default function ServiceRequestKanban() {
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs">
                 <div>
                     <div className="flex items-center gap-3 flex-wrap">
-                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                        <h2 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight">
                             Quản Lý Yêu Cầu Dịch Vụ Tại Phòng
                         </h2>
                         <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200 flex items-center gap-1.5">

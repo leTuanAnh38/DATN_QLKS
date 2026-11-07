@@ -671,7 +671,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                             TA
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-white font-bold text-base tracking-wide font-serif truncate"> TA ĐÀ NẴNG </span>
+                            <span className="text-white font-bold text-base tracking-wide font-sans truncate"> TA ĐÀ NẴNG </span>
                             <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate"> Luxury Hotel Admin </span>
                         </div>
                     </Link>
@@ -1659,7 +1659,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                             {/* Welcome & Time Filters Banner */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
-                                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                                    <h1 className="text-2xl font-sans font-extrabold text-slate-900 tracking-tight">
                                         Xin chào, {user?.full_name || user?.username}
                                     </h1>
                                     <p className="text-xs text-slate-500 mt-0.5">

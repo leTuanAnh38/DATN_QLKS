@@ -349,7 +349,7 @@ export default function PaymentModal({
                                 : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
                             <Clock className="w-3.5 h-3.5" />
-                            <span>Giữ phòng: {formatTimer(timeLeft)}</span>
+                            <span>Giữ phòng: <strong className="font-mono tabular-nums">{formatTimer(timeLeft)}</strong></span>
                         </div>
 
                         <button
@@ -370,7 +370,7 @@ export default function PaymentModal({
                         <Clock className="w-3.5 h-3.5" />
                         <span>Thời gian giữ phòng còn lại:</span>
                     </span>
-                    <strong className="font-mono font-bold text-amber-900">{formatTimer(timeLeft)}</strong>
+                    <strong className="font-mono tabular-nums font-bold text-amber-900">{formatTimer(timeLeft)}</strong>
                 </div>
 
                 {/* Body: Phân chia Layout grid md:grid-cols-2 gap-6 - Scrollable */}
@@ -403,7 +403,7 @@ export default function PaymentModal({
                                     )}
                                 </button>
                             </div>
-                            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-rose-600 font-bold tracking-tight">
+                            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-rose-600 font-bold tabular-nums tracking-tight">
                                 {formatVND(totalAmount)}
                             </div>
                             <div className="mt-2 text-xs text-slate-600 flex items-center gap-2 pt-2 border-t border-amber-200/60">

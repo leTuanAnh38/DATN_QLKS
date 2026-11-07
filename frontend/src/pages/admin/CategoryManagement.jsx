@@ -477,7 +477,7 @@ export default function CategoryManagement() {
             {/* 1. HEADER & ACTION BUTTONS */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
                 <div>
-                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight">
                         Quản Lý Hạng Phòng & Bảng Giá
                     </h1>
                     <p className="text-xs text-slate-500 mt-1 max-w-2xl">
@@ -727,7 +727,7 @@ export default function CategoryManagement() {
 
                                     {/* Tên & giá dưới chân ảnh */}
                                     <div className="absolute bottom-3 left-4 right-4 text-white">
-                                        <h3 className="text-lg sm:text-xl font-bold font-serif drop-shadow-md truncate tracking-tight text-white">
+                                        <h3 className="text-lg sm:text-xl font-bold font-sans drop-shadow-md truncate tracking-tight text-white">
                                             {cat.name}
                                         </h3>
                                         <div className="flex items-baseline gap-2 mt-0.5">

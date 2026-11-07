@@ -362,7 +362,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
             {/* 1. HEADER & THANH ĐIỀU HƯỚNG THÁNG */}
             <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-5">
                 <div>
-                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h2 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <CalendarDays className="w-6 h-6 text-blue-600" />
                         <span>Lịch Đặt Phòng Theo Sơ Đồ Trực Quan (Tape Chart)</span>
                     </h2>
@@ -1018,8 +1018,8 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                     <FileText className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-serif font-bold text-base text-white">
-                                        Đơn Đặt Phòng #{selectedBookingModal.booking_code}
+                                    <h3 className="font-sans font-bold text-base text-white">
+                                        Đơn Đặt Phòng <span className="font-mono">#{selectedBookingModal.booking_code}</span>
                                     </h3>
                                     <span className="text-[11px] text-slate-400">
                                         Chi tiết đơn lưu trú trên sơ đồ PMS

@@ -418,7 +418,7 @@ export default function ServiceManagement() {
             {/* BANNER HEADER & QUICK ACTIONS */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                 <div>
-                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <ConciergeBell className="w-6 h-6 text-blue-600" />
                         <span>Quản Lý Danh Mục Dịch Vụ</span>
                     </h1>

@@ -372,7 +372,7 @@ export default function MinibarManagement() {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <span>Quản Lý Danh Mục Minibar & Bảng Giá</span>
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1">

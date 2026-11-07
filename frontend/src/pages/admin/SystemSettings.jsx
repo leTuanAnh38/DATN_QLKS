@@ -486,7 +486,7 @@ export default function SystemSettings() {
                 <div className="flex items-center gap-4">
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                            <h1 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight">
                                 Cài Đặt Hệ Thống
                             </h1>
                             <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">

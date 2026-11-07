@@ -492,7 +492,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             .map((node) => node.outerHTML)
             .join('\n');
         printWindow.document.open();
-        printWindow.document.write(`<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8" /><title>Hóa Đơn Đặt Phòng ${bookingCodeDisplay}</title>${styleNodes}<style>@page { size: A4 portrait; margin: 12mm 15mm; } html, body { background: #ffffff !important; color: #111827 !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } #hotel-invoice-printable { position: static !important; width: 100% !important; max-width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #111827 !important; } .no-print { display: none !important; }</style></head><body>${printableEl.outerHTML}<script>window.onload=function(){setTimeout(function(){window.focus();window.print();window.close();},250);};</script></body></html>`);
+        printWindow.document.write(`<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8" /><title>Hóa Đơn Đặt Phòng ${bookingCodeDisplay}</title>${styleNodes}<style>@page { size: A4 portrait; margin: 12mm 15mm; } html, body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; font-variant-numeric: tabular-nums; background: #ffffff !important; color: #111827 !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } #hotel-invoice-printable { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important; font-variant-numeric: tabular-nums; position: static !important; width: 100% !important; max-width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #111827 !important; } .no-print { display: none !important; }</style></head><body>${printableEl.outerHTML}<script>window.onload=function(){setTimeout(function(){window.focus();window.print();window.close();},250);};</script></body></html>`);
         printWindow.document.close();
     };
 
@@ -513,6 +513,8 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         margin: 15mm 15mm 15mm 15mm;
                     }
                     body {
+                        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+                        font-variant-numeric: tabular-nums;
                         background: #ffffff !important;
                         color: #000000 !important;
                     }
@@ -533,6 +535,8 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         padding: 0 !important;
                         box-shadow: none !important;
                         border: none !important;
+                        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+                        font-variant-numeric: tabular-nums;
                         background: #ffffff !important;
                         color: #000000 !important;
                     }
@@ -609,7 +613,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 <div className="overflow-x-auto w-full">
                     <div
                         id="hotel-invoice-printable"
-                        className="p-5 sm:p-10 bg-white text-slate-900 font-sans min-w-[620px] sm:min-w-0"
+                        className="p-5 sm:p-10 bg-white text-slate-900 font-sans tabular-nums min-w-[620px] sm:min-w-0"
                         style={{ color: '#111827' }}
                     >
                     {/* 1. HEADER: THÔNG TIN KHÁCH SẠN VÀ TIÊU ĐỀ HÓA ĐƠN */}

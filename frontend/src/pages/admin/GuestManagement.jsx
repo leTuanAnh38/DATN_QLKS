@@ -347,7 +347,7 @@ export default function GuestManagement() {
             {/* Header & Quick stats */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h2 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <Users className="w-6 h-6 text-blue-600" />
                         <span>Quản Lý Hồ Sơ Khách Hàng (Guests)</span>
                     </h2>

@@ -303,7 +303,7 @@ export default function LostAndFoundManagement() {
             {/* Header Title */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <PackageSearch className="w-6 h-6 text-purple-600" />
                         <span>Quản Lý Đồ Thất Lạc (Lost & Found)</span>
                     </h2>

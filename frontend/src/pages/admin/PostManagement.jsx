@@ -402,7 +402,7 @@ export default function PostManagement() {
             {/* Header Banner & Quick Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight">
                         Quản Lý Tin Tức & Bài Viết
                     </h1>
                     <p className="text-xs text-slate-500 mt-0.5">

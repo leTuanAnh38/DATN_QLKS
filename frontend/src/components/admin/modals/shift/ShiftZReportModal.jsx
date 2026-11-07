@@ -148,7 +148,9 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                         margin: 0 !important;
                         padding: 0 !important;
                         width: 100% !important;
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+                        font-variant-numeric: tabular-nums;
+                        font-feature-settings: "tnum" 1;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
@@ -229,6 +231,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                         margin: 10mm 15mm 10mm 15mm;
                     }
                     html, body {
+                        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
                         background: #ffffff !important;
                         color: #000000 !important;
                         margin: 0 !important;

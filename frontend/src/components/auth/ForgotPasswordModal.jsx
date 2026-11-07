@@ -185,7 +185,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                 <KeyRound className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="font-serif text-lg font-bold text-slate-800">
+                                <h3 className="font-sans font-bold text-lg text-slate-800">
                                     Khôi Phục Mật Khẩu
                                 </h3>
                                 <p className="text-xs text-slate-500">
@@ -436,7 +436,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                 <CheckCircle2 className="w-8 h-8" />
                             </div>
                             <div>
-                                <h4 className="font-serif text-lg font-bold text-slate-800">
+                                <h4 className="font-sans font-bold text-lg text-slate-800">
                                     Đặt Lại Mật Khẩu Thành Công!
                                 </h4>
                                 <p className="text-xs text-slate-500 mt-1.5 max-w-xs mx-auto leading-relaxed">

@@ -220,7 +220,7 @@ export default function ContactManagement() {
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2.5">
-                        <h1 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                        <h1 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight">
                             Quản Lý Liên Hệ
                         </h1>
                         <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
@@ -585,7 +585,7 @@ export default function ContactManagement() {
                         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-slate-200">
                             <div className="min-w-0">
                                 <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Chi tiết liên hệ</span>
-                                <h3 className="text-lg font-serif font-bold text-slate-900 mt-0.5 break-words">
+                                <h3 className="text-lg font-sans font-bold text-slate-900 mt-0.5 break-words">
                                     {selectedContact.subject}
                                 </h3>
                             </div>

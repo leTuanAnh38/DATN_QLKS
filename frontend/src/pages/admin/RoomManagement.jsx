@@ -958,7 +958,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* Header Banner & Quick Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
                         <Building2 className="w-6 h-6 text-blue-600" />
                         <span>Quản Lý Danh Sách & Sơ Đồ Phòng</span>
                     </h1>
@@ -2615,7 +2615,7 @@ function RoomCard({
                     {/* Số phòng to rõ */}
                     <div className="flex items-baseline gap-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase">P.</span>
-                        <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 leading-none">
+                        <span className="text-2xl sm:text-3xl font-black font-mono tabular-nums tracking-tight text-slate-900 leading-none">
                             {room.room_number}
                         </span>
                     </div>
