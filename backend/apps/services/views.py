@@ -891,7 +891,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                     'message': 'Yêu cầu dịch vụ này đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # 🔒 Kiểm tra điều kiện bắt đầu / thực hiện dịch vụ phòng
+            # Kiểm tra điều kiện bắt đầu / thực hiện dịch vụ phòng (khóa dịch vụ)
             if new_status in ['in_progress', 'delivering', 'completed']:
                 lock_response = self._check_service_lock(service_req)
                 if lock_response is not None:
@@ -1129,7 +1129,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             time_display = local_time.strftime('%H:%M %d/%m/%Y')
             time_notice = f" ⏰ Khách hẹn phục vụ lúc: {time_display}."
         else:
-            time_notice = " ⚡ Khách cần phục vụ ngay."
+            time_notice = " (Khách cần phục vụ ngay)"
 
         try:
             from ..notifications.signals import get_staff_and_admin_users, get_service_category_type
@@ -1140,7 +1140,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
             if cat_type == 'fnb':
                 dept_name = "Bếp / F&B"
-                dept_title = f"🍽️ Báo Bếp/F&B chuẩn bị món: Phòng {room_label}"
+                dept_title = f"Báo Bếp/F&B chuẩn bị món: Phòng {room_label}"
                 dept_message = (
                     f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
                     f"Món ăn / Đồ uống: \"{service_name}\" (SL: {service_req.quantity})."
@@ -1149,7 +1149,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 )
             elif cat_type == 'transport':
                 dept_name = "Điều vận / Đội xe"
-                dept_title = f"🚗 Báo Điều vận sắp xếp xe: Phòng {room_label}"
+                dept_title = f"Báo Điều vận sắp xếp xe: Phòng {room_label}"
                 dept_message = (
                     f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
                     f"Dịch vụ đưa đón: \"{service_name}\" (SL: {service_req.quantity})."
@@ -1158,7 +1158,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 )
             elif cat_type == 'spa':
                 dept_name = "Spa & Trị liệu"
-                dept_title = f"💆 Báo Spa chuẩn bị liệu trình: Phòng {room_label}"
+                dept_title = f"Báo Spa chuẩn bị liệu trình: Phòng {room_label}"
                 dept_message = (
                     f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
                     f"Liệu trình Spa: \"{service_name}\" (SL: {service_req.quantity})."
@@ -1167,7 +1167,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 )
             elif cat_type == 'laundry':
                 dept_name = "Buồng phòng & Giặt là"
-                dept_title = f"🧺 Báo Giặt là chuẩn bị đồ: Phòng {room_label}"
+                dept_title = f"Báo Giặt là chuẩn bị đồ: Phòng {room_label}"
                 dept_message = (
                     f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
                     f"Dịch vụ giặt ủi: \"{service_name}\" (SL: {service_req.quantity})."
@@ -1176,7 +1176,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 )
             else:  # amenities / other
                 dept_name = "Buồng phòng"
-                dept_title = f"🛎️ Báo Buồng phòng chuẩn bị tiện ích: Phòng {room_label}"
+                dept_title = f"Báo Buồng phòng chuẩn bị tiện ích: Phòng {room_label}"
                 dept_message = (
                     f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
                     f"Yêu cầu tiện ích: \"{service_name}\" (SL: {service_req.quantity})."

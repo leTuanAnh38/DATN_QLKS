@@ -476,7 +476,7 @@ export default function SystemSettings() {
                         onClick={() => setToast(null)}
                         className="ml-2 hover:opacity-75 transition cursor-pointer text-white/80"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
             )}
@@ -909,7 +909,7 @@ export default function SystemSettings() {
                                                             <span className="text-[11px] font-semibold text-slate-800 truncate">
                                                                 {hotelData.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                                             </span>
-                                                            <span className="text-[9px] text-slate-400 font-bold ml-1">✕</span>
+                                                            <X className="w-2.5 h-2.5 text-slate-400 shrink-0 ml-1" />
                                                         </div>
                                                         {uploadingField === 'favicon_url' && (
                                                             <div className="absolute inset-0 bg-white/90 backdrop-blur-xs flex items-center justify-center gap-2 text-xs font-semibold text-indigo-600">
@@ -2097,8 +2097,9 @@ export default function SystemSettings() {
                                                 <span className="text-rose-500">*</span>
                                             </label>
                                             {currentBank && (
-                                                <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                                    ✓ {currentBank.shortName} ({currentBank.fullName})
+                                                <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-flex items-center gap-1">
+                                                    <Check className="w-3 h-3 text-emerald-600" />
+                                                    <span>{currentBank.shortName} ({currentBank.fullName})</span>
                                                 </span>
                                             )}
                                         </div>

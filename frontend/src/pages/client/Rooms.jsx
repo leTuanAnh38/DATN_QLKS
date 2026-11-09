@@ -15,7 +15,9 @@ import {
     ArrowRight, 
     SlidersHorizontal,
     X,
-    RotateCcw
+    RotateCcw,
+    AlertTriangle,
+    Compass
 } from 'lucide-react';
 
 // Định dạng ngày hiển thị DD/MM/YYYY
@@ -259,7 +261,7 @@ export default function RoomsAndSuitesPage() {
                                 onChange={(e) => setSortBy(e.target.value)}
                                 className="bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                             >
-                                <option value="featured">✨ Đề xuất hàng đầu</option>
+                                <option value="featured">Đề xuất hàng đầu</option>
                                 <option value="price-asc">Giá: Thấp đến Cao</option>
                                 <option value="price-desc">Giá: Cao đến Thấp</option>
                                 <option value="size-desc">Diện tích rộng nhất</option>
@@ -276,8 +278,8 @@ export default function RoomsAndSuitesPage() {
                 {hasActiveSearch && (
                     <div className="mb-8 p-4 sm:p-5 bg-gradient-to-r from-amber-50/70 via-slate-50 to-amber-50/40 border border-amber-200/90 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                         <div className="flex items-center gap-3.5">
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center text-xl font-bold shadow-md shadow-amber-900/20 shrink-0">
-                                🔍
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center font-bold shadow-md shadow-amber-900/20 shrink-0">
+                                <Search className="w-5 h-5 text-white" />
                             </div>
                             <div>
                                 <div className="text-[11px] text-amber-800 font-extrabold uppercase tracking-wider flex items-center gap-2">
@@ -302,7 +304,7 @@ export default function RoomsAndSuitesPage() {
                             onClick={handleClearSearch}
                             className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shrink-0"
                         >
-                            <span>✕</span>
+                            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
                             <span>Đặt lại bộ lọc</span>
                         </button>
                     </div>
@@ -331,7 +333,7 @@ export default function RoomsAndSuitesPage() {
                 {/* Trạng thái Lỗi */}
                 {!loading && error && (
                     <div className="bg-rose-50 border border-rose-200 rounded-3xl p-10 text-center max-w-lg mx-auto">
-                        <div className="text-4xl mb-3">⚠️</div>
+                        <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto mb-3" />
                         <h3 className="text-base font-bold text-rose-800">Đã xảy ra sự cố</h3>
                         <p className="text-xs text-rose-600 mt-1">{error}</p>
                         <button
@@ -347,7 +349,7 @@ export default function RoomsAndSuitesPage() {
                 {/* Trạng thái Không tìm thấy kết quả */}
                 {!loading && !error && sortedCategories.length === 0 && (
                     <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto shadow-xs">
-                        <div className="text-5xl mb-3">🏝️</div>
+                        <Compass className="w-12 h-12 text-slate-300 mx-auto mb-3 stroke-1" />
                         <h3 className="text-base font-bold text-slate-900">Không tìm thấy hạng phòng phù hợp</h3>
                         <p className="text-xs text-slate-500 mt-1">
                             Vui lòng thử tìm kiếm lại bằng từ khóa khác hoặc chọn xem tất cả hạng phòng.

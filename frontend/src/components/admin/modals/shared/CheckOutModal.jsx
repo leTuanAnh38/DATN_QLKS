@@ -897,7 +897,13 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                     ? 'bg-amber-600 text-white border-amber-500 shadow-amber-600/30'
                     : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
             }`}>
-                <span>{modalToast.type === 'success' ? '✓' : modalToast.type === 'warning' ? '⚡' : '⚠️'}</span>
+                {modalToast.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                ) : modalToast.type === 'warning' ? (
+                    <Zap className="w-4 h-4 shrink-0" />
+                ) : (
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                )}
                 <span>{modalToast.message}</span>
             </div>
         )}

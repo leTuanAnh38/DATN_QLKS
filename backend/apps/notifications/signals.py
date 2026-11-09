@@ -203,7 +203,7 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
             if instance.guest:
                 Notification.objects.create(
                     recipient=instance.guest,
-                    title="🎉 Đơn đặt phòng đã được xác nhận!",
+                    title="Đơn đặt phòng đã được xác nhận",
                     message=(
                         f"Khách sạn TA Đà Nẵng xin thông báo: Đơn đặt phòng #{instance.booking_code}{room_desc}{time_desc} "
                         f"của quý khách đã được phê duyệt và xác nhận thành công. "
@@ -219,7 +219,7 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
             staff_notifications = [
                 Notification(
                     recipient=staff,
-                    title=f"✅ Đơn đặt phòng đã duyệt: #{instance.booking_code}",
+                    title=f"Đơn đặt phòng đã duyệt: #{instance.booking_code}",
                     message=(
                         f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name}{room_desc}{time_desc} "
                         f"đã được duyệt sang trạng thái Đã xác nhận."
@@ -240,7 +240,7 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
                 room_display = f"Phòng {instance.room.room_number}" if instance.room else room_label
                 Notification.objects.create(
                     recipient=instance.guest,
-                    title="🔑 Check-in thành công! Chào mừng quý khách",
+                    title="Check-in thành công: Chào mừng quý khách",
                     message=(
                         f"Quý khách đã hoàn tất thủ tục nhận {room_display} thành công (Mã đơn: #{instance.booking_code}). "
                         f"Khách sạn TA Đà Nẵng chúc quý khách có một kỳ nghỉ dưỡng tuyệt vời và trọn vẹn!"
@@ -255,7 +255,7 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
             staff_notifications = [
                 Notification(
                     recipient=staff,
-                    title=f"📥 Khách đã Check-in: {room_label}",
+                    title=f"Khách đã Check-in: {room_label}",
                     message=(
                         f"Khách hàng {guest_name} đã hoàn tất thủ tục Check-in nhận phòng {room_label} "
                         f"(Mã đơn đặt phòng: #{instance.booking_code})."
@@ -407,19 +407,19 @@ def get_service_notification_data(service_name, category_name, room_label, statu
     if status_key == 'in_progress':
         # BƯỚC 2: PREPARING (Đang chuẩn bị / Đang chế biến)
         if cat_type == 'fnb':
-            guest_title = "👨‍🍳 Bếp đang chế biến món ăn"
+            guest_title = "Bếp đang chế biến món ăn"
             guest_msg = f"Bếp đang chế biến món {service_name} cho phòng {room_label}."
         elif cat_type == 'transport':
-            guest_title = "🚗 Đang sắp xếp phương tiện"
+            guest_title = "Đang sắp xếp phương tiện"
             guest_msg = f"Bộ phận điều vận đang sắp xếp xe cho dịch vụ {service_name} của phòng {room_label}."
         elif cat_type == 'spa':
-            guest_title = "💆 Đang chuẩn bị phòng trị liệu Spa"
+            guest_title = "Đang chuẩn bị phòng trị liệu Spa"
             guest_msg = f"Bộ phận Spa đang chuẩn bị phòng trị liệu và kỹ thuật viên cho yêu cầu {service_name} (Phòng {room_label})."
         elif cat_type == 'laundry':
-            guest_title = "🧺 Đang tiến hành giặt ủi đồ"
+            guest_title = "Đang tiến hành giặt ủi đồ"
             guest_msg = f"Bộ phận Giặt là đang tiến hành giặt sấy / ủi đồ cho phòng {room_label}."
         else:  # amenities / other
-            guest_title = "⚙️ Buồng phòng đang chuẩn bị yêu cầu"
+            guest_title = "Buồng phòng đang chuẩn bị yêu cầu"
             guest_msg = f"Bộ phận Buồng phòng đang chuẩn bị yêu cầu {service_name} cho phòng {room_label}."
 
         return {
@@ -432,42 +432,42 @@ def get_service_notification_data(service_name, category_name, room_label, statu
     elif status_key == 'delivering':
         # BƯỚC 3: DELIVERING / SERVING (Đang phục vụ / Đang giao)
         if cat_type == 'fnb':
-            guest_title = "🛵 Món ăn đang mang lên phòng"
+            guest_title = "Món ăn đang mang lên phòng"
             guest_msg = f"Nhân viên đang mang món {service_name} lên phòng {room_label}. Quý khách vui lòng chú ý nhận món nhé!"
-            staff_title = f"🍽️ Món ăn đã làm xong - Sẵn sàng giao: Phòng {room_label}"
+            staff_title = f"Món ăn đã làm xong - Sẵn sàng giao: Phòng {room_label}"
             staff_msg = (
                 f"Món ăn / Đồ uống \"{service_name}\" (Số lượng: {quantity}) cho phòng {room_label} "
                 f"(Khách: {guest_name}) đã được chế biến xong và sẵn sàng được giao. "
                 f"Nhân viên phục vụ vui lòng nhận món tại bếp và giao lên phòng cho khách!"
             )
         elif cat_type == 'transport':
-            guest_title = "🚖 Xe đã sẵn sàng đón quý khách"
+            guest_title = "Xe đã sẵn sàng đón quý khách"
             guest_msg = f"Tài xế và xe cho dịch vụ {service_name} đã sẵn sàng phục vụ quý khách tại sảnh / điểm hẹn!"
-            staff_title = f"🚗 Phương tiện đã sẵn sàng: Phòng {room_label}"
+            staff_title = f"Phương tiện đã sẵn sàng: Phòng {room_label}"
             staff_msg = (
                 f"Tài xế và xe cho dịch vụ \"{service_name}\" của phòng {room_label} "
                 f"(Khách: {guest_name}) đã sẵn sàng phục vụ tại sảnh / điểm hẹn."
             )
         elif cat_type == 'spa':
-            guest_title = "🌿 Liệu trình Spa đã sẵn sàng"
+            guest_title = "Liệu trình Spa đã sẵn sàng"
             guest_msg = f"Kỹ thuật viên và liệu trình {service_name} đã sẵn sàng phục vụ quý khách!"
-            staff_title = f"💆 Phòng Spa & KTV đã sẵn sàng: Phòng {room_label}"
+            staff_title = f"Phòng Spa & KTV đã sẵn sàng: Phòng {room_label}"
             staff_msg = (
                 f"Kỹ thuật viên và liệu trình \"{service_name}\" cho khách phòng {room_label} "
                 f"({guest_name}) đã sẵn sàng đón tiếp quý khách."
             )
         elif cat_type == 'laundry':
-            guest_title = "🧺 Đồ giặt đã xong, đang mang lên phòng"
+            guest_title = "Đồ giặt đã xong, đang mang lên phòng"
             guest_msg = f"Đồ giặt ủi của quý khách ({service_name}) đã hoàn tất và đang được nhân viên mang lên phòng {room_label}."
-            staff_title = f"🧺 Đồ giặt đã sẵn sàng giao: Phòng {room_label}"
+            staff_title = f"Đồ giặt đã sẵn sàng giao: Phòng {room_label}"
             staff_msg = (
                 f"Đồ giặt ủi \"{service_name}\" (Số lượng: {quantity}) của phòng {room_label} "
                 f"(Khách: {guest_name}) đã giặt sấy xong. Nhân viên vui lòng giao lên phòng cho khách!"
             )
         else:  # amenities / other
-            guest_title = "🛎️ Tiện ích đang chuyển tới phòng"
+            guest_title = "Tiện ích đang chuyển tới phòng"
             guest_msg = f"Nhân viên đang thực hiện / chuyển {service_name} đến phòng {room_label} của quý khách."
-            staff_title = f"🛎️ Tiện ích buồng phòng sẵn sàng chuyển: Phòng {room_label}"
+            staff_title = f"Tiện ích buồng phòng sẵn sàng chuyển: Phòng {room_label}"
             staff_msg = (
                 f"Yêu cầu tiện ích \"{service_name}\" (Số lượng: {quantity}) cho phòng {room_label} "
                 f"(Khách: {guest_name}) đã chuẩn bị xong. Nhân viên vui lòng chuyển đến phòng cho khách!"
@@ -483,19 +483,19 @@ def get_service_notification_data(service_name, category_name, room_label, statu
     elif status_key == 'completed':
         # BƯỚC 4: COMPLETED (Đã hoàn thành)
         if cat_type == 'fnb':
-            guest_title = "✅ Món ăn đã phục vụ thành công"
+            guest_title = "Món ăn đã phục vụ thành công"
             guest_msg = f"Món {service_name} đã được phục vụ tại phòng {room_label}. Chúc quý khách dùng bữa ngon miệng!"
         elif cat_type == 'transport':
-            guest_title = "✅ Chuyến xe đã hoàn tất"
+            guest_title = "Chuyến xe đã hoàn tất"
             guest_msg = f"Dịch vụ {service_name} cho phòng {room_label} đã hoàn tất. Chúc quý khách một hành trình thượng lộ bình an!"
         elif cat_type == 'spa':
-            guest_title = "✅ Liệu trình Spa đã hoàn tất"
+            guest_title = "Liệu trình Spa đã hoàn tất"
             guest_msg = f"Liệu trình {service_name} đã hoàn tất. Chúc quý khách có những giây phút thư giãn tuyệt vời!"
         elif cat_type == 'laundry':
-            guest_title = "✅ Đồ giặt ủi đã giao thành công"
+            guest_title = "Đồ giặt ủi đã giao thành công"
             guest_msg = f"Dịch vụ giặt ủi {service_name} cho phòng {room_label} đã được bàn giao đầy đủ. Cảm ơn quý khách!"
         else:  # amenities / other
-            guest_title = "✅ Yêu cầu dịch vụ đã hoàn tất"
+            guest_title = "Yêu cầu dịch vụ đã hoàn tất"
             guest_msg = f"Yêu cầu dịch vụ {service_name} cho phòng {room_label} đã hoàn tất. Chúc quý khách kỳ nghỉ trọn vẹn tại TA Đà Nẵng!"
 
         return {
@@ -556,35 +556,35 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
             )
 
             if cat_type == 'fnb':
-                staff_title = f"🍽️ Đơn gọi món mới: Phòng {room_label}"
+                staff_title = f"Đơn gọi món mới: Phòng {room_label}"
                 staff_message = (
                     f"Phòng {room_label} (Khách: {guest_name}) vừa đặt món: \"{service_name}\" "
                     f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
                     f"Bộ phận Bếp / F&B vui lòng tiếp nhận và chế biến."
                 )
             elif cat_type == 'transport':
-                staff_title = f"🚗 Yêu cầu đặt xe mới: Phòng {room_label}"
+                staff_title = f"Yêu cầu đặt xe mới: Phòng {room_label}"
                 staff_message = (
                     f"Phòng {room_label} (Khách: {guest_name}) vừa đặt dịch vụ xe: \"{service_name}\" "
                     f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
                     f"Bộ phận Điều vận vui lòng tiếp nhận và sắp xếp phương tiện."
                 )
             elif cat_type == 'spa':
-                staff_title = f"💆 Đặt lịch Spa mới: Phòng {room_label}"
+                staff_title = f"Đặt lịch Spa mới: Phòng {room_label}"
                 staff_message = (
                     f"Phòng {room_label} (Khách: {guest_name}) vừa đặt liệu trình: \"{service_name}\" "
                     f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
                     f"Bộ phận Spa vui lòng tiếp nhận và chuẩn bị kỹ thuật viên."
                 )
             elif cat_type == 'laundry':
-                staff_title = f"🧺 Yêu cầu giặt ủi mới: Phòng {room_label}"
+                staff_title = f"Yêu cầu giặt ủi mới: Phòng {room_label}"
                 staff_message = (
                     f"Phòng {room_label} (Khách: {guest_name}) vừa gửi yêu cầu giặt ủi: \"{service_name}\" "
                     f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
                     f"Bộ phận Buồng phòng / Giặt là vui lòng tiếp nhận và thu gom đồ giặt."
                 )
             else:  # amenities / other
-                staff_title = f"🛎️ Yêu cầu tiện ích mới: Phòng {room_label}"
+                staff_title = f"Yêu cầu tiện ích mới: Phòng {room_label}"
                 staff_message = (
                     f"Phòng {room_label} (Khách: {guest_name}) vừa yêu cầu tiện ích: \"{service_name}\" "
                     f"(Số lượng: {instance.quantity}, Mã đơn: #{booking.booking_code if booking else 'N/A'}). "
@@ -719,7 +719,7 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
             if guest:
                 Notification.objects.create(
                     recipient=guest,
-                    title="✕ Yêu cầu dịch vụ đã bị hủy",
+                    title="Yêu cầu dịch vụ đã bị hủy",
                     message=(
                         f"Yêu cầu dịch vụ \"{service_name}\" cho phòng {room_label} đã bị hủy.{cancel_note_str}"
                     ),
@@ -736,7 +736,7 @@ def notify_on_service_request_events(sender, instance, created, **kwargs):
             cancel_staff_notifs = [
                 Notification(
                     recipient=staff,
-                    title=f"✕ [HỦY DỊCH VỤ] Phòng {room_label}",
+                    title=f"[HỦY DỊCH VỤ] Phòng {room_label}",
                     message=(
                         f"Yêu cầu dịch vụ \"{service_name}\" (SL: {instance.quantity}) tại phòng {room_label} "
                         f"đã chuyển sang trạng thái ĐÃ HỦY.{cancel_note_str}"
@@ -809,7 +809,7 @@ def notify_on_payment_events(sender, instance, created, **kwargs):
             if booking.guest:
                 Notification.objects.create(
                     recipient=booking.guest,
-                    title=f"💰 Thanh toán thành công: #{booking.booking_code}",
+                    title=f"Thanh toán thành công: #{booking.booking_code}",
                     message=(
                         f"Giao dịch thanh toán {amount_str} cho đơn đặt phòng #{booking.booking_code}{room_info} "
                         f"qua {method_str} đã được ghi nhận thành công. Khách sạn TA Đà Nẵng cảm ơn quý khách!"
@@ -827,7 +827,7 @@ def notify_on_payment_events(sender, instance, created, **kwargs):
             staff_notifications = [
                 Notification(
                     recipient=staff,
-                    title=f"💵 Đã nhận thanh toán: #{booking.booking_code}",
+                    title=f"Đã nhận thanh toán: #{booking.booking_code}",
                     message=(
                         f"Đã nhận thanh toán {amount_str} ({method_str}) cho đơn đặt phòng #{booking.booking_code}{room_info} "
                         f"từ khách {guest_name}. {txn_str}".strip()
@@ -860,7 +860,7 @@ def notify_on_payment_events(sender, instance, created, **kwargs):
             if leader_user:
                 Notification.objects.create(
                     recipient=leader_user,
-                    title=f"💰 Xác nhận thanh toán Đơn đoàn: #{group.group_code}",
+                    title=f"Xác nhận thanh toán Đơn đoàn: #{group.group_code}",
                     message=(
                         f"Giao dịch thanh toán {amount_str} qua {method_str} cho đoàn \"{group.group_name}\" "
                         f"(Mã đoàn: #{group.group_code}) đã được ghi nhận thành công."
@@ -877,7 +877,7 @@ def notify_on_payment_events(sender, instance, created, **kwargs):
             staff_notifications = [
                 Notification(
                     recipient=staff,
-                    title=f"💵 Đã nhận thanh toán Đơn đoàn: #{group.group_code}",
+                    title=f"Đã nhận thanh toán Đơn đoàn: #{group.group_code}",
                     message=(
                         f"Đã ghi nhận thanh toán {amount_str} qua {method_str} cho đoàn \"{group.group_name}\" "
                         f"(Đại diện: {leader_name} - #{group.group_code}). {txn_str}".strip()
@@ -936,7 +936,7 @@ def notify_on_invoice_events(sender, instance, created, **kwargs):
                 staff_notifications = [
                     Notification(
                         recipient=staff,
-                        title=f"🧾 Yêu cầu xuất hóa đơn VAT: #{code_ref}",
+                        title=f"Yêu cầu xuất hóa đơn VAT: #{code_ref}",
                         message=(
                             f"Đơn #{code_ref}{total_info} yêu cầu xuất hóa đơn VAT Doanh nghiệp cho: "
                             f"\"{instance.company_name or 'Chưa rõ'}\" (MST: {instance.company_tax_code or 'Chưa có'}). "
@@ -985,7 +985,7 @@ def notify_on_cash_out_voucher(sender, instance, created, **kwargs):
         staff_notifications = [
             Notification(
                 recipient=staff,
-                title=f"💸 Phiếu chi két: #{instance.voucher_code}",
+                title=f"Phiếu chi két: #{instance.voucher_code}",
                 message=(
                     f"{creator_name} vừa lập phiếu chi #{instance.voucher_code} số tiền {amount_str} "
                     f"({voucher_type_name}){code_ref} cho \"{instance.recipient_name}\". "

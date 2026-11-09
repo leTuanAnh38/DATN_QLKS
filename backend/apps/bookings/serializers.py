@@ -918,8 +918,8 @@ class BookingSerializer(serializers.ModelSerializer):
             deposit = float(obj.group_booking.deposit_amount or 0)
             total = float(obj.group_booking.total_amount or 0)
             if total > 0 and deposit >= total:
-                return '✓ Đã thanh toán 100% đoàn'
-            return '✓ Đã cọc đoàn'
+                return 'Đã thanh toán 100% đoàn'
+            return 'Đã cọc đoàn'
         return 'Chờ cọc đoàn'
 
     def get_latest_inspection(self, obj):

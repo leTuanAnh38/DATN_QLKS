@@ -862,20 +862,12 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                                             className="w-full h-full bg-blue-50 text-blue-600 items-center justify-center text-sm"
                                                                             style={{ display: 'none' }}
                                                                         >
-                                                                            {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
-                                                                                <span className="text-base">{req.category_icon}</span>
-                                                                            ) : (
-                                                                                <Utensils className="w-5 h-5 text-blue-600" />
-                                                                            )}
+                                                                            <Utensils className="w-5 h-5 text-blue-600" />
                                                                         </div>
                                                                     </>
                                                                 ) : (
                                                                     <div className="w-full h-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
-                                                                        {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
-                                                                            <span className="text-base">{req.category_icon}</span>
-                                                                        ) : (
-                                                                            <Utensils className="w-5 h-5 text-blue-600" />
-                                                                        )}
+                                                                        <Utensils className="w-5 h-5 text-blue-600" />
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -992,22 +984,14 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                                     className="w-full h-full bg-blue-50 text-blue-600 items-center justify-center text-xs"
                                                                     style={{ display: 'none' }}
                                                                 >
-                                                                    {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
-                                                                        <span className="text-sm">{req.category_icon}</span>
-                                                                    ) : (
                                                                         <Utensils className="w-4 h-4 text-blue-600" />
-                                                                    )}
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <div className="w-full h-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
-                                                                {req.category_icon && !['🛎️', '🍽️', '🍸'].includes(req.category_icon) ? (
-                                                                    <span className="text-sm">{req.category_icon}</span>
-                                                                ) : (
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <div className="w-full h-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
                                                                     <Utensils className="w-4 h-4 text-blue-600" />
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                </div>
+                                                            )}
                                                     </div>
                                                     <div className="min-w-0">
                                                         <strong className="block font-bold text-slate-900 text-xs truncate" title={serviceName}>{serviceName}</strong>

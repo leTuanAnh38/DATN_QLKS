@@ -522,7 +522,7 @@ export default function CorporateBooking() {
         availableServices.forEach((svc) => {
             const catId = svc.category_id || svc.category?.id || svc.category_name || svc.category?.name || 'other';
             const catName = svc.category_name || svc.category?.name || 'Tiện ích khác';
-            const catIcon = svc.category_icon || svc.category?.icon || '🛎️';
+            const catIcon = svc.category_icon || svc.category?.icon || '';
             if (!map.has(catId)) {
                 map.set(catId, { id: catId, name: catName, icon: catIcon });
             }
@@ -924,7 +924,7 @@ export default function CorporateBooking() {
                             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-xs">
-                                        ✓
+                                        <Check className="w-5 h-5" />
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -942,9 +942,10 @@ export default function CorporateBooking() {
                                 <button
                                     type="button"
                                     onClick={handleRemovePartner}
-                                    className="text-xs text-slate-500 hover:text-rose-600 font-semibold transition cursor-pointer"
+                                    className="text-xs text-slate-500 hover:text-rose-600 font-semibold transition cursor-pointer inline-flex items-center gap-1"
                                 >
-                                    ✕ Đổi mã khác
+                                    <X className="w-3.5 h-3.5" />
+                                    <span>Đổi mã khác</span>
                                 </button>
                             </div>
                         )}
@@ -1176,7 +1177,7 @@ export default function CorporateBooking() {
                                     </label>
                                     {(user?.guest_profile?.id_card_number || user?.id_card_number || user?.identity_card || user?.id_number) && identityCard && (
                                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
-                                            <span>✓</span>
+                                            <Check className="w-3 h-3 text-emerald-600" />
                                             <span>Từ hồ sơ cá nhân</span>
                                         </span>
                                     )}
@@ -1527,7 +1528,7 @@ export default function CorporateBooking() {
                                                                             className="text-slate-400 hover:text-rose-600 text-xs ml-1 cursor-pointer p-0.5"
                                                                             title="Xóa dịch vụ"
                                                                         >
-                                                                            ✕
+                                                                            <X className="w-3.5 h-3.5" />
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -1554,9 +1555,10 @@ export default function CorporateBooking() {
                                                                         setServiceSearchQuery('');
                                                                         setSelectedServiceCategory('all');
                                                                     }}
-                                                                    className="text-slate-400 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold"
+                                                                    className="text-slate-400 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold inline-flex items-center gap-1"
                                                                 >
-                                                                    ✕ Đóng
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                    <span>Đóng</span>
                                                                 </button>
                                                             </div>
 
@@ -1575,9 +1577,9 @@ export default function CorporateBooking() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => setServiceSearchQuery('')}
-                                                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                                                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                                                                         >
-                                                                            ✕
+                                                                            <X className="w-3.5 h-3.5" />
                                                                         </button>
                                                                     )}
                                                                 </div>
@@ -1611,7 +1613,7 @@ export default function CorporateBooking() {
                                                                                             : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                                                                     }`}
                                                                                 >
-                                                                                    <span>{cat.icon || '🛎️'}</span>
+                                                                                    <Sparkles className="w-3.5 h-3.5 opacity-70" />
                                                                                     <span>{cat.name}</span>
                                                                                     <span className="opacity-70 text-[10px]">({countInCat})</span>
                                                                                 </button>
@@ -1639,8 +1641,9 @@ export default function CorporateBooking() {
                                                                                 >
                                                                                     <div className="min-w-0">
                                                                                         <div className="flex items-center justify-between gap-1 mb-1">
-                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[130px]">
-                                                                                                {svcItem.category_icon || '🛎️'} {svcItem.category?.name || svcItem.category_name || 'Tiện ích'}
+                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[130px] inline-flex items-center gap-1">
+                                                                                                <Tag className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                                                                                <span className="truncate">{svcItem.category?.name || svcItem.category_name || 'Tiện ích'}</span>
                                                                                             </span>
                                                                                             {qtyInRoom > 0 && (
                                                                                                 <span className="text-[10px] font-black text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded-full font-sans tabular-nums">
@@ -1669,7 +1672,7 @@ export default function CorporateBooking() {
                                                                                                 : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
                                                                                         }`}
                                                                                     >
-                                                                                        <span>{qtyInRoom > 0 ? `✓ Thêm tiếp (+1)` : '➕ Thêm vào phòng'}</span>
+                                                                                        <span>{qtyInRoom > 0 ? 'Thêm tiếp (+1)' : '+ Thêm vào phòng'}</span>
                                                                                     </button>
                                                                                 </div>
                                                                             );
@@ -1677,7 +1680,7 @@ export default function CorporateBooking() {
                                                                     </div>
                                                                 ) : (
                                                                     <div className="text-center py-6 bg-white rounded-xl border border-dashed border-slate-200 space-y-1.5">
-                                                                        <div className="text-base">🔍</div>
+                                                                        <Search className="w-5 h-5 text-slate-300 mx-auto" />
                                                                         <p className="text-xs font-semibold text-slate-600">
                                                                             Không tìm thấy dịch vụ nào phù hợp với từ khóa "{serviceSearchQuery}".
                                                                         </p>
@@ -2370,7 +2373,7 @@ export default function CorporateBooking() {
                         onClick={() => setToastNotice(null)}
                         className="text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer transition"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
             )}

@@ -1435,14 +1435,14 @@ class CloseShiftView(APIView):
             from django.contrib.auth import get_user_model
             UserModel = get_user_model()
             has_diff = (shift.difference != Decimal('0'))
-            diff_prefix = "🚨 CẢNH BÁO LỆCH KÉT" if has_diff else "📊 BÁO CÁO KẾT CA"
+            diff_prefix = "[CẢNH BÁO LỆCH KÉT]" if has_diff else "[BÁO CÁO KẾT CA]"
             notif_priority = 'urgent' if shift.difference < 0 else ('high' if has_diff else 'normal')
 
             shift_user_name = shift.user.get_full_name() or shift.user.username if shift.user else "Thu ngân"
             total_rev = Decimal(str(summary.get('total_revenue', 0)))
 
             if has_diff:
-                diff_desc = f"⚠️ Két tiền bị {diff_str}! (Thực tế: {shift.actual_cash:,.0f} VND vs Dự kiến: {shift.expected_cash:,.0f} VND)"
+                diff_desc = f"Két tiền bị {diff_str}! (Thực tế: {shift.actual_cash:,.0f} VND vs Dự kiến: {shift.expected_cash:,.0f} VND)"
             else:
                 diff_desc = f"Két tiền: Cân bằng ({shift.actual_cash:,.0f} VND khớp 100% hệ thống)."
 
@@ -1478,7 +1478,7 @@ class CloseShiftView(APIView):
             if shift.handover_user and shift.handover_user != shift.user:
                 Notification.objects.create(
                     recipient=shift.handover_user,
-                    title=f"🤝 [NHẬN BÀN GIAO CA] #{shift.shift_code} - {shift.get_shift_type_display()}",
+                    title=f"[NHẬN BÀN GIAO CA] #{shift.shift_code} - {shift.get_shift_type_display()}",
                     message=(
                         f"Bạn vừa được nhân viên {shift_user_name} bàn giao ca trực #{shift.shift_code}.\n"
                         f"• Số tiền mặt bàn giao trong két: {shift.actual_cash:,.0f} VND.\n"

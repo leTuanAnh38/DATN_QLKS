@@ -134,7 +134,7 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
             new_notifications.append(
                 Notification(
                     recipient=guest,
-                    title="🔔 Nhắc nhở Check-in: Kỳ nghỉ của quý khách bắt đầu hôm nay!",
+                    title="Nhắc nhở Check-in: Kỳ nghỉ của quý khách bắt đầu hôm nay!",
                     message=(
                         f"Khách sạn TA Đà Nẵng xin chào quý khách {guest_name}! Hôm nay ({date_str}) là ngày nhận phòng của quý khách "
                         f"(Mã đơn: #{booking.booking_code}, Hạng phòng: {category_name}). "
@@ -155,7 +155,7 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
             new_notifications.append(
                 Notification(
                     recipient=staff,
-                    title=f"📥 Lịch Check-in hôm nay: Khách {guest_name} (#{booking.booking_code})",
+                    title=f"Lịch Check-in hôm nay: Khách {guest_name} (#{booking.booking_code})",
                     message=(
                         f"Hôm nay ({date_str}) có lịch đón khách {guest_name} đến nhận phòng "
                         f"(Mã đơn: #{booking.booking_code}, Hạng: {category_name}, Số phòng: {room_label}). "
@@ -196,7 +196,7 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
             new_notifications.append(
                 Notification(
                     recipient=guest,
-                    title="🔔 Nhắc nhở Check-out: Đến hạn trả phòng hôm nay",
+                    title="Nhắc nhở Check-out: Đến hạn trả phòng hôm nay",
                     message=(
                         f"Khách sạn TA Đà Nẵng xin thông báo: Hôm nay ({date_str}) là ngày trả phòng của quý khách "
                         f"({room_label}, Mã đơn: #{booking.booking_code}). "
@@ -217,7 +217,7 @@ def send_checkin_checkout_reminders(target_date=None, force=False):
             new_notifications.append(
                 Notification(
                     recipient=staff,
-                    title=f"📤 Lịch Check-out hôm nay: {room_label} - Khách {guest_name}",
+                    title=f"Lịch Check-out hôm nay: {room_label} - Khách {guest_name}",
                     message=(
                         f"{room_label} (Khách hàng: {guest_name}, Mã đơn: #{booking.booking_code}) "
                         f"có lịch trả phòng trong ngày hôm nay ({date_str}, tiêu chuẩn trước 12:00 trưa). "
@@ -280,7 +280,7 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
         if notify_guest and is_client_guest:
             Notification.objects.create(
                 recipient=guest,
-                title="🔔 Nhắc nhở Check-in: Kỳ nghỉ của quý khách bắt đầu hôm nay!",
+                title="Nhắc nhở Check-in: Kỳ nghỉ của quý khách bắt đầu hôm nay!",
                 message=(
                     f"Khách sạn TA Đà Nẵng xin chào quý khách {guest_name}! Hôm nay ({date_str}) là ngày nhận phòng của quý khách "
                     f"(Mã đơn: #{booking.booking_code}, Hạng phòng: {category_name}). "
@@ -298,7 +298,7 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
             staff_notifs = [
                 Notification(
                     recipient=staff,
-                    title=f"📥 Lịch Check-in hôm nay: Khách {guest_name} (#{booking.booking_code})",
+                    title=f"Lịch Check-in hôm nay: Khách {guest_name} (#{booking.booking_code})",
                     message=(
                         f"Nhắc nhở: Khách {guest_name} (Mã đơn: #{booking.booking_code}, Hạng: {category_name}, Số phòng: {room_label}) "
                         f"có lịch nhận phòng hôm nay ({date_str}). Bộ phận Lễ tân & Buồng phòng lưu ý sẵn sàng đón khách."
@@ -317,7 +317,7 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
         if notify_guest and is_client_guest:
             Notification.objects.create(
                 recipient=guest,
-                title="🔔 Nhắc nhở Check-out: Đến hạn trả phòng hôm nay",
+                title="Nhắc nhở Check-out: Đến hạn trả phòng hôm nay",
                 message=(
                     f"Khách sạn TA Đà Nẵng xin thông báo: Hôm nay ({date_str}) là ngày trả phòng của quý khách "
                     f"({room_label}, Mã đơn: #{booking.booking_code}). "
@@ -335,7 +335,7 @@ def send_single_booking_reminder(booking_id, reminder_type='auto', notify_guest=
             staff_notifs = [
                 Notification(
                     recipient=staff,
-                    title=f"📤 Lịch Check-out hôm nay: {room_label} - Khách {guest_name}",
+                    title=f"Lịch Check-out hôm nay: {room_label} - Khách {guest_name}",
                     message=(
                         f"Nhắc nhở: {room_label} (Khách hàng: {guest_name}, Mã đơn: #{booking.booking_code}) "
                         f"có lịch trả phòng hôm nay ({date_str}, trước 12:00). Bộ phận Lễ tân rà soát dịch vụ và thông báo Buồng phòng sẵn sàng."
@@ -452,7 +452,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=leader_user,
-                        title=f"📋 Đã tiếp nhận yêu cầu đặt đoàn #{group_booking.group_code}",
+                        title=f"Đã tiếp nhận yêu cầu đặt đoàn #{group_booking.group_code}",
                         message=(
                             f"Yêu cầu đặt đoàn cho '{group_booking.group_name}'{comp_display} ({total_rooms} phòng) "
                             f"từ {group_booking.check_in_date.strftime('%d/%m/%Y')} đến {group_booking.check_out_date.strftime('%d/%m/%Y')} "
@@ -471,7 +471,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=staff,
-                        title=f"🏢 Đơn đặt đoàn mới: {group_booking.group_name} (#{group_booking.group_code})",
+                        title=f"Đơn đặt đoàn mới: {group_booking.group_name} (#{group_booking.group_code})",
                         message=(
                             f"Đơn đặt đoàn '{group_booking.group_name}'{comp_display} vừa được tạo "
                             f"với quy mô {total_rooms} phòng (Tổng tiền: {total_amount:,.0f}đ, Cọc: {deposit_amount:,.0f}đ). "
@@ -493,7 +493,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=leader_user,
-                        title=f"🎉 Xác nhận cọc thành công: Đoàn #{group_booking.group_code}",
+                        title=f"Xác nhận cọc thành công: Đoàn #{group_booking.group_code}",
                         message=(
                             f"Khách sạn TA đã nhận đủ số tiền cọc {deposit_amount:,.0f}đ cho đoàn '{group_booking.group_name}'. "
                             f"Quỹ phòng của quý khách đã được đảm bảo giữ chỗ thành công. "
@@ -517,7 +517,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=staff,
-                        title=f"💰 Đã nhận cọc đoàn #{group_booking.group_code}: {deposit_amount:,.0f}đ",
+                        title=f"Đã nhận cọc đoàn #{group_booking.group_code}: {deposit_amount:,.0f}đ",
                         message=(
                             f"Đã xác nhận thanh toán tiền cọc {deposit_amount:,.0f}đ cho đoàn '{group_booking.group_name}'{comp_display}. "
                             f"Trạng thái đoàn đã chuyển sang 'Đã xác nhận'. Quỹ phòng đã được khóa."
@@ -538,7 +538,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=leader_user,
-                        title=f"🔑 Chào mừng đoàn {group_booking.group_name} đến với TA Hotel!",
+                        title=f"Chào mừng đoàn {group_booking.group_name} đến với TA Hotel!",
                         message=(
                             f"Đã hoàn tất thủ tục nhận phòng đồng loạt cho {checked_in_count} phòng của đoàn '{group_booking.group_name}'. "
                             f"Thẻ phòng đã được bàn giao cho trưởng đoàn. Khách sạn TA Đà Nẵng chúc quý đoàn có kỳ nghỉ và chuyến công tác tuyệt vời!"
@@ -561,7 +561,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=staff,
-                        title=f"📥 Đoàn {group_booking.group_name} ({checked_in_count} phòng) đã Check-in",
+                        title=f"Đoàn {group_booking.group_name} ({checked_in_count} phòng) đã Check-in",
                         message=(
                             f"Đoàn '{group_booking.group_name}'{comp_display} gồm {checked_in_count} phòng đã hoàn tất Check-in. "
                             f"Bộ phận Lễ tân, Buồng phòng và F&B lưu ý phục vụ các dịch vụ kèm theo theo thỏa thuận hợp đồng."
@@ -583,7 +583,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=leader_user,
-                        title=f"✨ Cảm ơn Quý đoàn {group_booking.group_name} đã lưu trú!",
+                        title=f"Cảm ơn Quý đoàn {group_booking.group_name} đã lưu trú!",
                         message=(
                             f"Đoàn '{group_booking.group_name}' ({checked_out_count} phòng) đã làm thủ tục trả phòng thành công. "
                             f"Hóa đơn thanh toán Master Invoice đã được xuất và gửi tới email đại diện. "
@@ -607,7 +607,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=staff,
-                        title=f"📑 Quyết toán đoàn #{group_booking.group_code} ({contract_total:,.0f}đ)",
+                        title=f"Quyết toán đoàn #{group_booking.group_code} ({contract_total:,.0f}đ)",
                         message=(
                             f"Đoàn '{group_booking.group_name}'{comp_display} đã hoàn tất Check-out ({checked_out_count} phòng). "
                             f"Hóa đơn tổng Master Invoice giá trị {contract_total:,.0f}đ đã được tạo. "
@@ -628,7 +628,7 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                 new_notifications.append(
                     Notification(
                         recipient=staff,
-                        title=f"🧹 Đoàn {group_booking.group_name} đã Check-out ({checked_out_count} phòng)",
+                        title=f"Đoàn {group_booking.group_name} đã Check-out ({checked_out_count} phòng)",
                         message=(
                             f"Đoàn '{group_booking.group_name}' vừa trả phòng. "
                             f"Toàn bộ {checked_out_count} phòng của đoàn đã chuyển sang trạng thái Đang dọn dẹp (Cleaning). "

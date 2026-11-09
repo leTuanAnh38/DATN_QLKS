@@ -725,9 +725,9 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setSearchKeyword('')}
-                                            className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer p-0.5"
+                                            className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
                                         >
-                                            ✕
+                                            <X className="w-3.5 h-3.5" />
                                         </button>
                                     )}
                                 </div>
@@ -1430,8 +1430,9 @@ export default function BookingHistory() {
                                                                             <span className={`font-semibold ${isDamage ? 'text-rose-900' : 'text-slate-900'}`}>{cleanName}</span>
                                                                             <span className="text-slate-400 text-[11px]">(x{srv.quantity || 1})</span>
                                                                             {isFullyCoveredByCompany && srvTotal > 0 && (
-                                                                                <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                                                                    ✓ Công ty chi trả
+                                                                                <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
+                                                                                    <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                                                                    <span>Công ty chi trả</span>
                                                                                 </span>
                                                                             )}
                                                                         </div>

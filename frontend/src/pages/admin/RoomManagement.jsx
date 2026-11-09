@@ -18,8 +18,20 @@ import {
     Receipt,
     KeyRound,
     Check,
-    ChevronDown,
     Edit3,
+    Trash2,
+    AlertTriangle,
+    CheckCircle2,
+    Clock,
+    Zap,
+    Calendar,
+    Phone,
+    User,
+    Bell,
+    Inbox,
+    ArrowRight,
+    Lightbulb,
+    Hotel,
 } from 'lucide-react';
 import roomService from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
@@ -71,7 +83,6 @@ const ROOM_STATUSES = {
         cardClass: 'bg-white hover:bg-emerald-50/20 border-slate-200/90 hover:border-emerald-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-emerald-500',
         btnClass: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-        icon: '🟢',
     },
     occupied: {
         key: 'occupied',
@@ -81,7 +92,6 @@ const ROOM_STATUSES = {
         cardClass: 'bg-rose-50/30 hover:bg-rose-50/50 border-rose-200/90 hover:border-rose-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-rose-500',
         btnClass: 'bg-rose-600 hover:bg-rose-700 text-white',
-        icon: '🔴',
     },
     cleaning: {
         key: 'cleaning',
@@ -91,7 +101,6 @@ const ROOM_STATUSES = {
         cardClass: 'bg-amber-50/30 hover:bg-amber-50/50 border-amber-200/90 hover:border-amber-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-amber-500',
         btnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
-        icon: '🟡',
     },
     maintenance: {
         key: 'maintenance',
@@ -101,7 +110,6 @@ const ROOM_STATUSES = {
         cardClass: 'bg-slate-50/80 hover:bg-slate-100/80 border-slate-300 hover:border-slate-400 text-slate-800 shadow-2xs hover:shadow-md transition-all duration-200',
         indicatorColor: 'bg-slate-400',
         btnClass: 'bg-slate-600 hover:bg-slate-700 text-white',
-        icon: '⚪',
     },
 };
 
@@ -438,7 +446,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         setSelectedOccupiedRoom(null);
         setAlertMessage({
             type: 'success',
-            text: `🧾 Đã hoàn tất Check-out & quyết toán hóa đơn! Phòng đã chuyển sang trạng thái "🟡 Đang dọn dẹp (Housekeeping)".`
+            text: `Đã hoàn tất Check-out & quyết toán hóa đơn! Phòng đã chuyển sang trạng thái "Đang dọn dẹp (Housekeeping)".`
         });
         fetchRooms(true);
         setTimeout(() => setAlertMessage(null), 4500);
@@ -494,7 +502,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             if (res && res.success) {
                 setAlertMessage({
                     type: 'success',
-                    text: res.message || `🔑 Check-in thành công cho khách "${booking.guest_name}" vào phòng ${assignModalRoom.room_number}!`
+                    text: res.message || `Check-in thành công cho khách "${booking.guest_name}" vào phòng ${assignModalRoom.room_number}!`
                 });
                 setCheckInWarningModal(null);
                 setAssignModalRoom(null);
@@ -536,7 +544,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         if (isExpired) {
             setAlertMessage({
                 type: 'error',
-                text: `⛔ Đơn đặt phòng #${booking.booking_code} đã quá hạn lưu trú (Ngày trả phòng dự kiến là ${formatDate(booking.check_out_date)}). Không thể Check-in.`
+                text: `Đơn đặt phòng #${booking.booking_code} đã quá hạn lưu trú (Ngày trả phòng dự kiến là ${formatDate(booking.check_out_date)}). Không thể Check-in.`
             });
             setTimeout(() => setAlertMessage(null), 5000);
             return;
@@ -1027,7 +1035,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         }`}
                 >
                     <div className="flex items-center gap-2.5">
-                        <span className="text-base">{alertMessage.type === 'success' ? '✅' : '⚠️'}</span>
+                        {alertMessage.type === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                        )}
                         <span>{alertMessage.text}</span>
                     </div>
                     <button
@@ -1035,7 +1047,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         onClick={() => setAlertMessage(null)}
                         className="text-slate-400 hover:text-slate-700 font-bold ml-4 cursor-pointer"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
             )}
@@ -1287,10 +1299,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer py-1"
                             >
                                 <option value="all">Tất cả</option>
-                                <option value="available">🟢 Trống</option>
-                                <option value="occupied">🔴 Có khách</option>
-                                <option value="cleaning">🟡 Đang dọn</option>
-                                <option value="maintenance">⚪ Bảo trì</option>
+                                <option value="available">Trống (Sẵn sàng)</option>
+                                <option value="occupied">Có khách</option>
+                                <option value="cleaning">Đang dọn</option>
+                                <option value="maintenance">Bảo trì</option>
                             </select>
                         </div>
 
@@ -1346,8 +1358,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 </div>
             ) : rooms.length === 0 ? (
                 <div className="bg-white rounded-3xl p-16 border border-slate-200 text-center shadow-xs">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">
-                        🔍
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                        <Search className="w-8 h-8" />
                     </div>
                     <h3 className="text-base font-bold text-slate-900">Không tìm thấy phòng nào phù hợp</h3>
                     <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
@@ -1500,9 +1512,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onClick={() => setIsCreateModalOpen(false)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         {/* Form Body */}
@@ -1584,7 +1594,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                                 onChange={(e) => setCreateFormData({ ...createFormData, status: e.target.value })}
                                                 className="hidden"
                                             />
-                                            <span className="text-sm">{st.icon}</span>
+                                            <span className={`w-2.5 h-2.5 rounded-full ${st.indicatorColor}`} />
                                             <span className="text-xs truncate">{st.shortLabel}</span>
                                         </label>
                                     ))}
@@ -1625,8 +1635,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl shadow-xs">
-                                    ✏️
+                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs">
+                                    <Edit3 className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
@@ -1642,9 +1652,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onClick={() => setIsEditModalOpen(false)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         {/* Form Body */}
@@ -1720,7 +1728,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                                 onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
                                                 className="hidden"
                                             />
-                                            <span className="text-sm">{st.icon}</span>
+                                            <span className={`w-2.5 h-2.5 rounded-full ${st.indicatorColor}`} />
                                             <span className="text-xs truncate">{st.shortLabel}</span>
                                         </label>
                                     ))}
@@ -1737,7 +1745,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                         }}
                                         className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
                                     >
-                                        <span>🗑️</span> Xóa phòng này
+                                        <Trash2 className="w-3.5 h-3.5" /> <span>Xóa phòng này</span>
                                     </button>
                                 ) : <div />}
                                 <div className="flex items-center gap-2">
@@ -1772,8 +1780,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 text-center space-y-4">
-                            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-3xl mx-auto shadow-inner border border-rose-200">
-                                🗑️
+                            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner border border-rose-200">
+                                <Trash2 className="w-8 h-8 text-rose-600" />
                             </div>
                             <div>
                                 <h3 className="text-base font-bold text-slate-900">
@@ -1859,16 +1867,17 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         {/* Header */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center text-2xl font-bold shadow-xs">
-                                    🏨
+                                <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-xs">
+                                    <Hotel className="w-6 h-6" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-bold text-lg text-slate-900 tracking-tight">
                                             Phòng {selectedOccupiedRoom.room_number}
                                         </h3>
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-                                            🔴 Đang lưu trú
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                                            Đang lưu trú
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-500 mt-0.5">
@@ -1881,9 +1890,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onClick={() => setSelectedOccupiedRoom(null)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         {/* Body */}
@@ -1900,7 +1907,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             onClick={() => handleGoToCustomer(selectedOccupiedRoom.current_booking.guest_id)}
                                             className="text-blue-600 hover:text-blue-800 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
                                         >
-                                            <span>Xem hồ sơ CRM ➔</span>
+                                            <span className="flex items-center gap-1">Xem hồ sơ CRM <ArrowRight className="w-3.5 h-3.5" /></span>
                                         </button>
                                     )}
                                 </div>
@@ -1979,7 +1986,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 className="px-3 py-2 text-slate-600 hover:text-blue-700 font-bold text-xs rounded-xl hover:bg-slate-200/60 transition flex items-center gap-1.5 cursor-pointer"
                                 title="Đi tới trang Quản lý Đặt phòng"
                             >
-                                <span>📋</span>
+                                <ClipboardList className="w-3.5 h-3.5" />
                                 <span>Quản lý Đặt phòng</span>
                             </button>
                             {canManageBookings && (
@@ -1999,7 +2006,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                         className="px-3.5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                                         title="Chuyển khách sang phòng trống mới"
                                     >
-                                        <span>🔄</span>
+                                        <RefreshCw className="w-3.5 h-3.5" />
                                         <span>Đổi phòng</span>
                                     </button>
                                     <button
@@ -2012,7 +2019,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                         className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                                         title="Thực hiện thủ tục Check-out trả phòng"
                                     >
-                                        <span>🧾</span>
+                                        <Receipt className="w-3.5 h-3.5" />
                                         <span>Check-out</span>
                                     </button>
                                 </div>
@@ -2034,16 +2041,17 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         {/* Header */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-2xl font-bold shadow-xs">
-                                    🔑
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-xs">
+                                    <KeyRound className="w-6 h-6" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-bold text-lg text-slate-900 tracking-tight">
                                             Gán Phòng {assignModalRoom.room_number} & Check-in Đón Khách
                                         </h3>
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                            🟢 Sẵn sàng đón khách
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            Sẵn sàng đón khách
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-500 mt-0.5">
@@ -2056,9 +2064,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onClick={() => setAssignModalRoom(null)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         {/* Thanh tìm kiếm & Bộ lọc cùng hạng phòng */}
@@ -2073,7 +2079,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                         onChange={(e) => setAssignSearchTerm(e.target.value)}
                                         className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-600 text-slate-900"
                                     />
-                                    <span className="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
+                                    <Search className="absolute left-3 top-2.5 text-slate-400 w-3.5 h-3.5" />
                                 </div>
 
                                 {/* Filter tabs */}
@@ -2111,8 +2117,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 </div>
                             ) : filteredEligibleBookings.length === 0 ? (
                                 <div className="py-12 text-center space-y-3">
-                                    <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center text-2xl mx-auto">
-                                        📭
+                                    <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+                                        <Inbox className="w-6 h-6" />
                                     </div>
                                     <div>
                                         <h4 className="font-bold text-slate-800 text-sm">
@@ -2130,7 +2136,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             onClick={() => setAssignFilterMode('all')}
                                             className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold text-xs transition cursor-pointer"
                                         >
-                                            Hiển thị tất cả đơn chờ nhận phòng ➔
+                                            Hiển thị tất cả đơn chờ nhận phòng &rarr;
                                         </button>
                                     )}
                                 </div>
@@ -2187,22 +2193,22 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                                     </span>
                                                     {isExpired && (
                                                         <span className="text-[10px] font-bold text-rose-800 bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-300 flex items-center gap-1">
-                                                            ⛔ Quá hạn trả
+                                                            <AlertTriangle className="w-3 h-3" /> Quá hạn trả
                                                         </span>
                                                     )}
                                                     {isEarly && (
                                                         <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
-                                                            ⚡ Sớm {earlyDays} ngày
+                                                            <Zap className="w-3 h-3" /> Sớm {earlyDays} ngày
                                                         </span>
                                                     )}
                                                     {isLate && (
                                                         <span className="text-[10px] font-bold text-orange-800 bg-orange-100 px-2.5 py-0.5 rounded-full border border-orange-300 flex items-center gap-1">
-                                                            ⏰ Trễ {lateDays} ngày
+                                                            <Clock className="w-3 h-3" /> Trễ {lateDays} ngày
                                                         </span>
                                                     )}
                                                     {isCatMatch ? (
-                                                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                                                            ✓ Đúng hạng phòng
+                                                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                                            <Check className="w-3 h-3" /> Đúng hạng phòng
                                                         </span>
                                                     ) : (
                                                         <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
@@ -2211,10 +2217,10 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-3 text-slate-500 text-[11px]">
-                                                    <span>📞 {b.guest_phone || '—'}</span>
+                                                    <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {b.guest_phone || '—'}</span>
                                                     <span>•</span>
-                                                    <span>
-                                                        📅 {formatDate(b.check_in_date)} ➔ {formatDate(b.check_out_date)}
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" /> {formatDate(b.check_in_date)} &rarr; {formatDate(b.check_out_date)}
                                                     </span>
                                                     <span>•</span>
                                                     <span className="font-bold text-slate-700">
@@ -2236,7 +2242,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                                                 : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
                                                     }`}
                                             >
-                                                <span>{isExpired ? '⛔' : isEarly ? '⚡' : isLate ? '⏰' : '🔑'}</span>
+                                                <span>{isExpired ? <AlertTriangle className="w-3.5 h-3.5" /> : isEarly ? <Zap className="w-3.5 h-3.5" /> : isLate ? <Clock className="w-3.5 h-3.5" /> : <KeyRound className="w-3.5 h-3.5" />}</span>
                                                 <span>
                                                     {isExpired
                                                         ? 'Quá hạn lưu trú'
@@ -2260,7 +2266,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 onClick={handleGoToBookings}
                                 className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
                             >
-                                <span>📋 Đi tới Quản lý Đặt phòng</span>
+                                <span className="flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Đi tới Quản lý Đặt phòng</span>
                             </button>
                             <button
                                 type="button"
@@ -2285,7 +2291,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     ? 'bg-amber-100 text-amber-600'
                                     : 'bg-indigo-100 text-indigo-600'
                                 }`}>
-                                {checkInWarningModal.type === 'early' ? '⚡' : '⏰'}
+                                {checkInWarningModal.type === 'early' ? <Zap className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
                             </div>
                             <div>
                                 <h3 className="text-base font-black text-slate-800 tracking-tight">
@@ -2325,9 +2331,9 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
 
                         <div className="text-xs text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-100">
                             {checkInWarningModal.type === 'early' ? (
-                                <span>💡 Hệ thống sẽ chuyển ngày bắt đầu lưu trú sang hôm nay <b>({formatDate(checkInWarningModal.todayStr)})</b> và tự động tính thêm phụ phí cho <b>{checkInWarningModal.earlyDays} đêm</b> ở sớm.</span>
+                                <span className="flex items-start gap-1.5"><Lightbulb className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" /><span>Hệ thống sẽ chuyển ngày bắt đầu lưu trú sang hôm nay <b>({formatDate(checkInWarningModal.todayStr)})</b> và tự động tính thêm phụ phí cho <b>{checkInWarningModal.earlyDays} đêm</b> ở sớm.</span></span>
                             ) : (
-                                <span>💡 Khách sẽ nhận phòng ở <b>{checkInWarningModal.remainingNights} đêm</b> còn lại đến ngày <b>{formatDate(checkInWarningModal.booking.check_out_date)}</b>.</span>
+                                <span className="flex items-start gap-1.5"><Lightbulb className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" /><span>Khách sẽ nhận phòng ở <b>{checkInWarningModal.remainingNights} đêm</b> còn lại đến ngày <b>{formatDate(checkInWarningModal.booking.check_out_date)}</b>.</span></span>
                             )}
                         </div>
 
@@ -2357,12 +2363,12 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                             >
                                 {isSubmittingAssignCheckIn ? (
                                     <>
-                                        <span className="animate-spin text-sm">⏳</span>
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                                         <span>Đang xử lý...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <span>✓</span>
+                                        <Check className="w-3.5 h-3.5" />
                                         <span>Xác Nhận Check-In</span>
                                     </>
                                 )}
@@ -2460,8 +2466,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                     >
                         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl shadow-xs">
-                                    🧹
+                                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
+                                    <Sparkles className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base text-slate-900 tracking-tight">
@@ -2476,9 +2482,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 type="button"
                                 onClick={() => setMakeUpModalRoom(null)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         <form onSubmit={handleConfirmRequestCleaning} className="p-6 space-y-4 text-xs">
@@ -2546,7 +2550,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     disabled={isSubmittingMakeUp}
                                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition cursor-pointer flex items-center gap-1.5"
                                 >
-                                    {isSubmittingMakeUp ? 'Đang gửi...' : '🧹 Gửi Yêu Cầu Buồng Phòng'}
+                                    {isSubmittingMakeUp ? 'Đang gửi...' : <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Gửi Yêu Cầu Buồng Phòng</span>}
                                 </button>
                             </div>
                         </form>
@@ -2742,7 +2746,7 @@ function RoomCard({
             {isInspectionRequested && (
                 <div className="mt-2 p-2 rounded-xl bg-amber-500/10 border-2 border-amber-500 shadow-xs space-y-1.5 animate-in fade-in">
                     <div className="flex items-center justify-between text-[10px] font-black text-amber-900">
-                        <span className="flex items-center gap-1">🛎️ LỄ TÂN ĐỢI KIỂM PHÒNG</span>
+                        <span className="flex items-center gap-1.5"><Bell className="w-3.5 h-3.5 text-amber-600" /> LỄ TÂN ĐỢI KIỂM PHÒNG</span>
                         <span className="px-1.5 py-0.2 bg-amber-500 text-white rounded text-[9px] font-mono tracking-wider animate-pulse">CHECK-OUT</span>
                     </div>
                     <p className="text-[10px] text-amber-950 font-medium leading-tight">
@@ -2754,7 +2758,7 @@ function RoomCard({
                             onClick={() => onOpenMinibar(room)}
                             className="w-full py-1.5 px-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-[10px] font-bold rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                            <span>🔍</span>
+                            <Search className="w-3 h-3" />
                             <span>Kiểm tra phòng Check-out</span>
                         </button>
                     )}
@@ -2763,7 +2767,7 @@ function RoomCard({
 
             {isInspectionCompleted && (
                 <div className="mt-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-800 flex items-center justify-between font-semibold">
-                    <span>✓ Đã kiểm phòng</span>
+                    <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-600" /> Đã kiểm phòng</span>
                     <span className="font-mono font-bold text-emerald-900">
                         {room.latest_minibar_check.total_amount > 0 ? formatCurrency(room.latest_minibar_check.total_amount) : 'Nguyên vẹn'}
                     </span>
@@ -2774,7 +2778,7 @@ function RoomCard({
             {room.status === 'occupied' && room.is_cleaning_requested && (
                 <div className="mt-2 p-2 rounded-xl bg-blue-500/10 border-2 border-blue-500 shadow-xs space-y-1.5 animate-in fade-in">
                     <div className="flex items-center justify-between text-[10px] font-black text-blue-900">
-                        <span className="flex items-center gap-1">🧹 YÊU CẦU DỌN PHÒNG</span>
+                        <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-blue-600" /> YÊU CẦU DỌN PHÒNG</span>
                         <span className="px-1.5 py-0.2 bg-blue-600 text-white rounded text-[9px] font-mono tracking-wider animate-pulse">MAKE-UP</span>
                     </div>
                     <p className="text-[10px] text-blue-950 font-medium leading-tight">
@@ -2786,7 +2790,7 @@ function RoomCard({
                         className="w-full py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[10px] font-bold rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                         title="Xác nhận buồng phòng đã dọn dẹp xong cho khách đang ở"
                     >
-                        <span>✓</span>
+                        <Check className="w-3 h-3" />
                         <span>Xác nhận đã dọn xong</span>
                     </button>
                 </div>
@@ -2799,7 +2803,7 @@ function RoomCard({
                 <div className="mt-2 p-2 rounded-xl bg-amber-50/80 border border-amber-200 shadow-2xs space-y-1">
                     <div className="flex items-center justify-between gap-1">
                         <span className="font-bold text-[11px] text-amber-900 truncate flex items-center gap-1" title={room.active_maintenance?.equipment_name || 'Đang bảo trì'}>
-                            <span>🛠️</span>
+                            <Wrench className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                             <span className="truncate">{room.active_maintenance?.equipment_name || 'Đang bảo trì'}</span>
                         </span>
                         {room.active_maintenance?.ticket_code && (
@@ -2814,8 +2818,8 @@ function RoomCard({
                         </div>
                     )}
                     {room.active_maintenance?.is_guest_fault && (
-                        <div className="inline-block text-[9px] font-bold text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded border border-rose-300">
-                            ⚠️ Khách làm hỏng
+                        <div className="inline-flex items-center gap-1 text-[9px] font-bold text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded border border-rose-300">
+                            <AlertTriangle className="w-2.5 h-2.5" /> Khách làm hỏng
                         </div>
                     )}
                     {onViewHistory && (
@@ -2825,7 +2829,7 @@ function RoomCard({
                             className="w-full text-center text-[10px] text-amber-800 hover:text-amber-950 font-bold underline pt-1 cursor-pointer block"
                             title={`Xem toàn bộ lịch sử sửa chữa phòng ${room.room_number}`}
                         >
-                            📋 Xem nhật ký sửa phòng {room.room_number}
+                            <span className="flex items-center justify-center gap-1"><ClipboardList className="w-3 h-3" /> Xem nhật ký sửa phòng {room.room_number}</span>
                         </button>
                     )}
                 </div>
@@ -2838,7 +2842,7 @@ function RoomCard({
                 <div className="mt-2 p-2 rounded-xl bg-amber-50/80 border border-amber-200 shadow-2xs space-y-1 text-[10px]">
                     {room.recent_booking && (
                         <div className="flex items-center justify-between gap-1 font-bold text-amber-900 truncate">
-                            <span className="truncate" title={room.recent_booking.guest_name}>👤 {room.recent_booking.guest_name}</span>
+                            <span className="truncate flex items-center gap-1" title={room.recent_booking.guest_name}><User className="w-3 h-3 text-amber-700 shrink-0" /> {room.recent_booking.guest_name}</span>
                             <span className="font-mono text-[9px] text-amber-800 bg-white px-1 rounded border border-amber-300 shrink-0">
                                 #{room.recent_booking.booking_code}
                             </span>
@@ -2846,7 +2850,7 @@ function RoomCard({
                     )}
                     {room.latest_minibar_check && (
                         <div className="flex items-center justify-between text-[10px] text-amber-800 font-semibold pt-0.5 border-t border-amber-200/60">
-                            <span className="text-amber-700">🍾 Tiêu thụ Minibar:</span>
+                            <span className="text-amber-700 flex items-center gap-1"><Wine className="w-3 h-3" /> Tiêu thụ Minibar:</span>
                             <strong className="text-amber-900 font-bold">{formatCurrency(room.latest_minibar_check.total_amount)}</strong>
                         </div>
                     )}
@@ -3030,26 +3034,26 @@ function RoomCard({
                         >
                             {userRole === 'housekeeper' ? (
                                 <>
-                                    <option value="available">🟢 Trống (Available)</option>
-                                    <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
+                                    <option value="available">Trống (Available)</option>
+                                    <option value="cleaning">Đang dọn (Cleaning)</option>
                                 </>
                             ) : userRole === 'receptionist' ? (
                                 <>
                                     {room.status === 'cleaning' ? (
-                                        <option value="available" disabled>🟢 Trống (Chờ buồng dọn xong)</option>
+                                        <option value="available" disabled>Trống (Chờ buồng dọn xong)</option>
                                     ) : room.status === 'maintenance' ? (
-                                        <option value="available" disabled>🟢 Trống (Phải qua Đang dọn)</option>
+                                        <option value="available" disabled>Trống (Phải qua Đang dọn)</option>
                                     ) : (
-                                        <option value="available">🟢 Trống (Available)</option>
+                                        <option value="available">Trống (Available)</option>
                                     )}
-                                    <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
-                                    <option value="maintenance">⚪ Bảo trì (Maintenance)</option>
+                                    <option value="cleaning">Đang dọn (Cleaning)</option>
+                                    <option value="maintenance">Bảo trì (Maintenance)</option>
                                 </>
                             ) : (
                                 <>
-                                    <option value="available">🟢 Trống (Available)</option>
-                                    <option value="cleaning">🟡 Đang dọn (Cleaning)</option>
-                                    <option value="maintenance">⚪ Bảo trì (Maintenance)</option>
+                                    <option value="available">Trống (Available)</option>
+                                    <option value="cleaning">Đang dọn (Cleaning)</option>
+                                    <option value="maintenance">Bảo trì (Maintenance)</option>
                                 </>
                             )}
                         </select>

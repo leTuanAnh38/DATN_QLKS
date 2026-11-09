@@ -5,7 +5,7 @@ import {
     User, Phone, DollarSign, BedDouble, Lock, FileEdit, Save,
     Users, Clock, AlertTriangle, Check, Plus, Star, CreditCard,
     Calendar, Globe, Receipt, QrCode, Banknote, FileText, BarChart3,
-    Sparkles
+    Sparkles, Zap
 } from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 import api from '../../../../services/api';
@@ -706,7 +706,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                 {/* TOAST THÔNG BÁO NỔI */}
                 {modalToast && (
                     <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-amber-600 text-white border-amber-500 shadow-amber-600/30">
-                        <span>⚡</span>
+                        <Zap className="w-4 h-4 shrink-0" />
                         <span>{modalToast.message}</span>
                     </div>
                 )}

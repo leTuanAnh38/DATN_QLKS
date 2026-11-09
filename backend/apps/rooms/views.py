@@ -792,14 +792,14 @@ class AdminRoomStatusUpdateView(APIView):
                     
                     if active_booking:
                         guest_name = active_booking.guest.get_full_name() if active_booking.guest else active_booking.guest_name
-                        notif_title = f"✨ [DỌN PHÒNG HOÀN TẤT] Phòng {updated_room.room_number} đã dọn xong!"
+                        notif_title = f"[Dọn phòng hoàn tất] Phòng {updated_room.room_number} đã dọn xong"
                         notif_message = (
                             f"Nhân viên ({staff_name}) đã hoàn tất dọn dẹp phòng {updated_room.room_number} ({cat_name}).\n"
                             f"• Phòng đang có khách lưu trú: {guest_name} (#{active_booking.booking_code})\n"
                             f"• Trạng thái hiện tại: Có khách (Occupied) - Tiếp tục phục vụ khách."
                         )
                     else:
-                        notif_title = f"✨ [PHÒNG SẴN SÀNG] Phòng {updated_room.room_number} đã dọn xong!"
+                        notif_title = f"[Phòng sẵn sàng] Phòng {updated_room.room_number} đã dọn xong"
                         notif_message = (
                             f"Nhân viên ({staff_name}) đã hoàn tất dọn dẹp phòng {updated_room.room_number} ({cat_name}).\n"
                             f"• Trạng thái hiện tại: Trống (Sẵn sàng mở bán)\n"
@@ -829,7 +829,7 @@ class AdminRoomStatusUpdateView(APIView):
                         Q(role__in=['housekeeper', 'admin']) | (Q(is_superuser=True) & ~Q(role__in=['owner', 'manager', 'guest', 'technician', 'service_staff', 'cashier']))
                     ).distinct()
                     cat_name = updated_room.category.name if updated_room.category else 'Tiêu chuẩn'
-                    notif_title = f"🧹 [YÊU CẦU DỌN PHÒNG] Phòng {updated_room.room_number} cần dọn dẹp!"
+                    notif_title = f"[YÊU CẦU DỌN PHÒNG] Phòng {updated_room.room_number} cần dọn dẹp!"
                     notif_message = (
                         f"Phòng {updated_room.room_number} ({cat_name}) vừa được chuyển sang 'Đang dọn dẹp' (Cleaning).\n"
                         f"• Người yêu cầu: {staff_name}\n"
@@ -903,7 +903,7 @@ class AdminRoomRequestCleaningView(APIView):
             notifs = [
                 Notification(
                     recipient=u,
-                    title=f"🧹 [YÊU CẦU DỌN PHÒNG] Phòng {room.room_number}",
+                    title=f"[YÊU CẦU DỌN PHÒNG] Phòng {room.room_number}",
                     message=f"Phòng {room.room_number} (Khách: {guest_str}) vừa yêu cầu dọn phòng lưu trú.\n• Ghi chú: {note}\n• Người tiếp nhận: {staff_name}",
                     notification_type='room',
                     action_url='/admin/rooms',
@@ -973,7 +973,7 @@ class AdminRoomCompleteCleaningView(APIView):
             notifs = [
                 Notification(
                     recipient=u,
-                    title=f"✨ [DỌN PHÒNG XONG] Phòng {room.room_number}",
+                    title=f"[DỌN PHÒNG XONG] Phòng {room.room_number}",
                     message=f"Nhân viên ({staff_name}) đã hoàn tất dọn phòng lưu trú cho Phòng {room.room_number} (Khách: {guest_str}). Phòng tiếp tục ở trạng thái Có khách.",
                     notification_type='room',
                     action_url='/admin/rooms',
@@ -1191,7 +1191,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                 'other': 'Khác'
             }
             issue_display = issue_labels.get(issue_type, issue_type)
-            notif_title = f"🛠️ [BẢO TRÌ] P.{room.room_number} báo hỏng: {equipment_name}"
+            notif_title = f"[BẢO TRÌ] P.{room.room_number} báo hỏng: {equipment_name}"
             notif_message = (
                 f"Phòng {room.room_number} vừa được chuyển sang 'Bảo trì' cần kiểm tra gấp:\n"
                 f"• Thiết bị: {equipment_name} ({issue_display})\n"
@@ -1340,7 +1340,7 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
             parts_info = ticket.parts_replaced or "Không có (Sửa chữa/Bảo dưỡng)"
             cost_info = f"{int(ticket.cost):,} VNĐ" if ticket.cost else "0 VNĐ (Không phát sinh)"
 
-            notif_title = f"🧹 [BÀN GIAO DỌN DẸP] Phòng {room.room_number} đã sửa xong!"
+            notif_title = f"[BÀN GIAO DỌN DẸP] Phòng {room.room_number} đã sửa xong!"
             notif_message = (
                 f"Kỹ thuật viên ({tech_name}) đã hoàn tất sửa chữa thiết bị tại phòng {room.room_number}:\n"
                 f"• Thiết bị: {ticket.equipment_name}\n"
@@ -1647,7 +1647,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 Q(role__in=['housekeeper', 'receptionist', 'admin']) |
                 (Q(is_superuser=True) & ~Q(role__in=['owner', 'manager', 'guest', 'technician', 'service_staff', 'cashier']))
             ).distinct()
-            notif_title = f"🛎️ [YÊU CẦU KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
+            notif_title = f"[YÊU CẦU KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
             notif_message = (
                 f"Lễ tân ({receptionist_name}) vừa gửi yêu cầu kiểm tra phòng {room.room_number}.\n"
                 f"Khách đang làm thủ tục trả phòng tại quầy. Vui lòng kiểm tra Minibar và Hư hại tài sản!"
@@ -1939,7 +1939,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 Q(role__in=target_roles) |
                 (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'housekeeper', 'service_staff', 'technician']))
             ).distinct()
-            notif_title = f"✅ [HOÀN TẤT KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
+            notif_title = f"[HOÀN TẤT KIỂM PHÒNG] Phòng {room.room_number}{guest_label}"
             damage_text = f"\n• Hư hại / Đền bù: {damage_amt:,.0f} đ ({damage_desc})" if (has_damage and (damage_amt > 0 or damage_desc)) else "\n• Hư hại phòng: Không phát sinh"
             if maintenance_ticket_created:
                 damage_text += f"\n• Đã tự động tạo phiếu bảo trì #{maintenance_ticket_created.ticket_code} cho bộ phận Kỹ thuật."
@@ -2092,7 +2092,7 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                 Q(role__in=['receptionist', 'manager', 'admin']) |
                 (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'housekeeper', 'technician', 'service_staff', 'cashier']))
             ).distinct()
-            notif_title = f"🧳 [ĐỒ THẤT LẠC MỚI] #{item.tracking_code} - {item.item_name}"
+            notif_title = f"[ĐỒ THẤT LẠC MỚI] #{item.tracking_code} - {item.item_name}"
             guest_info = f"Khách: {guest_name} ({guest_phone})" if guest_name else "Chưa xác định chủ nhân"
             notif_message = (
                 f"Nhân viên ({staff_name}) vừa phát hiện tài sản khách bỏ quên:\n"
@@ -2166,7 +2166,7 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
                 Q(role__in=['manager', 'admin', 'housekeeper', 'receptionist']) |
                 (Q(is_superuser=True) & ~Q(role__in=['owner', 'guest', 'technician', 'service_staff', 'cashier']))
             ).distinct()
-            notif_title = f"✅ [ĐÃ TRẢ ĐỒ THẤT LẠC] #{item.tracking_code} - {item.item_name}"
+            notif_title = f"[ĐÃ TRẢ ĐỒ THẤT LẠC] #{item.tracking_code} - {item.item_name}"
             notif_message = (
                 f"Món đồ '{item.item_name}' (#{item.tracking_code}) đã được bàn giao thành công cho: {returned_to}.\n"
                 f"• Nhân viên bàn giao: {staff_name}\n"

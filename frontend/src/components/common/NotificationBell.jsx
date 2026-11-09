@@ -18,6 +18,15 @@ import {
 import { useAuth } from '../../store/authStore';
 import notificationService from '../../services/notificationService';
 
+// Helper loại bỏ các emoji Windows/Unicode thừa ở đầu tiêu đề thông báo, giữ giao diện thanh lịch chuẩn 5 sao
+const cleanNotifTitle = (title) => {
+    if (!title) return '';
+    return title
+        .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu, '')
+        .replace(/^\s*[-•]\s*/, '')
+        .trim();
+};
+
 export default function NotificationBell({ theme = 'light' }) {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
@@ -608,7 +617,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                                                     : 'font-semibold text-slate-700'
                                                             }`}
                                                         >
-                                                            {notif.title}
+                                                            {cleanNotifTitle(notif.title)}
                                                         </h4>
                                                     </div>
                                                     <p
@@ -666,8 +675,9 @@ export default function NotificationBell({ theme = 'light' }) {
 
                                 {/* Đã tải hết */}
                                 {!hasNext && notifications.length > 0 && (
-                                    <div className="py-2.5 text-center text-[10px] text-slate-400 bg-slate-50/40">
-                                        ✓ Đã hiển thị toàn bộ ({notifications.length}) thông báo
+                                    <div className="py-2.5 text-center text-[10px] text-slate-400 bg-slate-50/40 inline-flex items-center justify-center gap-1.5 w-full">
+                                        <CheckCheck className="w-3.5 h-3.5 text-slate-400" />
+                                        <span>Đã hiển thị toàn bộ ({notifications.length}) thông báo</span>
                                     </div>
                                 )}
                             </>

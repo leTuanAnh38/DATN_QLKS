@@ -1,37 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-    MessageSquare, 
-    X, 
-    RotateCcw, 
-    Send, 
-    Sparkles, 
-    Bot, 
-    ChevronDown, 
-    BedDouble, 
-    Utensils, 
-    Building2,
-    Search,
-    ShieldCheck, 
-    CalendarCheck, 
-    Eye, 
-    FileText, 
-    CheckCircle2, 
-    Key, 
-    CheckCheck, 
-    AlertCircle, 
+import {
+    X,
+    RotateCcw,
+    Send,
+    Sparkles,
+    Bot,
+    ChevronDown,
+    BedDouble,
+    Utensils,
+    CalendarCheck,
+    Eye,
+    FileText,
+    CheckCircle2,
+    Key,
+    CheckCheck,
+    AlertCircle,
     Phone,
-    Globe,
     Mic,
     MicOff,
     Volume2,
-    VolumeX
+    VolumeX,
+    Compass,
+    Receipt,
+    Wifi,
+    Gift,
+    Copy,
+    Check,
+    Calendar
 } from 'lucide-react';
 import { askChatbot } from '../../services/chatbotService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useAuth } from '../../store/authStore';
 
-const SESSION_STORAGE_KEY = 'ta_hotel_ai_chat_history_v4';
+const STORAGE_KEY = 'ta_hotel_ai_chat_history_v5';
 
 // Bảng mã ngôn ngữ cho Web Speech API (STT & TTS)
 const SPEECH_LANG_MAP = {
@@ -41,14 +43,15 @@ const SPEECH_LANG_MAP = {
     zh: 'zh-CN'
 };
 
-// Hàm làm sạch văn bản trước khi đọc bằng Text-to-Speech (bỏ markdown, url, icon thừa)
+// Hàm làm sạch văn bản trước khi đọc bằng Text-to-Speech (bỏ markdown, bảng, url, icon thừa)
 function cleanTextForSpeech(text) {
     if (!text) return '';
     return text
+        .replace(/\|.*\|/g, ' ') // Bỏ dòng bảng markdown
         .replace(/[*_#`~]/g, '') // Bỏ ký tự markdown
         .replace(/https?:\/\/\S+/g, '') // Bỏ đường link URL
-        .replace(/[•\-\+]\s+/g, ', ') // Thay bullet point thành dấu phẩy ngắt giọng tự nhiên
-        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Bỏ emoji
+        .replace(/[•\-+]\s+/g, ', ') // Thay bullet point thành dấu phẩy ngắt giọng tự nhiên
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
         .replace(/\s+/g, ' ')
         .trim();
 }
@@ -60,48 +63,52 @@ const SUPPORTED_LANGS = [
     { code: 'zh', flag: '🇨🇳', label: '中文' }
 ];
 
-const getWelcomeMessages = (stars = 3, hotelName = 'Khách Sạn TA Đà Nẵng') => ({
-    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **${hotelName} ${stars}★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• **Tra cứu phòng trống & Giá hôm nay**\n• **Thực đơn ẩm thực, Spa & Xe đưa đón sân bay**\n• **Thủ tục đặt phòng Công ty (xuất hóa đơn VAT)**\n• **Tra cứu trạng thái đơn đặt phòng tức thì**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
-    en: `Dear Valued Guest! I am your ${stars}-Star AI Concierge at **${hotelName}**.\n\nI am at your service 24/7 to assist with:\n• **Room Availability & Rates (with USD conversion)**\n• **Fine Dining Menus, Ocean Spa & Luxury Airport Transfers**\n• **Corporate & Group Bookings (VAT Invoices)**\n• **Real-Time Reservation Status Lookup**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
-    ko: `고객님 안녕하십니까! **${hotelName} ${stars}성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• **실시간 빈 객실 및 1박 요금 (KRW 원화 자동 환산)**\n• **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• **기업/단체 예약 및 공식 세금계산서 발행**\n• **실시간 예약 진행 상태 즉시 조회**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
-    zh: `尊敬的贵宾，您好！我是**${hotelName} ${stars}星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供服务：\n• **实时客房空房与今日优惠房价（人民币CNY自动换算）**\n• **特色餐饮菜单、海景水疗SPA与豪华机场接送服务**\n• **商务会奖（M.I.C.E）与企业团队预订政策**\n• **实时预订订单进度追踪**\n\n您可以点击下方快捷问题或直接输入您的需求！`
+const getWelcomeMessages = (stars = 5, hotelName = 'Khách Sạn TA Đà Nẵng') => ({
+    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **${hotelName} ${stars}★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• **Kiểm tra phòng trống thực tế theo ngày & So sánh giá**\n• **Thực đơn Ẩm thực tại phòng, Ocean Spa & Xe Limousine đón sân bay**\n• **Tư vấn lịch trình Du lịch Đà Nẵng – Hội An – Bà Nà Hills**\n• **Trợ lý lưu trú: Hóa đơn tạm tính, Wifi, gọi dọn phòng 1 chạm**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
+    en: `Dear Valued Guest! I am your ${stars}-Star AI Concierge at **${hotelName}**.\n\nI am at your service 24/7 to assist with:\n• **Date-Specific Room Availability & Rates (with USD conversion)**\n• **Fine Dining Menus, Ocean Spa & Private Airport Limousine**\n• **Da Nang – Hoi An – Ba Na Hills Sightseeing Itinerary**\n• **In-House Concierge: Live Folio Bill, Wi-Fi & Housekeeping**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
+    ko: `고객님 안녕하십니까! **${hotelName} ${stars}성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• **날짜별 실시간 잔여 객실 및 1박 요금 (KRW 원화 자동 환산)**\n• **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• **다낭 · 호이안 · 바나힐 핵심 관광 코스 안내**\n• **투숙객 전용: 실시간 중간 정산서, 와이파이 및 객실 청소 요청**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
+    zh: `尊敬的贵宾，您好！我是**${hotelName} ${stars}星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供服务：\n• **按日期查询实时空房与优惠房价（人民币CNY自动换算）**\n• **客房送餐菜单、海景水疗SPA与豪华专车接送机**\n• **岘港 · 会安 · 巴拿山精选旅游攻略**\n• **在住贵宾服务：实时账单查询、Wi-Fi密码与一键客房清洁**\n\n您可以点击下方快捷问题或直接输入您的需求！`
 });
-
-const WELCOME_MESSAGES = getWelcomeMessages(3, 'Khách Sạn TA Đà Nẵng');
 
 const QUICK_CHIPS_BY_LANG = {
     vi: [
-        { id: 'rooms_avail', label: 'Phòng trống & Giá hôm nay', icon: BedDouble, query: 'Phòng trống và bảng giá phòng hôm nay thế nào?' },
-        { id: 'services_dining', label: 'Dịch vụ Spa & Xe đưa đón', icon: Utensils, query: 'Khách sạn có những dịch vụ Spa, Xe đưa đón sân bay và ẩm thực nào?' },
-        { id: 'corporate_vat', label: 'Đặt phòng Công ty (VAT)', icon: Building2, query: 'Tôi muốn tìm hiểu thủ tục đặt phòng Công ty, chính sách chiết khấu đoàn và xuất hóa đơn VAT.' },
-        { id: 'my_booking', label: 'Tra cứu đơn đặt phòng', icon: Search, query: 'Kiểm tra thông tin đơn đặt phòng của tôi' }
+        { id: 'rooms_tomorrow', label: 'Tìm phòng trống ngày mai', icon: BedDouble, query: 'Ngày mai còn phòng trống không và bảng giá thế nào?' },
+        { id: 'services_dining', label: 'Bảng giá Spa & Ẩm thực', icon: Utensils, query: 'Cho tôi xem bảng giá dịch vụ Spa, Ẩm thực tại phòng và Xe đưa đón sân bay' },
+        { id: 'danang_tour', label: 'Du lịch Đà Nẵng & Xe VIP', icon: Compass, query: 'Gợi ý lịch trình tham quan Đà Nẵng, Cầu Rồng phun lửa và dịch vụ xe đưa đón VIP' },
+        { id: 'vouchers_vip', label: 'Ưu đãi & Mã giảm giá', icon: Gift, query: 'Khách sạn đang có những mã giảm giá Voucher và ưu đãi thẻ thành viên VIP nào?' },
+        { id: 'inhouse_bill', label: 'Hóa đơn tạm tính & Đơn phòng', icon: Receipt, query: 'Kiểm tra hóa đơn tạm tính và tiến trình đơn đặt phòng của tôi' },
+        { id: 'policy_wifi', label: 'Chính sách Nhận/Trả & Wifi', icon: Wifi, query: 'Cho tôi xin giờ nhận/trả phòng tiêu chuẩn, giờ mở cửa hồ bơi và mật khẩu Wifi' }
     ],
     en: [
-        { id: 'rooms_avail', label: 'Room Rates (in USD)', icon: BedDouble, query: 'What are today\'s available rooms and rates in USD?' },
-        { id: 'services_dining', label: 'Dining, Spa & Shuttle', icon: Utensils, query: 'What dining, Spa and airport transfer services do you offer?' },
-        { id: 'corporate_vat', label: 'Corporate & VAT Invoice', icon: Building2, query: 'Tell me about corporate booking policies and VAT invoices.' },
-        { id: 'my_booking', label: 'Track My Reservation', icon: Search, query: 'Check my booking reservation status' }
+        { id: 'rooms_tomorrow', label: 'Rooms Available Tomorrow', icon: BedDouble, query: 'What rooms are available tomorrow and what are the rates in USD?' },
+        { id: 'services_dining', label: 'Dining, Spa & Limousine', icon: Utensils, query: 'What dining, Ocean Spa and airport transfer services do you offer?' },
+        { id: 'danang_tour', label: 'Da Nang Guide & Shuttle', icon: Compass, query: 'Recommend Da Nang sightseeing itinerary (Dragon Bridge, Ba Na Hills, Hoi An) and VIP car service.' },
+        { id: 'vouchers_vip', label: 'Promo Codes & VIP Perks', icon: Gift, query: 'What active promotional codes and VIP membership discounts are available?' },
+        { id: 'inhouse_bill', label: 'Track Booking & Live Bill', icon: Receipt, query: 'Check my booking reservation status and current provisional bill' },
+        { id: 'policy_wifi', label: 'Check-in Policy & Wi-Fi', icon: Wifi, query: 'What are the check-in/out hours, pool hours and Wi-Fi password?' }
     ],
     ko: [
-        { id: 'rooms_avail', label: '객실 공실 및 요금 (KRW)', icon: BedDouble, query: '오늘 이용 가능한 객실과 1박 요금(KRW 원화)을 알려주세요.' },
-        { id: 'services_dining', label: '스파 & 공항 리무진 픽업', icon: Utensils, query: '호텔의 인룸 다이닝, 스파 및 다낭 공항 리무진 픽업 서비스 안내해 주세요.' },
-        { id: 'corporate_vat', label: '기업/단체 예약 & 세금계산서', icon: Building2, query: '법인 단체 예약 할인 및 세금계산서 발행 정책이 어떻게 되나요?' },
-        { id: 'my_booking', label: '내 예약 내역 조회', icon: Search, query: '내 예약 내역 확인해 줘' }
+        { id: 'rooms_tomorrow', label: '내일 예약 가능 객실 (KRW)', icon: BedDouble, query: '내일 이용 가능한 객실과 1박 요금(KRW 원화)을 알려주세요.' },
+        { id: 'services_dining', label: '스파 · 다이닝 & 공항 픽업', icon: Utensils, query: '호텔의 인룸 다이닝, 스파 및 다낭 공항 리무진 픽업 서비스 안내해 주세요.' },
+        { id: 'danang_tour', label: '다낭 관광 코스 & VIP 차량', icon: Compass, query: '다낭 주요 관광지(용다리 불쇼, 바나힐, 호이안) 코스와 호텔 VIP 차량 서비스 알려주세요.' },
+        { id: 'vouchers_vip', label: '할인 코드 & 멤버십 혜택', icon: Gift, query: '현재 사용 가능한 프로모션 할인 코드와 VIP 멤버십 혜택이 어떻게 되나요?' },
+        { id: 'inhouse_bill', label: '내 예약 및 실시간 요금 조회', icon: Receipt, query: '내 예약 내역 확인해 줘' },
+        { id: 'policy_wifi', label: '체크인 시간 · 수영장 & 와이파이', icon: Wifi, query: '체크인/체크아웃 시간과 수영장 운영 시간, 와이파이 비밀번호 알려주세요.' }
     ],
     zh: [
-        { id: 'rooms_avail', label: '今日空房与房价 (CNY)', icon: BedDouble, query: '请问今天有哪些空房和房价（人民币换算）？' },
+        { id: 'rooms_tomorrow', label: '明日空房与房价 (CNY)', icon: BedDouble, query: '请问明天有哪些空房和房价（人民币换算）？' },
         { id: 'services_dining', label: '餐饮美食、SPA与接送机', icon: Utensils, query: '请介绍酒店的餐饮服务、SPA水疗及岘港机场接送服务。' },
-        { id: 'corporate_vat', label: '企业团队与增值税发票', icon: Building2, query: '请问企业团队预订优惠和增值税发票政策。' },
-        { id: 'my_booking', label: '实时预订查询', icon: Search, query: '查询我的客房预订订单状态' }
+        { id: 'danang_tour', label: '岘港旅游攻略与贵宾专车', icon: Compass, query: '推荐岘港必去景点（龙桥喷火、巴拿山、会安古镇）及酒店豪华专车服务。' },
+        { id: 'vouchers_vip', label: '优惠码与VIP会员礼遇', icon: Gift, query: '请问目前有哪些可用优惠码和会员折扣？' },
+        { id: 'inhouse_bill', label: '预订进度与实时账单查询', icon: Receipt, query: '查询我的客房预订订单状态' },
+        { id: 'policy_wifi', label: '入住政策、泳池与Wi-Fi', icon: Wifi, query: '请问入住退房时间、无边泳池开放时间及Wi-Fi密码？' }
     ]
 };
 
 const I18N_DICT = {
     vi: {
-        currency_badge: 'Đa ngôn ngữ & Tự động quy đổi tỷ giá (USD / KRW / CNY)',
         quick_title: 'Gợi ý hỏi nhanh 1 chạm:',
-        auto_fill: 'Tự động điền',
-        rooms_title: 'Phòng gợi ý & Bảng giá hôm nay:',
+        rooms_title: 'Phòng gợi ý & Bảng giá theo lịch:',
         swipe_hint: 'Vuốt sang để xem thêm →',
         avail_rooms: (n) => `Còn ${n} phòng`,
         sold_out: 'Tạm hết phòng',
@@ -111,9 +118,9 @@ const I18N_DICT = {
         per_night: ' /đêm',
         view_details: 'Chi tiết',
         book_now: 'Đặt ngay',
-        services_title: 'Dịch vụ Ẩm thực & Tiện ích nổi bật:',
+        services_title: 'Dịch vụ Ẩm thực, Spa & Xe Đưa Đón:',
         service_price: 'Giá dịch vụ:',
-        view_menu_order: 'Xem Menu & Đặt món',
+        view_menu_order: 'Đặt dịch vụ này',
         booking_title: 'Tiến trình đơn đặt phòng thời gian thực:',
         found_count: (n) => `Tìm thấy ${n} đơn đặt phòng`,
         room_category: 'Hạng phòng:',
@@ -127,7 +134,7 @@ const I18N_DICT = {
         cancelled_warning: 'Đơn đặt phòng này đã bị hủy. Quý khách vui lòng liên hệ lễ tân để được hỗ trợ.',
         booking_history: 'Lịch sử đặt',
         hotline_call: 'Lễ tân +84 1900 8899',
-        input_placeholder: 'Hỏi giá phòng, dịch vụ, đơn đặt phòng...',
+        input_placeholder: 'Hỏi phòng trống ngày mai, hóa đơn phòng, Cầu Rồng, đặt xe...',
         typing_indicator: 'Trợ lý đang tra cứu số liệu...',
         instant_response: 'Phản hồi tức thì 24/7',
         speak_btn: 'Nghe đọc',
@@ -135,12 +142,15 @@ const I18N_DICT = {
         voice_listening: 'Đang lắng nghe... Hãy nói câu hỏi',
         voice_stop: 'Dừng',
         voice_not_supported: 'Trình duyệt không hỗ trợ nhận diện giọng nói. Quý khách vui lòng dùng Chrome hoặc Edge.',
-        voice_denied: 'Microphone chưa được cấp quyền truy cập.'
+        voice_denied: 'Microphone chưa được cấp quyền truy cập.',
+        inhouse_badge: (room) => `Đang lưu trú: Phòng P.${room}`,
+        btn_folio: 'Hóa đơn tạm tính',
+        btn_clean: 'Gọi dọn phòng',
+        copy_btn: 'Sao chép',
+        copied_btn: 'Đã sao chép'
     },
     en: {
-        currency_badge: 'Multilingual & Auto Currency Conversion (USD / KRW / CNY)',
         quick_title: 'Quick 1-Tap Suggestions:',
-        auto_fill: 'Auto fill',
         rooms_title: 'Recommended Rooms & Rates:',
         swipe_hint: 'Swipe to view more →',
         avail_rooms: (n) => `${n} rooms left`,
@@ -151,9 +161,9 @@ const I18N_DICT = {
         per_night: ' /night',
         view_details: 'Details',
         book_now: 'Book Now',
-        services_title: 'Featured Dining & Amenities:',
+        services_title: 'Featured Dining, Spa & Transfers:',
         service_price: 'Price:',
-        view_menu_order: 'View Menu & Order',
+        view_menu_order: 'Order This Service',
         booking_title: 'Real-Time Booking Progress Tracker:',
         found_count: (n) => `${n} bookings found`,
         room_category: 'Room:',
@@ -167,20 +177,23 @@ const I18N_DICT = {
         cancelled_warning: 'This reservation has been cancelled. Please contact concierge for assistance.',
         booking_history: 'My Bookings',
         hotline_call: 'Concierge +84 1900 8899',
-        input_placeholder: 'Ask about rooms, rates, dining, booking status...',
+        input_placeholder: 'Ask about tomorrow rooms, live bill, Dragon Bridge, airport car...',
         typing_indicator: 'AI Concierge is fetching real-time data...',
         instant_response: 'Instant 24/7 Response',
         speak_btn: 'Listen',
         stop_speak: 'Stop',
         voice_listening: 'Listening... Speak your question now',
         voice_stop: 'Stop',
-        voice_not_supported: 'Speech recognition is not supported in this browser. Please use Chrome or Edge.',
-        voice_denied: 'Microphone access was denied.'
+        voice_not_supported: 'Speech recognition is not supported in this browser.',
+        voice_denied: 'Microphone access was denied.',
+        inhouse_badge: (room) => `In-House: Room P.${room}`,
+        btn_folio: 'Live Bill',
+        btn_clean: 'Make Up Room',
+        copy_btn: 'Copy',
+        copied_btn: 'Copied'
     },
     ko: {
-        currency_badge: '다국어 자동 지원 & 원화(KRW)/달러(USD) 실시간 환산',
         quick_title: '빠른 1-터치 추천 질문:',
-        auto_fill: '자동 입력',
         rooms_title: '추천 맞춤 객실 및 요금:',
         swipe_hint: '옆으로 스크롤하여 더보기 →',
         avail_rooms: (n) => `${n}개 객실 남음`,
@@ -204,23 +217,26 @@ const I18N_DICT = {
         step_confirmed: '확정완료',
         step_stay: '투숙중',
         step_done: '이용완료',
-        cancelled_warning: '취소된 예약 내역입니다. 문의 사항은 컨시어지 데스크로 연락해 주세요.',
+        cancelled_warning: '취소된 예약 내역입니다.',
         booking_history: '예약 내역',
         hotline_call: '핫라인 +84 1900 8899',
-        input_placeholder: '객실 요금, 다이닝, 공항 픽업, 예약 상태 질문...',
+        input_placeholder: '내일 객실 요금, 다이닝, 공항 픽업, 예약 상태 질문...',
         typing_indicator: 'AI 컨시어지가 데이터를 조회 중입니다...',
         instant_response: '24시간 연중무휴 즉시 응답',
         speak_btn: '음성 듣기',
         stop_speak: '듣기 중지',
-        voice_listening: '음성을 듣고 있습니다... 말씀해 주세요',
+        voice_listening: '음성을 듣고 있습니다...',
         voice_stop: '중지',
-        voice_not_supported: '현재 브라우저는 음성 인식을 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.',
-        voice_denied: '마이크 사용 권한이 거부되었습니다.'
+        voice_not_supported: '현재 브라우저는 음성 인식을 지원하지 않습니다.',
+        voice_denied: '마이크 사용 권한이 거부되었습니다.',
+        inhouse_badge: (room) => `투숙 중: ${room}호`,
+        btn_folio: '실시간 정산서',
+        btn_clean: '객실 청소',
+        copy_btn: '복사',
+        copied_btn: '복사완료'
     },
     zh: {
-        currency_badge: '支持多语言自动识别 & 人民币(CNY)/美元(USD)即时换算',
         quick_title: '快捷一键提问推荐:',
-        auto_fill: '自动输入',
         rooms_title: '精选推荐客房与参考房价:',
         swipe_hint: '向右滑动查看更多 →',
         avail_rooms: (n) => `剩余 ${n} 间空房`,
@@ -247,62 +263,217 @@ const I18N_DICT = {
         cancelled_warning: '该订单已取消。如需咨询请联系前台礼宾部。',
         booking_history: '预订记录',
         hotline_call: '礼宾热线 +84 1900 8899',
-        input_placeholder: '咨询客房价格、特色餐饮、订单查询...',
+        input_placeholder: '咨询明日房价、特色餐饮、订单查询...',
         typing_indicator: 'AI礼宾专员正在查询最新系统数据...',
         instant_response: '24小时极速即时回复',
         speak_btn: '语音朗读',
         stop_speak: '停止朗读',
         voice_listening: '正在聆听... 请说出您的问题',
         voice_stop: '停止',
-        voice_not_supported: '当前浏览器不支持语音识别，请使用 Chrome 或 Edge 浏览器。',
-        voice_denied: '麦克风权限已被拒绝。'
+        voice_not_supported: '当前浏览器不支持语音识别。',
+        voice_denied: '麦克风权限已被拒绝。',
+        inhouse_badge: (room) => `在住贵宾: ${room}号房`,
+        btn_folio: '实时账单',
+        btn_clean: '打扫房间',
+        copy_btn: '复制',
+        copied_btn: '已复制'
     }
 };
 
-// Hàm phân giải Markdown đơn giản hỗ trợ in đậm và ngắt dòng
+/**
+ * Hàm phân giải Inline Markdown (in đậm **text**, mã code `code`, in nghiêng *text*)
+ */
+function renderInlineMarkdown(text) {
+    if (!text) return null;
+    const tokens = text.split(/(\*\*.*?\*\*|`[^`]+`|\*[^*\s][^*]*?\*)/g);
+    return tokens.map((tok, idx) => {
+        if (!tok) return null;
+        if (tok.startsWith('**') && tok.endsWith('**') && tok.length > 4) {
+            return (
+                <strong key={idx} className="font-semibold text-slate-900">
+                    {tok.slice(2, -2)}
+                </strong>
+            );
+        }
+        if (tok.startsWith('`') && tok.endsWith('`') && tok.length > 2) {
+            return (
+                <code
+                    key={idx}
+                    className="px-1.5 py-0.5 mx-0.5 rounded bg-amber-50 text-amber-800 font-mono text-[11px] font-bold border border-amber-200"
+                >
+                    {tok.slice(1, -1)}
+                </code>
+            );
+        }
+        if (tok.startsWith('*') && tok.endsWith('*') && tok.length > 2) {
+            return (
+                <em key={idx} className="italic text-slate-600">
+                    {tok.slice(1, -1)}
+                </em>
+            );
+        }
+        return <React.Fragment key={idx}>{tok}</React.Fragment>;
+    });
+}
+
+/**
+ * Bộ phân giải Rich Markdown tông sáng dịu mắt:
+ * - Hỗ trợ Bảng so sánh phòng/dịch vụ (Markdown Table | ... |)
+ * - Hỗ trợ Tiêu đề (###, ##, #) không còn hiện ký tự thô
+ * - Hỗ trợ Danh sách chấm tròn (•, -, +) và Danh sách đánh số (1., 2.)
+ */
 function renderFormattedContent(text) {
     if (!text) return null;
 
     const lines = text.split('\n');
+    const blocks = [];
+    let i = 0;
 
-    return lines.map((line, lineIdx) => {
-        // Xử lý in đậm **text**
-        const parts = line.split(/(\*\*.*?\*\*)/g);
+    while (i < lines.length) {
+        const line = lines[i];
+        const trimmed = line.trim();
 
-        const renderedLine = parts.map((part, partIdx) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return (
-                    <strong key={partIdx} className="font-semibold text-slate-900">
-                        {part.slice(2, -2)}
-                    </strong>
-                );
+        // 1. Kiểm tra nếu là Bảng Markdown (bắt đầu và kết thúc bằng dấu |)
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+            const tableLines = [];
+            while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+                tableLines.push(lines[i].trim());
+                i++;
             }
-            return <React.Fragment key={partIdx}>{part}</React.Fragment>;
-        });
 
-        // Nếu là dòng trống
-        if (!line.trim()) {
-            return <div key={lineIdx} className="h-2" />;
+            if (tableLines.length >= 2) {
+                const parseRow = (rStr) =>
+                    rStr
+                        .slice(1, -1)
+                        .split('|')
+                        .map((c) => c.trim());
+
+                const headerCells = parseRow(tableLines[0]);
+                const isSeparator = (rStr) => /^[\s|:-]+$/.test(rStr);
+                const bodyStartIdx = isSeparator(tableLines[1]) ? 2 : 1;
+                const bodyRows = tableLines.slice(bodyStartIdx).filter((r) => !isSeparator(r)).map(parseRow);
+
+                blocks.push(
+                    <div
+                        key={`tbl-${i}`}
+                        className="my-2.5 overflow-x-auto rounded-xl border border-sky-200/90 shadow-2xs bg-white"
+                    >
+                        <table className="w-full text-left border-collapse text-[11px]">
+                            <thead>
+                                <tr className="bg-sky-50/95 text-sky-900 border-b border-sky-200/80">
+                                    {headerCells.map((hCell, hIdx) => (
+                                        <th key={hIdx} className="py-2 px-2.5 font-bold whitespace-nowrap">
+                                            {hCell.replace(/\*\*/g, '')}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {bodyRows.map((row, rIdx) => (
+                                    <tr
+                                        key={rIdx}
+                                        className={rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}
+                                    >
+                                        {row.map((cell, cIdx) => (
+                                            <td key={cIdx} className="py-2 px-2.5 text-slate-700 align-top">
+                                                {renderInlineMarkdown(cell)}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                );
+                continue;
+            }
         }
 
-        // Định dạng thụt dòng cho bullet points
-        const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('+');
+        // 2. Dòng trống
+        if (!trimmed) {
+            blocks.push(<div key={`sp-${i}`} className="h-1.5" />);
+            i++;
+            continue;
+        }
 
-        return (
-            <div 
-                key={lineIdx} 
-                className={`${isBullet ? 'pl-2 my-0.5 text-slate-700 leading-relaxed' : 'my-1 leading-relaxed'}`}
-            >
-                {renderedLine}
+        // 3. Tiêu đề Markdown (###, ##, #)
+        const headingMatch = trimmed.match(/^(#{1,4})\s+(.*)$/);
+        if (headingMatch) {
+            const titleContent = headingMatch[2];
+            blocks.push(
+                <div
+                    key={`hd-${i}`}
+                    className="mt-2.5 mb-1.5 pb-1 border-b border-sky-100 font-bold text-slate-800 text-xs sm:text-[13px] flex items-center gap-1.5"
+                >
+                    <span className="w-1 h-3.5 rounded-full bg-sky-500 inline-block flex-shrink-0" />
+                    <span>{renderInlineMarkdown(titleContent)}</span>
+                </div>
+            );
+            i++;
+            continue;
+        }
+
+        // 4. Danh sách thụt lề cấp 2 (  + hoặc   *)
+        if (/^\s{2,}[+*•-]\s+/.test(line)) {
+            const subContent = trimmed.replace(/^[+*•-]\s+/, '');
+            blocks.push(
+                <div key={`sub-${i}`} className="pl-4 my-0.5 text-slate-600 text-[11.5px] leading-relaxed flex items-start gap-1.5">
+                    <span className="text-sky-600 font-bold mt-0.5">◦</span>
+                    <div className="flex-1">{renderInlineMarkdown(subContent)}</div>
+                </div>
+            );
+            i++;
+            continue;
+        }
+
+        // 5. Danh sách Bullet chính (•, -, *, +)
+        if (/^[•\-+]\s+/.test(trimmed)) {
+            const bulletContent = trimmed.replace(/^[•\-+]\s+/, '');
+            blocks.push(
+                <div key={`bl-${i}`} className="pl-1 my-0.5 text-slate-700 leading-relaxed flex items-start gap-1.5">
+                    <span className="text-sky-600 font-bold mt-0.5">•</span>
+                    <div className="flex-1">{renderInlineMarkdown(bulletContent)}</div>
+                </div>
+            );
+            i++;
+            continue;
+        }
+
+        // 6. Danh sách đánh số (1. , 2. )
+        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+        if (numMatch) {
+            blocks.push(
+                <div key={`nm-${i}`} className="pl-1 my-1 text-slate-700 leading-relaxed flex items-start gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-sky-100 text-sky-700 border border-sky-200 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {numMatch[1]}
+                    </span>
+                    <div className="flex-1">{renderInlineMarkdown(numMatch[2])}</div>
+                </div>
+            );
+            i++;
+            continue;
+        }
+
+        // 7. Đoạn văn thông thường
+        blocks.push(
+            <div key={`p-${i}`} className="my-1 text-slate-700 leading-relaxed">
+                {renderInlineMarkdown(line)}
             </div>
         );
-    });
+        i++;
+    }
+
+    return blocks;
 }
 
 export default function AIChatbotWidget() {
     const navigate = useNavigate();
     const location = useLocation();
-    const hasMobileStickyBar = location.pathname.startsWith('/rooms/') || location.pathname.startsWith('/room/') || location.pathname.startsWith('/checkout/');
+    const hasMobileStickyBar =
+        location.pathname.startsWith('/rooms/') ||
+        location.pathname.startsWith('/room/') ||
+        location.pathname.startsWith('/checkout/');
+
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
@@ -312,9 +483,12 @@ export default function AIChatbotWidget() {
     const [isOpen, setIsOpen] = useState(false);
     const [showCalloutBubble, setShowCalloutBubble] = useState(false);
     const [selectedLang, setSelectedLang] = useState('vi');
+    const [activeStayInfo, setActiveStayInfo] = useState(null);
+
+    // Khởi tạo lịch sử chat từ sessionStorage hoặc localStorage
     const [messages, setMessages] = useState(() => {
         try {
-            const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+            const saved = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
@@ -322,15 +496,17 @@ export default function AIChatbotWidget() {
                 }
             }
         } catch (e) {
-            console.error('Lỗi đọc chat history từ sessionStorage:', e);
+            console.error('Lỗi đọc chat history:', e);
         }
-        return [{
-            id: 'welcome-1',
-            role: 'model',
-            detected_lang: 'vi',
-            text: welcomeMessages.vi,
-            time: 'Bây giờ'
-        }];
+        return [
+            {
+                id: 'welcome-1',
+                role: 'model',
+                detected_lang: 'vi',
+                text: welcomeMessages.vi,
+                time: 'Bây giờ'
+            }
+        ];
     });
 
     const [inputValue, setInputValue] = useState('');
@@ -344,7 +520,7 @@ export default function AIChatbotWidget() {
         let hasDismissed = false;
         try {
             hasDismissed = sessionStorage.getItem('ta_chatbot_bubble_dismissed') === 'true';
-        } catch (e) {
+        } catch {
             // ignore
         }
         if (hasDismissed) return;
@@ -358,7 +534,6 @@ export default function AIChatbotWidget() {
         return () => clearTimeout(timer);
     }, [isOpen]);
 
-    // Tự động đóng bong bóng khi người dùng mở Chatbot
     useEffect(() => {
         if (isOpen) {
             setShowCalloutBubble(false);
@@ -370,24 +545,71 @@ export default function AIChatbotWidget() {
         setShowCalloutBubble(false);
         try {
             sessionStorage.setItem('ta_chatbot_bubble_dismissed', 'true');
-        } catch (err) {
+        } catch {
             // ignore
         }
     };
 
     // Voice AI States (Web Speech API: STT & TTS)
     const [speakingMsgId, setSpeakingMsgId] = useState(null);
+    const [copiedMsgId, setCopiedMsgId] = useState(null);
     const [isListening, setIsListening] = useState(false);
     const [voiceError, setVoiceError] = useState(null);
     const [availableVoices, setAvailableVoices] = useState([]);
-    
+
     const chatContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const langDropdownRef = useRef(null);
     const recognitionRef = useRef(null);
 
-    // Tải trước danh sách Voice cho Text-to-Speech
+    // Lắng nghe phím Escape để đóng nhanh khung chat
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                setIsOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
+    // Khóa cuộn trang nền khi mở chatbot toàn màn hình trên điện thoại
+    useEffect(() => {
+        if (!isOpen) return;
+        const originalOverflow = document.body.style.overflow;
+        if (typeof window !== 'undefined' && window.innerWidth < 640) {
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, [isOpen]);
+
+    // Sao chép nội dung tin nhắn 1 chạm
+    const handleCopyMessage = async (msg) => {
+        if (!msg || !msg.text) return;
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(msg.text);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = msg.text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            setCopiedMsgId(msg.id);
+            setTimeout(() => setCopiedMsgId((curr) => (curr === msg.id ? null : curr)), 2000);
+        } catch (err) {
+            console.warn('Lỗi sao chép tin nhắn:', err);
+        }
+    };
+
     useEffect(() => {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
             const updateVoices = () => {
@@ -404,7 +626,6 @@ export default function AIChatbotWidget() {
         }
     }, []);
 
-    // Cleanup khi component unmount
     useEffect(() => {
         return () => {
             if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -413,14 +634,13 @@ export default function AIChatbotWidget() {
             if (recognitionRef.current) {
                 try {
                     recognitionRef.current.abort();
-                } catch (e) {
+                } catch {
                     // ignore
                 }
             }
         };
     }, []);
 
-    // Dừng đọc và dừng thu âm khi người dùng đóng Chat Widget
     useEffect(() => {
         if (!isOpen) {
             if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -430,33 +650,29 @@ export default function AIChatbotWidget() {
             if (recognitionRef.current && isListening) {
                 try {
                     recognitionRef.current.stop();
-                } catch (e) {
+                } catch {
                     // ignore
                 }
                 setIsListening(false);
             }
         }
-    }, [isOpen]);
+    }, [isOpen, isListening]);
 
-    // Hàm đọc câu trả lời của Bot bằng Text-to-Speech tự nhiên
     const toggleSpeakMessage = (msg) => {
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
             const dict = I18N_DICT[selectedLang] || I18N_DICT.vi;
-            setVoiceError(dict.voice_not_supported || 'Trình duyệt không hỗ trợ Text-to-Speech.');
+            setVoiceError(dict.voice_not_supported);
             setTimeout(() => setVoiceError(null), 4000);
             return;
         }
 
-        // Nếu tin nhắn này đang được đọc thì bấm lần 2 để dừng
         if (speakingMsgId === msg.id) {
             window.speechSynthesis.cancel();
             setSpeakingMsgId(null);
             return;
         }
 
-        // Dừng câu nói trước đó (nếu có)
         window.speechSynthesis.cancel();
-
         const cleanedText = cleanTextForSpeech(msg.text);
         if (!cleanedText) return;
 
@@ -467,55 +683,43 @@ export default function AIChatbotWidget() {
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
-        // Chọn giọng đọc phù hợp với ngôn ngữ đã phát hiện
         const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
         if (voices && voices.length > 0) {
-            const matchedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === targetLangCode.toLowerCase()) ||
-                                 voices.find(v => v.lang.toLowerCase().startsWith(targetLang.toLowerCase())) ||
-                                 voices.find(v => v.lang.toLowerCase().startsWith(targetLangCode.slice(0, 2).toLowerCase()));
+            const matchedVoice =
+                voices.find((v) => v.lang.toLowerCase().replace('_', '-') === targetLangCode.toLowerCase()) ||
+                voices.find((v) => v.lang.toLowerCase().startsWith(targetLang.toLowerCase())) ||
+                voices.find((v) => v.lang.toLowerCase().startsWith(targetLangCode.slice(0, 2).toLowerCase()));
             if (matchedVoice) {
                 utterance.voice = matchedVoice;
             }
         }
 
-        utterance.onstart = () => {
-            setSpeakingMsgId(msg.id);
-        };
-
-        utterance.onend = () => {
-            setSpeakingMsgId(null);
-        };
-
-        utterance.onerror = (e) => {
-            console.warn('Speech synthesis error:', e);
-            setSpeakingMsgId(null);
-        };
+        utterance.onstart = () => setSpeakingMsgId(msg.id);
+        utterance.onend = () => setSpeakingMsgId(null);
+        utterance.onerror = () => setSpeakingMsgId(null);
 
         window.speechSynthesis.speak(utterance);
     };
 
-    // Hàm thu âm giọng nói câu hỏi của khách (Speech-to-Text)
     const toggleVoiceInput = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
             const dict = I18N_DICT[selectedLang] || I18N_DICT.vi;
-            setVoiceError(dict.voice_not_supported || 'Trình duyệt không hỗ trợ nhận diện giọng nói.');
+            setVoiceError(dict.voice_not_supported);
             setTimeout(() => setVoiceError(null), 4000);
             return;
         }
 
-        // Nếu đang lắng nghe thì bấm để dừng lại
         if (isListening && recognitionRef.current) {
             try {
                 recognitionRef.current.stop();
-            } catch (e) {
+            } catch {
                 // ignore
             }
             setIsListening(false);
             return;
         }
 
-        // Tạm dừng đọc giọng nói bot trước khi nghe khách
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             setSpeakingMsgId(null);
@@ -555,14 +759,10 @@ export default function AIChatbotWidget() {
             };
 
             recognition.onerror = (event) => {
-                console.warn('Speech recognition error:', event.error);
                 setIsListening(false);
                 const dict = I18N_DICT[selectedLang] || I18N_DICT.vi;
                 if (event.error === 'not-allowed') {
                     setVoiceError(dict.voice_denied);
-                    setTimeout(() => setVoiceError(null), 4000);
-                } else if (event.error === 'audio-capture') {
-                    setVoiceError(selectedLang === 'en' ? 'No microphone detected on this device.' : 'Không tìm thấy thiết bị Microphone trên máy tính.');
                     setTimeout(() => setVoiceError(null), 4000);
                 }
             };
@@ -572,13 +772,11 @@ export default function AIChatbotWidget() {
             };
 
             recognition.start();
-        } catch (err) {
-            console.error('Không thể bật nhận diện giọng nói:', err);
+        } catch {
             setIsListening(false);
         }
     };
 
-    // Đóng dropdown ngôn ngữ khi click ra ngoài
     useEffect(() => {
         function handleClickOutside(e) {
             if (langDropdownRef.current && !langDropdownRef.current.contains(e.target)) {
@@ -589,7 +787,6 @@ export default function AIChatbotWidget() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Tự động cuộn xuống tin nhắn mới nhất
     const scrollToBottom = (smooth = true) => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTo({
@@ -601,10 +798,54 @@ export default function AIChatbotWidget() {
         }
     };
 
-    // Cuộn lên đầu để xem tin nhắn chào mừng từ đầu
     const scrollToTop = () => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = 0;
+        }
+    };
+
+    /**
+     * Cuộn thông minh đến đầu lượt tương tác gần nhất:
+     * Thay vì tụt xuống đáy danh sách các thẻ cards, hàm này cuộn chuẩn xác
+     * đến câu hỏi của khách hoặc đầu câu trả lời của AI để khách đọc giải thích ngay từ dòng đầu tiên!
+     */
+    const scrollToLastInteraction = (smooth = true) => {
+        if (!chatContainerRef.current || messages.length <= 1) {
+            scrollToTop();
+            return;
+        }
+        const lastMsg = messages[messages.length - 1];
+        const prevMsg = messages.length >= 2 ? messages[messages.length - 2] : null;
+
+        const targetId = (lastMsg?.role === 'model' && prevMsg?.role === 'user')
+            ? `chat-msg-${prevMsg.id}`
+            : `chat-msg-${lastMsg?.id}`;
+
+        const container = chatContainerRef.current;
+        let targetEl = document.getElementById(targetId) || (lastMsg ? document.getElementById(`chat-msg-${lastMsg.id}`) : null);
+
+        if (targetEl && container) {
+            const containerRect = container.getBoundingClientRect();
+            const elRect = targetEl.getBoundingClientRect();
+
+            // Nếu câu hỏi của khách quá dài (> 120px), cuộn trực tiếp tới đầu câu trả lời của bot
+            if (targetId.startsWith('chat-msg-user-') && elRect.height > 120) {
+                const botEl = document.getElementById(`chat-msg-${lastMsg.id}`);
+                if (botEl) {
+                    targetEl = botEl;
+                }
+            }
+
+            const updatedElRect = targetEl.getBoundingClientRect();
+            const relativeTop = updatedElRect.top - containerRect.top + container.scrollTop;
+            const targetTop = Math.max(0, relativeTop - 10);
+
+            container.scrollTo({
+                top: targetTop,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        } else {
+            scrollToBottom(smooth);
         }
     };
 
@@ -612,13 +853,14 @@ export default function AIChatbotWidget() {
         if (isOpen) {
             setHasUnread(false);
             if (messages.length <= 1) {
-                // Khi mở chatbot và chỉ có tin nhắn chào mừng: Luôn hiển thị từ đầu lời chào (không cuộn tụt xuống đáy)
                 scrollToTop();
                 requestAnimationFrame(() => scrollToTop());
                 setTimeout(() => scrollToTop(), 50);
             } else {
-                // Nếu đã có cuộc hội thoại trước đó: Cuộn xuống tin nhắn gần nhất
-                scrollToBottom(false);
+                requestAnimationFrame(() => {
+                    scrollToLastInteraction(false);
+                    setTimeout(() => scrollToLastInteraction(false), 50);
+                });
             }
             setTimeout(() => {
                 inputRef.current?.focus({ preventScroll: true });
@@ -627,11 +869,12 @@ export default function AIChatbotWidget() {
     }, [isOpen]);
 
     useEffect(() => {
-        // Lưu lịch sử vào sessionStorage
         try {
-            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(messages));
+            const serialized = JSON.stringify(messages.slice(-30));
+            sessionStorage.setItem(STORAGE_KEY, serialized);
+            localStorage.setItem(STORAGE_KEY, serialized);
         } catch (e) {
-            console.error('Lỗi ghi chat history vào sessionStorage:', e);
+            console.error('Lỗi ghi chat history:', e);
         }
 
         if (isOpen) {
@@ -640,10 +883,21 @@ export default function AIChatbotWidget() {
                 requestAnimationFrame(() => scrollToTop());
                 setTimeout(() => scrollToTop(), 50);
             } else {
-                scrollToBottom(true);
+                const lastMsg = messages[messages.length - 1];
+                if (lastMsg && lastMsg.role === 'model') {
+                    // Bot vừa trả lời xong: Cuộn mượt đến đầu câu trả lời / câu hỏi
+                    // để người dùng đọc ngay phần giải thích từ dòng đầu tiên, KHÔNG bị tụt xuống đáy các thẻ cards!
+                    requestAnimationFrame(() => {
+                        scrollToLastInteraction(true);
+                        setTimeout(() => scrollToLastInteraction(true), 60);
+                    });
+                } else {
+                    // Người dùng vừa gửi câu hỏi -> Cuộn xuống dưới để thấy câu hỏi và chấm typing
+                    scrollToBottom(true);
+                }
             }
         }
-    }, [messages]);
+    }, [messages, isOpen]);
 
     useEffect(() => {
         if (isLoading && isOpen) {
@@ -651,26 +905,24 @@ export default function AIChatbotWidget() {
         }
     }, [isLoading, isOpen]);
 
-    // Chuyển đổi ngôn ngữ thủ công bởi người dùng
     const handleSwitchLang = (langCode) => {
         setSelectedLang(langCode);
-        // Nếu cuộc trò chuyện chỉ có 1 lời chào ban đầu, cập nhật lời chào theo ngôn ngữ mới
         if (messages.length === 1 && messages[0].id.startsWith('welcome')) {
             const welcomeText = welcomeMessages[langCode] || welcomeMessages.vi;
-            setMessages([{
-                ...messages[0],
-                detected_lang: langCode,
-                text: welcomeText
-            }]);
+            setMessages([
+                {
+                    ...messages[0],
+                    detected_lang: langCode,
+                    text: welcomeText
+                }
+            ]);
         }
     };
 
-    // Gửi tin nhắn
     const handleSendMessage = async (textToSend) => {
         const query = (textToSend || inputValue).trim();
         if (!query || isLoading) return;
 
-        // Dừng giọng nói bot và tắt micro khi bắt đầu gửi tin
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             setSpeakingMsgId(null);
@@ -678,7 +930,7 @@ export default function AIChatbotWidget() {
         if (recognitionRef.current && isListening) {
             try {
                 recognitionRef.current.stop();
-            } catch (e) {
+            } catch {
                 // ignore
             }
             setIsListening(false);
@@ -698,23 +950,26 @@ export default function AIChatbotWidget() {
         setIsLoading(true);
 
         try {
-            // Chuẩn bị 5 tin nhắn gần nhất làm context history
-            const history = updatedMessages
-                .slice(-6, -1)
-                .map(m => ({
-                    role: m.role === 'model' ? 'model' : 'user',
-                    text: m.text
-                }));
+            const history = updatedMessages.slice(-9, -1).map((m) => ({
+                role: m.role === 'model' ? 'model' : 'user',
+                text: m.text
+            }));
 
             const data = await askChatbot(query, history);
 
             const hotlineNum = settings?.hotline || '1900 8899';
             const botTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-            const botReplyText = data?.reply || `Dạ em xin lỗi Quý khách, hệ thống đang bận một chút. Quý khách vui lòng thử lại hoặc liên hệ Hotline ${hotlineNum} để được hỗ trợ tức thì ạ!`;
+            const botReplyText =
+                data?.reply ||
+                `Dạ em xin lỗi Quý khách, hệ thống đang bận một chút. Quý khách vui lòng thử lại hoặc liên hệ Hotline **${hotlineNum}** để được hỗ trợ tức thì ạ!`;
             const detectedLang = data?.detected_lang || selectedLang || 'vi';
 
             if (data?.detected_lang && ['vi', 'en', 'ko', 'zh'].includes(data.detected_lang)) {
                 setSelectedLang(data.detected_lang);
+            }
+
+            if (data?.active_stay) {
+                setActiveStayInfo(data.active_stay);
             }
 
             const botMsg = {
@@ -724,12 +979,13 @@ export default function AIChatbotWidget() {
                 time: botTime,
                 source: data?.source || 'ai',
                 detected_lang: detectedLang,
+                queried_dates: data?.queried_dates || null,
                 suggested_rooms: Array.isArray(data?.suggested_rooms) ? data.suggested_rooms : [],
                 suggested_services: Array.isArray(data?.suggested_services) ? data.suggested_services : [],
                 tracked_bookings: Array.isArray(data?.tracked_bookings) ? data.tracked_bookings : []
             };
 
-            setMessages(prev => [...prev, botMsg]);
+            setMessages((prev) => [...prev, botMsg]);
 
             if (!isOpen) {
                 setHasUnread(true);
@@ -741,22 +997,18 @@ export default function AIChatbotWidget() {
                 id: `error-${Date.now()}`,
                 role: 'model',
                 detected_lang: selectedLang,
-                text: selectedLang === 'en' 
-                    ? `I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **${hotlineNum}** for immediate assistance!`
-                    : selectedLang === 'ko'
-                    ? `일시적인 네트워크 지연이 발생했습니다. 24시간 컨시어지 핫라인 **${hotlineNum}**로 연락 주시면 즉시 도와드리겠습니다!`
-                    : selectedLang === 'zh'
-                    ? `抱歉系统连接暂时受阻。请致电24小时前台热线 **${hotlineNum}** 获取即时帮助！`
-                    : `Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **${hotlineNum}** để được chuyên viên hỗ trợ ngay ạ!`,
+                text:
+                    selectedLang === 'en'
+                        ? `I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **${hotlineNum}** for immediate assistance!`
+                        : `Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **${hotlineNum}** để được chuyên viên hỗ trợ ngay ạ!`,
                 time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
             };
-            setMessages(prev => [...prev, errorMsg]);
+            setMessages((prev) => [...prev, errorMsg]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Mở hộp thoại xác nhận làm mới cuộc trò chuyện trong widget (không dùng window.confirm)
     const handleResetChat = () => {
         setShowResetConfirm(true);
     };
@@ -769,7 +1021,7 @@ export default function AIChatbotWidget() {
         if (recognitionRef.current && isListening) {
             try {
                 recognitionRef.current.stop();
-            } catch (e) {
+            } catch {
                 // ignore
             }
             setIsListening(false);
@@ -786,8 +1038,9 @@ export default function AIChatbotWidget() {
         setMessages([freshWelcome]);
         setShowResetConfirm(false);
         try {
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        } catch (e) {
+            sessionStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(STORAGE_KEY);
+        } catch {
             // ignore
         }
     };
@@ -805,10 +1058,14 @@ export default function AIChatbotWidget() {
     return (
         <aside aria-label="Khung trò chuyện Trợ lý AI Khách Sạn TA Đà Nẵng" className="print:hidden no-print">
             {/* 1. NÚT MỞ CHAT NỔI (FLOATING BUTTON) TÔNG SÁNG TRANG NHÃ DỊU MẮT & BONG BÓNG CHÀO ĐÓN */}
-            <div className={`fixed z-50 select-none flex flex-col items-end ${hasMobileStickyBar ? 'bottom-20 right-4 sm:bottom-6 sm:right-6' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'}`}>
+            <div
+                className={`fixed z-[90] select-none flex flex-col items-end ${
+                    hasMobileStickyBar ? 'bottom-20 right-4 sm:bottom-6 sm:right-6' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'
+                }`}
+            >
                 {/* Bong bóng chào đón thông minh (Proactive Callout Bubble) */}
                 {showCalloutBubble && !isOpen && (
-                    <div 
+                    <div
                         onClick={() => {
                             setIsOpen(true);
                             setShowCalloutBubble(false);
@@ -842,36 +1099,36 @@ export default function AIChatbotWidget() {
 
                         {/* Lời chào cá nhân hóa */}
                         <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                            Kính chào {user?.full_name ? <strong className="text-slate-900 font-bold">{user.full_name}</strong> : 'Quý khách'}! 
+                            Kính chào {user?.full_name ? <strong className="text-slate-900 font-bold">{user.full_name}</strong> : 'Quý khách'}!
                             <br />
-                            Em có thể hỗ trợ Quý khách <span className="text-sky-700 font-semibold">tra cứu phòng giá ưu đãi hôm nay</span> hoặc giải đáp dịch vụ không ạ?
+                            Em có thể hỗ trợ Quý khách <span className="text-sky-700 font-semibold">tra cứu phòng trống ngày mai</span> hoặc giải đáp dịch vụ không ạ?
                         </p>
 
                         {/* Gợi ý nhanh 1 chạm */}
                         <div className="mt-2.5 pt-2 flex flex-wrap gap-1.5 border-t border-slate-100">
-                            <span 
+                            <span
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setIsOpen(true);
                                     setShowCalloutBubble(false);
-                                    handleQuickAsk('Cho tôi biết các phòng trống và giá hôm nay');
+                                    handleSendMessage('Ngày mai còn phòng trống không và bảng giá thế nào?');
                                 }}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200/80 shadow-2xs transition-all active:scale-95 cursor-pointer"
                             >
                                 <BedDouble className="w-3 h-3 text-sky-600" />
-                                <span>Giá phòng hôm nay</span>
+                                <span>Phòng trống ngày mai</span>
                             </span>
-                            <span 
+                            <span
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setIsOpen(true);
                                     setShowCalloutBubble(false);
-                                    handleQuickAsk('Giới thiệu các dịch vụ ăn uống và tiện ích');
+                                    handleSendMessage('Gợi ý lịch trình tham quan Đà Nẵng, Cầu Rồng phun lửa và dịch vụ xe đưa đón VIP');
                                 }}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all active:scale-95 cursor-pointer"
                             >
-                                <Utensils className="w-3 h-3 text-slate-600" />
-                                <span>Menu dịch vụ</span>
+                                <Compass className="w-3 h-3 text-slate-600" />
+                                <span>Du lịch Đà Nẵng</span>
                             </span>
                         </div>
                     </div>
@@ -890,7 +1147,7 @@ export default function AIChatbotWidget() {
                         <span className="absolute -inset-full top-0 bg-gradient-to-r from-transparent via-sky-200/30 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                     </span>
 
-                    {/* Avatar AI Xanh Biển dịu mắt + Chấm Online gắn trực tiếp */}
+                    {/* Avatar AI Xanh Biển dịu mắt + Chấm Online */}
                     <div className="relative flex-shrink-0">
                         <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-sky-500 via-blue-500 to-cyan-500 text-white shadow-sm shadow-sky-500/25">
                             {isOpen ? (
@@ -927,19 +1184,17 @@ export default function AIChatbotWidget() {
 
             {/* 2. CỬA SỔ CHAT WINDOW SANG TRỌNG DỊU MẮT */}
             {isOpen && (
-                <div 
-                    className={`fixed z-50 flex flex-col rounded-2xl bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 ${
-                        hasMobileStickyBar
-                            ? 'inset-x-2.5 bottom-20 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]'
-                            : 'inset-x-2.5 bottom-2.5 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]'
-                    }`}
+                <div
+                    className="fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 inset-0 rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]"
                     style={{
                         boxShadow: '0 20px 45px -12px rgba(14, 165, 233, 0.16), 0 8px 20px -6px rgba(15, 23, 42, 0.08)'
                     }}
                 >
                     {/* A. HEADER TÔNG XANH PASTEL & TRẮNG NGỌC TRAI DỊU MẮT */}
-                    <header className="bg-gradient-to-r from-sky-50/95 via-white to-cyan-50/90 text-slate-800 px-4 py-3 border-b border-sky-100/90 flex items-center justify-between shadow-2xs select-none">
-                        {/* Bên trái: Avatar + Tên trợ lý và trạng thái (Không bao giờ rớt dòng) */}
+                    <header
+                        className="bg-gradient-to-r from-sky-50/95 via-white to-cyan-50/90 text-slate-800 px-4 py-3 border-b border-sky-100/90 flex items-center justify-between shadow-2xs select-none"
+                        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
+                    >
                         <div className="flex items-center gap-2.5 min-w-0">
                             <div className="relative flex-shrink-0">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 via-blue-500 to-cyan-500 p-0.5 shadow-xs">
@@ -967,9 +1222,8 @@ export default function AIChatbotWidget() {
                             </div>
                         </div>
 
-                        {/* Bên phải: Nút điều khiển (Ngôn ngữ + Làm mới + Đóng) */}
+                        {/* Nút điều khiển: Ngôn ngữ + Làm mới + Đóng */}
                         <div className="flex items-center gap-1 flex-shrink-0" ref={langDropdownRef}>
-                            {/* Nút chọn ngôn ngữ tinh gọn */}
                             <div className="relative">
                                 <button
                                     onClick={() => setShowLangDropdown(!showLangDropdown)}
@@ -977,17 +1231,17 @@ export default function AIChatbotWidget() {
                                     title="Chọn ngôn ngữ / Select language"
                                     aria-label="Chọn ngôn ngữ giao tiếp"
                                 >
-                                    <span className="text-sm leading-none">{SUPPORTED_LANGS.find(l => l.code === selectedLang)?.flag}</span>
+                                    <span className="text-sm leading-none">{SUPPORTED_LANGS.find((l) => l.code === selectedLang)?.flag}</span>
                                     <span className="font-bold text-[11px] text-sky-700">{selectedLang.toUpperCase()}</span>
                                     <ChevronDown className="w-3 h-3 text-slate-400" />
                                 </button>
-                                
+
                                 {showLangDropdown && (
                                     <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95">
                                         <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                                             Ngôn ngữ / Language
                                         </div>
-                                        {SUPPORTED_LANGS.map(lang => (
+                                        {SUPPORTED_LANGS.map((lang) => (
                                             <button
                                                 key={lang.code}
                                                 onClick={() => {
@@ -1028,6 +1282,34 @@ export default function AIChatbotWidget() {
                         </div>
                     </header>
 
+                    {/* B. THANH ĐẶC QUYỀN KHÁCH ĐANG LƯU TRÚ (IN-HOUSE GUEST CONCIERGE BAR - TÔNG SÁNG) */}
+                    {activeStayInfo && activeStayInfo.is_checked_in && (
+                        <div className="bg-amber-50/90 border-b border-amber-200/80 px-3.5 py-1.5 flex items-center justify-between gap-2 text-[11px] text-slate-800">
+                            <div className="flex items-center gap-1.5 truncate">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                                <span className="font-semibold text-amber-900 truncate">
+                                    {currentDict.inhouse_badge(activeStayInfo.room_number)}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSendMessage('Hóa đơn tạm tính của phòng tôi hiện tại là bao nhiêu?')}
+                                    className="px-2 py-0.5 rounded bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-semibold cursor-pointer transition"
+                                >
+                                    {currentDict.btn_folio}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSendMessage('Dọn phòng giúp tôi')}
+                                    className="px-2 py-0.5 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-medium cursor-pointer transition"
+                                >
+                                    {currentDict.btn_clean}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* HỘP THOẠI XÁC NHẬN LÀM MỚI TINH TẾ NGAY TRONG WIDGET */}
                     {showResetConfirm && (
                         <div className="bg-sky-50/95 border-b border-sky-200/80 px-3.5 py-2.5 flex items-center justify-between text-xs text-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -1052,8 +1334,8 @@ export default function AIChatbotWidget() {
                         </div>
                     )}
 
-                    {/* C. KHUNG HIỂN THỊ TIN NHẮN (MESSAGES STREAM - TOÀN BỘ KHÔNG GIAN) */}
-                    <div 
+                    {/* C. KHUNG HIỂN THỊ TIN NHẮN (MESSAGES STREAM) */}
+                    <div
                         ref={chatContainerRef}
                         className="flex-1 p-3.5 overflow-y-auto space-y-3.5 bg-gradient-to-b from-slate-50/50 to-white"
                         tabIndex={0}
@@ -1067,13 +1349,13 @@ export default function AIChatbotWidget() {
                             const isWelcome = isBot && msg.id.startsWith('welcome');
                             const hasSuggestions = hasRooms || hasServices || hasBookings || isWelcome;
 
-                            // Ngôn ngữ của tin nhắn
                             const msgLang = msg.detected_lang || selectedLang || 'vi';
                             const dict = I18N_DICT[msgLang] || I18N_DICT.vi;
 
                             return (
                                 <div
                                     key={msg.id}
+                                    id={`chat-msg-${msg.id}`}
                                     className={`flex items-start gap-2.5 ${isBot ? 'justify-start' : 'justify-end'}`}
                                 >
                                     {isBot && (
@@ -1085,15 +1367,17 @@ export default function AIChatbotWidget() {
                                     <div
                                         className={`rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] shadow-xs ${
                                             isBot
-                                                ? `bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] ${hasSuggestions ? 'w-full max-w-[94%] sm:max-w-[92%]' : 'max-w-[85%]'}`
+                                                ? `bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] ${
+                                                      hasSuggestions ? 'w-full max-w-[94%] sm:max-w-[92%]' : 'max-w-[85%]'
+                                                  }`
                                                 : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white rounded-tr-xs shadow-md shadow-sky-900/15 max-w-[85%]'
                                         }`}
                                     >
-                                        <div className="whitespace-pre-wrap leading-relaxed">
-                                            {isBot ? renderFormattedContent(msg.text) : msg.text}
+                                        <div className="leading-relaxed">
+                                            {isBot ? renderFormattedContent(msg.text) : <div className="whitespace-pre-wrap">{msg.text}</div>}
                                         </div>
 
-                                        {/* CÁC GỢI Ý HỎI NHANH 1 CHẠM NẰM TRONG BONG BÓNG CHÀO MỪNG (Scroll tự nhiên theo tin nhắn, không ghim chiếm chỗ màn hình) */}
+                                        {/* 1. CÁC GỢI Ý HỎI NHANH 1 CHẠM NẰM TRONG BONG BÓNG CHÀO MỪNG */}
                                         {isWelcome && (
                                             <div className="mt-3 pt-2.5 border-t border-amber-100/90 space-y-2">
                                                 <div className="text-[11px] font-bold text-amber-900 flex items-center justify-between">
@@ -1106,7 +1390,7 @@ export default function AIChatbotWidget() {
                                                     </span>
                                                 </div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                                    {currentChips.map(chip => {
+                                                    {currentChips.map((chip) => {
                                                         const ChipIcon = chip.icon || Sparkles;
                                                         return (
                                                             <button
@@ -1126,7 +1410,7 @@ export default function AIChatbotWidget() {
                                             </div>
                                         )}
 
-                                        {/* THẺ TIẾN TRÌNH ĐƠN ĐẶT PHÒNG THỜI GIAN THỰC (BOOKING PROGRESS TRACKER) */}
+                                        {/* 2. THẺ TIẾN TRÌNH ĐƠN ĐẶT PHÒNG THỜI GIAN THỰC (BOOKING PROGRESS TRACKER) */}
                                         {hasBookings && (
                                             <div className="mt-3 pt-2.5 border-t border-amber-100/90 space-y-3">
                                                 <div className="text-[11px] font-bold text-slate-800 flex items-center justify-between">
@@ -1141,7 +1425,7 @@ export default function AIChatbotWidget() {
 
                                                 {msg.tracked_bookings.map((bk) => {
                                                     const isCancelled = bk.step_index === -1;
-                                                    const currentStep = bk.step_index; // 1: Giữ chỗ, 2: Xác nhận, 3: Lưu trú, 4: Hoàn tất
+                                                    const currentStep = bk.step_index;
 
                                                     const steps = [
                                                         { num: 1, label: dict.step_reserved, icon: FileText },
@@ -1151,11 +1435,10 @@ export default function AIChatbotWidget() {
                                                     ];
 
                                                     return (
-                                                        <div 
+                                                        <div
                                                             key={bk.id || bk.booking_code}
                                                             className="bg-gradient-to-b from-white to-amber-50/30 rounded-xl border border-amber-200/90 p-3 shadow-xs hover:shadow-md transition-all duration-200 text-left"
                                                         >
-                                                            {/* Header: Mã đơn + Huy hiệu trạng thái */}
                                                             <div className="flex items-center justify-between border-b border-amber-100/80 pb-2">
                                                                 <div className="flex items-center gap-1.5">
                                                                     <span className="font-mono font-bold text-amber-900 text-xs tracking-wider">
@@ -1165,23 +1448,32 @@ export default function AIChatbotWidget() {
                                                                         {starCount}★ TA
                                                                     </span>
                                                                 </div>
-                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs flex items-center gap-1 ${
-                                                                    isCancelled 
-                                                                        ? 'bg-rose-100 text-rose-700 border border-rose-200' 
-                                                                        : currentStep === 3
-                                                                        ? 'bg-blue-100 text-blue-800 border border-blue-200 animate-pulse'
-                                                                        : currentStep === 4
-                                                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                                                        : 'bg-amber-100 text-amber-800 border border-amber-200'
-                                                                }`}>
-                                                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                                                        isCancelled ? 'bg-rose-500' : currentStep === 3 ? 'bg-blue-600' : currentStep === 4 ? 'bg-emerald-600' : 'bg-amber-500'
-                                                                    }`} />
+                                                                <span
+                                                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs flex items-center gap-1 ${
+                                                                        isCancelled
+                                                                            ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                                                                            : currentStep === 3
+                                                                            ? 'bg-blue-100 text-blue-800 border border-blue-200 animate-pulse'
+                                                                            : currentStep === 4
+                                                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                                                            : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                                                    }`}
+                                                                >
+                                                                    <span
+                                                                        className={`w-1.5 h-1.5 rounded-full ${
+                                                                            isCancelled
+                                                                                ? 'bg-rose-500'
+                                                                                : currentStep === 3
+                                                                                ? 'bg-blue-600'
+                                                                                : currentStep === 4
+                                                                                ? 'bg-emerald-600'
+                                                                                : 'bg-amber-500'
+                                                                        }`}
+                                                                    />
                                                                     {bk.status_label}
                                                                 </span>
                                                             </div>
 
-                                                            {/* Chi tiết đặt phòng */}
                                                             <div className="grid grid-cols-2 gap-2 text-[11px] mt-2.5 text-slate-700">
                                                                 <div>
                                                                     <span className="text-slate-400 block text-[10px]">{dict.room_category}</span>
@@ -1209,15 +1501,11 @@ export default function AIChatbotWidget() {
                                                                 </div>
                                                             </div>
 
-                                                            {/* Timeline 4 bước trực quan */}
                                                             {!isCancelled ? (
                                                                 <div className="mt-3 pt-2.5 border-t border-slate-100">
                                                                     <div className="relative flex items-center justify-between px-3">
-                                                                        {/* Đường kẻ nền */}
                                                                         <div className="absolute left-6 right-6 top-3 h-0.5 bg-slate-200 z-0" />
-                                                                        
-                                                                        {/* Đường kẻ tiến trình xanh kết nối */}
-                                                                        <div 
+                                                                        <div
                                                                             className="absolute left-6 top-3 h-0.5 bg-emerald-500 transition-all duration-500 z-0"
                                                                             style={{
                                                                                 width: `${Math.max(0, Math.min(100, ((currentStep - 1) / 3) * 100))}%`
@@ -1231,18 +1519,26 @@ export default function AIChatbotWidget() {
 
                                                                             return (
                                                                                 <div key={st.num} className="relative z-10 flex flex-col items-center">
-                                                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
-                                                                                        isCurrent
-                                                                                            ? 'bg-amber-600 text-white ring-4 ring-amber-100 scale-110 shadow-xs'
-                                                                                            : isDone
-                                                                                            ? 'bg-emerald-500 text-white shadow-xs'
-                                                                                            : 'bg-white border-2 border-slate-300 text-slate-400'
-                                                                                    }`}>
+                                                                                    <div
+                                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
+                                                                                            isCurrent
+                                                                                                ? 'bg-amber-600 text-white ring-4 ring-amber-100 scale-110 shadow-xs'
+                                                                                                : isDone
+                                                                                                ? 'bg-emerald-500 text-white shadow-xs'
+                                                                                                : 'bg-white border-2 border-slate-300 text-slate-400'
+                                                                                        }`}
+                                                                                    >
                                                                                         <IconComp className="w-3 h-3" />
                                                                                     </div>
-                                                                                    <span className={`text-[9px] mt-1 font-medium ${
-                                                                                        isCurrent ? 'text-amber-800 font-bold' : isDone ? 'text-slate-700 font-medium' : 'text-slate-400'
-                                                                                    }`}>
+                                                                                    <span
+                                                                                        className={`text-[9px] mt-1 font-medium ${
+                                                                                            isCurrent
+                                                                                                ? 'text-amber-800 font-bold'
+                                                                                                : isDone
+                                                                                                ? 'text-slate-700 font-medium'
+                                                                                                : 'text-slate-400'
+                                                                                        }`}
+                                                                                    >
                                                                                         {st.label}
                                                                                     </span>
                                                                                 </div>
@@ -1257,7 +1553,6 @@ export default function AIChatbotWidget() {
                                                                 </div>
                                                             )}
 
-                                                            {/* Nút hành động nhanh */}
                                                             <div className="mt-3 pt-2 border-t border-amber-100/80 flex items-center gap-2">
                                                                 <button
                                                                     onClick={() => {
@@ -1285,7 +1580,7 @@ export default function AIChatbotWidget() {
                                             </div>
                                         )}
 
-                                        {/* Gợi ý Thẻ phòng tương tác (Interactive Room Cards với giá song song VND + USD/KRW/CNY) */}
+                                        {/* 3. GỢI Ý THẺ PHÒNG TƯƠNG TÁC KÈM DEEP-LINK NGÀY CHECK-IN / CHECK-OUT */}
                                         {hasRooms && (
                                             <div className="mt-3 pt-2.5 border-t border-amber-100/90">
                                                 <div className="text-[11px] font-bold text-amber-900 mb-2 flex items-center justify-between">
@@ -1298,26 +1593,33 @@ export default function AIChatbotWidget() {
                                                     </span>
                                                 </div>
 
-                                                <div 
+                                                <div
                                                     className="flex gap-2.5 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth -mx-1 px-1"
                                                     style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}
                                                 >
                                                     {msg.suggested_rooms.map((room) => {
                                                         const isAvailable = room.available_count > 0;
+                                                        const cIn = room.check_in || msg.queried_dates?.check_in || '';
+                                                        const cOut = room.check_out || msg.queried_dates?.check_out || '';
+                                                        const dateBadge =
+                                                            room.check_in_display && room.check_out_display
+                                                                ? `${room.check_in_display.slice(0, 5)} ➔ ${room.check_out_display.slice(0, 5)}`
+                                                                : null;
+
                                                         return (
-                                                            <div 
+                                                            <div
                                                                 key={room.id}
                                                                 className="w-[220px] flex-shrink-0 bg-white rounded-xl border border-amber-200/90 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col group"
                                                             >
-                                                                {/* Ảnh phòng & Huy hiệu trạng thái */}
                                                                 <div className="relative h-28 w-full overflow-hidden bg-slate-100">
-                                                                    <img 
-                                                                        src={room.image_url} 
+                                                                    <img
+                                                                        src={room.image_url}
                                                                         alt={room.name}
                                                                         loading="lazy"
                                                                         onError={(e) => {
                                                                             e.target.onerror = null;
-                                                                            e.target.src = 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80';
+                                                                            e.target.src =
+                                                                                'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80';
                                                                         }}
                                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                                     />
@@ -1338,9 +1640,16 @@ export default function AIChatbotWidget() {
                                                                             {dict.luxury_tag}
                                                                         </span>
                                                                     </div>
+                                                                    {dateBadge && (
+                                                                        <div className="absolute bottom-1.5 left-1.5">
+                                                                            <span className="bg-white/90 text-slate-800 border border-slate-200 text-[9px] font-semibold px-1.5 py-0.5 rounded shadow-2xs inline-flex items-center gap-1">
+                                                                                <Calendar className="w-2.5 h-2.5 text-slate-500" />
+                                                                                <span>{dateBadge}</span>
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
 
-                                                                {/* Thông tin phòng & Giá song song */}
                                                                 <div className="p-2.5 flex-1 flex flex-col justify-between">
                                                                     <div>
                                                                         <h4 className="font-bold text-slate-800 text-xs truncate" title={room.name}>
@@ -1359,7 +1668,6 @@ export default function AIChatbotWidget() {
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* 2 Nút hành động trực tiếp đa ngôn ngữ */}
                                                                     <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-1.5">
                                                                         <button
                                                                             onClick={() => {
@@ -1377,7 +1685,16 @@ export default function AIChatbotWidget() {
                                                                             onClick={() => {
                                                                                 if (isAvailable) {
                                                                                     setIsOpen(false);
-                                                                                    navigate(`/checkout/${room.id}`);
+                                                                                    const queryStr =
+                                                                                        cIn && cOut
+                                                                                            ? `?checkIn=${encodeURIComponent(cIn)}&checkOut=${encodeURIComponent(cOut)}`
+                                                                                            : '';
+                                                                                    navigate(`/checkout/${room.id}${queryStr}`, {
+                                                                                        state: {
+                                                                                            checkInDate: cIn,
+                                                                                            checkOutDate: cOut
+                                                                                        }
+                                                                                    });
                                                                                 }
                                                                             }}
                                                                             disabled={!isAvailable}
@@ -1386,7 +1703,7 @@ export default function AIChatbotWidget() {
                                                                                     ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white shadow-xs active:scale-95'
                                                                                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                                                                             }`}
-                                                                            title={isAvailable ? "Đặt phòng này ngay" : "Phòng hiện đã kín"}
+                                                                            title={isAvailable ? 'Đặt phòng này ngay' : 'Phòng hiện đã kín'}
                                                                         >
                                                                             <CalendarCheck className="w-3 h-3" />
                                                                             {dict.book_now}
@@ -1400,7 +1717,7 @@ export default function AIChatbotWidget() {
                                             </div>
                                         )}
 
-                                        {/* Gợi ý Thẻ dịch vụ tương tác (Interactive Service Cards) */}
+                                        {/* 4. GỢI Ý THẺ DỊCH VỤ TƯƠNG TÁC (INTERACTIVE SERVICE CARDS) */}
                                         {hasServices && (
                                             <div className="mt-3 pt-2.5 border-t border-amber-100/90">
                                                 <div className="text-[11px] font-bold text-amber-900 mb-2 flex items-center justify-between">
@@ -1413,23 +1730,24 @@ export default function AIChatbotWidget() {
                                                     </span>
                                                 </div>
 
-                                                <div 
+                                                <div
                                                     className="flex gap-2.5 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth -mx-1 px-1"
                                                     style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}
                                                 >
                                                     {msg.suggested_services.map((srv) => (
-                                                        <div 
+                                                        <div
                                                             key={srv.id}
                                                             className="w-[205px] flex-shrink-0 bg-white rounded-xl border border-amber-200/90 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col group"
                                                         >
                                                             <div className="relative h-24 w-full bg-slate-100 overflow-hidden">
-                                                                <img 
-                                                                    src={srv.image_url} 
+                                                                <img
+                                                                    src={srv.image_url}
                                                                     alt={srv.name}
                                                                     loading="lazy"
                                                                     onError={(e) => {
                                                                         e.target.onerror = null;
-                                                                        e.target.src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80';
+                                                                        e.target.src =
+                                                                            'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80';
                                                                     }}
                                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                                 />
@@ -1461,7 +1779,15 @@ export default function AIChatbotWidget() {
                                                                 <button
                                                                     onClick={() => {
                                                                         setIsOpen(false);
-                                                                        navigate('/services');
+                                                                        navigate(
+                                                                            `/services?serviceId=${encodeURIComponent(srv.id)}&q=${encodeURIComponent(srv.name)}`,
+                                                                            {
+                                                                                state: {
+                                                                                    serviceId: srv.id,
+                                                                                    serviceName: srv.name
+                                                                                }
+                                                                            }
+                                                                        );
                                                                     }}
                                                                     className="w-full mt-2.5 py-1.5 px-2 text-[10px] font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300/80 rounded-lg transition-colors text-center cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                                                                     title="Xem thực đơn và gửi yêu cầu dịch vụ"
@@ -1476,42 +1802,85 @@ export default function AIChatbotWidget() {
                                             </div>
                                         )}
 
+                                        {/* Footer tin nhắn */}
                                         <div
                                             className={`text-[10px] mt-2 flex items-center justify-between gap-1 pt-1.5 border-t ${
-                                                isBot ? 'text-slate-400 border-slate-100' : 'text-amber-100/80 border-amber-600/30'
+                                                isBot ? 'text-slate-400 border-slate-100' : 'text-sky-100/90 border-sky-400/30'
                                             }`}
                                         >
                                             {isBot ? (
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleSpeakMessage(msg)}
+                                                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer ${
+                                                            speakingMsgId === msg.id
+                                                                ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
+                                                                : 'text-slate-500 hover:text-amber-800 hover:bg-amber-50/80 border border-slate-200/60 hover:border-amber-300'
+                                                        }`}
+                                                        title={speakingMsgId === msg.id ? dict.stop_speak : dict.speak_btn}
+                                                    >
+                                                        {speakingMsgId === msg.id ? (
+                                                            <>
+                                                                <VolumeX className="w-3 h-3 text-amber-700" />
+                                                                <span className="font-semibold text-amber-900">{dict.stop_speak}</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Volume2 className="w-3 h-3 text-slate-500" />
+                                                                <span>{dict.speak_btn}</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCopyMessage(msg)}
+                                                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer ${
+                                                            copiedMsgId === msg.id
+                                                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs font-semibold'
+                                                                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200/60'
+                                                        }`}
+                                                        title={copiedMsgId === msg.id ? dict.copied_btn : dict.copy_btn}
+                                                        aria-label={copiedMsgId === msg.id ? dict.copied_btn : dict.copy_btn}
+                                                    >
+                                                        {copiedMsgId === msg.id ? (
+                                                            <>
+                                                                <Check className="w-3 h-3 text-emerald-600" />
+                                                                <span>{dict.copied_btn}</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Copy className="w-3 h-3 text-slate-400" />
+                                                                <span>{dict.copy_btn}</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            ) : (
                                                 <button
                                                     type="button"
-                                                    onClick={() => toggleSpeakMessage(msg)}
-                                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer ${
-                                                        speakingMsgId === msg.id
-                                                            ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
-                                                            : 'text-slate-500 hover:text-amber-800 hover:bg-amber-50/80 border border-slate-200/60 hover:border-amber-300'
+                                                    onClick={() => handleCopyMessage(msg)}
+                                                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer ${
+                                                        copiedMsgId === msg.id
+                                                            ? 'bg-sky-200/40 text-white font-semibold'
+                                                            : 'text-sky-100/80 hover:text-white hover:bg-white/10'
                                                     }`}
-                                                    title={speakingMsgId === msg.id ? dict.stop_speak : dict.speak_btn}
-                                                    aria-label={speakingMsgId === msg.id ? dict.stop_speak : dict.speak_btn}
+                                                    title={copiedMsgId === msg.id ? dict.copied_btn : dict.copy_btn}
+                                                    aria-label={copiedMsgId === msg.id ? dict.copied_btn : dict.copy_btn}
                                                 >
-                                                    {speakingMsgId === msg.id ? (
+                                                    {copiedMsgId === msg.id ? (
                                                         <>
-                                                            <VolumeX className="w-3 h-3 text-amber-700" />
-                                                            <span className="font-semibold text-amber-900">{dict.stop_speak}</span>
-                                                            <span className="flex items-center gap-0.5 ml-0.5">
-                                                                <span className="w-0.5 h-2 bg-amber-600 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                                <span className="w-0.5 h-3 bg-amber-600 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                                <span className="w-0.5 h-1.5 bg-amber-600 animate-bounce" style={{ animationDelay: '300ms' }} />
-                                                            </span>
+                                                            <Check className="w-3 h-3 text-emerald-200" />
+                                                            <span>{dict.copied_btn}</span>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Volume2 className="w-3 h-3 text-slate-500" />
-                                                            <span>{dict.speak_btn}</span>
+                                                            <Copy className="w-3 h-3 text-sky-200" />
+                                                            <span>{dict.copy_btn}</span>
                                                         </>
                                                     )}
                                                 </button>
-                                            ) : (
-                                                <span />
                                             )}
                                             <span>{msg.time}</span>
                                         </div>
@@ -1540,24 +1909,39 @@ export default function AIChatbotWidget() {
                         <div ref={messagesEndRef} />
                     </div>
 
+                    {/* D. DẢI GỢI Ý NHANH CỐ ĐỊNH TRÊN KHUNG NHẬP (TÔNG SÁNG DỊU MẮT) */}
+                    {messages.length > 1 && (
+                        <div
+                            className="px-3 py-1.5 bg-slate-50/90 border-t border-slate-200/80 flex items-center gap-1.5 overflow-x-auto select-none"
+                            style={{ scrollbarWidth: 'none' }}
+                        >
+                            {currentChips.map((chip) => {
+                                const ChipIcon = chip.icon || Sparkles;
+                                return (
+                                    <button
+                                        key={`bar-${chip.id}`}
+                                        type="button"
+                                        disabled={isLoading}
+                                        onClick={() => handleSendMessage(chip.query)}
+                                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-sky-200/80 whitespace-nowrap transition-all cursor-pointer active:scale-95 disabled:opacity-50 flex-shrink-0"
+                                    >
+                                        <ChipIcon className="w-3 h-3 text-sky-600" />
+                                        <span>{chip.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* BANNER THU ÂM GIỌNG NÓI (VOICE AI LISTENING) */}
                     {isListening && (
-                        <div className="px-3 py-2 bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border-t border-rose-200 flex items-center justify-between text-xs text-rose-700 font-medium animate-fadeIn">
+                        <div className="px-3 py-2 bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border-t border-rose-200 flex items-center justify-between text-xs text-rose-700 font-medium">
                             <div className="flex items-center gap-2">
                                 <span className="relative flex h-2.5 w-2.5">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
                                 </span>
-                                <span className="text-[11px] font-semibold text-rose-800">
-                                    {currentDict.voice_listening}
-                                </span>
-                                <span className="flex items-center gap-0.5 ml-1">
-                                    <span className="w-0.5 h-2 bg-rose-500 animate-pulse" style={{ animationDuration: '600ms' }} />
-                                    <span className="w-0.5 h-3.5 bg-rose-600 animate-pulse" style={{ animationDuration: '400ms' }} />
-                                    <span className="w-0.5 h-2.5 bg-rose-500 animate-pulse" style={{ animationDuration: '500ms' }} />
-                                    <span className="w-0.5 h-4 bg-rose-600 animate-pulse" style={{ animationDuration: '300ms' }} />
-                                </span>
+                                <span className="text-[11px] font-semibold text-rose-800">{currentDict.voice_listening}</span>
                             </div>
                             <button
                                 type="button"
@@ -1576,8 +1960,11 @@ export default function AIChatbotWidget() {
                         </div>
                     )}
 
-                    {/* D. KHUNG NHẬP CÂU HỎI (INPUT AREA) */}
-                    <div className="p-3 bg-white border-t border-slate-200">
+                    {/* E. KHUNG NHẬP CÂU HỎI (INPUT AREA) */}
+                    <div
+                        className="p-3 bg-white border-t border-slate-200"
+                        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}
+                    >
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
@@ -1593,9 +1980,7 @@ export default function AIChatbotWidget() {
                                 onKeyDown={handleKeyDown}
                                 placeholder={currentDict.input_placeholder}
                                 disabled={isLoading}
-                                className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 
-                                    placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 focus:bg-white
-                                    transition-all disabled:opacity-50"
+                                className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 focus:bg-white transition-all disabled:opacity-50"
                             />
 
                             {/* Nút Micro thu âm câu hỏi bằng giọng nói (Voice AI) */}

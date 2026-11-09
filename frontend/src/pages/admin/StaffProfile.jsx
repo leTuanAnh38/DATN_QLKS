@@ -337,7 +337,7 @@ export default function StaffProfile() {
                         onClick={() => setFeedback({ type: null, message: '' })}
                         className="text-xs opacity-60 hover:opacity-100 transition cursor-pointer font-bold"
                     >
-                        ✕
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
             )}

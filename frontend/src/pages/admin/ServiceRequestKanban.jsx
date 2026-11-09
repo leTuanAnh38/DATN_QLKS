@@ -29,7 +29,8 @@ import {
     Gift,
     Undo2,
     ArrowRight,
-    Zap
+    Zap,
+    Inbox
 } from 'lucide-react';
 
 // Format thời gian trôi qua dạng "Vừa xong", "5 phút trước", "1 giờ trước"
@@ -286,7 +287,7 @@ const handlePrintSlip = (item, onBlocked) => {
                 <h1 class="hotel-name">TA LUXURY HOTEL DA NANG</h1>
                 <div class="hotel-sub">${(item.category_name || '').toLowerCase().includes('buồng') || (item.service_name || '').toLowerCase().includes('dọn') ? 'Bộ phận Buồng phòng & Tiện ích lưu trú (Housekeeping)' : 'Dịch vụ Ẩm thực & Phục vụ phòng (In-Room Dining)'}</div>
                 <div class="title">${(item.category_name || '').toLowerCase().includes('buồng') || (item.service_name || '').toLowerCase().includes('dọn') ? 'PHIẾU YÊU CẦU BUỒNG PHÒNG' : 'PHIẾU PHỤC VỤ TẠI PHÒNG'}</div>
-                <div class="room-badge">🚪 PHÒNG ${item.room_number || 'Chưa gán'}</div>
+                <div class="room-badge">PHÒNG ${item.room_number || 'Chưa gán'}</div>
             </div>
 
             <div class="meta-row">
@@ -341,7 +342,7 @@ const handlePrintSlip = (item, onBlocked) => {
             <div class="meta-row" style="margin-top: 8px;">
                 <span class="meta-label">Thanh toán:</span>
                 <span class="meta-value" style="color: ${item.is_paid ? '#059669' : '#d97706'}; font-weight: 700;">
-                    ${item.is_paid ? '🟢 ĐÃ THANH TOÁN TRƯỚC' : '🟠 TÍNH VÀO HÓA ĐƠN CHECK-OUT'}
+                    ${item.is_paid ? 'ĐÃ THANH TOÁN TRƯỚC' : 'TÍNH VÀO HÓA ĐƠN CHECK-OUT'}
                 </span>
             </div>
 
@@ -454,7 +455,7 @@ export default function ServiceRequestKanban() {
             } else if (!isSilent) {
                 showToast('error', res?.message || 'Không thể tải bảng điều phối dịch vụ.');
             }
-        } catch (error) {
+        } catch {
             if (!isSilent) showToast('error', 'Lỗi kết nối khi tải Kanban.');
         } finally {
             if (!isSilent) setIsLoading(false);
@@ -508,13 +509,13 @@ export default function ServiceRequestKanban() {
 
         if (!currentItem || sourceColumn === newStatus) return;
 
-        // 🔒 CHẶN THAY ĐỔI TRẠNG THÁI NẾU ĐƠN ĐÃ HOÀN THÀNH (ĐÃ TÍNH VÀO HÓA ĐƠN)
+        // CHẶN THAY ĐỔI TRẠNG THÁI NẾU ĐƠN ĐÃ HOÀN THÀNH (ĐÃ TÍNH VÀO HÓA ĐƠN)
         if (currentItem.status === 'completed' || sourceColumn === 'completed') {
             showToast('warning', 'Yêu cầu dịch vụ này đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái.');
             return;
         }
 
-        // 🔒 CHẶN BẮT ĐẦU / THỰC HIỆN DỊCH VỤ NẾU CHƯA ĐỦ ĐIỀU KIỆN
+        // CHẶN BẮT ĐẦU / THỰC HIỆN DỊCH VỤ NẾU CHƯA ĐỦ ĐIỀU KIỆN
         const lockReason = getServiceLockReason(currentItem);
         if (['in_progress', 'delivering', 'completed'].includes(newStatus) && lockReason) {
             if (lockReason === 'NO_ROOM') {
@@ -889,7 +890,7 @@ export default function ServiceRequestKanban() {
                                 : 'bg-rose-900/90 text-white border border-rose-500/40 shadow-rose-900/30'
                         }`}
                     >
-                        <span className="text-base">{toast.type === 'success' ? '✅' : '⚠️'}</span>
+                        {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />}
                         <span>{toast.message}</span>
                     </div>
                 </div>
@@ -1105,7 +1106,7 @@ export default function ServiceRequestKanban() {
                                 {!isLoading && listItems.length === 0 && (
                                     <tr>
                                         <td colSpan={6} className="py-12 text-center text-slate-400">
-                                            <div className="text-3xl mb-2">📭</div>
+                                            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-2"><Inbox className="w-6 h-6" /></div>
                                             <p className="font-semibold text-slate-700">Không có yêu cầu dịch vụ nào</p>
                                             <p className="text-[11px] text-slate-400 mt-1">
                                                 {searchKeyword ? 'Hãy thử tìm kiếm với từ khóa khác.' : 'Chưa có yêu cầu nào trong mục này.'}
@@ -1417,7 +1418,7 @@ export default function ServiceRequestKanban() {
 
                         {!isLoading && listItems.length === 0 && (
                             <div className="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 p-5">
-                                <div className="text-3xl mb-2">📭</div>
+                                <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-2"><Inbox className="w-6 h-6" /></div>
                                 <p className="font-semibold text-slate-700 text-xs">Không có yêu cầu dịch vụ nào</p>
                                 <p className="text-[11px] text-slate-400 mt-1">
                                     {searchKeyword ? 'Hãy thử tìm kiếm với từ khóa khác.' : 'Chưa có yêu cầu nào trong mục này.'}
@@ -1837,7 +1838,7 @@ export default function ServiceRequestKanban() {
                             <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[750px] pr-1 scrollbar-thin">
                                 {displayedItems.length === 0 ? (
                                     <div className="h-44 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 text-xs text-center p-4">
-                                        <span className="text-2xl mb-1">📭</span>
+                                        <span className="mb-1"><Inbox className="w-6 h-6 text-slate-400 inline" /></span>
                                         <span>Không có yêu cầu nào</span>
                                         <span className="text-[10px] text-slate-400 mt-0.5">
                                             Kéo thả thẻ vào đây để đổi trạng thái

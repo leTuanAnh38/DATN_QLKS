@@ -100,7 +100,7 @@ def award_booking_loyalty_points(booking):
             from ..notifications.models import Notification
             notify_content = f"Quý khách vừa được cộng +{points_to_award} điểm tích lũy từ đơn đặt phòng #{booking.booking_code}."
             if is_upgraded and new_tier:
-                notify_content += f" 🎉 Chúc mừng quý khách đã thăng hạng thành viên: {new_tier.name} (Hưởng giảm giá {new_tier.discount_percent}% cho các lần đặt phòng tiếp theo)!"
+                notify_content += f" Chúc mừng quý khách đã thăng hạng thành viên: {new_tier.name} (Hưởng giảm giá {new_tier.discount_percent}% cho các lần đặt phòng tiếp theo)!"
 
             Notification.objects.create(
                 recipient=user,

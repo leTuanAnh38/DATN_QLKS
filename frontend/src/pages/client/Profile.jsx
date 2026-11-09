@@ -24,7 +24,9 @@ import {
     CreditCard,
     Globe,
     UserCheck,
-    ArrowRight
+    ArrowRight,
+    Crown,
+    LogIn
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -273,8 +275,8 @@ export default function Profile() {
             <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
                 <Navbar />
                 <div className="max-w-xl mx-auto my-20 p-8 bg-white rounded-3xl shadow-xl text-center border border-slate-200">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-2xl flex items-center justify-center text-3xl">
-                        👑
+                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shadow-sm border border-amber-200">
+                        <Crown className="w-8 h-8" />
                     </div>
                     <h2 className="font-serif text-2xl font-bold text-slate-900 mb-2">
                         Quản Lý Hồ Sơ Khách Hàng
@@ -286,7 +288,8 @@ export default function Profile() {
                         to="/login"
                         className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 transition duration-200"
                     >
-                        <span>🔑 Đăng nhập ngay</span>
+                        <LogIn className="w-4 h-4" />
+                        <span>Đăng nhập ngay</span>
                     </Link>
                 </div>
                 <Footer />
@@ -800,8 +803,9 @@ export default function Profile() {
                                         <p className="text-xs text-slate-700 leading-relaxed italic bg-white/80 p-3 rounded-xl border border-amber-200/50">
                                             &ldquo;{formData.preferences || 'Chưa có ghi chú sở thích. Quý khách có thể ghi chú loại gối mềm, phòng tầng cao, view biển hoặc lưu ý ăn uống để đội ngũ khách sạn phục vụ chu đáo nhất.'}&rdquo;
                                         </p>
-                                        <span className="text-[11px] text-amber-800/80 mt-2 block">
-                                            ✨ Đội ngũ quản gia khách sạn TA luôn sẵn sàng chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.
+                                        <span className="text-[11px] text-amber-800/80 mt-2 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                            <span>Đội ngũ quản gia khách sạn TA luôn sẵn sàng chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.</span>
                                         </span>
                                     </div>
                                 </div>

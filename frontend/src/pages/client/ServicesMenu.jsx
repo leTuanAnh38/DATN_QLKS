@@ -31,8 +31,38 @@ import {
     Zap,
     Loader2,
     ShoppingBag,
-    ShoppingCart
+    ShoppingCart,
+    UtensilsCrossed,
+    Wine,
+    Flower2,
+    Car,
+    Shirt,
+    Tag
 } from 'lucide-react';
+
+// Helper hiển thị icon đại diện chuẩn 5 sao cho danh mục dịch vụ khách sạn
+const renderCategoryIcon = (categoryName, iconStr, className = 'w-3.5 h-3.5') => {
+    const text = `${categoryName || ''} ${iconStr || ''}`.toLowerCase();
+    if (text.includes('ẩm thực') || text.includes('ăn') || text.includes('dining') || text.includes('món') || text.includes('bò') || text.includes('súp') || text.includes('phở') || text.includes('fnb') || text.includes('buffet') || text.includes('bếp')) {
+        return <UtensilsCrossed className={className} />;
+    }
+    if (text.includes('uống') || text.includes('bar') || text.includes('rượu') || text.includes('trà') || text.includes('cà phê') || text.includes('nước') || text.includes('cocktail') || text.includes('beverage')) {
+        return <Wine className={className} />;
+    }
+    if (text.includes('spa') || text.includes('massage') || text.includes('trị liệu') || text.includes('thư giãn') || text.includes('sức khỏe') || text.includes('wellness')) {
+        return <Flower2 className={className} />;
+    }
+    if (text.includes('xe') || text.includes('đưa đón') || text.includes('sân bay') || text.includes('tour') || text.includes('du lịch') || text.includes('transport') || text.includes('limousine')) {
+        return <Car className={className} />;
+    }
+    if (text.includes('giặt') || text.includes('ủi') || text.includes('laundry')) {
+        return <Shirt className={className} />;
+    }
+    if (text.includes('phòng') || text.includes('buồng') || text.includes('concierge') || text.includes('tiện ích') || text.includes('room')) {
+        return <Sparkles className={className} />;
+    }
+    return <Tag className={className} />;
+};
 
 // Tiện ích format thời gian chi tiết (VD: 14:30 • 29/09/2026)
 const formatDateTimeDisplay = (isoStr) => {
@@ -362,7 +392,7 @@ export default function ServicesMenu() {
         };
     }, [isAuthenticated]);
 
-    // Tự động mở modal lịch sử dịch vụ khi URL có ?history=true hoặc ?tab=history (VD: được điều hướng từ chuông thông báo)
+    // Tự động mở modal lịch sử dịch vụ hoặc tự động chọn món khi điều hướng từ AI Chatbot / Chuông thông báo
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         if (params.get('history') === 'true' || params.get('tab') === 'history' || location.state?.openHistory) {
@@ -370,7 +400,19 @@ export default function ServicesMenu() {
             fetchOrderHistory(false, targetBooking);
             setIsHistoryModalOpen(true);
         }
-    }, [location.search, location.state, isAuthenticated]);
+        const qParam = params.get('q') || location.state?.serviceName;
+        if (qParam) {
+            setSearchQuery(qParam);
+        }
+        const srvId = params.get('serviceId') || location.state?.serviceId;
+        if (srvId && serviceItems.length > 0) {
+            const matched = serviceItems.find((it) => String(it.id) === String(srvId));
+            if (matched) {
+                setSelectedItem(matched);
+                setQuantity(1);
+            }
+        }
+    }, [location.search, location.state, isAuthenticated, serviceItems]);
 
     // Lọc danh sách món / dịch vụ
     const filteredItems = useMemo(() => {
@@ -961,7 +1003,7 @@ export default function ServicesMenu() {
                                             : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
                                     }`}
                                 >
-                                    <span>{cat.icon || '🏷️'}</span>
+                                    {renderCategoryIcon(cat.name, cat.icon, `w-3.5 h-3.5 ${String(selectedCategory) === String(cat.id) ? 'text-amber-200' : 'text-slate-400'}`)}
                                     <span>{cat.name}</span>
                                     {cat.services_count > 0 && (
                                         <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
@@ -1060,7 +1102,7 @@ export default function ServicesMenu() {
                                                 
                                                 {/* Badge danh mục */}
                                                 <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-slate-800 text-[10px] font-bold shadow-xs flex items-center gap-1 border border-white/40">
-                                                    <span>{item.category_icon || '🏷️'}</span>
+                                                    {renderCategoryIcon(item.category_name, item.category_icon, 'w-3 h-3 text-amber-600')}
                                                     <span>{item.category_name}</span>
                                                 </span>
 
@@ -2164,8 +2206,8 @@ export default function ServicesMenu() {
                                                                     }}
                                                                 />
                                                             ) : (
-                                                                <div className="w-16 h-16 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl shrink-0 border border-amber-200/60 shadow-2xs">
-                                                                    {item.category_icon || '🛎️'}
+                                                                <div className="w-16 h-16 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
+                                                                    {renderCategoryIcon(item.category_name, item.category_icon, 'w-6 h-6 text-amber-600')}
                                                                 </div>
                                                             )}
 

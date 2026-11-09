@@ -25,7 +25,8 @@ import {
     LogOut,
     LayoutDashboard,
     Clock,
-    Calendar
+    Calendar,
+    X
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -173,7 +174,7 @@ export default function AuthBookingPage() {
                         onClick={() => setToastNotice(null)}
                         className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded-lg transition"
                     >
-                        ✕
+                        <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
             )}

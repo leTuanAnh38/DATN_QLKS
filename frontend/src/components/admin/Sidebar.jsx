@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { X, PanelLeftClose, PanelLeftOpen, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { useHasPermission } from '../../utils/permission';
@@ -113,7 +113,7 @@ export default function Sidebar({
     }, []);
 
     // =========================================================================
-    // 🛡️ BẢO VỆ PHÂN QUYỀN (RBAC) - KIỂM TRA QUYỀN XEM TRƯỚC KHI HIỂN THỊ MENU
+    // BẢO VỆ PHÂN QUYỀN (RBAC) - KIỂM TRA QUYỀN XEM TRƯỚC KHI HIỂN THỊ MENU
     // =========================================================================
     const canViewOverview = useHasPermission('overview', 'read');
     const canViewGuests = useHasPermission('guests', 'read');
@@ -727,7 +727,7 @@ export default function Sidebar({
                                         }`}
                                     >
                                         <div className={`flex items-center gap-3 ${effectiveCollapsed ? 'lg:flex-none' : 'flex-1 min-w-0 overflow-hidden'}`}>
-                                            <span className="text-sm shrink-0">🍽️</span>
+                                            <UtensilsCrossed className="w-4 h-4 shrink-0 text-slate-300" />
                                             <span className={`truncate text-left ${effectiveCollapsed ? 'lg:hidden' : ''}`}>Danh mục Dịch vụ</span>
                                         </div>
                                         

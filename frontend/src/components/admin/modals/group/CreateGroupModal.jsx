@@ -682,7 +682,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
             <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 relative">
                 {modalToast && (
                     <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-amber-600 text-white border-amber-500 shadow-amber-600/30">
-                        <span>⚡</span>
+                        <Zap className="w-4 h-4 shrink-0" />
                         <span>{modalToast.message}</span>
                     </div>
                 )}

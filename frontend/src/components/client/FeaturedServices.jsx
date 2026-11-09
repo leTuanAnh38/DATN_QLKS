@@ -19,7 +19,6 @@ const FALLBACK_SERVICES = [
         id: 101,
         name: "Bò Wagyu Úc Nướng Than Hoa Sốt Tiêu Rừng",
         category_name: "Ẩm thực & Bar",
-        category_icon: "🥩",
         price: "750000",
         description: "Thịt thăn bò Wagyu nhập khẩu đạt chứng nhận marble 7+, nướng trên than gáo dừa thơm lừng kèm khoai tây nghiền nấm truffle.",
         display_image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
@@ -29,7 +28,6 @@ const FALLBACK_SERVICES = [
         id: 102,
         name: "Súp Tôm Hùm Nha Trang Nấu Saffron",
         category_name: "Ẩm thực & Bar",
-        category_icon: "🦞",
         price: "380000",
         description: "Tôm hùm bông tươi sống kết hợp nhụy hoa nghệ tây Iran cao cấp, tạo nên vị ngọt đậm đà quý phái.",
         display_image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=800&q=80",
@@ -39,7 +37,6 @@ const FALLBACK_SERVICES = [
         id: 103,
         name: "Liệu Trình The Lotus Signature Body Treatment (90 Phút)",
         category_name: "Spa & Wellness",
-        category_icon: "🌸",
         price: "1250000",
         description: "Massage toàn thân kết hợp tinh dầu sen trắng quý hiếm, đá núi lửa ấm và bồn ngâm thảo dược giải tỏa mệt mỏi.",
         display_image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
@@ -49,7 +46,6 @@ const FALLBACK_SERVICES = [
         id: 104,
         name: "Set Trà Chiều Hoàng Gia Vịnh Biển (High Tea For Two)",
         category_name: "Ẩm thực & Bar",
-        category_icon: "🫖",
         price: "450000",
         description: "Khay 3 tầng gồm 8 loại bánh pastry thủ công Pháp, macaron hạnh nhân, finger sandwich và ấm trà Dilmah thượng hạng.",
         display_image: "https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80",
@@ -59,7 +55,6 @@ const FALLBACK_SERVICES = [
         id: 105,
         name: "Liệu Pháp Thủy Hóa Da Mặt & Trẻ Hóa Tế Bào (60 Phút)",
         category_name: "Spa & Wellness",
-        category_icon: "💆",
         price: "850000",
         description: "Sử dụng tinh chất tế bào gốc hữu cơ và máy sóng siêu âm lạnh giúp làn da căng bóng, rạng rỡ tức thì.",
         display_image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
@@ -69,13 +64,27 @@ const FALLBACK_SERVICES = [
         id: 106,
         name: "Rượu Vang Đỏ Château Margaux Grand Cru Classé",
         category_name: "Đồ uống & Bar",
-        category_icon: "🍷",
         price: "2450000",
         description: "Niên vụ đặc biệt 2018 mang hương thơm phức hợp của quả mọng đen, gỗ sồi Pháp và tannin mượt mà như nhung.",
         display_image: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
         badge: "Hầm Vang TA Exclusive"
     }
 ];
+
+// Helper biểu tượng vector chuẩn Luxury cho danh mục dịch vụ
+const getCategoryIconComponent = (catName) => {
+    const text = (catName || '').toLowerCase();
+    if (text.includes('spa') || text.includes('wellness') || text.includes('trị liệu')) {
+        return <Flower2 className="w-3.5 h-3.5 text-amber-300" />;
+    }
+    if (text.includes('uống') || text.includes('rượu') || text.includes('bar') || text.includes('vang')) {
+        return <Wine className="w-3.5 h-3.5 text-amber-300" />;
+    }
+    if (text.includes('ẩm thực') || text.includes('món') || text.includes('ăn') || text.includes('dining')) {
+        return <UtensilsCrossed className="w-3.5 h-3.5 text-amber-300" />;
+    }
+    return <Sparkles className="w-3.5 h-3.5 text-amber-300" />;
+};
 
 export default function FeaturedServices() {
     const { settings } = useHotelSettings();
@@ -222,7 +231,6 @@ export default function FeaturedServices() {
                         {filteredServices.slice(0, 6).map((item) => {
                             const imgSrc = item.display_image || item.image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80';
                             const categoryName = item.category_name || item.category?.name || (`Dịch vụ ${starCount} sao`);
-                            const categoryIcon = item.category_icon || item.category?.icon || '🛎️';
                             const badgeText = item.badge || (Number(item.price) > 1000000 ? 'Đặc Quyền VIP' : 'Được Yêu Thích');
 
                             return (
@@ -242,7 +250,7 @@ export default function FeaturedServices() {
 
                                         {/* Category Badge Top Left */}
                                         <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-amber-300 text-[11px] font-bold border border-white/10 shadow-sm">
-                                            <span>{categoryIcon}</span>
+                                            {getCategoryIconComponent(categoryName)}
                                             <span>{categoryName}</span>
                                         </span>
 

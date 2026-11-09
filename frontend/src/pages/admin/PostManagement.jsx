@@ -19,7 +19,8 @@ import {
     AlertTriangle,
     Check,
     Loader2,
-    TrendingUp
+    TrendingUp,
+    Lightbulb
 } from 'lucide-react';
 import postService from '../../services/postService';
 import Pagination from '../../components/common/Pagination';
@@ -978,8 +979,8 @@ export default function PostManagement() {
                                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                         className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 transition cursor-pointer"
                                     >
-                                        <option value="published">🟢 Hiển thị (Công khai cho khách xem)</option>
-                                        <option value="draft">🟡 Bản nháp (Chỉ nội bộ xem)</option>
+                                        <option value="published">Hiển thị (Công khai cho khách xem)</option>
+                                        <option value="draft">Bản nháp (Chỉ nội bộ xem)</option>
                                     </select>
                                 </div>
                             </div>
@@ -1000,14 +1001,14 @@ export default function PostManagement() {
                                             <button
                                                 type="button"
                                                 onClick={handleRemoveThumbnail}
-                                                className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition"
+                                                className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition cursor-pointer"
                                             >
-                                                ✕ Xóa ảnh
+                                                Xóa ảnh
                                             </button>
                                         </div>
                                     ) : (
                                         <div className="w-36 h-24 rounded-xl border border-slate-200 bg-white flex flex-col items-center justify-center text-slate-400 shrink-0">
-                                            <span className="text-2xl mb-1">🖼️</span>
+                                            <ImageIcon className="w-8 h-8 text-slate-300 mb-1" />
                                             <span className="text-[10px]">Chưa có ảnh</span>
                                         </div>
                                     )}
@@ -1047,8 +1048,9 @@ export default function PostManagement() {
                                     <label className="text-xs font-bold text-slate-700">
                                         Nội dung chi tiết bài viết (Rich Text Editor)
                                     </label>
-                                    <span className="text-[10px] text-slate-400 font-medium">
-                                        💡 Ảnh chèn sẽ tự động tải lên máy chủ (không dùng chuỗi Base64)
+                                    <span className="text-[10px] text-slate-400 font-medium inline-flex items-center gap-1">
+                                        <Lightbulb className="w-3 h-3 text-amber-500" />
+                                        <span>Ảnh chèn sẽ tự động tải lên máy chủ (không dùng chuỗi Base64)</span>
                                     </span>
                                 </div>
                                 <div className="relative border border-slate-200 rounded-2xl overflow-hidden bg-white">

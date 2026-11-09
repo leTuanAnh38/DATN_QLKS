@@ -121,10 +121,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
             cat_name = review.room_category.name if review.room_category else ""
 
             if is_negative:
-                notif_title = f"⚠️ [CẢNH BÁO ĐÁNH GIÁ THẤP] {guest_name} ({review.rating}⭐)"
+                notif_title = f"[CẢNH BÁO ĐÁNH GIÁ THẤP] {guest_name} ({review.rating}⭐)"
                 notif_priority = 'urgent' if review.rating <= 2 else 'high'
             else:
-                notif_title = f"🌟 [ĐÁNH GIÁ MỚI] {guest_name} ({review.rating}⭐)"
+                notif_title = f"[ĐÁNH GIÁ MỚI] {guest_name} ({review.rating}⭐)"
                 notif_priority = 'normal'
 
             notif_msg = (

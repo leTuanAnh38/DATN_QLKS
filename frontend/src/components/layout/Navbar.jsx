@@ -10,7 +10,7 @@ import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
-import { Phone, CalendarClock, User, Tag, KeyRound } from 'lucide-react';
+import { Phone, CalendarClock, User, Tag, KeyRound, LayoutDashboard } from 'lucide-react';
 
 const getAvatarUrl = (avatar) => resolveMediaUrl(avatar, null);
 
@@ -519,9 +519,10 @@ export default function Navbar({
                                     <Link
                                         to="/admin"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="w-full py-2.5 text-center text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-xl transition"
+                                        className="w-full py-2.5 text-center text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-xl transition flex items-center justify-center gap-1.5"
                                     >
-                                        ⚙️ Cổng Quản Trị & Bàn Làm Việc
+                                        <LayoutDashboard className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Cổng Quản Trị & Bàn Làm Việc</span>
                                     </Link>
                                 )
                             )}

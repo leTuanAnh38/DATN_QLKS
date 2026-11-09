@@ -332,7 +332,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         from .services import push_notification_to_user
         push_notification_to_user(
             user=request.user,
-            title="🔔 Thử nghiệm Push Notification",
+            title="Thử nghiệm Push Notification",
             body="Hệ thống Khách sạn kết nối thành công với iPhone 14 Pro!",
             data={"test": True}
         )

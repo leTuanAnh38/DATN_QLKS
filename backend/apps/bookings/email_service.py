@@ -190,7 +190,7 @@ def render_booking_email_html(booking, custom_message=None):
     if booking.customer_type == 'CORPORATE' or booking.company_name:
         corporate_html = f"""
         <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; margin-top: 15px;">
-            <p style="margin: 0 0 8px 0; color: #1E293B; font-weight: bold; font-size: 14px;">🏢 THÔNG TIN HÓA ĐƠN DOANH NGHIỆP (VAT)</p>
+            <p style="margin: 0 0 8px 0; color: #1E293B; font-weight: bold; font-size: 14px;">THÔNG TIN HÓA ĐƠN DOANH NGHIỆP (VAT)</p>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #475569;">
                 <tr>
                     <td style="padding: 4px 0; width: 35%; font-weight: 600;">Đơn vị (Công ty):</td>
@@ -229,7 +229,7 @@ def render_booking_email_html(booking, custom_message=None):
         vip_discount_row = f"""
         <tr>
             <td style="padding: 10px 12px; border-bottom: 1px dashed #E2E8F0; font-size: 13px; color: #059669; font-weight: 600;">
-                🎁 Ưu đãi Hạng Thành viên VIP
+                Ưu đãi Hạng Thành viên VIP
             </td>
             <td style="padding: 10px 12px; border-bottom: 1px dashed #E2E8F0; text-align: right; font-size: 13px; color: #059669; font-weight: bold;">
                 -{membership_discount:,.0f} VNĐ
@@ -244,7 +244,7 @@ def render_booking_email_html(booking, custom_message=None):
         coupon_row = f"""
         <tr>
             <td style="padding: 10px 12px; border-bottom: 1px dashed #E2E8F0; font-size: 13px; color: #EA580C; font-weight: 600;">
-                🏷️ {coupon_label}
+                {coupon_label}
             </td>
             <td style="padding: 10px 12px; border-bottom: 1px dashed #E2E8F0; text-align: right; font-size: 13px; color: #EA580C; font-weight: bold;">
                 -{coupon_discount:,.0f} VNĐ
@@ -260,7 +260,7 @@ def render_booking_email_html(booking, custom_message=None):
                 TRẠNG THÁI THANH TOÁN
             </div>
             <h2 style="margin: 6px 0; color: #065F46; font-size: 20px; font-weight: 800;">
-                ✅ ĐÃ THANH TOÁN THÀNH CÔNG
+                ĐÃ THANH TOÁN THÀNH CÔNG
             </h2>
             <p style="margin: 8px 0 14px 0; color: #047857; font-size: 14px;">
                 Đơn đặt phòng của quý khách đã được bảo đảm và ghi nhận hoàn tất trên hệ thống PMS.
@@ -295,7 +295,7 @@ def render_booking_email_html(booking, custom_message=None):
             <!-- KHỐI QUÉT MÃ VIETQR TỰ ĐỘNG -->
             <div style="background-color: #FFFFFF; border-radius: 12px; padding: 18px; display: inline-block; max-width: 320px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15); border: 1px solid #FDE68A;">
                 <p style="margin: 0 0 10px 0; color: #1E293B; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    ⚡ Quét mã VietQR chuyển khoản tức thì
+                    Quét mã VietQR chuyển khoản tức thì
                 </p>
                 <div style="background: #F8FAFC; padding: 8px; border-radius: 8px; display: inline-block; border: 1px solid #E2E8F0;">
                     <img src="{vietqr_url}" alt="Mã VietQR thanh toán #{booking.booking_code}" style="width: 240px; height: auto; display: block; margin: 0 auto; border-radius: 6px;" />
@@ -308,7 +308,7 @@ def render_booking_email_html(booking, custom_message=None):
             </div>
             
             <p style="margin: 14px 0 0 0; color: #78350F; font-size: 12px;">
-                💡 <em>Nếu đã chọn thanh toán tiền mặt tại quầy lễ tân khi nhận phòng, quý khách có thể bỏ qua mã QR này.</em>
+                <em>Nếu đã chọn thanh toán tiền mặt tại quầy lễ tân khi nhận phòng, quý khách có thể bỏ qua mã QR này.</em>
             </p>
         </div>
         """
@@ -353,8 +353,8 @@ def render_booking_email_html(booking, custom_message=None):
                             </table>
                             <p style="margin: 0; color: #E2E8F0 !important; font-size: 12px; line-height: 1.6;">
                                 <font color="#E2E8F0">
-                                    📍 {hotel_address}<br/>
-                                    📞 Hotline: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_hotline}</font></strong> | ✉ Email: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_email}</font></strong>
+                                    Địa chỉ: {hotel_address}<br/>
+                                    Hotline: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_hotline}</font></strong> | Email: <strong style="color: #FBBF24 !important;"><font color="#FBBF24">{hotel_email}</font></strong>
                                 </font>
                             </p>
                         </td>
@@ -381,7 +381,7 @@ def render_booking_email_html(booking, custom_message=None):
                             <div style="margin-top: 26px;">
                                 <div style="display: flex; align-items: center; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 14px;">
                                     <h4 style="margin: 0; color: #0F172A; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        📋 Chi tiết đặt phòng
+                                        Chi tiết đặt phòng
                                     </h4>
                                 </div>
                                 <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
@@ -439,7 +439,7 @@ def render_booking_email_html(booking, custom_message=None):
                             <div style="margin-top: 28px;">
                                 <div style="border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 12px;">
                                     <h4 style="margin: 0; color: #0F172A; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        💳 Bảng kê chi phí &amp; Thanh toán
+                                        Bảng kê chi phí &amp; Thanh toán
                                     </h4>
                                 </div>
                                 <table style="width: 100%; border-collapse: collapse;">
@@ -475,7 +475,7 @@ def render_booking_email_html(booking, custom_message=None):
 
                             <!-- LƯU Ý KHI LƯU TRÚ -->
                             <div style="margin-top: 28px; background-color: #F8FAFC; border-left: 4px solid #D97706; padding: 14px 18px; border-radius: 0 8px 8px 0;">
-                                <p style="margin: 0 0 6px 0; color: #1E293B; font-weight: bold; font-size: 13px;">📌 QUY ĐỊNH NHẬN PHÒNG &amp; LƯU Ý QUAN TRỌNG:</p>
+                                <p style="margin: 0 0 6px 0; color: #1E293B; font-weight: bold; font-size: 13px;">QUY ĐỊNH NHẬN PHÒNG &amp; LƯU Ý QUAN TRỌNG:</p>
                                 <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.6;">
                                     <li>Giờ nhận phòng (Check-in) từ <strong>{check_in_time}</strong> và Giờ trả phòng (Check-out) trước <strong>{check_out_time}</strong> trưa.</li>
                                     <li>Quý khách vui lòng xuất trình <strong>CCCD / Hộ chiếu bản gốc</strong> tại quầy Lễ tân để làm thủ tục khai báo tạm trú theo quy định.</li>
@@ -721,7 +721,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
         corp_info_html = f"""
         <div style="margin-top: 14px; background-color: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 12px 16px;">
             <div style="font-size: 12px; color: #166534; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                🤝 ĐỐI TÁC DOANH NGHIỆP: {corp.company_name}
+                ĐỐI TÁC DOANH NGHIỆP: {corp.company_name}
             </div>
             <div style="font-size: 13px; color: #15803D; margin-top: 4px;">
                 Mã HĐ / Ưu đãi: <strong>#{corp.corporate_code}</strong> | Chiết khấu theo hợp đồng: <strong>{corp.discount_percent}%</strong>
@@ -731,7 +731,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
         corp_discount_display = f"""
         <tr>
             <td style="padding: 10px 12px; border-bottom: 1px dashed #E2E8F0; font-size: 13px; color: #16A34A; font-weight: 600;">
-                🏷️ Chiết khấu Doanh nghiệp ({corp.discount_percent}%)
+                Chiết khấu Doanh nghiệp ({corp.discount_percent}%)
             </td>
             <td colspan="2" style="padding: 10px 12px; border-bottom: 1px dashed #E2E8F0; text-align: right; font-size: 13px; color: #16A34A; font-weight: bold;">
                 Đã áp dụng theo hợp đồng
@@ -750,7 +750,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
     if vat_company_name or vat_tax_code or (master_inv and master_inv.is_company_invoice):
         vat_box_html = f"""
         <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; padding: 14px 18px; margin-top: 18px;">
-            <p style="margin: 0 0 8px 0; color: #1E293B; font-weight: bold; font-size: 14px;">🏢 THÔNG TIN XUẤT HÓA ĐƠN GTGT (VAT) DOANH NGHIỆP</p>
+            <p style="margin: 0 0 8px 0; color: #1E293B; font-weight: bold; font-size: 14px;">THÔNG TIN XUẤT HÓA ĐƠN GTGT (VAT) DOANH NGHIỆP</p>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #475569;">
                 <tr>
                     <td style="padding: 4px 0; width: 35%; font-weight: 600;">Tên Doanh nghiệp:</td>
@@ -786,7 +786,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                 TRẠNG THÁI HỢP ĐỒNG ĐOÀN
             </div>
             <h2 style="margin: 6px 0; color: #065F46; font-size: 20px; font-weight: 800;">
-                ✅ {status_badge_title}
+                {status_badge_title}
             </h2>
             <p style="margin: 8px 0 16px 0; color: #047857; font-size: 14px; line-height: 1.5;">
                 {status_sub_msg}
@@ -845,7 +845,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
             <!-- KHỐI QUÉT MÃ VIETQR CỌC ĐOÀN TỰ ĐỘNG -->
             <div style="background-color: #FFFFFF; border-radius: 12px; padding: 18px; display: inline-block; max-width: 320px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15); border: 1px solid #FDE68A;">
                 <p style="margin: 0 0 10px 0; color: #1E293B; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    ⚡ Quét mã VietQR chuyển khoản cọc đoàn
+                    Quét mã VietQR chuyển khoản cọc đoàn
                 </p>
                 <div style="background: #F8FAFC; padding: 8px; border-radius: 8px; display: inline-block; border: 1px solid #E2E8F0;">
                     <img src="{vietqr_url}" alt="Mã VietQR cọc đoàn #{group_booking.group_code}" style="width: 240px; height: auto; display: block; margin: 0 auto; border-radius: 6px;" />
@@ -915,7 +915,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                             <!-- Thông tin chi tiết Đơn Đoàn -->
                             <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 22px;">
                                 <h3 style="margin: 0 0 14px 0; font-size: 15px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                    📋 THÔNG TIN ĐƠN ĐẶT ĐOÀN MASTER
+                                    THÔNG TIN ĐƠN ĐẶT ĐOÀN MASTER
                                 </h3>
                                 
                                 <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
@@ -957,7 +957,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                             <div style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden; margin-bottom: 22px;">
                                 <div style="background-color: #F1F5F9; padding: 12px 16px; border-bottom: 1px solid #E2E8F0;">
                                     <h3 style="margin: 0; font-size: 14px; color: #0F172A; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        🏨 DANH SÁCH HẠNG PHÒNG ĐOÀN ĐÃ ĐẶT ({total_rooms_count} PHÒNG)
+                                        DANH SÁCH HẠNG PHÒNG ĐOÀN ĐÃ ĐẶT ({total_rooms_count} PHÒNG)
                                     </h3>
                                 </div>
                                 <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
@@ -988,7 +988,7 @@ def render_group_booking_email_html(group_booking, custom_message=None):
 
                             <!-- Lời nhắc nhận phòng & Điều khoản đoàn -->
                             <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 14px 16px; border-radius: 4px; margin-top: 24px; font-size: 13px; color: #1E40AF; line-height: 1.6;">
-                                <strong>📌 LƯU Ý DÀNH CHO TRƯỞNG ĐOÀN:</strong>
+                                <strong>LƯU Ý DÀNH CHO TRƯỞNG ĐOÀN:</strong>
                                 <ul style="margin: 6px 0 0 0; padding-left: 18px;">
                                     <li>Trưởng đoàn có thể cập nhật danh sách khách lưu trú (Rooming List) và CCCD từng phòng trực tiếp trên hệ thống hoặc gửi danh sách qua email bộ phận Lễ tân.</li>
                                     <li>Giờ nhận phòng tiêu chuẩn: <strong>{check_in_time}</strong> | Giờ trả phòng: <strong>{check_out_time}</strong>.</li>
@@ -1006,10 +1006,10 @@ def render_group_booking_email_html(group_booking, custom_message=None):
                                 {hotel_name_upper}
                             </div>
                             <div style="color: #CBD5E1; margin-bottom: 4px;">
-                                📍 Địa chỉ: {hotel_address}
+                                Địa chỉ: {hotel_address}
                             </div>
                             <div style="color: #CBD5E1; margin-bottom: 12px;">
-                                ☎ Hotline Khách Đoàn & Sự kiện: <strong>{hotel_hotline}</strong> | ✉ Email: <strong>{hotel_email}</strong>
+                                Hotline Khách Đoàn & Sự kiện: <strong>{hotel_hotline}</strong> | Email: <strong>{hotel_email}</strong>
                             </div>
                             <div style="font-size: 11px; color: #64748B; border-top: 1px solid #1E293B; padding-top: 12px;">
                                 © 2026 {hotel_name}. Mọi quyền được bảo lưu. Email này được gửi tự động từ hệ thống quản lý khách sạn PMS.

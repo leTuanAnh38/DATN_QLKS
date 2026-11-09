@@ -20,7 +20,10 @@ import {
     Loader2,
     Mail,
     Phone,
-    Shield
+    Shield,
+    User,
+    KeyRound,
+    Sparkles
 } from 'lucide-react';
 import adminUserService from '../../services/adminUserService';
 import RoleMatrixModal from '../../components/admin/modals/shared/RoleMatrixModal';
@@ -1438,9 +1441,7 @@ export default function EmployeeManagement() {
                                 onClick={() => setIsCreateModalOpen(false)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         {/* Form */}
@@ -1448,7 +1449,7 @@ export default function EmployeeManagement() {
                             {/* Khối 1: Thông tin tài khoản đăng nhập */}
                             <div>
                                 <h4 className="font-bold text-xs uppercase tracking-wider text-blue-700 mb-3 flex items-center gap-1.5">
-                                    <span>👤</span>
+                                    <User className="w-4 h-4 text-blue-700" />
                                     <span>1. Thông tin cá nhân & Tài khoản</span>
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1705,9 +1706,7 @@ export default function EmployeeManagement() {
                                 onClick={() => setIsEditModalOpen(false)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         <form onSubmit={handleSaveEdit} className="p-6 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
@@ -1855,8 +1854,8 @@ export default function EmployeeManagement() {
                                         onChange={(e) => setEditFormData({ ...editFormData, is_active: e.target.value === 'active' })}
                                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-600 focus:outline-none transition font-semibold"
                                     >
-                                        <option value="active">🟢 Đang hoạt động bình thường</option>
-                                        <option value="inactive">🔴 Đang tạm khóa / Nghỉ việc</option>
+                                        <option value="active">Đang hoạt động bình thường</option>
+                                        <option value="inactive">Đang tạm khóa / Nghỉ việc</option>
                                     </select>
                                 </div>
 
@@ -1875,7 +1874,7 @@ export default function EmployeeManagement() {
                                 <div className="sm:col-span-2 p-4 bg-amber-50/70 rounded-2xl border border-amber-200/90 space-y-2.5">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-base">🔑</span>
+                                            <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
                                             <label className="font-bold text-slate-800 text-xs">
                                                 Cấp lại Mật khẩu mới cho nhân viên
                                             </label>
@@ -1891,7 +1890,7 @@ export default function EmployeeManagement() {
                                             }}
                                             className="text-[11px] text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
                                         >
-                                            <span>🎲</span>
+                                            <Sparkles className="w-3.5 h-3.5 text-blue-600 inline mr-1" />
                                             <span>Tạo ngẫu nhiên</span>
                                         </button>
                                     </div>
@@ -1911,9 +1910,7 @@ export default function EmployeeManagement() {
                                                     onClick={() => setEditFormData({ ...editFormData, password: '' })}
                                                     className="px-2 py-1 text-[10px] text-slate-400 hover:text-slate-600 rounded cursor-pointer"
                                                     title="Xóa mật khẩu đã nhập"
-                                                >
-                                                    ✕
-                                                </button>
+                                                ><X className="w-4 h-4" /></button>
                                             )}
                                             <button
                                                 type="button"
@@ -1980,9 +1977,7 @@ export default function EmployeeManagement() {
                                 onClick={() => setIsAssignRoleModalOpen(false)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         <form onSubmit={handleSaveRole} className="p-6 space-y-5 text-xs text-slate-800 overflow-y-auto flex-1">
@@ -2085,7 +2080,7 @@ export default function EmployeeManagement() {
                             {/* Cảnh báo cấp quyền quản trị */}
                             {['admin', 'owner', 'manager'].includes(assignRoleData.role) && (
                                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] flex items-start gap-2">
-                                    <span>⚠️</span>
+                                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                                     <div>
                                         <strong>Cấp bậc Quản lý cao cấp:</strong> Vai trò này sẽ cấp quyền truy cập vào cổng quản trị <strong>AdminDashboard</strong> và toàn quyền xem số liệu doanh thu, phân bổ phòng và nhân sự của khách sạn.
                                     </div>
@@ -2215,8 +2210,8 @@ export default function EmployeeManagement() {
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
                         <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl shadow-xs">
-                                    👤
+                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
+                                    <User className="w-5 h-5 text-blue-600" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base text-slate-900 tracking-tight">
@@ -2232,9 +2227,7 @@ export default function EmployeeManagement() {
                                 onClick={() => setIsDetailModalOpen(false)}
                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
                                 title="Đóng cửa sổ"
-                            >
-                                ✕
-                            </button>
+                            ><X className="w-4 h-4" /></button>
                         </div>
 
                         <div className="p-6 space-y-5 text-xs text-slate-800 overflow-y-auto flex-1">

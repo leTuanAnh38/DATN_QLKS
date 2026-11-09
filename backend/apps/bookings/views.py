@@ -716,7 +716,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         # ÁP DỤNG PHƯƠNG ÁN 1 (Tối ưu UX - Không gửi 2 email trùng lặp):
         # Nếu khách chọn thanh toán online qua VietQR: Khách đang mở popup quét mã trực tiếp trên màn hình,
         # tạm thời không gửi email QR để tránh spam hộp thư.
-        # Khi khách quét mã xong và tiền về, Webhook SePay (Trigger 2) sẽ gửi DUY NHẤT 1 EMAIL "✅ ĐÃ THANH TOÁN THÀNH CÔNG".
+        # Khi khách quét mã xong và tiền về, Webhook SePay (Trigger 2) sẽ gửi DUY NHẤT 1 EMAIL "[ĐÃ THANH TOÁN THÀNH CÔNG]".
         # Chỉ gửi email tại đây nếu khách chọn thanh toán tại quầy lễ tân (reception/cash).
         payment_method_input = str(data.get('payment_method') or '').strip().lower()
         is_vietqr_online = (payment_method_input == 'vietqr') or ('thanh toán: vietqr' in note.lower())
@@ -1569,9 +1569,9 @@ class BookingViewSet(viewsets.ModelViewSet):
         success_message = f'Hoàn tất thủ tục Check-in thành công cho khách {guest_display}! Đã gán phòng {target_room.room_number} (Tầng {target_room.floor}).'
         if is_early_check_in:
             if additional_amount > 0:
-                success_message = f'⚡ Hoàn tất Nhận Phòng Sớm ({early_days} ngày) cho khách {guest_display}! Đã cập nhật ngày nhận sang {today.strftime("%d/%m/%Y")}, cộng thêm {additional_amount:,.0f}đ tiền phòng và gán phòng {target_room.room_number}.'
+                success_message = f'Hoàn tất Nhận Phòng Sớm ({early_days} ngày) cho khách {guest_display}! Đã cập nhật ngày nhận sang {today.strftime("%d/%m/%Y")}, cộng thêm {additional_amount:,.0f}đ tiền phòng và gán phòng {target_room.room_number}.'
             else:
-                success_message = f'⚡ Hoàn tất Nhận Phòng Sớm ({early_days} ngày) cho khách {guest_display}! Đã cập nhật ngày nhận sang {today.strftime("%d/%m/%Y")} (Miễn phụ thu) và gán phòng {target_room.room_number}.'
+                success_message = f'Hoàn tất Nhận Phòng Sớm ({early_days} ngày) cho khách {guest_display}! Đã cập nhật ngày nhận sang {today.strftime("%d/%m/%Y")} (Miễn phụ thu) và gán phòng {target_room.room_number}.'
         elif is_late_check_in:
             remaining_nights = max(1, (booking.check_out_date - today).days)
             success_message = f'⏰ Hoàn tất Check-in muộn (trễ {late_days} ngày) cho khách {guest_display}! Khách nhận phòng {target_room.room_number} ở {remaining_nights} đêm còn lại đến {booking.check_out_date.strftime("%d/%m/%Y")}.'
@@ -1877,7 +1877,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             old_status_text = "Đang bảo trì" if old_room_status == 'maintenance' else "Cần dọn dẹp"
             from ..users.models import User as UserModel
             role_display = dict(UserModel.ROLE_CHOICES).get(getattr(user, 'role', ''), "Nhân viên")
-            notif_title = f"🔄 [ĐỔI PHÒNG] Khách P.{old_room.room_number} chuyển sang P.{new_room.room_number}!"
+            notif_title = f"[ĐỔI PHÒNG] Khách P.{old_room.room_number} chuyển sang P.{new_room.room_number}!"
             notif_msg = (
                 f"{role_display} ({staff_name}) đã thực hiện Đổi phòng cho khách lưu trú:\n"
                 f"• Khách hàng: {guest_display} (#{booking.booking_code})\n"
@@ -4321,9 +4321,21 @@ class BookingViewSet(viewsets.ModelViewSet):
             time_str = sr.created_at.strftime('%H:%M') if sr.created_at else ''
             datetime_str = sr.created_at.strftime('%H:%M • %d/%m') if sr.created_at else ''
 
+            srv_image = ''
+            if sr.service:
+                if sr.service.image:
+                    try:
+                        srv_image = request.build_absolute_uri(sr.service.image.url) if request else sr.service.image.url
+                    except Exception:
+                        srv_image = ''
+                if not srv_image:
+                    srv_image = sr.service.image_url or ''
+
             recent_service_requests.append({
                 'id': sr.id,
+                'service_id': sr.service.id if sr.service else None,
                 'service_name': sr.service.name if sr.service else 'Dịch vụ phòng',
+                'service_image': srv_image,
                 'category_name': cat_name,
                 'room_number': r_num or 'Chờ gán',
                 'guest_name': g_name,

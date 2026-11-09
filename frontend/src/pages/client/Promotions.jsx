@@ -24,7 +24,8 @@ import {
     Mail,
     PhoneCall,
     CalendarCheck,
-    Gem
+    Gem,
+    X
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -459,9 +460,9 @@ export default function PromotionsPage() {
                                     <button
                                         type="button"
                                         onClick={() => setSearchTerm('')}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                                     >
-                                        ✕
+                                        <X className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                             </div>

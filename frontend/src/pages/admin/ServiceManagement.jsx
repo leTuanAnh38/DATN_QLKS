@@ -20,7 +20,8 @@ import {
     Camera,
     Link2,
     UploadCloud,
-    Sparkles
+    Sparkles,
+    Tag
 } from 'lucide-react';
 import hotelService from '../../services/hotelService';
 import { useAuth } from '../../store/authStore';
@@ -69,7 +70,7 @@ export default function ServiceManagement() {
 
     // State cho Modal Thêm Nhóm Danh Mục
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-    const [newCatData, setNewCatData] = useState({ name: '', icon: '🍽️', description: '' });
+    const [newCatData, setNewCatData] = useState({ name: '', icon: '', description: '' });
     const [submittingCat, setSubmittingCat] = useState(false);
 
     // State cho Modal Xóa
@@ -371,14 +372,14 @@ export default function ServiceManagement() {
         try {
             const res = await hotelService.createServiceCategory({
                 name: newCatData.name.trim(),
-                icon: newCatData.icon.trim() || '🍽️',
+                icon: newCatData.icon.trim(),
                 description: newCatData.description.trim(),
             });
 
             if (res.success) {
                 showToast('success', res.message);
                 setIsCategoryModalOpen(false);
-                setNewCatData({ name: '', icon: '🍽️', description: '' });
+                setNewCatData({ name: '', icon: '', description: '' });
                 loadAllData(false);
             } else {
                 showToast('error', res.message);
@@ -672,15 +673,15 @@ export default function ServiceManagement() {
                                     />
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100">
-                                        <span className="text-3xl mb-1">{service.category_icon || '🛎️'}</span>
+                                        <UtensilsCrossed className="w-8 h-8 text-slate-300 mb-1" />
                                         <span className="text-[11px]">Chưa có ảnh</span>
                                     </div>
                                 )}
 
                                 {/* Category Badge */}
                                 <div className="absolute top-3 left-3">
-                                    <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold shadow-md flex items-center gap-1">
-                                        <span>{service.category_icon || '•'}</span>
+                                    <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold shadow-md flex items-center gap-1.5">
+                                        <Tag className="w-3 h-3 text-amber-400" />
                                         <span>{service.category_name}</span>
                                     </span>
                                 </div>
@@ -1229,13 +1230,13 @@ export default function ServiceManagement() {
 
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                                    Icon / Emoji Đại Diện
+                                    Mã định danh nhóm (Tùy chọn)
                                 </label>
                                 <input
                                     type="text"
                                     value={newCatData.icon}
                                     onChange={(e) => setNewCatData({ ...newCatData, icon: e.target.value })}
-                                    placeholder="VD: ⛵, 🎯, 🍷, 🥐"
+                                    placeholder="VD: am-thuc, spa, transport..."
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
                                 />
                             </div>

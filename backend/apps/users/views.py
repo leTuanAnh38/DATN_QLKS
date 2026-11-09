@@ -485,12 +485,12 @@ class ForgotPasswordView(APIView):
                         <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #b45309; font-family: 'Courier New', monospace;">{otp_code}</span>
                     </div>
                     <p style="color: #dc2626; font-size: 13px; font-weight: 600; margin-top: 10px;">
-                        ⏱ Mã có hiệu lực trong vòng 5 phút (hết hạn lúc {expires_time_str}).
+                        Mã có hiệu lực trong vòng 5 phút (hết hạn lúc {expires_time_str}).
                     </p>
                 </div>
 
                 <p style="color: #64748b; font-size: 13px; line-height: 1.6;">
-                    🔒 <strong>Lưu ý an toàn:</strong> Tuyệt đối không chia sẻ mã này cho bất kỳ ai, kể cả nhân viên khách sạn. Nếu quý khách không thực hiện yêu cầu này, vui lòng bỏ qua email hoặc liên hệ ngay hotline để được hỗ trợ.
+                    <strong>Lưu ý an toàn:</strong> Tuyệt đối không chia sẻ mã này cho bất kỳ ai, kể cả nhân viên khách sạn. Nếu quý khách không thực hiện yêu cầu này, vui lòng bỏ qua email hoặc liên hệ ngay hotline để được hỗ trợ.
                 </p>
             </div>
 
@@ -1068,7 +1068,7 @@ def get_all_roles_matrix():
             'title': 'Admin Hệ Thống',
             'level': 'Toàn quyền',
             'badge_color': 'purple',
-            'icon': '👑',
+            'icon': 'Crown',
             'description': 'Quản trị tối cao toàn bộ hệ thống, phân quyền người dùng, cấu hình khách sạn và cơ sở dữ liệu.',
             'scope': 'Cấp quyền, tạo nhân sự, quản lý dữ liệu, kiểm toán hệ thống',
             'permissions': {
@@ -1085,7 +1085,7 @@ def get_all_roles_matrix():
             'title': 'Chủ Khách Sạn (Owner)',
             'level': 'Toàn quyền',
             'badge_color': 'amber',
-            'icon': '💼',
+            'icon': 'Briefcase',
             'description': 'Sở hữu khách sạn, quản lý toàn diện kinh doanh, nhân sự, tài chính, công suất phòng và chiến lược giá.',
             'scope': 'Toàn quyền vận hành, doanh thu, nhân sự và báo cáo',
             'permissions': {
@@ -1102,7 +1102,7 @@ def get_all_roles_matrix():
             'title': 'Quản Lý Khách Sạn (Manager)',
             'level': 'Điều hành',
             'badge_color': 'blue',
-            'icon': '👔',
+            'icon': 'ShieldCheck',
             'description': 'Điều hành vận hành thường nhật: duyệt đặt phòng, phân công ca làm nhân viên, quản lý chất lượng dịch vụ.',
             'scope': 'Điều phối nhân sự, duyệt phòng, giải quyết sự vụ',
             'permissions': {
@@ -1120,7 +1120,7 @@ def get_all_roles_matrix():
             'title': 'Lễ Tân (Front Desk)',
             'level': 'Tiếp đón',
             'badge_color': 'emerald',
-            'icon': '🛎️',
+            'icon': 'Headphones',
             'description': 'Check-in, check-out, gán phòng, tiếp nhận đặt phòng trực tiếp tại quầy, hỗ trợ yêu cầu khách lưu trú.',
             'scope': 'Thủ tục phòng, tra cứu khách, gán chìa khóa phòng',
             'permissions': {
@@ -1137,7 +1137,7 @@ def get_all_roles_matrix():
             'title': 'Thu Ngân (Cashier)',
             'level': 'Tài chính',
             'badge_color': 'cyan',
-            'icon': '💳',
+            'icon': 'CreditCard',
             'description': 'Xác nhận thanh toán, quản lý hóa đơn VAT, thu tiền cọc và đối soát giao dịch thanh toán trực tuyến.',
             'scope': 'Thu chi, xuất hóa đơn VAT, kết ca thu ngân',
             'permissions': {
@@ -1154,7 +1154,7 @@ def get_all_roles_matrix():
             'title': 'Nhân Viên Buồng Phòng',
             'level': 'Vận hành buồng',
             'badge_color': 'orange',
-            'icon': '🧹',
+            'icon': 'Sparkles',
             'description': 'Cập nhật trạng thái vệ sinh phòng (Đang dọn, Đã khử khuẩn, Sẵn sàng đón khách), kiểm kê mini bar.',
             'scope': 'Trạng thái dọn phòng, báo vật tư, báo đồ thất lạc',
             'permissions': {
@@ -1171,7 +1171,7 @@ def get_all_roles_matrix():
             'title': 'Nhân Viên Phục Vụ (F&B / Spa)',
             'level': 'Dịch vụ',
             'badge_color': 'rose',
-            'icon': '🍽️',
+            'icon': 'Utensils',
             'description': 'Tiếp nhận order ẩm thực tận phòng, phục vụ nhà hàng, dịch vụ spa thư giãn và đưa đón hành lý.',
             'scope': 'Order dịch vụ, giao đồ ăn phòng, phục vụ khách',
             'permissions': {
@@ -1188,7 +1188,7 @@ def get_all_roles_matrix():
             'title': 'Kỹ Thuật Viên (Technician)',
             'level': 'Bảo trì',
             'badge_color': 'indigo',
-            'icon': '🔧',
+            'icon': 'Wrench',
             'description': 'Bảo dưỡng và sửa chữa hệ thống cơ điện, điều hòa nhiệt độ, internet wifi, thang máy và thiết bị trong phòng.',
             'scope': 'Bảo trì trang thiết bị, sửa chữa kỹ thuật',
             'permissions': {

@@ -32,12 +32,17 @@ import {
     TrendingUp,
     TrendingDown,
     Menu,
-    X
+    X,
+    Inbox,
+    Moon,
+    MessageSquare,
+    Wrench
 } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { useHasPermission } from '../../utils/permission';
 import { bookingService } from '../../services/bookingService';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 // Lazy-load các tab quản trị: chỉ tải code của tab khi người dùng mở tab đó
 const GuestManagement = lazy(() => import('./GuestManagement'));
 const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
@@ -104,15 +109,15 @@ const STATUS_CONFIGS = {
 
 
 // Helper biểu tượng dịch vụ phòng (Concierge)
-const getServiceCategoryIcon = (categoryName, serviceName) => {
+const renderServiceCategoryIcon = (categoryName, serviceName) => {
     const text = `${categoryName || ''} ${serviceName || ''}`.toLowerCase();
-    if (text.includes('ẩm thực') || text.includes('ăn') || text.includes('món') || text.includes('bò') || text.includes('súp') || text.includes('phở') || text.includes('dining')) return '🍽️';
-    if (text.includes('uống') || text.includes('cà phê') || text.includes('trà') || text.includes('nước') || text.includes('bar')) return '🍵';
-    if (text.includes('spa') || text.includes('massage') || text.includes('trị liệu') || text.includes('thư giãn')) return '💆';
-    if (text.includes('giặt') || text.includes('ủi') || text.includes('laundry')) return '🧺';
-    if (text.includes('xe') || text.includes('đón') || text.includes('sân bay') || text.includes('transport')) return '🚖';
-    if (text.includes('dọn') || text.includes('buồng') || text.includes('cleaning')) return '🧹';
-    return '🛎️';
+    if (text.includes('ẩm thực') || text.includes('ăn') || text.includes('món') || text.includes('bò') || text.includes('súp') || text.includes('phở') || text.includes('dining')) return <Utensils className="w-5 h-5 text-amber-600" />;
+    if (text.includes('uống') || text.includes('cà phê') || text.includes('trà') || text.includes('nước') || text.includes('bar')) return <Utensils className="w-5 h-5 text-blue-600" />;
+    if (text.includes('spa') || text.includes('massage') || text.includes('trị liệu') || text.includes('thư giãn')) return <Sparkles className="w-5 h-5 text-rose-500" />;
+    if (text.includes('giặt') || text.includes('ủi') || text.includes('laundry')) return <Sparkles className="w-5 h-5 text-indigo-500" />;
+    if (text.includes('xe') || text.includes('đón') || text.includes('sân bay') || text.includes('transport')) return <Compass className="w-5 h-5 text-emerald-600" />;
+    if (text.includes('dọn') || text.includes('buồng') || text.includes('cleaning')) return <Sparkles className="w-5 h-5 text-cyan-600" />;
+    return <BellRing className="w-5 h-5 text-amber-600" />;
 };
 
 // Helper nhãn trạng thái phiếu yêu cầu dịch vụ
@@ -131,12 +136,66 @@ const getServiceRequestStatusBadge = (status) => {
     }
 };
 
+// Helper lấy ảnh đại diện của món ăn / dịch vụ (ưu tiên ảnh từ CSDL, fallback sang ảnh minh họa chất lượng cao theo tên món)
+const getServiceItemImage = (sr) => {
+    if (!sr) return null;
+    const rawImg = sr.service_image || sr.image_url || sr.image;
+    if (rawImg) {
+        return resolveMediaUrl(rawImg);
+    }
+
+    const text = `${sr.category_name || ''} ${sr.service_name || ''}`.toLowerCase();
+
+    // 1. Phở bò / Bún bò / Bắp hoa
+    if (text.includes('phở') || text.includes('bún') || text.includes('bắp hoa')) {
+        return 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&w=400&q=80';
+    }
+    // 2. Cà phê trứng / Đồ uống / Trà
+    if (text.includes('cà phê') || text.includes('coffee') || text.includes('trứng')) {
+        return 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400&q=80';
+    }
+    // 3. Súp tôm hùm / Hải sản / Tôm
+    if (text.includes('tôm hùm') || text.includes('súp') || text.includes('lobster') || text.includes('saffron')) {
+        return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80';
+    }
+    // 4. Bò Wagyu / Bò bít tết / Steak
+    if (text.includes('bò') || text.includes('wagyu') || text.includes('steak')) {
+        return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80';
+    }
+    // 5. Thêm gối lông vũ / Khăn tắm / Tiện ích buồng phòng
+    if (text.includes('gối') || text.includes('khăn') || text.includes('tắm') || text.includes('lông vũ') || text.includes('linen')) {
+        return 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=400&q=80';
+    }
+    // 6. Spa / Massage / Thư giãn
+    if (text.includes('spa') || text.includes('massage') || text.includes('trị liệu') || text.includes('đá nóng')) {
+        return 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
+    }
+    // 7. Đưa đón VIP / Đặt xe sân bay
+    if (text.includes('xe') || text.includes('đưa đón') || text.includes('sân bay') || text.includes('limousine')) {
+        return 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=400&q=80';
+    }
+    // 8. Dọn phòng / Housekeeping
+    if (text.includes('dọn') || text.includes('buồng') || text.includes('cleaning')) {
+        return 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=400&q=80';
+    }
+    // 9. Ẩm thực / Món ăn chung
+    if (text.includes('ẩm thực') || text.includes('món') || text.includes('ăn') || text.includes('dining')) {
+        return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80';
+    }
+    // 10. Trà chiều / Nước ngọt / Mocktail
+    if (text.includes('trà') || text.includes('bar') || text.includes('nước') || text.includes('uống')) {
+        return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80';
+    }
+
+    return 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';
+};
+
 export default function HotelAdminDashboard({ initialTab }) {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
-    // 🛡️ Kiểm tra phân quyền RBAC cho từng phân hệ menu
+    // Kiểm tra phân quyền RBAC cho từng phân hệ menu
     const canViewOverview = useHasPermission('overview', 'read');
     const canViewGuests = useHasPermission('guests', 'read');
     const canViewCorporatePartners = useHasPermission('corporate_partners', 'read');
@@ -535,8 +594,8 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                 <div className="relative w-full max-w-lg bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl text-center space-y-6">
                     {/* Security Badge */}
-                    <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center text-4xl shadow-lg shadow-amber-500/10">
-                        🛡️
+                    <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
+                        <ShieldAlert className="w-10 h-10 text-amber-400" />
                     </div>
 
                     <div>
@@ -568,7 +627,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 Email: {user.email || '—'}
                             </div>
                             <div className="text-[11px] text-rose-300 pt-1 border-t border-slate-700/50">
-                                ⚠️ Tài khoản khách hàng thường không có thẩm quyền truy cập cơ sở dữ liệu và vận hành hệ thống.
+                                Tài khoản khách hàng thường không có thẩm quyền truy cập cơ sở dữ liệu và vận hành hệ thống.
                             </div>
                         </div>
                     )}
@@ -634,8 +693,8 @@ export default function HotelAdminDashboard({ initialTab }) {
     // Hàm phụ trợ hiển thị cảnh báo phân quyền khi truy cập tab không được cấp phép
     const renderAccessDenied = (message) => (
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
-            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
-                🛡️
+            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <ShieldAlert className="w-8 h-8 text-rose-600" />
             </div>
             <h2 className="text-lg font-bold text-slate-900">Giới hạn quyền truy cập</h2>
             <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
@@ -1806,7 +1865,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 ) : filteredBookings.length === 0 ? (
                                                     <tr>
                                                         <td colSpan={7} className="py-10 text-center text-slate-400">
-                                                            <div className="text-2xl mb-1">📭</div>
+                                                            <Inbox className="w-8 h-8 text-slate-300 mx-auto mb-1" />
                                                             <p className="font-semibold text-slate-600">Chưa có đơn đặt phòng nào</p>
                                                             <p className="text-[11px] text-slate-400 mt-0.5">Các đơn đặt phòng mới của khách hàng sẽ xuất hiện tại đây.</p>
                                                         </td>
@@ -1849,7 +1908,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                                     <span className="font-semibold text-slate-800 block text-[11px]">
                                                                         {formatDateDisplay(b.check_in_date)} → {formatDateDisplay(b.check_out_date)}
                                                                     </span>
-                                                                    <span className="text-[10px] text-blue-600 font-bold">🌙 {b.nights || 1} đêm</span>
+                                                                    <span className="text-[10px] text-blue-600 font-bold inline-flex items-center gap-1"><Moon className="w-2.5 h-2.5" />{b.nights || 1} đêm</span>
                                                                 </td>
                                                                 <td className="py-3 px-3 whitespace-nowrap">
                                                                     <span className="font-bold text-rose-600 block">{totalAmountNum.toLocaleString('vi-VN')} VND</span>
@@ -1923,13 +1982,14 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                     </div>
                                                 ) : !dashboardData?.services?.recent_requests || dashboardData.services.recent_requests.length === 0 ? (
                                                     <div className="py-8 text-center text-slate-400">
-                                                        <div className="text-2xl mb-1">🛎️</div>
+                                                        <BellRing className="w-8 h-8 text-slate-300 mx-auto mb-1" />
                                                         <p className="font-semibold text-slate-600">Không có yêu cầu nào</p>
                                                         <p className="text-[11px] text-slate-400 mt-0.5">Hiện tại chưa có yêu cầu dịch vụ phòng phát sinh.</p>
                                                     </div>
                                                 ) : (
                                                     dashboardData.services.recent_requests.slice(0, 5).map((sr) => {
-                                                        const icon = getServiceCategoryIcon(sr.category_name, sr.service_name);
+                                                        const serviceImg = getServiceItemImage(sr);
+                                                        const icon = renderServiceCategoryIcon(sr.category_name, sr.service_name);
                                                         const statusBadge = getServiceRequestStatusBadge(sr.status);
                                                         return (
                                                             <div
@@ -1937,9 +1997,28 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                                 onClick={() => setActiveTab('services')}
                                                                 className="p-3 bg-slate-50 hover:bg-orange-50/40 rounded-xl border border-slate-100 hover:border-orange-200 transition cursor-pointer group"
                                                             >
-                                                                <div className="flex items-start gap-2.5">
-                                                                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-base shrink-0 shadow-2xs group-hover:scale-105 transition">
-                                                                        {icon}
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="w-11 h-11 rounded-xl overflow-hidden bg-white border border-slate-200/90 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200 relative">
+                                                                        {serviceImg ? (
+                                                                            <img
+                                                                                src={serviceImg}
+                                                                                alt={sr.service_name}
+                                                                                loading="lazy"
+                                                                                onError={(e) => {
+                                                                                    e.target.onerror = null;
+                                                                                    e.target.style.display = 'none';
+                                                                                    const fallbackEl = e.target.parentElement?.querySelector('.fallback-service-icon');
+                                                                                    if (fallbackEl) fallbackEl.style.display = 'flex';
+                                                                                }}
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                        ) : null}
+                                                                        <span
+                                                                            className={`fallback-service-icon flex items-center justify-center ${serviceImg ? 'hidden' : ''}`}
+                                                                            aria-hidden="true"
+                                                                        >
+                                                                            {icon}
+                                                                        </span>
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center justify-between gap-1">
@@ -1964,8 +2043,9 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                                         </div>
 
                                                                         {sr.note && (
-                                                                            <p className="text-[10px] text-slate-500 italic mt-1.5 bg-white/70 p-1.5 rounded border border-slate-100 line-clamp-1">
-                                                                                💬 &ldquo;{sr.note}&rdquo;
+                                                                            <p className="text-[10px] text-slate-500 italic mt-1.5 bg-white/70 p-1.5 rounded border border-slate-100 line-clamp-1 flex items-center gap-1">
+                                                                                <MessageSquare className="w-3 h-3 text-slate-400 shrink-0" />
+                                                                                <span>&ldquo;{sr.note}&rdquo;</span>
                                                                             </p>
                                                                         )}
 
@@ -2000,8 +2080,8 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
                     {!['overview', 'guests', 'customer-detail', 'corporate-partners', 'employees', 'rooms', 'lost-and-found', 'categories', 'amenities', 'minibar', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings', 'audit-logs'].includes(activeTab) && (
                         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
-                            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
-                                🛠️
+                            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <Wrench className="w-8 h-8 text-blue-600" />
                             </div>
                             <h2 className="text-lg font-bold text-slate-900">
                                 Phân hệ {activeTab.toUpperCase()} đang được kết nối dữ liệu PMS

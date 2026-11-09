@@ -43,6 +43,7 @@ import {
     Percent,
     Banknote,
     ShieldCheck,
+    AlertTriangle,
     Wallet,
     Tag
 } from 'lucide-react';
@@ -383,7 +384,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             {errorMessage && (
                 <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span>⚠️</span>
+                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                         <span>{errorMessage}</span>
                     </div>
                     <button

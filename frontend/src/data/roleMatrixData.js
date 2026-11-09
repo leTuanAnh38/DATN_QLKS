@@ -9,7 +9,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Toàn quyền',
         badge_color: 'purple',
         color: 'purple',
-        icon: '👑',
+        icon: 'Crown',
         description: 'Quản trị tối cao toàn bộ hệ thống, phân quyền người dùng, cấu hình khách sạn và cơ sở dữ liệu.',
         scope: 'Cấp quyền, tạo nhân sự, quản lý dữ liệu, kiểm toán hệ thống',
         permissions: {
@@ -29,7 +29,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Toàn quyền',
         badge_color: 'amber',
         color: 'amber',
-        icon: '💼',
+        icon: 'Briefcase',
         description: 'Sở hữu khách sạn, quản lý toàn diện kinh doanh, nhân sự, tài chính, công suất phòng và chiến lược giá.',
         scope: 'Toàn quyền vận hành, doanh thu, nhân sự và báo cáo',
         permissions: {
@@ -49,7 +49,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Điều hành',
         badge_color: 'blue',
         color: 'blue',
-        icon: '👔',
+        icon: 'ShieldCheck',
         description: 'Điều hành vận hành thường nhật: duyệt đặt phòng, phân công ca làm nhân viên, quản lý chất lượng dịch vụ.',
         scope: 'Điều phối nhân sự, duyệt phòng, giải quyết sự vụ',
         permissions: {
@@ -69,7 +69,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Tiếp đón',
         badge_color: 'emerald',
         color: 'emerald',
-        icon: '🛎️',
+        icon: 'Headphones',
         description: 'Check-in, check-out, gán phòng, tiếp nhận đặt phòng trực tiếp tại quầy, hỗ trợ yêu cầu khách lưu trú.',
         scope: 'Thủ tục phòng, tra cứu khách, gán chìa khóa phòng',
         permissions: {
@@ -89,7 +89,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Tài chính',
         badge_color: 'cyan',
         color: 'cyan',
-        icon: '💳',
+        icon: 'CreditCard',
         description: 'Xác nhận thanh toán, quản lý hóa đơn VAT, thu tiền cọc và đối soát giao dịch thanh toán trực tuyến.',
         scope: 'Thu chi, xuất hóa đơn VAT, kết ca thu ngân',
         permissions: {
@@ -109,7 +109,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Vận hành buồng',
         badge_color: 'orange',
         color: 'orange',
-        icon: '🧹',
+        icon: 'Sparkles',
         description: 'Cập nhật trạng thái vệ sinh phòng (Đang dọn, Đã khử khuẩn, Sẵn sàng đón khách), kiểm kê Minibar, khai báo đồ thất lạc của khách.',
         scope: 'Trạng thái dọn phòng, kiểm kê Minibar, bàn giao đồ thất lạc',
         permissions: {
@@ -129,7 +129,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Dịch vụ',
         badge_color: 'rose',
         color: 'rose',
-        icon: '🍽️',
+        icon: 'Utensils',
         description: 'Tiếp nhận order ẩm thực tận phòng, phục vụ nhà hàng, dịch vụ spa thư giãn và đưa đón hành lý.',
         scope: 'Order dịch vụ, giao đồ ăn phòng, phục vụ khách',
         permissions: {
@@ -149,7 +149,7 @@ export const DEFAULT_ROLE_MATRIX = [
         level: 'Bảo trì',
         badge_color: 'indigo',
         color: 'indigo',
-        icon: '🔧',
+        icon: 'Wrench',
         description: 'Bảo dưỡng và sửa chữa hệ thống cơ điện, điều hòa nhiệt độ, internet wifi, thang máy và thiết bị trong phòng.',
         scope: 'Bảo trì trang thiết bị, sửa chữa kỹ thuật',
         permissions: {

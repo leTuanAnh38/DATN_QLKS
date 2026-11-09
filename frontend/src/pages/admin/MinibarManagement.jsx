@@ -18,7 +18,9 @@ import {
     Camera,
     UploadCloud,
     Link2,
-    ImageIcon
+    ImageIcon,
+    Coffee,
+    UtensilsCrossed
 } from 'lucide-react';
 import roomService from '../../services/roomService';
 import { useHasPermission } from '../../utils/permission';
@@ -91,16 +93,25 @@ export default function MinibarManagement() {
     };
 
     const categories = [
-        { key: 'drink', label: 'Nước ngọt & Nước khoáng', icon: '🥤', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
-        { key: 'alcohol', label: 'Bia & Rượu vang', icon: '🍺', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-        { key: 'snack', label: 'Đồ ăn vặt & Bánh kẹo', icon: '🍿', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-        { key: 'other', label: 'Đồ tiện ích & Khác', icon: '📦', badge: 'bg-purple-50 text-purple-700 border-purple-200' }
+        { key: 'drink', label: 'Nước ngọt & Nước khoáng', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+        { key: 'alcohol', label: 'Bia & Rượu vang', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+        { key: 'snack', label: 'Đồ ăn vặt & Bánh kẹo', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        { key: 'other', label: 'Đồ tiện ích & Khác', badge: 'bg-purple-50 text-purple-700 border-purple-200' }
     ];
+
+    const renderCategoryIcon = (key, className = 'w-4 h-4') => {
+        switch (key) {
+            case 'drink': return <Coffee className={className} />;
+            case 'alcohol': return <Wine className={className} />;
+            case 'snack': return <UtensilsCrossed className={className} />;
+            default: return <Package className={className} />;
+        }
+    };
 
     const getCategoryObj = (catKey) => {
         return categories.find((c) => c.key === catKey) || {
+            key: catKey || 'other',
             label: catKey || 'Khác',
-            icon: '📦',
             badge: 'bg-slate-50 text-slate-700 border-slate-200'
         };
     };
@@ -491,10 +502,10 @@ export default function MinibarManagement() {
                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         >
                             <option value="all">Tất cả phân loại</option>
-                            <option value="drink">🥤 Nước ngọt & Nước khoáng</option>
-                            <option value="alcohol">🍺 Bia & Rượu</option>
-                            <option value="snack">🍿 Đồ ăn vặt & Bánh kẹo</option>
-                            <option value="other">📦 Đồ tiện ích & Khác</option>
+                            <option value="drink">Nước ngọt & Nước khoáng</option>
+                            <option value="alcohol">Bia & Rượu</option>
+                            <option value="snack">Đồ ăn vặt & Bánh kẹo</option>
+                            <option value="other">Đồ tiện ích & Khác</option>
                         </select>
                     </div>
                 </div>
@@ -575,8 +586,8 @@ export default function MinibarManagement() {
                                                                 }}
                                                             />
                                                         ) : null}
-                                                        <span style={{ display: (item.display_image || item.image || item.image_url) ? 'none' : 'flex' }}>
-                                                            {cat.icon}
+                                                        <span style={{ display: (item.display_image || item.image || item.image_url) ? 'none' : 'flex' }} className="items-center justify-center text-slate-400">
+                                                            {renderCategoryIcon(item.category, 'w-5 h-5')}
                                                         </span>
                                                     </div>
                                                     <div>
@@ -589,7 +600,7 @@ export default function MinibarManagement() {
                                             {/* Category Badge */}
                                             <td className="py-3.5 px-4">
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.badge}`}>
-                                                    <span>{cat.icon}</span>
+                                                    {renderCategoryIcon(item.category, 'w-3.5 h-3.5')}
                                                     <span>{cat.label}</span>
                                                 </span>
                                             </td>
@@ -699,8 +710,8 @@ export default function MinibarManagement() {
                                                         }}
                                                     />
                                                 ) : null}
-                                                <span style={{ display: (item.display_image || item.image || item.image_url) ? 'none' : 'flex' }}>
-                                                    {cat.icon}
+                                                <span style={{ display: (item.display_image || item.image || item.image_url) ? 'none' : 'flex' }} className="items-center justify-center text-slate-400">
+                                                    {renderCategoryIcon(item.category, 'w-4 h-4')}
                                                 </span>
                                             </div>
                                             <div className="min-w-0">
@@ -935,10 +946,10 @@ export default function MinibarManagement() {
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                         className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm cursor-pointer"
                                     >
-                                        <option value="drink">🥤 Nước ngọt & Nước khoáng</option>
-                                        <option value="alcohol">🍺 Bia & Rượu</option>
-                                        <option value="snack">🍿 Đồ ăn vặt & Bánh kẹo</option>
-                                        <option value="other">📦 Đồ tiện ích & Khác</option>
+                                        <option value="drink">Nước ngọt & Nước khoáng</option>
+                                        <option value="alcohol">Bia & Rượu</option>
+                                        <option value="snack">Đồ ăn vặt & Bánh kẹo</option>
+                                        <option value="other">Đồ tiện ích & Khác</option>
                                     </select>
                                 </div>
 

@@ -493,10 +493,10 @@ export default function GuestManagement() {
                             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-blue-600 cursor-pointer"
                         >
                             <option value="all">Tất cả hạng thẻ</option>
-                            <option value="Diamond">💎 Kim Cương (Diamond)</option>
-                            <option value="Gold">🏆 Vàng (Gold)</option>
-                            <option value="Silver">🥈 Bạc (Silver)</option>
-                            <option value="Bronze">🥉 Đồng (Bronze)</option>
+                            <option value="Diamond">Kim Cương (Diamond)</option>
+                            <option value="Gold">Vàng (Gold)</option>
+                            <option value="Silver">Bạc (Silver)</option>
+                            <option value="Bronze">Đồng (Bronze)</option>
                         </select>
                     </div>
 
@@ -1050,10 +1050,10 @@ export default function GuestManagement() {
                                         onChange={(e) => setEditFormData({ ...editFormData, vip_tier: e.target.value })}
                                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white font-medium cursor-pointer"
                                     >
-                                        <option value="Bronze">🥉 Đồng (Bronze)</option>
-                                        <option value="Silver">🥈 Bạc (Silver)</option>
-                                        <option value="Gold">🏆 Vàng (Gold)</option>
-                                        <option value="Diamond">💎 Kim Cương (Diamond)</option>
+                                        <option value="Bronze">Đồng (Bronze)</option>
+                                        <option value="Silver">Bạc (Silver)</option>
+                                        <option value="Gold">Vàng (Gold)</option>
+                                        <option value="Diamond">Kim Cương (Diamond)</option>
                                     </select>
                                 </div>
                                 <div>

@@ -51,6 +51,8 @@ import {
     DollarSign,
     Sparkles,
     AlertCircle,
+    AlertTriangle,
+    Inbox,
     ChevronDown,
     SlidersHorizontal,
     Receipt,
@@ -135,7 +137,9 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const canCreateBookings = useHasPermission('bookings', 'create');
     const canUpdateBookings = useHasPermission('bookings', 'update');
     const canDeleteBookings = useHasPermission('bookings', 'delete');
-    const canManageFinance = useHasPermission('finance', 'update') || useHasPermission('finance', 'create');
+    const canFinanceUpdate = useHasPermission('finance', 'update');
+    const canFinanceCreate = useHasPermission('finance', 'create');
+    const canManageFinance = canFinanceUpdate || canFinanceCreate;
     const isCashier = currentUserRole === 'cashier';
     // canManageBookings phục vụ các thao tác cập nhật đơn: Duyệt, Check-in, No-show, Sửa (Lễ tân, Quản lý, Admin)
     const canManageBookings = canUpdateBookings;
@@ -406,7 +410,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 }
                 const errorMsg = res?.message || 'Không thể đổi trạng thái đơn đặt phòng.';
                 if (errorMsg.includes('Khách hàng chỉ có quyền') || errorMsg.includes('thẩm quyền') || res?.code === 403) {
-                    showToast('error', '⚠️ Tài khoản hiện tại không có quyền duyệt đơn (Phiên Admin bị ghi đè bởi tài khoản khách). Vui lòng đăng xuất và đăng nhập lại Admin.');
+                    showToast('error', 'Tài khoản hiện tại không có quyền duyệt đơn (Phiên Admin bị ghi đè bởi tài khoản khách). Vui lòng đăng xuất và đăng nhập lại Admin.');
                 } else {
                     showToast('error', errorMsg);
                 }
@@ -574,7 +578,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
                         }`}
                 >
-                    <span>{toast.type === 'success' ? '✓' : '⚠️'}</span>
+                    {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />}
                     <span>{toast.message}</span>
                 </div>
             )}
@@ -964,11 +968,11 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                 >
                                     <option value="all">Tất cả trạng thái ({stats.total})</option>
                                     <option value="pending">⏳ Chờ duyệt ({stats.pending})</option>
-                                    <option value="confirmed">✓ Đã xác nhận ({stats.confirmed})</option>
-                                    <option value="checked_in">🏨 Đang lưu trú ({stats.checkedIn})</option>
-                                    <option value="checked_out">🏁 Đã trả phòng ({stats.checkedOut})</option>
-                                    <option value="no_show">🚫 Khách không đến ({stats.noShow})</option>
-                                    <option value="cancelled">✕ Đã hủy ({stats.cancelled})</option>
+                                    <option value="confirmed">Đã xác nhận ({stats.confirmed})</option>
+                                    <option value="checked_in">Đang lưu trú ({stats.checkedIn})</option>
+                                    <option value="checked_out">Đã trả phòng ({stats.checkedOut})</option>
+                                    <option value="no_show">Khách không đến ({stats.noShow})</option>
+                                    <option value="cancelled">Đã hủy ({stats.cancelled})</option>
                                 </select>
                                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                             </div>
@@ -1037,7 +1041,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             {!isLoading && filteredBookings.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="py-12 text-center text-slate-400">
-                                        <div className="text-3xl mb-2">📭</div>
+                                        <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-2"><Inbox className="w-6 h-6" /></div>
                                         <p className="font-semibold text-slate-700">Không tìm thấy đơn đặt phòng nào</p>
                                         <p className="text-[11px] text-slate-400 mt-1">
                                             {searchKeyword
@@ -1265,7 +1269,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                             <div className="mt-0.5">
                                                                 {isCancelled ? (
                                                                     <span className="inline-flex items-center gap-1 text-[9.5px] font-medium text-slate-400">
-                                                                        ✕ Đã hủy đơn
+                                                                        Đã hủy đơn
                                                                     </span>
                                                                 ) : isGroupRoom ? (
                                                                     isPaid ? (
@@ -1483,7 +1487,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     {/* Empty State */}
                     {!isLoading && filteredBookings.length === 0 && (
                         <div className="py-12 text-center text-slate-400 p-4">
-                            <div className="text-3xl mb-2">📭</div>
+                            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-2"><Inbox className="w-6 h-6" /></div>
                             <p className="font-semibold text-slate-700">Không tìm thấy đơn đặt phòng nào</p>
                             <p className="text-[11px] text-slate-400 mt-1">
                                 {searchKeyword
@@ -1681,7 +1685,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
 
                                         <div>
                                             {isCancelled ? (
-                                                <span className="text-[10px] font-medium text-slate-400">✕ Đã hủy đơn</span>
+                                                <span className="text-[10px] font-medium text-slate-400">Đã hủy đơn</span>
                                             ) : isGroupRoom ? (
                                                 <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-200/80">
                                                     <Building2 className="w-2.5 h-2.5" /> HĐ đoàn #{booking.group_booking_code || ''}
@@ -1833,7 +1837,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                         const roomNum = assignedRoom?.room_number || checkInModalBooking.room_number;
                         showToast(
                             'success',
-                            `🔑 Check-in thành công cho khách "${checkInModalBooking.guest_name}" vào phòng ${roomNum || ''}!`
+                            `Check-in thành công cho khách "${checkInModalBooking.guest_name}" vào phòng ${roomNum || ''}!`
                         );
                         setBookings((prev) =>
                             prev.map((b) =>

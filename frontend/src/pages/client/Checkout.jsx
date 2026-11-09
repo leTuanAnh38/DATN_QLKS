@@ -36,6 +36,7 @@ import {
     Info,
     Maximize2,
     Star,
+    Lightbulb,
     X
 } from 'lucide-react';
 
@@ -957,8 +958,9 @@ export default function Checkout() {
                                                                 <strong className="text-xs font-bold text-slate-900 block group-hover:text-amber-600 transition-colors">
                                                                     {cat.name}
                                                                 </strong>
-                                                                <span className="text-[10px] text-emerald-700 font-medium block">
-                                                                    🟢 Còn {cat.available_rooms} phòng trống • {Number(cat.promo_price || cat.base_price).toLocaleString('vi-VN')} VND
+                                                                <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-1.5">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                                    Còn {cat.available_rooms} phòng trống • {Number(cat.promo_price || cat.base_price).toLocaleString('vi-VN')} VND
                                                                 </span>
                                                             </div>
                                                             <span className="text-amber-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform shrink-0 ml-2 flex items-center gap-0.5">
@@ -979,8 +981,9 @@ export default function Checkout() {
                                                 Phòng còn trống ({availability.available_rooms} phòng sẵn sàng đón khách)
                                             </span>
                                         </div>
-                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/60 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                                            🟢 Khả dụng
+                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/60 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Khả dụng
                                         </span>
                                     </div>
                                 ) : null}
@@ -1131,7 +1134,10 @@ export default function Checkout() {
                                             </div>
 
                                             <div className="pt-2.5 border-t border-slate-200/80 text-[11px] text-slate-600 flex items-center justify-between flex-wrap gap-2">
-                                                <span>💡 Quý khách cần đặt từ 3 phòng trở lên cho cả đoàn du lịch / công ty?</span>
+                                                <span className="inline-flex items-center gap-1.5">
+                                                    <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                                    Quý khách cần đặt từ 3 phòng trở lên cho cả đoàn du lịch / công ty?
+                                                </span>
                                                 <Link
                                                     to="/corporate-booking"
                                                     className="font-bold text-amber-600 hover:text-amber-700 underline flex items-center gap-1 transition"
@@ -1187,8 +1193,9 @@ export default function Checkout() {
                                         {/* Ghi chú hướng dẫn */}
                                         <div className="mt-1.5 text-[11px]">
                                             {isAuthenticated && !hasProfileIdCard ? (
-                                                <p className="text-amber-600 flex items-center gap-1 font-medium">
-                                                    <span>💡</span> Số CCCD bạn nhập sẽ được tự động lưu vào hồ sơ cá nhân cho các lần sau.
+                                                <p className="text-amber-600 flex items-center gap-1.5 font-medium">
+                                                    <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                                    <span>Số CCCD bạn nhập sẽ được tự động lưu vào hồ sơ cá nhân cho các lần sau.</span>
                                                 </p>
                                             ) : (
                                                 <p className="text-slate-400">
@@ -2490,7 +2497,7 @@ export default function Checkout() {
                                 <span>Phương thức:</span>
                                 <strong className={createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success' ? "text-emerald-700 font-bold" : "text-slate-800"}>
                                     {createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success'
-                                        ? '✓ Đã thanh toán VietQR'
+                                        ? 'Đã thanh toán VietQR'
                                         : 'Thanh toán khi nhận phòng (Reception)'}
                                 </strong>
                             </div>

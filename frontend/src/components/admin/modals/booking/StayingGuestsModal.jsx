@@ -6,7 +6,10 @@ import {
     RotateCw, 
     Download, 
     Users, 
-    Phone 
+    Phone,
+    CheckCircle2,
+    Zap,
+    AlertTriangle
 } from 'lucide-react';
 import bookingService from '../../../../services/bookingService';
 
@@ -134,7 +137,13 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                 {/* TOAST THÔNG BÁO NỔI */}
                 {modalToast && (
                     <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-rose-600 text-white border-rose-500 shadow-rose-600/30">
-                        <span>{modalToast.type === 'success' ? '✓' : modalToast.type === 'warning' ? '⚡' : '⚠️'}</span>
+                        {modalToast.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        ) : modalToast.type === 'warning' ? (
+                            <Zap className="w-4 h-4 shrink-0" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                        )}
                         <span>{modalToast.message}</span>
                     </div>
                 )}

@@ -1082,7 +1082,7 @@ class GroupBookingViewSet(viewsets.ModelViewSet):
                 Q(role__in=['housekeeper', 'manager', 'admin', 'receptionist']) | Q(is_superuser=True)
             ).distinct()
             rooms_str = ", ".join(room_numbers) if room_numbers else "các phòng"
-            notif_title = f"🛎️ [KIỂM PHÒNG ĐOÀN] Đoàn #{group.group_code} chuẩn bị Check-out ({len(room_numbers)} phòng)"
+            notif_title = f"[KIỂM PHÒNG ĐOÀN] Đoàn #{group.group_code} chuẩn bị Check-out ({len(room_numbers)} phòng)"
             notif_message = (
                 f"Lễ tân ({receptionist_name}) vừa gửi yêu cầu kiểm tra toàn đoàn: {group.group_name}.\n"
                 f"Danh sách {len(room_numbers)} phòng: {rooms_str}.\n"

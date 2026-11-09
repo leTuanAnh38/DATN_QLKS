@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Sparkles, ChevronRight, Zap, ShieldCheck, Gift, CheckCircle2 } from 'lucide-react';
+import { Award, Sparkles, ChevronRight, Zap, ShieldCheck, Gift, CheckCircle2, Lightbulb } from 'lucide-react';
 
 export default function MembershipCard({ user }) {
     if (!user) return null;
@@ -227,15 +227,21 @@ export default function MembershipCard({ user }) {
                         {/* Câu thông báo tiến trình nổi bật */}
                         <div className="mt-3 text-xs text-slate-600 leading-relaxed">
                             {nextTier ? (
-                                <>
-                                    💡 Quý khách đang có <strong className="text-slate-900 font-bold">{totalPoints}</strong> điểm. 
-                                    Cần thêm <strong className="text-amber-700 font-bold">{nextTier.points_needed}</strong> điểm nữa 
-                                    để thăng hạng <strong className="text-slate-900 font-bold">{nextTier.name}</strong> (Hưởng ưu đãi giảm {Number(nextTier.discount_percent)}% cho các lần đặt phòng tiếp theo).
-                                </>
+                                <div className="flex items-start gap-1.5">
+                                    <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                    <span>
+                                        Quý khách đang có <strong className="text-slate-900 font-bold">{totalPoints}</strong> điểm. 
+                                        Cần thêm <strong className="text-amber-700 font-bold">{nextTier.points_needed}</strong> điểm nữa 
+                                        để thăng hạng <strong className="text-slate-900 font-bold">{nextTier.name}</strong> (Hưởng ưu đãi giảm {Number(nextTier.discount_percent)}% cho các lần đặt phòng tiếp theo).
+                                    </span>
+                                </div>
                             ) : (
-                                <>
-                                    🎉 Chúc mừng quý khách đã đạt mức điểm cao nhất trong hệ thống và nhận toàn bộ quyền lợi giảm giá 15% trọn đời!
-                                </>
+                                <div className="flex items-start gap-1.5 text-emerald-700">
+                                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                    <span>
+                                        Chúc mừng quý khách đã đạt mức điểm cao nhất trong hệ thống và nhận toàn bộ quyền lợi giảm giá 15% trọn đời!
+                                    </span>
+                                </div>
                             )}
                         </div>
                     </div>
