@@ -535,7 +535,7 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
                           color: requiresMaintenance ? '#EF4444' : (isDark ? '#E2E8F0' : '#1E293B'),
                         }}
                       >
-                        🛠️ Cần Kỹ thuật viên sửa chữa (Thiết bị cố định)
+                        Cần Kỹ thuật viên sửa chữa (Thiết bị cố định)
                       </Text>
                       <Text style={{ fontSize: 11, color: isDark ? '#94A3B8' : '#64748B', marginTop: 2 }}>
                         {requiresMaintenance
@@ -588,7 +588,7 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
                         }}
                       >
                         {isRestocked
-                          ? `Đã bù đủ ${totalRestockCount} đồ vào tủ lạnh phòng ✨`
+                          ? `Đã bù đủ ${totalRestockCount} đồ vào tủ lạnh phòng`
                           : `Chưa bù đồ tủ lạnh (Cần xe Trolley bổ sung gấp)`}
                       </Text>
                       <Text
@@ -645,8 +645,8 @@ export const MinibarModal: React.FC<MinibarModalProps> = ({
                 <Text style={[styles.minibarTotalSub, !isDark && { color: '#78350F' }]}>
                   {totalRestockCount > 0
                     ? isRestocked
-                      ? `⚡ Cần bù ${totalRestockCount} đồ (ĐÃ BÙ ĐỦ TỦ LẠNH) • Đồng bộ bill`
-                      : `⚠️ Chưa bù ${totalRestockCount} đồ tủ lạnh • Cần bổ sung • Đồng bộ bill`
+                      ? `Cần bù ${totalRestockCount} đồ (ĐÃ BÙ ĐỦ TỦ LẠNH) • Đồng bộ bill`
+                      : `Chưa bù ${totalRestockCount} đồ tủ lạnh • Cần bổ sung • Đồng bộ bill`
                     : 'Đồng bộ tự động vào bill Lễ tân'}
                 </Text>
               </View>

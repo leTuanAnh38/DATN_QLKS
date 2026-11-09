@@ -27,7 +27,7 @@ export const getStatusConfig = (status: string, isDark: boolean = true) => {
         border: isDark ? Palette.gold.border : 'rgba(245, 158, 11, 0.4)',
         text: isDark ? Palette.gold.light : '#D97706',
         dot: Palette.gold.main,
-        actionText: 'DỌN XONG ✨',
+        actionText: 'DỌN XONG',
         actionBg: Palette.emerald.main,
         actionColor: '#FFFFFF',
         actionIcon: 'checkmark-circle',
@@ -126,7 +126,7 @@ function RoomCard({
   const activeBk = isOccupied ? (currentBk || recentBk) : (recentBk || currentBk);
   const isVipGuest = Boolean(activeBk?.is_vip);
   const vipTierCode = activeBk?.guest_tier_code;
-  const vipBadgeLabel = vipTierCode === 'DIAMOND' ? '👑 VIP KIM CƯƠNG' : '⭐ VIP VÀNG';
+  const vipBadgeLabel = vipTierCode === 'DIAMOND' ? 'VIP KIM CƯƠNG' : 'VIP VÀNG';
   const guestName = isOccupied
     ? (currentBk?.guest_name || recentBk?.guest_name)
     : isCleaning
@@ -219,7 +219,7 @@ function RoomCard({
               <Ionicons name="notifications" size={10} color="#FFF" style={{ marginRight: 3 }} />
               <Text style={styles.inspectionPulseText}>CHECK-OUT</Text>
             </View>
-            <Text style={styles.inspectionActionText}>Kiểm ngay ⚡</Text>
+            <Text style={styles.inspectionActionText}>Kiểm ngay</Text>
           </View>
           <Text style={styles.inspectionSubText} numberOfLines={1}>Lễ tân đang đợi quyết toán</Text>
         </TouchableOpacity>
@@ -238,6 +238,8 @@ function RoomCard({
             <View
               style={{
                 alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
                 backgroundColor: vipTierCode === 'DIAMOND' ? 'rgba(245, 158, 11, 0.22)' : 'rgba(245, 158, 11, 0.14)',
                 borderColor: '#F59E0B',
                 borderWidth: 1,
@@ -245,8 +247,10 @@ function RoomCard({
                 paddingHorizontal: 6,
                 paddingVertical: 1.5,
                 marginBottom: 4,
+                gap: 3,
               }}
             >
+              <Ionicons name="ribbon" size={10} color={isDark ? '#FBBF24' : '#B45309'} />
               <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
                 {vipBadgeLabel}
               </Text>
@@ -264,7 +268,7 @@ function RoomCard({
             <View style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.5)', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginTop: 5, flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="sparkles" size={12} color="#38BDF8" style={{ marginRight: 4 }} />
               <Text style={{ fontSize: 10, color: '#38BDF8', fontWeight: '700', flex: 1 }} numberOfLines={1}>
-                🧹 Yêu cầu dọn: {item.cleaning_request_note || 'Dọn phòng lưu trú'}
+                Yêu cầu dọn: {item.cleaning_request_note || 'Dọn phòng lưu trú'}
               </Text>
             </View>
           )}
@@ -410,7 +414,7 @@ function RoomCard({
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={[styles.actionFullBtnText, { color: '#FFFFFF' }]}>
-                {hasCurrentGuest ? 'Đã dọn xong (Khách ở tiếp) ✨' : 'Đã dọn xong ✨'}
+                {hasCurrentGuest ? 'Đã dọn xong (Khách ở tiếp)' : 'Đã dọn xong'}
               </Text>
             )}
           </TouchableOpacity>
@@ -473,7 +477,7 @@ function RoomCard({
                 <>
                   <Ionicons name="sparkles" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
                   <Text style={[styles.actionFullBtnText, { color: '#FFFFFF', fontWeight: 'bold' }]}>
-                    Đã dọn xong phòng khách ở ✨
+                    Đã dọn xong phòng khách ở
                   </Text>
                 </>
               )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -78,13 +78,17 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
   submittingOrder,
   handleCreateOrder,
 }) => {
+  const INITIAL_ITEMS_LIMIT = 6;
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
   const [serviceSearchText, setServiceSearchText] = useState('');
+  const [isExpandedAll, setIsExpandedAll] = useState(false);
+  const scrollViewRef = useRef<any>(null);
 
   useEffect(() => {
     if (visible) {
       setSelectedCategoryId('all');
       setServiceSearchText('');
+      setIsExpandedAll(false);
     }
   }, [visible]);
 
@@ -104,6 +108,13 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
       return true;
     });
   }, [serviceItems, selectedCategoryId, serviceSearchText]);
+
+  const isSearching = Boolean(serviceSearchText.trim());
+  const shouldShowAll = isSearching || isExpandedAll || filteredServiceItems.length <= INITIAL_ITEMS_LIMIT;
+  const displayedServiceItems = shouldShowAll
+    ? filteredServiceItems
+    : filteredServiceItems.slice(0, INITIAL_ITEMS_LIMIT);
+  const remainingItemsCount = Math.max(0, filteredServiceItems.length - INITIAL_ITEMS_LIMIT);
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -128,7 +139,7 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
             {/* Modal Header */}
             <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View>
-                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Gọi Món & Đặt Dịch Vụ Mới 🛎️</Text>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Gọi Món & Đặt Dịch Vụ Mới</Text>
                 <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
                   Tạo đơn ẩm thực, spa, tiện ích cho khách đang ở
                 </Text>
@@ -151,6 +162,7 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
               </View>
             ) : (
               <ScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 35 }}
                 keyboardShouldPersistTaps="handled"
@@ -212,6 +224,24 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                 <Text style={[styles.inputLabel, { marginTop: 0, marginBottom: 0 }, !isDark && { color: '#334155' }]}>
                   2. Chọn Món ăn & Dịch vụ ({filteredServiceItems.length}) *:
                 </Text>
+                {totalCartCount > 0 && (
+                  <TouchableOpacity
+                    style={[
+                      styles.quickCartJumpBtn,
+                      !isDark && { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
+                    ]}
+                    onPress={() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="cart" size={13} color={isDark ? '#FBBF24' : '#D97706'} />
+                    <Text style={[styles.quickCartJumpBtnText, !isDark && { color: '#B45309' }]}>
+                      Giỏ ({totalCartCount}) ↓
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Dải Phân Loại Danh Mục */}
@@ -224,6 +254,7 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                   ]}
                   onPress={() => {
                     setSelectedCategoryId('all');
+                    setIsExpandedAll(false);
                     Haptics.selectionAsync();
                   }}
                   activeOpacity={0.7}
@@ -256,19 +287,27 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                         ]}
                         onPress={() => {
                           setSelectedCategoryId(c.id);
+                          setIsExpandedAll(false);
                           Haptics.selectionAsync();
                         }}
                         activeOpacity={0.7}
                       >
-                        <Text
-                          style={[
-                            styles.categoryFilterChipText,
-                            !isDark && !isSelected && { color: '#64748B' },
-                            isSelected && styles.categoryFilterChipTextActive,
-                          ]}
-                        >
-                          {c.icon || '🏷️'} {c.name} ({countInCat})
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Ionicons
+                            name="pricetag-outline"
+                            size={12}
+                            color={isSelected ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
+                          />
+                          <Text
+                            style={[
+                              styles.categoryFilterChipText,
+                              !isDark && !isSelected && { color: '#64748B' },
+                              isSelected && styles.categoryFilterChipTextActive,
+                            ]}
+                          >
+                            {c.name} ({countInCat})
+                          </Text>
+                        </View>
                       </TouchableOpacity>
                     );
                   })}
@@ -301,7 +340,7 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                     </Text>
                   </View>
                 ) : (
-                  filteredServiceItems.map((s) => {
+                  displayedServiceItems.map((s) => {
                     const cartItem = cart.find((i) => i.service.id === s.id);
                     const inCart = Boolean(cartItem);
                     const priceNum = s.price ? parseInt(s.price, 10) : 0;
@@ -316,9 +355,10 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                       >
                         <Image source={{ uri: getServiceItemImage(s) }} style={styles.modalItemThumbnail} resizeMode="cover" />
                         <View style={{ flex: 1, paddingRight: 8 }}>
-                          <View style={[styles.serviceCatTag, !isDark && { backgroundColor: '#EEF2F6', borderColor: '#E2E8F0' }]}>
+                          <View style={[styles.serviceCatTag, !isDark && { backgroundColor: '#EEF2F6', borderColor: '#E2E8F0' }, { flexDirection: 'row', alignItems: 'center', gap: 3 }]}>
+                            <Ionicons name="pricetag-outline" size={10} color={isDark ? '#94A3B8' : '#475569'} />
                             <Text style={[styles.serviceCatTagText, !isDark && { color: '#475569' }]}>
-                              {s.category_icon || '🏷️'} {s.category_name || 'Dịch vụ'}
+                              {s.category_name || 'Dịch vụ'}
                             </Text>
                           </View>
                           <Text
@@ -375,6 +415,40 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
                   })
                 )}
               </View>
+
+              {/* Nút Xem thêm / Thu gọn khi danh sách có nhiều món */}
+              {!isSearching && filteredServiceItems.length > INITIAL_ITEMS_LIMIT && (
+                <TouchableOpacity
+                  style={[
+                    styles.expandToggleBtn,
+                    !isDark && {
+                      backgroundColor: isExpandedAll ? '#F1F5F9' : '#FEF3C7',
+                      borderColor: isExpandedAll ? '#CBD5E1' : '#FDE68A',
+                    },
+                  ]}
+                  onPress={() => {
+                    setIsExpandedAll((prev) => !prev);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={isExpandedAll ? 'chevron-up-circle-outline' : 'chevron-down-circle-outline'}
+                    size={16}
+                    color={isExpandedAll ? (isDark ? '#94A3B8' : '#64748B') : (isDark ? '#FBBF24' : '#B45309')}
+                  />
+                  <Text
+                    style={[
+                      styles.expandToggleBtnText,
+                      !isDark && { color: isExpandedAll ? '#475569' : '#B45309' },
+                    ]}
+                  >
+                    {isExpandedAll
+                      ? 'Thu gọn danh sách món'
+                      : `Xem thêm (còn ${remainingItemsCount} món khác)`}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               {/* 3. Giỏ món & dịch vụ đã chọn */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, marginBottom: 8 }}>

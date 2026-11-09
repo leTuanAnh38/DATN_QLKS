@@ -21,6 +21,7 @@ import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
 import { ServiceListSkeleton } from '../../components/SkeletonLoader';
+import { enqueueOfflineAction } from '../../services/offlineQueue';
 import {
   ServiceOrder,
   CartItem,
@@ -39,6 +40,7 @@ import {
   CatalogItemCard,
   CreateServiceOrderModal,
   CancelServiceOrderModal,
+  RoomBatchDeliveryCard,
 } from '../../components/services';
 
 export default function ServicesScreen() {
@@ -370,6 +372,59 @@ export default function ServicesScreen() {
     });
   }, [orders, activeTab, orderCategoryFilter, selectedFloor, searchQuery, scopeFilter, checkIsMyTask]);
 
+  // Đếm số lượng món đang xử lý theo từng phòng để gắn nhãn "Cùng mâm"
+  const orderCountByRoom = useMemo(() => {
+    const counts: Record<string, number> = {};
+    orders.forEach((o) => {
+      if (['pending', 'in_progress', 'delivering'].includes(o.status) && o.room_number) {
+        counts[o.room_number] = (counts[o.room_number] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [orders]);
+
+  // Gom các món đang hoạt động (Đang nấu hoặc Đang giao) theo từng phòng để phục vụ cùng mâm
+  const roomBatches = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        roomNumber: string;
+        guestName?: string;
+        inProgressItems: ServiceOrder[];
+        deliveringItems: ServiceOrder[];
+        totalDeliveringPrice: number;
+      }
+    > = {};
+
+    filteredOrders.forEach((o) => {
+      if (['in_progress', 'delivering'].includes(o.status) && o.room_number) {
+        const rn = o.room_number;
+        if (!map[rn]) {
+          map[rn] = {
+            roomNumber: rn,
+            guestName: o.guest_name,
+            inProgressItems: [],
+            deliveringItems: [],
+            totalDeliveringPrice: 0,
+          };
+        }
+        if (o.status === 'in_progress') {
+          map[rn].inProgressItems.push(o);
+        } else if (o.status === 'delivering') {
+          map[rn].deliveringItems.push(o);
+          map[rn].totalDeliveringPrice += parseInt(o.total_price || '0', 10) || 0;
+        }
+      }
+    });
+
+    // Chỉ hiển thị phòng nào có từ 2 món trở lên đang cùng mâm
+    return Object.values(map).filter(
+      (b) => b.inProgressItems.length + b.deliveringItems.length >= 2
+    );
+  }, [filteredOrders]);
+
+  const [batchLoadingRoom, setBatchLoadingRoom] = useState<string | null>(null);
+
   // Infinite Scroll cho Đơn phục vụ
   const [visibleOrdersCount, setVisibleOrdersCount] = useState(15);
   const [loadingMoreOrders, setLoadingMoreOrders] = useState(false);
@@ -429,13 +484,34 @@ export default function ServicesScreen() {
       const res = await apiClient.post(`/services/requests/${item.id}/claim/`);
       if (res.data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Tiếp nhận thành công ✨', `Bạn đã nhận phụ trách yêu cầu cho Phòng ${item.room_number}!`);
+        Alert.alert('Tiếp nhận thành công', `Bạn đã nhận phụ trách yêu cầu cho Phòng ${item.room_number}!`);
         await fetchOrders();
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể nhận đơn này.';
-      Alert.alert('Thông báo', msg);
-      await fetchOrders();
+      if (!err.response) {
+        await enqueueOfflineAction({
+          description: `Đơn ${item.service_name} (P.${item.room_number}): Tiếp nhận thực hiện`,
+          url: `/services/requests/${item.id}/claim/`,
+          method: 'POST',
+        });
+
+        // Optimistic UI update
+        const myName = user?.first_name || user?.username || 'Tôi';
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === item.id ? { ...o, assigned_staff_name: myName, status: 'in_progress' } : o
+          )
+        );
+
+        Alert.alert(
+          'Đã lưu ngoại tuyến',
+          `Mất kết nối máy chủ! Thao tác tiếp nhận đơn Phòng ${item.room_number} đã được lưu vào Hàng đợi và sẽ tự động gửi bù khi có mạng.`
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Không thể nhận đơn này.';
+        Alert.alert('Thông báo', msg);
+        await fetchOrders();
+      }
     } finally {
       setActionLoadingId(null);
     }
@@ -462,7 +538,7 @@ export default function ServicesScreen() {
               : `${diffMinutes} phút`;
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           Alert.alert(
-            '⏰ Đơn hẹn giờ phục vụ',
+            'Đơn hẹn giờ phục vụ',
             `Khách Phòng ${item.room_number} hẹn giao lúc ${formatOrderTime(item.request_time)} (còn khoảng ${waitStr} nữa).\n\nNếu báo Bếp chế biến quá sớm món ăn có thể bị nguội. Bạn có chắc chắn muốn tiếp nhận chuẩn bị ngay từ bây giờ không?`,
             [
               { text: 'Để gần giờ hẹn', style: 'cancel' },
@@ -487,31 +563,64 @@ export default function ServicesScreen() {
     label: string,
     extraPayload?: { is_paid?: boolean; payment_method?: string }
   ) => {
+    const payload: any = {
+      status: newStatus,
+      assigned_staff: item.assigned_staff || user?.id,
+    };
+    if (extraPayload) {
+      if (typeof extraPayload.is_paid === 'boolean') {
+        payload.is_paid = extraPayload.is_paid;
+      }
+      if (extraPayload.payment_method) {
+        payload.payment_method = extraPayload.payment_method;
+      }
+    }
+
     try {
       setActionLoadingId(item.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const payload: any = {
-        status: newStatus,
-        assigned_staff: item.assigned_staff || user?.id,
-      };
-      if (extraPayload) {
-        if (typeof extraPayload.is_paid === 'boolean') {
-          payload.is_paid = extraPayload.is_paid;
-        }
-        if (extraPayload.payment_method) {
-          payload.payment_method = extraPayload.payment_method;
-        }
-      }
       const res = await apiClient.patch(`/services/requests/${item.id}/`, payload);
       if (res.data.success || res.data.id) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        const paidNote = extraPayload?.is_paid ? ' (Đã xác nhận thu tiền mặt)' : '';
-        Alert.alert('Cập nhật thành công ✨', `Đơn phòng ${item.room_number} đã chuyển sang "${label}"${paidNote}!`);
+        const priceText = item.total_price && parseInt(item.total_price, 10) > 0
+          ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ`
+          : null;
+        const folioMsg = newStatus === 'completed' && priceText
+          ? `\nChi phí (${priceText}) đã được tự động ghi nợ vào hóa đơn phòng.`
+          : '';
+        Alert.alert('Bàn giao thành công', `Đơn phòng ${item.room_number} đã chuyển sang "${label}"!${folioMsg}`);
         await fetchOrders();
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái.';
-      Alert.alert('Lỗi', msg);
+      if (!err.response) {
+        await enqueueOfflineAction({
+          description: `Đơn ${item.service_name} (P.${item.room_number}): Đổi trạng thái -> "${label}"`,
+          url: `/services/requests/${item.id}/`,
+          method: 'PATCH',
+          data: payload,
+        });
+
+        // Optimistic UI update
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === item.id
+              ? {
+                  ...o,
+                  status: newStatus as any,
+                  is_paid: typeof extraPayload?.is_paid === 'boolean' ? extraPayload.is_paid : o.is_paid,
+                }
+              : o
+          )
+        );
+
+        Alert.alert(
+          'Đã lưu ngoại tuyến',
+          `Mất kết nối máy chủ! Thao tác chuyển đơn Phòng ${item.room_number} sang "${label}" đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái.';
+        Alert.alert('Lỗi', msg);
+      }
     } finally {
       setActionLoadingId(null);
     }
@@ -536,7 +645,7 @@ export default function ServicesScreen() {
     if (!skipOwnershipCheck && Boolean(item.assigned_staff) && !checkIsMyTask(item)) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
-        '⚠️ Đơn đang do đồng nghiệp phụ trách',
+        'Đơn do đồng nghiệp phụ trách',
         `Đơn Phòng ${item.room_number} (${item.service_name}) hiện đang do nhân viên "${item.assigned_staff_name || 'Đồng nghiệp'}" phụ trách.\n\nBạn có chắc chắn muốn hỗ trợ cập nhật trạng thái thay đồng nghiệp không?`,
         [
           { text: 'Hủy bỏ', style: 'cancel' },
@@ -552,7 +661,7 @@ export default function ServicesScreen() {
     await executeUpdateStatus(item, newStatus, label, extraPayload);
   };
 
-  // Popup xác nhận hình thức thanh toán khi bàn giao xong
+  // Hộp thoại xác nhận hoàn tất bàn giao (Tự động ghi nợ vào hóa đơn phòng)
   const handlePromptComplete = (item: ServiceOrder, label: string) => {
     if (actionLoadingId === item.id) return;
     const lock = getServiceLockReason(item);
@@ -562,23 +671,23 @@ export default function ServicesScreen() {
       return;
     }
 
-    const showPaymentMethodAlert = () => {
-      const priceText = item.total_price ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí';
+    const showConfirmationAlert = () => {
+      const priceText = item.total_price && parseInt(item.total_price, 10) > 0
+        ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ`
+        : 'Miễn phí';
+
       Alert.alert(
-        `Hoàn thành đơn Phòng ${item.room_number}`,
-        `Món/Dịch vụ: ${item.service_name} (x${item.quantity})\nTổng tiền: ${priceText}\n\nVui lòng chọn phương thức thanh toán của khách:`,
+        `Xác nhận bàn giao Phòng ${item.room_number}`,
+        `• Dịch vụ: ${item.service_name} (x${item.quantity})\n• Tổng chi phí: ${priceText}\n\nChi phí sẽ tự động được ghi nợ vào Folio hóa đơn phòng để Lễ tân quyết toán khi khách làm thủ tục Check-out.`,
         [
           {
-            text: 'Quay lại',
+            text: 'Để sau',
             style: 'cancel',
           },
           {
-            text: '💳 Ghi nợ hóa đơn phòng (Mặc định)',
+            text: 'Xác nhận bàn giao',
+            style: 'default',
             onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: false }, true),
-          },
-          {
-            text: '💵 Đã thu tiền mặt tại chỗ',
-            onPress: () => handleUpdateStatus(item, 'completed', label, { is_paid: true, payment_method: 'CASH' }, true),
           },
         ]
       );
@@ -587,20 +696,20 @@ export default function ServicesScreen() {
     if (Boolean(item.assigned_staff) && !checkIsMyTask(item)) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
-        '⚠️ Đơn đang do đồng nghiệp phụ trách',
+        'Đơn do đồng nghiệp phụ trách',
         `Đơn Phòng ${item.room_number} (${item.service_name}) hiện đang do nhân viên "${item.assigned_staff_name || 'Đồng nghiệp'}" phụ trách.\n\nBạn có chắc chắn muốn xác nhận bàn giao hoàn tất thay đồng nghiệp không?`,
         [
           { text: 'Hủy bỏ', style: 'cancel' },
           {
-            text: 'Tiếp tục hoàn tất',
-            onPress: showPaymentMethodAlert,
+            text: 'Tiếp tục bàn giao',
+            onPress: showConfirmationAlert,
           },
         ]
       );
       return;
     }
 
-    showPaymentMethodAlert();
+    showConfirmationAlert();
   };
 
   // Gọi điện / Nhắn tin nhanh cho khách phòng
@@ -613,13 +722,13 @@ export default function ServicesScreen() {
         [
           { text: 'Đóng', style: 'cancel' },
           {
-            text: '💬 Nhắn tin SMS',
+            text: 'Nhắn tin SMS',
             onPress: () => {
               Linking.openURL(`sms:${cleanPhone}?body=${encodeURIComponent(`Dạ em chào anh/chị phòng ${roomNumber || ''}, em từ bộ phận Phục vụ khách sạn TA Luxury...`)}`);
             },
           },
           {
-            text: '📞 Gọi điện ngay',
+            text: 'Gọi điện ngay',
             onPress: () => {
               Linking.openURL(`tel:${cleanPhone}`);
             },
@@ -632,6 +741,168 @@ export default function ServicesScreen() {
         `Đơn đặt phòng ${roomNumber || ''} (${guestName || 'Khách lưu trú'}) chưa lưu số điện thoại cá nhân.\n\nNhân viên vui lòng bấm chuông/gõ cửa phòng trực tiếp hoặc liên hệ quầy Lễ tân qua máy bàn nội bộ để được hỗ trợ.`
       );
     }
+  };
+
+  // Xuất xe đẩy giao toàn bộ các món của phòng (in_progress -> delivering)
+  const handleStartBatchDelivery = async (roomNumber: string, items: ServiceOrder[]) => {
+    if (batchLoadingRoom || items.length === 0) return;
+
+    Alert.alert(
+      `Xuất xe đẩy Phòng ${roomNumber}`,
+      `Bếp và Bar đã chuẩn bị đủ ${items.length} món cho Phòng ${roomNumber}.\n\nBắt đầu chuyển toàn bộ sang trạng thái "Đang giao" (Delivering)?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: `Xuất xe (${items.length} món)`,
+          onPress: async () => {
+            setBatchLoadingRoom(roomNumber);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+            let successCount = 0;
+            let queuedCount = 0;
+
+            for (const item of items) {
+              const payload = {
+                status: 'delivering',
+                assigned_staff: item.assigned_staff || user?.id,
+              };
+
+              try {
+                const res = await apiClient.patch(`/services/requests/${item.id}/`, payload);
+                if (res.data?.success || res.data?.id) {
+                  successCount++;
+                }
+              } catch (err: any) {
+                if (!err.response) {
+                  await enqueueOfflineAction({
+                    description: `Đơn ${item.service_name} (P.${roomNumber}): Chuyển sang "Đang giao"`,
+                    url: `/services/requests/${item.id}/`,
+                    method: 'PATCH',
+                    data: payload,
+                  });
+                  queuedCount++;
+                }
+              }
+            }
+
+            // Cập nhật giao diện lạc quan (Optimistic update)
+            setOrders((prev) =>
+              prev.map((o) =>
+                items.some((it) => it.id === o.id) ? { ...o, status: 'delivering' as any } : o
+              )
+            );
+
+            setBatchLoadingRoom(null);
+
+            if (queuedCount > 0 && successCount === 0) {
+              Alert.alert(
+                'Đã lưu ngoại tuyến',
+                `Mất kết nối máy chủ! Thao tác xuất xe ${items.length} món Phòng ${roomNumber} đã được lưu vào Hàng đợi ngoại tuyến.`
+              );
+            } else {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert(
+                'Đã xuất xe đẩy',
+                `Đã chuyển toàn bộ ${items.length} món của Phòng ${roomNumber} sang trạng thái Đang giao!`
+              );
+              fetchOrders();
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Bàn giao toàn bộ các món của phòng tại cửa (delivering -> completed, ghi nợ phòng)
+  const handleCompleteBatchDelivery = async (roomNumber: string, items: ServiceOrder[]) => {
+    if (batchLoadingRoom || items.length === 0) return;
+
+    const totalPrice = items.reduce(
+      (sum, it) => sum + (parseInt(it.total_price || '0', 10) || 0),
+      0
+    );
+    const priceFormatted =
+      totalPrice > 0 ? `${totalPrice.toLocaleString('vi-VN')} đ` : 'Miễn phí';
+
+    const itemSummary = items
+      .map(
+        (it, idx) =>
+          `• ${it.service_name} (x${it.quantity})${
+            it.total_price && parseInt(it.total_price, 10) > 0
+              ? `: ${parseInt(it.total_price, 10).toLocaleString('vi-VN')} đ`
+              : ''
+          }`
+      )
+      .join('\n');
+
+    Alert.alert(
+      `Bàn giao toàn bộ Phòng ${roomNumber}`,
+      `Chi tiết ${items.length} món cùng mâm:\n${itemSummary}\n\nTổng chi phí: ${priceFormatted}\n\nChi phí sẽ được tự động ghi nợ vào Folio hóa đơn phòng để Lễ tân quyết toán khi Check-out.`,
+      [
+        { text: 'Để sau', style: 'cancel' },
+        {
+          text: `Xác nhận bàn giao cả ${items.length} món`,
+          style: 'default',
+          onPress: async () => {
+            setBatchLoadingRoom(roomNumber);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+            let successCount = 0;
+            let queuedCount = 0;
+
+            for (const item of items) {
+              const payload = {
+                status: 'completed',
+                assigned_staff: item.assigned_staff || user?.id,
+                is_paid: false,
+              };
+
+              try {
+                const res = await apiClient.patch(`/services/requests/${item.id}/`, payload);
+                if (res.data?.success || res.data?.id) {
+                  successCount++;
+                }
+              } catch (err: any) {
+                if (!err.response) {
+                  await enqueueOfflineAction({
+                    description: `Đơn ${item.service_name} (P.${roomNumber}): Hoàn tất & Ghi nợ phòng`,
+                    url: `/services/requests/${item.id}/`,
+                    method: 'PATCH',
+                    data: payload,
+                  });
+                  queuedCount++;
+                }
+              }
+            }
+
+            // Cập nhật giao diện lạc quan (Optimistic update)
+            setOrders((prev) =>
+              prev.map((o) =>
+                items.some((it) => it.id === o.id)
+                  ? { ...o, status: 'completed' as any, is_paid: false }
+                  : o
+              )
+            );
+
+            setBatchLoadingRoom(null);
+
+            if (queuedCount > 0 && successCount === 0) {
+              Alert.alert(
+                'Đã lưu ngoại tuyến',
+                `Mất kết nối máy chủ! Thao tác bàn giao toàn bộ ${items.length} món Phòng ${roomNumber} đã được lưu vào Hàng đợi ngoại tuyến.`
+              );
+            } else {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert(
+                'Bàn giao mâm thành công',
+                `Đã bàn giao thành công toàn bộ ${items.length} món cho Phòng ${roomNumber}!\nTổng chi phí ${priceFormatted} đã được tự động ghi nợ vào hóa đơn phòng.`
+              );
+              fetchOrders();
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Bật/Tắt trạng thái phục vụ món ăn trên Tab Thực đơn (Catalog)
@@ -660,7 +931,7 @@ export default function ServicesScreen() {
                 );
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 Alert.alert(
-                  'Thành công ✨',
+                  'Thành công',
                   `Món "${item.name}" hiện đã ${updatedActive ? 'sẵn sàng phục vụ' : 'chuyển sang TẠM HẾT MÓN'}.`
                 );
               }
@@ -960,10 +1231,11 @@ export default function ServicesScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
           onCallGuest={handleCallGuest}
+          sameRoomCount={orderCountByRoom[item.room_number] || 1}
         />
       );
     },
-    [isDark, checkIsMyTask, actionLoadingId, handleClaim, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest]
+    [isDark, checkIsMyTask, actionLoadingId, handleClaim, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest, orderCountByRoom]
   );
 
   const renderCatalogCard = useCallback(
@@ -1336,10 +1608,10 @@ export default function ServicesScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.orderCategoryScroll}>
                 {[
                   { key: 'all', label: 'Mọi danh mục', icon: 'grid-outline' },
-                  { key: 'fnb', label: 'Ẩm thực (F&B) 🍽️', icon: 'restaurant-outline' },
-                  { key: 'spa', label: 'Spa Trị liệu 🌿', icon: 'leaf-outline' },
-                  { key: 'laundry', label: 'Giặt ủi 🧺', icon: 'shirt-outline' },
-                  { key: 'amenities', label: 'Tiện ích phòng 🛎️', icon: 'gift-outline' },
+                  { key: 'fnb', label: 'Ẩm thực (F&B)', icon: 'restaurant-outline' },
+                  { key: 'spa', label: 'Spa Trị liệu', icon: 'leaf-outline' },
+                  { key: 'laundry', label: 'Giặt ủi', icon: 'shirt-outline' },
+                  { key: 'amenities', label: 'Tiện ích phòng', icon: 'gift-outline' },
                 ].map((cat) => {
                   const isSelected = orderCategoryFilter === cat.key;
                   return (
@@ -1461,7 +1733,7 @@ export default function ServicesScreen() {
               />
               <Text style={styles.emptyTitle}>
                 {scopeFilter === 'my_tasks' && activeTab === 'all'
-                  ? 'Bạn không có đơn nào cần xử lý 🎉'
+                  ? 'Bạn không có đơn nào cần xử lý'
                   : scopeFilter === 'unassigned'
                   ? 'Không có đơn nào chưa nhận'
                   : activeTab === 'completed'
@@ -1490,6 +1762,32 @@ export default function ServicesScreen() {
               showsVerticalScrollIndicator={false}
               onEndReached={handleLoadMoreOrders}
               onEndReachedThreshold={0.2}
+              ListHeaderComponent={
+                roomBatches.length > 0 && activeTab !== 'completed' ? (
+                  <View style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingHorizontal: 2 }}>
+                      <Ionicons name="cart" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>
+                        GOM XE ĐẨY THEO PHÒNG ({roomBatches.length} PHÒNG CÙNG MÂM)
+                      </Text>
+                    </View>
+                    {roomBatches.map((batch) => (
+                      <RoomBatchDeliveryCard
+                        key={batch.roomNumber}
+                        roomNumber={batch.roomNumber}
+                        guestName={batch.guestName}
+                        inProgressItems={batch.inProgressItems}
+                        deliveringItems={batch.deliveringItems}
+                        totalDeliveringPrice={batch.totalDeliveringPrice}
+                        isDark={isDark}
+                        isActionLoading={batchLoadingRoom === batch.roomNumber}
+                        onStartBatchDelivery={handleStartBatchDelivery}
+                        onCompleteBatchDelivery={handleCompleteBatchDelivery}
+                      />
+                    ))}
+                  </View>
+                ) : undefined
+              }
               ListFooterComponent={renderOrdersFooter}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />

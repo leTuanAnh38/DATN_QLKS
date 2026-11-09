@@ -26,6 +26,7 @@ export interface ServiceOrderCardProps {
   onOpenCancelModal: (item: ServiceOrder) => void;
   onOpenCrm: () => void;
   onCallGuest: (phone?: string, name?: string, room?: string) => void;
+  sameRoomCount?: number;
 }
 
 export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
@@ -43,6 +44,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
   onOpenCancelModal,
   onOpenCrm,
   onCallGuest,
+  sameRoomCount,
 }) => {
   const allergyInfo = detectAllergyWarning(item.note);
   const cleanNoteText = item.note
@@ -113,7 +115,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
             <View style={[styles.allergyBadgePill, !isDark && { backgroundColor: '#FEE2E2', borderColor: '#FECACA' }]}>
               <Ionicons name="warning" size={10} color="#DC2626" style={{ marginRight: 3 }} />
               <Text style={[styles.allergyBadgePillText, !isDark && { color: '#B91C1C' }]}>
-                {allergyInfo.title === 'CẢNH BÁO DỊ ỨNG THỰC PHẨM' ? '⚠️ DỊ ỨNG' : '🥗 ĂN KIÊNG'}
+                {allergyInfo.title === 'CẢNH BÁO DỊ ỨNG THỰC PHẨM' ? 'DỊ ỨNG' : 'ĂN KIÊNG'}
               </Text>
             </View>
           )}
@@ -181,16 +183,20 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
             {item.is_vip ? (
               <View
                 style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
                   backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
                   borderColor: '#F59E0B',
                   borderWidth: 1,
                   borderRadius: 6,
                   paddingHorizontal: 6,
                   paddingVertical: 1.5,
+                  gap: 3,
                 }}
               >
+                <Ionicons name="ribbon" size={10} color={isDark ? '#FBBF24' : '#B45309'} />
                 <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
-                  {item.guest_tier_code === 'DIAMOND' ? '👑 VIP KIM CƯƠNG' : '⭐ VIP VÀNG'}
+                  {item.guest_tier_code === 'DIAMOND' ? 'VIP KIM CƯƠNG' : 'VIP VÀNG'}
                 </Text>
               </View>
             ) : null}
@@ -215,6 +221,24 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
               <View style={[styles.paidBadge, !isDark && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
                 <Ionicons name="checkmark-circle" size={11} color="#059669" style={{ marginRight: 2 }} />
                 <Text style={styles.paidBadgeText}>Đã thu tiền</Text>
+              </View>
+            ) : null}
+
+            {/* Huy hiệu đơn cùng mâm (nhiều món cùng phòng) */}
+            {sameRoomCount && sameRoomCount >= 2 ? (
+              <View
+                style={[
+                  styles.paidBadge,
+                  {
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7',
+                    borderColor: '#F59E0B',
+                  },
+                ]}
+              >
+                <Ionicons name="restaurant" size={11} color="#F59E0B" style={{ marginRight: 3 }} />
+                <Text style={[styles.paidBadgeText, { color: isDark ? '#FBBF24' : '#B45309' }]}>
+                  Cùng mâm ({sameRoomCount} món)
+                </Text>
               </View>
             ) : null}
           </View>
@@ -276,7 +300,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
                 : (isDark ? '#38BDF8' : '#0369A1'),
             }}
           >
-            ⏰ {scheduledCountdown.text}
+            {scheduledCountdown.text}
             {scheduledCountdown.isTooEarly ? ' • Tránh làm món quá sớm!' : ' • Chuẩn bị phục vụ!'}
           </Text>
         </View>

@@ -22,6 +22,7 @@ import NotificationBell from '../../components/NotificationBell';
 import BookingManagementModal from '../../components/BookingManagementModal';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
 import { RoomGridSkeleton } from '../../components/SkeletonLoader';
+import { enqueueOfflineAction } from '../../services/offlineQueue';
 
 import type { RoomItem } from '../../components/housekeeping/types';
 import RoomCard, { getStatusConfig } from '../../components/housekeeping/RoomCard';
@@ -229,7 +230,7 @@ export default function HousekeepingScreen() {
     Alert.alert(actionTitle, actionDesc, [
       { text: 'Để sau', style: 'cancel' },
       {
-        text: isCleaning ? (hasActiveGuest ? 'Khách ở tiếp ✨' : 'Đã xong ✨') : 'Vào dọn 🧹',
+        text: isCleaning ? (hasActiveGuest ? 'Khách tiếp tục ở' : 'Xác nhận đã dọn') : 'Bắt đầu dọn',
         style: 'default',
         onPress: async () => {
           setActionLoadingId(room.id);
@@ -242,9 +243,35 @@ export default function HousekeepingScreen() {
               fetchRooms();
             }
           } catch (err: any) {
-            const msg = err.response?.data?.message || 'Không thể đổi trạng thái phòng.';
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert('Thông báo', msg);
+            if (!err.response) {
+              const statusLabel =
+                nextStatus === 'cleaning'
+                  ? 'Đang dọn dẹp'
+                  : hasActiveGuest
+                  ? 'Có khách lưu trú'
+                  : 'Sẵn sàng đón khách';
+
+              await enqueueOfflineAction({
+                description: `Phòng ${room.room_number}: Chuyển trạng thái sang "${statusLabel}"`,
+                url: `/rooms/admin/rooms/${room.id}/status/`,
+                method: 'PATCH',
+                data: { status: nextStatus },
+              });
+
+              // Cập nhật giao diện lạc quan (Optimistic Update)
+              setRooms((prev) =>
+                prev.map((r) => (r.id === room.id ? { ...r, status: nextStatus } : r))
+              );
+
+              Alert.alert(
+                'Đã lưu ngoại tuyến',
+                `Mất kết nối máy chủ! Thao tác đổi trạng thái Phòng ${room.room_number} đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
+              );
+            } else {
+              const msg = err.response?.data?.message || 'Không thể đổi trạng thái phòng.';
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              Alert.alert('Thông báo', msg);
+            }
           } finally {
             setActionLoadingId(null);
           }
@@ -263,7 +290,7 @@ export default function HousekeepingScreen() {
       [
         { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Đã xong ✨',
+          text: 'Hoàn tất',
           style: 'default',
           onPress: async () => {
             setActionLoadingId(room.id);
@@ -274,8 +301,29 @@ export default function HousekeepingScreen() {
                 fetchRooms();
               }
             } catch (err: any) {
-              const msg = err.response?.data?.message || 'Không thể cập nhật.';
-              Alert.alert('Lỗi', msg);
+              if (!err.response) {
+                await enqueueOfflineAction({
+                  description: `Phòng ${room.room_number}: Hoàn tất dọn phòng khách ở`,
+                  url: `/rooms/admin/rooms/${room.id}/complete-cleaning/`,
+                  method: 'POST',
+                });
+
+                setRooms((prev) =>
+                  prev.map((r) =>
+                    r.id === room.id
+                      ? { ...r, is_cleaning_requested: false, cleaning_request_note: '' }
+                      : r
+                  )
+                );
+
+                Alert.alert(
+                  'Đã lưu ngoại tuyến',
+                  `Mất kết nối máy chủ! Thao tác hoàn tất dọn Phòng ${room.room_number} đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
+                );
+              } else {
+                const msg = err.response?.data?.message || 'Không thể cập nhật.';
+                Alert.alert('Lỗi', msg);
+              }
             } finally {
               setActionLoadingId(null);
             }
@@ -532,16 +580,12 @@ export default function HousekeepingScreen() {
                   {stats.inspectionRequested} phòng chờ Check-out
                 </Text>
               </View>
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: '900',
-                  color: filterStatus === 'inspection' ? '#0A0F1D' : '#F59E0B',
-                  marginLeft: 6,
-                }}
-              >
-                {filterStatus === 'inspection' ? '✕' : 'Lọc ➔'}
-              </Text>
+              <Ionicons
+                name={filterStatus === 'inspection' ? 'close-circle' : 'chevron-forward'}
+                size={14}
+                color={filterStatus === 'inspection' ? '#0A0F1D' : '#F59E0B'}
+                style={{ marginLeft: 6 }}
+              />
             </TouchableOpacity>
           )}
 
@@ -584,16 +628,12 @@ export default function HousekeepingScreen() {
                   {stats.makeupRequested} phòng yêu cầu dọn
                 </Text>
               </View>
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: '900',
-                  color: filterStatus === 'makeup' ? '#FFFFFF' : (isDark ? '#38BDF8' : '#0284C7'),
-                  marginLeft: 6,
-                }}
-              >
-                {filterStatus === 'makeup' ? '✕' : 'Lọc ➔'}
-              </Text>
+              <Ionicons
+                name={filterStatus === 'makeup' ? 'close-circle' : 'chevron-forward'}
+                size={14}
+                color={filterStatus === 'makeup' ? '#FFFFFF' : (isDark ? '#38BDF8' : '#0284C7')}
+                style={{ marginLeft: 6 }}
+              />
             </TouchableOpacity>
           )}
         </View>

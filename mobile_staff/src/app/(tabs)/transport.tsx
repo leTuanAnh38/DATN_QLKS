@@ -160,7 +160,7 @@ export default function TransportScreen() {
       if (res.data.success || res.data.id) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
-          'Đặt xe thành công 🚗',
+          'Đặt xe thành công',
           `Đã tạo cuốc xe đưa đón cho Phòng ${selectedRoom.room_number} (${selectedRoom.current_booking.guest_name})!\nTài xế sẽ nhận được thông báo ngay lập tức.`
         );
         setCreateModalVisible(false);
@@ -385,7 +385,7 @@ export default function TransportScreen() {
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
           <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
-            Đội Xe & Vận Chuyển 🚗
+            Đội Xe & Vận Chuyển
           </Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -526,7 +526,7 @@ export default function TransportScreen() {
             {/* Modal Header */}
             <View style={[styles.modalHeaderRow, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Đặt Xe Đưa Đón 🚗</Text>
+                <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Đặt Xe Đưa Đón</Text>
                 <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Điều xe đưa đón sân bay, ga tàu hoặc tham quan cho khách</Text>
               </View>
               <TouchableOpacity
@@ -671,19 +671,24 @@ export default function TransportScreen() {
                     placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                   />
                   <View style={styles.quickTagsRow}>
-                    {['✈️ Sân bay Đà Nẵng', '🏨 Sảnh khách sạn', '🚆 Ga Đà Nẵng'].map((tag) => (
+                    {[
+                      { label: 'Sân bay Đà Nẵng', icon: 'airplane-outline' as const },
+                      { label: 'Sảnh khách sạn', icon: 'business-outline' as const },
+                      { label: 'Ga Đà Nẵng', icon: 'train-outline' as const },
+                    ].map((item) => (
                       <TouchableOpacity
-                        key={tag}
+                        key={item.label}
                         style={[
                           styles.quickTag,
                           !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
                         ]}
                         onPress={() => {
-                          setPickupLocation(tag.replace(/^[^\s]+\s/, ''));
+                          setPickupLocation(item.label);
                           Haptics.selectionAsync();
                         }}
                       >
-                        <Text style={[styles.quickTagText, !isDark && { color: '#475569' }]}>{tag}</Text>
+                        <Ionicons name={item.icon} size={12} color={isDark ? '#94A3B8' : '#475569'} style={{ marginRight: 4 }} />
+                        <Text style={[styles.quickTagText, !isDark && { color: '#475569' }]}>{item.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -702,19 +707,25 @@ export default function TransportScreen() {
                     placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                   />
                   <View style={styles.quickTagsRow}>
-                    {['🏨 Sảnh khách sạn', '✈️ Sân bay Đà Nẵng', '🏮 Phố cổ Hội An', '🏰 Bà Nà Hills'].map((tag) => (
+                    {[
+                      { label: 'Sảnh khách sạn', icon: 'business-outline' as const },
+                      { label: 'Sân bay Đà Nẵng', icon: 'airplane-outline' as const },
+                      { label: 'Phố cổ Hội An', icon: 'map-outline' as const },
+                      { label: 'Bà Nà Hills', icon: 'trail-sign-outline' as const },
+                    ].map((item) => (
                       <TouchableOpacity
-                        key={tag}
+                        key={item.label}
                         style={[
                           styles.quickTag,
                           !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
                         ]}
                         onPress={() => {
-                          setDropoffLocation(tag.replace(/^[^\s]+\s/, ''));
+                          setDropoffLocation(item.label);
                           Haptics.selectionAsync();
                         }}
                       >
-                        <Text style={[styles.quickTagText, !isDark && { color: '#475569' }]}>{tag}</Text>
+                        <Ionicons name={item.icon} size={12} color={isDark ? '#94A3B8' : '#475569'} style={{ marginRight: 4 }} />
+                        <Text style={[styles.quickTagText, !isDark && { color: '#475569' }]}>{item.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -813,7 +824,7 @@ export default function TransportScreen() {
                     <Ionicons name="car-sport" size={18} color="#0A0F1D" style={{ marginRight: 8 }} />
                   )}
                   <Text style={styles.submitBookBtnText}>
-                    {submittingBooking ? 'Đang điều phối xe...' : 'Xác Nhận Đặt Xe Cho Khách 🚗'}
+                    {submittingBooking ? 'Đang điều phối xe...' : 'Xác Nhận Đặt Xe Cho Khách'}
                   </Text>
                 </TouchableOpacity>
               </ScrollView>

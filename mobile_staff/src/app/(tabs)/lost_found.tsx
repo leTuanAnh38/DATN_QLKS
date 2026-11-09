@@ -363,7 +363,7 @@ export default function LostFoundScreen() {
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
-          <Text style={[styles.greetingTitle, { color: colors.text }]}>Đồ Thất Lạc 🧳</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]}>Đồ Thất Lạc</Text>
         </View>
         <View style={styles.headerRightActions}>
           <NotificationBell />

@@ -11,8 +11,16 @@ const listeners = new Set<() => void>();
 
 export function setServerOffline(value: boolean) {
   if (offline === value) return;
+  const wasOffline = offline;
   offline = value;
   listeners.forEach((l) => l());
+
+  // Khi phục hồi kết nối mạng (wasOffline=true -> value=false), tự động kích hoạt đồng bộ hàng đợi ngoại tuyến
+  if (wasOffline && !value) {
+    import('./offlineQueue').then(({ processOfflineQueue }) => {
+      processOfflineQueue().catch(() => {});
+    });
+  }
 }
 
 const subscribe = (listener: () => void) => {

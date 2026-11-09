@@ -731,3 +731,107 @@ def push_notification_to_users(users, title, body, data=None):
     except Exception as e:
         logger.warning(f"[EXPO_PUSH] Lỗi đẩy notification tới danh sách users: {e}")
 
+
+def push_bulk_notifications(notifications):
+    """
+    Gửi push notification tức thì cho danh sách các Notification vừa được tạo qua bulk_create.
+    - Tìm toàn bộ thiết bị đang kích hoạt (UserDevice) của tất cả người nhận trong 1 query duy nhất.
+    - Ghép nối thông báo tương ứng cho từng token.
+    - Gửi đồng loạt qua Expo Push API (chia batch tối đa 100 tin/lần) trong background thread daemon.
+    """
+    if not notifications:
+        return
+
+    import threading
+    import requests
+
+    def _worker():
+        try:
+            from .models import UserDevice
+
+            # 1. Tập hợp các user_id của người nhận
+            recipient_ids = set()
+            for n in notifications:
+                uid = getattr(n, 'recipient_id', None)
+                if not uid and hasattr(n, 'recipient') and n.recipient:
+                    uid = getattr(n.recipient, 'id', None) or n.recipient
+                if uid:
+                    recipient_ids.add(uid)
+
+            if not recipient_ids:
+                return
+
+            # 2. Lấy toàn bộ token của các người nhận (1 query duy nhất)
+            devices = UserDevice.objects.filter(
+                user_id__in=recipient_ids,
+                is_active=True
+            ).values('user_id', 'expo_push_token')
+
+            token_map = {}
+            for d in devices:
+                uid = d['user_id']
+                tok = d['expo_push_token']
+                if tok and (tok.startswith('ExponentPushToken[') or tok.startswith('ExpoPushToken[')):
+                    token_map.setdefault(uid, []).append(tok)
+
+            if not token_map:
+                return
+
+            # 3. Tạo danh sách tin nhắn đẩy
+            messages = []
+            for n in notifications:
+                uid = getattr(n, 'recipient_id', None)
+                if not uid and hasattr(n, 'recipient') and n.recipient:
+                    uid = getattr(n.recipient, 'id', None) or n.recipient
+
+                tokens = token_map.get(uid, [])
+                if not tokens:
+                    continue
+
+                title = getattr(n, 'title', '') or 'Khách sạn TA - Thông báo'
+                body = getattr(n, 'message', '') or ''
+                data = {
+                    'notification_id': getattr(n, 'id', None),
+                    'notification_type': getattr(n, 'notification_type', 'system'),
+                    'action_url': getattr(n, 'action_url', '') or '',
+                    'priority': getattr(n, 'priority', 'normal'),
+                }
+                priority = 'high' if getattr(n, 'priority', 'normal') in ['high', 'urgent'] else 'default'
+
+                for token in tokens:
+                    messages.append({
+                        'to': token,
+                        'sound': 'default',
+                        'title': title,
+                        'body': body,
+                        'data': data,
+                        'priority': priority,
+                        'channelId': 'hotel-staff-alerts',
+                    })
+
+            if not messages:
+                return
+
+            # 4. Gửi theo batch tối đa 100 tin / request (giới hạn của Expo API)
+            url = 'https://exp.host/--/api/v2/push/send'
+            headers = {
+                'Accept': 'application/json',
+                'Accept-Encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+            }
+
+            for i in range(0, len(messages), 100):
+                chunk = messages[i:i + 100]
+                try:
+                    res = requests.post(url, json=chunk, headers=headers, timeout=6)
+                    logger.info(f"[EXPO_PUSH_BULK] Đã gửi {len(chunk)} push notifications cho bulk_create. Status: {res.status_code}")
+                except Exception as chunk_err:
+                    logger.warning(f"[EXPO_PUSH_BULK] Lỗi gửi batch push: {chunk_err}")
+
+        except Exception as e:
+            logger.warning(f"[EXPO_PUSH_BULK] Lỗi xử lý push_bulk_notifications: {e}")
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+

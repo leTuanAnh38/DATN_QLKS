@@ -335,7 +335,7 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
             ) : (
               <>
                 <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-                <Text style={styles.completeButtonText}>ĐÃ TRẢ KHÁCH XONG ✨</Text>
+                <Text style={styles.completeButtonText}>ĐÃ TRẢ KHÁCH XONG</Text>
               </>
             )}
           </TouchableOpacity>

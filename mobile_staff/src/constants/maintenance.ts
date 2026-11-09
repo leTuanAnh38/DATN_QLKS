@@ -82,7 +82,7 @@ export const calculateTicketSLA = (
   }
 
   let statusBadge = {
-    label: `⏱️ Chờ ${elapsedText}`,
+    label: `Chờ ${elapsedText}`,
     color: '#38BDF8',
     bg: 'rgba(56, 189, 248, 0.12)',
     border: 'rgba(56, 189, 248, 0.3)',
@@ -90,14 +90,14 @@ export const calculateTicketSLA = (
 
   if (isOverdue) {
     statusBadge = {
-      label: ` QUÁ HẠN SLA (${elapsedText})`,
+      label: `QUÁ HẠN SLA (${elapsedText})`,
       color: '#EF4444',
       bg: 'rgba(239, 68, 68, 0.16)',
       border: '#EF4444',
     };
   } else if (elapsedMinutes >= slaLimitMinutes * 0.7) {
     statusBadge = {
-      label: `⏱️ Sắp hạn (${elapsedText})`,
+      label: `Sắp hạn (${elapsedText})`,
       color: '#F59E0B',
       bg: 'rgba(245, 158, 11, 0.14)',
       border: 'rgba(245, 158, 11, 0.35)',

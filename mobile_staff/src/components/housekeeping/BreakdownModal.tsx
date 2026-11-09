@@ -154,7 +154,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         const ticketCode = res.data.ticket_code || res.data.ticket?.ticket_code || 'MT';
         Alert.alert(
-          'Đã lập phiếu bảo trì thành công 🛠️',
+          'Đã lập phiếu bảo trì thành công',
           `Đã tạo phiếu #${ticketCode} cho Phòng ${room.room_number}.\nPhòng đã chuyển sang trạng thái "Bảo trì" và gửi chuông báo cho Đội Kỹ thuật!`
         );
         onClose();
@@ -296,7 +296,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
               {[
                 { key: 'normal', label: 'Bình thường', color: '#10B981' },
                 { key: 'high', label: 'Ưu tiên cao', color: '#F59E0B' },
-                { key: 'urgent', label: '⚡ Khẩn cấp', color: '#EF4444' },
+                { key: 'urgent', label: 'Khẩn cấp', color: '#EF4444' },
               ].map((p) => {
                 const isSelected = priority === p.key;
                 return (

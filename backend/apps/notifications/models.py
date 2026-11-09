@@ -1,5 +1,33 @@
 from django.db import models
 from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class NotificationQuerySet(models.QuerySet):
+    """
+    QuerySet tùy chỉnh cho Notification:
+    Tự động kích hoạt Push Notification đến thiết bị di động (Expo Push) khi gọi bulk_create
+    (do Django mặc định không bắn signal post_save khi gọi bulk_create).
+    """
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False):
+        created_objs = super().bulk_create(objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts)
+        if objs:
+            try:
+                from .services import push_bulk_notifications
+                push_bulk_notifications(objs)
+            except Exception as e:
+                logger.warning(f"[PUSH_BULK_HOOK] Lỗi trigger push sau bulk_create: {e}")
+        return created_objs
+
+
+class NotificationManager(models.Manager.from_queryset(NotificationQuerySet)):
+    """
+    Manager đảm bảo tất cả lời gọi Notification.objects.bulk_create(...) đều gửi push notification ngay lập tức.
+    """
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False):
+        return self.get_queryset().bulk_create(objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts)
 
 
 class Notification(models.Model):
@@ -47,6 +75,8 @@ class Notification(models.Model):
     )
     is_read = models.BooleanField(default=False, verbose_name="Đã đọc")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
+
+    objects = NotificationManager()
 
     class Meta:
         ordering = ['-created_at']

@@ -64,7 +64,7 @@ export const CancelServiceOrderModal: React.FC<CancelServiceOrderModalProps> = (
           >
             <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View>
-                <Text style={[styles.modalTitle, { color: '#EF4444' }]}>Hủy Yêu Cầu Dịch Vụ ⚠️</Text>
+                <Text style={[styles.modalTitle, { color: '#EF4444' }]}>Hủy Yêu Cầu Dịch Vụ</Text>
                 <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
                   {itemToCancel
                     ? `Phòng ${itemToCancel.room_number || '---'} • ${itemToCancel.service_name} (SL: ${itemToCancel.quantity || 1})`

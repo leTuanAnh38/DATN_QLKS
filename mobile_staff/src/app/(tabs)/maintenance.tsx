@@ -33,6 +33,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import { MaintenanceListSkeleton } from '../../components/SkeletonLoader';
+import { enqueueOfflineAction } from '../../services/offlineQueue';
 import {
   MaintenanceTicketCard,
   MaintenanceTicket,
@@ -340,12 +341,31 @@ export default function MaintenanceScreen() {
       const res = await apiClient.post(`/rooms/maintenance-tickets/${ticket.id}/claim/`);
       if (res.data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Nhận việc thành công 🛠️', res.data.message || `Bạn đã nhận phụ trách xử lý phiếu #${ticket.ticket_code}`);
+        Alert.alert('Nhận việc thành công', res.data.message || `Bạn đã nhận phụ trách xử lý phiếu #${ticket.ticket_code}`);
         fetchTickets();
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể nhận xử lý phiếu bảo trì.';
-      Alert.alert('Lỗi', msg);
+      if (!err.response) {
+        await enqueueOfflineAction({
+          description: `Phiếu #${ticket.ticket_code} (P.${ticket.room_number || 'Khách sạn'}): Nhận sửa chữa`,
+          url: `/rooms/maintenance-tickets/${ticket.id}/claim/`,
+          method: 'POST',
+        });
+
+        // Optimistic UI update
+        const myName = user?.first_name || user?.username || 'Tôi';
+        setTickets((prev) =>
+          prev.map((t) => (t.id === ticket.id ? { ...t, technician_name: myName } : t))
+        );
+
+        Alert.alert(
+          'Đã lưu ngoại tuyến',
+          `Mất kết nối máy chủ! Thao tác nhận phiếu #${ticket.ticket_code} đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Không thể nhận xử lý phiếu bảo trì.';
+        Alert.alert('Lỗi', msg);
+      }
     } finally {
       setActionLoadingId(null);
     }
@@ -371,7 +391,7 @@ export default function MaintenanceScreen() {
       if (res.data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
-          'Đã hủy phiếu bảo trì ℹ️',
+          'Đã hủy phiếu bảo trì',
           res.data.message || `Phiếu #${selectedCancelTicket.ticket_code} đã được hủy và phòng đã khôi phục trạng thái ban đầu.`
         );
         setCancelModalVisible(false);
@@ -567,7 +587,7 @@ export default function MaintenanceScreen() {
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
-          <Text style={[styles.greetingTitle, { color: colors.text }]}>Kỹ Thuật & Bảo Trì 🛠️</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]}>Kỹ Thuật & Bảo Trì</Text>
         </View>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
@@ -1085,7 +1105,7 @@ export default function MaintenanceScreen() {
                     </Text>
                     <Text style={[styles.guestFaultSubtitle, !isDark && { color: '#64748B' }]}>
                       {isGuestFault
-                        ? '⚠️ Phụ phí bồi thường sẽ tự động cộng vào hóa đơn khách tại Lễ tân.'
+                        ? 'Lưu ý: Phụ phí bồi thường sẽ tự động cộng vào hóa đơn khách tại Lễ tân.'
                         : 'Hao mòn tự nhiên trong vận hành (Khách sạn chịu chi phí bảo trì).'}
                     </Text>
                   </View>
@@ -1200,7 +1220,7 @@ export default function MaintenanceScreen() {
             <View style={[styles.modalContent, { maxHeight: '90%' }, !isDark && { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0', shadowColor: '#64748B' }]}>
               <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
                 <View>
-                  <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Báo Sự Cố Thiết Bị 🛠️</Text>
+                  <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Báo Sự Cố Thiết Bị</Text>
                   <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>Tạo phiếu bảo trì & cách ly phòng</Text>
                 </View>
                 <TouchableOpacity
@@ -1332,9 +1352,12 @@ export default function MaintenanceScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={[styles.guestAlertNote, !isDark && { color: '#0369A1' }]}>
-                        ⚠️ Lưu ý: Khách đang lưu trú tại phòng. Vui lòng liên hệ Lễ tân hoặc gõ cửa xin phép trước khi vào sửa chữa.
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                        <Ionicons name="information-circle-outline" size={16} color={isDark ? "#38BDF8" : "#0284C7"} style={{ marginTop: 2 }} />
+                        <Text style={[styles.guestAlertNote, { flex: 1, marginTop: 0 }, !isDark && { color: '#0369A1' }]}>
+                          Lưu ý: Khách đang lưu trú tại phòng. Vui lòng liên hệ Lễ tân hoặc gõ cửa xin phép trước khi vào sửa chữa.
+                        </Text>
+                      </View>
                     </View>
                   )}
                 </View>
@@ -1348,7 +1371,7 @@ export default function MaintenanceScreen() {
                 {[
                   { key: 'normal', label: 'Bình thường', color: '#10B981' },
                   { key: 'high', label: 'Ưu tiên cao', color: '#F59E0B' },
-                  { key: 'urgent', label: '⚡ Khẩn cấp', color: '#EF4444' },
+                  { key: 'urgent', label: 'Khẩn cấp', color: '#EF4444' },
                 ].map((p) => {
                   const isSelected = createPriority === p.key;
                   return (
@@ -1679,7 +1702,7 @@ export default function MaintenanceScreen() {
             <View style={[styles.modalHeader, !isDark && { borderBottomColor: '#F1F5F9' }]}>
               <View>
                 <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>
-                  Hủy Phiếu Bảo Trì / Báo Sai ℹ️
+                  Hủy Phiếu Bảo Trì / Báo Sai
                 </Text>
                 <Text style={[styles.modalSubtitle, !isDark && { color: '#64748B' }]}>
                   Mã phiếu #{selectedCancelTicket?.ticket_code} • P.{selectedCancelTicket?.room_number}

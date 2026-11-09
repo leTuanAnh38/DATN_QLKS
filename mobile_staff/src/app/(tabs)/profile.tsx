@@ -25,10 +25,14 @@ import apiClient from '../../api/client';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
 import BookingManagementModal from '../../components/BookingManagementModal';
+import OfflineQueueModal from '../../components/OfflineQueueModal';
+import { useOfflineQueueCount } from '../../services/offlineQueue';
 
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
   const { themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode } = useAppTheme();
+  const offlineQueueCount = useOfflineQueueCount();
+  const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const [refreshing, setRefreshing] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
@@ -129,7 +133,7 @@ export default function ProfileScreen() {
   };
 
   const handleChangeAvatar = () => {
-    Alert.alert('Đổi ảnh đại diện 📸', 'Chọn phương thức cập nhật ảnh:', [
+    Alert.alert('Đổi ảnh đại diện', 'Chọn phương thức cập nhật ảnh:', [
       { text: 'Hủy', style: 'cancel' },
       {
         text: 'Chụp ảnh mới',
@@ -324,7 +328,7 @@ export default function ProfileScreen() {
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
-          <Text style={styles.greetingTitle}>Hồ Sơ Cá Nhân 👤</Text>
+          <Text style={styles.greetingTitle}>Hồ Sơ Cá Nhân</Text>
         </View>
         <View style={styles.headerRightActions}>
           <NotificationBell />
@@ -407,21 +411,21 @@ export default function ProfileScreen() {
               <Text style={styles.idKpiVal}>
                 {user?.employee_code || `NV-${user?.id || '01'}`}
               </Text>
-              <Text style={styles.idKpiLbl}>🪪 Mã nhân sự</Text>
+              <Text style={styles.idKpiLbl}>Mã nhân sự</Text>
             </View>
             <View style={styles.idKpiDivider} />
             <View style={styles.idKpiCol}>
               <Text style={[styles.idKpiVal, { color: colors.emerald }]} numberOfLines={1}>
                 {user?.shift || 'Ca Sáng'}
               </Text>
-              <Text style={styles.idKpiLbl}>⏰ Ca làm việc</Text>
+              <Text style={styles.idKpiLbl}>Ca làm việc</Text>
             </View>
             <View style={styles.idKpiDivider} />
             <View style={styles.idKpiCol}>
               <Text style={[styles.idKpiVal, { color: colors.sky }]}>
                 {serverLatency !== null ? `${serverLatency}ms` : '4G/WiFi'}
               </Text>
-              <Text style={styles.idKpiLbl}>⚡ Độ trễ API</Text>
+              <Text style={styles.idKpiLbl}>Độ trễ API</Text>
             </View>
           </View>
 
@@ -435,7 +439,7 @@ export default function ProfileScreen() {
 
         {/* 2. Bộ Chuyển Đổi Giao Diện Nhanh (Theme Segmented Bar) */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🎨 Giao Diện Hệ Thống</Text>
+          <Text style={styles.sectionTitle}>Giao Diện Hệ Thống</Text>
           <View style={styles.themeSegmentedBar}>
             <TouchableOpacity
               style={[styles.themeSegmentBtn, themeMode === 'dark' && styles.themeSegmentBtnActive]}
@@ -498,7 +502,7 @@ export default function ProfileScreen() {
 
         {/* 3. Nghiệp Vụ Vận Hành Khách Sạn & Sổ Ca (PMS / CRM) */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🏛️ Nghiệp Vụ & Sổ Ca Trực</Text>
+          <Text style={styles.sectionTitle}>Nghiệp Vụ & Sổ Ca Trực</Text>
 
           {/* Sổ Bàn Giao Ca Trực */}
           <TouchableOpacity
@@ -568,7 +572,7 @@ export default function ProfileScreen() {
 
         {/* 4. Cài Đặt Tài Khoản & Kết Nối */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>⚙️ Tài Khoản & Kết Nối</Text>
+          <Text style={styles.sectionTitle}>Tài Khoản & Kết Nối</Text>
 
           {/* Đổi Mật Khẩu */}
           <TouchableOpacity
@@ -607,6 +611,48 @@ export default function ProfileScreen() {
             ) : (
               <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
             )}
+          </TouchableOpacity>
+
+          <View style={styles.detailDivider} />
+
+          {/* Hàng Đợi Ngoại Tuyến (Offline Queue) */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setOfflineModalVisible(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+              <Ionicons name="cloud-offline-outline" size={17} color={colors.gold} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.actionTitle}>Hàng Đợi Ngoại Tuyến</Text>
+                {offlineQueueCount > 0 && (
+                  <View
+                    style={{
+                      backgroundColor: '#F59E0B',
+                      borderRadius: 10,
+                      paddingHorizontal: 7,
+                      paddingVertical: 1.5,
+                      marginLeft: 8,
+                    }}
+                  >
+                    <Text style={{ color: '#0A0F1D', fontSize: 11, fontWeight: '800' }}>
+                      {offlineQueueCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.actionDesc}>
+                {offlineQueueCount > 0
+                  ? `Có ${offlineQueueCount} tác vụ đang chờ mạng để tự động gửi`
+                  : 'Tự động lưu và gửi bù tác vụ khi mạng chập chờn'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
           </TouchableOpacity>
 
           <View style={styles.detailDivider} />
@@ -886,6 +932,12 @@ export default function ProfileScreen() {
         visible={crmModalVisible}
         onClose={() => setCrmModalVisible(false)}
         initialGuestId={crmGuestId}
+      />
+
+      {/* Modal Hàng Đợi Ngoại Tuyến */}
+      <OfflineQueueModal
+        visible={offlineModalVisible}
+        onClose={() => setOfflineModalVisible(false)}
       />
 
       {/* Modal Quản Lý Đặt Phòng & Lịch Lưu Trú (Timeline) */}

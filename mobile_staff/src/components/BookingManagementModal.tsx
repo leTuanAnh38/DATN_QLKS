@@ -46,6 +46,7 @@ export default function BookingManagementModal({
   const [timelineSearchText, setTimelineSearchText] = useState('');
   const [timelineFloorFilter, setTimelineFloorFilter] = useState<number | 'all'>('all');
   const [timelineStatusFilter, setTimelineStatusFilter] = useState<'all' | 'occupied' | 'has_booking' | 'empty'>('all');
+  const [isTimelineFilterExpanded, setIsTimelineFilterExpanded] = useState<boolean>(false);
   const [expandedRoomIds, setExpandedRoomIds] = useState<number[]>([]);
 
   // Fetch Booking List
@@ -258,6 +259,8 @@ export default function BookingManagementModal({
     });
   }, [timelineData, timelineFloorFilter, timelineStatusFilter, timelineSearchText]);
 
+  const hasActiveTimelineFilter = timelineFloorFilter !== 'all' || timelineStatusFilter !== 'all';
+
   // Accordion Expand/Collapse Helpers
   const toggleRoomExpand = (roomId: number) => {
     Haptics.selectionAsync();
@@ -304,14 +307,14 @@ export default function BookingManagementModal({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'checked_in':
-        return { label: 'Đang ở 🟢', bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399', border: 'rgba(16, 185, 129, 0.4)' };
+        return { label: 'Đang ở', bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399', border: 'rgba(16, 185, 129, 0.4)' };
       case 'confirmed':
-        return { label: 'Sắp nhận 🟡', bg: 'rgba(245, 158, 11, 0.15)', text: '#F59E0B', border: 'rgba(245, 158, 11, 0.4)' };
+        return { label: 'Sắp nhận', bg: 'rgba(245, 158, 11, 0.15)', text: '#F59E0B', border: 'rgba(245, 158, 11, 0.4)' };
       case 'completed':
       case 'checked_out':
-        return { label: 'Đã trả phòng ⚪', bg: 'rgba(148, 163, 184, 0.15)', text: '#94A3B8', border: 'rgba(148, 163, 184, 0.3)' };
+        return { label: 'Đã trả phòng', bg: 'rgba(148, 163, 184, 0.15)', text: '#94A3B8', border: 'rgba(148, 163, 184, 0.3)' };
       case 'cancelled':
-        return { label: 'Đã hủy 🔴', bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171', border: 'rgba(239, 68, 68, 0.4)' };
+        return { label: 'Đã hủy', bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171', border: 'rgba(239, 68, 68, 0.4)' };
       default:
         return { label: status || 'Khác', bg: 'rgba(255, 255, 255, 0.08)', text: '#CBD5E1', border: 'rgba(255, 255, 255, 0.15)' };
     }
@@ -334,7 +337,7 @@ export default function BookingManagementModal({
           <View style={[styles.headerRow, !isDark && { borderBottomColor: '#F1F5F9' }]}>
             <View>
               <Text style={[styles.headerTitle, !isDark && { color: '#0F172A' }]}>
-                Quản Lý Đặt Phòng & Lịch Trình 📋
+                Quản Lý Đặt Phòng & Lịch Trình
               </Text>
               <Text style={[styles.headerSubtitle, !isDark && { color: '#64748B' }]}>
                 Tra cứu đơn phòng, lịch lưu trú và thông tin khách
@@ -564,7 +567,7 @@ export default function BookingManagementModal({
                         <View style={styles.dateRow}>
                           <Ionicons name="calendar-outline" size={13} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 6 }} />
                           <Text style={[styles.dateText, !isDark && { color: '#64748B' }]}>
-                            {b.check_in_date} ➔ {b.check_out_date}
+                            {b.check_in_date} → {b.check_out_date}
                           </Text>
                         </View>
 
@@ -584,7 +587,7 @@ export default function BookingManagementModal({
                               }}
                             >
                               <Ionicons name="person-circle-outline" size={15} color="#D97706" />
-                              <Text style={[styles.crmShortcutText, !isDark && { color: '#B45309' }]}>Hồ sơ CRM 👤</Text>
+                              <Text style={[styles.crmShortcutText, !isDark && { color: '#B45309' }]}>Hồ sơ CRM</Text>
                             </TouchableOpacity>
                           ) : null}
                         </View>
@@ -628,120 +631,228 @@ export default function BookingManagementModal({
                 </TouchableOpacity>
               </View>
 
-              {/* Quick Search in Timeline */}
-              <View
-                style={[
-                  styles.timelineSearchBox,
-                  !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' },
-                ]}
-              >
-                <Ionicons name="search-outline" size={16} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
-                <TextInput
-                  style={[styles.timelineSearchInput, !isDark && { color: '#0F172A' }]}
-                  placeholder="Tìm số phòng, tên khách, loại phòng, mã đơn..."
-                  placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                  value={timelineSearchText}
-                  onChangeText={setTimelineSearchText}
-                />
-                {timelineSearchText ? (
-                  <TouchableOpacity onPress={() => setTimelineSearchText('')}>
-                    <Ionicons name="close-circle" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
-                  </TouchableOpacity>
-                ) : null}
+              {/* Quick Search & Filter Toggle Bar */}
+              <View style={styles.searchAndFilterRow}>
+                <View
+                  style={[
+                    styles.timelineSearchBox,
+                    { flex: 1, marginBottom: 0 },
+                    !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' },
+                  ]}
+                >
+                  <Ionicons name="search-outline" size={16} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={[styles.timelineSearchInput, !isDark && { color: '#0F172A' }]}
+                    placeholder="Tìm số phòng, tên khách, loại phòng, mã..."
+                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                    value={timelineSearchText}
+                    onChangeText={setTimelineSearchText}
+                  />
+                  {timelineSearchText ? (
+                    <TouchableOpacity onPress={() => setTimelineSearchText('')}>
+                      <Ionicons name="close-circle" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.filterToggleBtn,
+                    !isDark && {
+                      backgroundColor: hasActiveTimelineFilter ? '#FEF3C7' : '#F8FAFC',
+                      borderColor: hasActiveTimelineFilter ? '#F59E0B' : '#CBD5E1',
+                    },
+                    hasActiveTimelineFilter && styles.filterToggleBtnActive,
+                  ]}
+                  onPress={() => {
+                    setIsTimelineFilterExpanded((prev) => !prev);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="options-outline"
+                    size={15}
+                    color={hasActiveTimelineFilter ? (isDark ? '#FBBF24' : '#B45309') : (isDark ? '#94A3B8' : '#64748B')}
+                  />
+                  <Text
+                    style={[
+                      styles.filterToggleBtnText,
+                      !isDark && { color: hasActiveTimelineFilter ? '#B45309' : '#64748B' },
+                      hasActiveTimelineFilter && styles.filterToggleBtnTextActive,
+                    ]}
+                  >
+                    Bộ lọc
+                  </Text>
+                  <Ionicons
+                    name={isTimelineFilterExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={12}
+                    color={hasActiveTimelineFilter ? (isDark ? '#FBBF24' : '#B45309') : (isDark ? '#94A3B8' : '#64748B')}
+                  />
+                  {hasActiveTimelineFilter && <View style={styles.filterActiveDot} />}
+                </TouchableOpacity>
               </View>
 
-              {/* Filter Row: Floors & Status */}
-              <View style={styles.filterBarContainer}>
-                {timelineFloors.length > 1 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.chipScrollView}
-                    contentContainerStyle={{ paddingHorizontal: 2 }}
+              {/* Dải tóm tắt khi đang lọc nhưng khối bộ lọc đang đóng */}
+              {hasActiveTimelineFilter && !isTimelineFilterExpanded && (
+                <View style={[styles.activeFilterSummaryBar, !isDark && { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 5 }}>
+                    <Ionicons name="funnel-outline" size={12} color="#D97706" />
+                    <Text style={[styles.activeFilterSummaryText, !isDark && { color: '#B45309' }]} numberOfLines={1}>
+                      Đang lọc: {timelineFloorFilter !== 'all' ? `Tầng ${timelineFloorFilter}` : 'Mọi tầng'} • {
+                        timelineStatusFilter === 'occupied' ? 'Đang ở' :
+                        timelineStatusFilter === 'has_booking' ? 'Có lịch' :
+                        timelineStatusFilter === 'empty' ? 'Trống' : 'Mọi trạng thái'
+                      }
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setTimelineFloorFilter('all');
+                      setTimelineStatusFilter('all');
+                      Haptics.selectionAsync();
+                    }}
+                    style={styles.resetFilterSmallBtn}
+                    activeOpacity={0.7}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.floorChip,
-                        !isDark && timelineFloorFilter !== 'all' && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                        timelineFloorFilter === 'all' && styles.floorChipActive,
-                      ]}
-                      onPress={() => {
-                        setTimelineFloorFilter('all');
-                        Haptics.selectionAsync();
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.floorChipText,
-                          !isDark && timelineFloorFilter !== 'all' && { color: '#64748B' },
-                          timelineFloorFilter === 'all' && styles.floorChipTextActive,
-                        ]}
-                      >
-                        🏢 Tất cả tầng
-                      </Text>
-                    </TouchableOpacity>
-                    {timelineFloors.map((floor) => (
+                    <Text style={[styles.resetFilterSmallText, !isDark && { color: '#DC2626' }]}>Đặt lại</Text>
+                    <Ionicons name="close-circle" size={12} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Khối Bộ Lọc Mở Rộng: Floors & Status (Thu gọn khi không cần) */}
+              {isTimelineFilterExpanded && (
+                <View style={[styles.filterBarContainer, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+                  <View style={styles.filterCardHeader}>
+                    <Text style={[styles.filterCardTitle, !isDark && { color: '#334155' }]}>
+                      Lọc theo tầng & trạng thái phòng:
+                    </Text>
+                    {hasActiveTimelineFilter && (
                       <TouchableOpacity
-                        key={`floor-${floor}`}
+                        onPress={() => {
+                          setTimelineFloorFilter('all');
+                          setTimelineStatusFilter('all');
+                          Haptics.selectionAsync();
+                        }}
+                        style={{ paddingVertical: 2, paddingHorizontal: 4 }}
+                      >
+                        <Text style={styles.filterCardResetText}>Đặt lại</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {timelineFloors.length > 1 && (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.chipScrollView}
+                      contentContainerStyle={{ paddingHorizontal: 2 }}
+                    >
+                      <TouchableOpacity
                         style={[
                           styles.floorChip,
-                          !isDark && timelineFloorFilter !== floor && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                          timelineFloorFilter === floor && styles.floorChipActive,
+                          !isDark && timelineFloorFilter !== 'all' && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+                          timelineFloorFilter === 'all' && styles.floorChipActive,
                         ]}
                         onPress={() => {
-                          setTimelineFloorFilter(floor);
+                          setTimelineFloorFilter('all');
                           Haptics.selectionAsync();
                         }}
                       >
-                        <Text
-                          style={[
-                            styles.floorChipText,
-                            !isDark && timelineFloorFilter !== floor && { color: '#64748B' },
-                            timelineFloorFilter === floor && styles.floorChipTextActive,
-                          ]}
-                        >
-                          Tầng {floor}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons
+                            name="business-outline"
+                            size={12}
+                            color={timelineFloorFilter === 'all' ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
+                            style={{ marginRight: 4 }}
+                          />
+                          <Text
+                            style={[
+                              styles.floorChipText,
+                              !isDark && timelineFloorFilter !== 'all' && { color: '#64748B' },
+                              timelineFloorFilter === 'all' && styles.floorChipTextActive,
+                            ]}
+                          >
+                            Tất cả tầng
+                          </Text>
+                        </View>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
+                      {timelineFloors.map((floor) => (
+                        <TouchableOpacity
+                          key={`floor-${floor}`}
+                          style={[
+                            styles.floorChip,
+                            !isDark && timelineFloorFilter !== floor && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+                            timelineFloorFilter === floor && styles.floorChipActive,
+                          ]}
+                          onPress={() => {
+                            setTimelineFloorFilter(floor);
+                            Haptics.selectionAsync();
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.floorChipText,
+                              !isDark && timelineFloorFilter !== floor && { color: '#64748B' },
+                              timelineFloorFilter === floor && styles.floorChipTextActive,
+                            ]}
+                          >
+                            Tầng {floor}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
 
-                <View style={styles.statusChipRow}>
-                  {[
-                    { key: 'all', label: `Tất cả (${timelineStats.total})` },
-                    { key: 'occupied', label: `🟢 Đang ở (${timelineStats.occupied})` },
-                    { key: 'has_booking', label: `🟡 Có lịch (${timelineStats.hasBooking})` },
-                    { key: 'empty', label: `⚪ Trống (${timelineStats.empty})` },
-                  ].map((item) => {
-                    const isSelected = timelineStatusFilter === item.key;
-                    return (
-                      <TouchableOpacity
-                        key={item.key}
-                        style={[
-                          styles.statusChip,
-                          !isDark && !isSelected && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-                          isSelected && styles.statusChipActive,
-                        ]}
-                        onPress={() => {
-                          setTimelineStatusFilter(item.key as any);
-                          Haptics.selectionAsync();
-                        }}
-                      >
-                        <Text
+                  <View style={styles.statusChipRow}>
+                    {[
+                      { key: 'all', label: `Tất cả (${timelineStats.total})`, dot: null },
+                      { key: 'occupied', label: `Đang ở (${timelineStats.occupied})`, dot: '#10B981' },
+                      { key: 'has_booking', label: `Có lịch (${timelineStats.hasBooking})`, dot: '#F59E0B' },
+                      { key: 'empty', label: `Trống (${timelineStats.empty})`, dot: '#94A3B8' },
+                    ].map((item) => {
+                      const isSelected = timelineStatusFilter === item.key;
+                      return (
+                        <TouchableOpacity
+                          key={item.key}
                           style={[
-                            styles.statusChipText,
-                            !isDark && !isSelected && { color: '#64748B' },
-                            isSelected && styles.statusChipTextActive,
+                            styles.statusChip,
+                            !isDark && !isSelected && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+                            isSelected && styles.statusChipActive,
+                            { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
                           ]}
+                          onPress={() => {
+                            setTimelineStatusFilter(item.key as any);
+                            Haptics.selectionAsync();
+                          }}
                         >
-                          {item.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                          {item.dot && (
+                            <View
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor: item.dot,
+                              }}
+                            />
+                          )}
+                          <Text
+                            style={[
+                              styles.statusChipText,
+                              !isDark && !isSelected && { color: '#64748B' },
+                              isSelected && styles.statusChipTextActive,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {item.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
+              )}
 
               {/* Sub-bar: Room counter and Expand/Collapse All toggle */}
               <View style={styles.timelineSubBar}>
@@ -931,8 +1042,9 @@ export default function BookingManagementModal({
                                 <View style={styles.primaryStayBody}>
                                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 6 }}>
+                                      <Ionicons name="person-outline" size={13} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 4 }} />
                                       <Text style={[styles.primaryGuestName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
-                                        👤 {activeBooking.guest_name}
+                                        {activeBooking.guest_name}
                                       </Text>
                                       {activeBooking.booking_code && (
                                         <Text style={[styles.stayBookingCode, !isDark && { color: '#64748B' }]}>#{activeBooking.booking_code}</Text>
@@ -953,7 +1065,7 @@ export default function BookingManagementModal({
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                       <Ionicons name="calendar-outline" size={12} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 4 }} />
                                       <Text style={[styles.stayDates, !isDark && { color: '#64748B' }]}>
-                                        {activeBooking.check_in_date} ➔ {activeBooking.check_out_date} ({activeBooking.nights} đêm)
+                                        {activeBooking.check_in_date} → {activeBooking.check_out_date} ({activeBooking.nights} đêm)
                                       </Text>
                                     </View>
 
@@ -1006,8 +1118,9 @@ export default function BookingManagementModal({
                                     >
                                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                                          <Ionicons name="person-outline" size={12} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 4 }} />
                                           <Text style={[styles.stayGuestName, !isDark && { color: '#0F172A' }]} numberOfLines={1}>
-                                            👤 {bk.guest_name}
+                                            {bk.guest_name}
                                           </Text>
                                           {bk.booking_code ? (
                                             <Text style={[styles.stayBookingCode, !isDark && { color: '#64748B' }]}>#{bk.booking_code}</Text>
@@ -1024,7 +1137,7 @@ export default function BookingManagementModal({
                                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                           <Ionicons name="calendar-outline" size={11} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 4 }} />
                                           <Text style={[styles.stayDates, !isDark && { color: '#64748B' }]}>
-                                            {bk.check_in_date} ➔ {bk.check_out_date} ({bk.nights} đêm)
+                                            {bk.check_in_date} → {bk.check_out_date} ({bk.nights} đêm)
                                           </Text>
                                         </View>
 
@@ -1382,14 +1495,105 @@ const styles = StyleSheet.create({
     color: '#F8FAFC',
     fontSize: 12.5,
   },
+  searchAndFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 10,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    gap: 4,
+    position: 'relative',
+  },
+  filterToggleBtnActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderColor: '#F59E0B',
+  },
+  filterToggleBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  filterToggleBtnTextActive: {
+    color: '#F59E0B',
+    fontWeight: '800',
+  },
+  filterActiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+    position: 'absolute',
+    top: 6,
+    right: 6,
+  },
+  activeFilterSummaryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 8,
+  },
+  activeFilterSummaryText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F59E0B',
+  },
+  resetFilterSmallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  resetFilterSmallText: {
+    fontSize: 10.5,
+    color: '#EF4444',
+    fontWeight: '700',
+  },
+  filterCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  filterCardTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  filterCardResetText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
   filterBarContainer: {
-    marginBottom: 6,
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   chipScrollView: {
-    marginBottom: 6,
+    marginBottom: 8,
   },
   floorChip: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0F172A',
     paddingHorizontal: 11,
     paddingVertical: 5,
     borderRadius: 8,
@@ -1416,9 +1620,11 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     flex: 1,
-    backgroundColor: '#1E293B',
-    paddingVertical: 6,
+    backgroundColor: '#0F172A',
+    paddingVertical: 7,
+    paddingHorizontal: 2,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#334155',
@@ -1431,10 +1637,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#94A3B8',
     fontWeight: '600',
+    textAlign: 'center',
   },
   statusChipTextActive: {
     color: '#F59E0B',
     fontWeight: '800',
+    textAlign: 'center',
   },
   timelineSubBar: {
     flexDirection: 'row',

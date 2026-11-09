@@ -129,7 +129,7 @@ export const getServiceActionConfig = (item: ServiceOrder) => {
         claimIcon: 'leaf',
         nextStepLabel: 'KTV ĐÃ SẴN SÀNG ĐÓN KHÁCH',
         nextStepIcon: 'sparkles',
-        completeStepLabel: 'XÁC NHẬN HOÀN TẤT LIỆU TRÌNH ✨',
+        completeStepLabel: 'XÁC NHẬN HOÀN TẤT LIỆU TRÌNH',
         deliveringLabel: 'KTV đang phục vụ',
         completeSuccessMsg: 'Liệu trình Spa đã hoàn tất!',
       };
@@ -146,7 +146,7 @@ export const getServiceActionConfig = (item: ServiceOrder) => {
         claimIcon: 'shirt',
         nextStepLabel: 'BẮT ĐẦU MANG ĐỒ LÊN PHÒNG',
         nextStepIcon: 'arrow-up-circle',
-        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO ĐỒ CHO KHÁCH ✨',
+        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO ĐỒ CHO KHÁCH',
         deliveringLabel: 'Đang mang đồ lên phòng',
         completeSuccessMsg: 'Đồ giặt ủi đã bàn giao thành công!',
       };
@@ -163,7 +163,7 @@ export const getServiceActionConfig = (item: ServiceOrder) => {
         claimIcon: 'gift',
         nextStepLabel: 'BẮT ĐẦU CHUYỂN TỚI PHÒNG',
         nextStepIcon: 'walk',
-        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO ✨',
+        completeStepLabel: 'XÁC NHẬN ĐÃ BÀN GIAO',
         deliveringLabel: 'Đang chuyển tới phòng',
         completeSuccessMsg: 'Tiện ích phòng đã được bàn giao!',
       };
@@ -181,7 +181,7 @@ export const getServiceActionConfig = (item: ServiceOrder) => {
         claimIcon: 'restaurant',
         nextStepLabel: 'BẮT ĐẦU MANG LÊN PHÒNG',
         nextStepIcon: 'bicycle',
-        completeStepLabel: 'XÁC NHẬN ĐÃ PHỤC VỤ MÓN ✨',
+        completeStepLabel: 'XÁC NHẬN ĐÃ PHỤC VỤ MÓN',
         deliveringLabel: 'Đang mang lên phòng',
         completeSuccessMsg: 'Món ăn đã được phục vụ tại phòng!',
       };

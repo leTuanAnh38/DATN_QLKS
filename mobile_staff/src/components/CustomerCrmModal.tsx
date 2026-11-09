@@ -268,15 +268,15 @@ export default function CustomerCrmModal({
   const getTierBadge = (tier: string = '') => {
     const t = tier.toLowerCase();
     if (t.includes('diamond') || t.includes('kim cương')) {
-      return { label: 'Kim Cương 💎', bg: 'rgba(56, 189, 248, 0.15)', text: '#38BDF8', border: 'rgba(56, 189, 248, 0.4)' };
+      return { label: 'Kim Cương', bg: 'rgba(56, 189, 248, 0.15)', text: '#38BDF8', border: 'rgba(56, 189, 248, 0.4)' };
     }
     if (t.includes('gold') || t.includes('vàng')) {
-      return { label: 'Vàng 🥇', bg: 'rgba(245, 158, 11, 0.15)', text: '#F59E0B', border: 'rgba(245, 158, 11, 0.4)' };
+      return { label: 'Vàng', bg: 'rgba(245, 158, 11, 0.15)', text: '#F59E0B', border: 'rgba(245, 158, 11, 0.4)' };
     }
     if (t.includes('silver') || t.includes('bạc')) {
-      return { label: 'Bạc 🥈', bg: 'rgba(148, 163, 184, 0.15)', text: '#CBD5E1', border: 'rgba(148, 163, 184, 0.4)' };
+      return { label: 'Bạc', bg: 'rgba(148, 163, 184, 0.15)', text: '#CBD5E1', border: 'rgba(148, 163, 184, 0.4)' };
     }
-    return { label: 'Đồng 🥉', bg: 'rgba(180, 83, 9, 0.15)', text: '#D97706', border: 'rgba(180, 83, 9, 0.4)' };
+    return { label: 'Đồng', bg: 'rgba(180, 83, 9, 0.15)', text: '#D97706', border: 'rgba(180, 83, 9, 0.4)' };
   };
 
   return (
@@ -307,7 +307,7 @@ export default function CustomerCrmModal({
               </TouchableOpacity>
             ) : (
               <View>
-                <Text style={[styles.headerTitle, !isDark && { color: '#0F172A' }]}>Hồ Sơ Khách Hàng (CRM) 👥</Text>
+                <Text style={[styles.headerTitle, !isDark && { color: '#0F172A' }]}>Hồ Sơ Khách Hàng (CRM)</Text>
                 <Text style={[styles.headerSubtitle, !isDark && { color: '#64748B' }]}>Tra cứu thông tin, lịch sử đặt phòng & dịch vụ</Text>
               </View>
             )}
@@ -334,10 +334,10 @@ export default function CustomerCrmModal({
                 >
                   {[
                     { key: 'all', label: 'Tất cả' },
-                    { key: 'diamond', label: '💎 Kim Cương' },
-                    { key: 'gold', label: '🥇 Vàng' },
-                    { key: 'silver', label: '🥈 Bạc' },
-                    { key: 'bronze', label: '🥉 Đồng' },
+                    { key: 'diamond', label: 'Kim Cương' },
+                    { key: 'gold', label: 'Vàng' },
+                    { key: 'silver', label: 'Bạc' },
+                    { key: 'bronze', label: 'Đồng' },
                   ].map((item) => {
                     const isSelected = tierFilter === item.key;
                     return (
@@ -506,9 +506,12 @@ export default function CustomerCrmModal({
                         </Text>
                       </View>
                       {selectedGuest.loyalty_points || selectedGuest.total_points ? (
-                        <Text style={[styles.pointsText, !isDark && { color: '#D97706' }]}>
-                          ⭐ {selectedGuest.loyalty_points || selectedGuest.total_points} điểm
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <Ionicons name="star" size={12} color="#F59E0B" />
+                          <Text style={[styles.pointsText, !isDark && { color: '#D97706' }]}>
+                            {selectedGuest.loyalty_points || selectedGuest.total_points} điểm
+                          </Text>
+                        </View>
                       ) : null}
                     </View>
                   </View>
@@ -650,9 +653,12 @@ export default function CustomerCrmModal({
                         <Text style={[styles.historyRoomName, !isDark && { color: '#0F172A' }]}>
                           Phòng: {b.room_number ? `P.${b.room_number}` : 'Chưa xếp'} • {b.room_name || 'Phòng Deluxe'}
                         </Text>
-                        <Text style={[styles.historyDates, !isDark && { color: '#64748B' }]}>
-                          📅 {b.check_in_date} ➔ {b.check_out_date}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginVertical: 2 }}>
+                          <Ionicons name="calendar-outline" size={12} color={isDark ? '#94A3B8' : '#64748B'} />
+                          <Text style={[styles.historyDates, !isDark && { color: '#64748B' }]}>
+                            {b.check_in_date} → {b.check_out_date}
+                          </Text>
+                        </View>
                         <Text style={[styles.historyPrice, !isDark && { color: '#059669' }]}>
                           Tổng tiền: {b.total_amount ? `${parseInt(b.total_amount, 10).toLocaleString('vi-VN')} đ` : '—'}
                         </Text>
@@ -698,14 +704,20 @@ export default function CustomerCrmModal({
                               Phòng: P.{s.room_number || '—'} • {s.category_name || 'Dịch vụ'}
                             </Text>
                             {s.created_at ? (
-                              <Text style={[styles.historyDates, !isDark && { color: '#64748B' }]}>
-                                ⏰ Đặt: {new Date(s.created_at).toLocaleString('vi-VN')}
-                              </Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                <Ionicons name="time-outline" size={12} color={isDark ? '#94A3B8' : '#64748B'} />
+                                <Text style={[styles.historyDates, !isDark && { color: '#64748B' }]}>
+                                  Đặt: {new Date(s.created_at).toLocaleString('vi-VN')}
+                                </Text>
+                              </View>
                             ) : null}
                             {s.is_scheduled && s.request_time ? (
-                              <Text style={[styles.historyDates, { color: '#D97706', fontWeight: '700' }]}>
-                                📅 Hẹn giao: {new Date(s.request_time).toLocaleString('vi-VN')}
-                              </Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                <Ionicons name="calendar-outline" size={12} color="#D97706" />
+                                <Text style={[styles.historyDates, { color: '#D97706', fontWeight: '700' }]}>
+                                  Hẹn giao: {new Date(s.request_time).toLocaleString('vi-VN')}
+                                </Text>
+                              </View>
                             ) : null}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
                               <Text style={[styles.historyPrice, !isDark && { color: '#059669' }]}>

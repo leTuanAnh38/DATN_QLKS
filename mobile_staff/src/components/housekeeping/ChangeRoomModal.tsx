@@ -238,7 +238,7 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
               if (res.data?.success) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 Alert.alert(
-                  'Đổi phòng thành công! 🎉',
+                  'Đổi phòng thành công',
                   `Đã chuyển khách ${currentBooking?.guest_name || ''} sang ${targetRoomText}.\nPhòng P.${room.room_number} đã chuyển sang trạng thái ${oldRoomStatus === 'maintenance' ? 'Bảo trì' : 'Cần dọn'}.`,
                   [{ text: 'OK', onPress: () => {
                     onClose();
@@ -344,9 +344,12 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
                     #{currentBooking.booking_code}
                   </Text>
                 </View>
-                <Text style={[styles.occupiedNoticeSub, !isDark && { color: '#3730A3' }]}>
-                  ⚡ Nghiệp vụ Đổi phòng khẩn cấp: Hệ thống sẽ chuyển toàn bộ dịch vụ, tiền phòng sang phòng mới và tự động cách ly phòng P.{room.room_number} để bảo trì.
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
+                  <Ionicons name="flash-outline" size={14} color={isDark ? '#818CF8' : '#4F46E5'} style={{ marginTop: 2 }} />
+                  <Text style={[styles.occupiedNoticeSub, { flex: 1, marginTop: 0 }, !isDark && { color: '#3730A3' }]}>
+                    Nghiệp vụ Đổi phòng khẩn cấp: Hệ thống sẽ chuyển toàn bộ dịch vụ, tiền phòng sang phòng mới và tự động cách ly phòng P.{room.room_number} để bảo trì.
+                  </Text>
+                </View>
               </View>
             )}
 

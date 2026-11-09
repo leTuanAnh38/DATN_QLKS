@@ -191,7 +191,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
                   Phòng {room.room_number}
                 </Text>
                 <Text style={[styles.modalRoomSubtitle, !isDark && { color: '#64748B' }]}>
-                  Khai Báo Đồ Khách Bỏ Quên 🧳
+                  Khai Báo Đồ Khách Bỏ Quên
                 </Text>
               </View>
               <TouchableOpacity
