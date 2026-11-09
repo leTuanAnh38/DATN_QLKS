@@ -250,7 +250,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 await fetchRooms(true);
                 setTimeout(() => setAlertMessage(null), 3500);
             } else {
-                alert(res.message || 'Không thể gửi yêu cầu dọn phòng.');
+                setAlertMessage({
+                    type: 'error',
+                    text: res.message || 'Không thể gửi yêu cầu dọn phòng.'
+                });
+                setTimeout(() => setAlertMessage(null), 4000);
             }
         } catch (err) {
             console.error('Lỗi yêu cầu dọn phòng:', err);
@@ -271,7 +275,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 await fetchRooms(true);
                 setTimeout(() => setAlertMessage(null), 3500);
             } else {
-                alert(res.message || 'Không thể xác nhận hoàn tất dọn phòng.');
+                setAlertMessage({
+                    type: 'error',
+                    text: res.message || 'Không thể xác nhận hoàn tất dọn phòng.'
+                });
+                setTimeout(() => setAlertMessage(null), 4000);
             }
         } catch (err) {
             console.error('Lỗi hoàn tất dọn phòng:', err);
@@ -410,7 +418,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     // Thao tác Check-out từ Sơ đồ phòng PMS
     const handleOpenCheckOut = (room) => {
         if (!canManageBookings) {
-            alert('Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện thủ tục Check-out trả phòng.');
+            setAlertMessage({
+                type: 'error',
+                text: 'Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện thủ tục Check-out trả phòng.'
+            });
+            setTimeout(() => setAlertMessage(null), 4000);
             return;
         }
         if (room.current_booking) {
@@ -440,7 +452,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
     // Thao tác Mở Modal Gán phòng đón khách
     const handleOpenAssignModal = async (room) => {
         if (!canManageBookings) {
-            alert('Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện thủ tục Gán phòng đón khách.');
+            setAlertMessage({
+                type: 'error',
+                text: 'Chỉ nhân viên Lễ tân hoặc Quản lý mới có quyền thực hiện thủ tục Gán phòng đón khách.'
+            });
+            setTimeout(() => setAlertMessage(null), 4000);
             return;
         }
         setAssignModalRoom(room);
@@ -1812,6 +1828,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 <CheckOutModal
                     booking={checkOutBooking}
                     onClose={() => setCheckOutBooking(null)}
+                    showToast={showToast}
                     onSuccess={handleCheckOutSuccess}
                     onOpenInvoice={(inv) => {
                         setCheckOutBooking(null);

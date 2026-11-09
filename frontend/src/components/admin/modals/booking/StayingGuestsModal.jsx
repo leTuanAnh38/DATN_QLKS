@@ -16,6 +16,12 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterIdType, setFilterIdType] = useState('all');
+    const [modalToast, setModalToast] = useState(null);
+
+    const showModalToast = (type, message) => {
+        setModalToast({ type, message });
+        setTimeout(() => setModalToast(null), 3500);
+    };
 
     const fetchGuests = async () => {
         setIsLoading(true);
@@ -27,7 +33,7 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
             }
         } catch (error) {
             console.error('Lỗi khi tải danh sách khách lưu trú:', error);
-            alert('Không thể tải danh sách khách đang lưu trú. Vui lòng thử lại!');
+            showModalToast('error', 'Không thể tải danh sách khách đang lưu trú. Vui lòng thử lại!');
         } finally {
             setIsLoading(false);
         }
@@ -60,7 +66,7 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
     // XUẤT FILE CSV KÈM BOM \uFEFF ĐỂ EXCEL HIỂN THỊ CHUẨN TIẾNG VIỆT
     const exportToCSV = () => {
         if (!guests || guests.length === 0) {
-            alert('Không có dữ liệu khách lưu trú để xuất file.');
+            showModalToast('warning', 'Không có dữ liệu khách lưu trú để xuất file.');
             return;
         }
 
@@ -124,7 +130,14 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
 
     return (
         <div className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-5xl w-full p-4 sm:p-6 shadow-2xl text-left max-h-[94vh] sm:max-h-[92vh] overflow-hidden flex flex-col justify-between animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-5xl w-full p-4 sm:p-6 shadow-2xl text-left max-h-[94vh] sm:max-h-[92vh] overflow-hidden flex flex-col justify-between animate-in zoom-in-95 duration-200 relative">
+                {/* TOAST THÔNG BÁO NỔI */}
+                {modalToast && (
+                    <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-rose-600 text-white border-rose-500 shadow-rose-600/30">
+                        <span>{modalToast.type === 'success' ? '✓' : modalToast.type === 'warning' ? '⚡' : '⚠️'}</span>
+                        <span>{modalToast.message}</span>
+                    </div>
+                )}
                 {/* 1. HEADER MODAL */}
                 <div className="flex items-start justify-between pb-3.5 sm:pb-4 border-b border-slate-100">
                     <div className="flex items-center gap-3">

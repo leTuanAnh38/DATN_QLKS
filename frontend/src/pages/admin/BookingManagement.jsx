@@ -2013,6 +2013,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 <CheckOutModal
                     booking={checkOutModalBooking}
                     onClose={() => setCheckOutModalBooking(null)}
+                    showToast={showToast}
                     onSuccess={(result) => {
                         showToast('success', result?.message || 'Check-out và thanh toán thành công!');
                         const checkedOutId = checkOutModalBooking.id;

@@ -21,7 +21,14 @@ import {
     Key,
     XCircle,
     FileText,
-    TrendingUp
+    TrendingUp,
+    AlertCircle,
+    Copy,
+    LayoutGrid,
+    LayoutList,
+    Receipt,
+    Mail,
+    ChevronRight
 } from 'lucide-react';
 import { bookingService } from '../../../services/bookingService';
 import CreateGroupModal from '../modals/group/CreateGroupModal';
@@ -54,6 +61,9 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
     const [isLoading, setIsLoading] = useState(true);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | 'this_week' | 'this_month'
+    const [viewMode, setViewMode] = useState('card'); // 'card' | 'table'
+    const [copiedCode, setCopiedCode] = useState(null);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -64,6 +74,15 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [invoiceBooking, setInvoiceBooking] = useState(null);
     const [isPreparingInvoice, setIsPreparingInvoice] = useState(false);
+
+    // Copy handler with feedback
+    const handleCopyCode = (code, e) => {
+        if (e) e.stopPropagation();
+        if (!code) return;
+        navigator.clipboard?.writeText(code);
+        setCopiedCode(code);
+        setTimeout(() => setCopiedCode(null), 2000);
+    };
 
     // Expose methods to parent component (BookingManagement)
     useImperativeHandle(ref, () => ({
@@ -96,18 +115,57 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
         fetchGroups();
     }, [statusFilter]);
 
-    // Filter by keyword locally
+    // Filter by keyword and date locally
     const filteredGroups = useMemo(() => {
-        if (!searchKeyword.trim()) return groups;
-        const kw = searchKeyword.toLowerCase();
-        return groups.filter((g) =>
-            (g.group_code || '').toLowerCase().includes(kw) ||
-            (g.group_name || '').toLowerCase().includes(kw) ||
-            (g.leader_name || '').toLowerCase().includes(kw) ||
-            (g.leader_phone || '').toLowerCase().includes(kw) ||
-            (g.corporate_partner_details?.company_name || '').toLowerCase().includes(kw)
-        );
-    }, [groups, searchKeyword]);
+        let result = groups;
+
+        if (searchKeyword.trim()) {
+            const kw = searchKeyword.toLowerCase();
+            result = result.filter((g) =>
+                (g.group_code || '').toLowerCase().includes(kw) ||
+                (g.group_name || '').toLowerCase().includes(kw) ||
+                (g.leader_name || '').toLowerCase().includes(kw) ||
+                (g.leader_phone || '').toLowerCase().includes(kw) ||
+                (g.corporate_partner_details?.company_name || '').toLowerCase().includes(kw)
+            );
+        }
+
+        if (dateFilter !== 'all') {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+
+            if (dateFilter === 'today') {
+                result = result.filter((g) => {
+                    const ci = (g.check_in_date || '').split('T')[0];
+                    const co = (g.check_out_date || '').split('T')[0];
+                    return ci === todayStr || co === todayStr || (ci <= todayStr && co >= todayStr);
+                });
+            } else if (dateFilter === 'this_week') {
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - now.getDay());
+                startOfWeek.setHours(0, 0, 0, 0);
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+                result = result.filter((g) => {
+                    if (!g.check_in_date) return false;
+                    const ci = new Date(g.check_in_date);
+                    return ci >= startOfWeek && ci <= endOfWeek;
+                });
+            } else if (dateFilter === 'this_month') {
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+
+                result = result.filter((g) => {
+                    if (!g.check_in_date) return false;
+                    const ci = new Date(g.check_in_date);
+                    return ci.getMonth() === currentMonth && ci.getFullYear() === currentYear;
+                });
+            }
+        }
+
+        return result;
+    }, [groups, searchKeyword, dateFilter]);
 
     // Pagination calculations
     const totalCount = filteredGroups.length;
@@ -121,7 +179,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
     // Reset current page when filters or search change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchKeyword, statusFilter]);
+    }, [searchKeyword, statusFilter, dateFilter]);
 
     // Ensure currentPage is valid if totalPages shrinks
     useEffect(() => {
@@ -199,6 +257,81 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
             completed: groups.filter((g) => ['checked_out', 'completed'].includes(g.status)).length
         };
     }, [groups]);
+
+    // Helper tính toán các chỉ số chi tiết cho một đơn đoàn
+    const getGroupMetrics = (group) => {
+        const partner = group.corporate_partner_details;
+        const subBookings = group.sub_bookings || [];
+        const totalRooms = group.total_rooms || subBookings.length || 0;
+
+        // Xếp phòng
+        const assignedSubBookings = subBookings.filter(
+            (b) => Boolean(b.room?.room_number || b.room_number || (b.room && typeof b.room !== 'object'))
+        );
+        let assignedCount = assignedSubBookings.length;
+        if (assignedCount === 0 && group.rooms_summary) {
+            const summaryValues = Object.values(group.rooms_summary);
+            const summaryAssigned = summaryValues.reduce(
+                (sum, item) => sum + (item.assigned_rooms?.length || 0),
+                0
+            );
+            if (summaryAssigned > 0) assignedCount = summaryAssigned;
+        }
+
+        const assignedRoomNumbers = assignedSubBookings
+            .map((b) => b.room?.room_number || b.room_number || (typeof b.room === 'string' ? b.room : ''))
+            .filter(Boolean);
+
+        // Tổng số khách (Pax)
+        const totalGuests =
+            subBookings.reduce(
+                (sum, b) => sum + (Number(b.adults) || 1) + (Number(b.children) || 0),
+                0
+            ) || group.total_guests || null;
+
+        // Trạng thái đơn
+        const isCheckedIn = group.status === 'checked_in';
+        const isCompleted = ['checked_out', 'completed'].includes(group.status);
+        const isCancelled = group.status === 'cancelled';
+        const isConfirmed = group.status === 'confirmed';
+        const isTentative = group.status === 'tentative';
+
+        // Tài chính & Công nợ
+        const totalAmount = Number(group.total_amount) || 0;
+        const depositAmount = Number(group.deposit_amount) || 0;
+        const isDepositPaid = Boolean(group.is_deposit_paid || isCompleted);
+        const remainingBalance = isCompleted
+            ? 0
+            : group.remaining_balance !== undefined
+            ? Number(group.remaining_balance)
+            : Math.max(0, totalAmount - (isDepositPaid ? depositAmount : 0));
+
+        // Kiểm tra xem tên đoàn có chứa sẵn tên công ty không (tránh lặp)
+        const isNameRedundant = Boolean(
+            partner?.company_name &&
+            group.group_name &&
+            group.group_name.toLowerCase().includes(partner.company_name.toLowerCase())
+        );
+
+        return {
+            partner,
+            subBookings,
+            totalRooms,
+            assignedCount,
+            assignedRoomNumbers,
+            totalGuests,
+            isCheckedIn,
+            isCompleted,
+            isCancelled,
+            isConfirmed,
+            isTentative,
+            totalAmount,
+            depositAmount,
+            isDepositPaid,
+            remainingBalance,
+            isNameRedundant
+        };
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-200">
@@ -353,30 +486,87 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                 </div>
             </div>
 
-            {/* SEARCH BAR */}
-            <div className="bg-white p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center gap-3 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
-                <Search className="w-4 h-4 text-indigo-500 ml-2.5 shrink-0" />
-                <input
-                    type="text"
-                    placeholder="Tìm theo Mã đoàn (GRP-...), Tên đoàn, Tên công ty đối tác, Trưởng đoàn, Số điện thoại..."
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                    className="w-full bg-transparent text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-medium"
-                />
-                <div className="flex items-center gap-2 pr-2 shrink-0">
-                    <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-                        {filteredGroups.length} đoàn
-                    </span>
+            {/* TOOLBAR: SEARCH, DATE FILTER, VIEW MODE */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
+                {/* Search Input */}
+                <div className="flex-1 flex items-center gap-2.5 px-2 bg-slate-50/70 hover:bg-slate-50 rounded-xl border border-slate-200/80 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 focus-within:bg-white transition-all">
+                    <Search className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <input
+                        type="text"
+                        placeholder="Tìm theo Mã đoàn (GRP-...), Tên đoàn, Tên công ty đối tác, Trưởng đoàn, SĐT..."
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                        className="w-full py-2 bg-transparent text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-medium"
+                    />
                     {searchKeyword && (
                         <button
                             type="button"
                             onClick={() => setSearchKeyword('')}
-                            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
                             title="Xóa tìm kiếm"
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
                     )}
+                </div>
+
+                {/* Right controls: Date filter & View mode */}
+                <div className="flex items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 justify-between lg:justify-end shrink-0 flex-wrap">
+                    {/* Quick Date Filters */}
+                    <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/80 text-[11px] font-semibold text-slate-600">
+                        {[
+                            { key: 'all', label: 'Tất cả ngày' },
+                            { key: 'today', label: 'Hôm nay' },
+                            { key: 'this_week', label: 'Tuần này' },
+                            { key: 'this_month', label: 'Tháng này' }
+                        ].map((tab) => (
+                            <button
+                                key={tab.key}
+                                type="button"
+                                onClick={() => setDateFilter(tab.key)}
+                                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                                    dateFilter === tab.key
+                                        ? 'bg-white text-indigo-700 shadow-2xs font-black'
+                                        : 'hover:text-slate-900 text-slate-600'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Counter */}
+                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200/60 shrink-0">
+                        {filteredGroups.length} đoàn
+                    </span>
+
+                    {/* View mode toggle */}
+                    <div className="flex items-center bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/80 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('card')}
+                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                viewMode === 'card'
+                                    ? 'bg-white text-indigo-600 shadow-2xs'
+                                    : 'text-slate-400 hover:text-slate-600'
+                            }`}
+                            title="Chế độ xem dạng Thẻ"
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('table')}
+                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                viewMode === 'table'
+                                    ? 'bg-white text-indigo-600 shadow-2xs'
+                                    : 'text-slate-400 hover:text-slate-600'
+                            }`}
+                            title="Chế độ xem dạng Bảng"
+                        >
+                            <LayoutList className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -398,22 +588,176 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                             : 'Hiện tại chưa có đơn đặt đoàn nào được ghi nhận trong hệ thống.'}
                     </p>
                 </div>
+            ) : viewMode === 'table' ? (
+                /* CHẾ ĐỘ XEM BẢNG (TABLE VIEW) CHO CAO ĐIỂM / TRA CỨU NHANH */
+                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-slate-700 border-collapse">
+                            <thead className="bg-slate-50/90 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-500">
+                                <tr>
+                                    <th className="py-3.5 px-4">Mã & Tên Đoàn</th>
+                                    <th className="py-3.5 px-4">Đối Tác B2B</th>
+                                    <th className="py-3.5 px-4">Trưởng Đoàn</th>
+                                    <th className="py-3.5 px-4">Quy Mô & Lưu Trú</th>
+                                    <th className="py-3.5 px-4">Phân Phòng</th>
+                                    <th className="py-3.5 px-4">Hợp Đồng & Cọc</th>
+                                    <th className="py-3.5 px-4">Công Nợ</th>
+                                    <th className="py-3.5 px-4">Trạng Thái</th>
+                                    <th className="py-3.5 px-4 text-right">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                                {paginatedGroups.map((group) => {
+                                    const m = getGroupMetrics(group);
+                                    return (
+                                        <tr
+                                            key={group.id}
+                                            className="hover:bg-indigo-50/30 transition-colors group cursor-pointer"
+                                            onClick={() => setSelectedGroup(group)}
+                                        >
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-mono text-[11px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/80">
+                                                        #{group.group_code}
+                                                    </span>
+                                                </div>
+                                                <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mt-0.5 max-w-[220px] truncate" title={group.group_name}>
+                                                    {group.group_name}
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                {m.partner ? (
+                                                    <div className="space-y-0.5">
+                                                        <div className="font-bold text-purple-900 text-[11px] max-w-[160px] truncate" title={m.partner.company_name}>
+                                                            {m.partner.company_name}
+                                                        </div>
+                                                        <span className="inline-block px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 text-[9px] font-black">
+                                                            -{m.partner.discount_percent}% B2B
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 text-[11px]">Đoàn tự do</span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <div className="font-bold text-slate-800">{group.leader_name}</div>
+                                                <div className="text-[11px] text-slate-500 font-mono">{group.leader_phone}</div>
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <div className="font-bold text-slate-900">
+                                                    {m.totalRooms} phòng {m.totalGuests ? `• ${m.totalGuests} khách` : ''}
+                                                </div>
+                                                <div className="text-[11px] text-slate-500">
+                                                    {formatDate(group.check_in_date)} → {formatDate(group.check_out_date)} ({group.nights} đêm)
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                {m.totalRooms > 0 && m.assignedCount === 0 ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                                        <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                                                        <span>Chưa phân ({m.assignedCount}/{m.totalRooms})</span>
+                                                    </span>
+                                                ) : m.totalRooms > 0 && m.assignedCount < m.totalRooms ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                                        <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                                                        <span>Đã phân {m.assignedCount}/{m.totalRooms}</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                                        <span>Đã đủ {m.assignedCount}/{m.totalRooms}</span>
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <div className="font-black text-indigo-700">{formatCurrency(m.totalAmount)}</div>
+                                                <div className="text-[10px] text-slate-500">Cọc: {formatCurrency(m.depositAmount)}</div>
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                {m.isCompleted ? (
+                                                    <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                                                        Đã quyết toán
+                                                    </span>
+                                                ) : m.remainingBalance > 0 ? (
+                                                    <div className="text-[11px] font-black text-rose-600">
+                                                        Còn nợ: {formatCurrency(m.remainingBalance)}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                        Đã thu 100%
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 border shadow-2xs ${
+                                                    m.isCancelled
+                                                        ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                        : m.isCheckedIn
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                        : m.isCompleted
+                                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                        : m.isConfirmed
+                                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                }`}>
+                                                    {m.isCancelled
+                                                        ? 'Đã hủy'
+                                                        : m.isCheckedIn
+                                                        ? 'Đang ở'
+                                                        : m.isCompleted
+                                                        ? 'Hoàn tất'
+                                                        : (group.status_display || group.status)}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenInvoice(group)}
+                                                        disabled={isPreparingInvoice}
+                                                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 transition cursor-pointer"
+                                                        title="In chứng từ / hóa đơn"
+                                                    >
+                                                        <Printer className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedGroup(group)}
+                                                        className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition cursor-pointer flex items-center gap-1"
+                                                    >
+                                                        <span>Chi tiết</span>
+                                                        <ArrowRight className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             ) : (
+                /* CHẾ ĐỘ XEM THẺ (CARD VIEW) - HIỆN ĐẠI & TỐI ƯU CỰC KỲ CHI TIẾT */
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 gap-4">
                         {paginatedGroups.map((group) => {
-                            const partner = group.corporate_partner_details;
-                            const isCheckedIn = group.status === 'checked_in';
-                            const isCompleted = ['checked_out', 'completed'].includes(group.status);
-                            const isCancelled = group.status === 'cancelled';
-                            const isConfirmed = group.status === 'confirmed';
-                            const isTentative = group.status === 'tentative';
+                            const m = getGroupMetrics(group);
 
                             return (
                                 <div
                                     key={group.id}
                                     className="bg-white p-5 rounded-3xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-lg transition-all duration-200 space-y-4 group"
                                 >
+                                    {/* CARD HEADER */}
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <div className="flex items-start sm:items-center gap-3.5">
                                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/70 border border-indigo-200/70 flex items-center justify-center text-indigo-600 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
@@ -421,44 +765,61 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50/80 px-2.5 py-0.5 rounded-lg border border-indigo-200/80 shadow-2xs">
-                                                        #{group.group_code}
-                                                    </span>
+                                                    {/* Mã đoàn có nút sao chép nhanh */}
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => handleCopyCode(group.group_code, e)}
+                                                            className="group/code font-mono text-xs font-black text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100/90 px-2.5 py-0.5 rounded-lg border border-indigo-200/80 shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
+                                                            title="Nhấp để sao chép mã đoàn"
+                                                        >
+                                                            <span>#{group.group_code}</span>
+                                                            <Copy className="w-3 h-3 text-indigo-400 group-hover/code:text-indigo-600 transition-colors" />
+                                                        </button>
+                                                        {copiedCode === group.group_code && (
+                                                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 animate-in fade-in duration-200">
+                                                                Đã sao chép!
+                                                            </span>
+                                                        )}
+                                                    </div>
 
-                                                    {/* Trạng thái đoàn với icon SVG sắc nét */}
+                                                    {/* Trạng thái đoàn */}
                                                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border shadow-2xs ${
-                                                        isCancelled
+                                                        m.isCancelled
                                                             ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                                            : isCheckedIn
+                                                            : m.isCheckedIn
                                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                            : isCompleted
+                                                            : m.isCompleted
                                                             ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                            : isConfirmed
+                                                            : m.isConfirmed
                                                             ? 'bg-blue-50 text-blue-700 border-blue-200'
                                                             : 'bg-amber-50 text-amber-700 border-amber-200'
                                                     }`}>
-                                                        {isCancelled && <XCircle className="w-3 h-3" />}
-                                                        {isCheckedIn && <Key className="w-3 h-3" />}
-                                                        {isCompleted && <ShieldCheck className="w-3 h-3" />}
-                                                        {isConfirmed && <CheckCircle2 className="w-3 h-3" />}
-                                                        {isTentative && <Clock className="w-3 h-3" />}
+                                                        {m.isCancelled && <XCircle className="w-3 h-3" />}
+                                                        {m.isCheckedIn && <Key className="w-3 h-3" />}
+                                                        {m.isCompleted && <ShieldCheck className="w-3 h-3" />}
+                                                        {m.isConfirmed && <CheckCircle2 className="w-3 h-3" />}
+                                                        {m.isTentative && <Clock className="w-3 h-3" />}
                                                         <span>
-                                                            {isCancelled
+                                                            {m.isCancelled
                                                                 ? 'ĐÃ HỦY ĐOÀN'
-                                                                : isCheckedIn
+                                                                : m.isCheckedIn
                                                                 ? 'ĐANG Ở (IN-HOUSE)'
-                                                                : isCompleted
+                                                                : m.isCompleted
                                                                 ? 'HOÀN TẤT & QUYẾT TOÁN'
                                                                 : (group.status_display || group.status)}
                                                         </span>
                                                     </span>
 
-                                                    {partner && (
+                                                    {/* Badge đối tác Doanh nghiệp B2B (tinh chỉnh không lặp tên công ty nếu tiêu đề đã có) */}
+                                                    {m.partner && (
                                                         <span className="px-2.5 py-0.5 rounded-lg bg-purple-50 text-purple-800 text-[11px] font-bold border border-purple-200/80 flex items-center gap-1.5 shadow-2xs">
-                                                            <Briefcase className="w-3 h-3 text-purple-600" />
-                                                            <span>{partner.company_name}</span>
+                                                            <Briefcase className="w-3 h-3 text-purple-600 shrink-0" />
+                                                            <span>
+                                                                {m.isNameRedundant ? 'Đối tác B2B' : m.partner.company_name}
+                                                            </span>
                                                             <span className="px-1.5 py-0.2 rounded bg-purple-200/60 text-purple-950 text-[10px] font-black">
-                                                                -{partner.discount_percent}%
+                                                                -{m.partner.discount_percent}%
                                                             </span>
                                                         </span>
                                                     )}
@@ -477,96 +838,191 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                                 onClick={() => handleOpenInvoice(group)}
                                                 disabled={isPreparingInvoice}
                                                 className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 shadow-2xs group/btn"
-                                                title="In hóa đơn thanh toán cho toàn bộ đoàn"
+                                                title="In chứng từ / hóa đơn đoàn"
                                             >
                                                 <Printer className="w-3.5 h-3.5 text-slate-500 group-hover/btn:text-indigo-600 transition-colors" />
-                                                <span>In Hóa Đơn</span>
+                                                <span>{m.isCompleted ? 'In Hóa Đơn' : 'In Phiếu Đặt Đoàn'}</span>
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setSelectedGroup(group)}
                                                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-xs hover:shadow-indigo-500/25 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                                             >
-                                                <span>Chi tiết & Phân phòng</span>
+                                                <span>
+                                                    {m.isCompleted
+                                                        ? 'Xem Chi Tiết Đoàn'
+                                                        : m.isCheckedIn
+                                                        ? 'Quản Lý & Quyết Toán'
+                                                        : 'Chi tiết & Phân phòng'}
+                                                </span>
                                                 <ArrowRight className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
                                     </div>
 
-                                    {/* Details bar - 4 Cột hiển thị sắc nét */}
+                                    {/* 4 CỘT THÔNG TIN CHI TIẾT - CHUẨN PMS 5 SAO */}
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-3.5 border-t border-slate-100 text-xs">
-                                        <div className="space-y-0.5">
+                                        {/* CỘT 1: ĐẠI DIỆN ĐOÀN */}
+                                        <div className="space-y-1">
                                             <span className="text-slate-400 block text-[10px] uppercase font-extrabold tracking-wider">
                                                 Trưởng đoàn / Đại diện
                                             </span>
-                                            <div className="flex items-center gap-1 text-slate-900 font-bold truncate">
+                                            <div className="flex items-center gap-1.5 text-slate-900 font-bold truncate">
                                                 <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                                 <span className="truncate">{group.leader_name}</span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-slate-500 text-[11px] font-medium">
+                                            <div className="flex items-center gap-1.5 text-slate-500 text-[11px] font-medium">
                                                 <Phone className="w-3 h-3 text-indigo-500 shrink-0" />
-                                                <span>{group.leader_phone}</span>
+                                                <a
+                                                    href={`tel:${group.leader_phone}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="hover:text-indigo-600 transition-colors font-mono"
+                                                >
+                                                    {group.leader_phone}
+                                                </a>
                                             </div>
+                                            {group.leader_email && (
+                                                <div className="flex items-center gap-1.5 text-slate-400 text-[10px] truncate">
+                                                    <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                                                    <span className="truncate">{group.leader_email}</span>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="space-y-0.5">
+                                        {/* CỘT 2: QUY MÔ & PHÂN BỔ PHÒNG */}
+                                        <div className="space-y-1">
                                             <span className="text-slate-400 block text-[10px] uppercase font-extrabold tracking-wider">
-                                                Quy mô & Lưu trú
+                                                Quy mô & Phân bổ phòng
                                             </span>
-                                            <div className="flex items-center gap-1 text-slate-900 font-bold">
+                                            <div className="flex items-center gap-1.5 text-slate-900 font-bold flex-wrap">
                                                 <BedDouble className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                                                <span>{group.total_rooms} phòng • {group.nights} đêm</span>
+                                                <span>{m.totalRooms} phòng</span>
+                                                {m.totalGuests && (
+                                                    <>
+                                                        <span className="text-slate-300">•</span>
+                                                        <span className="text-slate-700 flex items-center gap-0.5">
+                                                            <Users className="w-3 h-3 text-slate-400" />
+                                                            {m.totalGuests} khách
+                                                        </span>
+                                                    </>
+                                                )}
+                                                <span className="text-slate-300">•</span>
+                                                <span className="text-slate-600">{group.nights} đêm</span>
                                             </div>
                                             <div className="flex items-center gap-1 text-slate-500 text-[11px] font-medium">
                                                 <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                                                 <span>{formatDate(group.check_in_date)} → {formatDate(group.check_out_date)}</span>
                                             </div>
-                                        </div>
-
-                                        <div className="space-y-0.5">
-                                            <span className="text-slate-400 block text-[10px] uppercase font-extrabold tracking-wider">
-                                                Tổng tiền hợp đồng
-                                            </span>
-                                            <div className="text-indigo-700 font-black text-sm whitespace-nowrap">
-                                                {formatCurrency(group.total_amount)}
+                                            {/* Trạng thái phân phòng chi tiết */}
+                                            <div className="pt-0.5">
+                                                {m.totalRooms > 0 && m.assignedCount === 0 ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
+                                                        <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                                                        <span>Chưa phân phòng (0/{m.totalRooms})</span>
+                                                    </span>
+                                                ) : m.totalRooms > 0 && m.assignedCount < m.totalRooms ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
+                                                        <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                                                        <span>Đã xếp {m.assignedCount}/{m.totalRooms} phòng</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/80">
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                                        <span>
+                                                            Đã phân đủ {m.assignedCount}/{m.totalRooms} phòng
+                                                            {m.assignedRoomNumbers.length > 0 && m.assignedRoomNumbers.length <= 4
+                                                                ? ` (${m.assignedRoomNumbers.join(', ')})`
+                                                                : ''}
+                                                        </span>
+                                                    </span>
+                                                )}
                                             </div>
-                                            <span className="text-slate-500 text-[11px] font-medium block">
-                                                Cọc: <strong className="text-slate-700">{formatCurrency(group.deposit_amount)}</strong>
-                                            </span>
                                         </div>
 
+                                        {/* CỘT 3: TÀI CHÍNH HỢP ĐỒNG */}
                                         <div className="space-y-1">
                                             <span className="text-slate-400 block text-[10px] uppercase font-extrabold tracking-wider">
-                                                {isCompleted ? 'Quyết toán hợp đồng' : (group.is_deposit_paid && Number(group.deposit_amount || 0) >= Number(group.total_amount || 0) && Number(group.total_amount || 0) > 0 ? 'Thanh toán' : 'Tình trạng cọc')}
+                                                Tài chính hợp đồng
                                             </span>
-                                            {isCompleted ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs">
-                                                    <Check className="w-3 h-3 text-purple-600 stroke-[3]" />
-                                                    <span>Đã quyết toán 100%</span>
-                                                </span>
-                                            ) : (
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border shadow-2xs ${
-                                                    group.is_deposit_paid
-                                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                                            <div className="text-indigo-700 font-black text-sm whitespace-nowrap">
+                                                {formatCurrency(m.totalAmount)}
+                                            </div>
+                                            <div className="text-slate-500 text-[11px] font-medium flex items-center gap-1 flex-wrap">
+                                                <span>Cọc: <strong className="text-slate-700">{formatCurrency(m.depositAmount)}</strong></span>
+                                                {m.totalAmount > 0 && (
+                                                    <span className="text-slate-400 text-[10px]">
+                                                        ({Math.round((m.depositAmount / m.totalAmount) * 100)}%)
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* Gói thanh toán công ty */}
+                                            <div className="pt-0.5">
+                                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                                    group.billing_type === 'ROOM_ONLY'
+                                                        ? 'bg-slate-50 text-slate-700 border-slate-200'
+                                                        : 'bg-indigo-50/80 text-indigo-700 border-indigo-200/70'
                                                 }`}>
-                                                    {group.is_deposit_paid && Number(group.deposit_amount || 0) >= Number(group.total_amount || 0) && Number(group.total_amount || 0) > 0 ? (
-                                                        <>
-                                                            <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
-                                                            <span>Đã thanh toán 100%</span>
-                                                        </>
-                                                    ) : group.is_deposit_paid ? (
-                                                        <>
-                                                            <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
-                                                            <span>Đã thanh toán cọc</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Clock className="w-3 h-3 text-amber-600" />
-                                                            <span>Chờ thanh toán cọc</span>
-                                                        </>
-                                                    )}
+                                                    <Receipt className="w-2.5 h-2.5" />
+                                                    <span>{group.billing_type === 'ROOM_ONLY' ? 'Chỉ tiền phòng' : 'Trọn gói All-Inclusive'}</span>
                                                 </span>
+                                            </div>
+                                        </div>
+
+                                        {/* CỘT 4: CÔNG NỢ & QUYẾT TOÁN */}
+                                        <div className="space-y-1">
+                                            <span className="text-slate-400 block text-[10px] uppercase font-extrabold tracking-wider">
+                                                Công nợ & Quyết toán
+                                            </span>
+                                            {m.isCompleted ? (
+                                                <>
+                                                    <div className="text-emerald-700 font-black text-sm">
+                                                        Còn lại: 0đ
+                                                    </div>
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs">
+                                                        <Check className="w-3 h-3 text-purple-600 stroke-[3]" />
+                                                        <span>Đã quyết toán 100%</span>
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="text-xs font-bold">
+                                                        {m.remainingBalance > 0 ? (
+                                                            <span className="text-rose-600 font-extrabold flex items-center gap-1">
+                                                                Còn nợ: {formatCurrency(m.remainingBalance)}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-emerald-600 font-extrabold flex items-center gap-1">
+                                                                Còn lại: 0đ
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border shadow-2xs ${
+                                                            m.isDepositPaid
+                                                                ? m.remainingBalance <= 0
+                                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                                                    : 'bg-blue-50 text-blue-800 border-blue-200'
+                                                                : 'bg-amber-50 text-amber-800 border-amber-200'
+                                                        }`}>
+                                                            {m.remainingBalance <= 0 ? (
+                                                                <>
+                                                                    <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                                                                    <span>Đã thanh toán đủ</span>
+                                                                </>
+                                                            ) : m.isDepositPaid ? (
+                                                                <>
+                                                                    <Check className="w-3 h-3 text-blue-600 stroke-[3]" />
+                                                                    <span>Đã cọc • Chờ tất toán</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Clock className="w-3 h-3 text-amber-600" />
+                                                                    <span>Chờ thanh toán cọc</span>
+                                                                </>
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     </div>

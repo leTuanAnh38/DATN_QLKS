@@ -93,10 +93,19 @@ const formatDate = (dateStr) => {
     return dateStr;
 };
 
-export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoice }) {
+export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoice, showToast }) {
     const [summary, setSummary] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [modalToast, setModalToast] = useState(null);
+
+    const showModalToast = (type, message) => {
+        if (typeof showToast === 'function') {
+            try { showToast(type, message); } catch {}
+        }
+        setModalToast({ type, message });
+        setTimeout(() => setModalToast(null), 3800);
+    };
 
     // Form thanh toán & Ghi chú
     const [checkoutNote, setCheckoutNote] = useState('');
@@ -228,7 +237,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const handleRequestInspection = async () => {
         const rId = booking?.room || booking?.room_id || summary?.room_id;
         if (!rId) {
-            alert('Không tìm thấy thông tin số phòng để gửi yêu cầu kiểm tra.');
+            showModalToast('warning', 'Không tìm thấy thông tin số phòng để gửi yêu cầu kiểm tra.');
             return;
         }
 
@@ -258,11 +267,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                 setTimeout(() => setInspectionFeedback(null), 4000);
             } else {
-                alert(res.message || 'Không thể gửi yêu cầu kiểm phòng.');
+                showModalToast('error', res.message || 'Không thể gửi yêu cầu kiểm phòng.');
             }
         } catch (err) {
             console.error('Lỗi khi gửi yêu cầu kiểm phòng:', err);
-            alert('Đã xảy ra lỗi kết nối khi gửi yêu cầu kiểm phòng.');
+            showModalToast('error', 'Đã xảy ra lỗi kết nối khi gửi yêu cầu kiểm phòng.');
         } finally {
             setIsRequestingInspection(false);
         }
@@ -272,7 +281,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     const handleQuickSelfInspection = () => {
         const rId = booking?.room || booking?.room_id || summary?.room_id;
         if (!rId) {
-            alert('Không tìm thấy thông tin phòng.');
+            showModalToast('warning', 'Không tìm thấy thông tin phòng.');
             return;
         }
 
@@ -317,11 +326,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
                         setTimeout(() => setInspectionFeedback(null), 4000);
                     } else {
-                        alert(res.message || 'Không thể ghi nhận kiểm phòng.');
+                        showModalToast('error', res.message || 'Không thể ghi nhận kiểm phòng.');
                     }
                 } catch (err) {
                     console.error('Lỗi kiểm nhanh tại quầy:', err);
-                    alert('Đã xảy ra lỗi khi kết nối máy chủ.');
+                    showModalToast('error', 'Đã xảy ra lỗi khi kết nối máy chủ.');
                 } finally {
                     setIsRequestingInspection(false);
                 }
@@ -492,11 +501,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                     setServiceActionMsg(null);
                 }, 4000);
             } else {
-                alert(res.message || 'Không thể cập nhật trạng thái dịch vụ. Vui lòng thử lại.');
+                showModalToast('error', res.message || 'Không thể cập nhật trạng thái dịch vụ. Vui lòng thử lại.');
             }
         } catch (err) {
             console.error('Lỗi khi cập nhật dịch vụ:', err);
-            alert('Đã xảy ra lỗi khi kết nối máy chủ để cập nhật dịch vụ.');
+            showModalToast('error', 'Đã xảy ra lỗi khi kết nối máy chủ để cập nhật dịch vụ.');
         } finally {
             setServiceActionLoading(null);
         }
@@ -566,7 +575,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                     }, 4000);
                 } catch (err) {
                     console.error('Lỗi khi hoàn thành tất cả dịch vụ:', err);
-                    alert('Có lỗi xảy ra khi cập nhật dịch vụ.');
+                    showModalToast('error', 'Có lỗi xảy ra khi cập nhật dịch vụ.');
                 } finally {
                     setServiceActionLoading(null);
                 }
@@ -771,7 +780,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             setIsDebtPaid(true);
         } catch (err) {
             console.error('Lỗi khi ghi nhận thanh toán nợ Check-out:', err);
-            alert(err.response?.data?.message || 'Không thể ghi nhận thanh toán. Vui lòng thử lại.');
+            showModalToast('error', err.response?.data?.message || 'Không thể ghi nhận thanh toán. Vui lòng thử lại.');
         } finally {
             setIsProcessingDebtPayment(false);
         }
@@ -812,11 +821,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                     }
                 }
             } else {
-                alert(res.message || 'Check-out thất bại. Vui lòng kiểm tra lại.');
+                showModalToast('error', res.message || 'Check-out thất bại. Vui lòng kiểm tra lại.');
             }
         } catch (err) {
             console.error('Lỗi khi thực hiện Check-out:', err);
-            alert('Đã xảy ra lỗi khi kết nối máy chủ để thực hiện Check-out.');
+            showModalToast('error', 'Đã xảy ra lỗi khi kết nối máy chủ để thực hiện Check-out.');
         } finally {
             setIsSubmitting(false);
         }
@@ -880,6 +889,18 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
 
     return (
         <>
+        {modalToast && (
+            <div className={`fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${
+                modalToast.type === 'success'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
+                    : modalToast.type === 'warning'
+                    ? 'bg-amber-600 text-white border-amber-500 shadow-amber-600/30'
+                    : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
+            }`}>
+                <span>{modalToast.type === 'success' ? '✓' : modalToast.type === 'warning' ? '⚡' : '⚠️'}</span>
+                <span>{modalToast.message}</span>
+            </div>
+        )}
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 max-w-4xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
@@ -1636,7 +1657,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                                                     subtitle: `Phiếu #${matchingTicket.ticket_code || ''} • Do Buồng phòng/Kỹ thuật chụp tại hiện trường`
                                                                                 });
                                                                             } else {
-                                                                                alert('Chưa có ảnh đính kèm cho mục bồi thường này.');
+                                                                                showModalToast('warning', 'Chưa có ảnh đính kèm cho mục bồi thường này.');
                                                                             }
                                                                         }}
                                                                         className="px-2 py-0.5 rounded-md bg-rose-100 hover:bg-rose-200 text-rose-800 text-[10px] font-bold border border-rose-300 inline-flex items-center gap-1 cursor-pointer transition shrink-0 ml-1"

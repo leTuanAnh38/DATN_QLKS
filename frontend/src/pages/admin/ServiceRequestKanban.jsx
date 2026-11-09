@@ -232,11 +232,18 @@ const getSlaStatus = (item) => {
 };
 
 // In phiếu phục vụ phòng (Room Service Tray Slip)
-const handlePrintSlip = (item) => {
+const handlePrintSlip = (item, onBlocked) => {
     if (!item) return;
     const printWindow = window.open('', '_blank', 'width=620,height=780');
     if (!printWindow) {
-        alert('Trình duyệt đã chặn cửa sổ pop-up in. Vui lòng cho phép mở pop-up.');
+        const errorMsg = 'Trình duyệt đã chặn cửa sổ pop-up in. Vui lòng cho phép mở pop-up trên thanh địa chỉ.';
+        if (typeof onBlocked === 'function') {
+            onBlocked(errorMsg);
+        } else if (typeof window.__pms_showToast === 'function') {
+            window.__pms_showToast('warning', errorMsg);
+        } else {
+            console.warn(errorMsg);
+        }
         return;
     }
     const createdStr = item.created_at
@@ -427,6 +434,15 @@ export default function ServiceRequestKanban() {
         setToast({ type, message });
         setTimeout(() => setToast(null), 3500);
     };
+
+    useEffect(() => {
+        window.__pms_showToast = showToast;
+        return () => {
+            if (window.__pms_showToast === showToast) {
+                delete window.__pms_showToast;
+            }
+        };
+    }, []);
 
     // Tải dữ liệu Kanban từ API
     const fetchKanbanData = async (isSilent = false) => {

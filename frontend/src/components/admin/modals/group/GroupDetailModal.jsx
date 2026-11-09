@@ -42,6 +42,12 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [actionMessage, setActionMessage] = useState(null);
+    const [modalToast, setModalToast] = useState(null);
+
+    const showModalToast = (type, message) => {
+        setModalToast({ type, message });
+        setTimeout(() => setModalToast(null), 3500);
+    };
 
     // Trạng thái Modal Quyết toán đoàn (Master Folio Settlement)
     const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
@@ -387,7 +393,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
     // Yêu cầu kiểm phòng toàn đoàn (Mở hộp thoại nền trắng)
     const handleRequestGroupInspection = () => {
         if (inHouseSubBookings.length === 0) {
-            alert('Không có phòng nào đang lưu trú (In-house) để gửi yêu cầu kiểm tra.');
+            showModalToast('warning', 'Không có phòng nào đang lưu trú (In-house) để gửi yêu cầu kiểm tra.');
             return;
         }
         showConfirm({
@@ -541,7 +547,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
     const handleStartEditRooming = () => {
         if (isCompleted) {
-            alert('Đoàn này đã hoàn tất lưu trú và quyết toán xong. Hồ sơ lưu trú đã khóa và không thể chỉnh sửa!');
+            showModalToast('warning', 'Đoàn này đã hoàn tất lưu trú và quyết toán xong. Hồ sơ lưu trú đã khóa và không thể chỉnh sửa!');
             return;
         }
         const initial = {};
@@ -590,7 +596,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             if (!currentRoom) return prev;
             const maxCap = Number(currentRoom.capacity || 2);
             if (currentRoom.guests.length >= maxCap) {
-                alert(`Phòng này có sức chứa tối đa ${maxCap} người. Không thể thêm vượt quá sức chứa quy định!`);
+                showModalToast('warning', `Phòng này có sức chứa tối đa ${maxCap} người. Không thể thêm vượt quá sức chứa quy định!`);
                 return prev;
             }
             const newGuest = {
@@ -696,7 +702,14 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
     return (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 relative">
+                {/* TOAST THÔNG BÁO NỔI */}
+                {modalToast && (
+                    <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-amber-600 text-white border-amber-500 shadow-amber-600/30">
+                        <span>⚡</span>
+                        <span>{modalToast.message}</span>
+                    </div>
+                )}
                 
                 {/* 1. FIXED HEADER (NON-SCROLLING) */}
                 <div className="px-6 py-4 border-b border-slate-200 shrink-0 bg-white">

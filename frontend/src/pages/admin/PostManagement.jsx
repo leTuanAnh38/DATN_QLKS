@@ -80,6 +80,10 @@ export default function PostManagement() {
     const [selectedPost, setSelectedPost] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [alertMessage, setAlertMessage] = useState(null);
+    const showToast = (type, text) => {
+        setAlertMessage({ type, text });
+        setTimeout(() => setAlertMessage(null), 3500);
+    };
 
     // Form data state
     const [formData, setFormData] = useState({
@@ -114,7 +118,7 @@ export default function PostManagement() {
 
             // Kiểm tra dung lượng ảnh (tối đa 10MB)
             if (file.size > 10 * 1024 * 1024) {
-                alert('Dung lượng ảnh vượt quá giới hạn 10MB. Vui lòng chọn ảnh nhỏ hơn.');
+                showToast('error', 'Dung lượng ảnh vượt quá giới hạn 10MB. Vui lòng chọn ảnh nhỏ hơn.');
                 return;
             }
 
@@ -138,11 +142,11 @@ export default function PostManagement() {
                         quill.setSelection(index + 1);
                     }
                 } else {
-                    alert(res.message || 'Tải ảnh lên máy chủ thất bại.');
+                    showToast('error', res.message || 'Tải ảnh lên máy chủ thất bại.');
                 }
             } catch (error) {
                 console.error('Lỗi khi tải ảnh vào bài viết:', error);
-                alert('Có lỗi xảy ra khi kết nối máy chủ để tải ảnh lên.');
+                showToast('error', 'Có lỗi xảy ra khi kết nối máy chủ để tải ảnh lên.');
             } finally {
                 setIsUploadingImage(false);
             }
@@ -277,7 +281,7 @@ export default function PostManagement() {
     const handleSubmitForm = async (e) => {
         e.preventDefault();
         if (!formData.title.trim()) {
-            alert('Vui lòng nhập tiêu đề bài viết.');
+            showToast('error', 'Vui lòng nhập tiêu đề bài viết.');
             return;
         }
 
