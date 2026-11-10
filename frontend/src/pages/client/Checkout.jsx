@@ -3,11 +3,16 @@ import { useParams, useNavigate, useLocation, Link, useSearchParams } from 'reac
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
 import { hotelService } from '../../services/hotelService';
-import { authService } from '../../services/autheService';
+import { authService } from '../../services/authService';
 import { useAuth } from '../../store/authStore';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import PaymentModal, { PaymentSection } from '../../components/common/PaymentModal';
+import {
+    OrderSummarySidebar,
+    BookingConfirmationModal,
+    BookingSuccessModal
+} from '../../components/client/checkout';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import api from '../../services/api';
 import {
@@ -1880,215 +1885,30 @@ export default function Checkout() {
                         {/* ========================================================================= */}
                         {/* CỘT PHẢI: TÓM TẮT ĐƠN HÀNG (ORDER SUMMARY - 4 COLS STICKY) */}
                         {/* ========================================================================= */}
-                        <div className="lg:col-span-4 h-full">
-                            <div className="lg:sticky lg:top-24 bg-white rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-900/5 p-5 sm:p-6 space-y-4 sm:space-y-5 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-                                {/* Thẻ phòng thu nhỏ */}
-                                <div>
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-3">
-                                        Chi tiết phòng đã chọn
-                                    </span>
-                                    <div className="flex gap-4">
-                                        <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 relative border border-slate-100">
-                                            <img
-                                                src={primaryImage}
-                                                alt={room.name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-bold uppercase block w-fit mb-1 border border-amber-200/80">
-                                                {starCount}-STAR SUITE
-                                            </span>
-                                            <h3 className="font-serif font-bold text-base text-slate-900 leading-snug line-clamp-2">
-                                                {room.name}
-                                            </h3>
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1.5">
-                                                <span className="flex items-center gap-1">
-                                                    <Maximize2 className="w-3.5 h-3.5 text-slate-400" />
-                                                    <span>{room.size || 40} m²</span>
-                                                </span>
-                                                <span>•</span>
-                                                <span className="flex items-center gap-1">
-                                                    <Users className="w-3.5 h-3.5 text-slate-400" />
-                                                    <span>{room.capacity || 2} khách</span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Thông tin Lịch lưu trú tóm tắt */}
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs">
-                                    <div className="flex justify-between items-center text-slate-600">
-                                        <span>Nhận phòng:</span>
-                                        <strong className="text-slate-900">
-                                            {formatDateDisplay(checkInDate)} ({hotelSettings.check_in_time || '14:00'})
-                                        </strong>
-                                    </div>
-                                    <div className="flex justify-between items-center text-slate-600">
-                                        <span>Trả phòng:</span>
-                                        <strong className="text-slate-900">
-                                            {formatDateDisplay(checkOutDate)} ({hotelSettings.check_out_time || '12:00'})
-                                        </strong>
-                                    </div>
-                                    <div className="flex justify-between items-center text-amber-800 font-semibold pt-1 border-t border-slate-200">
-                                        <span>Tổng thời gian:</span>
-                                        <span>{nights} đêm lưu trú</span>
-                                    </div>
-                                </div>
-
-                                {/* BẢNG KÊ CHI TIẾT TỔNG TIỀN (ORDER SUMMARY) */}
-                                <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
-                                    {/* 1. Tiền phòng gốc */}
-                                    <div className="flex justify-between text-slate-700">
-                                        <span>
-                                            Tiền phòng ({pricePerNight.toLocaleString('vi-VN')} ₫ × {nights} đêm)
-                                        </span>
-                                        <span className="font-bold text-slate-900">
-                                            {subtotal.toLocaleString('vi-VN')} VND
-                                        </span>
-                                    </div>
-
-                                    {/* 2. Dịch vụ tiện ích gợi ý đi kèm (Liệt kê chi tiết từng món x số lượng) */}
-                                    {selectedServicesArray.length > 0 && (
-                                        <div className="pt-2 pb-1 border-t border-dashed border-amber-200/80 space-y-1.5 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200/60">
-                                            <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
-                                                <span className="flex items-center gap-1.5">
-                                                    <BellRing className="w-3.5 h-3.5 text-amber-600" />
-                                                    <span>Dịch vụ đi kèm ({selectedServicesArray.length}):</span>
-                                                </span>
-                                                <span className="text-orange-600 font-extrabold">
-                                                    +{totalServicesAmount.toLocaleString('vi-VN')} VND
-                                                </span>
-                                            </div>
-
-                                            <div className="space-y-1 pl-2 text-[11px] text-slate-600">
-                                                {selectedServicesArray.map((item) => (
-                                                    <div key={item.service_id} className="flex justify-between items-center">
-                                                        <span className="truncate max-w-[170px]" title={item.name}>
-                                                            • {item.name} <strong className="text-slate-800">×{item.quantity}</strong>
-                                                        </span>
-                                                        <span className="font-semibold text-slate-800 shrink-0">
-                                                            {item.total_price.toLocaleString('vi-VN')} ₫
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 3. Chiết khấu hạng thành viên */}
-                                    {tierDiscountAmount > 0 && (
-                                        <div className="flex justify-between text-emerald-600 font-semibold">
-                                            <span>Chiết khấu hạng {userTier?.name} ({tierDiscountPercent}%)</span>
-                                            <span>-{tierDiscountAmount.toLocaleString('vi-VN')} VND</span>
-                                        </div>
-                                    )}
-
-                                    {/* 4. Mã khuyến mãi (Promo Code) */}
-                                    {discountAmount > 0 && (
-                                        <div className="flex justify-between text-amber-600 font-semibold">
-                                            <span>Mã khuyến mãi ({appliedPromo?.code})</span>
-                                            <span>-{discountAmount.toLocaleString('vi-VN')} VND</span>
-                                        </div>
-                                    )}
-
-                                    <div className="flex justify-between text-slate-500">
-                                        <span>Thuế VAT ({hotelSettings.vat_percent || 8}%) & Phí phục vụ ({hotelSettings.service_charge_percent || 5}%)</span>
-                                        <span className="text-emerald-600 font-medium">Đã bao gồm</span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between text-amber-700 font-semibold pt-1 border-t border-slate-100">
-                                        <span className="flex items-center gap-1.5">
-                                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                                            <span>Tích lũy điểm thưởng (+1 pt / 100.000đ)</span>
-                                        </span>
-                                        <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
-                                    </div>
-
-                                    {/* Tổng cộng cần thanh toán */}
-                                    <div className="flex justify-between items-baseline pt-3 border-t border-slate-200">
-                                        <div>
-                                            <span className="font-bold text-slate-900 text-sm block">
-                                                Tổng cộng cần thanh toán
-                                            </span>
-                                            <span className="text-[10px] text-slate-400">
-                                                (Phòng + Dịch vụ đi kèm)
-                                            </span>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="font-black text-2xl text-rose-600">
-                                                {finalTotal.toLocaleString('vi-VN')}
-                                            </span>
-                                            <span className="text-[11px] font-bold text-slate-500 block">VND</span>
-                                            {tierDiscountAmount > 0 && (
-                                                <span className="text-[10px] font-semibold text-emerald-600 block mt-0.5">
-                                                    (Đã tiết kiệm {tierDiscountAmount.toLocaleString('vi-VN')} VND)
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Thông báo lỗi khi submit nếu có */}
-                                {bookingError && (
-                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                                        <span>{bookingError}</span>
-                                    </div>
-                                )}
-
-                                {/* Cảnh báo hết phòng ở cột tóm tắt */}
-                                {availability?.is_sold_out && (
-                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                                        <span>Hạng phòng đã hết chỗ cho ngày bạn chọn.</span>
-                                    </div>
-                                )}
-
-                                {/* NÚT BẤM XÁC NHẬN ĐẶT PHÒNG */}
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting || availability?.is_sold_out}
-                                    className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 relative overflow-hidden group ${availability?.is_sold_out
-                                            ? 'bg-slate-400 cursor-not-allowed shadow-none'
-                                            : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/25 hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
-                                        }`}
-                                >
-                                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform pointer-events-none" />
-                                    {isSubmitting ? (
-                                        <>
-                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            <span>Đang xử lý đơn đặt phòng...</span>
-                                        </>
-                                    ) : availability?.is_sold_out ? (
-                                        <span>Hạng Phòng Đã Hết (Vui Lòng Chọn Ngày Khác)</span>
-                                    ) : (
-                                        <>
-                                            <ShieldCheck className="w-5 h-5 shrink-0" />
-                                            <span>Xác Nhận Đặt Phòng Ngay</span>
-                                            <ArrowRight className="w-5 h-5 shrink-0 group-hover:translate-x-1 transition-transform" />
-                                        </>
-                                    )}
-                                </button>
-
-                                {/* Cam kết tin cậy */}
-                                <div className="space-y-1.5 pt-2 text-[11px] text-slate-500">
-                                    <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                                        <span>Chính sách hủy: {room?.cancellation_policy ? 'Áp dụng theo quy định riêng của hạng phòng' : 'Miễn phí hủy trước 24 giờ'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                        <span>Nhận phòng nhanh chóng tại quầy Lễ tân</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <PhoneCall className="w-4 h-4 text-amber-600 shrink-0" />
-                                        <span>Hotline hỗ trợ 24/7: <strong className="text-slate-700">{hotelSettings.hotline || '1900 8899'}</strong></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <OrderSummarySidebar
+                            room={room}
+                            primaryImage={primaryImage}
+                            starCount={starCount}
+                            checkInDate={checkInDate}
+                            checkOutDate={checkOutDate}
+                            nights={nights}
+                            pricePerNight={pricePerNight}
+                            subtotal={subtotal}
+                            selectedServicesArray={selectedServicesArray}
+                            totalServicesAmount={totalServicesAmount}
+                            userTier={userTier}
+                            tierDiscountAmount={tierDiscountAmount}
+                            tierDiscountPercent={tierDiscountPercent}
+                            appliedPromo={appliedPromo}
+                            discountAmount={discountAmount}
+                            hotelSettings={hotelSettings}
+                            earnedPoints={earnedPoints}
+                            finalTotal={finalTotal}
+                            bookingError={bookingError}
+                            availability={availability}
+                            isSubmitting={isSubmitting}
+                            formatDateDisplay={formatDateDisplay}
+                        />
                     </form>
                 )}
             </main>
@@ -2096,442 +1916,57 @@ export default function Checkout() {
             {/* ========================================================================= */}
             {/* MODAL XÁC NHẬN THÔNG TIN ĐẶT PHÒNG TRƯỚC KHI TẠO ĐƠN */}
             {/* ========================================================================= */}
-            {showConfirmModal && (
-                <div
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            setShowConfirmModal(false);
-                            setIsSubmitting(false);
-                        }
-                    }}
-                    className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200"
-                >
-                    <div className="bg-white rounded-3xl border border-slate-200/80 max-w-xl w-full shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 duration-200">
-                        {/* Header - Nền trắng sang trọng đồng bộ */}
-                        <div className="bg-white border-b border-slate-100 p-5 sm:p-6 relative flex items-center justify-between">
-                            <div className="flex items-center gap-3.5">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 shrink-0 shadow-xs">
-                                    <ShieldCheck className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900">
-                                        Xác Nhận Đơn Đặt Phòng
-                                    </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        Quý khách vui lòng kiểm tra lại thông tin chi tiết trước khi hoàn tất
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowConfirmModal(false);
-                                    setIsSubmitting(false);
-                                }}
-                                className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition p-2 rounded-xl cursor-pointer"
-                                title="Đóng"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-5 sm:p-6 space-y-4 max-h-[calc(85vh-160px)] overflow-y-auto text-xs sm:text-sm">
-                            {/* Thông báo lỗi nếu có khi gọi API */}
-                            {modalError && (
-                                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5 animate-in fade-in duration-150">
-                                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                                    <div className="flex-1">
-                                        <strong className="font-bold block text-rose-800">Không thể tạo đơn đặt phòng:</strong>
-                                        <span className="mt-0.5 block">{modalError}</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 1. Thông tin phòng & Lưu trú */}
-                            <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-200/70 space-y-3">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                                            {room?.category_name || 'Hạng phòng tiêu chuẩn'}
-                                        </span>
-                                        <h4 className="font-serif text-base sm:text-lg font-bold text-slate-900 mt-1">
-                                            {room?.name || 'Phòng nghỉ'}
-                                        </h4>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                        <span className="text-xs text-slate-500 block">Thời gian lưu trú</span>
-                                        <span className="font-black text-amber-700 text-sm">{nights} đêm</span>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-amber-200/60 text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
-                                        <div>
-                                            <span className="text-slate-500 text-[11px] block">Nhận phòng ({hotelSettings.check_in_time || '14:00'})</span>
-                                            <strong className="text-slate-800">{formatDateDisplay(checkInDate)}</strong>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
-                                        <div>
-                                            <span className="text-slate-500 text-[11px] block">Trả phòng ({hotelSettings.check_out_time || '12:00'})</span>
-                                            <strong className="text-slate-800">{formatDateDisplay(checkOutDate)}</strong>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 2. Thông tin khách đặt & Người lưu trú */}
-                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2">
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                                    Thông tin khách lưu trú
-                                </span>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">Khách đặt phòng:</span>
-                                        <span className="font-bold text-slate-800">{guestName}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">Số điện thoại:</span>
-                                        <span className="font-bold text-slate-800">{guestPhone}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">Email xác nhận:</span>
-                                        <span className="font-bold text-slate-800">{guestEmail}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">CCCD / Hộ chiếu:</span>
-                                        <span className="font-bold text-slate-800">{identityCard.trim().toUpperCase()}</span>
-                                    </div>
-                                </div>
-
-                                {customerType === 'CORPORATE' && (
-                                    <div className="pt-2.5 mt-2 border-t border-slate-200 text-xs space-y-1">
-                                        <div className="flex items-center gap-1.5 text-blue-700 font-bold">
-                                            <Building2 className="w-3.5 h-3.5 shrink-0" />
-                                            <span>Doanh nghiệp: {companyName}</span>
-                                        </div>
-                                        <div className="text-slate-600 text-[11px]">
-                                            Mã số thuế: <strong className="text-slate-800">{companyTaxCode}</strong>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* 3. Dịch vụ đã chọn kèm (nếu có) */}
-                            {selectedServicesArray.length > 0 && (
-                                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                                        Dịch vụ chọn kèm ({selectedServicesArray.length})
-                                    </span>
-                                    <div className="space-y-1 text-xs">
-                                        {selectedServicesArray.map((svc) => (
-                                            <div key={svc.service_id} className="flex justify-between items-center text-slate-700">
-                                                <span>{svc.name} × {svc.quantity}</span>
-                                                <span className="font-bold text-slate-800">{Number(svc.total_price).toLocaleString('vi-VN')} VND</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 4. Hình thức thanh toán & Chi tiết tài chính */}
-                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2.5">
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                                    Chi tiết thanh toán
-                                </span>
-                                <div className="space-y-1.5 text-xs font-sans tabular-nums">
-                                    <div className="flex justify-between text-slate-600">
-                                        <span>Tiền phòng ({nights} đêm):</span>
-                                        <span className="font-semibold text-slate-800">{Number(roomNetTotal).toLocaleString('vi-VN')} VND</span>
-                                    </div>
-                                    {totalServicesAmount > 0 && (
-                                        <div className="flex justify-between text-slate-600">
-                                            <span>Phí dịch vụ chọn kèm:</span>
-                                            <span className="font-semibold text-slate-800">+{Number(totalServicesAmount).toLocaleString('vi-VN')} VND</span>
-                                        </div>
-                                    )}
-                                    {appliedPromo && discountAmount > 0 && (
-                                        <div className="flex justify-between text-emerald-600 font-medium">
-                                            <span>Mã giảm giá ({appliedPromo.code}):</span>
-                                            <span>-{Number(discountAmount).toLocaleString('vi-VN')} VND</span>
-                                        </div>
-                                    )}
-                                    <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
-                                        <span className="font-bold text-slate-900 text-sm">Tổng cộng thanh toán:</span>
-                                        <span className="text-xl font-black text-rose-600">
-                                            {Number(finalTotal).toLocaleString('vi-VN')} VND
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                                    <span className="text-slate-500">Hình thức thanh toán:</span>
-                                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                                        {paymentMethod === 'vietqr' ? (
-                                            <>
-                                                <CreditCard className="w-3.5 h-3.5 text-amber-600" />
-                                                <span>Chuyển khoản VietQR</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Building2 className="w-3.5 h-3.5 text-slate-600" />
-                                                <span>Thanh toán tại quầy lễ tân</span>
-                                            </>
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* 5. Ghi chú chính sách */}
-                            <div className="p-3 bg-emerald-50/70 border border-emerald-200/60 rounded-xl text-[11px] text-emerald-800 space-y-1">
-                                <div className="flex items-center gap-1.5 font-bold">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                    <span>Chính sách: {room?.cancellation_policy ? 'Áp dụng theo quy định của phòng' : 'Miễn phí hủy trước 24 giờ'}</span>
-                                </div>
-                                <p className="text-emerald-700/90 pl-5.5">
-                                    {paymentMethod === 'vietqr'
-                                        ? 'Sau khi bấm xác nhận, hệ thống sẽ mở mã QR VietQR để quý khách quét thanh toán.'
-                                        : 'Đơn đặt phòng sẽ được tiếp nhận ngay. Quý khách vui lòng thanh toán trực tiếp tại quầy khi nhận phòng.'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Modal Actions */}
-                        <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowConfirmModal(false);
-                                    setIsSubmitting(false);
-                                }}
-                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition cursor-pointer"
-                            >
-                                Kiểm tra lại
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleExecuteBooking}
-                                disabled={isSubmitting}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Đang xử lý đơn đặt phòng...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <ShieldCheck className="w-4 h-4" />
-                                        <span>Xác Nhận & Đặt Phòng Ngay</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <BookingConfirmationModal
+                isOpen={showConfirmModal}
+                onClose={() => {
+                    setShowConfirmModal(false);
+                    setIsSubmitting(false);
+                }}
+                onConfirm={handleExecuteBooking}
+                isSubmitting={isSubmitting}
+                modalError={modalError}
+                room={room}
+                nights={nights}
+                checkInDate={checkInDate}
+                checkOutDate={checkOutDate}
+                guestName={guestName}
+                guestPhone={guestPhone}
+                guestEmail={guestEmail}
+                identityCard={identityCard}
+                customerType={customerType}
+                companyName={companyName}
+                companyTaxCode={companyTaxCode}
+                selectedServicesArray={selectedServicesArray}
+                roomNetTotal={roomNetTotal}
+                totalServicesAmount={totalServicesAmount}
+                appliedPromo={appliedPromo}
+                discountAmount={discountAmount}
+                finalTotal={finalTotal}
+                paymentMethod={paymentMethod}
+                hotelSettings={hotelSettings}
+                formatDateDisplay={formatDateDisplay}
+            />
 
             {/* ========================================================================= */}
             {/* MODAL / MÀN HÌNH CHÚC MỪNG ĐẶT PHÒNG THÀNH CÔNG */}
             {/* ========================================================================= */}
-            {/* Modal sau khi tạo đơn thành công */}
-            {createdBooking && (
-                createdBooking.payment_method === 'vietqr' ? (
-                    <PaymentModal
-                        isOpen={true}
-                        booking={createdBooking}
-                        amount={createdBooking.total_amount}
-                        bookingCode={createdBooking.booking_code}
-                        customerName={createdBooking.guest_name}
-                        onClose={(meta) => {
-                            const code = meta?.bookingCode || createdBooking.booking_code;
-                            setCreatedBooking(null);
-                            if (meta?.cancelled) {
-                                navigate('/booking-history', {
-                                    state: {
-                                        toast: {
-                                            type: 'info',
-                                            text: `Đã hủy đơn đặt phòng ${code} thành công.`
-                                        }
-                                    }
-                                });
-                            } else {
-                                navigate('/booking-history', {
-                                    state: {
-                                        toast: {
-                                            type: 'info',
-                                            text: `Đơn đặt phòng ${code} đã được lưu tạm. Quý khách có thể thanh toán sau.`
-                                        }
-                                    }
-                                });
-                            }
-                        }}
-                        onCancelBooking={(cancelCode) => {
-                            const code = cancelCode || createdBooking.booking_code;
-                            setCreatedBooking(null);
-                            navigate('/booking-history', {
-                                state: {
-                                    toast: {
-                                        type: 'info',
-                                        text: `Đã hủy đơn đặt phòng ${code} thành công.`
-                                    }
-                                }
-                            });
-                        }}
-                        onSuccess={() => {
-                            try {
-                                localStorage.setItem('pms_last_booking_event', Date.now().toString());
-                                window.dispatchEvent(new Event('pms_booking_created'));
-                            } catch { }
-                            setCreatedBooking((prev) => ({
-                                ...prev,
-                                payment_method: 'vietqr_success',
-                                is_paid: true
-                            }));
-                        }}
-                        onConfirm={() => {
-                            try {
-                                localStorage.setItem('pms_last_booking_event', Date.now().toString());
-                                window.dispatchEvent(new Event('pms_booking_created'));
-                            } catch { }
-                            setCreatedBooking((prev) => ({
-                                ...prev,
-                                payment_method: 'vietqr_success',
-                                is_paid: true
-                            }));
-                        }}
-                    />
-                ) : (
-                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-md">
-                    <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-8 sm:p-10 text-center shadow-2xl animate-in fade-in zoom-in duration-300">
-                        {/* Icon thành công */}
-                        <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-4xl mb-6 shadow-inner">
-                            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
-                        </div>
-
-                        <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider">
-                            {createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success'
-                                ? 'Thanh toán & Đặt phòng thành công!'
-                                : 'Đặt phòng thành công!'}
-                        </span>
-
-                        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-3 mb-2">
-                            Cảm ơn quý khách {createdBooking.guest_name}!
-                        </h2>
-
-                        <p className="text-xs sm:text-sm text-slate-500 mb-6">
-                            Đơn đặt phòng của quý khách tại <strong>{hotelSettings.hotel_name || 'Khách Sạn TA Đà Nẵng'}</strong> đã được tiếp nhận và xử lý thành công.
-                        </p>
-
-                        {/* Mã đặt phòng & Hộp sao chép */}
-                        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-6">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                                Mã đơn đặt phòng (Booking Code)
-                            </span>
-                            <div className="flex items-center justify-center gap-2">
-                                <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 tracking-wider">
-                                    {createdBooking.booking_code}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (navigator.clipboard) {
-                                            navigator.clipboard.writeText(createdBooking.booking_code);
-                                            setCopiedCode(true);
-                                            setTimeout(() => setCopiedCode(false), 2500);
-                                        }
-                                    }}
-                                    className="p-1.5 px-2.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-600 hover:text-amber-600 transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                                    title="Sao chép mã"
-                                >
-                                    {copiedCode ? (
-                                        <>
-                                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                            <span className="text-emerald-700 font-bold">Đã sao chép</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Copy className="w-3.5 h-3.5" />
-                                            <span>Chép</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Tóm tắt thông tin */}
-                        <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600 space-y-2 text-left mb-6 border border-slate-100">
-                            <div className="flex justify-between">
-                                <span>Hạng phòng:</span>
-                                <strong className="text-slate-900">{createdBooking.room_name}</strong>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Thời gian:</span>
-                                <strong className="text-slate-900">
-                                    {formatDateDisplay(createdBooking.check_in_date)} → {formatDateDisplay(createdBooking.check_out_date)} ({createdBooking.nights} đêm)
-                                </strong>
-                            </div>
-                            {createdBooking.selected_services?.length > 0 && (
-                                <div className="flex justify-between items-start pt-1 border-t border-slate-200">
-                                    <span className="text-amber-800 font-semibold flex items-center gap-1.5">
-                                        <BellRing className="w-3 h-3 text-amber-600" />
-                                        <span>Dịch vụ đặt kèm ({createdBooking.selected_services.length}):</span>
-                                    </span>
-                                    <div className="text-right space-y-0.5">
-                                        {createdBooking.selected_services.map((s, idx) => (
-                                            <div key={idx} className="font-semibold text-slate-900 text-[11px]">
-                                                {s.service_name || s.name} <strong className="text-orange-600">×{s.quantity}</strong>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            <div className="flex justify-between">
-                                <span>Tổng tiền thanh toán:</span>
-                                <strong className="text-rose-600 font-bold">
-                                    {Number(createdBooking.total_amount).toLocaleString('vi-VN')} VND
-                                </strong>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Phương thức:</span>
-                                <strong className={createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success' ? "text-emerald-700 font-bold" : "text-slate-800"}>
-                                    {createdBooking.is_paid || createdBooking.payment_method === 'vietqr_success'
-                                        ? 'Đã thanh toán VietQR'
-                                        : 'Thanh toán khi nhận phòng (Reception)'}
-                                </strong>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Số CCCD / Hộ chiếu:</span>
-                                <strong className="text-slate-900 font-mono">{createdBooking.identity_card}</strong>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Email xác nhận:</span>
-                                <span className="text-slate-800">{createdBooking.guest_email}</span>
-                            </div>
-                        </div>
-
-                        {/* Nút hành động */}
-                        <div className="flex flex-col sm:flex-row items-center gap-3">
-                            <Link
-                                to="/booking-history"
-                                className="w-full sm:w-1/2 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20 transition transform active:scale-95 text-center flex items-center justify-center gap-1.5"
-                            >
-                                <span>Xem lịch sử đặt phòng</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                            </Link>
-                            <Link
-                                to="/"
-                                className="w-full sm:w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition text-center"
-                            >
-                                Về Trang chủ
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            ))}
+            <BookingSuccessModal
+                booking={createdBooking}
+                hotelSettings={hotelSettings}
+                onPaymentClose={() => setCreatedBooking(null)}
+                onPaymentSuccess={() => {
+                    try {
+                        localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                        window.dispatchEvent(new Event('pms_booking_created'));
+                    } catch { }
+                    setCreatedBooking((prev) => ({
+                        ...prev,
+                        payment_method: 'vietqr_success',
+                        is_paid: true
+                    }));
+                }}
+                formatDateDisplay={formatDateDisplay}
+            />
 
             <Footer />
         </div>

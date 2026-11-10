@@ -45,69 +45,34 @@ import { useHasPermission } from '../../utils/permission';
 import { bookingService } from '../../services/bookingService';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 // Lazy-load các tab quản trị: chỉ tải code của tab khi người dùng mở tab đó
-const GuestManagement = lazy(() => import('./GuestManagement'));
-const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
-const RoomManagement = lazy(() => import('./RoomManagement'));
-const LostAndFoundManagement = lazy(() => import('./LostAndFoundManagement'));
-const MinibarManagement = lazy(() => import('./MinibarManagement'));
-const CategoryManagement = lazy(() => import('./CategoryManagement'));
-const BookingManagement = lazy(() => import('./BookingManagement'));
-const BookingTimeline = lazy(() => import('./BookingTimeline'));
-const ServiceRequestKanban = lazy(() => import('./ServiceRequestKanban'));
-const ServiceManagement = lazy(() => import('./ServiceManagement'));
-const ReviewManagement = lazy(() => import('./ReviewManagement'));
+const GuestManagement = lazy(() => import('./customers/GuestManagement'));
+const EmployeeManagement = lazy(() => import('./hr/EmployeeManagement'));
+const RoomManagement = lazy(() => import('./rooms/RoomManagement'));
+const LostAndFoundManagement = lazy(() => import('./system/LostAndFoundManagement'));
+const MinibarManagement = lazy(() => import('./services/MinibarManagement'));
+const CategoryManagement = lazy(() => import('./rooms/CategoryManagement'));
+const BookingManagement = lazy(() => import('./bookings/BookingManagement'));
+const BookingTimeline = lazy(() => import('./bookings/BookingTimeline'));
+const ServiceRequestKanban = lazy(() => import('./services/ServiceRequestKanban'));
+const ServiceManagement = lazy(() => import('./services/ServiceManagement'));
+const ReviewManagement = lazy(() => import('./marketing/ReviewManagement'));
 import UserAvatar from '../../components/common/UserAvatar';
 import NotificationBell from '../../components/common/NotificationBell';
 import Sidebar from '../../components/admin/Sidebar';
-const StaffProfile = lazy(() => import('./StaffProfile'));
-const CustomerDetail = lazy(() => import('./CustomerDetail'));
-const PostManagement = lazy(() => import('./PostManagement'));
-const ContactManagement = lazy(() => import('./ContactManagement'));
-const Analytics = lazy(() => import('./Analytics'));
-const InvoiceManagement = lazy(() => import('./InvoiceManagement'));
-const SystemSettings = lazy(() => import('./SystemSettings'));
-const AmenityManagement = lazy(() => import('./AmenityManagement'));
+const StaffProfile = lazy(() => import('./hr/StaffProfile'));
+const CustomerDetail = lazy(() => import('./customers/CustomerDetail'));
+const PostManagement = lazy(() => import('./marketing/PostManagement'));
+const ContactManagement = lazy(() => import('./marketing/ContactManagement'));
+const Analytics = lazy(() => import('./finance/Analytics'));
+const InvoiceManagement = lazy(() => import('./finance/InvoiceManagement'));
+const SystemSettings = lazy(() => import('./system/SystemSettings'));
+const AmenityManagement = lazy(() => import('./rooms/AmenityManagement'));
 import LogoutConfirmModal from '../../components/common/LogoutConfirmModal';
-const PromotionManagement = lazy(() => import('./PromotionManagement'));
-const SystemLog = lazy(() => import('./SystemLog'));
-const CorporatePartnerManagement = lazy(() => import('./CorporatePartnerManagement'));
-
-// Tiện ích format ngày hiển thị DD/MM/YYYY
-const formatDateDisplay = (dateStr) => {
-    if (!dateStr) return '—';
-    try {
-        const parts = String(dateStr).split('T')[0].split('-');
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } catch {
-        return dateStr;
-    }
-    return dateStr;
-};
-
-// Tiện ích format thời gian chi tiết HH:MM • DD/MM/YYYY
-const formatDateTimeDisplay = (isoStr) => {
-    if (!isoStr) return '—';
-    try {
-        const d = new Date(isoStr);
-        if (isNaN(d.getTime())) return isoStr;
-        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        return `${time} • ${date}`;
-    } catch {
-        return isoStr;
-    }
-};
-
-const STATUS_CONFIGS = {
-    pending: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-800 border-amber-300' },
-    paid: { label: 'Chờ duyệt (Đã TT QR)', color: 'bg-amber-50 text-amber-800 border-amber-300' },
-    PAID: { label: 'Chờ duyệt (Đã TT QR)', color: 'bg-amber-50 text-amber-800 border-amber-300' },
-    confirmed: { label: 'Đã xác nhận', color: 'bg-blue-50 text-blue-800 border-blue-300' },
-    checked_in: { label: 'Đang ở', color: 'bg-emerald-50 text-emerald-800 border-emerald-300' },
-    checked_out: { label: 'Đã trả phòng', color: 'bg-purple-50 text-purple-800 border-purple-300' },
-    cancelled: { label: 'Đã Hủy', color: 'bg-rose-50 text-rose-800 border-rose-300' }
-};
-
+const PromotionManagement = lazy(() => import('./marketing/PromotionManagement'));
+const SystemLog = lazy(() => import('./system/SystemLog'));
+const CorporatePartnerManagement = lazy(() => import('./customers/CorporatePartnerManagement'));
+import { formatDateDisplay, formatDateTimeDisplay } from '../../utils/formatters';
+import { BOOKING_STATUSES as STATUS_CONFIGS } from '../../utils/constants';
 
 // Helper biểu tượng dịch vụ phòng (Concierge)
 const renderServiceCategoryIcon = (categoryName, serviceName) => {

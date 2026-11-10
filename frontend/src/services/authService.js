@@ -1,2 +1,216 @@
-export * from './autheService';
-export { default } from './autheService';
+import api from './api';
+import { authStore } from '../store/authStore';
+
+export const authService = {
+    /**
+     * Đăng nhập người dùng bằng Email/Số điện thoại và Mật khẩu
+     */
+    async login(identifier, password) {
+        try {
+            const response = await api.post('/auth/login/', {
+                identifier,
+                password,
+            });
+
+            if (response.data.success) {
+                const { user, tokens } = response.data;
+                authStore.setAuth(user, tokens);
+                return { success: true, data: response.data };
+            }
+
+            return {
+                success: false,
+                message: response.data.message || 'Đăng nhập không thành công',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.detail ||
+                'Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.';
+            return { success: false, message, errors: error.response?.data?.errors };
+        }
+    },
+
+    /**
+     * Đăng ký tài khoản khách hàng mới
+     */
+    async register({ fullName, phone, email, password }) {
+        try {
+            const response = await api.post('/auth/register/', {
+                fullName,
+                phone,
+                email,
+                password,
+            });
+
+            if (response.data.success) {
+                const { user, tokens } = response.data;
+                authStore.setAuth(user, tokens);
+                return { success: true, data: response.data };
+            }
+
+            return {
+                success: false,
+                message: response.data.message || 'Đăng ký không thành công',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.detail ||
+                'Đã xảy ra lỗi khi đăng ký. Vui lòng kiểm tra lại thông tin.';
+            return { success: false, message, errors: error.response?.data?.errors };
+        }
+    },
+
+    /**
+     * Lấy thông tin tài khoản hiện tại từ máy chủ
+     */
+    async getProfile() {
+        try {
+            const response = await api.get('/auth/me/');
+            if (response.data.success && response.data.user) {
+                authStore.updateUser(response.data.user);
+                return { success: true, user: response.data.user };
+            }
+            return { success: false };
+        } catch (error) {
+            return { success: false, error };
+        }
+    },
+
+    /**
+     * Đăng xuất tài khoản
+     */
+    async logout() {
+        try {
+            const refresh = authStore.getRefreshToken();
+            if (refresh) {
+                await api.post('/auth/logout/', { refresh });
+            }
+        } catch (e) {
+            console.error('Logout error on server:', e);
+        } finally {
+            authStore.clearAuth();
+        }
+    },
+
+    /**
+     * Đổi mật khẩu tài khoản
+     */
+    async changePassword({ old_password, new_password, confirm_password }) {
+        try {
+            const response = await api.post('/auth/change-password/', {
+                old_password,
+                new_password,
+                confirm_password,
+            });
+
+            if (response.data.success) {
+                if (response.data.tokens) {
+                    authStore.setAuth(authStore.getUser(), response.data.tokens);
+                }
+                return { success: true, message: response.data.message };
+            }
+
+            return {
+                success: false,
+                message: response.data.message || 'Đổi mật khẩu thất bại.',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.old_password?.[0] ||
+                error.response?.data?.new_password?.[0] ||
+                error.response?.data?.confirm_password?.[0] ||
+                'Đã xảy ra lỗi khi đổi mật khẩu. Vui lòng thử lại.';
+            return { success: false, message, errors: error.response?.data?.errors };
+        }
+    },
+
+    /**
+     * Cập nhật thông tin hồ sơ và ảnh đại diện
+     */
+    async updateProfile(data) {
+        try {
+            const isFormData = data instanceof FormData;
+            const config = isFormData
+                ? { headers: { 'Content-Type': 'multipart/form-data' } }
+                : {};
+
+            const response = await api.patch('/auth/me/', data, config);
+
+            if (response.data.success && response.data.user) {
+                authStore.updateUser(response.data.user);
+                return {
+                    success: true,
+                    message: response.data.message || 'Cập nhật thông tin thành công!',
+                    user: response.data.user,
+                };
+            }
+
+            return {
+                success: false,
+                message: response.data.message || 'Cập nhật hồ sơ không thành công.',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.detail ||
+                error.response?.data?.email?.[0] ||
+                error.response?.data?.phone_number?.[0] ||
+                'Đã xảy ra lỗi khi cập nhật hồ sơ. Vui lòng kiểm tra lại.';
+            return {
+                success: false,
+                message,
+                errors: error.response?.data?.errors || error.response?.data,
+            };
+        }
+    },
+
+    /**
+     * Yêu cầu gửi mã OTP khôi phục mật khẩu qua Email
+     */
+    async forgotPassword(email) {
+        try {
+            const response = await api.post('/auth/forgot-password/', { email });
+            return {
+                success: response.data?.success !== false,
+                message: response.data?.message || 'Mã xác thực đã được gửi về email của quý khách.',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.email?.[0] ||
+                'Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại sau.';
+            return { success: false, message };
+        }
+    },
+
+    /**
+     * Xác nhận OTP và đặt lại mật khẩu mới
+     */
+    async resetPassword({ email, otp_code, new_password, confirm_password }) {
+        try {
+            const response = await api.post('/auth/reset-password/', {
+                email,
+                otp_code,
+                new_password,
+                confirm_password,
+            });
+            return {
+                success: response.data?.success !== false,
+                message: response.data?.message || 'Đặt lại mật khẩu thành công!',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.otp_code?.[0] ||
+                error.response?.data?.new_password?.[0] ||
+                error.response?.data?.confirm_password?.[0] ||
+                'Đã xảy ra lỗi khi đặt lại mật khẩu. Vui lòng kiểm tra lại thông tin.';
+            return { success: false, message };
+        }
+    },
+};
+
+export default authService;

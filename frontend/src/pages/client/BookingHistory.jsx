@@ -46,6 +46,12 @@ import { useAuth } from '../../store/authStore';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import PaymentModal from '../../components/common/PaymentModal';
 import Pagination from '../../components/common/Pagination';
+import {
+    CancelBookingModal,
+    ReviewModal,
+    ViewReviewModal,
+    ExtendStayModal
+} from '../../components/client/booking-history';
 
 // Tiện ích format ngày tiếng Việt (VD: 05/10/2026)
 const formatDateDisplay = (dateStr) => {
@@ -1510,601 +1516,63 @@ export default function BookingHistory() {
                 )}
             </main>
 
-            {/* ========================================================================= */}
-            {/* MODAL XÁC NHẬN HỦY ĐẶT PHÒNG (DÀNH CHO ĐƠN PENDING) */}
-            {/* ========================================================================= */}
-            {cancelModalBooking && (
-                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 sm:p-8 shadow-2xl text-left animate-in zoom-in-95 duration-200">
-                        {/* Header Modal */}
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold border border-rose-200">
-                                <AlertCircle className="w-6 h-6 text-rose-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-serif text-lg font-bold text-slate-900">
-                                    Xác nhận Hủy Đặt Phòng
-                                </h3>
-                                <p className="text-xs text-slate-500">
-                                    Mã đơn: <strong className="font-mono text-slate-800">{cancelModalBooking.booking_code}</strong>
-                                </p>
-                            </div>
-                        </div>
+            {/* 1. Modal xác nhận hủy phòng */}
+            <CancelBookingModal
+                booking={cancelModalBooking}
+                onClose={() => setCancelModalBooking(null)}
+                onConfirm={handleConfirmCancel}
+                isCancelling={isCancelling}
+                cancelReason={cancelReason}
+                setCancelReason={setCancelReason}
+                customReason={customReason}
+                setCustomReason={setCustomReason}
+                cancelScope={cancelScope}
+                setCancelScope={setCancelScope}
+                getGroupBookingInfo={getGroupBookingInfo}
+                formatDateDisplay={formatDateDisplay}
+            />
 
-                        {/* Phạm vi hủy nếu là Đơn theo đoàn */}
-                        {(() => {
-                            const modalGroup = cancelModalBooking ? getGroupBookingInfo(cancelModalBooking) : { isGroup: false };
-                            if (!modalGroup.isGroup) return null;
-                            return (
-                                <div className="mb-4 p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
-                                    <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider">
-                                        Phạm vi hủy (Đoàn #{modalGroup.groupCode}):
-                                    </label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                        <label className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
-                                            cancelScope === 'single'
-                                                ? 'border-indigo-600 bg-white ring-2 ring-indigo-500/20 shadow-xs'
-                                                : 'border-indigo-100 bg-white/70 hover:bg-white'
-                                        }`}>
-                                            <input
-                                                type="radio"
-                                                name="cancelScope"
-                                                value="single"
-                                                checked={cancelScope === 'single'}
-                                                onChange={() => setCancelScope('single')}
-                                                className="accent-indigo-600"
-                                            />
-                                            <div>
-                                                <strong className="block text-slate-800">Chỉ hủy phòng này</strong>
-                                                <span className="text-[11px] text-slate-500 font-mono">#{cancelModalBooking.booking_code}</span>
-                                            </div>
-                                        </label>
+            {/* 2. Modal gửi đánh giá & chấm điểm */}
+            <ReviewModal
+                booking={reviewModalBooking}
+                onClose={() => setReviewModalBooking(null)}
+                onSubmit={handleSubmitReview}
+                isSubmittingReview={isSubmittingReview}
+                cleanlinessScore={cleanlinessScore}
+                setCleanlinessScore={setCleanlinessScore}
+                serviceScore={serviceScore}
+                setServiceScore={setServiceScore}
+                locationScore={locationScore}
+                setLocationScore={setLocationScore}
+                valueScore={valueScore}
+                setValueScore={setValueScore}
+                reviewComment={reviewComment}
+                setReviewComment={setReviewComment}
+            />
 
-                                        <label className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
-                                            cancelScope === 'group'
-                                                ? 'border-rose-600 bg-rose-50/70 ring-2 ring-rose-500/20 shadow-xs'
-                                                : 'border-indigo-100 bg-white/70 hover:bg-white'
-                                        }`}>
-                                            <input
-                                                type="radio"
-                                                name="cancelScope"
-                                                value="group"
-                                                checked={cancelScope === 'group'}
-                                                onChange={() => setCancelScope('group')}
-                                                className="accent-rose-600"
-                                            />
-                                            <div>
-                                                <strong className="block text-rose-700">Hủy toàn bộ đoàn</strong>
-                                                <span className="text-[11px] text-rose-500">Đồng bộ hủy tất cả phòng</span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            );
-                        })()}
+            {/* 3. Modal xem đánh giá của tôi & phản hồi */}
+            <ViewReviewModal
+                booking={viewReviewModalBooking}
+                onClose={() => setViewReviewModalBooking(null)}
+                hotelName={hotelName}
+                formatDateTimeDisplay={formatDateTimeDisplay}
+            />
 
-                        {/* Tóm tắt đơn hủy */}
-                        <div className="bg-slate-50 rounded-2xl p-4 text-xs space-y-2 mb-4 border border-slate-200/80">
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Hạng phòng:</span>
-                                <strong className="text-slate-900">{cancelModalBooking.room_name}</strong>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Thời gian:</span>
-                                <span className="text-slate-800 font-medium">
-                                    {formatDateDisplay(cancelModalBooking.check_in_date)} → {formatDateDisplay(cancelModalBooking.check_out_date)}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Tổng tiền đơn phòng:</span>
-                                <strong className="text-rose-600 font-bold">
-                                    {Number(cancelModalBooking.grand_total_amount ?? cancelModalBooking.total_amount).toLocaleString('vi-VN')} VND
-                                </strong>
-                            </div>
-                        </div>
-
-                        {/* Chọn lý do hủy */}
-                        <div className="space-y-2 mb-6">
-                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                Vui lòng chọn lý do hủy phòng:
-                            </label>
-                            <select
-                                value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer"
-                            >
-                                <option value="Thay đổi lịch trình chuyến đi">Thay đổi lịch trình chuyến đi</option>
-                                <option value="Đặt nhầm ngày hoặc thông tin phòng">Đặt nhầm ngày hoặc thông tin phòng</option>
-                                <option value="Tìm thấy mức giá hoặc nơi ở khác phù hợp hơn">Tìm thấy mức giá hoặc nơi ở khác phù hợp hơn</option>
-                                <option value="Khác">Lý do cá nhân khác...</option>
-                            </select>
-
-                            {cancelReason === 'Khác' && (
-                                <textarea
-                                    rows={2}
-                                    placeholder="Nhập lý do cụ thể của bạn..."
-                                    value={customReason}
-                                    onChange={(e) => setCustomReason(e.target.value)}
-                                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 mt-2"
-                                />
-                            )}
-
-                            <span className="text-[11px] text-slate-400 block pt-1">
-                                Sau khi hủy, đơn phòng sẽ chuyển sang trạng thái <strong>Đã Hủy</strong> và phòng sẽ được giải phóng trên hệ thống.
-                            </span>
-                        </div>
-
-                        {/* Nút hành động */}
-                        <div className="flex items-center gap-3">
-                            <button
-                                type="button"
-                                disabled={isCancelling}
-                                onClick={handleConfirmCancel}
-                                className="w-1/2 py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                            >
-                                {isCancelling ? (
-                                    <>
-                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Đang hủy đơn...</span>
-                                    </>
-                                ) : (
-                                    <span>{cancelScope === 'group' ? 'Xác nhận Hủy Toàn Bộ Đoàn' : 'Xác nhận Hủy Phòng'}</span>
-                                )}
-                            </button>
-
-                            <button
-                                type="button"
-                                disabled={isCancelling}
-                                onClick={() => setCancelModalBooking(null)}
-                                className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
-                            >
-                                Giữ lại đơn
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ========================================================================= */}
-            {/* MODAL 2: KHÁCH HÀNG GỬI ĐÁNH GIÁ (REVIEW & RATING) */}
-            {/* ========================================================================= */}
-            {reviewModalBooking && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
-                        {/* Header Modal */}
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 border border-amber-200/80 flex items-center justify-center">
-                                    <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                                        Đánh giá kỳ nghỉ của bạn
-                                    </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        {reviewModalBooking.room_name} • Mã đơn:{' '}
-                                        <strong className="font-mono text-slate-700">
-                                            {reviewModalBooking.booking_code}
-                                        </strong>
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setReviewModalBooking(null)}
-                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* Điểm trung bình tự động tính */}
-                        <div className="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                                <Star className="w-6 h-6 text-amber-500 fill-amber-400" />
-                                <div>
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
-                                        Điểm đánh giá tổng quan
-                                    </span>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="text-xl font-black text-amber-600">
-                                            {((cleanlinessScore + serviceScore + locationScore + valueScore) / 4).toFixed(1)}
-                                        </span>
-                                        <span className="text-xs text-slate-400 font-medium">/ 5.0</span>
-                                        <span className="text-xs text-amber-800 font-bold ml-1">
-                                            {((cleanlinessScore + serviceScore + locationScore + valueScore) / 4) >= 4.5
-                                                ? '• Tuyệt vời'
-                                                : ((cleanlinessScore + serviceScore + locationScore + valueScore) / 4) >= 4.0
-                                                ? '• Rất tốt'
-                                                : '• Hài lòng'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1 text-amber-400">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                        key={star}
-                                        className={`w-4 h-4 ${
-                                            star <= Math.round((cleanlinessScore + serviceScore + locationScore + valueScore) / 4)
-                                                ? 'fill-amber-400 text-amber-400'
-                                                : 'text-slate-200 fill-slate-200'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* 4 Tiêu chí đánh giá sao */}
-                        <div className="space-y-3">
-                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                Chấm điểm các tiêu chí dịch vụ:
-                            </label>
-
-                            {[
-                                { key: 'cleanliness', label: 'Mức độ Sạch sẽ (Cleanliness)', val: cleanlinessScore, set: setCleanlinessScore },
-                                { key: 'service', label: 'Chất lượng Dịch vụ (Service)', val: serviceScore, set: setServiceScore },
-                                { key: 'location', label: 'Vị trí & Cảnh quan (Location)', val: locationScore, set: setLocationScore },
-                                { key: 'value', label: 'Giá trị tương xứng (Value)', val: valueScore, set: setValueScore },
-                            ].map((criterion) => (
-                                <div
-                                    key={criterion.key}
-                                    className="p-3 bg-slate-50 hover:bg-slate-100/70 transition rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                                >
-                                    <div>
-                                        <span className="text-xs font-bold text-slate-800">
-                                            {criterion.label}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                                        <div className="flex items-center gap-1">
-                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                <button
-                                                    key={star}
-                                                    type="button"
-                                                    onClick={() => criterion.set(star)}
-                                                    className="p-1 hover:scale-125 transition-transform select-none cursor-pointer"
-                                                    title={`${star}/5 sao`}
-                                                >
-                                                    <Star
-                                                        className={`w-4 h-4 ${
-                                                            star <= criterion.val
-                                                                ? 'fill-amber-400 text-amber-400'
-                                                                : 'text-slate-200 fill-slate-200'
-                                                        }`}
-                                                    />
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <span className="font-mono font-bold text-xs text-amber-700 w-8 text-right">
-                                            {criterion.val}/5
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Ô nhập nội dung cảm nhận */}
-                        <div className="space-y-1.5">
-                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                Cảm nhận chi tiết của bạn <span className="text-rose-500">*</span>
-                            </label>
-                            <textarea
-                                rows={3}
-                                value={reviewComment}
-                                onChange={(e) => setReviewComment(e.target.value)}
-                                placeholder="Hãy chia sẻ trải nghiệm thực tế về phòng nghỉ, nhân viên phục vụ, ẩm thực và tiện nghi tại khách sạn..."
-                                className="w-full p-3 bg-slate-50 focus:bg-white border border-slate-200 focus:border-amber-500 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition leading-relaxed"
-                            />
-                            <span className="text-[11px] text-slate-400 block">
-                                Đánh giá của bạn giúp khách sạn không ngừng nâng cao chất lượng dịch vụ và hỗ trợ du khách khác tham khảo.
-                            </span>
-                        </div>
-
-                        {/* Nút thao tác */}
-                        <div className="flex items-center gap-3 pt-2">
-                            <button
-                                type="button"
-                                disabled={isSubmittingReview}
-                                onClick={handleSubmitReview}
-                                className="w-1/2 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                            >
-                                {isSubmittingReview ? (
-                                    <>
-                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Đang gửi đánh giá...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Star className="w-3.5 h-3.5 fill-white text-white" />
-                                        <span>Gửi Đánh Giá</span>
-                                    </>
-                                )}
-                            </button>
-
-                            <button
-                                type="button"
-                                disabled={isSubmittingReview}
-                                onClick={() => setReviewModalBooking(null)}
-                                className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
-                            >
-                                Để sau
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ========================================================================= */}
-            {/* MODAL 3: XEM ĐÁNH GIÁ CỦA TÔI */}
-            {/* ========================================================================= */}
-            {viewReviewModalBooking && viewReviewModalBooking.review && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
-                        {/* Header Modal */}
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 border border-amber-200/80 flex items-center justify-center">
-                                    <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                                        Đánh giá của bạn
-                                    </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        {viewReviewModalBooking.room_name} • Mã đơn:{' '}
-                                        <strong className="font-mono text-slate-700">
-                                            {viewReviewModalBooking.booking_code}
-                                        </strong>
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setViewReviewModalBooking(null)}
-                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* Điểm tổng quan */}
-                        <div className="p-4 bg-gradient-to-r from-amber-50 via-orange-50/40 to-slate-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
-                            <div>
-                                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
-                                    Điểm đánh giá trung bình
-                                </span>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="text-2xl font-black text-amber-600">
-                                        {Number(viewReviewModalBooking.review.overall_rating || 5).toFixed(1)}
-                                    </span>
-                                    <span className="text-xs text-slate-400">/ 5.0</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1 text-amber-400">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                        key={star}
-                                        className={`w-5 h-5 ${
-                                            star <= Math.round(Number(viewReviewModalBooking.review.overall_rating || 5))
-                                                ? 'fill-amber-400 text-amber-400'
-                                                : 'text-slate-200 fill-slate-200'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* 4 Tiêu chí chi tiết */}
-                        <div className="grid grid-cols-2 gap-2.5 text-xs">
-                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                                <span className="text-slate-600">Sạch sẽ:</span>
-                                <strong className="text-slate-900 font-mono flex items-center gap-1">
-                                    <span>{viewReviewModalBooking.review.cleanliness_score}/5</span>
-                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                </strong>
-                            </div>
-                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                                <span className="text-slate-600">Dịch vụ:</span>
-                                <strong className="text-slate-900 font-mono flex items-center gap-1">
-                                    <span>{viewReviewModalBooking.review.service_score}/5</span>
-                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                </strong>
-                            </div>
-                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                                <span className="text-slate-600">Vị trí:</span>
-                                <strong className="text-slate-900 font-mono flex items-center gap-1">
-                                    <span>{viewReviewModalBooking.review.location_score}/5</span>
-                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                </strong>
-                            </div>
-                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                                <span className="text-slate-600">Giá trị:</span>
-                                <strong className="text-slate-900 font-mono flex items-center gap-1">
-                                    <span>{viewReviewModalBooking.review.value_score}/5</span>
-                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                </strong>
-                            </div>
-                        </div>
-
-                        {/* Nội dung đánh giá của khách */}
-                        <div className="space-y-1">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                                Nội dung nhận xét:
-                            </span>
-                            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs sm:text-sm text-slate-800 leading-relaxed font-normal">
-                                "{viewReviewModalBooking.review.comment}"
-                            </div>
-                            <span className="text-[10px] text-slate-400 block pt-0.5">
-                                Gửi lúc: {formatDateTimeDisplay(viewReviewModalBooking.review.created_at)}
-                            </span>
-                        </div>
-
-                        {/* Phản hồi từ khách sạn (theo thiết kế viền trái hổ phách) */}
-                        {viewReviewModalBooking.review.admin_reply ? (
-                            <div className="p-4 bg-amber-50/40 border-l-4 border-amber-500 rounded-r-2xl space-y-1.5 shadow-2xs">
-                                <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                                    <Hotel className="w-3.5 h-3.5 text-amber-600" />
-                                    <span>{hotelName} phản hồi:</span>
-                                </span>
-                                <p className="text-xs text-slate-700 leading-relaxed font-normal">
-                                    {viewReviewModalBooking.review.admin_reply}
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-[11px] text-slate-500 italic flex items-center gap-2">
-                                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                <span>Khách sạn đã ghi nhận đánh giá của quý khách và sẽ sớm phản hồi.</span>
-                            </div>
-                        )}
-
-                        {/* Nút đóng */}
-                        <button
-                            type="button"
-                            onClick={() => setViewReviewModalBooking(null)}
-                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
-                        >
-                            Đóng
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* 7. MODAL GIA HẠN THỜI GIAN LƯU TRÚ DÀNH CHO KHÁCH HÀNG */}
-            {extendModalBooking && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 text-left animate-in zoom-in-95 duration-200">
-                        {/* Header Modal */}
-                        <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-xl shadow-xs">
-                                    <CalendarPlus className="w-5 h-5 text-amber-600" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-base sm:text-lg text-slate-900">
-                                        Gia Hạn Thời Gian Lưu Trú
-                                    </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        Đơn #{extendModalBooking.booking_code} • {extendModalBooking.room_name || 'Phòng nghỉ'}
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setExtendModalBooking(null)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center font-bold text-sm cursor-pointer"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* Thông tin phòng hiện tại */}
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5 text-xs text-slate-600">
-                            <div className="flex items-center justify-between">
-                                <span>Hạng phòng:</span>
-                                <strong className="text-slate-900 font-semibold">{extendModalBooking.room_name}</strong>
-                            </div>
-                            {extendModalBooking.room_number && (
-                                <div className="flex items-center justify-between">
-                                    <span>Phòng đang ở:</span>
-                                    <strong className="text-amber-700 font-bold font-mono">Phòng {extendModalBooking.room_number}</strong>
-                                </div>
-                            )}
-                            <div className="flex items-center justify-between">
-                                <span>Ngày nhận phòng (Check-in):</span>
-                                <strong className="text-slate-800">{formatDateDisplay(extendModalBooking.check_in_date)}</strong>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span>Ngày trả phòng hiện tại:</span>
-                                <strong className="text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
-                                    {formatDateDisplay(extendModalBooking.check_out_date)} (trước {settings?.check_out_time || '12:00'})
-                                </strong>
-                            </div>
-                        </div>
-
-                        {/* Chọn ngày trả phòng mới */}
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-slate-900 block">
-                                Chọn ngày trả phòng (Check-out) mới: <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                                type="date"
-                                min={extendMinDate}
-                                value={newCheckOutDate}
-                                onChange={(e) => {
-                                    setNewCheckOutDate(e.target.value);
-                                    setExtendConflictError(null);
-                                }}
-                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition cursor-pointer shadow-xs"
-                            />
-                            <p className="text-[11px] text-slate-400">
-                                * Chỉ được chọn ngày sau ngày trả phòng hiện tại ({formatDateDisplay(extendModalBooking.check_out_date)}).
-                            </p>
-                        </div>
-
-                        {/* Xem trước chi phí phát sinh */}
-                        {extendCalculation.isValid && (
-                            <div className="p-4 bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-slate-50 rounded-2xl border border-amber-200/80 space-y-2 text-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Số đêm lưu trú thêm:</span>
-                                    <strong className="text-amber-700 font-bold">+{extendCalculation.extraNights} đêm</strong>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Đơn giá phòng tham khảo:</span>
-                                    <span className="text-slate-800 font-mono">{extendCalculation.nightlyRate.toLocaleString('vi-VN')} đ/đêm</span>
-                                </div>
-                                <div className="pt-2 border-t border-amber-200/60 flex items-center justify-between">
-                                    <span className="font-bold text-slate-900">Số tiền dự kiến tính thêm:</span>
-                                    <strong className="text-amber-600 font-mono text-base font-black">
-                                        +{extendCalculation.extraAmount.toLocaleString('vi-VN')} đ
-                                    </strong>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Cảnh báo lỗi kẹt phòng nếu có */}
-                        {extendConflictError && (
-                            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2 animate-in fade-in">
-                                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                                <div>
-                                    <strong className="font-bold block">Không thể gia hạn:</strong>
-                                    <span className="text-[11px] leading-relaxed mt-0.5 block">{extendConflictError}</span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Nút thao tác */}
-                        <div className="flex items-center justify-end gap-3 pt-2">
-                            <button
-                                type="button"
-                                onClick={() => setExtendModalBooking(null)}
-                                disabled={isSubmittingExtend}
-                                className="px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-bold text-xs transition cursor-pointer"
-                            >
-                                Đóng
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleConfirmExtendStay}
-                                disabled={isSubmittingExtend || !extendCalculation.isValid}
-                                className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-                            >
-                                {isSubmittingExtend ? (
-                                    <>
-                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                        <span>Đang kiểm tra & gia hạn...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <CalendarPlus className="w-3.5 h-3.5" />
-                                        <span>Xác nhận gia hạn</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* 4. Modal gia hạn thời gian lưu trú */}
+            <ExtendStayModal
+                booking={extendModalBooking}
+                onClose={() => setExtendModalBooking(null)}
+                onConfirm={handleConfirmExtendStay}
+                isSubmittingExtend={isSubmittingExtend}
+                newCheckOutDate={newCheckOutDate}
+                setNewCheckOutDate={setNewCheckOutDate}
+                extendMinDate={extendMinDate}
+                extendConflictError={extendConflictError}
+                setExtendConflictError={setExtendConflictError}
+                extendCalculation={extendCalculation}
+                settings={settings}
+                formatDateDisplay={formatDateDisplay}
+            />
 
             {/* Modal Thanh toán VietQR động khi khách bấm "Thanh toán ngay" */}
             {selectedPaymentBooking && (
