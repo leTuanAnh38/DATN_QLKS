@@ -198,6 +198,21 @@ export const adminUserService = {
     },
 
     /**
+     * Khóa / mở khóa tài khoản nhân viên (is_active = false: tạm khóa, true: kích hoạt lại)
+     */
+    async toggleEmployeeStatus(id, isActive) {
+        try {
+            const response = await api.patch(`/auth/admin/employees/${id}/`, { is_active: isActive });
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể cập nhật trạng thái tài khoản.'
+            };
+        }
+    },
+
+    /**
      * Xóa tài khoản nhân viên
      */
     async deleteEmployee(id) {

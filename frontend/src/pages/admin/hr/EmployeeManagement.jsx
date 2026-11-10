@@ -34,6 +34,7 @@ import {
     EmployeeEditModal,
     EmployeeRoleModal,
     EmployeeDeleteModal,
+    EmployeeToggleStatusModal,
     EmployeeDetailModal,
     HOTEL_DEPARTMENTS,
     HOTEL_SHIFTS,
@@ -96,6 +97,7 @@ export default function EmployeeManagement() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isToggleStatusModalOpen, setIsToggleStatusModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -648,9 +650,16 @@ export default function EmployeeManagement() {
     };
 
     // =========================================================================
-    // 6. KHÓA / MỞ KHÓA TÀI KHOẢN NHANH
+    // 6. KHÓA / MỞ KHÓA TÀI KHOẢN VỚI MODAL XÁC NHẬN
     // =========================================================================
-    const handleToggleStatus = async (emp) => {
+    const handleToggleStatus = (emp) => {
+        if (currentUser && emp.id === currentUser.id) {
+            setAlertMessage({
+                type: 'error',
+                text: 'Không thể tự khóa tài khoản đang đăng nhập hiện tại.',
+            });
+            return;
+        }
         if (isManager && ['admin', 'owner', 'manager'].includes(emp.role)) {
             setAlertMessage({
                 type: 'error',
@@ -658,14 +667,29 @@ export default function EmployeeManagement() {
             });
             return;
         }
+        setSelectedEmployee(emp);
+        setIsToggleStatusModalOpen(true);
+    };
 
-        const actionText = emp.is_active ? 'tạm khóa' : 'kích hoạt lại';
-        const res = await adminUserService.toggleEmployeeStatus(emp.id, !emp.is_active);
+    const handleConfirmToggleStatus = async () => {
+        if (!selectedEmployee) return;
+        setIsSubmitting(true);
+
+        const targetStatus = !selectedEmployee.is_active;
+        const actionText = selectedEmployee.is_active ? 'tạm khóa' : 'mở khóa';
+        const res = await adminUserService.toggleEmployeeStatus(selectedEmployee.id, targetStatus);
+
+        setIsSubmitting(false);
+        setIsToggleStatusModalOpen(false);
+
         if (res.success) {
-            setEmployees((prev) => prev.map((e) => (e.id === emp.id ? { ...e, is_active: !emp.is_active } : e)));
+            const targetId = selectedEmployee.id;
+            setEmployees((prev) =>
+                prev.map((e) => (e.id === targetId ? { ...e, is_active: targetStatus } : e))
+            );
             setAlertMessage({
                 type: 'success',
-                text: `Đã ${actionText} tài khoản của nhân viên "${emp.full_name || emp.username}" thành công!`,
+                text: `Đã ${actionText} tài khoản của nhân viên "${selectedEmployee.full_name || selectedEmployee.username}" thành công!`,
             });
             fetchEmployees(null, true);
         } else {
@@ -1343,6 +1367,15 @@ export default function EmployeeManagement() {
                 onClose={() => setIsDeleteModalOpen(false)}
                 employee={selectedEmployee}
                 onConfirm={handleConfirmDelete}
+                isSubmitting={isSubmitting}
+                getRoleBadge={getRoleBadge}
+            />
+
+            <EmployeeToggleStatusModal
+                isOpen={isToggleStatusModalOpen}
+                onClose={() => setIsToggleStatusModalOpen(false)}
+                employee={selectedEmployee}
+                onConfirm={handleConfirmToggleStatus}
                 isSubmitting={isSubmitting}
                 getRoleBadge={getRoleBadge}
             />

@@ -1,345 +1,20 @@
+"""ServiceRequestViewSet: CRUD phiếu yêu cầu dịch vụ; workflow ghép từ mixin."""
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from .models import ServiceCategory, ServiceItem, ServiceRequest
-from .serializers import (
-    ServiceCategorySerializer,
-    ServiceItemSerializer,
-    ServiceRequestSerializer,
-)
-from ..bookings.models import Booking, BookingExtraService
-from ..users.models import log_action
-from ..users.views import check_role_permission
+from ..models import ServiceItem, ServiceRequest
+from ..serializers import ServiceRequestSerializer
+from ...bookings.models import Booking, BookingExtraService
+from ...users.models import log_action
 from core_project.pagination import StandardResultsSetPagination
+from .request_workflow_mixin import ServiceRequestWorkflowMixin
 
 
-class IsManagerOrAdminOnly(BasePermission):
-    """
-    Kiểm tra phân quyền động theo ma trận quyền cho phân hệ Dịch vụ & Nhà hàng (services).
-    """
-    def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-        if request.user.is_superuser:
-            return True
-        action_map = {
-            'GET': 'read',
-            'POST': 'create',
-            'PUT': 'update',
-            'PATCH': 'update',
-            'DELETE': 'delete'
-        }
-        action = action_map.get(request.method, 'read')
-        return check_role_permission(request.user, 'services', action)
-
-
-class ServiceCategoryListView(APIView):
-    """
-    API Lấy danh sách nhóm dịch vụ (GET /api/services/categories/)
-    và Thêm mới nhóm dịch vụ (POST /api/services/categories/)
-    """
-    def get_permissions(self):
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        return [IsManagerOrAdminOnly()]
-
-    def get(self, request):
-        categories = ServiceCategory.objects.all().order_by('id')
-        serializer = ServiceCategorySerializer(categories, many=True, context={'request': request})
-        return Response({
-            'success': True,
-            'count': categories.count(),
-            'categories': serializer.data,
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = ServiceCategorySerializer(data=request.data, context={'request': request})
-        if not serializer.is_valid():
-            return Response({
-                'success': False,
-                'message': 'Dữ liệu nhóm dịch vụ không hợp lệ.',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        cat = serializer.save()
-
-        log_action(
-            user=request.user,
-            action='CREATE',
-            module='SERVICE',
-            description=f'Tạo nhóm dịch vụ "{cat.name}"',
-            request=request
-        )
-
-        return Response({
-            'success': True,
-            'message': f'Đã tạo nhóm dịch vụ "{cat.name}" thành công.',
-            'category': ServiceCategorySerializer(cat, context={'request': request}).data,
-            'data': ServiceCategorySerializer(cat, context={'request': request}).data
-        }, status=status.HTTP_201_CREATED)
-
-
-class ServiceItemViewSet(viewsets.ModelViewSet):
-    """
-    CRUD Quản lý Danh mục Dịch vụ Khách sạn:
-    - GET /api/services/items/: Khách hàng & Admin xem danh mục (hỗ trợ lọc category_id, q, status, all)
-    - POST /api/services/items/: Thêm dịch vụ mới (hỗ trợ upload ảnh file hoặc URL)
-    - GET /api/services/items/<id>/: Chi tiết dịch vụ
-    - PUT/PATCH /api/services/items/<id>/: Sửa dịch vụ
-    - DELETE /api/services/items/<id>/: Xóa dịch vụ
-    - PATCH /api/services/items/<id>/toggle-active/: Đổi nhanh trạng thái phục vụ
-    """
-    serializer_class = ServiceItemSerializer
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
-        return [IsManagerOrAdminOnly()]
-
-    def get_queryset(self):
-        # Luôn tạo mới QuerySet để tránh cache in-memory
-        queryset = ServiceItem.objects.select_related('category').all().order_by('category__id', 'id')
-
-        # Đối với các thao tác theo ID cụ thể (retrieve, update, destroy, toggle_active), luôn trả về toàn bộ
-        if self.action and self.action != 'list':
-            return queryset
-
-        category_id = self.request.query_params.get('category_id')
-        search_query = self.request.query_params.get('q', '').strip()
-        status_param = self.request.query_params.get('status', '').strip()
-        all_param = self.request.query_params.get('all', '').lower() in ['1', 'true', 'yes']
-
-        # Phân loại trạng thái phục vụ
-        if status_param == 'active':
-            queryset = queryset.filter(is_active=True)
-        elif status_param == 'inactive':
-            queryset = queryset.filter(is_active=False)
-        elif status_param == 'all' or all_param:
-            pass  # Lấy tất cả active + inactive cho trang quản lý admin
-        else:
-            # Mặc định (cho màn hình khách hàng): chỉ hiển thị dịch vụ đang hoạt động
-            queryset = queryset.filter(is_active=True)
-
-        if category_id and str(category_id).isdigit():
-            queryset = queryset.filter(category_id=int(category_id))
-
-        if search_query:
-            queryset = queryset.filter(
-                Q(name__icontains=search_query) |
-                Q(description__icontains=search_query) |
-                Q(category__name__icontains=search_query)
-            )
-
-        return queryset
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True, context={'request': request})
-        return Response({
-            'success': True,
-            'count': queryset.count(),
-            'items': serializer.data,
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={'request': request})
-        if not serializer.is_valid():
-            return Response({
-                'success': False,
-                'message': 'Dữ liệu dịch vụ không hợp lệ.',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        instance = serializer.save()
-
-        log_action(
-            user=request.user,
-            action='CREATE',
-            module='SERVICE',
-            description=f'Thêm dịch vụ mới "{instance.name}" ({instance.price:,.0f} VNĐ, Nhóm: {instance.category.name if instance.category else "Chưa phân loại"})',
-            request=request
-        )
-
-        out_serializer = self.get_serializer(instance, context={'request': request})
-        return Response({
-            'success': True,
-            'message': f'Đã thêm dịch vụ "{instance.name}" thành công vào thực đơn.',
-            'item': out_serializer.data,
-            'data': out_serializer.data
-        }, status=status.HTTP_201_CREATED)
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial, context={'request': request})
-        if not serializer.is_valid():
-            return Response({
-                'success': False,
-                'message': 'Dữ liệu cập nhật không hợp lệ.',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        updated_instance = serializer.save()
-
-        log_action(
-            user=request.user,
-            action='UPDATE',
-            module='SERVICE',
-            description=f'Cập nhật thông tin dịch vụ "{updated_instance.name}"',
-            request=request
-        )
-
-        out_serializer = self.get_serializer(updated_instance, context={'request': request})
-        return Response({
-            'success': True,
-            'message': f'Đã cập nhật dịch vụ "{updated_instance.name}" thành công.',
-            'item': out_serializer.data,
-            'data': out_serializer.data
-        }, status=status.HTTP_200_OK)
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        name = instance.name
-        pending_requests = instance.requests.filter(status__in=['pending', 'in_progress']).count()
-        if pending_requests > 0:
-            return Response({
-                'success': False,
-                'message': f'Không thể xóa dịch vụ "{name}" vì đang có {pending_requests} đơn yêu cầu đang chờ xử lý hoặc đang làm. Bạn có thể tạm ngưng phục vụ thay vì xóa.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        instance.delete()
-
-        log_action(
-            user=request.user,
-            action='DELETE',
-            module='SERVICE',
-            description=f'Xóa dịch vụ "{name}" khỏi hệ thống',
-            request=request
-        )
-
-        return Response({
-            'success': True,
-            'message': f'Đã xóa dịch vụ "{name}" khỏi hệ thống thành công.'
-        }, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['patch', 'post'], url_path='toggle-active')
-    def toggle_active(self, request, pk=None):
-        instance = self.get_object()
-        instance.is_active = not instance.is_active
-        instance.save(update_fields=['is_active'])
-        status_text = "Đang phục vụ" if instance.is_active else "Tạm ngưng phục vụ"
-
-        log_action(
-            user=request.user,
-            action='UPDATE',
-            module='SERVICE',
-            description=f'Chuyển trạng thái dịch vụ "{instance.name}" sang: {status_text}',
-            request=request
-        )
-
-        return Response({
-            'success': True,
-            'message': f'Đã chuyển trạng thái dịch vụ "{instance.name}" sang: {status_text}.',
-            'is_active': instance.is_active,
-            'item': self.get_serializer(instance, context={'request': request}).data
-        }, status=status.HTTP_200_OK)
-
-
-class ActiveGuestBookingsView(APIView):
-    """
-    API Lấy danh sách các đơn đặt phòng đang hiệu lực (GET /api/services/my-active-bookings/)
-    Dùng cho Dropdown chọn phòng/mã booking khi khách hàng đặt dịch vụ.
-    - Khách hàng đã đăng nhập: Lấy các đơn của chính họ đang ở (checked_in) hoặc đã duyệt (confirmed).
-    - Nhân viên / Quản lý: Lấy tất cả các phòng đang có khách (checked_in).
-    """
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        user = request.user
-        base_qs = Booking.objects.select_related(
-            'room', 'category', 'guest'
-        ).prefetch_related('guests').filter(
-            status='checked_in',
-            room__isnull=False
-        ).order_by('-created_at')
-
-        # Phân quyền
-        is_staff_or_admin = (
-            user.is_authenticated and (
-                user.is_staff or 
-                user.is_superuser or 
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier'] or
-                getattr(user, 'role', '') != 'guest'
-            )
-        )
-
-        if not user.is_authenticated:
-            return Response({
-                'success': True,
-                'count': 0,
-                'bookings': [],
-                'data': []
-            }, status=status.HTTP_200_OK)
-
-        if not is_staff_or_admin:
-            user_email = user.email.strip() if user.email else ''
-            if user_email:
-                base_qs = base_qs.filter(Q(guest=user) | Q(guest__email=user_email))
-            else:
-                base_qs = base_qs.filter(guest=user)
-
-        results = []
-        for b in base_qs:
-            if not b.room or not b.room.room_number:
-                continue
-            room_num = b.room.room_number
-            cat_name = b.category.name if b.category else (b.room.category.name if b.room and b.room.category else 'Tiêu chuẩn')
-
-            # 1. Ưu tiên lấy tên người đại diện lưu trú của từng phòng (rất quan trọng cho đơn đặt theo đoàn công ty)
-            guest_name = ''
-            try:
-                primary_guest = b.guests.filter(is_primary=True).first() or b.guests.first()
-                if primary_guest and primary_guest.full_name:
-                    guest_name = primary_guest.full_name.strip()
-            except Exception:
-                pass
-
-            # 2. Nếu phòng chưa có khai báo lưu trú chi tiết, lấy từ tài khoản đặt phòng
-            if not guest_name and b.guest:
-                guest_name = (b.guest.get_full_name().strip() or f"{b.guest.first_name or ''} {b.guest.last_name or ''}".strip()) or b.guest.username
-
-            if not guest_name:
-                guest_name = 'Khách lưu trú'
-
-            results.append({
-                'id': b.id,
-                'booking_code': b.booking_code,
-                'room_number': room_num,
-                'room_name': cat_name,
-                'guest_name': guest_name,
-                'status': b.status,
-                'status_display': b.get_status_display(),
-                'display_label': f"Phòng {room_num} • Mã #{b.booking_code} ({guest_name})"
-            })
-
-        return Response({
-            'success': True,
-            'count': len(results),
-            'bookings': results,
-            'data': results
-        }, status=status.HTTP_200_OK)
-
-
-class ServiceRequestViewSet(viewsets.ModelViewSet):
+class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
     """
     API Xử lý Phiếu Yêu Cầu Dịch Vụ:
     - GET /api/services/requests/: Danh sách phiếu (Nhân viên xem tất cả, Khách xem phiếu của mình)
@@ -351,9 +26,11 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     serializer_class = ServiceRequestSerializer
     pagination_class = StandardResultsSetPagination
 
+
     def get_permissions(self):
         # Cho phép gửi yêu cầu, xem menu và cập nhật kanban linh hoạt
         return [AllowAny()]
+
 
     def get_queryset(self):
         user = self.request.user
@@ -470,6 +147,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             return base_qs.filter(Q(booking__guest=user) | Q(booking__guest__email=user_email))
         return base_qs.filter(booking__guest=user)
 
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
@@ -499,6 +177,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'items': serializer.data,
             'data': serializer.data
         }, status=status.HTTP_200_OK)
+
 
     def create(self, request, *args, **kwargs):
         """
@@ -611,7 +290,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         if user.is_authenticated and is_staff_or_admin:
             target_staff_id = data.get('assigned_staff') or data.get('staff_id')
             if target_staff_id:
-                from ..users.models import User as UserModel
+                from ...users.models import User as UserModel
                 target_user = UserModel.objects.filter(pk=target_staff_id).first()
                 if target_user:
                     assigned_to = target_user
@@ -762,6 +441,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'data': serializer.data,
             'room_number': room_display
         }, status=status.HTTP_201_CREATED)
+
 
     def partial_update(self, request, *args, **kwargs):
         """
@@ -931,7 +611,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                         )
 
                     # Ghi nhận / Cập nhật bản ghi Payment tiền mặt tại phòng nếu đã thu tiền
-                    from ..payments.models import Payment, CashierShift
+                    from ...payments.models import Payment, CashierShift
                     txn_id = f"SVC-REQ-{service_req.id}"
                     if service_req.is_paid:
                         active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
@@ -960,7 +640,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                         is_paid=False,
                         service_name__contains=f"[Yêu cầu #{service_req.id}]"
                     ).delete()
-                    from ..payments.models import Payment
+                    from ...payments.models import Payment
                     Payment.objects.filter(transaction_id=f"SVC-REQ-{service_req.id}").delete()
                 except Exception as e:
                     print(f"Lỗi khi gỡ phụ phí và thanh toán BookingExtraService: {e}")
@@ -971,7 +651,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             if assigned_staff_param in ['', 0, 'null', 'none']:
                 service_req.assigned_staff = None
             else:
-                from ..users.models import User as UserModel
+                from ...users.models import User as UserModel
                 assign_target = UserModel.objects.filter(pk=assigned_staff_param).first()
                 if assign_target:
                     service_req.assigned_staff = assign_target
@@ -1029,284 +709,6 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get'], url_path='kanban')
-    def kanban(self, request):
-        """
-        API chuyên biệt cung cấp dữ liệu định dạng sẵn cho Kanban Board (3 cột chính)
-        GET /api/services/requests/kanban/
-        """
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True, context={'request': request})
-        all_items = serializer.data
-
-        kanban_data = {
-            'pending': [item for item in all_items if item['status'] == 'pending'],
-            'in_progress': [item for item in all_items if item['status'] == 'in_progress'],
-            'delivering': [item for item in all_items if item['status'] == 'delivering'],
-            'completed': [item for item in all_items if item['status'] == 'completed'],
-            'cancelled': [item for item in all_items if item['status'] == 'cancelled'],
-            'stats': {
-                'total': len(all_items),
-                'pending_count': len([i for i in all_items if i['status'] == 'pending']),
-                'in_progress_count': len([i for i in all_items if i['status'] == 'in_progress']),
-                'delivering_count': len([i for i in all_items if i['status'] == 'delivering']),
-                'completed_count': len([i for i in all_items if i['status'] == 'completed']),
-                'total_revenue': sum(float(i['total_price'] or 0) for i in all_items if i['status'] == 'completed')
-            }
-        }
-
-        return Response({
-            'success': True,
-            'kanban': kanban_data,
-            'data': kanban_data
-        }, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['post'], url_path='notify-staff')
-    def notify_staff(self, request, pk=None):
-        """
-        Lễ tân phát tín hiệu chuông báo bộ phận F&B / Spa chuẩn bị phục vụ khi khách Check-in.
-        GIỮ NGUYÊN trạng thái 'pending' để nhân viên F&B/Spa tự tiếp nhận trên Kanban.
-        Có thể cập nhật thời gian hẹn phục vụ (request_time) nếu khách hẹn giờ (ví dụ: 1 tiếng nữa).
-        """
-        user = request.user
-        if not (user.is_authenticated and (user.is_staff or user.is_superuser or getattr(user, 'role', '') != 'guest')):
-            return Response({
-                'success': False,
-                'message': 'Chỉ nhân viên khách sạn mới có quyền phát chuông điều phối dịch vụ.'
-            }, status=status.HTTP_403_FORBIDDEN)
-        service_req = self.get_object()
-        booking = service_req.booking
-        guest_name = ''
-        if booking:
-            try:
-                primary_guest = booking.guests.filter(is_primary=True).first() or booking.guests.first()
-                if primary_guest and primary_guest.full_name:
-                    guest_name = primary_guest.full_name.strip()
-            except Exception:
-                pass
-            if not guest_name and booking.guest:
-                guest_name = (booking.guest.get_full_name().strip() or f"{booking.guest.first_name or ''} {booking.guest.last_name or ''}".strip()) or booking.guest.username
-        if not guest_name:
-            guest_name = "Khách lưu trú"
-        room_label = (booking.room.room_number if booking and booking.room else None) or \
-                     (booking.category.name if booking and booking.category else "Chưa xếp phòng")
-        service_name = service_req.service.name if service_req.service else "Dịch vụ"
-
-        # Cập nhật thời gian hẹn phục vụ nếu Lễ tân truyền lên
-        req_time_str = request.data.get('request_time')
-        is_scheduled_param = request.data.get('is_scheduled', False)
-        update_fields = []
-        if req_time_str:
-            try:
-                from django.utils.dateparse import parse_datetime
-                parsed_dt = parse_datetime(req_time_str)
-                if parsed_dt:
-                    if timezone.is_naive(parsed_dt):
-                        parsed_dt = timezone.make_aware(parsed_dt)
-                    service_req.request_time = parsed_dt
-                    update_fields.append('request_time')
-            except Exception as e:
-                print(f"Lỗi parse request_time: {e}")
-
-        service_req.is_scheduled = bool(is_scheduled_param)
-        update_fields.append('is_scheduled')
-
-        schedule_label = request.data.get('schedule_label', '')
-        if schedule_label and 'note' not in update_fields:
-            existing_note = service_req.note or ''
-            if schedule_label not in existing_note:
-                service_req.note = f"{existing_note} [{schedule_label}]".strip()
-                update_fields.append('note')
-
-        if update_fields:
-            update_fields.append('updated_at')
-            service_req.save(update_fields=list(set(update_fields)))
-            service_req.refresh_from_db()
-
-        # Soạn nội dung thông báo kèm thời gian hẹn (chỉ khi có hẹn giờ)
-        if service_req.is_scheduled and service_req.request_time:
-            local_time = timezone.localtime(service_req.request_time)
-            time_display = local_time.strftime('%H:%M %d/%m/%Y')
-            time_notice = f" ⏰ Khách hẹn phục vụ lúc: {time_display}."
-        else:
-            time_notice = " (Khách cần phục vụ ngay)"
-
-        try:
-            from ..notifications.signals import get_staff_and_admin_users, get_service_category_type
-            from ..notifications.models import Notification
-
-            category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
-            cat_type = get_service_category_type(service_name, category_name)
-
-            if cat_type == 'fnb':
-                dept_name = "Bếp / F&B"
-                dept_title = f"Báo Bếp/F&B chuẩn bị món: Phòng {room_label}"
-                dept_message = (
-                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
-                    f"Món ăn / Đồ uống: \"{service_name}\" (SL: {service_req.quantity})."
-                    f"{time_notice} "
-                    f"Vui lòng tiếp nhận và chế biến đúng giờ trên Kanban!"
-                )
-            elif cat_type == 'transport':
-                dept_name = "Điều vận / Đội xe"
-                dept_title = f"Báo Điều vận sắp xếp xe: Phòng {room_label}"
-                dept_message = (
-                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
-                    f"Dịch vụ đưa đón: \"{service_name}\" (SL: {service_req.quantity})."
-                    f"{time_notice} "
-                    f"Vui lòng điều phối phương tiện và tài xế sẵn sàng!"
-                )
-            elif cat_type == 'spa':
-                dept_name = "Spa & Trị liệu"
-                dept_title = f"Báo Spa chuẩn bị liệu trình: Phòng {room_label}"
-                dept_message = (
-                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
-                    f"Liệu trình Spa: \"{service_name}\" (SL: {service_req.quantity})."
-                    f"{time_notice} "
-                    f"Vui lòng chuẩn bị phòng trị liệu và kỹ thuật viên!"
-                )
-            elif cat_type == 'laundry':
-                dept_name = "Buồng phòng & Giặt là"
-                dept_title = f"Báo Giặt là chuẩn bị đồ: Phòng {room_label}"
-                dept_message = (
-                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
-                    f"Dịch vụ giặt ủi: \"{service_name}\" (SL: {service_req.quantity})."
-                    f"{time_notice} "
-                    f"Vui lòng tiếp nhận và thu gom đồ giặt đúng giờ!"
-                )
-            else:  # amenities / other
-                dept_name = "Buồng phòng"
-                dept_title = f"Báo Buồng phòng chuẩn bị tiện ích: Phòng {room_label}"
-                dept_message = (
-                    f"Khách phòng {room_label} ({guest_name}) đã nhận phòng. "
-                    f"Yêu cầu tiện ích: \"{service_name}\" (SL: {service_req.quantity})."
-                    f"{time_notice} "
-                    f"Vui lòng chuẩn bị và chuyển lên phòng cho khách!"
-                )
-
-            staff_users = get_staff_and_admin_users(category_type=cat_type)
-            notifs = [
-                Notification(
-                    recipient=staff,
-                    title=dept_title,
-                    message=dept_message,
-                    notification_type='service',
-                    action_url='/admin/services',
-                    priority='normal'
-                )
-                for staff in staff_users
-            ]
-            if notifs:
-                Notification.objects.bulk_create(notifs)
-        except Exception as e:
-            print(f"Lỗi gửi thông báo cho nhân viên: {e}")
-            dept_name = "phục vụ"
-
-        # Ghi log thao tác
-        user = request.user
-        log_action(
-            user=user if user.is_authenticated else None,
-            action='NOTIFY',
-            module='SERVICE',
-            description=f"Lễ tân gửi thông báo nhắc chuẩn bị dịch vụ #{service_req.id} ({service_name}) cho bộ phận {dept_name} (Phòng {room_label}). {time_notice}",
-            request=request
-        )
-
-        serializer = self.get_serializer(service_req, context={'request': request})
-        return Response({
-            'success': True,
-            'message': f'Đã gửi thông báo nhắc chuẩn bị dịch vụ "{service_name}" cho bộ phận {dept_name} thành công!',
-            'department': dept_name,
-            'service_request_id': service_req.id,
-            'status': service_req.status,
-            'request_time': service_req.request_time,
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
-
-    def _check_service_lock(self, service_req):
-        """
-        Kiểm tra điều kiện bắt đầu / thực hiện dịch vụ phòng (dùng chung cho PATCH đổi trạng thái và claim).
-        Trả về Response lỗi 400 nếu bị khóa, hoặc None nếu được phép làm.
-        - Dịch vụ vận chuyển luôn được phép.
-        - Chưa gán phòng: chặn (ROOM_ASSIGNMENT_REQUIRED).
-        - Chưa check-in: chặn ẩm thực / spa / giặt ủi (CHECKIN_REQUIRED); tiện ích buồng phòng vẫn được làm.
-        """
-        booking = service_req.booking
-        if not booking:
-            return None
-
-        category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
-        service_name = service_req.service.name if service_req.service else ""
-        from ..notifications.signals import get_service_category_type
-        cat_type = get_service_category_type(service_name, category_name)
-
-        # Dịch vụ vận chuyển (xe đón tiễn sân bay) luôn được phép thực hiện trước
-        if cat_type == 'transport':
-            return None
-
-        has_room = bool(booking.room and booking.room.room_number)
-        is_checked_in = (booking.status == 'checked_in')
-
-        # 1. Chưa gán phòng: Không thể thực hiện vì chưa biết mang vào phòng nào
-        if not has_room:
-            return Response({
-                'success': False,
-                'code': 'ROOM_ASSIGNMENT_REQUIRED',
-                'message': f'Đơn #{booking.booking_code} chưa được gán phòng cụ thể. Vui lòng liên hệ Lễ tân gán số phòng trước khi thực hiện dịch vụ "{service_name}".'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Đã gán phòng nhưng khách chưa Check-in:
-        # - Cho phép: Dịch vụ buồng phòng / tiện nghi phòng (Set gối, khăn, nệm, giường phụ, setup phòng...)
-        # - Chặn: Dịch vụ ẩm thực (F&B), spa trị liệu, giặt ủi cần khách có mặt tại phòng
-        if not is_checked_in and cat_type in ['fnb', 'spa', 'laundry']:
-            service_group_label = "ẩm thực & đồ uống" if cat_type == 'fnb' else ("spa trị liệu" if cat_type == 'spa' else "giặt ủi")
-            return Response({
-                'success': False,
-                'code': 'CHECKIN_REQUIRED',
-                'message': f'Khách hàng đơn #{booking.booking_code} chưa hoàn tất thủ tục nhận phòng (Check-in). Dịch vụ {service_group_label} "{service_name}" yêu cầu khách có mặt tại phòng để phục vụ trực tiếp. Vui lòng đợi khách nhận phòng!'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        return None
-
-    def _check_staff_service_permission(self, user, service_req, action_name='xử lý'):
-        """
-        Kiểm tra phân quyền theo vai trò nghiệp vụ (RBAC) cho đơn dịch vụ:
-        - Admin, Owner, Manager, Receptionist: Toàn quyền điều phối.
-        - Service Staff: Xử lý F&B, Spa, Transport, Laundry, Amenities.
-        - Housekeeper: Chỉ xử lý Amenities, Laundry hoặc dịch vụ buồng phòng / setup phòng.
-        - Technician, Cashier: Không có nhiệm vụ xử lý đơn dịch vụ khách hàng.
-        """
-        if user.is_superuser:
-            return None
-
-        user_role = getattr(user, 'role', '')
-        if user_role in ['admin', 'owner', 'manager', 'receptionist']:
-            return None
-
-        if user_role == 'technician':
-            return Response({
-                'success': False,
-                'message': f'Vai trò Kỹ thuật viên không có nhiệm vụ {action_name} đơn dịch vụ khách hàng.'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        if user_role == 'cashier':
-            return Response({
-                'success': False,
-                'message': f'Vai trò Thu ngân không có nhiệm vụ {action_name} đơn dịch vụ hiện trường.'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        category_name = (service_req.service.category.name if service_req.service and service_req.service.category else "") or ""
-        service_name = service_req.service.name if service_req.service else ""
-        from ..notifications.signals import get_service_category_type
-        cat_type = get_service_category_type(service_name, category_name)
-
-        if user_role == 'housekeeper' and cat_type in ['fnb', 'transport', 'spa']:
-            return Response({
-                'success': False,
-                'message': f'Nhân viên Buồng phòng chỉ phụ trách dịch vụ tiện ích, đồ vải và setup phòng. Bạn không thể {action_name} đơn "{service_name}".'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        return None
 
     def destroy(self, request, *args, **kwargs):
         user = request.user
@@ -1317,134 +719,3 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền xóa đơn yêu cầu dịch vụ.'
             }, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
-
-    @action(detail=True, methods=['post'], url_path='claim')
-    def claim(self, request, pk=None):
-        """
-        Nhân viên / Tài xế bấm nhận việc từ App Mobile:
-        POST /api/services/requests/<id>/claim/
-        """
-        service_req = self.get_object()
-        user = request.user
-        if not user.is_authenticated:
-            return Response({
-                'success': False,
-                'message': 'Vui lòng đăng nhập để tiếp nhận công việc.'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-
-        user_role = getattr(user, 'role', '')
-        is_staff_or_admin = (
-            user.is_staff or 
-            user.is_superuser or 
-            (user_role and user_role != 'guest')
-        )
-        if not is_staff_or_admin:
-            return Response({
-                'success': False,
-                'message': 'Chỉ nhân viên khách sạn mới có quyền tiếp nhận xử lý dịch vụ.'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        perm_resp = self._check_staff_service_permission(user, service_req, action_name='tiếp nhận')
-        if perm_resp is not None:
-            return perm_resp
-
-        # Chốt chặn chống tranh chấp / ghi đè đơn (Race Condition Claim Guard):
-        # Nếu đơn đã có nhân viên khác tiếp nhận (và không có cờ force), từ chối ghi đè để tránh 2 nhân viên cùng làm 1 đơn
-        force_claim = str(request.data.get('force', '')).lower() in ['1', 'true', 'yes']
-        if service_req.assigned_staff and service_req.assigned_staff != user and not force_claim:
-            assigned_name = service_req.assigned_staff.get_full_name().strip() or service_req.assigned_staff.username
-            return Response({
-                'success': False,
-                'message': f'Đơn này đã được nhân viên "{assigned_name}" tiếp nhận xử lý trước đó.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Nhận việc khi đơn đang pending = chuyển sang in_progress -> phải qua cùng điều kiện khóa như PATCH
-        if service_req.status == 'pending':
-            lock_response = self._check_service_lock(service_req)
-            if lock_response is not None:
-                return lock_response
-
-        # Gán nhân viên tiếp nhận
-        service_req.assigned_staff = user
-        update_fields = ['assigned_staff', 'updated_at']
-
-        # Nếu đang ở pending -> tự động chuyển sang in_progress
-        if service_req.status == 'pending':
-            service_req.status = 'in_progress'
-            update_fields.append('status')
-
-        service_req.save(update_fields=list(set(update_fields)))
-        service_req.refresh_from_db()
-
-        staff_name = user.get_full_name() or user.username
-        service_name = service_req.service.name if service_req.service else "Dịch vụ"
-        log_action(
-            user=user,
-            action='UPDATE',
-            module='SERVICE',
-            description=f"Nhân viên {staff_name} tiếp nhận yêu cầu #{service_req.id} ({service_name})",
-            request=request
-        )
-
-        serializer = self.get_serializer(service_req, context={'request': request})
-        return Response({
-            'success': True,
-            'message': f'Bạn đã tiếp nhận yêu cầu "{service_name}" (#{service_req.id}) thành công!',
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['post'], url_path='assign')
-    def assign_staff(self, request, pk=None):
-        """
-        Lễ tân / Quản lý phân công nhân viên / tài xế cho đơn:
-        POST /api/services/requests/<id>/assign/
-        Body: { "staff_id": 12 }
-        """
-        user = request.user
-        user_role = getattr(user, 'role', '')
-        if not (user.is_authenticated and (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist'])):
-            return Response({
-                'success': False,
-                'message': 'Chỉ Quản lý hoặc Lễ tân mới có quyền phân công nhân viên thực hiện dịch vụ.'
-            }, status=status.HTTP_403_FORBIDDEN)
-        service_req = self.get_object()
-        staff_id = request.data.get('staff_id')
-        if not staff_id:
-            return Response({
-                'success': False,
-                'message': 'Vui lòng chọn nhân viên cần phân công.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        from ..users.models import User
-        target_staff = User.objects.filter(pk=staff_id).first()
-        if not target_staff:
-            return Response({
-                'success': False,
-                'message': 'Không tìm thấy nhân viên được chỉ định.'
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        service_req.assigned_staff = target_staff
-        update_fields = ['assigned_staff', 'updated_at']
-        if service_req.status == 'pending':
-            service_req.status = 'in_progress'
-            update_fields.append('status')
-
-        service_req.save(update_fields=list(set(update_fields)))
-        service_req.refresh_from_db()
-
-        staff_name = target_staff.get_full_name() or target_staff.username
-        service_name = service_req.service.name if service_req.service else "Dịch vụ"
-        log_action(
-            user=request.user if request.user.is_authenticated else None,
-            action='UPDATE',
-            module='SERVICE',
-            description=f"Phân công yêu cầu #{service_req.id} ({service_name}) cho nhân viên {staff_name}",
-            request=request
-        )
-
-        serializer = self.get_serializer(service_req, context={'request': request})
-        return Response({
-            'success': True,
-            'message': f'Đã phân công yêu cầu #{service_req.id} cho {staff_name} thành công!',
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
