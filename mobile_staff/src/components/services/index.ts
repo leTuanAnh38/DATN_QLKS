@@ -6,3 +6,4 @@ export * from './CatalogItemCard';
 export * from './CreateServiceOrderModal';
 export * from './CancelServiceOrderModal';
 export * from './RoomBatchDeliveryCard';
+export * from './ServiceCatalogView';

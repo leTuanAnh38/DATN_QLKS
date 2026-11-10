@@ -2,16 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   Alert,
   ActivityIndicator,
-  Modal,
-  TextInput,
   Image,
-  Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,12 +15,19 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAppTheme, ThemeColors } from '../../contexts/ThemeContext';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import apiClient from '../../api/client';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
 import BookingManagementModal from '../../components/BookingManagementModal';
 import OfflineQueueModal from '../../components/OfflineQueueModal';
+import {
+  EditProfileModal,
+  ChangePasswordModal,
+  ServerConfigModal,
+  HandoverNoteModal,
+  createProfileStyles,
+} from '../../components/profile';
 import { useOfflineQueueCount } from '../../services/offlineQueue';
 
 export default function ProfileScreen() {
@@ -33,7 +35,7 @@ export default function ProfileScreen() {
   const { themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode } = useAppTheme();
   const offlineQueueCount = useOfflineQueueCount();
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
-  const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
+  const styles = useMemo(() => createProfileStyles(colors, isDark), [colors, isDark]);
   const [refreshing, setRefreshing] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
 
@@ -46,18 +48,9 @@ export default function ProfileScreen() {
 
   // Modal Đổi Mật Khẩu
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changingPassword, setChangingPassword] = useState(false);
 
   // Modal Chỉnh Sửa Thông Tin Cá Nhân
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editAddress, setEditAddress] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
 
   // Đo độ trễ máy chủ API (ms)
   const [serverLatency, setServerLatency] = useState<number | null>(null);
@@ -65,8 +58,6 @@ export default function ProfileScreen() {
   // Sổ bàn giao ca trực (Shift Handover Note)
   const [handoverNote, setHandoverNote] = useState('');
   const [handoverModalVisible, setHandoverModalVisible] = useState(false);
-  const [tempHandoverNote, setTempHandoverNote] = useState('');
-  const [savingHandover, setSavingHandover] = useState(false);
 
   const measureLatency = async () => {
     try {
@@ -86,24 +77,8 @@ export default function ProfileScreen() {
     } catch {}
   };
 
-  const handleSaveHandover = async () => {
-    try {
-      setSavingHandover(true);
-      await SecureStore.setItemAsync('staff_shift_handover_note', tempHandoverNote.trim());
-      setHandoverNote(tempHandoverNote.trim());
-      setHandoverModalVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Thành công', 'Đã cập nhật sổ bàn giao ca trực!');
-    } catch {
-      Alert.alert('Lỗi', 'Không thể lưu ghi chú.');
-    } finally {
-      setSavingHandover(false);
-    }
-  };
-
   // Modal Cấu Hình Máy Chủ API
   const [serverModalVisible, setServerModalVisible] = useState(false);
-  const [tempUrl, setTempUrl] = useState(apiUrl);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const uploadAvatar = async (asset: ImagePicker.ImagePickerAsset) => {
@@ -189,73 +164,8 @@ export default function ProfileScreen() {
 
   // Mở modal sửa thông tin cá nhân
   const openEditModal = () => {
-    setEditFirstName(user?.first_name || '');
-    setEditLastName(user?.last_name || '');
-    setEditPhone(user?.phone_number || '');
-    setEditAddress(user?.address || '');
     setEditModalVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  // Lưu thông tin cá nhân lên backend
-  const handleSaveProfile = async () => {
-    if (!editFirstName.trim() && !editLastName.trim()) {
-      Alert.alert('Lưu ý', 'Vui lòng nhập họ và tên.');
-      return;
-    }
-    setSavingEdit(true);
-    try {
-      await apiClient.patch('/users/me/', {
-        first_name: editFirstName.trim(),
-        last_name: editLastName.trim(),
-        phone_number: editPhone.trim(),
-        address: editAddress.trim(),
-      });
-      await refreshProfile();
-      setEditModalVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Thành công', 'Hồ sơ cá nhân đã được cập nhật.');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.detail || 'Không thể lưu thay đổi.';
-      Alert.alert('Lỗi', msg);
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  // Thực hiện đổi mật khẩu
-  const handleChangePassword = async () => {
-    if (!oldPassword.trim()) {
-      Alert.alert('Lưu ý', 'Vui lòng nhập mật khẩu hiện tại.');
-      return;
-    }
-    if (!newPassword.trim() || newPassword.length < 6) {
-      Alert.alert('Lưu ý', 'Mật khẩu mới phải có tối thiểu 6 ký tự.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Lưu ý', 'Xác nhận mật khẩu mới không trùng khớp.');
-      return;
-    }
-
-    setChangingPassword(true);
-    try {
-      await apiClient.post('/users/change-password/', {
-        old_password: oldPassword,
-        new_password: newPassword,
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Thành công', 'Đổi mật khẩu thành công. Vui lòng ghi nhớ mật khẩu mới!');
-      setPasswordModalVisible(false);
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.old_password?.[0] || 'Mật khẩu cũ không chính xác.';
-      Alert.alert('Lỗi', msg);
-    } finally {
-      setChangingPassword(false);
-    }
   };
 
   // Nút thử nghiệm chuông iPhone
@@ -294,14 +204,6 @@ export default function ProfileScreen() {
     ]);
   };
 
-  // Lưu cấu hình máy chủ API
-  const handleSaveUrl = async () => {
-    if (!tempUrl.trim()) return;
-    await updateServerUrl(tempUrl.trim());
-    setServerModalVisible(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert('Thành công', `Đã cập nhật máy chủ:\n${tempUrl.trim()}`);
-  };
 
   const getRoleDisplayName = (role: string | undefined) => {
     switch (role) {
@@ -508,7 +410,6 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => {
-              setTempHandoverNote(handoverNote);
               setHandoverModalVisible(true);
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
@@ -660,10 +561,7 @@ export default function ProfileScreen() {
           {/* Cấu hình Máy Chủ API */}
           <TouchableOpacity
             style={styles.actionRow}
-            onPress={() => {
-              setTempUrl(apiUrl);
-              setServerModalVisible(true);
-            }}
+            onPress={() => setServerModalVisible(true)}
             activeOpacity={0.7}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
@@ -692,240 +590,38 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Modal Chỉnh Sửa Thông Tin Cá Nhân */}
-      <Modal visible={editModalVisible} transparent animationType="slide">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Cập Nhật Hồ Sơ</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Ionicons name="close" size={22} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.inputLabel}>Họ đệm</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editFirstName}
-              onChangeText={setEditFirstName}
-              placeholder="VD: Nguyễn Văn"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-            />
-
-            <Text style={styles.inputLabel}>Tên</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editLastName}
-              onChangeText={setEditLastName}
-              placeholder="VD: An"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-            />
-
-            <Text style={styles.inputLabel}>Số điện thoại</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editPhone}
-              onChangeText={setEditPhone}
-              placeholder="VD: 0912345678"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              keyboardType="phone-pad"
-            />
-
-            <Text style={styles.inputLabel}>Địa chỉ thường trú</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editAddress}
-              onChangeText={setEditAddress}
-              placeholder="VD: Hà Nội, Việt Nam"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-            />
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setEditModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCancelText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveProfile}
-                disabled={savingEdit}
-                activeOpacity={0.8}
-              >
-                {savingEdit ? (
-                  <ActivityIndicator color="#0A0F1D" size="small" />
-                ) : (
-                  <Text style={styles.modalSaveText}>Lưu Hồ Sơ</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        user={user}
+        onSuccess={refreshProfile}
+      />
 
       {/* Modal Đổi Mật Khẩu */}
-      <Modal visible={passwordModalVisible} transparent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Đổi Mật Khẩu Tài Khoản</Text>
-              <TouchableOpacity onPress={() => setPasswordModalVisible(false)}>
-                <Ionicons name="close" size={22} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.inputLabel}>Mật khẩu hiện tại</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={oldPassword}
-              onChangeText={setOldPassword}
-              placeholder="Nhập mật khẩu đang dùng"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              secureTextEntry
-            />
-
-            <Text style={styles.inputLabel}>Mật khẩu mới (tối thiểu 6 ký tự)</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              placeholder="Nhập mật khẩu mới"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              secureTextEntry
-            />
-
-            <Text style={styles.inputLabel}>Xác nhận mật khẩu mới</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Nhập lại mật khẩu mới"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              secureTextEntry
-            />
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setPasswordModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCancelText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleChangePassword}
-                disabled={changingPassword}
-                activeOpacity={0.8}
-              >
-                {changingPassword ? (
-                  <ActivityIndicator color="#0A0F1D" size="small" />
-                ) : (
-                  <Text style={styles.modalSaveText}>Đổi Mật Khẩu</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <ChangePasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
+      />
 
       {/* Modal Cấu Hình IP Máy Chủ */}
-      <Modal visible={serverModalVisible} transparent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Cấu Hình Máy Chủ API</Text>
-            <Text style={styles.modalDesc}>
-              Nhập đường dẫn API backend (Ngrok HTTPS URL khi dùng 4G):
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              value={tempUrl}
-              onChangeText={setTempUrl}
-              placeholder="https://...ngrok-free.dev/api"
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setServerModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCancelText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveUrl}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalSaveText}>Lưu Cài Đặt</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <ServerConfigModal
+        visible={serverModalVisible}
+        onClose={() => setServerModalVisible(false)}
+        apiUrl={apiUrl}
+        onSaveUrl={async (url) => {
+          await updateServerUrl(url);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          Alert.alert('Thành công', `Đã cập nhật máy chủ:\n${url}`);
+        }}
+      />
 
       {/* Modal Cập Nhật Sổ Bàn Giao Ca Trực */}
-      <Modal visible={handoverModalVisible} transparent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Sổ Bàn Giao Ca Trực</Text>
-              <TouchableOpacity onPress={() => setHandoverModalVisible(false)}>
-                <Ionicons name="close" size={22} color={isDark ? "#94A3B8" : "#64748B"} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalDesc}>
-              Nhập nội dung lưu ý nghiệp vụ cho ca trực tiếp theo:
-            </Text>
-            <TextInput
-              style={[styles.modalInput, styles.handoverModalInput]}
-              value={tempHandoverNote}
-              onChangeText={setTempHandoverNote}
-              placeholder="VD: Phòng 402 khách VIP yêu cầu thêm 2 gối lông vũ lúc 15h. Máy lạnh 502 đã bảo trì xong nhưng cần theo dõi..."
-              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setHandoverModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCancelText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveHandover}
-                disabled={savingHandover}
-                activeOpacity={0.8}
-              >
-                {savingHandover ? (
-                  <ActivityIndicator color="#0A0F1D" size="small" />
-                ) : (
-                  <Text style={styles.modalSaveText}>Lưu Sổ Ca</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <HandoverNoteModal
+        visible={handoverModalVisible}
+        onClose={() => setHandoverModalVisible(false)}
+        handoverNote={handoverNote}
+        onSaveSuccess={(saved) => setHandoverNote(saved)}
+      />
 
       {/* Modal Hồ Sơ Khách Hàng (CRM & Lịch Sử) */}
       <CustomerCrmModal
@@ -953,494 +649,3 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
-
-const createThemedStyles = (colors: ThemeColors, isDark: boolean) =>
-  StyleSheet.create({
-    safeContainer: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    topHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 18,
-      paddingTop: 8,
-      paddingBottom: 10,
-    },
-    brandSubtitle: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: colors.gold,
-      letterSpacing: 1.5,
-    },
-    greetingTitle: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: colors.text,
-      marginTop: 2,
-    },
-    headerRightActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    refreshCircleBtn: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      backgroundColor: colors.card,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    scrollContent: {
-      paddingHorizontal: 16,
-      paddingBottom: Platform.OS === 'ios' ? 120 : 80,
-    },
-    idCard: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 18,
-      marginTop: 6,
-      borderWidth: 1,
-      borderColor: colors.border,
-      overflow: 'hidden',
-    },
-    cardGoldTrim: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 3.5,
-      backgroundColor: colors.gold,
-    },
-    idCardTop: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    avatarGlow: {
-      padding: 3,
-      borderRadius: 32,
-      backgroundColor: 'rgba(245, 158, 11, 0.15)',
-      position: 'relative',
-    },
-    changeAvatarBtn: {
-      position: 'absolute',
-      bottom: -1,
-      right: -1,
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      backgroundColor: colors.gold,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 2,
-      borderColor: colors.card,
-    },
-    avatarFallback: {
-      width: 58,
-      height: 58,
-      borderRadius: 29,
-      backgroundColor: colors.backgroundElement,
-      borderWidth: 1.5,
-      borderColor: colors.gold,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarImage: {
-      width: 58,
-      height: 58,
-      borderRadius: 29,
-      borderWidth: 1.5,
-      borderColor: colors.gold,
-    },
-    staffName: {
-      fontSize: 18,
-      fontWeight: '900',
-      color: colors.text,
-      letterSpacing: 0.3,
-    },
-    staffUsername: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 3,
-    },
-    roleBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.14)',
-      borderWidth: 1,
-      borderColor: 'rgba(245, 158, 11, 0.3)',
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      borderRadius: 10,
-      marginBottom: 10,
-    },
-    roleBadgeText: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: colors.gold,
-      flex: 1,
-    },
-    quickEditBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.15)',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 6,
-      borderWidth: 1,
-      borderColor: 'rgba(245, 158, 11, 0.3)',
-    },
-    quickEditBtnText: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: colors.gold,
-    },
-    staffMetaRow: {
-      flexDirection: 'row',
-      gap: 6,
-      marginBottom: 12,
-    },
-    metaChip: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.backgroundElement,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    metaChipText: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.text,
-    },
-    idKpiRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.backgroundElement,
-      borderRadius: 12,
-      paddingVertical: 10,
-      paddingHorizontal: 8,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      marginBottom: 12,
-    },
-    idKpiCol: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    idKpiVal: {
-      fontSize: 15,
-      fontWeight: '900',
-      color: colors.gold,
-    },
-    idKpiUnit: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.textMuted,
-    },
-    idKpiLbl: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    idKpiDivider: {
-      width: 1,
-      height: 24,
-      backgroundColor: colors.border,
-    },
-    shiftActiveBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    pulseDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-      backgroundColor: colors.emerald,
-      marginRight: 6,
-    },
-    shiftActiveText: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: isDark ? '#34D399' : '#059669',
-      letterSpacing: 0.5,
-    },
-    sectionCard: {
-      backgroundColor: colors.card,
-      borderRadius: 18,
-      padding: 16,
-      marginTop: 14,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    sectionHeaderRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    sectionTitle: {
-      fontSize: 14,
-      fontWeight: '800',
-      color: colors.text,
-      marginBottom: 10,
-    },
-    editBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: 'rgba(245, 158, 11, 0.12)',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: 'rgba(245, 158, 11, 0.3)',
-    },
-    editBtnText: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: colors.gold,
-    },
-    detailItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 8,
-    },
-    detailIconBox: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: colors.backgroundElement,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    detailLabel: {
-      fontSize: 11,
-      color: colors.textMuted,
-      fontWeight: '600',
-    },
-    detailValue: {
-      fontSize: 13,
-      color: colors.text,
-      fontWeight: '700',
-      marginTop: 2,
-    },
-    detailDivider: {
-      height: 1,
-      backgroundColor: colors.border,
-      marginVertical: 4,
-    },
-    themeSegmentedBar: {
-      flexDirection: 'row',
-      backgroundColor: colors.backgroundElement,
-      borderRadius: 12,
-      padding: 4,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      gap: 6,
-    },
-    themeSegmentBtn: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 10,
-      paddingHorizontal: 4,
-      borderRadius: 9,
-    },
-    themeSegmentBtnActive: {
-      backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: 'rgba(245, 158, 11, 0.4)',
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    themeSegmentText: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.textMuted,
-    },
-    themeSegmentTextActive: {
-      color: colors.gold,
-      fontWeight: '800',
-    },
-    actionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 10,
-    },
-    actionIconBox: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    actionTitle: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: colors.text,
-    },
-    actionDesc: {
-      fontSize: 11,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    logoutButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(239, 68, 68, 0.12)',
-      borderWidth: 1,
-      borderColor: 'rgba(239, 68, 68, 0.3)',
-      borderRadius: 14,
-      height: 48,
-      marginTop: 18,
-    },
-    logoutButtonText: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: colors.rose,
-      letterSpacing: 0.5,
-    },
-    versionText: {
-      textAlign: 'center',
-      color: colors.textSubtle,
-      fontSize: 11,
-      marginTop: 16,
-      fontWeight: '600',
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(15, 23, 42, 0.45)',
-      justifyContent: 'center',
-      padding: 22,
-    },
-    modalContent: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 22,
-      borderWidth: 1,
-      borderColor: colors.border,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: isDark ? 0.35 : 0.08,
-      shadowRadius: 18,
-      elevation: 8,
-    },
-    modalHeaderRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 14,
-    },
-    modalTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.text,
-    },
-    modalDesc: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginBottom: 14,
-    },
-    inputLabel: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.textMuted,
-      marginBottom: 5,
-      marginTop: 8,
-    },
-    modalInput: {
-      backgroundColor: colors.inputBackground,
-      borderWidth: 1,
-      borderColor: colors.inputBorder,
-      borderRadius: 12,
-      paddingHorizontal: 12,
-      height: 44,
-      color: colors.text,
-      fontSize: 13,
-    },
-    modalBtnRow: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      gap: 10,
-      marginTop: 18,
-    },
-    modalCancelBtn: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: isDark ? 'transparent' : '#F1F5F9',
-    },
-    modalCancelText: {
-      color: colors.textMuted,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    modalSaveBtn: {
-      backgroundColor: colors.gold,
-      paddingHorizontal: 18,
-      paddingVertical: 10,
-      borderRadius: 10,
-      minWidth: 90,
-      alignItems: 'center',
-    },
-    modalSaveText: {
-      color: '#0A0F1D',
-      fontSize: 13,
-      fontWeight: '900',
-    },
-    handoverDesc: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginBottom: 10,
-      lineHeight: 18,
-    },
-    handoverBox: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      backgroundColor: colors.backgroundElement,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 14,
-      padding: 14,
-      minHeight: 64,
-    },
-    handoverText: {
-      flex: 1,
-      fontSize: 13,
-      color: colors.text,
-      lineHeight: 20,
-      fontWeight: '500',
-    },
-    handoverPlaceholder: {
-      flex: 1,
-      fontSize: 12,
-      color: colors.textSubtle,
-      fontStyle: 'italic',
-      lineHeight: 18,
-    },
-    handoverModalInput: {
-      height: 110,
-      paddingTop: 12,
-      textAlignVertical: 'top',
-    },
-  });

@@ -37,7 +37,7 @@ import {
   formatOrderTime,
   styles,
   ServiceOrderCard,
-  CatalogItemCard,
+  ServiceCatalogView,
   CreateServiceOrderModal,
   CancelServiceOrderModal,
   RoomBatchDeliveryCard,
@@ -64,19 +64,12 @@ export default function ServicesScreen() {
   // Ẩn/hiện bộ lọc nâng cao (Phạm vi, Danh mục, Tầng) để tiết kiệm diện tích màn hình
   const [showFilters, setShowFilters] = useState(false);
 
-  // State ID món đang gạt toggle hết món / mở phục vụ
-  const [togglingCatalogId, setTogglingCatalogId] = useState<number | null>(null);
-
   // Khóa nút chống bấm đúp khi mạng lag / 4G (Double-tap Mutex)
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   // Chế độ xem: Đơn phục vụ ('orders') vs Thực đơn & Danh mục ('catalog')
   const [mainViewMode, setMainViewMode] = useState<'orders' | 'catalog'>('orders');
-  const [catalogItems, setCatalogItems] = useState<any[]>([]);
-  const [catalogCategories, setCatalogCategories] = useState<any[]>([]);
-  const [catalogCategoryFilter, setCatalogCategoryFilter] = useState<number | 'all'>('all');
-  const [catalogSearchText, setCatalogSearchText] = useState('');
-  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [catalogCount, setCatalogCount] = useState<number | null>(null);
 
   // Modal Khách Hàng CRM
   const [crmModalVisible, setCrmModalVisible] = useState(false);
@@ -129,34 +122,10 @@ export default function ServicesScreen() {
     }
   }, []);
 
-  const fetchCatalog = useCallback(async () => {
-    setLoadingCatalog(true);
-    try {
-      const [resItems, resCats] = await Promise.all([
-        apiClient.get('/services/items/?all=true'),
-        apiClient.get('/services/categories/'),
-      ]);
-      const items = resItems.data.results || resItems.data.items || resItems.data.data || resItems.data || [];
-      // Lấy toàn bộ món active lẫn inactive để nhân viên phục vụ có thể kiểm soát và gạt bật/tắt (toggle) còn món / hết món
-      const validCatalog = (Array.isArray(items) ? items : []).filter(
-        (s: any) => !isTransportService(s) && !isHousekeepingService(s)
-      );
-      setCatalogItems(validCatalog);
-
-      const cats = resCats.data.categories || resCats.data.results || resCats.data.data || resCats.data || [];
-      setCatalogCategories(Array.isArray(cats) ? cats : []);
-    } catch (err) {
-      console.warn('Lỗi tải danh mục thực đơn:', err);
-    } finally {
-      setLoadingCatalog(false);
-    }
-  }, []);
-
   useEffect(() => {
     setLoading(true);
     fetchOrders();
-    fetchCatalog();
-  }, [fetchOrders, fetchCatalog]);
+  }, [fetchOrders]);
 
   // Tự động đồng bộ ngầm mỗi 6 giây (nhận đơn mới khi khách đặt trên Web hoặc Lễ tân tạo đơn)
   useFocusPolling(fetchOrders, 6000);
@@ -164,10 +133,8 @@ export default function ServicesScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     setVisibleOrdersCount(15);
-    setVisibleCatalogCount(16);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     fetchOrders();
-    fetchCatalog();
   };
 
   // Helper kiểm tra đơn có thuộc quyền phụ trách của nhân viên đang đăng nhập hay không
@@ -904,47 +871,7 @@ export default function ServicesScreen() {
     );
   };
 
-  // Bật/Tắt trạng thái phục vụ món ăn trên Tab Thực đơn (Catalog)
-  const handleToggleCatalogActive = async (item: any) => {
-    if (togglingCatalogId === item.id) return;
-    const isCurrentlyActive = item.is_active !== false;
-    const nextStatusText = isCurrentlyActive ? 'Tạm hết món / Ngưng phục vụ' : 'Mở phục vụ lại';
 
-    Alert.alert(
-      'Chuyển trạng thái thực đơn',
-      `Bạn có chắc chắn muốn chuyển món "${item.name}" sang: "${nextStatusText}"?`,
-      [
-        { text: 'Hủy bỏ', style: 'cancel' },
-        {
-          text: isCurrentlyActive ? 'Báo hết món' : 'Mở phục vụ',
-          style: isCurrentlyActive ? 'destructive' : 'default',
-          onPress: async () => {
-            try {
-              setTogglingCatalogId(item.id);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const res = await apiClient.patch(`/services/items/${item.id}/toggle-active/`);
-              if (res.data?.success) {
-                const updatedActive = res.data?.is_active ?? !isCurrentlyActive;
-                setCatalogItems((prev) =>
-                  prev.map((it) => (it.id === item.id ? { ...it, is_active: updatedActive } : it))
-                );
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                Alert.alert(
-                  'Thành công',
-                  `Món "${item.name}" hiện đã ${updatedActive ? 'sẵn sàng phục vụ' : 'chuyển sang TẠM HẾT MÓN'}.`
-                );
-              }
-            } catch (err: any) {
-              const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái món.';
-              Alert.alert('Lỗi', msg);
-            } finally {
-              setTogglingCatalogId(null);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   // Mở modal xác nhận hủy đơn và chọn lý do (SOP & Food waste audit)
   const handleOpenCancelModal = (item: ServiceOrder) => {
@@ -1037,66 +964,7 @@ export default function ServicesScreen() {
     }
   };
 
-  const filteredCatalogItems = useMemo(() => {
-    return catalogItems.filter((s) => {
-      if (catalogCategoryFilter !== 'all') {
-        const catId = s.category_id || (typeof s.category === 'object' ? s.category?.id : s.category);
-        if (catId !== catalogCategoryFilter) return false;
-      }
-      if (catalogSearchText.trim()) {
-        const q = catalogSearchText.trim().toLowerCase();
-        const matchName = s.name && s.name.toLowerCase().includes(q);
-        const matchCat = s.category_name && s.category_name.toLowerCase().includes(q);
-        const matchDesc = s.description && s.description.toLowerCase().includes(q);
-        if (!matchName && !matchCat && !matchDesc) return false;
-      }
-      return true;
-    });
-  }, [catalogItems, catalogCategoryFilter, catalogSearchText]);
 
-  useEffect(() => {
-    setVisibleCatalogCount(16);
-  }, [catalogCategoryFilter, catalogSearchText]);
-
-  const displayedCatalogItems = useMemo(() => {
-    return filteredCatalogItems.slice(0, visibleCatalogCount);
-  }, [filteredCatalogItems, visibleCatalogCount]);
-
-  const handleLoadMoreCatalog = () => {
-    if (loadingMoreCatalog || visibleCatalogCount >= filteredCatalogItems.length) return;
-    setLoadingMoreCatalog(true);
-    setTimeout(() => {
-      setVisibleCatalogCount((prev) => Math.min(prev + 16, filteredCatalogItems.length));
-      setLoadingMoreCatalog(false);
-    }, 250);
-  };
-
-  const renderCatalogFooter = () => {
-    if (filteredCatalogItems.length <= 16) return <View style={{ height: 25 }} />;
-    if (loadingMoreCatalog) {
-      return (
-        <View style={styles.loadMoreFooter}>
-          <ActivityIndicator size="small" color="#F59E0B" />
-          <Text style={styles.loadMoreText}>Đang tải thêm món & dịch vụ...</Text>
-        </View>
-      );
-    }
-    if (visibleCatalogCount >= filteredCatalogItems.length) {
-      return (
-        <View style={styles.endOfListFooter}>
-          <Ionicons name="checkmark-circle-outline" size={15} color="#64748B" style={{ marginRight: 6 }} />
-          <Text style={styles.endOfListText}>Đã hiển thị toàn bộ {filteredCatalogItems.length} món & dịch vụ</Text>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.endOfListFooter}>
-        <Text style={styles.loadMoreHintText}>
-          Đang xem {visibleCatalogCount}/{filteredCatalogItems.length} món • Cuộn xuống để xem thêm
-        </Text>
-      </View>
-    );
-  };
 
   // Cart helpers
   const handleAddToCart = (service: any) => {
@@ -1237,18 +1105,7 @@ export default function ServicesScreen() {
     [isDark, checkIsMyTask, actionLoadingId, handleClaim, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest, orderCountByRoom]
   );
 
-  const renderCatalogCard = useCallback(
-    ({ item }: { item: any }) => (
-      <CatalogItemCard
-        item={item}
-        isDark={isDark}
-        isToggling={togglingCatalogId === item.id}
-        onToggleActive={handleToggleCatalogActive}
-        onOrder={(it) => openCreateOrderModal(it.id)}
-      />
-    ),
-    [isDark, togglingCatalogId, handleToggleCatalogActive, openCreateOrderModal]
-  );
+
 
   return (
     <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
@@ -1340,7 +1197,6 @@ export default function ServicesScreen() {
           onPress={() => {
             setMainViewMode('catalog');
             Haptics.selectionAsync();
-            if (catalogItems.length === 0) fetchCatalog();
           }}
           activeOpacity={0.7}
         >
@@ -1357,7 +1213,7 @@ export default function ServicesScreen() {
               mainViewMode === 'catalog' && styles.topModeTabTextActive,
             ]}
           >
-            Thực Đơn & Dịch Vụ ({catalogItems.length || 'Menu'})
+            Thực Đơn & Dịch Vụ {catalogCount ? `(${catalogCount})` : '(Menu)'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -1796,132 +1652,11 @@ export default function ServicesScreen() {
         </>
       ) : (
         /* MODE 2: FULL SERVICE CATALOG & MENU VIEW */
-        <View style={{ flex: 1 }}>
-          {/* Category Filter Pills */}
-          <View style={{ paddingHorizontal: 12, marginBottom: 8 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catalogCatScroll}>
-              <TouchableOpacity
-                style={[
-                  styles.catalogCatChip,
-                  !isDark && {
-                    backgroundColor: catalogCategoryFilter === 'all' ? '#F59E0B' : '#FFFFFF',
-                    borderColor: catalogCategoryFilter === 'all' ? '#F59E0B' : '#E2E8F0',
-                    shadowColor: '#64748B',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  },
-                  catalogCategoryFilter === 'all' && isDark && styles.catalogCatChipActive,
-                ]}
-                onPress={() => {
-                  setCatalogCategoryFilter('all');
-                  Haptics.selectionAsync();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.catalogCatChipText,
-                    !isDark && { color: catalogCategoryFilter === 'all' ? '#0A0F1D' : '#475569' },
-                    catalogCategoryFilter === 'all' && isDark && styles.catalogCatChipTextActive,
-                  ]}
-                >
-                  Tất cả ({catalogItems.length})
-                </Text>
-              </TouchableOpacity>
-
-              {catalogCategories
-                .filter((c: any) => c.type !== 'transport' && !c.name.toLowerCase().includes('xe'))
-                .map((cat: any) => {
-                  const isSelected = catalogCategoryFilter === cat.id;
-                  const count = catalogItems.filter(
-                    (s: any) => (s.category_id || (typeof s.category === 'object' ? s.category?.id : s.category)) === cat.id
-                  ).length;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.catalogCatChip,
-                        !isDark && {
-                          backgroundColor: isSelected ? '#F59E0B' : '#FFFFFF',
-                          borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
-                          shadowColor: '#64748B',
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.05,
-                          shadowRadius: 2,
-                          elevation: 1,
-                        },
-                        isSelected && isDark && styles.catalogCatChipActive,
-                      ]}
-                      onPress={() => {
-                        setCatalogCategoryFilter(cat.id);
-                        Haptics.selectionAsync();
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.catalogCatChipText,
-                          !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
-                          isSelected && isDark && styles.catalogCatChipTextActive,
-                        ]}
-                      >
-                        {cat.name} ({count})
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-            </ScrollView>
-          </View>
-
-          {/* Search Box */}
-          <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
-            <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
-            <TextInput
-              style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
-              placeholder="Tìm tên món ăn, đồ uống, spa, dịch vụ..."
-              placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-              value={catalogSearchText}
-              onChangeText={setCatalogSearchText}
-              clearButtonMode="while-editing"
-            />
-            {catalogSearchText ? (
-              <TouchableOpacity onPress={() => setCatalogSearchText('')} style={{ padding: 8 }}>
-                <Ionicons name="close-circle" size={18} color={isDark ? '#94A3B8' : '#64748B'} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {/* Catalog List */}
-          {loadingCatalog ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#F59E0B" />
-              <Text style={styles.loadingMessage}>Đang tải thực đơn & bảng giá...</Text>
-            </View>
-          ) : filteredCatalogItems.length === 0 ? (
-            <View style={styles.centerContainer}>
-              <Ionicons name="book-outline" size={56} color="#334155" />
-              <Text style={styles.emptyTitle}>Không tìm thấy món hoặc dịch vụ nào</Text>
-              <Text style={styles.emptySubtitle}>Hãy thử chọn danh mục khác hoặc xóa từ khóa tìm kiếm.</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={displayedCatalogItems}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={renderCatalogCard}
-              initialNumToRender={8}
-              maxToRenderPerBatch={8}
-              windowSize={7}
-              contentContainerStyle={[styles.listContainer, { paddingBottom: 25 }]}
-              showsVerticalScrollIndicator={false}
-              onEndReached={handleLoadMoreCatalog}
-              onEndReachedThreshold={0.2}
-              ListFooterComponent={renderCatalogFooter}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />
-              }
-            />
-          )}
-        </View>
+        <ServiceCatalogView
+          isDark={isDark}
+          onOrder={(serviceId) => openCreateOrderModal(serviceId)}
+          onCatalogLoaded={(count) => setCatalogCount(count)}
+        />
       )}
 
       {/* Modal Tạo Yêu Cầu Dịch Vụ / Gọi Món Hộ Khách */}
