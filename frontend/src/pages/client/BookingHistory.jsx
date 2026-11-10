@@ -28,6 +28,7 @@ import {
     BedDouble,
     Info,
     LogIn,
+    Lock,
     ExternalLink,
     SlidersHorizontal,
     Hotel,
@@ -365,6 +366,12 @@ export default function BookingHistory() {
     };
 
     useEffect(() => {
+        if (!isAuthenticated) {
+            setBookings([]);
+            setIsLoading(false);
+            return;
+        }
+
         fetchBookings();
 
         const handleFocus = () => fetchBookings(true);
