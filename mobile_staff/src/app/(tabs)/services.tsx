@@ -605,10 +605,10 @@ export default function ServicesScreen() {
           prev.map((o) =>
             o.id === item.id
               ? {
-                  ...o,
-                  status: newStatus as any,
-                  is_paid: typeof extraPayload?.is_paid === 'boolean' ? extraPayload.is_paid : o.is_paid,
-                }
+                ...o,
+                status: newStatus as any,
+                is_paid: typeof extraPayload?.is_paid === 'boolean' ? extraPayload.is_paid : o.is_paid,
+              }
               : o
           )
         );
@@ -827,10 +827,9 @@ export default function ServicesScreen() {
     const itemSummary = items
       .map(
         (it, idx) =>
-          `• ${it.service_name} (x${it.quantity})${
-            it.total_price && parseInt(it.total_price, 10) > 0
-              ? `: ${parseInt(it.total_price, 10).toLocaleString('vi-VN')} đ`
-              : ''
+          `• ${it.service_name} (x${it.quantity})${it.total_price && parseInt(it.total_price, 10) > 0
+            ? `: ${parseInt(it.total_price, 10).toLocaleString('vi-VN')} đ`
+            : ''
           }`
       )
       .join('\n');
@@ -1258,7 +1257,7 @@ export default function ServicesScreen() {
         <View style={{ flex: 1, marginRight: 6 }}>
           <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
           <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
-            Phục Vụ & Dịch Vụ
+            Yêu cầu dịch vụ
           </Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -1518,12 +1517,12 @@ export default function ServicesScreen() {
                   orderCategoryFilter === 'fnb'
                     ? 'Ẩm thực'
                     : orderCategoryFilter === 'spa'
-                    ? 'Spa'
-                    : orderCategoryFilter === 'laundry'
-                    ? 'Giặt ủi'
-                    : orderCategoryFilter === 'amenities'
-                    ? 'Tiện ích'
-                    : null,
+                      ? 'Spa'
+                      : orderCategoryFilter === 'laundry'
+                        ? 'Giặt ủi'
+                        : orderCategoryFilter === 'amenities'
+                          ? 'Tiện ích'
+                          : null,
                   selectedFloor !== 'all' ? `Tầng ${selectedFloor}` : null,
                 ]
                   .filter(Boolean)
@@ -1719,26 +1718,26 @@ export default function ServicesScreen() {
                   scopeFilter === 'my_tasks' && activeTab === 'all'
                     ? 'checkmark-done-circle-outline'
                     : scopeFilter === 'unassigned'
-                    ? 'hand-left-outline'
-                    : 'restaurant-outline'
+                      ? 'hand-left-outline'
+                      : 'restaurant-outline'
                 }
                 size={56}
                 color={
                   scopeFilter === 'my_tasks' && activeTab === 'all'
                     ? '#10B981'
                     : scopeFilter === 'unassigned'
-                    ? '#38BDF8'
-                    : '#334155'
+                      ? '#38BDF8'
+                      : '#334155'
                 }
               />
               <Text style={styles.emptyTitle}>
                 {scopeFilter === 'my_tasks' && activeTab === 'all'
                   ? 'Bạn không có đơn nào cần xử lý'
                   : scopeFilter === 'unassigned'
-                  ? 'Không có đơn nào chưa nhận'
-                  : activeTab === 'completed'
-                  ? 'Chưa có đơn hoàn tất trong mục này'
-                  : 'Không có yêu cầu phục vụ nào'}
+                    ? 'Không có đơn nào chưa nhận'
+                    : activeTab === 'completed'
+                      ? 'Chưa có đơn hoàn tất trong mục này'
+                      : 'Không có yêu cầu phục vụ nào'}
               </Text>
               <Text style={styles.emptySubtitle}>
                 {scopeFilter === 'my_tasks' && activeTab === 'all'
@@ -1746,8 +1745,8 @@ export default function ServicesScreen() {
                     ? `Tuyệt vời! Bạn đã hoàn thành ${scopeStats.completed} đơn. Bấm vào ô "Đã xong" để xem lại hoặc qua tab "Chưa ai nhận" để nhận thêm việc.`
                     : 'Hiện bạn chưa có nhiệm vụ nào cần làm. Hãy qua tab "Chưa ai nhận" để tiếp nhận đơn của khách nhé!'
                   : scopeFilter === 'unassigned'
-                  ? 'Tất cả yêu cầu phục vụ hiện tại đã được nhân viên tiếp nhận hoặc đã hoàn tất.'
-                  : 'Hiện chưa có khách gọi món hoặc yêu cầu tiện ích trong mục này.'}
+                    ? 'Tất cả yêu cầu phục vụ hiện tại đã được nhân viên tiếp nhận hoặc đã hoàn tất.'
+                    : 'Hiện chưa có khách gọi món hoặc yêu cầu tiện ích trong mục này.'}
               </Text>
             </View>
           ) : (

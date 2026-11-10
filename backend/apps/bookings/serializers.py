@@ -683,7 +683,8 @@ class BookingSerializer(serializers.ModelSerializer):
         # Đơn đã hủy hoặc không đến không được coi là đã thanh toán
         if obj.status in ['cancelled', 'no_show']:
             return False
-        if obj.status in ['paid', 'PAID']:
+        # Đơn đã thanh toán, đã trả phòng hoặc đã hoàn tất quyết toán
+        if obj.status in ['paid', 'PAID', 'completed', 'checked_out']:
             return True
         try:
             if hasattr(obj, 'invoice') and obj.invoice and obj.invoice.status == 'paid':
@@ -721,8 +722,8 @@ class BookingSerializer(serializers.ModelSerializer):
                 return 'COMPLETED'
         except Exception:
             pass
-        # 3. Kiểm tra trạng thái đơn đặt phòng
-        if obj.status in ['paid', 'PAID']:
+        # 3. Kiểm tra trạng thái đơn đặt phòng (Đã thanh toán / Đã hoàn tất / Đã trả phòng)
+        if obj.status in ['paid', 'PAID', 'completed', 'checked_out']:
             return 'COMPLETED'
         # 4. Kiểm tra ghi chú xác nhận thanh toán thành công thực tế
         note_lower = (obj.note or '').lower()
