@@ -36,7 +36,8 @@ import {
     Inbox,
     Moon,
     MessageSquare,
-    Wrench
+    Wrench,
+    Shirt
 } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
@@ -114,7 +115,7 @@ const renderServiceCategoryIcon = (categoryName, serviceName) => {
     if (text.includes('ẩm thực') || text.includes('ăn') || text.includes('món') || text.includes('bò') || text.includes('súp') || text.includes('phở') || text.includes('dining')) return <Utensils className="w-5 h-5 text-amber-600" />;
     if (text.includes('uống') || text.includes('cà phê') || text.includes('trà') || text.includes('nước') || text.includes('bar')) return <Utensils className="w-5 h-5 text-blue-600" />;
     if (text.includes('spa') || text.includes('massage') || text.includes('trị liệu') || text.includes('thư giãn')) return <Sparkles className="w-5 h-5 text-rose-500" />;
-    if (text.includes('giặt') || text.includes('ủi') || text.includes('laundry')) return <Sparkles className="w-5 h-5 text-indigo-500" />;
+    if (text.includes('giặt') || text.includes('ủi') || text.includes('laundry')) return <Shirt className="w-5 h-5 text-indigo-500" />;
     if (text.includes('xe') || text.includes('đón') || text.includes('sân bay') || text.includes('transport')) return <Compass className="w-5 h-5 text-emerald-600" />;
     if (text.includes('dọn') || text.includes('buồng') || text.includes('cleaning')) return <Sparkles className="w-5 h-5 text-cyan-600" />;
     return <BellRing className="w-5 h-5 text-amber-600" />;

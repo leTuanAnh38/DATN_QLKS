@@ -6,7 +6,7 @@ import {
     Building2, 
     KeyRound, 
     Calendar, 
-    Sparkles, 
+    CalendarPlus, 
     AlertTriangle, 
     BellRing, 
     Check, 
@@ -409,7 +409,7 @@ export default function BookingDetailModal({
                                             disabled={isSubmittingAdminExtend || !adminExtendCalc.isValid}
                                             className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                                         >
-                                            <Sparkles className="w-3.5 h-3.5" />
+                                            <CalendarPlus className="w-3.5 h-3.5" />
                                             <span>Xác nhận Gia hạn</span>
                                         </button>
                                     </div>

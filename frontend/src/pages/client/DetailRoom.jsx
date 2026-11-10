@@ -5,7 +5,6 @@ import {
     Bath,
     Coffee,
     Tv,
-    Sparkles,
     Camera,
     ZoomIn,
     Users,
@@ -25,7 +24,12 @@ import {
     PhoneCall,
     AlertCircle,
     Crown,
-    Info
+    Info,
+    Tag,
+    DoorClosed,
+    Layers,
+    Award,
+    X
 } from 'lucide-react';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
@@ -86,47 +90,59 @@ const FALLBACK_GALLERY = [
     }
 ];
 
-// Danh sách tiện nghi tiêu chuẩn 5 sao resort
+// Danh sách tiện nghi tiêu chuẩn khách sạn cao cấp
 const STANDARD_AMENITY_GROUPS = [
     {
         title: 'Không gian & Giường ngủ',
         icon: BedDouble,
         items: [
-            'Đệm Simmons Beautyrest Black cao cấp chuẩn quốc tế',
-            'Bộ ga gối lụa tơ tằm Ai Cập mật độ 600 sợi dệt',
-            'Phòng khách riêng biệt với sofa Ligne Roset Pháp',
-            'Menu 6 loại gối chống dị ứng cá nhân hóa theo yêu cầu'
+            'Nệm lò xo túi cao cấp nâng đỡ cơ thể chuẩn công thái học',
+            'Bộ ga gối cotton satin dệt mật độ cao thoáng khí, mềm mại',
+            'Bàn làm việc & Khu vực tiếp khách thư giãn tiện nghi',
+            'Hệ thống rèm cản sáng 100% đảm bảo giấc ngủ trọn vẹn'
         ]
     },
     {
-        title: 'Phòng tắm & Spa tại gia',
+        title: 'Phòng tắm & Thư giãn',
         icon: Bath,
         items: [
-            'Bồn tắm Jacuzzi thủy lực đặt cạnh khung kính sát biển',
-            'Bộ sản phẩm chăm sóc cao cấp Diptyque Paris nguyên bản',
-            'Phòng tắm mưa nhiệt đới đôi Hansgrohe áp lực massage',
-            'Áo choàng tắm sợi tre hữu cơ và máy sấy tóc Dyson Supersonic'
+            'Phòng tắm đứng hiện đại với vòi sen phun mưa áp lực massage',
+            'Bộ sản phẩm vệ sinh cá nhân cao cấp (Eco-friendly organic)',
+            'Áo choàng tắm mềm mại, khăn bông cao cấp và máy sấy tóc ion',
+            'Hệ thống nước nóng lạnh trung tâm ổn định 24/7'
         ]
     },
     {
-        title: 'Ẩm thực & Bar mini',
+        title: 'Ẩm thực & Thức uống tại phòng',
         icon: Coffee,
         items: [
-            'Máy pha cà phê Nespresso Gran Lattissima kèm viên nén refill mỗi ngày',
-            'Minibar miễn phí cao cấp (rượu vang đón khách, nước khoáng San Pellegrino)',
-            'Bộ trà gốm thủ công Minh Long cùng các dòng trà hữu cơ thượng hạng'
+            'Ấm đun siêu tốc & Bộ ly tách trà gốm sứ sang trọng',
+            'Trà thảo mộc, cà phê hòa tan & nước khoáng miễn phí mỗi ngày',
+            'Tủ lạnh mini bar tiện lợi bảo quản đồ uống mát lạnh'
         ]
     },
     {
-        title: 'Công nghệ Smart Room',
+        title: 'Công nghệ & Tiện ích thông minh',
         icon: Tv,
         items: [
-            'Hệ thống điều khiển cảm ứng thông minh Lutron (ánh sáng, rèm, nhiệt độ)',
-            '2 Smart TV Samsung OLED 65-inch kết nối AirPlay & Netflix 4K',
-            'Loa vòm không dây Bang & Olufsen Beosound Level cao cấp'
+            'Smart TV màn hình rộng kết nối Internet & truyền hình kỹ thuật số',
+            'Wifi cáp quang tốc độ cao phủ sóng toàn phòng nghỉ',
+            'Điều hòa không khí 2 chiều inverter êm ái, lọc không khí',
+            'Két sắt điện tử an toàn bảo mật tài sản giá trị'
         ]
     }
 ];
+
+// Hàm xác định hướng nhìn linh hoạt theo tên hoặc đặc trưng phòng
+const getRoomViewText = (roomName) => {
+    const text = (roomName || '').toLowerCase();
+    if (text.includes('ocean') || text.includes('biển') || text.includes('sea')) return 'Trực diện biển Mỹ Khê';
+    if (text.includes('vườn') || text.includes('garden')) return 'Hướng sân vườn nhiệt đới';
+    if (text.includes('núi') || text.includes('mountain') || text.includes('hill')) return 'Hướng núi & bán đảo Sơn Trà';
+    if (text.includes('hồ bơi') || text.includes('pool')) return 'Hướng hồ bơi vô cực';
+    if (text.includes('sông') || text.includes('river')) return 'Hướng sông Hàn lung linh';
+    return 'Hướng thành phố Đà Nẵng';
+};
 
 // Hàm lấy icon / emoji tiện ích đặc trưng (ưu tiên icon từ DB, fallback thông minh theo tên)
 const getAmenityIcon = (amenity) => {
@@ -148,6 +164,54 @@ const getAmenityIcon = (amenity) => {
     if (name.includes('phục vụ') || name.includes('24/7')) return '🛎️';
     if (name.includes('hồ bơi') || name.includes('bơi')) return '🏊';
     return '✨';
+};
+
+// Phân tích chính sách hủy phòng thành từng điều khoản trực quan
+const parseCancellationPolicy = (rawText) => {
+    const defaultText = '• Miễn phí hủy phòng trước 48 giờ so với giờ nhận phòng (14:00 ngày Check-in).\n• Hủy phòng trong vòng 24 - 48 giờ: Phí hủy tương đương 50% tiền phòng đêm đầu tiên.\n• Hủy phòng trong vòng dưới 24 giờ hoặc không đến nhận phòng (No-show): Phí hủy tương đương 100% tiền phòng đêm đầu tiên.\n• Hỗ trợ dời ngày miễn phí 01 lần nếu thông báo trước 24 giờ (tùy thuộc vào tình trạng phòng khả dụng).';
+    const text = (rawText || defaultText).trim();
+    return text
+        .split('\n')
+        .map((l) => l.replace(/^[•\-\*]\s*/, '').trim())
+        .filter(Boolean);
+};
+
+// Gán nhãn và mã màu phân loại theo mức độ phạt hủy
+const getPolicyBadge = (line) => {
+    const lower = line.toLowerCase();
+    if (lower.includes('miễn phí hủy') || lower.includes('trước 48')) {
+        return {
+            label: 'Miễn phí hủy',
+            badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+            dotClass: 'bg-emerald-500'
+        };
+    }
+    if (lower.includes('50%')) {
+        return {
+            label: 'Phí 50%',
+            badgeClass: 'bg-amber-50 text-amber-700 border-amber-200/80',
+            dotClass: 'bg-amber-500'
+        };
+    }
+    if (lower.includes('100%') || lower.includes('no-show') || lower.includes('không đến')) {
+        return {
+            label: 'Phí 100%',
+            badgeClass: 'bg-rose-50 text-rose-700 border-rose-200/80',
+            dotClass: 'bg-rose-500'
+        };
+    }
+    if (lower.includes('dời ngày') || lower.includes('đổi lịch')) {
+        return {
+            label: 'Dời ngày linh hoạt',
+            badgeClass: 'bg-sky-50 text-sky-700 border-sky-200/80',
+            dotClass: 'bg-sky-500'
+        };
+    }
+    return {
+        label: 'Quy định lưu trú',
+        badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/80',
+        dotClass: 'bg-slate-400'
+    };
 };
 
 export default function DetailRoom() {
@@ -745,6 +809,38 @@ export default function DetailRoom() {
         ? Math.round(((basePriceNum - promoPriceNum) / basePriceNum) * 100)
         : 0;
 
+    const roomViewText = getRoomViewText(room?.name);
+
+    const getRoomHeadline = (r) => {
+        if (!r?.name) return 'Không gian nghỉ dưỡng sang trọng & tinh tế';
+        const lowerName = r.name.toLowerCase();
+        if (lowerName.includes('ocean') || lowerName.includes('biển') || lowerName.includes('sea')) {
+            return 'Bản giao hưởng giữa kiến trúc duy mỹ và đại dương bao la';
+        }
+        if (lowerName.includes('suite') || lowerName.includes('penthouse') || lowerName.includes('vip') || lowerName.includes('presidential')) {
+            return `Đỉnh cao trải nghiệm nghỉ dưỡng thượng lưu tại ${r.name}`;
+        }
+        if (lowerName.includes('family') || lowerName.includes('gia đình')) {
+            return `Không gian ấm cúng và tiện nghi hoàn hảo cho cả gia đình`;
+        }
+        return `Không gian nghỉ dưỡng tinh tế và thư thái tại ${r.name}`;
+    };
+    const roomHeadline = getRoomHeadline(room);
+
+    const checkRoomHasJacuzzi = (r) => {
+        const text = ((r?.name || '') + ' ' + (r?.bed_type || '')).toLowerCase();
+        const hasInAmenity = (r?.amenities || []).some((a) => (a.name || '').toLowerCase().includes('jacuzzi') || (a.name || '').toLowerCase().includes('bồn tắm'));
+        return hasInAmenity || text.includes('jacuzzi') || text.includes('penthouse') || text.includes('suite');
+    };
+    const roomHasJacuzzi = checkRoomHasJacuzzi(room);
+
+    const checkRoomHasBalcony = (r) => {
+        const text = (r?.name || '').toLowerCase();
+        const hasInAmenity = (r?.amenities || []).some((a) => (a.name || '').toLowerCase().includes('ban công') || (a.name || '').toLowerCase().includes('balcony'));
+        return hasInAmenity || text.includes('ban công') || text.includes('ocean') || text.includes('biển');
+    };
+    const roomHasBalcony = checkRoomHasBalcony(room);
+
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white pb-20 lg:pb-0">
             <Navbar
@@ -829,7 +925,7 @@ export default function DetailRoom() {
                                 </span>
                                 {hasPromo && (
                                     <span className="px-3 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                                        <Sparkles className="w-3.5 h-3.5 text-rose-500" /> Ưu đãi giảm {discountPercent}%
+                                        <Tag className="w-3.5 h-3.5 text-rose-500" /> Ưu đãi giảm {discountPercent}%
                                     </span>
                                 )}
                                 <span className="px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
@@ -1075,10 +1171,8 @@ export default function DetailRoom() {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <span className="block text-[11px] text-slate-400 uppercase font-semibold">Tầm nhìn</span>
-                                    <strong className="text-sm text-slate-900 block truncate" title={room.name.toLowerCase().includes('ocean') || room.name.toLowerCase().includes('biển') ? 'Trực diện biển' : 'View thành phố'}>
-                                        {room.name.toLowerCase().includes('ocean') || room.name.toLowerCase().includes('biển')
-                                            ? 'Trực diện biển'
-                                            : 'View thành phố'}
+                                    <strong className="text-sm text-slate-900 block truncate" title={roomViewText}>
+                                        {roomViewText}
                                     </strong>
                                 </div>
                             </div>
@@ -1115,13 +1209,13 @@ export default function DetailRoom() {
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
                          
                             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">
-                                Bản giao hưởng giữa kiến trúc duy mỹ và đại dương bao la
+                                {roomHeadline}
                             </h2>
 
                             {/* Mô tả ngắn (Short Description) được đóng khung nổi bật */}
                             {room.short_description && (
                                 <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-slate-50 border border-amber-200/70 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
-                                    <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                    <Compass className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-0.5">
                                             Tổng quan nổi bật
@@ -1194,83 +1288,235 @@ export default function DetailRoom() {
                             )}
 
                             {/* 2. Tiện ích tiêu chuẩn 5 sao resort phân theo nhóm */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100">
-                                {STANDARD_AMENITY_GROUPS.map((group, idx) => {
-                                    const GroupIcon = group.icon;
-                                    return (
-                                        <div key={idx} className="space-y-3">
-                                            <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                                                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-                                                    <GroupIcon className="w-4 h-4" />
+                            <div className="space-y-4 pt-6 border-t border-slate-100">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400">
+                                        Tiện nghi tiêu chuẩn trang bị sẵn trong phòng:
+                                    </h4>
+                                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                                        Phục vụ suốt kỳ nghỉ
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                                    {STANDARD_AMENITY_GROUPS.map((group, idx) => {
+                                        const GroupIcon = group.icon;
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className="bg-slate-50/80 hover:bg-slate-50 rounded-2xl border border-slate-200/80 p-5 sm:p-6 transition shadow-2xs hover:shadow-xs space-y-4"
+                                            >
+                                                <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200/70 text-amber-700 flex items-center justify-center shrink-0">
+                                                            <GroupIcon className="w-4 h-4" />
+                                                        </div>
+                                                        <h4 className="font-serif font-bold text-base text-slate-900 tracking-tight">
+                                                            {group.title}
+                                                        </h4>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-3xs">
+                                                        {group.items.length} tiện nghi
+                                                    </span>
                                                 </div>
-                                                <h4 className="font-serif font-bold text-base text-slate-900">
-                                                    {group.title}
-                                                </h4>
+
+                                                <ul className="space-y-2.5">
+                                                    {group.items.map((item, itemIdx) => (
+                                                        <li key={itemIdx} className="flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed font-normal">
+                                                            <div className="w-4 h-4 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 shadow-3xs">
+                                                                <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                                                            </div>
+                                                            <span className="flex-1">{item}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
                                             </div>
-                                            <ul className="space-y-2.5 text-xs text-slate-600">
-                                                {group.items.map((item, itemIdx) => (
-                                                    <li key={itemIdx} className="flex items-start gap-2">
-                                                        <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                                                        <span className="leading-relaxed">{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
 
                         {/* SƠ ĐỒ BỐ TRÍ KHÔNG GIAN (FLOOR PLAN) */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
-                            <div className="flex items-center justify-between mb-6">
+                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
                                 <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">Mặt bằng bố trí</span>
-                                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
-                                        Sơ đồ không gian Suite (Floor Plan)
+                                    <div className="flex items-center gap-2 text-xs uppercase font-bold tracking-widest text-amber-600 mb-1">
+                                        <Layers className="w-4 h-4 text-amber-600" />
+                                        <span>Mặt bằng bố trí kiến trúc</span>
+                                    </div>
+                                    <h3 className="font-serif text-2xl font-bold text-slate-900">
+                                        Sơ đồ phân bổ không gian phòng
                                     </h3>
                                 </div>
-                                <span className="text-xs text-slate-500">Tỷ lệ kiến trúc 1:50</span>
+                                <span className="text-xs text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-200 self-start sm:self-auto font-medium">
+                                    Minh họa tỷ lệ tham khảo
+                                </span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                                <div className="md:col-span-6 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-300">
-                                    <div className="border-2 border-amber-500 rounded-xl p-4 relative h-56 flex flex-col justify-between text-[11px] font-mono text-slate-600 bg-white shadow-xs">
-                                        <div className="flex justify-between items-center border-b pb-2">
-                                            <span className="text-amber-700 font-bold uppercase">{room.name}</span>
-                                            <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">
-                                                {room.size ? `${room.size} M²` : 'STANDARD'}
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                                {/* CỘT TRÁI: BẢN VẼ SƠ ĐỒ MẶT BẰNG PHONG CÁCH RESORT BLUEPRINT */}
+                                <div className="lg:col-span-7 bg-slate-950 rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden border border-slate-800 shadow-xl flex flex-col justify-between min-h-[300px]">
+                                    {/* Lưới tọa độ kiến trúc mờ tinh tế */}
+                                    <div
+                                        className="absolute inset-0 opacity-[0.07] pointer-events-none"
+                                        style={{
+                                            backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+                                            backgroundSize: '20px 20px'
+                                        }}
+                                    />
+                                    <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                                    {/* Header Blueprint */}
+                                    <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-3 text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                            <span className="font-mono text-slate-300 uppercase tracking-wider font-semibold text-[11px] truncate max-w-[200px]">
+                                                {room.name}
                                             </span>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2 my-2 flex-1">
-                                            <div className="border border-slate-200 p-2 rounded flex flex-col justify-center items-center text-center bg-slate-50/50">
-                                                <span className="font-bold text-slate-800">KHÔNG GIAN NGHỈ</span>
-                                                <span className="text-[10px] text-slate-400">{room.bed_type}</span>
+                                        <span className="font-mono text-amber-300 text-[11px] bg-amber-500/15 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
+                                            {room.size ? `${room.size} M² DIỆN TÍCH SÀN` : 'TIÊU CHUẨN'}
+                                        </span>
+                                    </div>
+
+                                    {/* Khu vực minh họa phân vùng không gian (Architectural Spatial Zones) */}
+                                    <div className="relative z-10 my-4 grid grid-cols-1 sm:grid-cols-12 gap-3 flex-1">
+                                        {/* Khu 1: Cửa vào & Tiền sảnh (Foyer) */}
+                                        <div className="sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-3 flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-slate-400 text-[10px] uppercase font-mono tracking-wider">
+                                                <span>LỐI VÀO</span>
+                                                <DoorClosed className="w-3.5 h-3.5 text-slate-300" />
                                             </div>
-                                            <div className="border border-amber-200 p-2 rounded flex flex-col justify-center items-center text-center bg-amber-50/40">
-                                                <span className="font-bold text-amber-900">PHÒNG TẮM</span>
-                                                <span className="text-[10px] text-amber-600 font-semibold">Jacuzzi cao cấp</span>
+                                            <div className="my-2">
+                                                <div className="text-xs font-bold text-white">Sảnh Đón & Tủ Đồ</div>
+                                                <div className="text-[10px] text-slate-400 mt-0.5">Két sắt & Mini bar</div>
+                                            </div>
+                                            <div className="text-[10px] text-amber-300/80 font-mono">STC 55+ Cách âm</div>
+                                        </div>
+
+                                        {/* Khu 2: Phòng tắm & Thư giãn */}
+                                        <div className="sm:col-span-8 bg-white/5 hover:bg-white/10 transition border border-amber-400/20 rounded-xl p-3 flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-amber-300 text-[10px] uppercase font-mono tracking-wider">
+                                                <span>KHU PHÒNG TẮM</span>
+                                                <Bath className="w-3.5 h-3.5 text-amber-300" />
+                                            </div>
+                                            <div className="my-2 flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-xs font-bold text-white">
+                                                        {roomHasJacuzzi ? 'Bồn Tắm Nằm Thư Giãn' : 'Buồng Tắm Đứng Kính Cường Lực'}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-300 mt-0.5">
+                                                        Vòi sen mưa & Nước nóng 24/7
+                                                    </div>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+                                                    Riêng tư
+                                                </span>
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 font-mono">Bộ khăn bông cao cấp</div>
+                                        </div>
+
+                                        {/* Khu 3: Không gian ngủ chính (Master Suite) */}
+                                        <div className="sm:col-span-8 bg-gradient-to-br from-amber-500/15 via-white/5 to-white/5 border border-amber-300/30 rounded-xl p-3.5 flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-amber-200 text-[10px] uppercase font-mono tracking-wider">
+                                                <span>KHÔNG GIAN NGHỈ CHÍNH</span>
+                                                <BedDouble className="w-4 h-4 text-amber-300" />
+                                            </div>
+                                            <div className="my-2">
+                                                <div className="text-sm font-bold text-white flex items-center gap-2">
+                                                    <span>{room.bed_type || '1 Giường Đôi King Size'}</span>
+                                                </div>
+                                                <div className="text-[11px] text-slate-300 mt-1">
+                                                    Đệm lò xo túi êm ái • Bàn làm việc & TV màn hình rộng
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[10px] text-slate-300 font-mono pt-1 border-t border-white/10">
+                                                <span>Ánh sáng dịu ấm</span>
+                                                <span className="text-amber-300">Rèm cản sáng 100%</span>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2 border-t pt-2">
-                                            <div className="text-center font-bold text-slate-800">BAN CÔNG RIÊNG</div>
-                                            <div className="text-center text-slate-500">SMART SYSTEM</div>
+
+                                        {/* Khu 4: Ban công / Cửa sổ toàn cảnh */}
+                                        <div className="sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-3 flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-sky-300 text-[10px] uppercase font-mono tracking-wider">
+                                                <span>{roomHasBalcony ? 'BAN CÔNG' : 'TẦM NHÌN'}</span>
+                                                <Compass className="w-3.5 h-3.5 text-sky-300" />
+                                            </div>
+                                            <div className="my-2">
+                                                <div className="text-xs font-bold text-white">
+                                                    {roomHasBalcony ? 'Ban Công Riêng Biệt' : 'Khung Kính Toàn Cảnh'}
+                                                </div>
+                                                <div className="text-[10px] text-slate-300 mt-0.5 truncate" title={roomViewText}>
+                                                    {roomViewText}
+                                                </div>
+                                            </div>
+                                            <div className="text-[10px] text-emerald-400 font-mono">Đón gió tự nhiên</div>
                                         </div>
+                                    </div>
+
+                                    {/* Footer Blueprint */}
+                                    <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2.5 text-[10px] text-slate-400 font-mono">
+                                        <span className="flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                            <span>Chuẩn thiết kế công thái học & đối lưu không khí</span>
+                                        </span>
+                                        <span className="text-slate-500 hidden sm:inline">Hệ thống PCCC & Thoát hiểm đạt chuẩn</span>
                                     </div>
                                 </div>
 
-                                <div className="md:col-span-6 space-y-3 text-xs text-slate-600 leading-relaxed">
-                                    <h4 className="font-serif font-bold text-base text-slate-900">Thiết kế phân vùng mở thông minh</h4>
-                                    <p>
-                                        Hạng phòng được bố trí khoa học nhằm tối đa hóa sự thông thoáng và ánh sáng tự nhiên. Hệ thống kính cách âm chuẩn studio quốc tế đảm bảo không gian yên tĩnh tuyệt đối cho giấc ngủ trọn vẹn.
-                                    </p>
-                                    <div className="grid grid-cols-2 gap-2 pt-2 text-slate-800 font-semibold">
-                                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                            Diện tích: <span className="text-amber-600 font-bold">{room.size ? `${room.size} m²` : '40 m²'}</span>
+                                {/* CỘT PHẢI: CHI TIẾT THÔNG SỐ & TIỆN ÍCH PHÂN VÙNG */}
+                                <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+                                    <div className="space-y-3">
+                                        <h4 className="font-serif font-bold text-lg text-slate-900 leading-tight">
+                                            Thiết kế không gian tối ưu cho kỳ nghỉ thư thái
+                                        </h4>
+                                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+                                            Từng mét vuông trong phòng đều được quy hoạch đồng bộ nhằm mang lại sự riêng tư tối đa, tầm nhìn thoáng đãng và trải nghiệm nghỉ dưỡng êm dịu nhất.
+                                        </p>
+                                    </div>
+
+                                    {/* Lưới 4 thông số kỹ thuật then chốt */}
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">Diện tích phòng</span>
+                                            <strong className="text-sm font-bold text-slate-900 block mt-0.5">
+                                                {room.size ? `${room.size} m²` : '40 m²'}
+                                            </strong>
+                                            <span className="text-[10px] text-emerald-600 font-medium">Bố trí rộng rãi</span>
                                         </div>
-                                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                            Giường: <span className="text-amber-600 font-bold">{room.bed_type || 'King Size'}</span>
+
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">Tiêu chuẩn giường</span>
+                                            <strong className="text-xs sm:text-sm font-bold text-slate-900 block mt-0.5 truncate" title={room.bed_type || 'King Bed'}>
+                                                {room.bed_type || 'King Bed'}
+                                            </strong>
+                                            <span className="text-[10px] text-amber-700 font-medium">Đệm cao cấp</span>
                                         </div>
+
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">Khu vệ sinh</span>
+                                            <strong className="text-xs sm:text-sm font-bold text-slate-900 block mt-0.5">
+                                                {roomHasJacuzzi ? 'Bồn tắm nằm' : 'Phòng tắm đứng'}
+                                            </strong>
+                                            <span className="text-[10px] text-slate-500 font-medium">Vòi sen massage</span>
+                                        </div>
+
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">Ban công & View</span>
+                                            <strong className="text-xs sm:text-sm font-bold text-slate-900 block mt-0.5 truncate" title={roomViewText}>
+                                                {roomHasBalcony ? 'Ban công riêng' : 'Khung kính lớn'}
+                                            </strong>
+                                            <span className="text-[10px] text-sky-600 font-medium truncate block">{roomViewText}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Điểm nhấn bảo đảm chất lượng giấc ngủ */}
+                                    <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/70 flex items-start gap-2.5 text-xs text-amber-900">
+                                        <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                        <span className="leading-relaxed font-normal">
+                                            Hệ thống cửa cách âm chuyên dụng và kính chống bức xạ nhiệt giúp không gian bên trong luôn mát mẻ, yên tĩnh tuyệt đối suốt 24 giờ.
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -1278,47 +1524,64 @@ export default function DetailRoom() {
 
                         {/* CHÍNH SÁCH NHẬN & TRẢ PHÒNG & HỦY PHÒNG */}
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                                <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
-                                        Quy định & Quyền lợi lưu trú
-                                    </span>
-                                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1 flex items-center gap-2">
-                                        <ShieldCheck className="w-6 h-6 text-amber-600" /> Chính sách nhận, trả phòng & bảo đảm quyền lợi
-                                    </h3>
+                            {/* Header chính sách */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center shrink-0">
+                                        <ShieldCheck className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] uppercase font-bold tracking-widest text-amber-600 block">
+                                            Quy định & Quyền lợi lưu trú
+                                        </span>
+                                        <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">
+                                            Chính sách nhận, trả phòng & bảo đảm quyền lợi
+                                        </h3>
+                                    </div>
                                 </div>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 self-start sm:self-auto">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Tiêu chuẩn {starCount} sao quốc tế
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 self-start sm:self-auto shrink-0 shadow-2xs">
+                                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                    <span>Tiêu chuẩn {starCount} sao quốc tế</span>
                                 </span>
                             </div>
 
+                            {/* 2 Khối Nhận phòng & Trả phòng */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3.5">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
-                                        <Clock className="w-5 h-5" />
+                                {/* Nhận phòng */}
+                                <div className="p-4 sm:p-5 bg-gradient-to-br from-emerald-50/40 via-white to-slate-50/50 rounded-2xl border border-emerald-100 hover:border-emerald-200 transition shadow-2xs space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/70 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                                            Nhận phòng (Check-in)
+                                        </span>
+                                        <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center">
+                                            <Clock className="w-4 h-4" />
+                                        </div>
                                     </div>
                                     <div>
-                                        <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
-                                            Thời gian nhận phòng (Check-in)
-                                        </span>
-                                        <div className="text-base font-bold text-slate-900">Từ {settings?.check_in_time || '14:00'}</div>
-                                        <p className="text-slate-500 mt-0.5 leading-relaxed">
-                                            Hỗ trợ nhận phòng sớm miễn phí tùy theo tình trạng phòng sẵn có lúc đến.
+                                        <div className="text-xl sm:text-2xl font-bold font-serif text-slate-900 tracking-tight">
+                                            Từ {settings?.check_in_time || '14:00'}
+                                        </div>
+                                        <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                                            Hỗ trợ nhận phòng sớm miễn phí tùy theo tình trạng phòng trống lúc đến.
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3.5">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
-                                        <Clock className="w-5 h-5" />
+                                {/* Trả phòng */}
+                                <div className="p-4 sm:p-5 bg-gradient-to-br from-amber-50/40 via-white to-slate-50/50 rounded-2xl border border-amber-100 hover:border-amber-200 transition shadow-2xs space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100/70 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                                            Trả phòng (Check-out)
+                                        </span>
+                                        <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center">
+                                            <Clock className="w-4 h-4" />
+                                        </div>
                                     </div>
                                     <div>
-                                        <span className="text-[11px] text-slate-400 uppercase font-bold block mb-0.5">
-                                            Thời gian trả phòng (Check-out)
-                                        </span>
-                                        <div className="text-base font-bold text-slate-900">Trước {settings?.check_out_time || '12:00'}</div>
-                                        <p className="text-amber-700 font-semibold mt-0.5 leading-relaxed">
+                                        <div className="text-xl sm:text-2xl font-bold font-serif text-slate-900 tracking-tight">
+                                            Trước {settings?.check_out_time || '12:00'}
+                                        </div>
+                                        <p className="text-amber-800 font-medium text-xs mt-1 leading-relaxed">
                                             Hội viên VIP được ưu tiên hỗ trợ check-out trễ linh hoạt đến 16:00.
                                         </p>
                                     </div>
@@ -1326,14 +1589,35 @@ export default function DetailRoom() {
                             </div>
 
                             {/* Chi tiết chính sách hủy & đổi lịch riêng biệt của hạng phòng */}
-                            <div className="p-5 sm:p-6 bg-gradient-to-br from-amber-50/60 via-slate-50 to-orange-50/30 rounded-2xl border border-amber-100/80 space-y-3">
-                                <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                                    <ClipboardList className="w-5 h-5 text-amber-600" />
-                                    <span>Chính sách hủy phòng & hoàn tiền áp dụng cho hạng phòng này:</span>
+                            <div className="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 sm:p-5 space-y-3.5">
+                                <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/60">
+                                    <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider">
+                                        <ClipboardList className="w-4 h-4 text-amber-600" />
+                                        <span>Chính sách hủy phòng & hoàn tiền chi tiết</span>
+                                    </div>
+                                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                                        Áp dụng cho hạng phòng này
+                                    </span>
                                 </div>
-                                <div className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line pl-6 font-normal">
-                                    {room.cancellation_policy ||
-                                        '• Miễn phí hủy phòng trước 48 giờ trước ngày nhận phòng tiêu chuẩn.\n• Hủy phòng trong vòng 24 - 48 giờ trước ngày nhận phòng tính phí 50% đêm đầu tiên.\n• Hủy phòng dưới 24 giờ tính phí 100% đêm đầu tiên.'}
+
+                                <div className="grid grid-cols-1 gap-2.5">
+                                    {parseCancellationPolicy(room.cancellation_policy).map((line, idx) => {
+                                        const badge = getPolicyBadge(line);
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className="p-3 bg-white rounded-xl border border-slate-200/70 flex items-start gap-3 shadow-2xs hover:border-slate-300 transition"
+                                            >
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 mt-0.5 ${badge.badgeClass}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${badge.dotClass}`} />
+                                                    {badge.label}
+                                                </span>
+                                                <span className="text-xs text-slate-700 leading-relaxed font-normal">
+                                                    {line}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -1438,7 +1722,11 @@ export default function DetailRoom() {
                                     }`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span>{reviewToast.type === 'success' ? '✓' : '⚠️'}</span>
+                                        {reviewToast.type === 'success' ? (
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        ) : (
+                                            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                                        )}
                                         <span>{reviewToast.text}</span>
                                     </div>
                                     <button
@@ -1446,7 +1734,7 @@ export default function DetailRoom() {
                                         onClick={() => setReviewToast(null)}
                                         className="text-slate-400 hover:text-slate-700 cursor-pointer"
                                     >
-                                        ✕
+                                        <X className="w-4 h-4" />
                                     </button>
                                 </div>
                             )}
@@ -1457,7 +1745,7 @@ export default function DetailRoom() {
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs">
-                                                ★
+                                                <Star className="w-5 h-5 fill-white text-white" />
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2">
@@ -1478,9 +1766,10 @@ export default function DetailRoom() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingToReview(null)}
-                                            className="self-end sm:self-auto text-xs text-slate-400 hover:text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer transition"
+                                            className="self-end sm:self-auto text-xs text-slate-400 hover:text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer transition flex items-center gap-1.5"
                                         >
-                                            ✕ Thu gọn
+                                            <X className="w-3.5 h-3.5" />
+                                            <span>Thu gọn</span>
                                         </button>
                                     </div>
 
@@ -1668,7 +1957,7 @@ export default function DetailRoom() {
                                 <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50/70 via-slate-50 to-orange-50/40 rounded-2xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
-                                            <Sparkles className="w-5 h-5 text-white" />
+                                            <Star className="w-5 h-5 text-white fill-white" />
                                         </div>
                                         <div>
                                             <strong className="text-xs sm:text-sm text-slate-900 block font-bold">
@@ -1926,8 +2215,8 @@ export default function DetailRoom() {
                                     <span className="text-emerald-600 font-semibold">Đã bao gồm</span>
                                 </div>
                                 <div className="flex justify-between text-amber-700 font-semibold pt-1 border-t border-slate-200">
-                                    <span className="flex items-center gap-1">
-                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Tích lũy điểm thưởng
+                                    <span className="flex items-center gap-1.5">
+                                        <Award className="w-3.5 h-3.5 text-amber-600" /> Tích lũy điểm thưởng
                                     </span>
                                     <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                                 </div>
@@ -2130,10 +2419,10 @@ export default function DetailRoom() {
                         <button
                             type="button"
                             onClick={closeLightbox}
-                            className="bg-white/10 hover:bg-white/20 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl transition active:scale-95 cursor-pointer"
+                            className="bg-white/10 hover:bg-white/20 text-white rounded-full w-10 h-10 flex items-center justify-center transition active:scale-95 cursor-pointer"
                             aria-label="Đóng"
                         >
-                            ✕
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 

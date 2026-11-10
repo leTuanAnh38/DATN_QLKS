@@ -10,6 +10,7 @@ import {
     Clock,
     Zap,
     User,
+    UserCheck,
     Users,
     Phone,
     BedDouble,
@@ -1580,7 +1581,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                             </span>
                                             {guest.is_primary ? (
                                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold rounded-md border border-blue-200 flex items-center gap-1">
-                                                    <Sparkles className="w-3 h-3 text-blue-600" />
+                                                    <UserCheck className="w-3 h-3 text-blue-600" />
                                                     <span>Đại diện chính</span>
                                                 </span>
                                             ) : (

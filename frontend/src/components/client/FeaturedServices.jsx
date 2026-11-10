@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Sparkles,
+    LayoutGrid,
+    Award,
     UtensilsCrossed,
     Flower2,
     Wine,
@@ -83,7 +84,7 @@ const getCategoryIconComponent = (catName) => {
     if (text.includes('ẩm thực') || text.includes('món') || text.includes('ăn') || text.includes('dining')) {
         return <UtensilsCrossed className="w-3.5 h-3.5 text-amber-300" />;
     }
-    return <Sparkles className="w-3.5 h-3.5 text-amber-300" />;
+    return <BellRing className="w-3.5 h-3.5 text-amber-300" />;
 };
 
 export default function FeaturedServices() {
@@ -153,7 +154,7 @@ export default function FeaturedServices() {
                 {/* 1. SECTION HEADER */}
                 <div className="text-center max-w-3xl mx-auto mb-12">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-bold uppercase tracking-widest mb-3">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <Award className="w-3.5 h-3.5 text-amber-600" />
                         <span>ĐẶC QUYỀN DỊCH VỤ & ẨM THỰC {starCount} SAO</span>
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
@@ -169,7 +170,7 @@ export default function FeaturedServices() {
                     {/* Filter Tabs */}
                     <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8">
                         {[
-                            { id: 'all', label: 'Tất Cả Dịch Vụ', icon: Sparkles },
+                            { id: 'all', label: 'Tất Cả Dịch Vụ', icon: LayoutGrid },
                             { id: 'dining', label: 'Ẩm Thực Thượng Hạng', icon: UtensilsCrossed },
                             { id: 'spa', label: 'The Lotus Spa & Wellness', icon: Flower2 },
                             { id: 'drinks', label: 'Đồ Uống & Bar Cao Cấp', icon: Wine },

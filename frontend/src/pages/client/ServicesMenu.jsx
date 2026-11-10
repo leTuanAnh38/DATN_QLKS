@@ -7,7 +7,7 @@ import { useAuth } from '../../store/authStore';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import {
     Utensils,
-    Sparkles,
+    LayoutGrid,
     Clock,
     CheckCircle2,
     AlertCircle,
@@ -59,7 +59,7 @@ const renderCategoryIcon = (categoryName, iconStr, className = 'w-3.5 h-3.5') =>
         return <Shirt className={className} />;
     }
     if (text.includes('phòng') || text.includes('buồng') || text.includes('concierge') || text.includes('tiện ích') || text.includes('room')) {
-        return <Sparkles className={className} />;
+        return <BellRing className={className} />;
     }
     return <Tag className={className} />;
 };
@@ -988,7 +988,7 @@ export default function ServicesMenu() {
                                         : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
                                 }`}
                             >
-                                <Sparkles className={`w-3.5 h-3.5 ${selectedCategory === 'all' ? 'text-amber-200' : 'text-slate-400'}`} />
+                                <LayoutGrid className={`w-3.5 h-3.5 ${selectedCategory === 'all' ? 'text-white' : 'text-slate-400'}`} />
                                 <span>Tất cả ({serviceItems.length})</span>
                             </button>
 

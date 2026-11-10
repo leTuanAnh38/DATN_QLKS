@@ -8,7 +8,8 @@ import {
     Search,
     Eye,
     Calendar,
-    Sparkles,
+    LayoutGrid,
+    Flame,
     Compass,
     UtensilsCrossed,
     Tag,
@@ -80,7 +81,7 @@ export default function NewsList() {
     // Helper chọn icon đẹp mắt theo danh mục
     const getCategoryIcon = (categoryValue) => {
         const val = (categoryValue || '').toLowerCase();
-        if (val === 'all') return <Sparkles className="w-3.5 h-3.5" />;
+        if (val === 'all') return <LayoutGrid className="w-3.5 h-3.5" />;
         if (val.includes('du-lich') || val.includes('travel') || val.includes('dia-diem')) {
             return <Compass className="w-3.5 h-3.5" />;
         }
@@ -165,7 +166,7 @@ export default function NewsList() {
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-3xl flex flex-col items-start text-left">
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 backdrop-blur-md mb-4 text-amber-300 text-xs font-bold tracking-wider uppercase">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            <Compass className="w-3.5 h-3.5 text-amber-400" />
                             <span>Góc Nhìn Nghỉ Dưỡng & Trải Nghiệm</span>
                         </div>
 
@@ -250,7 +251,7 @@ export default function NewsList() {
                                     </div>
                                 )}
                                 <span className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[11px] uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 backdrop-blur-xs">
-                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <Flame className="w-3.5 h-3.5 text-amber-200" />
                                     <span>Bài viết nổi bật</span>
                                 </span>
                             </div>

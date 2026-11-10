@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Sparkles, ChevronRight, Zap, ShieldCheck, Gift, CheckCircle2, Lightbulb } from 'lucide-react';
+import { Award, Tag, Crown, ChevronRight, Zap, ShieldCheck, Gift, CheckCircle2, Lightbulb } from 'lucide-react';
 
 export default function MembershipCard({ user }) {
     if (!user) return null;
@@ -94,12 +94,12 @@ export default function MembershipCard({ user }) {
                 <div className="flex items-center gap-2">
                     {discountVal > 0 ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <Sparkles className="w-3.5 h-3.5" />
+                            <Tag className="w-3.5 h-3.5" />
                             Ưu đãi giảm {discountVal}% phòng
                         </span>
                     ) : (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50/80 text-amber-800 border border-amber-200/80">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                            <Award className="w-3.5 h-3.5 text-amber-600" />
                             Hội viên khởi đầu • Tích điểm thăng hạng
                         </span>
                     )}
@@ -123,7 +123,7 @@ export default function MembershipCard({ user }) {
                                     TA ĐÀ NẴNG LUXURY RESORT & RETREAT
                                 </span>
                                 <h3 className="text-base font-black tracking-wider flex items-center gap-1.5 mt-0.5 uppercase drop-shadow-sm">
-                                    <Sparkles className="w-4 h-4 text-amber-300" />
+                                    <Crown className="w-4 h-4 text-amber-300" />
                                     {currentTier.name}
                                 </h3>
                             </div>
@@ -237,7 +237,7 @@ export default function MembershipCard({ user }) {
                                 </div>
                             ) : (
                                 <div className="flex items-start gap-1.5 text-emerald-700">
-                                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                    <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                                     <span>
                                         Chúc mừng quý khách đã đạt mức điểm cao nhất trong hệ thống và nhận toàn bộ quyền lợi giảm giá 15% trọn đời!
                                     </span>

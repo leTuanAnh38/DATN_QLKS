@@ -3,9 +3,9 @@ import {
     Building2,
     X,
     AlertCircle,
+    AlertTriangle,
     Check,
     CheckCircle2,
-    Sparkles,
     Calendar,
     CalendarCheck,
     Clock,
@@ -15,7 +15,7 @@ import {
     Plus,
     ChevronUp,
     ChevronDown,
-    Star,
+    UserCheck,
     User,
     Trash2,
     BellRing,
@@ -26,7 +26,9 @@ import {
     Zap,
     Copy,
     Lightbulb,
-    Scale
+    Scale,
+    FileSpreadsheet,
+    Info
 } from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 import { roomService } from '../../../../services/roomService';
@@ -80,6 +82,12 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     // Danh sách phân phòng & khách lưu trú từng phòng (Rooming List)
     const [roomingList, setRoomingList] = useState([]);
     const [isRoomingListOpen, setIsRoomingListOpen] = useState(true);
+
+    // State & Xử lý tính năng [Dán nhanh danh sách đoàn từ Excel / Clipboard]
+    const [showFastPasteModal, setShowFastPasteModal] = useState(false);
+    const [fastPasteTarget, setFastPasteTarget] = useState('all'); // 'all' hoặc room_key
+    const [fastPasteText, setFastPasteText] = useState('');
+    const [fastPasteError, setFastPasteError] = useState('');
 
     // Dates
     const todayStr = new Date().toISOString().split('T')[0];
@@ -323,6 +331,136 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                 };
             })
         );
+    };
+
+    // Dán nhanh danh sách khách từ Excel / Clipboard
+    const parsePastedGuestLines = (rawText) => {
+        const raw = (rawText || '').trim();
+        if (!raw) return { error: 'Vui lòng dán danh sách khách từ Excel hoặc văn bản.' };
+
+        const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        if (lines.length === 0) return { error: 'Không tìm thấy dòng dữ liệu nào hợp lệ.' };
+
+        const parsedGuests = [];
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            let parts = line.includes('\t')
+                ? line.split('\t')
+                : line.includes(',')
+                    ? line.split(',')
+                    : line.includes('|')
+                        ? line.split('|')
+                        : line.split(/\s{2,}/);
+
+            parts = parts.map((p) => p.trim());
+            const fullName = parts[0] || '';
+            if (!fullName) continue;
+
+            const idCard = parts[1] || '';
+            const genderRaw = (parts[2] || '').toLowerCase();
+            let gender = 'Nam';
+            if (genderRaw.includes('nữ') || genderRaw.includes('female') || genderRaw === 'f') {
+                gender = 'Nữ';
+            } else if (genderRaw.includes('khác') || genderRaw.includes('other')) {
+                gender = 'Khác';
+            }
+
+            const dob = parts[3] || '';
+
+            parsedGuests.push({
+                full_name: fullName,
+                id_type: 'CCCD',
+                id_number: idCard,
+                gender: gender,
+                date_of_birth: dob,
+                nationality: 'Việt Nam',
+                is_primary: false
+            });
+        }
+
+        if (parsedGuests.length === 0) {
+            return { error: 'Không tìm thấy dữ liệu tên khách nào hợp lệ.' };
+        }
+
+        return { guests: parsedGuests };
+    };
+
+    const handleApplyFastPaste = () => {
+        setFastPasteError('');
+        const { error: parseErr, guests: parsedGuests } = parsePastedGuestLines(fastPasteText);
+        if (parseErr) {
+            setFastPasteError(parseErr);
+            return;
+        }
+
+        if (fastPasteTarget === 'all') {
+            let guestPointer = 0;
+            const totalToAssign = parsedGuests.length;
+            const totalCap = roomingList.reduce((acc, r) => acc + Number(r.capacity || 2), 0);
+
+            setRoomingList((prev) =>
+                prev.map((room) => {
+                    const roomCap = Number(room.capacity || 2);
+                    const assignedForThisRoom = [];
+
+                    for (let k = 0; k < roomCap && guestPointer < totalToAssign; k++) {
+                        const g = parsedGuests[guestPointer];
+                        assignedForThisRoom.push({
+                            ...g,
+                            id: `guest_${room.room_key}_${Date.now()}_${k}`,
+                            is_primary: k === 0
+                        });
+                        guestPointer++;
+                    }
+
+                    if (assignedForThisRoom.length > 0) {
+                        return {
+                            ...room,
+                            guests: assignedForThisRoom
+                        };
+                    }
+                    return room;
+                })
+            );
+
+            if (parsedGuests.length > totalCap) {
+                showModalToast('warning', `Đã nạp ${totalCap} khách vào toàn bộ phòng. Còn dư ${parsedGuests.length - totalCap} khách chưa thể xếp do vượt sức chứa.`);
+            } else {
+                showModalToast('success', `Đã tự động phân bổ thành công ${parsedGuests.length} khách vào các phòng theo đúng sức chứa!`);
+            }
+
+            setShowFastPasteModal(false);
+            setFastPasteText('');
+        } else {
+            const targetRoom = roomingList.find((r) => r.room_key === fastPasteTarget);
+            if (!targetRoom) return;
+
+            const roomCap = Number(targetRoom.capacity || 2);
+            const toAdd = parsedGuests.slice(0, roomCap).map((g, idx) => ({
+                ...g,
+                id: `guest_${fastPasteTarget}_${Date.now()}_${idx}`,
+                is_primary: idx === 0
+            }));
+
+            setRoomingList((prev) =>
+                prev.map((r) => {
+                    if (r.room_key !== fastPasteTarget) return r;
+                    return {
+                        ...r,
+                        guests: toAdd
+                    };
+                })
+            );
+
+            if (parsedGuests.length > roomCap) {
+                showModalToast('warning', `Đã nạp ${roomCap} khách vào phòng. Bỏ qua ${parsedGuests.length - roomCap} khách do vượt sức chứa tối đa.`);
+            } else {
+                showModalToast('success', `Đã nạp thành công ${toAdd.length} khách vào phòng!`);
+            }
+
+            setShowFastPasteModal(false);
+            setFastPasteText('');
+        }
     };
 
     const handleAllocatedGuestFieldChange = (roomKey, guestIdx, field, value) => {
@@ -681,8 +819,14 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
             <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 relative">
                 {modalToast && (
-                    <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-amber-600 text-white border-amber-500 shadow-amber-600/30">
-                        <Zap className="w-4 h-4 shrink-0" />
+                    <div className={`fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${
+                        modalToast.type === 'success'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
+                            : modalToast.type === 'error'
+                                ? 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
+                                : 'bg-amber-600 text-white border-amber-500 shadow-amber-600/30'
+                    }`}>
+                        {modalToast.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <Zap className="w-4 h-4 shrink-0" />}
                         <span>{modalToast.message}</span>
                     </div>
                 )}
@@ -839,7 +983,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                             className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 accent-blue-600 cursor-pointer"
                                         />
                                         <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                                            <UserCheck className="w-3.5 h-3.5 text-blue-600" />
                                             <span>Đăng ký tài khoản thành viên cho Trưởng đoàn</span>
                                         </span>
                                     </label>
@@ -1042,14 +1186,31 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                         </p>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsRoomingListOpen(!isRoomingListOpen)}
-                                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
-                                    >
-                                        <span>{isRoomingListOpen ? 'Thu gọn' : 'Mở rộng danh sách'}</span>
-                                        {isRoomingListOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setFastPasteTarget('all');
+                                                setFastPasteText('');
+                                                setFastPasteError('');
+                                                setShowFastPasteModal(true);
+                                            }}
+                                            className="px-3 py-1.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                            title="Dán nhanh danh sách khách đoàn từ Excel và tự động xếp vào tất cả các phòng"
+                                        >
+                                            <FileSpreadsheet className="w-3.5 h-3.5" />
+                                            <span>Dán nhanh từ Excel</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsRoomingListOpen(!isRoomingListOpen)}
+                                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <span>{isRoomingListOpen ? 'Thu gọn' : 'Mở rộng danh sách'}</span>
+                                            {isRoomingListOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {isRoomingListOpen && (
@@ -1092,6 +1253,27 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                 {isFull && <span className="text-amber-600 font-semibold">(Tối đa)</span>}
                                                             </span>
 
+                                                            {/* Nút Dán nhanh vào phòng này */}
+                                                            <button
+                                                                type="button"
+                                                                disabled={isFull}
+                                                                onClick={() => {
+                                                                    setFastPasteTarget(room.room_key);
+                                                                    setFastPasteText('');
+                                                                    setFastPasteError('');
+                                                                    setShowFastPasteModal(true);
+                                                                }}
+                                                                title={isFull ? `Phòng đã đạt sức chứa tối đa (${roomCap} người)` : 'Dán nhanh khách vào phòng này từ Excel'}
+                                                                className={`px-2 py-1 rounded-md text-[10px] font-bold border transition flex items-center gap-1 ${
+                                                                    isFull
+                                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                                                                        : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 cursor-pointer active:scale-95'
+                                                                }`}
+                                                            >
+                                                                <FileSpreadsheet className="w-3 h-3 text-indigo-600" />
+                                                                <span>Dán Excel</span>
+                                                            </button>
+
                                                             <button
                                                                 type="button"
                                                                 disabled={isFull}
@@ -1125,7 +1307,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                                                 >
                                                                     <div className="flex items-center justify-between mb-1.5">
                                                                         <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1">
-                                                                            {isPrimary ? <Star className="w-3 h-3 text-amber-500 fill-amber-400" /> : <User className="w-3 h-3 text-slate-500" />}
+                                                                            {isPrimary ? <UserCheck className="w-3.5 h-3.5 text-indigo-600" /> : <User className="w-3 h-3 text-slate-500" />}
                                                                             <span>{isPrimary ? 'Khách đại diện phòng' : `Khách ở cùng #${gIdx}`}</span>
                                                                         </span>
 
@@ -1980,6 +2162,106 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                     </div>
 
                 </form>
+            )}
+
+            {/* MODAL DÁN NHANH DANH SÁCH KHÁCH ĐOÀN TỪ EXCEL */}
+            {showFastPasteModal && (
+                <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                        {/* HEADER */}
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
+                                    <FileSpreadsheet className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                        {fastPasteTarget === 'all'
+                                            ? 'Dán nhanh danh sách khách TOÀN ĐOÀN từ Excel'
+                                            : (() => {
+                                                const targetRoom = roomingList.find(r => r.room_key === fastPasteTarget);
+                                                return `Dán nhanh khách vào Phòng #${targetRoom?.global_index || ''} (${targetRoom?.category_name || ''}) từ Excel`;
+                                            })()}
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500">
+                                        {fastPasteTarget === 'all'
+                                            ? 'Hệ thống tự động phân bổ lần lượt từng khách vào các phòng theo đúng sức chứa tối đa.'
+                                            : (() => {
+                                                const targetRoom = roomingList.find(r => r.room_key === fastPasteTarget);
+                                                return `Nạp danh sách khách cho riêng phòng #${targetRoom?.global_index || ''} (${targetRoom?.category_name || ''}). Sức chứa: ${targetRoom?.capacity || 2} khách.`;
+                                            })()}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowFastPasteModal(false);
+                                    setFastPasteError('');
+                                }}
+                                className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* HƯỚNG DẪN ĐỊNH DẠNG EXCEL */}
+                        <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 text-indigo-900 text-xs space-y-1">
+                            <div className="font-bold flex items-center gap-1.5">
+                                <Info className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>Định dạng hỗ trợ mỗi dòng (Copy từ bảng Excel hoặc Zalo):</span>
+                            </div>
+                            <code className="block bg-white p-2 rounded-lg font-mono text-[11px] text-indigo-950 border border-indigo-200/80">
+                                Họ và tên [Tab hoặc Phẩy] Số CCCD [Tab hoặc Phẩy] Giới tính [Tab hoặc Phẩy] Ngày sinh
+                            </code>
+                            <p className="text-[10px] text-indigo-700 italic">
+                                Ví dụ: "Trần Thị Lan &nbsp;&nbsp;&nbsp; 048198005678 &nbsp;&nbsp;&nbsp; Nữ &nbsp;&nbsp;&nbsp; 1995-10-20"
+                            </p>
+                        </div>
+
+                        {/* TEXTAREA NHẬP LIỆU */}
+                        <div>
+                            <textarea
+                                rows={8}
+                                value={fastPasteText}
+                                onChange={(e) => {
+                                    setFastPasteText(e.target.value);
+                                    if (fastPasteError) setFastPasteError('');
+                                }}
+                                placeholder="Dán nội dung từ bảng Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	1995-10-20&#10;Lê Văn Hoàng	048092003456	Nam	1988-02-12&#10;Phạm Minh Tuấn	048095007890	Nam	1992-06-18"
+                                className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                            />
+                            {fastPasteError && (
+                                <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    <span>{fastPasteError}</span>
+                                </p>
+                            )}
+                        </div>
+
+                        {/* NÚT THAO TÁC */}
+                        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowFastPasteModal(false);
+                                    setFastPasteError('');
+                                }}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleApplyFastPaste}
+                                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer active:scale-95 flex items-center gap-1.5"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>Phân tích & Nạp vào Rooming List</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
         </div>

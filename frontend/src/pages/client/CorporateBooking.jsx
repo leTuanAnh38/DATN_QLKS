@@ -15,7 +15,6 @@ import {
     Headphones, 
     KeyRound, 
     Check, 
-    Sparkles, 
     Percent, 
     ShieldCheck, 
     Receipt, 
@@ -1383,7 +1382,7 @@ export default function CorporateBooking() {
                                                                 <div className="flex items-center justify-between mb-2">
                                                                     <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
                                                                         {isPrimary ? (
-                                                                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                                                                            <UserCheck className="w-3.5 h-3.5 text-amber-600" />
                                                                         ) : (
                                                                             <User className="w-3.5 h-3.5 text-slate-500" />
                                                                         )}
@@ -1613,7 +1612,6 @@ export default function CorporateBooking() {
                                                                                             : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                                                                                     }`}
                                                                                 >
-                                                                                    <Sparkles className="w-3.5 h-3.5 opacity-70" />
                                                                                     <span>{cat.name}</span>
                                                                                     <span className="opacity-70 text-[10px]">({countInCat})</span>
                                                                                 </button>

@@ -125,7 +125,7 @@ export default function Navbar({
                             {hotelNameDisplay}
                         </span>
                         <span className="hidden sm:inline text-slate-300">|</span>
-                        <span className="hidden sm:inline flex items-center gap-1 text-slate-500">
+                        <span className="hidden sm:inline-flex items-center gap-1 text-slate-500">
                             <span className="text-amber-500 font-bold">{'★'.repeat(settings?.stars || 3)}</span>
                             Tiêu Chuẩn {settings?.stars || 3} Sao Quốc Tế
                         </span>

@@ -22,6 +22,7 @@ import {
     Trash2,
     Tag,
     Sparkles,
+    ClipboardCheck,
     UtensilsCrossed,
     Package,
     Gift,
@@ -1151,7 +1152,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 <div className="flex items-center gap-2.5">
                                     <div>
                                         <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                                            <ClipboardCheck className="w-4 h-4 text-amber-600 shrink-0" />
                                             <span>Quy Trình Kiểm Tra Phòng (Minibar & Hư Hại)</span>
                                         </h4>
                                         <p className="text-[11px] text-slate-500">

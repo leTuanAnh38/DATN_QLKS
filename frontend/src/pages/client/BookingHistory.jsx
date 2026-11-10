@@ -5,7 +5,6 @@ import {
     Clock,
     Moon,
     MapPin,
-    Sparkles,
     Building2,
     User,
     Phone,
@@ -623,7 +622,7 @@ export default function BookingHistory() {
                         ) : toastMessage.type === 'error' ? (
                             <AlertCircle className="w-4 h-4 text-white" />
                         ) : (
-                            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                            <Info className="w-4 h-4 text-amber-400" />
                         )}
                         <span>{toastMessage.text}</span>
                     </div>
@@ -1702,7 +1701,7 @@ export default function BookingHistory() {
                         {/* Điểm trung bình tự động tính */}
                         <div className="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <Sparkles className="w-6 h-6 text-amber-500 animate-pulse" />
+                                <Star className="w-6 h-6 text-amber-500 fill-amber-400" />
                                 <div>
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
                                         Điểm đánh giá tổng quan

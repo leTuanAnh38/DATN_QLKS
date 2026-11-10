@@ -10,7 +10,7 @@ import {
     CheckCircle2,
     ShieldCheck,
     Award,
-    Sparkles,
+    Compass,
     ChevronRight,
     Building2,
     CreditCard
@@ -164,7 +164,7 @@ export default function Footer() {
                     {/* CỘT 3: KHÁM PHÁ & DỊCH VỤ (lg:col-span-2) */}
                     <div className="lg:col-span-2 space-y-3">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 mb-4">
-                            <Sparkles className="w-4 h-4 text-amber-600" />
+                            <Compass className="w-4 h-4 text-amber-600" />
                             <span>Khám Phá & Dịch Vụ</span>
                         </h4>
                         <ul className="space-y-2 text-xs text-slate-600">

@@ -16,7 +16,7 @@ import {
     AlertCircle,
     Building2,
     UtensilsCrossed,
-    Sparkles,
+    Flower2,
     Users,
     Navigation,
     Plane,
@@ -220,7 +220,7 @@ export default function ContactPage() {
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-3xl flex flex-col items-start text-left">
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 backdrop-blur-md mb-4 text-amber-300 text-xs font-bold tracking-wider uppercase">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
                             <span>Đón Tiếp & Chăm Sóc Thượng Lưu 24/7</span>
                         </div>
 
@@ -500,7 +500,7 @@ export default function ContactPage() {
                                 {/* 3. Spa */}
                                 <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-3.5">
                                     <div className="w-9 h-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/50">
-                                        <Sparkles className="w-4 h-4" />
+                                        <Flower2 className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
                                         <strong className="text-slate-900 font-bold block">The Lotus Spa & Wellness</strong>

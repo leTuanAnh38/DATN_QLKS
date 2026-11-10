@@ -5,7 +5,6 @@ import {
     Copy,
     Check,
     Clock,
-    Sparkles,
     Gift,
     ShieldCheck,
     ArrowRight,
@@ -478,7 +477,7 @@ export default function PromotionsPage() {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                         <div>
                             <div className="flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-widest mb-1.5">
-                                <Sparkles className="w-4 h-4 text-amber-600" />
+                                <Tag className="w-4 h-4 text-amber-600" />
                                 <span>VOUCHER KHUYẾN MÃI ĐANG KÍCH HOẠT</span>
                             </div>
                             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
@@ -1015,7 +1014,7 @@ export default function PromotionsPage() {
                     <div className="mt-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-amber-500/30">
                         <div className="text-left">
                             <strong className="text-white text-sm sm:text-base font-bold block flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-amber-400" />
+                                <PhoneCall className="w-4 h-4 text-amber-400" />
                                 <span>Cần hỗ trợ đặt phòng hoặc tư vấn ưu đãi đặc biệt?</span>
                             </strong>
                             <span className="text-xs text-amber-100/70">Đội ngũ Concierge phục vụ 24/7 luôn sẵn sàng hỗ trợ quý khách.</span>

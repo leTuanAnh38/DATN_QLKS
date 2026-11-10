@@ -15,7 +15,6 @@ import {
     Mail,
     Phone,
     Heart,
-    Sparkles,
     Ticket,
     History,
     Edit3,
@@ -804,7 +803,7 @@ export default function Profile() {
                                             &ldquo;{formData.preferences || 'Chưa có ghi chú sở thích. Quý khách có thể ghi chú loại gối mềm, phòng tầng cao, view biển hoặc lưu ý ăn uống để đội ngũ khách sạn phục vụ chu đáo nhất.'}&rdquo;
                                         </p>
                                         <span className="text-[11px] text-amber-800/80 mt-2 flex items-center gap-1.5">
-                                            <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                            <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                             <span>Đội ngũ quản gia khách sạn TA luôn sẵn sàng chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.</span>
                                         </span>
                                     </div>

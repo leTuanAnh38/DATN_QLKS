@@ -22,7 +22,9 @@ import {
     Trash2,
     CheckCircle2,
     ShieldCheck,
-    Sparkles,
+    BedDouble,
+    BellRing,
+    Gift,
     ArrowRight,
     PhoneCall,
     AlertCircle,
@@ -943,7 +945,7 @@ export default function Checkout() {
                                         {availability.suggested_categories?.length > 0 && (
                                             <div className="pt-2 border-t border-rose-200/80 space-y-2">
                                                 <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block flex items-center gap-1.5">
-                                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                    <BedDouble className="w-3.5 h-3.5 text-amber-600" />
                                                     <span>Các hạng phòng khác còn trống cho kỳ nghỉ của bạn:</span>
                                                 </span>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1438,7 +1440,7 @@ export default function Checkout() {
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-100">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center text-lg shadow-md shadow-orange-500/20 shrink-0">
-                                            <Sparkles className="w-5 h-5 text-white" />
+                                            <BellRing className="w-5 h-5 text-white" />
                                         </div>
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
@@ -1455,7 +1457,7 @@ export default function Checkout() {
                                     {selectedServicesArray.length > 0 && (
                                         <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/80 border border-amber-200 text-xs font-bold shadow-xs whitespace-nowrap self-start sm:self-center">
                                             <span className="text-amber-900 flex items-center gap-1.5">
-                                                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
                                                 <span>Đã chọn:</span>
                                             </span>
                                             <span className="px-2 py-0.5 rounded-lg bg-orange-100/90 text-orange-700 font-extrabold text-xs">
@@ -1952,7 +1954,7 @@ export default function Checkout() {
                                         <div className="pt-2 pb-1 border-t border-dashed border-amber-200/80 space-y-1.5 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200/60">
                                             <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
                                                 <span className="flex items-center gap-1.5">
-                                                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                                                    <BellRing className="w-3.5 h-3.5 text-amber-600" />
                                                     <span>Dịch vụ đi kèm ({selectedServicesArray.length}):</span>
                                                 </span>
                                                 <span className="text-orange-600 font-extrabold">
@@ -2474,8 +2476,8 @@ export default function Checkout() {
                             </div>
                             {createdBooking.selected_services?.length > 0 && (
                                 <div className="flex justify-between items-start pt-1 border-t border-slate-200">
-                                    <span className="text-amber-800 font-semibold flex items-center gap-1">
-                                        <Sparkles className="w-3 h-3 text-amber-600" />
+                                    <span className="text-amber-800 font-semibold flex items-center gap-1.5">
+                                        <BellRing className="w-3 h-3 text-amber-600" />
                                         <span>Dịch vụ đặt kèm ({createdBooking.selected_services.length}):</span>
                                     </span>
                                     <div className="text-right space-y-0.5">

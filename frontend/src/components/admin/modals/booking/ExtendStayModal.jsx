@@ -6,8 +6,7 @@ import {
     User, 
     BedDouble, 
     Calendar, 
-    Receipt, 
-    Sparkles 
+    Receipt
 } from 'lucide-react';
 
 export default function ExtendStayModal({
@@ -134,7 +133,7 @@ export default function ExtendStayModal({
                             </>
                         ) : (
                             <>
-                                <Sparkles className="w-4 h-4" />
+                                <CalendarPlus className="w-4 h-4" />
                                 <span>Đồng ý Gia hạn</span>
                             </>
                         )}

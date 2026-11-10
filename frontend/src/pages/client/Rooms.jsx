@@ -11,7 +11,6 @@ import {
     Maximize2, 
     Users, 
     BedDouble, 
-    Sparkles, 
     ArrowRight, 
     SlidersHorizontal,
     X,

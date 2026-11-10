@@ -12,7 +12,7 @@ import {
     Check,
     ArrowLeft,
     Flame,
-    Sparkles,
+    Gift,
     ArrowRight,
     Image as ImageIcon,
 } from 'lucide-react';
@@ -318,7 +318,7 @@ export default function NewsDetail() {
                             {/* Widget 2: Đặt phòng & Ưu đãi đặc quyền */}
                             <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 text-slate-900 border border-amber-200/70 rounded-3xl p-6 shadow-sm space-y-4">
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold uppercase tracking-wider">
-                                    <Sparkles className="w-3 h-3 text-amber-600" />
+                                    <Gift className="w-3 h-3 text-amber-600" />
                                     <span>Ưu Đãi Đặc Quyền</span>
                                 </span>
                                 <h3 className="font-serif text-lg font-bold text-slate-900 leading-snug">
