@@ -203,9 +203,11 @@ export default function NotificationBell({ theme = 'light' }) {
 
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside, { passive: true });
         }
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
         };
     }, [isOpen]);
 
@@ -440,10 +442,17 @@ export default function NotificationBell({ theme = 'light' }) {
 
             {/* Dropdown Menu / Popover hiển thị danh sách */}
             {isOpen && (
-                <div
-                    className="absolute right-0 mt-2 w-[340px] sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-50 overflow-hidden animate-fadeIn"
-                    style={{ transformOrigin: 'top right' }}
-                >
+                <>
+                    {/* Mobile backdrop để chạm ra ngoài tự đóng trên điện thoại */}
+                    <div
+                        className="fixed inset-0 z-40 bg-black/25 backdrop-blur-2xs sm:hidden animate-fadeIn"
+                        onClick={() => setIsOpen(false)}
+                        aria-hidden="true"
+                    />
+                    <div
+                        className="fixed inset-x-2.5 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.25rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-50 overflow-hidden animate-fadeIn max-h-[82vh] sm:max-h-[600px] flex flex-col"
+                        style={{ transformOrigin: 'top right' }}
+                    >
                     {/* Header Popover */}
                     <div className="p-3.5 bg-gradient-to-r from-blue-50 to-sky-50 text-slate-900 border-b border-slate-200 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -564,7 +573,7 @@ export default function NotificationBell({ theme = 'light' }) {
                     </div>
 
                     {/* Danh sách thông báo */}
-                    <div className="max-h-[480px] md:max-h-[520px] overflow-y-auto divide-y divide-slate-100 divide-opacity-60">
+                    <div className="flex-1 min-h-0 max-h-[58vh] sm:max-h-[480px] md:max-h-[520px] overflow-y-auto divide-y divide-slate-100 divide-opacity-60">
                         {isLoading && notifications.length === 0 ? (
                             <div className="p-8 text-center text-slate-400 text-xs">
                                 <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-500" />
@@ -699,6 +708,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         </button>
                     </div>
                 </div>
+                </>
             )}
         </div>
     );
