@@ -273,6 +273,14 @@ class BookingSerializer(serializers.ModelSerializer):
                     return p.payment_method
             if checkout_pay:
                 return checkout_pay.payment_method
+            if loose_pool:
+                return loose_pool[0].payment_method
+            if completed_pays:
+                methods = {p.payment_method for p in completed_pays}
+                if len(methods) == 1:
+                    return list(methods)[0]
+                elif 'TRANSFER' in methods and 'CASH' not in methods:
+                    return 'TRANSFER'
             return 'CASH'
 
         for req in sorted((r for r in obj.service_requests.all() if r.status != 'cancelled'), key=lambda r: _ts(r.created_at)):

@@ -152,24 +152,6 @@ class BookingAnalyticsMixin:
                 'created_at': bes.added_time.isoformat() if bes.added_time else None
             })
 
-        # 2.3. Tự động đồng bộ các ServiceRequest đã thu tiền (is_paid=True) vào bảng Payment nếu chưa có
-        try:
-            from ...payments.models import Payment, CashierShift
-            for req in booking.service_requests.filter(is_paid=True).exclude(status='cancelled'):
-                txn_id = f"SVC-REQ-{req.id}"
-                if not booking.payments.filter(transaction_id=txn_id).exists():
-                    active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
-                    req_amount = req.total_price or ((req.service.price if req.service else 0) * req.quantity)
-                    Payment.objects.create(
-                        booking=booking,
-                        amount=req_amount,
-                        payment_method='CASH',
-                        payment_status='COMPLETED',
-                        shift=active_shift,
-                        transaction_id=txn_id
-                    )
-        except Exception as e:
-            print(f"Lỗi khi đồng bộ thanh toán dịch vụ trong checkout_summary: {e}")
 
         # 2.4. Lấy danh sách phiếu hư hại/bảo trì do khách làm hỏng kèm ảnh bằng chứng (gồm cả Kỹ thuật & Kiểm phòng Minibar)
         damage_tickets = []
