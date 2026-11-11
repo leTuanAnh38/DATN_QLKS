@@ -450,29 +450,30 @@ export default function NotificationBell({ theme = 'light' }) {
                         aria-hidden="true"
                     />
                     <div
-                        className="fixed inset-x-2.5 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.25rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-50 overflow-hidden animate-fadeIn max-h-[82vh] sm:max-h-[600px] flex flex-col"
+                        className="fixed inset-x-2.5 top-[68px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.25rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-50 overflow-hidden animate-fadeIn max-h-[82vh] sm:max-h-[600px] flex flex-col"
                         style={{ transformOrigin: 'top right' }}
                     >
                     {/* Header Popover */}
-                    <div className="p-3.5 bg-gradient-to-r from-blue-50 to-sky-50 text-slate-900 border-b border-slate-200 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm tracking-wide">Thông Báo</span>
+                    <div className="p-3 sm:p-3.5 bg-gradient-to-r from-blue-50 to-sky-50 text-slate-900 border-b border-slate-200 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <span className="font-bold text-sm tracking-wide whitespace-nowrap">Thông Báo</span>
                             {unreadCount > 0 && (
-                                <span className="bg-red-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                    {unreadCount} mới
+                                <span className="bg-red-500/90 text-white text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
+                                    {unreadCount > 99 ? '99+' : `${unreadCount} mới`}
                                 </span>
                             )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                             {unreadCount > 0 && (
                                 <button
                                     type="button"
                                     onClick={handleMarkAllAsRead}
-                                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline transition cursor-pointer font-medium"
+                                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 p-1.5 sm:px-2 sm:py-1 rounded-lg hover:bg-blue-100/60 transition cursor-pointer font-medium shrink-0"
                                     title="Đánh dấu tất cả đã đọc"
+                                    aria-label="Đánh dấu tất cả đã đọc"
                                 >
-                                    <CheckCheck className="w-3.5 h-3.5" />
-                                    <span>Đã đọc hết</span>
+                                    <CheckCheck className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="hidden sm:inline">Đã đọc hết</span>
                                 </button>
                             )}
                             {hasReadNotifications && (
@@ -480,28 +481,31 @@ export default function NotificationBell({ theme = 'light' }) {
                                     type="button"
                                     onClick={handleClearRead}
                                     disabled={isClearingRead}
-                                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-red-600 transition cursor-pointer disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-red-600 p-1.5 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-50 shrink-0"
                                     title="Dọn dẹp các thông báo đã đọc"
+                                    aria-label="Dọn dẹp các thông báo đã đọc"
                                 >
-                                    <Trash2 className="w-3 h-3" />
-                                    <span>{isClearingRead ? 'Đang dọn...' : 'Dọn đã xem'}</span>
+                                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="hidden sm:inline">{isClearingRead ? 'Đang dọn...' : 'Dọn đã xem'}</span>
                                 </button>
                             )}
                             <button
                                 type="button"
                                 onClick={toggleSound}
-                                className={`p-1 rounded-lg transition cursor-pointer ${
+                                className={`p-1.5 rounded-lg transition cursor-pointer shrink-0 ${
                                     soundEnabled ? 'text-blue-600 hover:bg-blue-100/60' : 'text-slate-400 hover:bg-slate-200/60'
                                 }`}
                                 title={soundEnabled ? 'Đang bật âm thanh thông báo (Click để tắt)' : 'Đang tắt âm thanh thông báo (Click để bật)'}
+                                aria-label="Bật tắt âm thanh thông báo"
                             >
                                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => fetchNotifications(false, 1, false, filter)}
-                                className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                                className="p-1.5 hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
                                 title="Tải lại thông báo"
+                                aria-label="Tải lại thông báo"
                             >
                                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                             </button>
