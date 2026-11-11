@@ -117,8 +117,8 @@ export default function ServiceHistoryModal({
                     </div>
                 </div>
 
-                {/* Filter Tabs */}
-                <div className="px-6 py-3 bg-slate-50/80 border-b border-slate-200/80 flex items-center gap-2 overflow-x-auto scrollbar-none">
+                {/* Filter Tabs - Ghim cố định dưới Header, chỉ cho phép cuộn ngang (X), khóa hoàn toàn cuộn dọc (Y) */}
+                <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-50/90 border-b border-slate-200/80 flex items-center gap-2 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 touch-pan-x select-none">
                     {[
                         { key: 'all', label: 'Tất cả', icon: Layers, count: historyStats.total },
                         { key: 'pending', label: 'Chờ xác nhận', icon: Clock, count: historyStats.pending },
@@ -134,7 +134,7 @@ export default function ServiceHistoryModal({
                                 key={tab.key}
                                 type="button"
                                 onClick={() => setHistoryFilter(tab.key)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
                                     isActive
                                         ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-sm ring-1 ring-sky-500'
                                         : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
@@ -470,7 +470,7 @@ export default function ServiceHistoryModal({
 
                 {/* Phân trang lịch sử đơn đặt món */}
                 {totalHistoryPages > 1 && (
-                    <div className="px-6 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
+                    <div className="px-4 sm:px-6 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs shrink-0 select-none">
                         <div className="text-slate-500 font-medium text-[11px]">
                             Hiển thị trang <strong className="text-slate-800">{historyPage}</strong> / {totalHistoryPages} ({sortedHistory.length} đơn)
                         </div>
@@ -512,7 +512,7 @@ export default function ServiceHistoryModal({
                 )}
 
                 {/* Modal Footer */}
-                <div className="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="bg-slate-50 px-4 sm:px-6 py-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shrink-0">
                     <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs">
                         <PhoneCall className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>

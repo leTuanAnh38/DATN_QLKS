@@ -513,7 +513,7 @@ export default function NotificationBell({ theme = 'light' }) {
                     </div>
 
                     {/* Filter Tabs */}
-                    <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-xs overflow-x-auto no-scrollbar">
+                    <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-xs overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 touch-pan-x select-none">
                         <button
                             type="button"
                             onClick={() => handleFilterChange('all')}
