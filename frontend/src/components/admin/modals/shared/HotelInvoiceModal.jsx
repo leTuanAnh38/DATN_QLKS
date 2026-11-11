@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Printer, X, Lightbulb, Building2 } from 'lucide-react';
 import api from '../../../../services/api';
+import { resolveMediaUrl } from '../../../../utils/mediaUrl';
 
 /**
  * Component Modal & Mẫu In Hóa Đơn Đặt Phòng (Check-in Invoice Voucher)
@@ -36,6 +37,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         hotline: data.hotline || prev.hotline,
                         email: data.email || prev.email,
                         tax_code: data.tax_code || prev.tax_code,
+                        logo_url: resolveMediaUrl(data.logo_url),
                         vat_percent: data.vat_percent != null ? Number(data.vat_percent) : prev.vat_percent,
                         service_charge_percent: data.service_charge_percent != null ? Number(data.service_charge_percent) : prev.service_charge_percent,
                     }));
@@ -622,7 +624,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         <div className="flex items-start gap-3.5">
                             {hotelInfo.logo_url ? (
                                 <img
-                                    src={hotelInfo.logo_url}
+                                    src={resolveMediaUrl(hotelInfo.logo_url)}
                                     alt={hotelInfo.hotel_name}
                                     className="w-12 h-12 object-contain shrink-0 rounded-lg border border-slate-200"
                                 />

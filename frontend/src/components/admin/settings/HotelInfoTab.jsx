@@ -19,6 +19,7 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import { formatDateTime } from '../../../utils/formatters';
+import { resolveMediaUrl } from '../../../utils/mediaUrl';
 
 export default function HotelInfoTab({
     hotelData,
@@ -300,7 +301,7 @@ export default function HotelInfoTab({
                                             <div className="h-24 rounded-xl border border-dashed border-slate-300 bg-white flex items-center justify-center p-3 relative overflow-hidden shadow-2xs">
                                                 {hotelData.logo_url ? (
                                                     <img
-                                                        src={hotelData.logo_url}
+                                                        src={resolveMediaUrl(hotelData.logo_url)}
                                                         alt="Logo Khách Sạn"
                                                         className="max-h-full max-w-full object-contain"
                                                         onError={(e) => { e.target.style.display = 'none'; }}
@@ -386,7 +387,7 @@ export default function HotelInfoTab({
                                                 <div className="bg-white rounded-t-xl px-3.5 py-2 shadow-xs border border-slate-300 flex items-center gap-2 max-w-[220px]">
                                                     {hotelData.favicon_url ? (
                                                         <img
-                                                            src={hotelData.favicon_url}
+                                                            src={resolveMediaUrl(hotelData.favicon_url)}
                                                             alt="Favicon"
                                                             className="w-4 h-4 object-contain shrink-0"
                                                             onError={(e) => { e.target.style.display = 'none'; }}
@@ -508,7 +509,7 @@ export default function HotelInfoTab({
                                 <div className="flex items-center justify-between mb-4">
                                     {hotelData.logo_url ? (
                                         <img
-                                            src={hotelData.logo_url}
+                                            src={resolveMediaUrl(hotelData.logo_url)}
                                             alt="Logo"
                                             className="h-11 max-w-[150px] object-contain rounded-xl bg-white/10 p-1.5 border border-white/20 shadow-sm"
                                         />
@@ -558,7 +559,7 @@ export default function HotelInfoTab({
                                 <div className="bg-white p-4 rounded-xl border border-dashed border-slate-300 text-slate-900 shadow-2xs space-y-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         {hotelData.logo_url ? (
-                                            <img src={hotelData.logo_url} alt="Logo" className="h-7 w-auto object-contain rounded" />
+                                            <img src={resolveMediaUrl(hotelData.logo_url)} alt="Logo" className="h-7 w-auto object-contain rounded" />
                                         ) : (
                                             <div className="w-6 h-6 rounded bg-slate-900 text-white font-serif font-bold text-[10px] flex items-center justify-center">
                                                 TA

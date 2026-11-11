@@ -8,6 +8,7 @@ import {
     RotateCcw
 } from 'lucide-react';
 import { DEFAULT_BANNERS } from '../../../store/hotelSettingStore';
+import { resolveMediaUrl } from '../../../utils/mediaUrl';
 
 export default function BannersTab({
     hotelData,
@@ -178,7 +179,8 @@ export default function BannersTab({
             <div className="px-6 sm:px-8 pb-8 space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {bannerList.map((page) => {
-                        const currentUrl = hotelData[page.key] || page.defaultUrl;
+                        const rawUrl = hotelData[page.key] || page.defaultUrl;
+                        const currentUrl = resolveMediaUrl(rawUrl, page.defaultUrl);
                         const isCustom = Boolean(hotelData[page.key] && hotelData[page.key] !== page.defaultUrl);
                         const isUploading = uploadingField === page.key;
 

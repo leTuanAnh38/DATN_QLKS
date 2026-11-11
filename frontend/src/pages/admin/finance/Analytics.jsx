@@ -48,6 +48,7 @@ import {
     Tag
 } from 'lucide-react';
 import { reportService } from '../../../services/reportService';
+import UserAvatar from '../../../components/common/UserAvatar';
 
 // Format tiền tệ VNĐ (ví dụ: 15.000.000 ₫)
 const formatVND = (value) => {
@@ -1290,17 +1291,12 @@ export default function Analytics({ onNavigateToCustomer }) {
                                             {/* Khách hàng Avatar + Name */}
                                             <td className="py-3.5 px-5">
                                                 <div className="flex items-center gap-3">
-                                                    {customer.avatar ? (
-                                                        <img
-                                                            src={customer.avatar}
-                                                            alt={customer.full_name}
-                                                            className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
-                                                            {customer.full_name?.charAt(0)?.toUpperCase() || 'U'}
-                                                        </div>
-                                                    )}
+                                                    <UserAvatar
+                                                        avatar={customer.avatar}
+                                                        name={customer.full_name}
+                                                        role="guest"
+                                                        size="md"
+                                                    />
                                                     <div className="min-w-0">
                                                         <strong className="text-slate-900 text-xs font-bold block truncate group-hover:text-blue-600 transition">
                                                             {customer.full_name}

@@ -10,7 +10,6 @@ import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings } from '../../store/hotelSettingStore';
-import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { Phone, CalendarClock, User, Tag, KeyRound, LayoutDashboard } from 'lucide-react';
 
 const getAvatarUrl = (avatar) => resolveMediaUrl(avatar, null);
