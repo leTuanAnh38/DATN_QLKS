@@ -880,9 +880,9 @@ export default function ServicesMenu() {
                     </div>
                 </header>
 
-                {/* TOAST THÔNG BÁO */}
+                {/* TOAST THÔNG BÁO (Đưa lên góc trên, không che đè lên AI Chatbot ở góc dưới) */}
                 {toast && (
-                    <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+                    <div className="fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-md animate-in fade-in slide-in-from-top-3 duration-300">
                         <div
                             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-xs font-semibold backdrop-blur-md ${
                                 toast.type === 'success'

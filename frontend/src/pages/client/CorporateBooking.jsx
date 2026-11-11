@@ -907,9 +907,9 @@ export default function CorporateBooking() {
                             <span>2. Chọn Lịch Trình Lưu Trú Của Đoàn</span>
                         </h3>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center pl-0 sm:pl-10.5">
-                            <div>
-                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 items-center pl-0 sm:pl-10.5">
+                            <div className="min-w-0">
+                                <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 truncate">
                                     Ngày nhận phòng (Check-in):
                                 </label>
                                 <input
@@ -917,12 +917,12 @@ export default function CorporateBooking() {
                                     min={todayStr}
                                     value={checkInDate}
                                     onChange={(e) => setCheckInDate(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums"
+                                    className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums min-w-0"
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                            <div className="min-w-0">
+                                <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 truncate">
                                     Ngày trả phòng (Check-out):
                                 </label>
                                 <input
@@ -930,11 +930,11 @@ export default function CorporateBooking() {
                                     min={checkInDate || todayStr}
                                     value={checkOutDate}
                                     onChange={(e) => setCheckOutDate(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums"
+                                    className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums min-w-0"
                                 />
                             </div>
 
-                            <div className="text-center sm:text-right pt-2 sm:pt-0">
+                            <div className="col-span-2 sm:col-span-1 text-center sm:text-right pt-2 sm:pt-0">
                                 <span className="text-xs text-slate-500 block font-medium">Thời gian đoàn lưu trú:</span>
                                 <span className="text-2xl font-black text-amber-600 font-sans tabular-nums">{nights} đêm</span>
                             </div>

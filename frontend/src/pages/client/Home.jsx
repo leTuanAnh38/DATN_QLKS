@@ -304,59 +304,62 @@ export default function TADaNangHotelLanding() {
                             </div>
                         </div>
 
-                        {/* Field 2: Check-in (Hỗ trợ click mở lịch ngay lập tức) */}
-                        <div
-                            onClick={() => {
-                                try {
-                                    checkInRef.current?.showPicker();
-                                } catch {
-                                    checkInRef.current?.focus();
-                                }
-                            }}
-                            className="flex-1 px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer"
-                        >
-                            <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
-                                <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                <span>Nhận phòng</span>
-                            </label>
-                            <input
-                                ref={checkInRef}
-                                type="date"
-                                min={getTodayStr()}
-                                value={checkInDate}
-                                onChange={handleCheckInChange}
-                                className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
-                            />
-                            <div className="text-[10.5px] text-amber-800 font-semibold truncate mt-0.5">
-                                {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
+                        {/* Field 2 & 3: Check-in & Check-out (2 cột trên mobile giúp giao diện gọn gàng, tiện so sánh ngày) */}
+                        <div className="grid grid-cols-2 gap-2 sm:gap-2.5 flex-1 lg:flex-[2]">
+                            {/* Field 2: Check-in (Hỗ trợ click mở lịch ngay lập tức) */}
+                            <div
+                                onClick={() => {
+                                    try {
+                                        checkInRef.current?.showPicker();
+                                    } catch {
+                                        checkInRef.current?.focus();
+                                    }
+                                }}
+                                className="px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer min-w-0"
+                            >
+                                <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
+                                    <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Nhận phòng</span>
+                                </label>
+                                <input
+                                    ref={checkInRef}
+                                    type="date"
+                                    min={getTodayStr()}
+                                    value={checkInDate}
+                                    onChange={handleCheckInChange}
+                                    className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0"
+                                />
+                                <div className="text-[10px] sm:text-[10.5px] text-amber-800 font-semibold truncate mt-0.5">
+                                    {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Field 3: Check-out (Hỗ trợ click mở lịch ngay lập tức) */}
-                        <div
-                            onClick={() => {
-                                try {
-                                    checkOutRef.current?.showPicker();
-                                } catch {
-                                    checkOutRef.current?.focus();
-                                }
-                            }}
-                            className="flex-1 px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer"
-                        >
-                            <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
-                                <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                <span>Trả phòng</span>
-                            </label>
-                            <input
-                                ref={checkOutRef}
-                                type="date"
-                                min={getTomorrowStr(checkInDate)}
-                                value={checkOutDate}
-                                onChange={handleCheckOutChange}
-                                className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
-                            />
-                            <div className="text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
-                                {getWeekdayName(checkOutDate)} ({calculateNights()} đêm lưu trú)
+                            {/* Field 3: Check-out (Hỗ trợ click mở lịch ngay lập tức) */}
+                            <div
+                                onClick={() => {
+                                    try {
+                                        checkOutRef.current?.showPicker();
+                                    } catch {
+                                        checkOutRef.current?.focus();
+                                    }
+                                }}
+                                className="px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer min-w-0"
+                            >
+                                <label className="block text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
+                                    <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Trả phòng</span>
+                                </label>
+                                <input
+                                    ref={checkOutRef}
+                                    type="date"
+                                    min={getTomorrowStr(checkInDate)}
+                                    value={checkOutDate}
+                                    onChange={handleCheckOutChange}
+                                    className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0"
+                                />
+                                <div className="text-[10px] sm:text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
+                                    {getWeekdayName(checkOutDate)} ({calculateNights()} đêm)
+                                </div>
                             </div>
                         </div>
 
