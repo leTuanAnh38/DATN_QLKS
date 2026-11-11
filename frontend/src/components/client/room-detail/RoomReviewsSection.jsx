@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Star,
     CheckCircle2,
     AlertCircle,
     X,
-    Crown
+    Crown,
+    ChevronLeft,
+    ChevronRight,
+    SlidersHorizontal
 } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 import { reviewService } from '../../../services/reviewService';
+
+const REVIEWS_PER_PAGE = 4;
 
 export default function RoomReviewsSection({
     room,
@@ -37,6 +42,58 @@ export default function RoomReviewsSection({
     const [valueScore, setValueScore] = useState(5);
     const [reviewComment, setReviewComment] = useState('');
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+    // State phân trang & bộ lọc số sao
+    const [currentPage, setCurrentPage] = useState(1);
+    const [selectedStarFilter, setSelectedStarFilter] = useState('all');
+
+    // Lọc danh sách đánh giá theo số sao
+    const filteredReviews = useMemo(() => {
+        if (!reviews || !Array.isArray(reviews)) return [];
+        if (selectedStarFilter === 'all') return reviews;
+        return reviews.filter((rev) => {
+            const score = Math.round(parseFloat(rev.overall_rating) || 5);
+            if (selectedStarFilter === '5') return score === 5;
+            if (selectedStarFilter === '4') return score === 4;
+            if (selectedStarFilter === 'below4') return score < 4;
+            return true;
+        });
+    }, [reviews, selectedStarFilter]);
+
+    // Reset về trang 1 khi danh sách hoặc bộ lọc thay đổi
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedStarFilter, reviews.length]);
+
+    const totalPages = Math.ceil(filteredReviews.length / REVIEWS_PER_PAGE) || 1;
+
+    // Danh sách đánh giá được cắt cho trang hiện tại
+    const paginatedReviews = useMemo(() => {
+        const start = (currentPage - 1) * REVIEWS_PER_PAGE;
+        return filteredReviews.slice(start, start + REVIEWS_PER_PAGE);
+    }, [filteredReviews, currentPage]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+        setCurrentPage(newPage);
+        const el = document.getElementById('danh-gia');
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    const getPageNumbers = () => {
+        if (totalPages <= 5) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+        if (currentPage <= 3) {
+            return [1, 2, 3, 4, '...', totalPages];
+        }
+        if (currentPage >= totalPages - 2) {
+            return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        }
+        return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+    };
 
     const showReviewToast = (type, text) => {
         setReviewToast({ type, text });
@@ -510,6 +567,36 @@ export default function RoomReviewsSection({
 
             {/* 6. DANH SÁCH ĐÁNH GIÁ THỰC TẾ TỪ CƠ SỞ DỮ LIỆU */}
             <div className="space-y-4">
+                {/* BỘ LỌC ĐÁNH GIÁ THEO SỐ SAO (Chỉ hiện khi có từ 3 đánh giá trở lên) */}
+                {reviews.length >= 3 && (
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+                            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Lọc:</span>
+                        </span>
+                        {[
+                            { id: 'all', label: `Tất cả (${reviews.length})` },
+                            { id: '5', label: `5 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 5).length})` },
+                            { id: '4', label: `4 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 4).length})` },
+                            { id: 'below4', label: `< 4 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) < 4).length})` },
+                        ].filter(f => f.id === 'all' || !f.label.endsWith('(0)'))
+                        .map((tab) => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setSelectedStarFilter(tab.id)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                                    selectedStarFilter === tab.id
+                                        ? 'bg-slate-900 text-white shadow-xs'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 {isLoadingReviews ? (
                     <div className="py-12 text-center space-y-3">
                         <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -527,8 +614,19 @@ export default function RoomReviewsSection({
                             Hãy là một trong những vị khách đầu tiên trải nghiệm không gian nghỉ dưỡng tuyệt hảo này và để lại cảm nhận của bạn!
                         </p>
                     </div>
+                ) : filteredReviews.length === 0 ? (
+                    <div className="py-10 px-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-center space-y-2">
+                        <p className="text-xs text-slate-500 font-medium">Không có đánh giá nào phù hợp với bộ lọc số sao đã chọn.</p>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedStarFilter('all')}
+                            className="text-xs font-bold text-sky-700 hover:underline cursor-pointer"
+                        >
+                            Xem tất cả {reviews.length} đánh giá
+                        </button>
+                    </div>
                 ) : (
-                    reviews.map((rev) => {
+                    paginatedReviews.map((rev) => {
                         const guestFullName =
                             rev.guest_name ||
                             rev.guest_full_name ||
@@ -651,6 +749,60 @@ export default function RoomReviewsSection({
                             </div>
                         );
                     })
+                )}
+
+                {/* 7. PHÂN TRANG DANH SÁCH ĐÁNH GIÁ (PAGINATION) */}
+                {totalPages > 1 && (
+                    <div className="pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                        <span className="text-slate-500 text-[11px] order-2 sm:order-1 font-medium">
+                            Hiển thị <strong>{(currentPage - 1) * REVIEWS_PER_PAGE + 1} - {Math.min(currentPage * REVIEWS_PER_PAGE, filteredReviews.length)}</strong> trên tổng số <strong>{filteredReviews.length}</strong> đánh giá
+                        </span>
+
+                        <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                            <button
+                                type="button"
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
+                                aria-label="Trang trước"
+                                title="Trang trước"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+
+                            {getPageNumbers().map((pageNum, idx) => (
+                                pageNum === '...' ? (
+                                    <span key={`dots-${idx}`} className="px-1 text-slate-400 select-none">
+                                        ...
+                                    </span>
+                                ) : (
+                                    <button
+                                        key={pageNum}
+                                        type="button"
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className={`min-w-[32px] h-8 px-2 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
+                                            currentPage === pageNum
+                                                ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
+                                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                )
+                            ))}
+
+                            <button
+                                type="button"
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
+                                aria-label="Trang sau"
+                                title="Trang sau"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
