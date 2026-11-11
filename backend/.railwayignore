@@ -1,0 +1,14 @@
+# Ignore local secrets, sqlite and logs, but KEEP media/ so room & service photos are deployed
+.env
+*.env
+.env.local
+.env.*.local
+!.env.example
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+db.sqlite3
+staticfiles/
+logs/
+*.jsonl
