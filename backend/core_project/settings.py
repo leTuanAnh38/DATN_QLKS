@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+import importlib.util
 from pathlib import Path
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,12 +27,27 @@ load_dotenv(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)ceknqhq5254&17khgr09@a0x!%m_z^z_=ba9!vy)+z_0#b(11'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-)ceknqhq5254&17khgr09@a0x!%m_z^z_=ba9!vy)+z_0#b(11'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+IS_RAILWAY = bool(
+    os.environ.get('RAILWAY_ENVIRONMENT')
+    or os.environ.get('MYSQLHOST')
+    or os.environ.get('MYSQL_URL')
+)
+DEBUG = os.environ.get('DEBUG', 'False' if IS_RAILWAY else 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    '*',
+    '.up.railway.app',
+    'localhost',
+    '127.0.0.1',
+]
+if os.environ.get('ALLOWED_HOSTS'):
+    ALLOWED_HOSTS.extend([h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()])
 
 
 # Application definition
@@ -63,6 +80,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    *(['whitenoise.middleware.WhiteNoiseMiddleware'] if importlib.util.find_spec('whitenoise') is not None else []),
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -73,14 +91,41 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core_project.urls'
-CORS_ALLOW_ALL_ORIGINS = True # Dành cho lúc Dev (Làm đồ án)
+
+# Cho phép cả Web trên Railway và App Mobile trên iPhone gọi API không bị chặn
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True').lower() in ('true', '1', 'yes')
+CORS_ALLOW_CREDENTIALS = True
+
+FRONTEND_URL = os.environ.get('FRONTEND_URL', '').strip().rstrip('/')
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+]
+if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+if os.environ.get('CORS_ALLOWED_ORIGINS'):
+    CORS_ALLOWED_ORIGINS.extend([o.strip().rstrip('/') for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()])
+
 CSRF_TRUSTED_ORIGINS = [
+    'https://*.up.railway.app',
     'https://*.ngrok-free.dev',
     'https://*.ngrok-free.app',
     'https://*.ngrok.io',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
 ]
+if FRONTEND_URL and FRONTEND_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL)
+if os.environ.get('CSRF_TRUSTED_ORIGINS'):
+    CSRF_TRUSTED_ORIGINS.extend([o.strip().rstrip('/') for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()])
+
+# Nhận diện giao thức HTTPS khi chạy sau Reverse Proxy của Railway
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -101,17 +146,39 @@ WSGI_APPLICATION = 'core_project.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# Tự động nhận biến môi trường MySQL mặc định của Railway (MYSQL_URL / MYSQLHOST...), fallback về XAMPP local
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ta_hotel_db',
-        'USER': 'root',       # Tài khoản mặc định của XAMPP
-        'PASSWORD': '',       # Mật khẩu mặc định của XAMPP để trống
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
+MYSQL_URL = os.environ.get('MYSQL_URL') or os.environ.get('DATABASE_URL')
+
+if MYSQL_URL:
+    parsed_db = urlparse(MYSQL_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': parsed_db.path.lstrip('/'),
+            'USER': parsed_db.username or 'root',
+            'PASSWORD': parsed_db.password or '',
+            'HOST': parsed_db.hostname or '127.0.0.1',
+            'PORT': str(parsed_db.port or 3306),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('MYSQLDATABASE') or os.environ.get('DB_NAME', 'ta_hotel_db'),
+            'USER': os.environ.get('MYSQLUSER') or os.environ.get('DB_USER', 'root'),       # Tài khoản mặc định của XAMPP
+            'PASSWORD': os.environ.get('MYSQLPASSWORD') or os.environ.get('DB_PASSWORD', ''),       # Mật khẩu mặc định của XAMPP để trống
+            'HOST': os.environ.get('MYSQLHOST') or os.environ.get('DB_HOST', '127.0.0.1'),
+            'PORT': str(os.environ.get('MYSQLPORT') or os.environ.get('DB_PORT', '3306')),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+            },
+        }
+    }
 
 # ==========================================
 # AUTHENTICATION: Thiết lập Model người dùng tùy chỉnh
@@ -157,25 +224,37 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+if importlib.util.find_spec('whitenoise') is not None:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+        },
+    }
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
 # Thư mục lưu trữ file Logs hệ thống
 LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
 AUDIT_LOG_FILE = LOGS_DIR / 'audit_logs.jsonl'
-
 
 
 # ==========================================
 # EMAIL CONFIGURATION (SMTP Gmail)
 # ==========================================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = f"Khách Sạn TA Đà Nẵng <{EMAIL_HOST_USER}>"
 EMAIL_TIMEOUT = 15
 
@@ -202,6 +281,7 @@ SIMPLE_JWT = {
 }
 
 # ==========================================
-# GOOGLE GEMINI AI CONFIGURATION
+# SEPAY & GOOGLE GEMINI AI CONFIGURATION
 # ==========================================
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+SEPAY_WEBHOOK_SECRET = os.environ.get('SEPAY_WEBHOOK_SECRET', '')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')

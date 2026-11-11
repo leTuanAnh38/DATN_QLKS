@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "npx --yes serve -s dist -l $PORT",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "antd": "^6.6.5",

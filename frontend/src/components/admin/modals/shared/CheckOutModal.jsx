@@ -40,12 +40,9 @@ import { paymentService } from '../../../../services/paymentService';
 import hotelService from '../../../../services/hotelService';
 import roomService from '../../../../services/roomService';
 import api from '../../../../services/api';
-const resolveImageUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const backendOrigin = (import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000/api`).replace(/\/api\/?$/, '');
-    return `${backendOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
-};
+import { resolveMediaUrl } from '../../../../utils/mediaUrl';
+
+const resolveImageUrl = (url) => resolveMediaUrl(url, null);
 
 
 // Helper render icon cho confirm modal thông báo

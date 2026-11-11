@@ -15,9 +15,17 @@ db.sqlite3
 !.env.example
 backend/media/
 media/
+backend/staticfiles/
+staticfiles/
+backend/logs/
+logs/
+*.jsonl
 
 # Node / Frontend / Mobile
 node_modules/
+dist/
+build/
+.expo/
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/

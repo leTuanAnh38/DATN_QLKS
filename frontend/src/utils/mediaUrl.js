@@ -6,18 +6,19 @@
 export const getBackendOrigin = () => {
     const envBackend = import.meta.env.VITE_BACKEND_URL;
     if (envBackend) {
-        return envBackend.replace(/\/+$/, '');
+        return envBackend.trim().replace(/\/+$/, '');
     }
 
     const envApi = import.meta.env.VITE_API_URL;
     if (envApi) {
-        const originFromApi = envApi.replace(/\/api\/?$/, '').replace(/\/+$/, '');
-        // Nếu truy cập qua mạng LAN (hostname không phải localhost) mà envApi lại để localhost/127.0.0.1,
+        const originFromApi = envApi.trim().replace(/\/api\/?$/, '').replace(/\/+$/, '');
+        // Nếu truy cập qua mạng LAN nội bộ mà envApi đang để localhost/127.0.0.1,
         // tự động ánh xạ sang IP LAN hiện tại của trình duyệt
         if (
             typeof window !== 'undefined' &&
             window.location.hostname !== 'localhost' &&
             window.location.hostname !== '127.0.0.1' &&
+            !window.location.hostname.endsWith('.railway.app') &&
             (originFromApi.includes('localhost') || originFromApi.includes('127.0.0.1'))
         ) {
             return `${window.location.protocol}//${window.location.hostname}:8000`;
@@ -25,14 +26,25 @@ export const getBackendOrigin = () => {
         return originFromApi;
     }
 
-    if (typeof window !== 'undefined' && window.location.hostname) {
+    if (
+        typeof window !== 'undefined' &&
+        window.location.hostname &&
+        !window.location.hostname.endsWith('.railway.app')
+    ) {
         return `${window.location.protocol}//${window.location.hostname}:8000`;
     }
 
-    return 'http://127.0.0.1:8000';
+    return 'http://localhost:8000';
 };
 
 export const getApiBaseUrl = () => {
+    const envApi = import.meta.env.VITE_API_URL;
+    if (envApi && envApi.trim()) {
+        const cleanApi = envApi.trim().replace(/\/+$/, '');
+        if (!cleanApi.includes('localhost') && !cleanApi.includes('127.0.0.1')) {
+            return cleanApi.endsWith('/api') ? cleanApi : `${cleanApi}/api`;
+        }
+    }
     return `${getBackendOrigin()}/api`;
 };
 
@@ -47,8 +59,8 @@ export const resolveMediaUrl = (url, fallback = null) => {
 
     const backendOrigin = getBackendOrigin();
 
-    // Nếu Backend trả về URL tuyệt đối chứa localhost/127.0.0.1:8000 nhưng người dùng đang mở qua IP LAN,
-    // tự động chuyển đổi sang origin thực tế để ảnh hiển thị được trên điện thoại
+    // Nếu Backend trả về URL tuyệt đối chứa localhost/127.0.0.1:8000 nhưng người dùng đang mở trên Cloud hoặc IP LAN,
+    // tự động chuyển đổi sang origin thực tế để ảnh hiển thị được
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
         if (
             typeof window !== 'undefined' &&
@@ -57,6 +69,10 @@ export const resolveMediaUrl = (url, fallback = null) => {
             (trimmed.startsWith('http://localhost:8000') || trimmed.startsWith('http://127.0.0.1:8000'))
         ) {
             return trimmed.replace(/^http:\/\/(localhost|127\.0\.0\.1):8000/, backendOrigin);
+        }
+        // Tự động nâng cấp http -> https cho các domain Railway để tránh lỗi Mixed Content
+        if (trimmed.startsWith('http://') && trimmed.includes('.up.railway.app')) {
+            return trimmed.replace(/^http:\/\//, 'https://');
         }
         return trimmed;
     }
