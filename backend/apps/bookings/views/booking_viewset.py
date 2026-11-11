@@ -613,22 +613,14 @@ class BookingViewSet(
                     pass
 
         # TRIGGER 1 - Khi tạo đơn đặt phòng thành công:
-        # ÁP DỤNG PHƯƠNG ÁN 1 (Tối ưu UX - Không gửi 2 email trùng lặp):
-        # Nếu khách chọn thanh toán online qua VietQR: Khách đang mở popup quét mã trực tiếp trên màn hình,
-        # tạm thời không gửi email QR để tránh spam hộp thư.
-        # Khi khách quét mã xong và tiền về, Webhook SePay (Trigger 2) sẽ gửi DUY NHẤT 1 EMAIL "[ĐÃ THANH TOÁN THÀNH CÔNG]".
-        # Chỉ gửi email tại đây nếu khách chọn thanh toán tại quầy lễ tân (reception/cash).
-        payment_method_input = str(data.get('payment_method') or '').strip().lower()
-        is_vietqr_online = (payment_method_input == 'vietqr') or ('thanh toán: vietqr' in note.lower())
-
-        if not is_vietqr_online:
-            recipient_target = guest_email or (guest_user.email if (guest_user and guest_user.email) else None)
-            send_booking_email_async(
-                booking=booking,
-                email_type='booking_confirmation',
-                custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận đặt phòng #{booking.booking_code} - Trạng thái thanh toán",
-                recipient_email=recipient_target
-            )
+        # Tự động gửi email xác nhận đặt phòng ngay lập tức cho khách hàng
+        recipient_target = guest_email or (guest_user.email if (guest_user and guest_user.email) else None)
+        send_booking_email_async(
+            booking=booking,
+            email_type='booking_confirmation',
+            custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận đặt phòng #{booking.booking_code} - Hướng dẫn thanh toán & Chi tiết đặt phòng",
+            recipient_email=recipient_target
+        )
 
         serializer = BookingSerializer(booking, context={'request': request})
         return Response({

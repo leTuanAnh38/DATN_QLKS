@@ -31,16 +31,20 @@ def _send_booking_email_worker(booking_id, email_type='booking_confirmation', cu
             logger.warning(f"[EMAIL_SERVICE] Không tìm thấy Booking id={booking_id} để gửi email.")
             return
 
-        # 1. Xác định địa chỉ email người nhận
-        to_email = recipient_email
-        if not to_email and hasattr(booking, 'invoice') and booking.invoice and booking.invoice.invoice_recipient_email:
-            to_email = booking.invoice.invoice_recipient_email.strip()
+        # 1. Xác định địa chỉ email người nhận (gộp cả email nhập trên form và email tài khoản người dùng)
+        recipient_set = set()
+        if recipient_email and str(recipient_email).strip():
+            recipient_set.add(str(recipient_email).strip())
+        if hasattr(booking, 'invoice') and booking.invoice and booking.invoice.invoice_recipient_email:
+            recipient_set.add(str(booking.invoice.invoice_recipient_email).strip())
+        if booking.guest and booking.guest.email:
+            guest_mail = str(booking.guest.email).strip()
+            if '@walkin.hotel.local' not in guest_mail and '@guest.hotel.local' not in guest_mail:
+                recipient_set.add(guest_mail)
 
-        if not to_email and booking.guest and booking.guest.email:
-            to_email = booking.guest.email.strip()
-
-        if not to_email:
-            logger.info(f"[EMAIL_SERVICE] Đơn đặt phòng #{booking.booking_code} không có email người nhận (khách vãng lai tại quầy). Tự động bỏ qua.")
+        valid_recipients = [e for e in recipient_set if e and '@' in e and not e.endswith('.local')]
+        if not valid_recipients:
+            logger.info(f"[EMAIL_SERVICE] Đơn đặt phòng #{booking.booking_code} không có email người nhận hợp lệ (khách vãng lai tại quầy). Tự động bỏ qua.")
             return
 
         # 2. Kiểm tra an toàn cấu hình EMAIL trong .env
@@ -80,12 +84,12 @@ def _send_booking_email_worker(booking_id, email_type='booking_confirmation', cu
             subject=subject,
             body=text_content,
             from_email=from_email,
-            to=[to_email]
+            to=valid_recipients
         )
         msg.attach_alternative(html_content, "text/html")
         msg.send(fail_silently=False)
 
-        logger.info(f"[EMAIL_SERVICE] Gửi email thành công tới {to_email} cho đơn #{booking.booking_code} (Tiêu đề: '{subject}')")
+        logger.info(f"[EMAIL_SERVICE] Gửi email thành công tới {valid_recipients} cho đơn #{booking.booking_code} (Tiêu đề: '{subject}')")
 
     except Exception as e:
         logger.error(f"[EMAIL_SERVICE] Lỗi ngoại lệ khi gửi email đơn #{booking_id}: {str(e)}", exc_info=True)
