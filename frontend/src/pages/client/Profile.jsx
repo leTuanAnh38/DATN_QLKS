@@ -404,9 +404,9 @@ export default function Profile() {
                 {/* TAB 1: THÔNG TIN CÁ NHÂN & SỞ THÍCH                                        */}
                 {/* ========================================================================= */}
                 {activeTab === 'info' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                        {/* CỘT TRÁI (4 CỘT): AVATAR & TỔNG QUAN TÀI KHOẢN */}
-                        <div className="lg:col-span-4 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-x-8 lg:gap-y-6 items-start">
+                        {/* 1. THẺ AVATAR & TỔNG QUAN TÀI KHOẢN (Mobile: Vị trí 1, Desktop: Cột trái hàng 1) */}
+                        <div className="lg:col-span-4 lg:col-start-1 lg:row-start-1">
                             {/* Card Avatar */}
                             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 text-center relative overflow-hidden">
                                 {/* Dải nền Xanh Biển Pastel dịu mắt, thanh lịch */}
@@ -529,72 +529,11 @@ export default function Profile() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Card Tiện ích tài khoản & Thao tác nhanh */}
-                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-1.5">
-                                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1">
-                                    Cài đặt & Tiện ích
-                                </h4>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab('membership')}
-                                    className="w-full p-2.5 rounded-xl hover:bg-amber-50/70 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
-                                >
-                                    <span className="flex items-center gap-2.5">
-                                        <Award className="w-4 h-4 text-amber-500" />
-                                        <span>Thẻ Hội Viên & Điểm Tích Lũy</span>
-                                    </span>
-                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsChangePasswordOpen(true)}
-                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
-                                >
-                                    <span className="flex items-center gap-2.5">
-                                        <Lock className="w-4 h-4 text-sky-600" />
-                                        <span>Đổi Mật Khẩu Đăng Nhập</span>
-                                    </span>
-                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                                </button>
-                                <Link
-                                    to="/booking-history"
-                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
-                                >
-                                    <span className="flex items-center gap-2.5">
-                                        <History className="w-4 h-4 text-sky-600" />
-                                        <span>Lịch Sử Đặt Phòng & Tra Cứu</span>
-                                    </span>
-                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                                </Link>
-                                <Link
-                                    to="/promotions"
-                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
-                                >
-                                    <span className="flex items-center gap-2.5">
-                                        <Ticket className="w-4 h-4 text-sky-600" />
-                                        <span>Mã Giảm Giá Của Tôi</span>
-                                    </span>
-                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                                </Link>
-                                <div className="pt-1 border-t border-slate-100 mt-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsLogoutConfirmOpen(true)}
-                                        className="w-full p-2.5 rounded-xl hover:bg-rose-50 text-rose-600 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
-                                    >
-                                        <span className="flex items-center gap-2.5">
-                                            <LogOut className="w-4 h-4 text-rose-500" />
-                                            <span>Đăng Xuất Tài Khoản</span>
-                                        </span>
-                                        <ChevronRight className="w-3.5 h-3.5 text-rose-400 group-hover:translate-x-0.5 transition-transform" />
-                                    </button>
-                                </div>
-                            </div>
                         </div>
 
-                        {/* CỘT PHẢI (8 CỘT): THÔNG TIN ĐỊNH DANH (VIEW & EDIT FORM) */}
-                        <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 min-w-0">
+                        {/* 2. CỘT PHẢI - THÔNG TIN ĐỊNH DANH (VIEW & EDIT FORM) */}
+                        {/* Trên mobile hiển thị vị trí 2 (ngay dưới Avatar), trên desktop hiển thị cột phải */}
+                        <div className="lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 min-w-0">
                             {/* Card Header with Quick Edit Trigger Button */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-6 border-b border-slate-100">
                                 <div>
@@ -980,6 +919,71 @@ export default function Profile() {
                                     </div>
                                 </form>
                             )}
+                        </div>
+
+                        {/* 3. CỘT TRÁI - CARD CÀI ĐẶT & TIỆN ÍCH TÀI KHOẢN */}
+                        {/* Trên mobile hiển thị vị trí 3 (cuối trang), trên desktop hiển thị cột trái hàng 2 ngay dưới Avatar */}
+                        <div className="lg:col-span-4 lg:col-start-1 lg:row-start-2">
+                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-1.5">
+                                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1">
+                                    Cài đặt & Tiện ích
+                                </h4>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('membership')}
+                                    className="w-full p-2.5 rounded-xl hover:bg-amber-50/70 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Award className="w-4 h-4 text-amber-500" />
+                                        <span>Thẻ Hội Viên & Điểm Tích Lũy</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsChangePasswordOpen(true)}
+                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Lock className="w-4 h-4 text-sky-600" />
+                                        <span>Đổi Mật Khẩu Đăng Nhập</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                                <Link
+                                    to="/booking-history"
+                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <History className="w-4 h-4 text-sky-600" />
+                                        <span>Lịch Sử Đặt Phòng & Tra Cứu</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                                <Link
+                                    to="/promotions"
+                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Ticket className="w-4 h-4 text-sky-600" />
+                                        <span>Mã Giảm Giá Của Tôi</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                                <div className="pt-1 border-t border-slate-100 mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsLogoutConfirmOpen(true)}
+                                        className="w-full p-2.5 rounded-xl hover:bg-rose-50 text-rose-600 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    >
+                                        <span className="flex items-center gap-2.5">
+                                            <LogOut className="w-4 h-4 text-rose-500" />
+                                            <span>Đăng Xuất Tài Khoản</span>
+                                        </span>
+                                        <ChevronRight className="w-3.5 h-3.5 text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
