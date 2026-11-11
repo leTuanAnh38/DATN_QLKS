@@ -51,7 +51,7 @@ def _send_booking_email_worker(booking_id, email_type='booking_confirmation', cu
         if not _is_email_configured():
             logger.warning(
                 f"[EMAIL_SERVICE] Chưa cấu hình EMAIL_HOST_USER / EMAIL_HOST_PASSWORD hợp lệ trong .env (hoặc đang để mật khẩu mẫu). "
-                f"Bỏ qua bước gửi email thực tế cho đơn #{booking.booking_code} tới {to_email}."
+                f"Bỏ qua bước gửi email thực tế cho đơn #{booking.booking_code} tới {valid_recipients}."
             )
             return
 
