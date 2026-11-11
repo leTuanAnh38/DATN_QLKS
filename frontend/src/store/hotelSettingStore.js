@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import api from '../services/api';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 export const DEFAULT_BANNERS = {
     banner_home: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1920&q=80',
@@ -77,15 +78,18 @@ export const hotelSettingStore = {
         currentSettings = {
             ...currentSettings,
             ...newData,
-            banner_home: newData.banner_home || DEFAULT_BANNERS.banner_home,
-            banner_home_2: newData.banner_home_2 || DEFAULT_BANNERS.banner_home_2,
-            banner_home_3: newData.banner_home_3 || DEFAULT_BANNERS.banner_home_3,
-            banner_rooms: newData.banner_rooms || DEFAULT_BANNERS.banner_rooms,
-            banner_services: newData.banner_services || DEFAULT_BANNERS.banner_services,
-            banner_promotions: newData.banner_promotions || DEFAULT_BANNERS.banner_promotions,
-            banner_news: newData.banner_news || DEFAULT_BANNERS.banner_news,
-            banner_contact: newData.banner_contact || DEFAULT_BANNERS.banner_contact,
-            banner_corporate: newData.banner_corporate || DEFAULT_BANNERS.banner_corporate,
+            logo_url: resolveMediaUrl(newData.logo_url, currentSettings.logo_url),
+            favicon_url: resolveMediaUrl(newData.favicon_url, currentSettings.favicon_url),
+            banner_home: resolveMediaUrl(newData.banner_home, DEFAULT_BANNERS.banner_home),
+            banner_home_2: resolveMediaUrl(newData.banner_home_2, DEFAULT_BANNERS.banner_home_2),
+            banner_home_3: resolveMediaUrl(newData.banner_home_3, DEFAULT_BANNERS.banner_home_3),
+            banner_rooms: resolveMediaUrl(newData.banner_rooms, DEFAULT_BANNERS.banner_rooms),
+            banner_services: resolveMediaUrl(newData.banner_services, DEFAULT_BANNERS.banner_services),
+            banner_promotions: resolveMediaUrl(newData.banner_promotions, DEFAULT_BANNERS.banner_promotions),
+            banner_news: resolveMediaUrl(newData.banner_news, DEFAULT_BANNERS.banner_news),
+            banner_contact: resolveMediaUrl(newData.banner_contact, DEFAULT_BANNERS.banner_contact),
+            banner_corporate: resolveMediaUrl(newData.banner_corporate, DEFAULT_BANNERS.banner_corporate),
+            banner_login: resolveMediaUrl(newData.banner_login, DEFAULT_BANNERS.banner_login),
             isLoaded: true
         };
         if (currentSettings.favicon_url) {

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import api from '../../services/api';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
 import LogoutConfirmModal from '../common/LogoutConfirmModal';
@@ -160,7 +161,7 @@ export default function Navbar({
                     <Link to="/" className="flex items-center space-x-3 cursor-pointer group shrink-0">
                         {settings?.logo_url ? (
                             <img
-                                src={settings.logo_url}
+                                src={resolveMediaUrl(settings.logo_url)}
                                 alt={settings.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                 className="h-11 max-w-[170px] object-contain rounded-xl shadow-xs group-hover:scale-105 transition-transform"
                             />

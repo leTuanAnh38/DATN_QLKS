@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import {
     MapPin,
     Phone,
@@ -55,7 +56,7 @@ export default function Footer() {
                         <Link to="/" className="inline-flex items-center space-x-3 group">
                             {hotelInfo?.logo_url ? (
                                 <img
-                                    src={hotelInfo.logo_url}
+                                    src={resolveMediaUrl(hotelInfo.logo_url)}
                                     alt={hotelName}
                                     className="h-10 max-w-[140px] object-contain rounded-lg shadow-xs group-hover:scale-105 transition-transform"
                                 />
