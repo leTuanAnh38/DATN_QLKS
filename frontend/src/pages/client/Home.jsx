@@ -175,7 +175,7 @@ export default function TADaNangHotelLanding() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-600 selection:text-white w-full max-w-full overflow-x-hidden">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-600 selection:text-white w-full max-w-full">
             <Navbar />
 
 
