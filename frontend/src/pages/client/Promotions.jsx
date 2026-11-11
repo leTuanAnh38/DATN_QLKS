@@ -368,10 +368,10 @@ export default function PromotionsPage() {
                 {/* Breadcrumb Navigation */}
                 <div className="bg-white border-b border-slate-200/80 py-3">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                            <Link to="/" className="hover:text-amber-600 transition font-medium">Trang chủ</Link>
-                            <span>/</span>
-                            <span className="text-slate-900 font-semibold">Ưu Đãi Đặc Quyền</span>
+                        <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
+                            <Link to="/" className="hover:text-amber-600 transition font-medium shrink-0">Trang chủ</Link>
+                            <span className="text-slate-300 shrink-0">/</span>
+                            <span className="text-slate-900 font-semibold truncate min-w-0">Ưu Đãi Đặc Quyền</span>
                         </nav>
                     </div>
                 </div>

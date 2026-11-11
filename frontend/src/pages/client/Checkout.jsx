@@ -754,20 +754,20 @@ export default function Checkout() {
             {/* BREADCRUMB LIÊN KẾT */}
             <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                        <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
-                        <span>/</span>
-                        <Link to="/rooms" className="hover:text-amber-600 transition">Phòng nghỉ</Link>
-                        <span>/</span>
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
+                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <span className="text-slate-300 shrink-0">/</span>
+                        <Link to="/rooms" className="hover:text-amber-600 transition shrink-0">Phòng nghỉ</Link>
+                        <span className="text-slate-300 shrink-0">/</span>
                         {room && (
                             <>
-                                <Link to={`/rooms/${room.id}`} className="hover:text-amber-600 transition truncate max-w-[150px] sm:max-w-none">
+                                <Link to={`/rooms/${room.id}`} className="hover:text-amber-600 transition truncate max-w-[150px] sm:max-w-none shrink-0">
                                     {room.name}
                                 </Link>
-                                <span>/</span>
+                                <span className="text-slate-300 shrink-0">/</span>
                             </>
                         )}
-                        <span className="text-slate-900 font-semibold">Xác nhận đặt phòng & Thanh toán</span>
+                        <span className="text-slate-900 font-semibold truncate min-w-0">Xác nhận đặt phòng & Thanh toán</span>
                     </nav>
                 </div>
             </div>

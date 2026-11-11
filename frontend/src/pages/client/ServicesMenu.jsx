@@ -824,10 +824,10 @@ export default function ServicesMenu() {
                 {/* BREADCRUMB */}
                 <div className="bg-white border-b border-slate-100 py-3">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                            <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
-                            <span>/</span>
-                            <span className="text-slate-900 font-semibold">Menu Dịch Vụ Tại Phòng</span>
+                        <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
+                            <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                            <span className="text-slate-300 shrink-0">/</span>
+                            <span className="text-slate-900 font-semibold truncate min-w-0">Menu Dịch Vụ Tại Phòng</span>
                         </nav>
                     </div>
                 </div>

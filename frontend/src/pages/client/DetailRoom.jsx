@@ -863,17 +863,17 @@ export default function DetailRoom() {
             {/* BREADCRUMB LIÊN KẾT ĐỘNG */}
             <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
-                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                        <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
-                        <span>/</span>
-                        <Link to="/rooms" className="hover:text-amber-600 transition">Phòng nghỉ & Suites</Link>
-                        <span>/</span>
-                        <span className="text-slate-900 font-semibold truncate max-w-xs sm:max-w-none">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar min-w-0">
+                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <span className="text-slate-300 shrink-0">/</span>
+                        <Link to="/rooms" className="hover:text-amber-600 transition shrink-0">Phòng nghỉ & Suites</Link>
+                        <span className="text-slate-300 shrink-0">/</span>
+                        <span className="text-slate-900 font-semibold truncate min-w-0 max-w-xs sm:max-w-none">
                             {room.name}
                         </span>
                     </nav>
 
-                    <div className="flex items-center space-x-4 text-xs font-semibold text-slate-600">
+                    <div className="flex items-center space-x-4 text-xs font-semibold text-slate-600 shrink-0">
                         <button
                             type="button"
                             onClick={async () => {

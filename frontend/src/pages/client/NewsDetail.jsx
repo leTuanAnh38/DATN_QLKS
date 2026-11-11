@@ -113,12 +113,12 @@ export default function NewsDetail() {
             {/* BREADCRUMB THANH ĐIỀU HƯỚNG */}
             <div className="bg-slate-100/80 border-b border-slate-200/60 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <nav className="flex items-center space-x-2 text-xs text-slate-500 font-medium">
-                        <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
-                        <span className="text-slate-300">/</span>
-                        <Link to="/news" className="hover:text-amber-600 transition">Tin tức & Cẩm nang</Link>
-                        <span className="text-slate-300">/</span>
-                        <span className="text-slate-900 font-semibold truncate max-w-xs sm:max-w-md">
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500 font-medium whitespace-nowrap overflow-x-auto no-scrollbar">
+                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <span className="text-slate-300 shrink-0">/</span>
+                        <Link to="/news" className="hover:text-amber-600 transition shrink-0">Tin tức & Cẩm nang</Link>
+                        <span className="text-slate-300 shrink-0">/</span>
+                        <span className="text-slate-900 font-semibold truncate min-w-0 max-w-xs sm:max-w-md">
                             {post?.title || 'Chi tiết bài viết'}
                         </span>
                     </nav>

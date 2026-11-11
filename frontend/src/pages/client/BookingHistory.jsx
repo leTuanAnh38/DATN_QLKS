@@ -593,12 +593,12 @@ export default function BookingHistory() {
             {/* BREADCRUMB */}
             <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <nav className="flex items-center space-x-2 text-xs text-slate-500">
-                        <Link to="/" className="hover:text-amber-600 transition font-medium">Trang chủ</Link>
-                        <ChevronRight className="w-3 h-3 text-slate-400" />
-                        <Link to="/profile" className="hover:text-amber-600 transition font-medium">Hồ sơ cá nhân</Link>
-                        <ChevronRight className="w-3 h-3 text-slate-400" />
-                        <span className="text-slate-900 font-semibold">Lịch sử đặt phòng</span>
+                    <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
+                        <Link to="/" className="hover:text-amber-600 transition font-medium shrink-0">Trang chủ</Link>
+                        <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
+                        <Link to="/profile" className="hover:text-amber-600 transition font-medium shrink-0">Hồ sơ cá nhân</Link>
+                        <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="text-slate-900 font-semibold truncate min-w-0">Lịch sử đặt phòng</span>
                     </nav>
                 </div>
             </div>
