@@ -234,3 +234,32 @@ body {
   scrollbar-width: none !important;
   -webkit-overflow-scrolling: touch;
 }
+
+/* =========================================================================
+   CHUẨN HÓA & KHẮC PHỤC LỖI TRÀN (OVERFLOW) INPUT DATE/TIME TRÊN MOBILE & IOS SAFARI
+   Đảm bảo ô chọn ngày/giờ không bị phình to, vượt khung trên Safari iPhone
+   ========================================================================= */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100%;
+  box-sizing: border-box !important;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+}

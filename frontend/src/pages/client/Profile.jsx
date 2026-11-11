@@ -594,7 +594,7 @@ export default function Profile() {
                         </div>
 
                         {/* CỘT PHẢI (8 CỘT): THÔNG TIN ĐỊNH DANH (VIEW & EDIT FORM) */}
-                        <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
+                        <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 min-w-0">
                             {/* Card Header with Quick Edit Trigger Button */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-6 border-b border-slate-100">
                                 <div>
@@ -811,7 +811,7 @@ export default function Profile() {
                                 <form onSubmit={handleSubmit} className="space-y-5">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {/* Họ và tên */}
-                                        <div>
+                                        <div className="min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Họ và tên đầy đủ <span className="text-rose-500">*</span>
                                             </label>
@@ -826,7 +826,7 @@ export default function Profile() {
                                         </div>
 
                                         {/* Số điện thoại */}
-                                        <div>
+                                        <div className="min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Số điện thoại di động <span className="text-rose-500">*</span>
                                             </label>
@@ -841,7 +841,7 @@ export default function Profile() {
                                         </div>
 
                                         {/* Email */}
-                                        <div>
+                                        <div className="min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Địa chỉ Email <span className="text-rose-500">*</span>
                                             </label>
@@ -856,7 +856,7 @@ export default function Profile() {
                                         </div>
 
                                         {/* Loại giấy tờ & Số CCCD / Passport */}
-                                        <div>
+                                        <div className="min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Giấy tờ định danh
                                             </label>
@@ -875,13 +875,13 @@ export default function Profile() {
                                                     value={formData.idCardNumber}
                                                     onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
                                                     placeholder="Nhập số giấy tờ"
-                                                    className="flex-1 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
+                                                    className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
                                                 />
                                             </div>
                                         </div>
 
                                         {/* Ngày sinh */}
-                                        <div>
+                                        <div className="min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Ngày sinh
                                             </label>
@@ -889,19 +889,19 @@ export default function Profile() {
                                                 type="date"
                                                 value={formData.dateOfBirth}
                                                 onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
+                                                className="w-full min-w-0 max-w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
                                             />
                                         </div>
 
                                         {/* Giới tính */}
-                                        <div>
+                                        <div className="min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Giới tính
                                             </label>
                                             <select
                                                 value={formData.gender}
                                                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
+                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
                                             >
                                                 <option value="Nam">Nam</option>
                                                 <option value="Nữ">Nữ</option>
@@ -910,7 +910,7 @@ export default function Profile() {
                                         </div>
 
                                         {/* Quốc tịch */}
-                                        <div className="sm:col-span-2">
+                                        <div className="sm:col-span-2 min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Quốc tịch
                                             </label>
@@ -919,12 +919,12 @@ export default function Profile() {
                                                 value={formData.nationality}
                                                 onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
                                                 placeholder="Ví dụ: Việt Nam"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
+                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
                                         {/* Địa chỉ thường trú */}
-                                        <div className="sm:col-span-2">
+                                        <div className="sm:col-span-2 min-w-0">
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Địa chỉ thường trú / Thành phố
                                             </label>
@@ -933,7 +933,7 @@ export default function Profile() {
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                                 placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
+                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
