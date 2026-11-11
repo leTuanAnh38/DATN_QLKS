@@ -244,8 +244,25 @@ if importlib.util.find_spec('whitenoise') is not None:
     }
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+_GIT_MEDIA_DIR = BASE_DIR / 'media'
+_VOLUME_MOUNT = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+
+if _VOLUME_MOUNT:
+    MEDIA_ROOT = Path(_VOLUME_MOUNT) / 'media'
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+    # Tự động đồng bộ các file media có sẵn trong Git sang Volume bền vững (không ghi đè file đã có trên Volume)
+    if _GIT_MEDIA_DIR.exists():
+        import shutil
+        for _src_file in _GIT_MEDIA_DIR.rglob('*'):
+            if _src_file.is_file():
+                _rel_path = _src_file.relative_to(_GIT_MEDIA_DIR)
+                _dst_file = MEDIA_ROOT / _rel_path
+                if not _dst_file.exists():
+                    _dst_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(_src_file, _dst_file)
+else:
+    MEDIA_ROOT = _GIT_MEDIA_DIR
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
 # Thư mục lưu trữ file Logs hệ thống
 LOGS_DIR = BASE_DIR / 'logs'
