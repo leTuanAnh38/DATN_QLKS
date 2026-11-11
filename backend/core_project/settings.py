@@ -16,6 +16,13 @@ from pathlib import Path
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
+try:
+    import pymysql
+    pymysql.version_info = (2, 2, 7, "final", 0)
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
