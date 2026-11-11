@@ -175,12 +175,12 @@ export default function TADaNangHotelLanding() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-600 selection:text-white">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-600 selection:text-white w-full max-w-full overflow-x-hidden">
             <Navbar />
 
 
             {/* 3. HERO SECTION CHUẨN LUXURY HOTEL - SLIDER CHẠY QUA LẠI */}
-            <section className="relative min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group">
+            <section className="relative w-full min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group">
                 {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng cross-fade mềm mại */}
                 {bannerImages.map((b, idx) => (
                     <div
@@ -276,7 +276,7 @@ export default function TADaNangHotelLanding() {
             </section>
 
             {/* 4. FLOATING BOOKING SEARCH BAR WIDGET (Tối ưu nhỏ gọn, tinh tế & hiện đại) */}
-            <div className="relative z-20 max-w-6xl mx-auto px-4 -mt-11 sm:-mt-13">
+            <div className="relative z-20 w-full max-w-6xl mx-auto px-3 sm:px-4 -mt-11 sm:-mt-13">
                 <div className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-900/8 border border-slate-200/80 p-3 sm:p-4 transition-all duration-300">
                     {/* Form Fields: 4 Input fields + Search Button */}
                     <form onSubmit={handleSearchRooms} className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 sm:gap-2.5">
@@ -400,7 +400,7 @@ export default function TADaNangHotelLanding() {
                     </form>
 
                     {/* Quick banner: Khách đoàn & Doanh nghiệp (Tinh gọn & thanh thoát) */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs">
                             <span className="p-1 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
                                 <Building2 className="w-3 h-3" />

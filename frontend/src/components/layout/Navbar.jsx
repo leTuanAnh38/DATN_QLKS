@@ -118,10 +118,10 @@ export default function Navbar({
     return (
         <>
             {/* 1. TOP ANNOUNCEMENT BAR */}
-            <div className="bg-slate-50 text-slate-600 text-xs py-2 px-4 border-b border-slate-200">
-                <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
-                    <div className="flex items-center space-x-4">
-                        <span className="font-semibold tracking-wider text-amber-600 uppercase text-[11px]">
+            <div className="bg-slate-50 text-slate-600 text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-slate-200 overflow-hidden">
+                <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-1 sm:gap-2">
+                    <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+                        <span className="font-semibold tracking-wider text-amber-600 uppercase text-[10px] sm:text-[11px] truncate">
                             {hotelNameDisplay}
                         </span>
                         <span className="hidden sm:inline text-slate-300">|</span>
@@ -132,22 +132,20 @@ export default function Navbar({
                         {isAuthenticated && (
                             <>
                                 <span className="hidden md:inline text-slate-300">|</span>
-                                <span className="hidden md:inline text-amber-700 font-medium">
+                                <span className="hidden md:inline text-amber-700 font-medium truncate">
                                      Kính chào Quý khách: <strong>{user?.full_name || user?.username}</strong>
                                 </span>
                             </>
                         )}
                     </div>
-                    <div className="flex items-center space-x-4 text-slate-600">
-                        <a href={`tel:${hotlineDisplay.replace(/\s+/g, '')}`} className="flex items-center gap-1.5 hover:text-amber-700 cursor-pointer transition">
-                            <Phone className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            Hotline 24/7: <strong className="text-slate-900">{hotlineDisplay}</strong>
+                    <div className="flex items-center space-x-2 sm:space-x-4 text-slate-600 text-[11px] sm:text-xs shrink-0">
+                        <a href={`tel:${hotlineDisplay.replace(/\s+/g, '')}`} className="flex items-center gap-1 hover:text-amber-700 cursor-pointer transition">
+                            <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
+                            <span>Hotline: <strong className="text-slate-900">{hotlineDisplay}</strong></span>
                         </a>
-                        <span className="text-slate-300">|</span>
-                        <div className="flex items-center space-x-2">
+                        <span className="hidden xs:inline text-slate-300">|</span>
+                        <div className="hidden xs:flex items-center space-x-1 sm:space-x-2">
                             <span className="cursor-pointer hover:text-amber-700">🇻🇳 VND</span>
-                            <span>/</span>
-                            <span className="cursor-pointer hover:text-amber-700">Tiếng Việt</span>
                         </div>
                     </div>
                 </div>
@@ -155,25 +153,25 @@ export default function Navbar({
 
             {/* 2. HEADER NAVIGATION */}
             <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3 xl:gap-8">
+                <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 xl:gap-8">
                     {/* Brand Logo */}
-                    <Link to="/" className="flex items-center space-x-3 cursor-pointer group shrink-0">
+                    <Link to="/" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group min-w-0">
                         {settings?.logo_url ? (
                             <img
                                 src={resolveMediaUrl(settings.logo_url)}
                                 alt={settings.hotel_name || 'Khách Sạn TA Đà Nẵng'}
-                                className="h-11 max-w-[170px] object-contain rounded-xl shadow-xs group-hover:scale-105 transition-transform"
+                                className="h-8 sm:h-11 max-w-[90px] sm:max-w-[170px] object-contain rounded-lg sm:rounded-xl shadow-xs group-hover:scale-105 transition-transform shrink-0"
                             />
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 border border-amber-500/40 flex items-center justify-center shadow-md shadow-slate-900/30 flex-shrink-0 group-hover:scale-105 transition-transform">
-                                <span className="text-amber-400 font-serif font-black text-xl tracking-tighter">TA</span>
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 border border-amber-500/40 flex items-center justify-center shadow-md shadow-slate-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                                <span className="text-amber-400 font-serif font-black text-base sm:text-xl tracking-tighter">TA</span>
                             </div>
                         )}
-                        <div className="flex flex-col">
-                            <span className="font-serif font-bold text-slate-900 text-lg leading-tight tracking-wide whitespace-nowrap group-hover:text-amber-700 transition-colors">
+                        <div className="flex flex-col min-w-0">
+                            <span className="font-serif font-bold text-slate-900 text-sm sm:text-lg leading-tight tracking-wide truncate group-hover:text-amber-700 transition-colors">
                                 {settings?.hotel_name ? settings.hotel_name.slice(0, 24) : 'KHÁCH SẠN TA'}
                             </span>
-                            <span className="text-[10px] font-semibold text-amber-700 tracking-[0.2em] uppercase whitespace-nowrap">
+                            <span className="text-[9px] sm:text-[10px] font-semibold text-amber-700 tracking-wider sm:tracking-[0.2em] uppercase truncate hidden xs:block sm:block">
                                 {settings?.hotel_slogan ? settings.hotel_slogan.slice(0, 36) : `ĐÀ NẴNG ${'★'.repeat(settings?.stars || 3)}`}
                             </span>
                         </div>
@@ -200,7 +198,7 @@ export default function Navbar({
                     </nav>
 
                     {/* Header Actions */}
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                         {/* Nút Đặt phòng ngay hiện đại, sang trọng */}
                         <Link
                             to={actionLink}
@@ -232,7 +230,7 @@ export default function Navbar({
                             </Link>
                         ) : (
                             // Khi ĐÃ đăng nhập thành công: Hiển thị CHUÔNG THÔNG BÁO và AVATAR MẶC ĐỊNH
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 sm:gap-3">
                                 <NotificationBell />
                                 <div className="relative" ref={userMenuRef}>
                                     <button
