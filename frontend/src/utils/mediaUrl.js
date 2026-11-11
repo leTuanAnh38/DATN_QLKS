@@ -29,6 +29,14 @@ export const getBackendOrigin = () => {
     if (
         typeof window !== 'undefined' &&
         window.location.hostname &&
+        window.location.hostname.endsWith('.railway.app')
+    ) {
+        return 'https://backend-production-59387ae6.up.railway.app';
+    }
+
+    if (
+        typeof window !== 'undefined' &&
+        window.location.hostname &&
         !window.location.hostname.endsWith('.railway.app')
     ) {
         return `${window.location.protocol}//${window.location.hostname}:8000`;
@@ -66,9 +74,9 @@ export const resolveMediaUrl = (url, fallback = null) => {
             typeof window !== 'undefined' &&
             window.location.hostname !== 'localhost' &&
             window.location.hostname !== '127.0.0.1' &&
-            (trimmed.startsWith('http://localhost:8000') || trimmed.startsWith('http://127.0.0.1:8000'))
+            (trimmed.startsWith('http://localhost:') || trimmed.startsWith('http://127.0.0.1:') || trimmed.startsWith('http://localhost/') || trimmed.startsWith('http://127.0.0.1/'))
         ) {
-            return trimmed.replace(/^http:\/\/(localhost|127\.0\.0\.1):8000/, backendOrigin);
+            return trimmed.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, backendOrigin);
         }
         // Tự động nâng cấp http -> https cho các domain Railway để tránh lỗi Mixed Content
         if (trimmed.startsWith('http://') && trimmed.includes('.up.railway.app')) {
