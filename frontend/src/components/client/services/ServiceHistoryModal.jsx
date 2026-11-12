@@ -53,39 +53,41 @@ export default function ServiceHistoryModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
             <div
                 className="relative bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-scale-up z-10"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Modal Header */}
-                <div className="bg-white text-slate-900 px-6 py-4 flex items-center justify-between border-b border-slate-200/80 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl shrink-0 border border-amber-200/60 shadow-xs">
-                            <History className="w-5 h-5 text-amber-600" />
+                {/* Modal Header: Tối ưu nhỏ gọn, cân đối, không bị lệch trên mobile */}
+                <div className="bg-white text-slate-900 px-3.5 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between border-b border-slate-200/80 shrink-0 gap-2">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-xs">
+                            <History className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                         </div>
-                        <div>
-                            <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                                <span>Lịch Sử Đặt Món & Dịch Vụ Tại Phòng</span>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                <h3 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 truncate">
+                                    Lịch Sử Đặt Món & Dịch Vụ
+                                </h3>
                                 {activeOrdersCount > 0 && (
-                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase shadow-xs">
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase shadow-xs shrink-0">
                                         {activeOrdersCount} đang xử lý
                                     </span>
                                 )}
-                            </h3>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">
                                 Theo dõi thời gian thực tiến độ tiếp nhận, chuẩn bị và phục vụ dịch vụ tận phòng của bạn.
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         <button
                             type="button"
                             onClick={() => fetchOrderHistory()}
                             disabled={isLoadingHistory}
-                            className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                             title="Làm mới trạng thái"
                         >
                             <RotateCw
@@ -99,7 +101,7 @@ export default function ServiceHistoryModal({
                             <button
                                 type="button"
                                 onClick={handleClearGuestSession}
-                                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center gap-1 transition cursor-pointer"
+                                className="w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center justify-center gap-1 transition cursor-pointer"
                                 title="Xóa phiên lưu trữ mã phòng này trên thiết bị này"
                             >
                                 <Trash2 className="w-3.5 h-3.5 text-rose-500" />
@@ -109,7 +111,7 @@ export default function ServiceHistoryModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer"
+                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer"
                             title="Đóng"
                         >
                             <X className="w-4 h-4" />

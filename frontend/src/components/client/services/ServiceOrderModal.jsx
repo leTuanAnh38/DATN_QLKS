@@ -32,7 +32,7 @@ export default function ServiceOrderModal({
     if (!selectedItem) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
             {/* Backdrop dismiss */}
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
