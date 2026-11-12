@@ -264,25 +264,25 @@ export default function ContactPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
                     {/* LEFT: INTERACTIVE CONTACT FORM */}
-                    <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-6 sm:p-10 space-y-6">
-                        <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+                    <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6">
+                        <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-slate-100">
                             <div>
-                                <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
+                                <span className="text-[10px] sm:text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
                                     Tiếp Nhận 24/7
                                 </span>
-                                <h2 className="font-serif text-2xl font-bold text-slate-900 mt-1">
+                                <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">
                                     Gửi Yêu Cầu Liên Hệ
                                 </h2>
                             </div>
-                            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/60 text-amber-600 flex items-center justify-center shadow-2xs">
-                                <Mail className="w-6 h-6" />
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 border border-amber-200/60 text-amber-600 flex items-center justify-center shadow-2xs">
+                                <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
                                         Họ và tên <span className="text-rose-500">*</span>
                                     </label>
                                     <input
@@ -291,11 +291,11 @@ export default function ContactPage() {
                                         value={formData.fullName}
                                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                         placeholder="Nguyễn Văn A"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
                                         Số điện thoại <span className="text-rose-500">*</span>
                                     </label>
                                     <input
@@ -304,14 +304,14 @@ export default function ContactPage() {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         placeholder="(+84) 90 123 4567"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
                                         Địa chỉ email <span className="text-rose-500">*</span>
                                     </label>
                                     <input
@@ -320,18 +320,18 @@ export default function ContactPage() {
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         placeholder="guest@domain.com"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
                                         Bộ phận tiếp nhận <span className="text-rose-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <select
                                             value={formData.department}
                                             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs appearance-none pr-10 cursor-pointer"
+                                            className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs appearance-none pr-9 cursor-pointer font-medium"
                                         >
                                             <option value="reservations">Đặt phòng lưu trú & Suite</option>
                                             <option value="dining">Dịch vụ Ẩm thực & Bar (F&B)</option>
@@ -340,13 +340,13 @@ export default function ContactPage() {
                                             <option value="transport">Đưa đón xe Mercedes Sân Bay</option>
                                             <option value="feedback">Góp ý & Chăm sóc Khách hàng</option>
                                         </select>
-                                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
+                                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                                <label className="block text-xs font-bold text-slate-700 mb-1">
                                     Tiêu đề yêu cầu <span className="text-rose-500">*</span>
                                 </label>
                                 <input
@@ -356,16 +356,18 @@ export default function ContactPage() {
                                     value={formData.subject}
                                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                     placeholder="Ví dụ: Đặt phòng Ocean Penthouse dịp kỷ niệm ngày cưới"
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                 />
                             </div>
 
                             <div>
-                                <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 mb-1.5">
                                     <label className="block text-xs font-bold text-slate-700">
                                         Nội dung tin nhắn & Yêu cầu đặc biệt <span className="text-rose-500">*</span>
                                     </label>
-                                    <span className="text-[11px] text-slate-400">Tùy chọn gối nệm, ăn kiêng, giờ check-in</span>
+                                    <span className="text-[10.5px] sm:text-[11px] text-slate-400 font-normal">
+                                        (Gối nệm, ăn kiêng, giờ check-in...)
+                                    </span>
                                 </div>
                                 <textarea
                                     rows={4}
@@ -373,20 +375,20 @@ export default function ContactPage() {
                                     maxLength={4500}
                                     value={formData.message}
                                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                    placeholder="Quý khách có thể cung cấp thêm thông tin về số lượng khách, chế độ ăn uống đặc biệt (thuần chay, gluten-free), sở thích gối lông vũ / thảo mộc, hoặc mong muốn đón sân bay chuyên biệt..."
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
+                                    placeholder="Quý khách có thể cung cấp thêm thông tin về số lượng khách, chế độ ăn kiêng, sở thích gối nệm hoặc yêu cầu đón tiễn..."
+                                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
                                 />
                             </div>
 
-                            <div className="py-1">
-                                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-slate-600">
+                            <div className="pt-0.5">
+                                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-600 group">
                                     <input
                                         type="checkbox"
                                         checked={formData.receiveViaZalo}
                                         onChange={(e) => setFormData({ ...formData, receiveViaZalo: e.target.checked })}
-                                        className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                        className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer mt-0.5 shrink-0"
                                     />
-                                    <span>
+                                    <span className="leading-relaxed">
                                         Tôi muốn nhận tư vấn ưu tiên & xác nhận nhanh qua <strong className="text-amber-700">Zalo / WhatsApp</strong> trên số điện thoại này
                                     </span>
                                 </label>
@@ -395,7 +397,7 @@ export default function ContactPage() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="w-full sm:w-auto px-7 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? (
                                     <>
