@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import api from '../../services/api';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 import { contactService } from '../../services/contactService';
 import {
     Mail,
@@ -40,19 +41,39 @@ const DEPARTMENT_LABELS = {
 };
 
 export default function ContactPage() {
+    const { settings } = useHotelSettings();
+
     // Hotel brand & operational settings from backend
     const [hotelInfo, setHotelInfo] = useState({
-        hotel_name: 'Khách Sạn TA Đà Nẵng',
-        hotel_slogan: 'Khách Sạn & Khu Nghỉ Dưỡng',
-        address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam',
-        hotline: '1900 8899',
-        phone_number: '+84 (0) 236 388 9900',
-        email: 'contact@tahotel.vn',
-        check_in_time: '14:00',
-        check_out_time: '12:00',
-        banner_contact: '',
-        stars: 5,
+        hotel_name: settings?.hotel_name || 'Khách Sạn TA Đà Nẵng',
+        hotel_slogan: settings?.hotel_slogan || 'Khách Sạn & Khu Nghỉ Dưỡng',
+        address: settings?.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam',
+        hotline: settings?.hotline || '1900 8899',
+        phone_number: settings?.phone_number || '+84 (0) 236 388 9900',
+        email: settings?.email || 'contact@tahotel.vn',
+        check_in_time: settings?.check_in_time || '14:00',
+        check_out_time: settings?.check_out_time || '12:00',
+        banner_contact: settings?.banner_contact || '',
+        stars: Number(settings?.stars) || 3,
     });
+
+    useEffect(() => {
+        if (settings) {
+            setHotelInfo(prev => ({
+                ...prev,
+                hotel_name: settings.hotel_name || prev.hotel_name,
+                hotel_slogan: settings.hotel_slogan || prev.hotel_slogan,
+                address: settings.address || prev.address,
+                hotline: settings.hotline || prev.hotline,
+                phone_number: settings.phone_number || prev.phone_number,
+                email: settings.email || prev.email,
+                check_in_time: settings.check_in_time || prev.check_in_time,
+                check_out_time: settings.check_out_time || prev.check_out_time,
+                banner_contact: settings.banner_contact || prev.banner_contact,
+                stars: Number(settings.stars) || prev.stars || 3,
+            }));
+        }
+    }, [settings]);
 
     useEffect(() => {
         let isMounted = true;
@@ -71,7 +92,7 @@ export default function ContactPage() {
                         check_in_time: data.check_in_time || prev.check_in_time,
                         check_out_time: data.check_out_time || prev.check_out_time,
                         banner_contact: data.banner_contact || prev.banner_contact,
-                        stars: data.star_rating || data.stars || prev.stars,
+                        stars: Number(data.star_rating || data.stars) || prev.stars || 3,
                     }));
                 }
             })
@@ -592,14 +613,14 @@ export default function ContactPage() {
                             className="w-full h-full"
                         />
 
-                        {/* Overlaid Hotel Pin Card */}
-                        <div className="absolute top-4 left-4 max-w-xs bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/60 pointer-events-auto">
+                        {/* Overlaid Hotel Pin Card (ẩn trên mobile để không chắn bản đồ) */}
+                        <div className="hidden sm:block absolute top-4 left-4 max-w-xs bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/60 pointer-events-auto">
                             <div className="flex items-center gap-0.5 text-amber-500 text-xs mb-1">
-                                {Array.from({ length: hotelInfo.stars || 5 }).map((_, i) => (
+                                {Array.from({ length: hotelInfo.stars || 3 }).map((_, i) => (
                                     <span key={i}>★</span>
                                 ))}
                                 <span className="font-bold text-[11px] uppercase tracking-wider text-slate-800 ml-1">
-                                    {hotelInfo.stars || 5}-Star Luxury Hotel
+                                    {hotelInfo.stars || 3}-Star Luxury Hotel
                                 </span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm">
@@ -611,7 +632,7 @@ export default function ContactPage() {
                             <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                                 <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                                    {hotelInfo.hotel_slogan || `Resort Đẳng Cấp ${hotelInfo.stars || 5} Sao`}
+                                    {hotelInfo.hotel_slogan || `Resort Đẳng Cấp ${hotelInfo.stars || 3} Sao`}
                                 </span>
                             </div>
                         </div>

@@ -628,7 +628,7 @@ export default function PaymentModal({
             {/* MODAL XÁC NHẬN KHI KHÁCH BẤM "HỦY BỎ"                                      */}
             {/* ========================================================================= */}
             {showCancelDialog && (
-                <div className="fixed inset-0 z-60 bg-black/70 flex items-center justify-center p-4 animate-fadeIn backdrop-blur-xs">
+                <div className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4 animate-fadeIn backdrop-blur-xs">
                     <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center space-y-4">
                         <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
                             <AlertTriangle className="w-7 h-7" />
