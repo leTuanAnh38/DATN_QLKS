@@ -55,13 +55,13 @@ export default function ServerConfigModal({
         <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.modalTitle, { color: colors.text }]}>Cấu Hình Máy Chủ API</Text>
           <Text style={[styles.modalDesc, { color: colors.textMuted }]}>
-            Nhập đường dẫn API backend (Ngrok HTTPS URL khi dùng 4G):
+            Nhập đường dẫn API backend (Railway Cloud URL hoặc IP mạng LAN):
           </Text>
           <TextInput
             style={[styles.modalInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
             value={tempUrl}
             onChangeText={setTempUrl}
-            placeholder="https://...ngrok-free.dev/api"
+            placeholder="https://backend-production-59387ae6.up.railway.app/api"
             placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
             autoCapitalize="none"
             autoCorrect={false}

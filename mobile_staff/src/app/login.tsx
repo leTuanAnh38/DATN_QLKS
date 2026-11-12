@@ -268,14 +268,14 @@ export default function LoginScreen() {
               <Text style={[styles.modalTitle, !isDark && { color: '#0F172A' }]}>Máy Chủ API Khách Sạn</Text>
             </View>
             <Text style={[styles.modalDesc, !isDark && { color: '#64748B' }]}>
-              Nhập địa chỉ Backend (Tunnel Ngrok HTTPS để chạy 4G hoặc IP Wi-Fi nội bộ):
+              Nhập địa chỉ Backend (Railway Cloud hoặc IP máy chủ nội bộ):
             </Text>
 
             <TextInput
               style={[styles.modalInput, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
               value={tempUrl}
               onChangeText={setTempUrl}
-              placeholder="https://...ngrok-free.dev/api"
+              placeholder="https://backend-production-59387ae6.up.railway.app/api"
               placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               autoCapitalize="none"
               autoCorrect={false}

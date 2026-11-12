@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
-// URL Ngrok công khai qua Internet (giúp iPhone 14 Pro dùng 4G/LTE truy cập trực tiếp mọi lúc mọi nơi)
-export const DEFAULT_API_URL = 'https://unashamed-jab-bulldog.ngrok-free.dev/api';
+// URL Production Backend trên Railway (đồng bộ thời gian thực với Web Client & Cổng Lễ Tân PMS)
+export const DEFAULT_API_URL = 'https://backend-production-59387ae6.up.railway.app/api';
 const API_URL_KEY = 'ta_hotel_api_url';
 
 export async function getApiBaseUrl(): Promise<string> {
