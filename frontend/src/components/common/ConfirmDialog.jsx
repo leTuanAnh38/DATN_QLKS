@@ -41,22 +41,22 @@ export default function ConfirmDialog({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
             onClick={onClose}
         >
             <div
                 className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-6">
-                    <div className="flex items-start gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bgMap[type] || bgMap.danger}`}>
+                <div className="p-4 sm:p-6">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${bgMap[type] || bgMap.danger}`}>
                             {iconMap[type] || iconMap.danger}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+                            <h3 className="text-base sm:text-lg font-bold text-slate-900">{title}</h3>
                             {message && (
-                                <p className="mt-2 text-sm text-slate-600 leading-relaxed whitespace-pre-line">{message}</p>
+                                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">{message}</p>
                             )}
                         </div>
                         <button

@@ -65,7 +65,7 @@ export default function RoomLightboxModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md select-none"
+            className="fixed inset-0 z-[100] bg-black/95 flex flex-col justify-between p-3 sm:p-6 backdrop-blur-md select-none"
             onClick={onClose}
         >
             {/* Thanh tiêu đề trên cùng: Đếm số ảnh & nút đóng */}

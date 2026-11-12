@@ -85,8 +85,8 @@ export default function BookingSuccessModal({
     const isPaid = booking.is_paid || booking.payment_method === 'vietqr_success';
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-md">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-6 sm:p-10 text-center shadow-2xl animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-4 sm:p-10 text-center shadow-2xl animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
                 {/* Icon thành công */}
                 <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-4xl mb-6 shadow-inner">
                     <CheckCircle2 className="w-10 h-10 text-emerald-600" />

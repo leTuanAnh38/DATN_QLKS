@@ -48,21 +48,21 @@ export default function ServiceCartModal({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header (Clean White Theme) */}
-                <div className="px-6 py-4 bg-white text-slate-900 flex items-center justify-between border-b border-slate-100 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-xs">
-                            <ShoppingBag className="w-5 h-5 text-amber-600" />
+                <div className="px-3.5 py-2.5 sm:px-6 sm:py-4 bg-white text-slate-900 flex items-center justify-between border-b border-slate-100 shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-xs shrink-0">
+                            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-sm sm:text-base text-slate-900">
+                                <h3 className="font-bold text-sm sm:text-base text-slate-900 truncate">
                                     Giỏ Dịch Vụ & Món Ăn
                                 </h3>
-                                <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
+                                <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200 shrink-0">
                                     {totalCartCount} món
                                 </span>
                             </div>
-                            <span className="text-[10px] text-amber-700 font-medium tracking-wide">
+                            <span className="hidden sm:block text-[10px] text-amber-700 font-medium tracking-wide">
                                 Gọi nhiều món một lúc • Phục vụ trực tiếp tại phòng
                             </span>
                         </div>

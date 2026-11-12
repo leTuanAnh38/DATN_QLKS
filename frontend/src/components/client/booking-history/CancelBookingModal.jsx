@@ -23,19 +23,19 @@ export default function CancelBookingModal({
     const modalGroup = getGroupBookingInfo(booking);
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 sm:p-8 shadow-2xl text-left animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-8 shadow-2xl text-left animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 {/* Header Modal */}
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold border border-rose-200">
-                        <AlertCircle className="w-6 h-6 text-rose-600" />
+                <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold border border-rose-200">
+                        <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
                     </div>
-                    <div>
-                        <h3 className="font-serif text-lg font-bold text-slate-900">
+                    <div className="min-w-0">
+                        <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 truncate">
                             Xác nhận Hủy Đặt Phòng
                         </h3>
-                        <p className="text-xs text-slate-500">
-                            Mã đơn: <strong className="font-mono text-slate-800">{booking.booking_code}</strong>
+                        <p className="text-[11px] sm:text-xs text-slate-500">
+                            Mã đơn: <strong className="font-mono text-slate-800">#{booking.booking_code}</strong>
                         </p>
                     </div>
                 </div>

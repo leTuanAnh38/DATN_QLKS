@@ -445,12 +445,12 @@ export default function NotificationBell({ theme = 'light' }) {
                 <>
                     {/* Mobile backdrop để chạm ra ngoài tự đóng trên điện thoại */}
                     <div
-                        className="fixed inset-0 z-40 bg-black/25 backdrop-blur-2xs sm:hidden animate-fadeIn"
+                        className="fixed inset-0 z-[100] bg-black/25 backdrop-blur-2xs sm:hidden animate-fadeIn"
                         onClick={() => setIsOpen(false)}
                         aria-hidden="true"
                     />
                     <div
-                        className="fixed inset-x-2.5 top-[68px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.25rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-50 overflow-hidden animate-fadeIn max-h-[82vh] sm:max-h-[600px] flex flex-col"
+                        className="fixed inset-x-2.5 top-[68px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.25rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[82vh] sm:max-h-[600px] flex flex-col"
                         style={{ transformOrigin: 'top right' }}
                     >
                     {/* Header Popover */}

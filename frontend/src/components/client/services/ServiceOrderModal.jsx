@@ -41,14 +41,14 @@ export default function ServiceOrderModal({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="px-6 py-4.5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-100 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-xs">
-                            <BellRing className="w-5 h-5 text-amber-600" />
+                <div className="px-3.5 py-2.5 sm:px-6 sm:py-4.5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-100 shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-xs shrink-0">
+                            <BellRing className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                         </div>
-                        <div>
-                            <h3 className="font-bold text-sm text-slate-900">Yêu Cầu Dịch Vụ Tại Phòng</h3>
-                            <span className="text-[10px] text-amber-700 font-medium tracking-wide">
+                        <div className="min-w-0">
+                            <h3 className="font-bold text-xs sm:text-sm text-slate-900 truncate">Yêu Cầu Dịch Vụ Tại Phòng</h3>
+                            <span className="hidden sm:block text-[10px] text-amber-700 font-medium tracking-wide">
                                 In-Room Dining & Concierge Service
                             </span>
                         </div>

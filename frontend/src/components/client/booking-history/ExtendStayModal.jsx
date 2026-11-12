@@ -21,19 +21,19 @@ export default function ExtendStayModal({
     if (!booking) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 text-left animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 text-left animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 {/* Header Modal */}
-                <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-xl shadow-xs">
-                            <CalendarPlus className="w-5 h-5 text-amber-600" />
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shrink-0 shadow-xs">
+                            <CalendarPlus className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                         </div>
-                        <div>
-                            <h3 className="font-bold text-base sm:text-lg text-slate-900">
-                                Gia Hạn Thời Gian Lưu Trú
+                        <div className="min-w-0">
+                            <h3 className="font-bold text-sm sm:text-lg text-slate-900 truncate">
+                                Gia Hạn Lưu Trú
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
                                 Đơn #{booking.booking_code} • {booking.room_name || 'Phòng nghỉ'}
                             </p>
                         </div>
@@ -41,7 +41,7 @@ export default function ExtendStayModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center font-bold text-sm cursor-pointer"
+                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center font-bold text-sm cursor-pointer shrink-0"
                         title="Đóng"
                     >
                         <X className="w-4 h-4" />

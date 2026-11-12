@@ -10,17 +10,17 @@ export default function ServiceCancelModal({
     if (!order) return null;
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-            <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-scale-up">
-                <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200/80">
-                        <AlertCircle className="w-6 h-6 text-rose-600" />
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+            <div className="bg-white rounded-3xl p-4 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-4 sm:space-y-5 animate-scale-up">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200/80">
+                        <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
                     </div>
                     <div>
-                        <h3 className="text-base font-black text-slate-800 tracking-tight">
+                        <h3 className="text-sm sm:text-base font-black text-slate-800 tracking-tight">
                             Hủy Yêu Cầu Dịch Vụ
                         </h3>
-                        <p className="text-xs font-semibold text-slate-400">
+                        <p className="hidden sm:block text-xs font-semibold text-slate-400">
                             Xác nhận hủy đơn đặt món / dịch vụ tận phòng
                         </p>
                     </div>

@@ -622,7 +622,7 @@ export default function BookingHistory() {
                 {/* TOAST THÔNG BÁO NỔI (Căn chỉnh an toàn trên màn hình điện thoại) */}
                 {toastMessage && (
                     <div
-                        className={`fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${
+                        className={`fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-[150] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${
                             toastMessage.type === 'success'
                                 ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20'
                                 : toastMessage.type === 'error'

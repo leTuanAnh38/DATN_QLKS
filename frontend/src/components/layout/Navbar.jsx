@@ -152,7 +152,7 @@ export default function Navbar({
             </div>
 
             {/* 2. HEADER NAVIGATION */}
-            <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all">
+            <header className={`sticky top-0 ${mobileMenuOpen ? 'z-[95]' : 'z-50'} bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all`}>
                 <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 xl:gap-8">
                     {/* Brand Logo */}
                     <Link to="/" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group min-w-0">

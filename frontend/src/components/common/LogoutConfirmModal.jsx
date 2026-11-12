@@ -44,27 +44,27 @@ export default function LogoutConfirmModal({
             <div 
                 role="dialog"
                 aria-modal="true"
-                className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-slate-800 transition-all transform scale-100 animate-in zoom-in-95 duration-150 z-10 text-left"
+                className="relative w-full max-w-md bg-white rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-200 text-slate-800 transition-all transform scale-100 animate-in zoom-in-95 duration-150 z-10 text-left"
             >
                 {/* Nút đóng góc phải */}
                 <button
                     type="button"
                     onClick={onClose}
                     disabled={isLoading}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
+                    className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
                     title="Đóng (Esc)"
                 >
                     <X className="w-4 h-4" />
                 </button>
 
                 {/* Icon & Tiêu đề */}
-                <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0 shadow-2xs">
-                        <LogOut className="w-6 h-6 text-rose-600" />
+                <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0 shadow-2xs">
+                        <LogOut className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
                     </div>
 
                     <div className="flex-1 pr-4">
-                        <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-snug">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug">
                             {title}
                         </h3>
                         {userName && (

@@ -31,8 +31,8 @@ export default function CorporateSuccessModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-5 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-white text-slate-900 rounded-3xl p-4 sm:p-8 max-w-lg w-full text-center space-y-4 sm:space-y-5 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 {isPaidSuccess ? (
                     /* MÀN HÌNH TỰ ĐỘNG XÁC NHẬN THANH TOÁN THÀNH CÔNG */
                     <div className="space-y-5 animate-in zoom-in-95 duration-200">

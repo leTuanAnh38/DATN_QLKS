@@ -46,20 +46,20 @@ export default function CorporateConfirmationModal({
                     onClose();
                 }
             }}
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200"
+            className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
         >
-            <div className="bg-white rounded-3xl border border-slate-200/80 max-w-2xl w-full shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-slate-200/80 max-w-2xl w-full shadow-2xl overflow-hidden my-4 sm:my-8 animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="bg-white border-b border-slate-100 p-5 sm:p-6 relative flex items-center justify-between">
-                    <div className="flex items-center gap-3.5">
-                        <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 shrink-0 shadow-xs">
-                            <Building2 className="w-6 h-6" />
+                <div className="bg-white border-b border-slate-100 p-3.5 sm:p-6 relative flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                        <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 shrink-0 shadow-xs">
+                            <Building2 className="w-4 h-4 sm:w-6 sm:h-6" />
                         </div>
-                        <div>
-                            <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900">
-                                Xác Nhận Hợp Đồng Đặt Phòng Đoàn
+                        <div className="min-w-0">
+                            <h3 className="font-serif text-base sm:text-xl font-bold text-slate-900 truncate">
+                                Xác Nhận Đặt Phòng Đoàn
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-xs text-slate-500 mt-0.5 hidden sm:block">
                                 Vui lòng rà soát lại thông tin đoàn và chi phí trước khi thanh toán
                             </p>
                         </div>
@@ -67,10 +67,10 @@ export default function CorporateConfirmationModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition p-2 rounded-xl cursor-pointer"
+                        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition p-1.5 sm:p-2 rounded-xl cursor-pointer shrink-0"
                         title="Đóng"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 </div>
 

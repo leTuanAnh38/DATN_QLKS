@@ -25,22 +25,22 @@ export default function ReviewModal({
     const avgScore = ((cleanlinessScore + serviceScore + locationScore + valueScore) / 4);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto">
                 {/* Header Modal */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 border border-amber-200/80 flex items-center justify-center">
-                            <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-500 border border-amber-200/80 flex items-center justify-center shrink-0">
+                            <Star className="w-4 h-4 sm:w-6 sm:h-6 fill-amber-500 text-amber-500" />
                         </div>
-                        <div>
-                            <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                        <div className="min-w-0">
+                            <h3 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate">
                                 Đánh giá kỳ nghỉ của bạn
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                                {booking.room_name} • Mã đơn:{' '}
+                            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+                                {booking.room_name} • Mã:{' '}
                                 <strong className="font-mono text-slate-700">
-                                    {booking.booking_code}
+                                    #{booking.booking_code}
                                 </strong>
                             </p>
                         </div>
@@ -48,7 +48,7 @@ export default function ReviewModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center cursor-pointer shrink-0"
                         title="Đóng"
                     >
                         <X className="w-4 h-4" />
