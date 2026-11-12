@@ -58,7 +58,7 @@ export default function Footer() {
                                 <img
                                     src={resolveMediaUrl(hotelInfo.logo_url)}
                                     alt={hotelName}
-                                    className="h-10 max-w-[140px] object-contain rounded-lg shadow-xs group-hover:scale-105 transition-transform"
+                                    className="h-10 max-w-[140px] object-contain group-hover:scale-105 transition-transform"
                                 />
                             ) : (
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 flex items-center justify-center text-white font-serif font-black text-lg shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
