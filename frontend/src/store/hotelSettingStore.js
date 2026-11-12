@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore, useEffect } from 'react';
 import api from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
@@ -106,9 +106,12 @@ export const hotelSettingStore = {
             const data = res.data?.data || res.data;
             if (data) {
                 this.updateSettings(data);
+            } else {
+                currentSettings.isLoaded = true;
             }
         } catch (e) {
             console.error('Lỗi khi tải cấu hình khách sạn:', e);
+            currentSettings.isLoaded = true;
         } finally {
             isFetching = false;
         }
@@ -122,10 +125,12 @@ export function useHotelSettings() {
         hotelSettingStore.getSnapshot
     );
 
-    // Tự động tải nếu chưa được tải lần đầu
-    if (!settings.isLoaded && !isFetching) {
-        hotelSettingStore.fetchSettings();
-    }
+    // Tự động tải nếu chưa được tải lần đầu (chạy an toàn trong useEffect, không gọi trong render body)
+    useEffect(() => {
+        if (!settings.isLoaded && !isFetching) {
+            hotelSettingStore.fetchSettings();
+        }
+    }, [settings.isLoaded]);
 
     return {
         settings,

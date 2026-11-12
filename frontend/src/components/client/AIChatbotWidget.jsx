@@ -1337,7 +1337,7 @@ export default function AIChatbotWidget() {
                     {/* C. KHUNG HIỂN THỊ TIN NHẮN (MESSAGES STREAM) */}
                     <div
                         ref={chatContainerRef}
-                        className="flex-1 p-3.5 overflow-y-auto space-y-3.5 bg-gradient-to-b from-slate-50/50 to-white"
+                        className="flex-1 p-3.5 overflow-y-auto overflow-x-hidden space-y-3.5 bg-gradient-to-b from-slate-50/50 to-white overscroll-contain"
                         tabIndex={0}
                         aria-label="Danh sách tin nhắn cuộc trò chuyện"
                     >
@@ -1356,7 +1356,7 @@ export default function AIChatbotWidget() {
                                 <div
                                     key={msg.id}
                                     id={`chat-msg-${msg.id}`}
-                                    className={`flex items-start gap-2.5 ${isBot ? 'justify-start' : 'justify-end'}`}
+                                    className={`flex items-start gap-2.5 w-full min-w-0 ${isBot ? 'justify-start' : 'justify-end'}`}
                                 >
                                     {isBot && (
                                         <div className="w-7 h-7 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex-shrink-0 flex items-center justify-center text-xs shadow-2xs mt-0.5">
@@ -1365,12 +1365,12 @@ export default function AIChatbotWidget() {
                                     )}
 
                                     <div
-                                        className={`rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] shadow-xs ${
+                                        className={`rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] shadow-xs break-words overflow-hidden ${
                                             isBot
                                                 ? `bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] ${
-                                                      hasSuggestions ? 'w-full max-w-[94%] sm:max-w-[92%]' : 'max-w-[85%]'
+                                                      hasSuggestions ? 'flex-1 min-w-0 max-w-full sm:max-w-[92%]' : 'max-w-[85%]'
                                                   }`
-                                                : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white rounded-tr-xs shadow-md shadow-sky-900/15 max-w-[85%]'
+                                                : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white rounded-tr-xs shadow-md shadow-sky-900/15 max-w-[85%] ml-auto'
                                         }`}
                                     >
                                         <div className="leading-relaxed">
@@ -1504,13 +1504,14 @@ export default function AIChatbotWidget() {
                                                             {!isCancelled ? (
                                                                 <div className="mt-3 pt-2.5 border-t border-slate-100">
                                                                     <div className="relative flex items-center justify-between px-3">
-                                                                        <div className="absolute left-6 right-6 top-3 h-0.5 bg-slate-200 z-0" />
-                                                                        <div
-                                                                            className="absolute left-6 top-3 h-0.5 bg-emerald-500 transition-all duration-500 z-0"
-                                                                            style={{
-                                                                                width: `${Math.max(0, Math.min(100, ((currentStep - 1) / 3) * 100))}%`
-                                                                            }}
-                                                                        />
+                                                                        <div className="absolute left-6 right-6 top-3 h-0.5 bg-slate-200 z-0 overflow-hidden rounded-full">
+                                                                            <div
+                                                                                className="h-full bg-emerald-500 transition-all duration-500 rounded-full"
+                                                                                style={{
+                                                                                    width: `${Math.max(0, Math.min(100, ((currentStep - 1) / 3) * 100))}%`
+                                                                                }}
+                                                                            />
+                                                                        </div>
 
                                                                         {steps.map((st) => {
                                                                             const IconComp = st.icon;
@@ -1594,7 +1595,7 @@ export default function AIChatbotWidget() {
                                                 </div>
 
                                                 <div
-                                                    className="flex gap-2.5 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth -mx-1 px-1"
+                                                    className="flex gap-2.5 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth overscroll-x-contain touch-pan-x px-0.5"
                                                     style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}
                                                 >
                                                     {msg.suggested_rooms.map((room) => {
@@ -1731,7 +1732,7 @@ export default function AIChatbotWidget() {
                                                 </div>
 
                                                 <div
-                                                    className="flex gap-2.5 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth -mx-1 px-1"
+                                                    className="flex gap-2.5 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth overscroll-x-contain touch-pan-x px-0.5"
                                                     style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}
                                                 >
                                                     {msg.suggested_services.map((srv) => (

@@ -145,10 +145,10 @@ export default function FeaturedServices() {
     };
 
     return (
-        <section id="menu-dich-vu" className="py-20 bg-gradient-to-b from-white via-slate-50 to-slate-100 relative overflow-hidden">
-            {/* Background Decorator Lights */}
-            <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-amber-200/20 blur-[130px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-10 right-0 w-[450px] h-[450px] bg-amber-100/20 blur-[120px] rounded-full pointer-events-none" />
+        <section id="menu-dich-vu" className="py-20 bg-gradient-to-b from-white via-slate-50 to-slate-100 relative overflow-hidden transform-gpu">
+            {/* Background Decorator Lights - sử dụng Radial Gradient thay vì blur nặng để chống giật nhấp nháy trên iOS/Mobile */}
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.18),transparent_70%)] pointer-events-none" />
+            <div className="absolute bottom-10 right-0 w-[450px] h-[450px] bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.12),transparent_70%)] pointer-events-none" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 {/* 1. SECTION HEADER */}
@@ -159,7 +159,7 @@ export default function FeaturedServices() {
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Tinh Hoa Dịch Vụ Nghỉ Dưỡng <br />
-                        <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent inline-block transform-gpu">
                             Phục Vụ Tận Phòng 24/7
                         </span>
                     </h2>
@@ -250,7 +250,7 @@ export default function FeaturedServices() {
                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/20" />
 
                                         {/* Category Badge Top Left */}
-                                        <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-amber-300 text-[11px] font-bold border border-white/10 shadow-sm">
+                                        <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 text-amber-300 text-[11px] font-bold border border-white/10 shadow-sm">
                                             {getCategoryIconComponent(categoryName)}
                                             <span>{categoryName}</span>
                                         </span>
@@ -302,10 +302,10 @@ export default function FeaturedServices() {
                 )}
 
                 {/* 3. LUXURY SERVICES PROMOTION BANNER (Nền trắng nhẹ nhàng, thanh lịch) */}
-                <div className="mt-16 bg-white rounded-3xl p-8 sm:p-12 text-slate-800 shadow-xl shadow-slate-200/60 border border-slate-200/90 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
-                    {/* Background Glow nhẹ nhàng */}
-                    <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -left-20 -top-20 w-80 h-80 bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
+                <div className="mt-16 bg-white rounded-3xl p-8 sm:p-12 text-slate-800 shadow-xl shadow-slate-200/60 border border-slate-200/90 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 transform-gpu">
+                    {/* Background Glow nhẹ nhàng bằng Radial Gradient thay vì blur nặng */}
+                    <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-[radial-gradient(circle,rgba(251,191,36,0.12),transparent_70%)] pointer-events-none" />
+                    <div className="absolute -left-20 -top-20 w-80 h-80 bg-[radial-gradient(circle,rgba(251,191,36,0.08),transparent_70%)] pointer-events-none" />
 
                     <div className="space-y-3 text-center lg:text-left max-w-2xl relative z-10">
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200/80 shadow-xs">
