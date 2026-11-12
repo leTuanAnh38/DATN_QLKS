@@ -146,7 +146,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                                     value={formData.old_password}
                                     onChange={(e) => setFormData({ ...formData, old_password: e.target.value })}
                                     placeholder="Nhập mật khẩu đang sử dụng"
-                                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                                 />
                                 <button
                                     type="button"
@@ -172,7 +172,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                                     value={formData.new_password}
                                     onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
                                     placeholder="Tối thiểu 6 ký tự"
-                                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                                 />
                                 <button
                                     type="button"
@@ -198,7 +198,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                                     value={formData.confirm_password}
                                     onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
                                     placeholder="Nhập lại mật khẩu mới"
-                                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                                 />
                                 <button
                                     type="button"

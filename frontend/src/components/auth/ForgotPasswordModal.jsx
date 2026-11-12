@@ -259,7 +259,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="Ví dụ: nguyenvan@gmail.com"
-                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                     />
                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                         <Mail className="w-4 h-4" />
@@ -364,7 +364,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         placeholder="Tối thiểu 6 ký tự"
-                                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                     />
                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                         <Lock className="w-4 h-4" />
@@ -392,7 +392,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         placeholder="Nhập lại mật khẩu mới"
-                                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                     />
                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                         <Lock className="w-4 h-4" />

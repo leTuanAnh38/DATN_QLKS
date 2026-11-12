@@ -489,7 +489,7 @@ export default function AuthBookingPage() {
                                                     value={loginForm.identifier}
                                                     onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
                                                     placeholder="Tên đăng nhập, email hoặc số điện thoại"
-                                                    className="w-full pl-11 pr-4 py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                    className="w-full pl-11 pr-4 py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                                 />
                                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                                     <User className="w-4 h-4" />
@@ -517,7 +517,7 @@ export default function AuthBookingPage() {
                                                     value={loginForm.password}
                                                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                                                     placeholder="Nhập mật khẩu của quý khách"
-                                                    className="w-full pl-11 pr-11 py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                    className="w-full pl-11 pr-11 py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                                 />
                                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                                     <Lock className="w-4 h-4" />
@@ -581,7 +581,7 @@ export default function AuthBookingPage() {
                                                     value={registerForm.fullName}
                                                     onChange={(e) => setRegisterForm({ ...registerForm, fullName: e.target.value })}
                                                     placeholder="Nguyễn Văn A (theo CCCD / Hộ chiếu)"
-                                                    className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                    className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                                 />
                                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                                     <User className="w-4 h-4" />
@@ -601,7 +601,7 @@ export default function AuthBookingPage() {
                                                         value={registerForm.phone}
                                                         onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
                                                         placeholder="0901 234 567"
-                                                        className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                        className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                                     />
                                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                                         <Phone className="w-4 h-4" />
@@ -619,7 +619,7 @@ export default function AuthBookingPage() {
                                                         value={registerForm.email}
                                                         onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                                                         placeholder="vidu@email.com"
-                                                        className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                        className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                                     />
                                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                                         <Mail className="w-4 h-4" />
@@ -640,7 +640,7 @@ export default function AuthBookingPage() {
                                                     value={registerForm.password}
                                                     onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
                                                     placeholder="Tối thiểu 8 ký tự"
-                                                    className="w-full pl-11 pr-11 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                    className="w-full pl-11 pr-11 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                                 />
                                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                                     <Lock className="w-4 h-4" />
