@@ -111,6 +111,49 @@ export default function TADaNangHotelLanding() {
     ];
     const [currentBanner, setCurrentBanner] = useState(0);
 
+    // Touch gesture tracking cho Hero Banner trên thiết bị di động
+    const bannerTouchStartX = useRef(0);
+    const bannerTouchStartY = useRef(0);
+    const bannerTouchEndX = useRef(0);
+    const bannerTouchEndY = useRef(0);
+    const isBannerSwiping = useRef(false);
+
+    const handleBannerTouchStart = (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        isBannerSwiping.current = false;
+        bannerTouchStartX.current = e.touches[0].clientX;
+        bannerTouchStartY.current = e.touches[0].clientY;
+        bannerTouchEndX.current = e.touches[0].clientX;
+        bannerTouchEndY.current = e.touches[0].clientY;
+    };
+
+    const handleBannerTouchMove = (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        bannerTouchEndX.current = e.touches[0].clientX;
+        bannerTouchEndY.current = e.touches[0].clientY;
+        if (Math.abs(bannerTouchEndX.current - bannerTouchStartX.current) > 10) {
+            isBannerSwiping.current = true;
+        }
+    };
+
+    const handleBannerTouchEnd = () => {
+        const diffX = bannerTouchStartX.current - bannerTouchEndX.current;
+        const diffY = bannerTouchStartY.current - bannerTouchEndY.current;
+        // Kiểm tra vuốt ngang: khoảng cách > 35px và phương ngang rõ rệt hơn phương dọc
+        if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0) {
+                // Vuốt sang trái -> Xem banner tiếp theo
+                setCurrentBanner((prev) => (prev + 1) % bannerImages.length);
+            } else {
+                // Vuốt sang phải -> Xem banner trước đó
+                setCurrentBanner((prev) => (prev - 1 + bannerImages.length) % bannerImages.length);
+            }
+        }
+        setTimeout(() => {
+            isBannerSwiping.current = false;
+        }, 150);
+    };
+
     // Tự động chuyển ảnh banner sau mỗi 6 giây
     useEffect(() => {
         const timer = setInterval(() => {
@@ -180,7 +223,12 @@ export default function TADaNangHotelLanding() {
 
 
             {/* 3. HERO SECTION CHUẨN LUXURY HOTEL - SLIDER CHẠY QUA LẠI */}
-            <section className="relative w-full min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group">
+            <section 
+                onTouchStart={handleBannerTouchStart}
+                onTouchMove={handleBannerTouchMove}
+                onTouchEnd={handleBannerTouchEnd}
+                className="relative w-full min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
+            >
                 {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng cross-fade mềm mại */}
                 {bannerImages.map((b, idx) => (
                     <div
@@ -245,6 +293,7 @@ export default function TADaNangHotelLanding() {
                                 key={dotIdx}
                                 type="button"
                                 onClick={() => setCurrentBanner(dotIdx)}
+                                onTouchStart={(e) => e.stopPropagation()}
                                 className={`transition-all duration-300 rounded-full cursor-pointer ${
                                     currentBanner === dotIdx
                                         ? 'w-7 h-2 bg-white shadow-sm'
@@ -260,7 +309,8 @@ export default function TADaNangHotelLanding() {
                 <button
                     type="button"
                     onClick={() => setCurrentBanner((prev) => (prev - 1 + bannerImages.length) % bannerImages.length)}
-                    className="absolute left-4 z-10 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition opacity-0 group-hover:opacity-100 cursor-pointer shadow-md"
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="absolute left-3 sm:left-4 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/35 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xs transition opacity-80 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md active:scale-90"
                     aria-label="Banner trước"
                 >
                     <ChevronLeft className="w-5 h-5 text-white" />
@@ -268,7 +318,8 @@ export default function TADaNangHotelLanding() {
                 <button
                     type="button"
                     onClick={() => setCurrentBanner((prev) => (prev + 1) % bannerImages.length)}
-                    className="absolute right-4 z-10 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition opacity-0 group-hover:opacity-100 cursor-pointer shadow-md"
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="absolute right-3 sm:right-4 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/35 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xs transition opacity-80 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md active:scale-90"
                     aria-label="Banner kế tiếp"
                 >
                     <ChevronRight className="w-5 h-5 text-white" />

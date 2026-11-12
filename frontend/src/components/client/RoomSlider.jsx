@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { Camera, Maximize2, Users, BedDouble, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -95,6 +95,95 @@ export default function RoomSlider({ rooms = [] }) {
         setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
     };
 
+    // Touch & Mouse gestures tracking cho thao tác vuốt lướt thẻ phòng trên điện thoại và máy tính
+    const touchStartX = useRef(0);
+    const touchStartY = useRef(0);
+    const touchEndX = useRef(0);
+    const touchEndY = useRef(0);
+    const isSwiping = useRef(false);
+
+    const handleTouchStart = (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        isSwiping.current = false;
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+        touchEndX.current = e.touches[0].clientX;
+        touchEndY.current = e.touches[0].clientY;
+        setIsHovered(true); // Tạm dừng auto-slide khi người dùng chạm
+    };
+
+    const handleTouchMove = (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        touchEndX.current = e.touches[0].clientX;
+        touchEndY.current = e.touches[0].clientY;
+        if (Math.abs(touchEndX.current - touchStartX.current) > 10) {
+            isSwiping.current = true;
+        }
+    };
+
+    const handleTouchEnd = () => {
+        const diffX = touchStartX.current - touchEndX.current;
+        const diffY = touchStartY.current - touchEndY.current;
+        // Kiểm tra vuốt ngang: khoảng cách > 35px và phương ngang rõ hơn dọc
+        if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0) {
+                // Vuốt sang trái -> Xem phòng tiếp theo
+                handleNext();
+            } else {
+                // Vuốt sang phải -> Xem phòng trước đó
+                handlePrev();
+            }
+        }
+        setTimeout(() => {
+            isSwiping.current = false;
+            setIsHovered(false);
+        }, 200);
+    };
+
+    const handleMouseDown = (e) => {
+        if (e.button !== 0) return;
+        isSwiping.current = false;
+        touchStartX.current = e.clientX;
+        touchStartY.current = e.clientY;
+        touchEndX.current = e.clientX;
+        touchEndY.current = e.clientY;
+        setIsHovered(true);
+    };
+
+    const handleMouseMove = (e) => {
+        if (e.buttons !== 1) return;
+        touchEndX.current = e.clientX;
+        touchEndY.current = e.clientY;
+        if (Math.abs(touchEndX.current - touchStartX.current) > 10) {
+            isSwiping.current = true;
+        }
+    };
+
+    const handleMouseUp = () => {
+        if (touchStartX.current === 0) return;
+        const diffX = touchStartX.current - touchEndX.current;
+        if (Math.abs(diffX) > 35) {
+            if (diffX > 0) {
+                handleNext();
+            } else {
+                handlePrev();
+            }
+        }
+        touchStartX.current = 0;
+        setTimeout(() => {
+            isSwiping.current = false;
+            setIsHovered(false);
+        }, 200);
+    };
+
+    // Chặn click nhầm vào link hoặc nút đặt phòng khi người dùng đang thực hiện động tác vuốt
+    const handleClickCapture = (e) => {
+        if (isSwiping.current) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
     if (!rooms || rooms.length === 0) {
         return null;
     }
@@ -109,7 +198,8 @@ export default function RoomSlider({ rooms = [] }) {
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        Trượt để xem thêm các hạng phòng ({currentIndex + 1}/{maxIndex + 1})
+                        <span className="hidden sm:inline">Trượt</span>
+                        <span className="sm:hidden">Vuốt</span> để xem thêm các hạng phòng ({currentIndex + 1}/{maxIndex + 1})
                     </span>
                 </div>
 
@@ -117,6 +207,7 @@ export default function RoomSlider({ rooms = [] }) {
                     <button
                         type="button"
                         onClick={handlePrev}
+                        onTouchStart={(e) => e.stopPropagation()}
                         aria-label="Phòng trước đó"
                         className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
                     >
@@ -126,6 +217,7 @@ export default function RoomSlider({ rooms = [] }) {
                     <button
                         type="button"
                         onClick={handleNext}
+                        onTouchStart={(e) => e.stopPropagation()}
                         aria-label="Phòng tiếp theo"
                         className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
                     >
@@ -135,7 +227,17 @@ export default function RoomSlider({ rooms = [] }) {
             </div>
 
             {/* Slider Viewport với hiệu ứng transition trượt mượt mà */}
-            <div className="overflow-hidden py-2 -mx-3">
+            <div 
+                className="overflow-hidden py-2 -mx-3 touch-pan-y select-none cursor-grab active:cursor-grabbing"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onClickCapture={handleClickCapture}
+            >
                 <div
                     className="flex transition-transform duration-500 ease-out"
                     style={{
@@ -280,6 +382,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                 <Link
                                                     to={`/rooms/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
+                                                    onTouchStart={(e) => e.stopPropagation()}
                                                     className="px-3 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition whitespace-nowrap text-center flex items-center justify-center cursor-pointer active:scale-95"
                                                 >
                                                     Xem chi tiết
@@ -287,6 +390,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                 <Link
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
+                                                    onTouchStart={(e) => e.stopPropagation()}
                                                     className="px-3.5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/30 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center hover:scale-[1.02]"
                                                 >
                                                     Đặt ngay
@@ -309,6 +413,7 @@ export default function RoomSlider({ rooms = [] }) {
                             key={idx}
                             type="button"
                             onClick={() => setCurrentIndex(idx)}
+                            onTouchStart={(e) => e.stopPropagation()}
                             aria-label={`Trang ${idx + 1}`}
                             className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                                 currentIndex === idx
