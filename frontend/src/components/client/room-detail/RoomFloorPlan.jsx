@@ -16,7 +16,7 @@ export default function RoomFloorPlan({
     if (!room) return null;
 
     return (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+        <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5 sm:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div>
                     <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
@@ -61,78 +61,88 @@ export default function RoomFloorPlan({
                         </span>
                     </div>
 
-                    {/* Khu vực minh họa phân vùng không gian (Architectural Spatial Zones) */}
-                    <div className="relative z-10 my-4 grid grid-cols-1 sm:grid-cols-12 gap-3 flex-1">
+                    {/* Chỉ dẫn hướng không gian 2D trực quan */}
+                    <div className="relative z-10 flex items-center justify-between text-[10px] text-slate-400 font-mono mt-3 mb-1 px-1">
+                        <span className="flex items-center gap-1 text-slate-400">
+                            <span>🚪 Lối vào phòng</span>
+                        </span>
+                        <span className="flex items-center gap-1 text-amber-300">
+                            <span>{roomHasBalcony ? 'Ban công hướng biển 🌅' : 'Khung kính toàn cảnh 🌅'}</span>
+                        </span>
+                    </div>
+
+                    {/* Khu vực minh họa phân vùng không gian (Architectural Spatial Zones 2D Layout) */}
+                    <div className="relative z-10 my-2 sm:my-4 grid grid-cols-2 sm:grid-cols-12 gap-2 sm:gap-3 flex-1">
                         {/* Khu 1: Cửa vào & Tiền sảnh (Foyer) */}
-                        <div className="sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-3 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-slate-400 text-[10px] uppercase font-mono tracking-wider">
+                        <div className="col-span-1 sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between">
+                            <div className="flex items-center justify-between text-slate-400 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
                                 <span>LỐI VÀO</span>
-                                <DoorClosed className="w-3.5 h-3.5 text-slate-300" />
+                                <DoorClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300" />
                             </div>
-                            <div className="my-2">
-                                <div className="text-xs font-bold text-white">Sảnh Đón & Tủ Đồ</div>
-                                <div className="text-[10px] text-slate-400 mt-0.5">Két sắt & Mini bar</div>
+                            <div className="my-1.5 sm:my-2">
+                                <div className="text-xs font-bold text-white leading-tight">Sảnh Đón & Tủ Đồ</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 truncate">Két sắt & Mini bar</div>
                             </div>
-                            <div className="text-[10px] text-amber-300/80 font-mono">STC 55+ Cách âm</div>
+                            <div className="text-[9px] sm:text-[10px] text-amber-300/80 font-mono truncate">Cửa cách âm cao cấp</div>
                         </div>
 
                         {/* Khu 2: Phòng tắm & Thư giãn */}
-                        <div className="sm:col-span-8 bg-white/5 hover:bg-white/10 transition border border-amber-400/20 rounded-xl p-3 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-amber-300 text-[10px] uppercase font-mono tracking-wider">
-                                <span>KHU PHÒNG TẮM</span>
-                                <Bath className="w-3.5 h-3.5 text-amber-300" />
+                        <div className="col-span-1 sm:col-span-8 bg-white/5 hover:bg-white/10 transition border border-amber-400/20 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between">
+                            <div className="flex items-center justify-between text-amber-300 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
+                                <span>PHÒNG TẮM</span>
+                                <Bath className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300" />
                             </div>
-                            <div className="my-2 flex items-center justify-between">
-                                <div>
-                                    <div className="text-xs font-bold text-white">
-                                        {roomHasJacuzzi ? 'Bồn Tắm Nằm Thư Giãn' : 'Buồng Tắm Đứng Kính Cường Lực'}
-                                    </div>
-                                    <div className="text-[10px] text-slate-300 mt-0.5">
-                                        Vòi sen mưa & Nước nóng 24/7
-                                    </div>
+                            <div className="my-1.5 sm:my-2">
+                                <div className="text-xs font-bold text-white leading-tight truncate">
+                                    {roomHasJacuzzi ? 'Bồn Tắm Nằm Thư Giãn' : 'Buồng Tắm Đứng Kính'}
                                 </div>
-                                <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+                                <div className="text-[10px] text-slate-300 mt-0.5 truncate">
+                                    Vòi sen mưa & Nước nóng 24/7
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400 font-mono">
+                                <span className="truncate">Bộ khăn bông</span>
+                                <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-400/30 shrink-0">
                                     Riêng tư
                                 </span>
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono">Bộ khăn bông cao cấp</div>
                         </div>
 
                         {/* Khu 3: Không gian ngủ chính (Master Suite) */}
-                        <div className="sm:col-span-8 bg-gradient-to-br from-amber-500/15 via-white/5 to-white/5 border border-amber-300/30 rounded-xl p-3.5 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-amber-200 text-[10px] uppercase font-mono tracking-wider">
-                                <span>KHÔNG GIAN NGHỈ CHÍNH</span>
-                                <BedDouble className="w-4 h-4 text-amber-300" />
+                        <div className="col-span-1 sm:col-span-8 bg-gradient-to-br from-amber-500/15 via-white/5 to-white/5 border border-amber-300/30 rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between">
+                            <div className="flex items-center justify-between text-amber-200 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
+                                <span>NGHỈ NGƠI CHÍNH</span>
+                                <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
                             </div>
-                            <div className="my-2">
-                                <div className="text-sm font-bold text-white flex items-center gap-2">
-                                    <span>{room.bed_type || '1 Giường Đôi King Size'}</span>
+                            <div className="my-1.5 sm:my-2">
+                                <div className="text-xs sm:text-sm font-bold text-white leading-tight truncate">
+                                    {room.bed_type || '1 Giường Đôi King Size'}
                                 </div>
-                                <div className="text-[11px] text-slate-300 mt-1">
-                                    Đệm lò xo túi êm ái • Bàn làm việc & TV màn hình rộng
+                                <div className="text-[10px] sm:text-[11px] text-slate-300 mt-0.5 sm:mt-1 line-clamp-1">
+                                    Đệm lò xo túi êm ái • TV màn hình rộng
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between text-[10px] text-slate-300 font-mono pt-1 border-t border-white/10">
-                                <span>Ánh sáng dịu ấm</span>
-                                <span className="text-amber-300">Rèm cản sáng 100%</span>
+                            <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-300 font-mono pt-1 border-t border-white/10">
+                                <span className="truncate">Ánh sáng dịu ấm</span>
+                                <span className="text-amber-300 shrink-0">Rèm 100%</span>
                             </div>
                         </div>
 
                         {/* Khu 4: Ban công / Cửa sổ toàn cảnh */}
-                        <div className="sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-3 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-sky-300 text-[10px] uppercase font-mono tracking-wider">
+                        <div className="col-span-1 sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between">
+                            <div className="flex items-center justify-between text-sky-300 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
                                 <span>{roomHasBalcony ? 'BAN CÔNG' : 'TẦM NHÌN'}</span>
-                                <Compass className="w-3.5 h-3.5 text-sky-300" />
+                                <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-300" />
                             </div>
-                            <div className="my-2">
-                                <div className="text-xs font-bold text-white">
-                                    {roomHasBalcony ? 'Ban Công Riêng Biệt' : 'Khung Kính Toàn Cảnh'}
+                            <div className="my-1.5 sm:my-2">
+                                <div className="text-xs font-bold text-white leading-tight truncate">
+                                    {roomHasBalcony ? 'Ban Công Riêng' : 'Kính Toàn Cảnh'}
                                 </div>
                                 <div className="text-[10px] text-slate-300 mt-0.5 truncate" title={roomViewText}>
                                     {roomViewText}
                                 </div>
                             </div>
-                            <div className="text-[10px] text-emerald-400 font-mono">Đón gió tự nhiên</div>
+                            <div className="text-[9px] sm:text-[10px] text-emerald-400 font-mono truncate">Đón gió tự nhiên</div>
                         </div>
                     </div>
 

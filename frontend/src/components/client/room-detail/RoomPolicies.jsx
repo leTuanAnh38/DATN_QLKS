@@ -1,5 +1,13 @@
 import React from 'react';
-import { ShieldCheck, Star, Clock, ClipboardList } from 'lucide-react';
+import {
+    ShieldCheck,
+    Star,
+    Clock,
+    ClipboardList,
+    CheckCircle2,
+    AlertCircle,
+    RotateCcw
+} from 'lucide-react';
 
 // Phân tích chính sách hủy phòng thành từng điều khoản trực quan
 export const parseCancellationPolicy = (rawText) => {
@@ -57,8 +65,35 @@ export default function RoomPolicies({
 }) {
     if (!room) return null;
 
+    const rawPolicies = parseCancellationPolicy(room.cancellation_policy);
+
+    // Bóc tách các mốc chính sách hủy & hoàn tiền
+    const freePolicy = rawPolicies.find(
+        (l) => l.toLowerCase().includes('miễn phí') || l.toLowerCase().includes('trước 48')
+    ) || 'Miễn phí hủy phòng trước 48 giờ so với giờ nhận phòng (14:00 ngày Check-in).';
+
+    const halfPolicy = rawPolicies.find((l) => l.toLowerCase().includes('50%')) ||
+        'Hủy phòng trong vòng 24 - 48 giờ: Phí hủy tương đương 50% tiền phòng đêm đầu tiên.';
+
+    const fullPolicy = rawPolicies.find(
+        (l) => l.toLowerCase().includes('100%') || l.toLowerCase().includes('no-show') || l.toLowerCase().includes('dưới 24')
+    ) || 'Hủy phòng trong vòng dưới 24 giờ hoặc vắng mặt (No-show): Phí hủy tương đương 100% tiền phòng đêm đầu tiên.';
+
+    const reschedulePolicy = rawPolicies.find(
+        (l) => l.toLowerCase().includes('dời ngày') || l.toLowerCase().includes('đổi lịch')
+    ) || 'Hỗ trợ dời ngày miễn phí 01 lần nếu thông báo trước 24 giờ (tùy thuộc vào tình trạng phòng khả dụng).';
+
+    // Các điều khoản bổ sung khác nếu có
+    const extraPolicies = rawPolicies.filter(
+        (l) =>
+            l !== freePolicy &&
+            l !== halfPolicy &&
+            l !== fullPolicy &&
+            l !== reschedulePolicy
+    );
+
     return (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+        <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5 sm:space-y-6">
             {/* Header chính sách */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -81,7 +116,7 @@ export default function RoomPolicies({
             </div>
 
             {/* 2 Khối Nhận phòng & Trả phòng */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
                 {/* Nhận phòng */}
                 <div className="p-4 sm:p-5 bg-gradient-to-br from-emerald-50/40 via-white to-slate-50/50 rounded-2xl border border-emerald-100 hover:border-emerald-200 transition shadow-2xs space-y-2.5">
                     <div className="flex items-center justify-between">
@@ -123,39 +158,112 @@ export default function RoomPolicies({
                 </div>
             </div>
 
-            {/* Chi tiết chính sách hủy & đổi lịch riêng biệt của hạng phòng */}
-            <div className="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 sm:p-5 space-y-3.5">
-                <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/60">
+            {/* Chi tiết chính sách hủy phòng theo dạng Timeline Stepper trực quan */}
+            <div className="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
                     <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider">
-                        <ClipboardList className="w-4 h-4 text-amber-600" />
-                        <span>Chính sách hủy phòng & hoàn tiền chi tiết</span>
+                        <ClipboardList className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Chính sách hủy phòng & hoàn tiền trực quan</span>
                     </div>
                     <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
                         Áp dụng cho hạng phòng này
                     </span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2.5">
-                    {parseCancellationPolicy(room.cancellation_policy).map((line, idx) => {
-                        const badge = getPolicyBadge(line);
-                        return (
-                            <div
-                                key={idx}
-                                className="p-3 bg-white rounded-xl border border-slate-200/70 flex items-start gap-3 shadow-2xs hover:border-slate-300 transition"
-                            >
-                                <span
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 mt-0.5 ${badge.badgeClass}`}
-                                >
-                                    <span className={`w-1.5 h-1.5 rounded-full ${badge.dotClass}`} />
-                                    {badge.label}
-                                </span>
-                                <span className="text-xs text-slate-700 leading-relaxed font-normal">
-                                    {line}
-                                </span>
+                {/* 3 Mốc thời gian hủy phòng dạng Timeline Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
+                    {/* Mốc 1: Trước 48h - Miễn phí */}
+                    <div className="p-3.5 bg-white rounded-xl border border-emerald-200/80 border-l-4 border-l-emerald-500 shadow-2xs flex flex-col justify-between space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span>Trước 48 giờ</span>
                             </div>
-                        );
-                    })}
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase shrink-0">
+                                Miễn phí 100%
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                            {freePolicy}
+                        </p>
+                        <div className="text-[10px] text-emerald-700 font-semibold pt-1 border-t border-emerald-100/60 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>Hoàn trả toàn bộ tiền cọc</span>
+                        </div>
+                    </div>
+
+                    {/* Mốc 2: 24h - 48h - Phí 50% */}
+                    <div className="p-3.5 bg-white rounded-xl border border-amber-200/80 border-l-4 border-l-amber-500 shadow-2xs flex flex-col justify-between space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                                <span>Từ 24h - 48 giờ</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black uppercase shrink-0">
+                                Phí hủy 50%
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                            {halfPolicy}
+                        </p>
+                        <div className="text-[10px] text-amber-700 font-semibold pt-1 border-t border-amber-100/60 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>Thu 50% tiền phòng đêm đầu</span>
+                        </div>
+                    </div>
+
+                    {/* Mốc 3: Dưới 24h & No-show - Phí 100% */}
+                    <div className="p-3.5 bg-white rounded-xl border border-rose-200/80 border-l-4 border-l-rose-500 shadow-2xs flex flex-col justify-between space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                                <span>Dưới 24h / No-show</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black uppercase shrink-0">
+                                Phí hủy 100%
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                            {fullPolicy}
+                        </p>
+                        <div className="text-[10px] text-rose-700 font-semibold pt-1 border-t border-rose-100/60 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            <span>Thu 100% tiền phòng đêm đầu</span>
+                        </div>
+                    </div>
                 </div>
+
+                {/* Hộp đặc quyền dời ngày lưu trú miễn phí */}
+                <div className="p-3.5 bg-sky-50/80 rounded-xl border border-sky-200/90 flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <RotateCcw className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-sky-950">
+                                Đặc quyền dời ngày lưu trú linh hoạt:
+                            </span>
+                            <span className="px-2 py-0.2 rounded-full bg-sky-100 text-sky-800 border border-sky-200 text-[9px] font-black uppercase">
+                                Miễn phí 01 lần
+                            </span>
+                        </div>
+                        <p className="text-xs text-sky-800 leading-relaxed font-normal">
+                            {reschedulePolicy}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Các điều khoản bổ sung khác nếu admin cấu hình thêm */}
+                {extraPolicies.length > 0 && (
+                    <div className="pt-2 space-y-2 border-t border-slate-200/60">
+                        {extraPolicies.map((line, idx) => (
+                            <div key={idx} className="flex items-start gap-2 text-xs text-slate-600">
+                                <span className="text-amber-500 font-bold">•</span>
+                                <span>{line}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
