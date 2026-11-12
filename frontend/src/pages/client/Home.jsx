@@ -289,7 +289,7 @@ export default function TADaNangHotelLanding() {
                             <select
                                 value={roomType}
                                 onChange={(e) => setRoomType(e.target.value)}
-                                className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate"
+                                className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate"
                             >
                                 <option value="all">Tất cả hạng phòng</option>
                                 <option value="deluxe">Hạng Deluxe Biển</option>
@@ -327,7 +327,7 @@ export default function TADaNangHotelLanding() {
                                     min={getTodayStr()}
                                     value={checkInDate}
                                     onChange={handleCheckInChange}
-                                    className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0"
+                                    className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0"
                                 />
                                 <div className="text-[10px] sm:text-[10.5px] text-amber-800 font-semibold truncate mt-0.5">
                                     {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
@@ -355,7 +355,7 @@ export default function TADaNangHotelLanding() {
                                     min={getTomorrowStr(checkInDate)}
                                     value={checkOutDate}
                                     onChange={handleCheckOutChange}
-                                    className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0"
+                                    className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0"
                                 />
                                 <div className="text-[10px] sm:text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
                                     {getWeekdayName(checkOutDate)} ({calculateNights()} đêm)
@@ -372,7 +372,7 @@ export default function TADaNangHotelLanding() {
                             <select
                                 value={guests}
                                 onChange={(e) => setGuests(e.target.value)}
-                                className="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate"
+                                className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate"
                             >
                                 <option value="1">1 Khách (1 Người lớn)</option>
                                 <option value="2">2 Khách (2 Người lớn)</option>

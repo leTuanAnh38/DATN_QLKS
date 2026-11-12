@@ -674,7 +674,7 @@ export default function BookingHistory() {
                                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">
                                         Phân loại:
                                     </span>
-                                    <div className="inline-flex p-1 bg-slate-100 rounded-2xl border border-slate-200/70">
+                                    <div className="inline-flex p-1 bg-slate-100 rounded-2xl border border-slate-200/70 overflow-x-auto max-w-full scrollbar-none">
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('all')}
@@ -730,7 +730,7 @@ export default function BookingHistory() {
                                         placeholder="Tìm theo Mã đơn (BK-...), Mã đoàn (GRP-...), phòng..."
                                         value={searchKeyword}
                                         onChange={(e) => setSearchKeyword(e.target.value)}
-                                        className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                        className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                     />
                                     <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
                                     {searchKeyword && (

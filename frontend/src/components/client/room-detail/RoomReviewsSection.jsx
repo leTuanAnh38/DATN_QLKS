@@ -373,7 +373,7 @@ export default function RoomReviewsSection({
                                         key={star}
                                         type="button"
                                         onClick={() => setCleanlinessScore(star)}
-                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                        className="p-1.5 sm:p-1 hover:scale-125 transition-transform cursor-pointer active:scale-95"
                                         title={`${star} sao`}
                                     >
                                         <svg
@@ -405,7 +405,7 @@ export default function RoomReviewsSection({
                                         key={star}
                                         type="button"
                                         onClick={() => setServiceScore(star)}
-                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                        className="p-1.5 sm:p-1 hover:scale-125 transition-transform cursor-pointer active:scale-95"
                                         title={`${star} sao`}
                                     >
                                         <svg
@@ -437,7 +437,7 @@ export default function RoomReviewsSection({
                                         key={star}
                                         type="button"
                                         onClick={() => setLocationScore(star)}
-                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                        className="p-1.5 sm:p-1 hover:scale-125 transition-transform cursor-pointer active:scale-95"
                                         title={`${star} sao`}
                                     >
                                         <svg
@@ -471,7 +471,7 @@ export default function RoomReviewsSection({
                                         key={star}
                                         type="button"
                                         onClick={() => setValueScore(star)}
-                                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                                        className="p-1.5 sm:p-1 hover:scale-125 transition-transform cursor-pointer active:scale-95"
                                         title={`${star} sao`}
                                     >
                                         <svg
@@ -503,7 +503,7 @@ export default function RoomReviewsSection({
                             value={reviewComment}
                             onChange={(e) => setReviewComment(e.target.value)}
                             placeholder="Phòng nghỉ, dịch vụ phòng, tầm nhìn và sự chu đáo của nhân viên đáp ứng kỳ vọng của bạn như thế nào?..."
-                            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs sm:text-sm text-slate-800 outline-none transition bg-white"
+                            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-base sm:text-sm text-slate-800 outline-none transition bg-white"
                         />
                     </div>
 

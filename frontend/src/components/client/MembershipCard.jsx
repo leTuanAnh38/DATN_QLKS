@@ -110,7 +110,7 @@ export default function MembershipCard({ user }) {
                 {/* 1. THẺ THÀNH VIÊN ẢO (VIRTUAL ATM MEMBERSHIP CARD) */}
                 <div className="lg:col-span-5 flex justify-center">
                     <div
-                        className={`w-full max-w-[370px] h-[225px] rounded-2xl p-6 ${theme.bg} border shadow-2xl relative flex flex-col justify-between overflow-hidden select-none transition-all duration-300 hover:scale-[1.02] hover:shadow-3xl`}
+                        className={`w-full max-w-[370px] min-h-[215px] sm:h-[225px] rounded-2xl p-5 sm:p-6 ${theme.bg} border shadow-2xl relative flex flex-col justify-between overflow-hidden select-none transition-all duration-300 hover:scale-[1.02] hover:shadow-3xl`}
                     >
                         {/* Hiệu ứng tia sáng phản quang kim loại */}
                         <div className={`absolute -right-16 -top-16 w-52 h-52 rounded-full blur-3xl pointer-events-none ${theme.glow}`} />

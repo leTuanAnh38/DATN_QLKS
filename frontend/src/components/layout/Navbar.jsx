@@ -385,7 +385,7 @@ export default function Navbar({
 
                 {/* Mobile Navigation Dropdown */}
                 {mobileMenuOpen && (
-                    <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-fadeIn">
+                    <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-fadeIn max-h-[calc(100vh-4.5rem)] overflow-y-auto overscroll-contain">
                         {/* Mobile User Status */}
                         {isAuthenticated && (
                             <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-200/90 space-y-2.5 shadow-xs">

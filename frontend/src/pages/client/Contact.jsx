@@ -270,7 +270,7 @@ export default function ContactPage() {
                                         value={formData.fullName}
                                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                         placeholder="Nguyễn Văn A"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
@@ -283,7 +283,7 @@ export default function ContactPage() {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         placeholder="(+84) 90 123 4567"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                             </div>
@@ -299,7 +299,7 @@ export default function ContactPage() {
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         placeholder="guest@domain.com"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
@@ -310,7 +310,7 @@ export default function ContactPage() {
                                         <select
                                             value={formData.department}
                                             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs appearance-none pr-10 cursor-pointer"
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs appearance-none pr-10 cursor-pointer"
                                         >
                                             <option value="reservations">Đặt phòng lưu trú & Suite</option>
                                             <option value="dining">Dịch vụ Ẩm thực & Bar (F&B)</option>
@@ -335,7 +335,7 @@ export default function ContactPage() {
                                     value={formData.subject}
                                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                     placeholder="Ví dụ: Đặt phòng Ocean Penthouse dịp kỷ niệm ngày cưới"
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                 />
                             </div>
 
@@ -353,7 +353,7 @@ export default function ContactPage() {
                                     value={formData.message}
                                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                     placeholder="Quý khách có thể cung cấp thêm thông tin về số lượng khách, chế độ ăn uống đặc biệt (thuần chay, gluten-free), sở thích gối lông vũ / thảo mộc, hoặc mong muốn đón sân bay chuyên biệt..."
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
                                 />
                             </div>
 
